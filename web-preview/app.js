@@ -135,6 +135,15 @@ function setupEventListeners() {
     }
   });
 
+  // Calendar Date Item Selection
+  document.querySelectorAll('.date-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.date-item').forEach(d => d.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
   // Settings Sidebar Items
   document.querySelectorAll('.sidebar-item').forEach(item => {
     item.addEventListener('click', () => {

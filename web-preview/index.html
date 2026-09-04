@@ -129,22 +129,65 @@
                   </div>
                 </div>
               </div>
-              <div class="home-widgets">
-                <div class="mini-widget">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-calendar" style="color: #f43f5e;"></i>
-                    <div>
-                      <div style="font-size: 11.5px; font-weight: 600;">ITM Lab Review</div>
-                      <div style="font-size: 9.5px; color: #888;">Tomorrow, 10:00 AM</div>
+              <!-- RIGHT: CALENDAR WIDGET MATCHING USER SCREENSHOT -->
+              <div class="calendar-widget-card" id="calendarWidget">
+                <!-- Top Row: Month/Year + Date Picker -->
+                <div class="cal-top-row">
+                  <div class="cal-month-year">
+                    <div class="cal-month">Sep</div>
+                    <div class="cal-year">2026</div>
+                  </div>
+
+                  <!-- Date Picker with Hover Expansion -->
+                  <div class="cal-date-picker" id="calDatePicker">
+                    <div class="date-item">
+                      <span class="day-name">Wed</span>
+                      <span class="day-num">02</span>
+                    </div>
+                    <div class="date-item">
+                      <span class="day-name">Thu</span>
+                      <span class="day-num">03</span>
+                    </div>
+                    <div class="date-item active">
+                      <span class="day-name">Fri</span>
+                      <span class="day-num">04</span>
+                    </div>
+                    <div class="date-item">
+                      <span class="day-name">Sat</span>
+                      <span class="day-num">05</span>
+                    </div>
+                    <div class="date-item">
+                      <span class="day-name">Sun</span>
+                      <span class="day-num">06</span>
+                    </div>
+                    <div class="date-item">
+                      <span class="day-name">Mon</span>
+                      <span class="day-num">07</span>
                     </div>
                   </div>
                 </div>
-                <div class="mini-widget">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-bolt" style="color: #22c55e;"></i>
-                    <div>
-                      <div style="font-size: 11.5px; font-weight: 600;">Battery 88%</div>
-                      <div style="font-size: 9.5px; color: #888;">Charging • 45m until full</div>
+
+                <!-- Event List filling down to the bottom -->
+                <div class="cal-events-list">
+                  <div class="event-item">
+                    <div class="event-indicator purple"></div>
+                    <div class="event-details">
+                      <span class="event-title">Lab Meeting</span>
+                      <span class="event-time">14:00</span>
+                    </div>
+                  </div>
+                  <div class="event-item">
+                    <div class="event-indicator cyan"></div>
+                    <div class="event-details">
+                      <span class="event-title">Dinner</span>
+                      <span class="event-time">18:00 - 19:30</span>
+                    </div>
+                  </div>
+                  <div class="event-item">
+                    <div class="event-indicator green"></div>
+                    <div class="event-details">
+                      <span class="event-title">Antigravity Coding</span>
+                      <span class="event-time">20:30</span>
                     </div>
                   </div>
                 </div>

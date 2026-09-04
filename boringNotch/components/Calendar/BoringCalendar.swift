@@ -24,6 +24,7 @@ struct WheelPicker: View {
     @State private var scrollPosition: Int?
     @State private var haptics: Bool = false
     @State private var byClick: Bool = false
+    @State private var isHovered: Bool = false
     let config: Config
 
     var body: some View {
@@ -36,7 +37,7 @@ struct WheelPicker: View {
                     if index < spacerNum || index >= spacerNum + dateCount {
                         // Leading/trailing spacers sized to match a date cell
                         Spacer()
-                            .frame(width: 24, height: 24)
+                            .frame(width: 24, height: isHovered ? 24 : 20)
                             .id(index)
                     } else {
                         let date = dateForItemIndex(index: index, spacerNum: spacerNum)
@@ -44,7 +45,7 @@ struct WheelPicker: View {
                         dateButton(date: date, isSelected: isSelected, id: index) {
                             selectedDate = date
                             byClick = true
-                            withAnimation {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
                                 scrollPosition = index
                             }
                             if Defaults[.enableHaptics] {
@@ -54,7 +55,7 @@ struct WheelPicker: View {
                     }
                 }
             }
-            .frame(height: 50)
+            .frame(height: isHovered ? 48 : 28)
             .scrollTargetLayout()
         }
         .scrollIndicators(.never)
@@ -62,6 +63,11 @@ struct WheelPicker: View {
         .scrollTargetBehavior(.viewAligned)  // Ensures scroll view snaps the centered view
         .safeAreaPadding(.horizontal)
         .sensoryFeedback(.alignment, trigger: haptics)
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                isHovered = hovering
+            }
+        }
         .onChange(of: scrollPosition) { oldValue, newValue in
             if !byClick {
                 handleScrollChange(newValue: newValue, config: config)
@@ -89,11 +95,14 @@ struct WheelPicker: View {
     ) -> some View {
         let isToday = Calendar.current.isDateInToday(date)
         return Button(action: onClick) {
-            VStack(spacing: 8) {
-                dayText(date: dateToString(for: date), isToday: isToday, isSelected: isSelected)
+            VStack(spacing: isHovered ? 5 : 0) {
+                if isHovered {
+                    dayText(date: dateToString(for: date), isToday: isToday, isSelected: isSelected)
+                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                }
                 dateCircle(date: date, isToday: isToday, isSelected: isSelected)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, isHovered ? 3 : 2)
             .padding(.horizontal, 4)
             .background(isSelected ? Color.effectiveAccentBackground : Color.clear)
             .cornerRadius(8)
@@ -182,17 +191,18 @@ struct CalendarView: View {
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var selectedDate = Date()
+    @State private var dateDebounceTask: Task<Void, Never>?
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading) {
+        VStack(spacing: 2) {
+            HStack(alignment: .center, spacing: 8) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(selectedDate.formatted(.dateTime.month(.abbreviated)))
-                        .font(.title3)
+                        .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                     Text(selectedDate.formatted(.dateTime.year()))
-                        .font(.title3)
+                        .font(.caption)
                         .fontWeight(.light)
                         .foregroundColor(Color(white: 0.65))
                 }
@@ -203,12 +213,12 @@ struct CalendarView: View {
                         LinearGradient(
                             colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing
                         )
-                        .frame(width: 20)
+                        .frame(width: 16)
                         Spacer()
                         LinearGradient(
                             colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing
                         )
-                        .frame(width: 20)
+                        .frame(width: 16)
                     }
                 }
             }
@@ -224,9 +234,12 @@ struct CalendarView: View {
             }
         }
         .listRowBackground(Color.clear)
-        .frame(height: 120)
+        .frame(height: 148)
         .onChange(of: selectedDate) {
-            Task {
+            dateDebounceTask?.cancel()
+            dateDebounceTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(120))
+                guard !Task.isCancelled else { return }
                 await calendarManager.updateCurrentDate(selectedDate)
             }
         }

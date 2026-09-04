@@ -489,6 +489,186 @@ body {
   justify-content: space-between;
 }
 
+/* Calendar Widget matching user's requested layout & styling */
+.calendar-widget-card {
+  flex: 1.1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  padding: 2px 6px;
+  min-width: 0;
+}
+
+.cal-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.cal-month-year {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  user-select: none;
+}
+
+.cal-month {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.cal-year {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #888888;
+}
+
+/* Compact date picker: weekdays hidden by default, smoothly expanded on hover */
+.cal-date-picker {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.date-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  min-width: 26px;
+  user-select: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.date-item .day-name {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #777;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.85);
+  overflow: hidden;
+  transition: max-height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease,
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.25s ease;
+  margin-bottom: 0;
+}
+
+.cal-date-picker:hover .date-item .day-name {
+  max-height: 16px;
+  opacity: 0.8;
+  transform: translateY(0) scale(1);
+  margin-bottom: 2px;
+}
+
+.date-item .day-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: #bbb;
+  transition: color 0.15s ease;
+}
+
+.date-item:hover .day-num {
+  color: #fff;
+}
+
+.date-item.active {
+  background: rgba(30, 64, 175, 0.45);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.date-item.active .day-name {
+  color: #93c5fd;
+  opacity: 1;
+}
+
+.date-item.active .day-num {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Event List filling vertical space cleanly */
+.cal-events-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: flex-start;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.event-item:last-child {
+  border-bottom: none;
+}
+
+.event-indicator {
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.event-indicator.purple {
+  background: #c084fc;
+}
+
+.event-indicator.cyan {
+  background: #38bdf8;
+}
+
+.event-indicator.green {
+  background: #4ade80;
+}
+
+.event-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  font-size: 12px;
+}
+
+.event-title {
+  color: #e5e5e5;
+  font-weight: 500;
+}
+
+.event-time {
+  color: #888888;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ==========================================
    TAB 2: SHELF VIEW
    ========================================== */
