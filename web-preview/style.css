@@ -552,7 +552,7 @@ body.bezel-mode .notch-wrapper {
 }
 
 .music-player-card {
-  flex: 1.4;
+  flex: 3; /* 60% ratio */
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
@@ -649,7 +649,7 @@ body.bezel-mode .notch-wrapper {
 
 /* Calendar Widget matching user's requested layout & styling */
 .calendar-widget-card {
-  flex: 1.1;
+  flex: 2; /* 40% ratio */
   display: flex;
   flex-direction: column;
   height: 148px;

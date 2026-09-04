@@ -133,13 +133,14 @@ final class BrightnessManager: ObservableObject {
 	}
 
 	@MainActor func setRelative(delta: Float, alternateScreen: Bool = false) {
-		let currentDetected = detectedDisplay()
+		let displays = availableDisplays()
+		let builtinDisplay = displays.first(where: { $0.isBuiltin }) ?? detectedDisplay()
 		let target: DisplayTarget
 		if alternateScreen {
-			let displays = availableDisplays()
-			target = displays.first(where: { $0.id != currentDetected.id }) ?? currentDetected
+			target = displays.first(where: { !$0.isBuiltin }) ?? builtinDisplay
 		} else {
-			target = currentDetected
+			// Normal F key press always adjusts the Mac built-in Retina screen!
+			target = builtinDisplay
 		}
 
 		activeDisplayID = target.id
