@@ -3,6 +3,8 @@
 > **A dynamic, fluid Dynamic Island & Productivity Center for macOS.**
 > *Crafted with Swift & SwiftUI by [HieuKunn](https://github.com/HieuKunn)*
 
+THANK YOU SO MUCH FROM BORING NOTCH FOR GIVING ME THIS CHANCE TO FIX AND UPDATE THIS APP
+
 ---
 
 ## ✨ Features
