@@ -29,6 +29,12 @@ struct AlbumArtView: View {
     @ObservedObject var vm: BoringViewModel
     let albumArtNamespace: Namespace.ID
 
+    private var imageAspectRatio: CGFloat {
+        let size = musicManager.albumArt.size
+        guard size.width > 0 && size.height > 0 else { return 1.0 }
+        return size.width / size.height
+    }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             if Defaults[.lightingEffect] {
@@ -41,6 +47,8 @@ struct AlbumArtView: View {
     private var albumArtBackground: some View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
+            .aspectRatio(imageAspectRatio, contentMode: .fit)
+            .frame(maxWidth: 160, maxHeight: 110)
             .clipped()
             .clipShape(
                 RoundedRectangle(
@@ -48,7 +56,6 @@ struct AlbumArtView: View {
                         ? MusicPlayerImageSizes.cornerRadiusInset.opened
                         : MusicPlayerImageSizes.cornerRadiusInset.closed)
             )
-            .aspectRatio(1, contentMode: .fit)
             .scaleEffect(x: 1.3, y: 1.4)
             .rotationEffect(.degrees(92))
             .blur(radius: 40)
@@ -73,18 +80,24 @@ struct AlbumArtView: View {
     }
 
     private var albumArtDarkOverlay: some View {
-        Rectangle()
-            .aspectRatio(1, contentMode: .fit)
+        RoundedRectangle(
+            cornerRadius: Defaults[.cornerRadiusScaling]
+                ? MusicPlayerImageSizes.cornerRadiusInset.opened
+                : MusicPlayerImageSizes.cornerRadiusInset.closed)
+            .aspectRatio(imageAspectRatio, contentMode: .fit)
+            .frame(maxWidth: 160, maxHeight: 110)
             .foregroundColor(Color.black)
             .opacity(musicManager.isPlaying ? 0 : 0.8)
             .blur(radius: 50)
+            .allowsHitTesting(false)
     }
                 
 
     private var albumArtImage: some View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
-            .aspectRatio(1, contentMode: .fit)
+            .aspectRatio(imageAspectRatio, contentMode: .fit)
+            .frame(maxWidth: 160, maxHeight: 110)
             .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
             .clipped()
             .clipShape(
