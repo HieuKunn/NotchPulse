@@ -1,0 +1,111 @@
+name: Build & Package DMG
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tạo GitHub Release (nhập tag ví dụ v2.7.4, để trống nếu chỉ tải Artifact)'
+        required: false
+        default: ''
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build macOS App & DMG
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          echo "Danh sách Xcode có sẵn trên máy ảo:"
+          ls -d /Applications/Xcode*.app || true
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app
+          elif [ -d "/Applications/Xcode.app" ]; then
+            sudo xcode-select -s /Applications/Xcode.app
+          fi
+          xcodebuild -version
+
+      - name: Resolve Swift Package Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies -project boringNotch.xcodeproj
+
+      - name: Build App (Ad-Hoc Signing, No Paid Apple Cert Required)
+        run: |
+          xcodebuild clean build \
+            -project boringNotch.xcodeproj \
+            -scheme boringNotch \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Verify Built App
+        run: |
+          if [ ! -d "build/Build/Products/Release/boringNotch.app" ]; then
+            echo "::error::Không tìm thấy boringNotch.app sau khi build!"
+            exit 1
+          fi
+          echo "Build thành công boringNotch.app!"
+
+      - name: Create DMG & ZIP Packages
+        run: |
+          mkdir -p release_out
+          mkdir -p dmg_staging
+
+          # Copy .app vào thư mục staging
+          cp -R build/Build/Products/Release/boringNotch.app dmg_staging/
+          
+          # Tạo symlink Applications để người dùng kéo thả
+          ln -s /Applications dmg_staging/Applications
+
+          # Tạo file .dmg bằng hdiutil native chuẩn macOS
+          hdiutil create -volname "Boring Notch" -srcfolder dmg_staging -ov -format UDZO release_out/boringNotch.dmg
+
+          # Nén file .app dạng zip với ditto (giữ nguyên quyền và resource macOS)
+          ditto -c -k --keepParent build/Build/Products/Release/boringNotch.app release_out/boringNotch.app.zip
+
+          echo "Đã đóng gói xong:"
+          ls -lh release_out/
+
+      - name: Upload DMG Artifact (Tải trực tiếp từ GitHub Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: boringNotch.dmg
+          path: release_out/boringNotch.dmg
+          if-no-files-found: error
+
+      - name: Upload App ZIP Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boringNotch.app.zip
+          path: release_out/boringNotch.app.zip
+          if-no-files-found: error
+
+      - name: Create GitHub Release (nếu có Tag hoặc nhập tag)
+        if: startsWith(github.ref, 'refs/tags/') || (github.event.inputs.release_tag != '' && github.event.inputs.release_tag != null)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name || github.event.inputs.release_tag }}
+        run: |
+          gh release create "$TAG_NAME" release_out/boringNotch.dmg release_out/boringNotch.app.zip \
+            --title "Boring Notch $TAG_NAME" \
+            --notes "Bản build tự động cho macOS từ GitHub Actions." \
+            --draft=false \
+            --prerelease=false || echo "Release creation skipped or already exists."
