@@ -1376,8 +1376,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/TheBoredTeam/MacroVisionKit";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.0;
+				kind = exactVersion;
+				version = 0.1.0;
 			};
 		};
 		1194E8832EA57D23009C82D6 /* XCRemoteSwiftPackageReference "SkyLightWindow" */ = {
@@ -1440,8 +1440,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.2.4;
+				kind = exactVersion;
+				version = 2.2.4;
 			};
 		};
 		B19016202CC15B3D00E3F12E /* XCRemoteSwiftPackageReference "Defaults" */ = {
