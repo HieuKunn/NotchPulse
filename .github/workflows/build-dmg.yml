@@ -69,20 +69,20 @@ jobs:
           mkdir -p release_out
           mkdir -p dmg_staging
 
-          # Copy .app vào thư mục staging
-          cp -R build/Build/Products/Release/boringNotch.app dmg_staging/
+          # Copy .app vào thư mục staging và đặt tên là NotchPulse.app
+          cp -R build/Build/Products/Release/boringNotch.app dmg_staging/NotchPulse.app
 
           # Ký lại toàn bộ ứng dụng và nested frameworks bằng ad-hoc signing để tránh lỗi Library Validation trên macOS
-          codesign --force --deep --sign - dmg_staging/boringNotch.app
+          codesign --force --deep --sign - dmg_staging/NotchPulse.app
           
           # Tạo symlink Applications để người dùng kéo thả
           ln -s /Applications dmg_staging/Applications
 
           # Tạo file .dmg bằng hdiutil native chuẩn macOS
-          hdiutil create -volname "Boring Notch" -srcfolder dmg_staging -ov -format UDZO release_out/boringNotch.dmg
+          hdiutil create -volname "NotchPulse" -srcfolder dmg_staging -ov -format UDZO release_out/NotchPulse.dmg
 
           # Nén file .app dạng zip với ditto (giữ nguyên quyền và resource macOS)
-          ditto -c -k --keepParent build/Build/Products/Release/boringNotch.app release_out/boringNotch.app.zip
+          ditto -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
 
           echo "Đã đóng gói xong:"
           ls -lh release_out/
@@ -90,15 +90,15 @@ jobs:
       - name: Upload DMG Artifact (Tải trực tiếp từ GitHub Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: boringNotch.dmg
-          path: release_out/boringNotch.dmg
+          name: NotchPulse.dmg
+          path: release_out/NotchPulse.dmg
           if-no-files-found: error
 
       - name: Upload App ZIP Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: boringNotch.app.zip
-          path: release_out/boringNotch.app.zip
+          name: NotchPulse.app.zip
+          path: release_out/NotchPulse.app.zip
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
@@ -110,9 +110,9 @@ jobs:
             TAG="${{ github.ref_name }}"
           fi
           echo "Publishing release $TAG..."
-          gh release create "$TAG" release_out/boringNotch.dmg release_out/boringNotch.app.zip \
-            --title "Boring Notch $TAG" \
-            --notes "Bản cài đặt Boring Notch (.dmg) chính thức, tự động đóng gói từ commit ${{ github.sha }}." \
+          gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
+            --title "NotchPulse $TAG" \
+            --notes "Bản cài đặt NotchPulse (.dmg) chính thức, tự động đóng gói từ commit ${{ github.sha }}." \
             --draft=false \
             --prerelease=false || \
-          gh release upload "$TAG" release_out/boringNotch.dmg release_out/boringNotch.app.zip --clobber
+          gh release upload "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip --clobber

@@ -329,43 +329,87 @@ private extension Array where Element == MusicControlButton {
 
 struct VolumeControlView: View {
     @ObservedObject var musicManager = MusicManager.shared
+    @ObservedObject var volumeManager = VolumeManager.shared
     @State private var volumeSliderValue: Double = 0.5
     @State private var dragging: Bool = false
     @State private var showVolumeSlider: Bool = false
     @State private var lastVolumeUpdateTime: Date = Date.distantPast
     private let volumeUpdateThrottle: TimeInterval = 0.1
     
+    private var isCurrentlyMuted: Bool {
+        if musicManager.volumeControlSupported {
+            return volumeSliderValue == 0
+        } else {
+            return volumeManager.isMuted || volumeManager.rawVolume == 0
+        }
+    }
+
+    private var currentEffectiveVolume: Double {
+        if musicManager.volumeControlSupported {
+            return volumeSliderValue
+        } else {
+            return Double(volumeManager.rawVolume)
+        }
+    }
+
+    private var volumeIcon: String {
+        if isCurrentlyMuted {
+            return "speaker.slash.fill"
+        } else if currentEffectiveVolume < 0.33 {
+            return "speaker.wave.1.fill"
+        } else if currentEffectiveVolume < 0.66 {
+            return "speaker.wave.2.fill"
+        } else {
+            return "speaker.wave.3.fill"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 4) {
             Button(action: {
-                if musicManager.volumeControlSupported {
-                    withAnimation(.easeInOut(duration: 0.12)) {
-                        showVolumeSlider.toggle()
-                    }
+                withAnimation(.easeInOut(duration: 0.12)) {
+                    showVolumeSlider.toggle()
                 }
             }) {
                 Image(systemName: volumeIcon)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(musicManager.volumeControlSupported ? .white : .gray)
+                    .foregroundColor(isCurrentlyMuted ? .gray : .white)
             }
             .buttonStyle(PlainButtonStyle())
-            .disabled(!musicManager.volumeControlSupported)
             .frame(width: 24)
 
-            if showVolumeSlider && musicManager.volumeControlSupported {
+            if showVolumeSlider {
                 CustomSlider(
-                    value: $volumeSliderValue,
+                    value: Binding(
+                        get: { currentEffectiveVolume },
+                        set: { newValue in
+                            volumeSliderValue = newValue
+                            if musicManager.volumeControlSupported {
+                                MusicManager.shared.setVolume(to: newValue)
+                            } else {
+                                VolumeManager.shared.setAbsolute(Float32(newValue))
+                            }
+                        }
+                    ),
                     range: 0.0...1.0,
                     color: .white,
                     dragging: $dragging,
                     lastDragged: .constant(Date.distantPast),
                     onValueChange: { newValue in
-                        MusicManager.shared.setVolume(to: newValue)
+                        if musicManager.volumeControlSupported {
+                            MusicManager.shared.setVolume(to: newValue)
+                        } else {
+                            VolumeManager.shared.setAbsolute(Float32(newValue))
+                        }
                     },
                     onDragChange: { newValue in
                         let now = Date()
                         if now.timeIntervalSince(lastVolumeUpdateTime) > volumeUpdateThrottle {
-                            MusicManager.shared.setVolume(to: newValue)
+                            if musicManager.volumeControlSupported {
+                                MusicManager.shared.setVolume(to: newValue)
+                            } else {
+                                VolumeManager.shared.setAbsolute(Float32(newValue))
+                            }
                             lastVolumeUpdateTime = now
                         }
                     }
@@ -376,42 +420,21 @@ struct VolumeControlView: View {
         }
         .clipped()
         .onReceive(musicManager.$volume) { volume in
-            if !dragging {
+            if !dragging && musicManager.volumeControlSupported {
                 volumeSliderValue = volume
             }
         }
-        .onReceive(musicManager.$volumeControlSupported) { supported in
-            if !supported {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showVolumeSlider = false
-                }
+        .onReceive(volumeManager.$rawVolume) { vol in
+            if !dragging && !musicManager.volumeControlSupported {
+                volumeSliderValue = Double(vol)
             }
         }
         .onChange(of: showVolumeSlider) { _, isShowing in
-            if isShowing {
-                // Sync volume from app when slider appears
+            if isShowing && musicManager.volumeControlSupported {
                 Task {
                     await MusicManager.shared.syncVolumeFromActiveApp()
                 }
             }
-        }
-        .onDisappear {
-            // volumeUpdateTask?.cancel() // No longer needed
-        }
-    }
-    
-    
-    private var volumeIcon: String {
-        if !musicManager.volumeControlSupported {
-            return "speaker.slash"
-        } else if volumeSliderValue == 0 {
-            return "speaker.slash.fill"
-        } else if volumeSliderValue < 0.33 {
-            return "speaker.1.fill"
-        } else if volumeSliderValue < 0.66 {
-            return "speaker.2.fill"
-        } else {
-            return "speaker.3.fill"
         }
     }
 }
