@@ -162,6 +162,11 @@ extension Defaults.Keys {
     // Option key modifier behaviour for media keys
     static let optionKeyAction = Key<OptionKeyAction>("optionKeyAction", default: OptionKeyAction.openSettings)
     
+    // MARK: System Monitor (Stats)
+    static let enableSystemMonitor = Key<Bool>("enableSystemMonitor", default: true)
+    static let systemMonitorInterval = Key<Double>("systemMonitorInterval", default: 1.5)
+    static let systemMonitorShowProcesses = Key<Bool>("systemMonitorShowProcesses", default: true)
+    
     // MARK: Shelf
     static let boringShelf = Key<Bool>("boringShelf", default: true)
     static let openShelfByDefault = Key<Bool>("openShelfByDefault", default: true)

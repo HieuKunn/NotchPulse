@@ -42,6 +42,9 @@ struct SettingsView: View {
                 NavigationLink(value: "HUD") {
                     Label("HUDs", systemImage: "dial.medium.fill")
                 }
+                NavigationLink(value: "SystemMonitor") {
+                    Label("System Monitor", systemImage: "cpu")
+                }
                 NavigationLink(value: "Battery") {
                     Label("Battery", systemImage: "battery.100.bolt")
                 }
@@ -81,6 +84,8 @@ struct SettingsView: View {
                     CalendarSettings()
                 case "HUD":
                     HUD()
+                case "SystemMonitor":
+                    SystemMonitorSettingsView()
                 case "Battery":
                     Charge()
                 case "Shelf":
@@ -587,6 +592,117 @@ struct HUD: View {
             if let granted = notification.userInfo?["granted"] as? Bool {
                 accessibilityAuthorized = granted
             }
+        }
+    }
+}
+
+struct SystemMonitorSettingsView: View {
+    @Default(.enableSystemMonitor) var enableSystemMonitor
+    @Default(.systemMonitorShowProcesses) var showProcesses
+    @ObservedObject var monitor = SystemMonitorManager.shared
+
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("System Monitor (Stats)")
+                            .font(.headline)
+                        Text("Monitor real-time CPU, RAM, and GPU load in a dedicated Notch tab inspired by the 'Stats' app.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .enableSystemMonitor)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .foregroundStyle(.green)
+                        .font(.system(size: 14))
+                    Text("System Monitoring Access: Active (Darwin Mach & IOKit native APIs)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 4)
+            }
+
+            Section {
+                Defaults.Toggle(key: .systemMonitorShowProcesses) {
+                    Text("Show top resource-consuming processes")
+                }
+            } header: {
+                Text("Display Options")
+            }
+            .disabled(!enableSystemMonitor)
+
+            Section {
+                VStack(spacing: 12) {
+                    HStack(spacing: 16) {
+                        // Mini CPU
+                        HStack(spacing: 8) {
+                            Image(systemName: "cpu")
+                                .foregroundStyle(.blue)
+                            VStack(alignment: .leading) {
+                                Text("CPU")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(String(format: "%.0f%%", monitor.cpuTotal))
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Divider()
+
+                        // Mini RAM
+                        HStack(spacing: 8) {
+                            Image(systemName: "memorychip")
+                                .foregroundStyle(.green)
+                            VStack(alignment: .leading) {
+                                Text("RAM")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(String(format: "%.1f / %.0f GB", monitor.ramUsedGB, monitor.ramTotalGB))
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Divider()
+
+                        // Mini GPU
+                        HStack(spacing: 8) {
+                            Image(systemName: "display")
+                                .foregroundStyle(.purple)
+                            VStack(alignment: .leading) {
+                                Text("GPU")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(String(format: "%.0f%%", monitor.gpuUsage))
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("Live Preview")
+            }
+            .disabled(!enableSystemMonitor)
+        }
+        .accentColor(.effectiveAccent)
+        .navigationTitle("System Monitor")
+        .onAppear {
+            monitor.startMonitoring()
+        }
+        .onDisappear {
+            monitor.stopMonitoring()
         }
     }
 }
