@@ -135,12 +135,21 @@ class BoringViewModel: NSObject, ObservableObject {
 
         switch webcamManager.authorizationStatus {
         case .authorized:
-            if webcamManager.isSessionRunning {
+            if isCameraExpanded || webcamManager.isSessionRunning {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                    isCameraExpanded = false
+                }
                 webcamManager.stopSession()
-                isCameraExpanded = false
             } else if webcamManager.cameraAvailable {
+                if BoringViewCoordinator.shared.currentView != .home {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                        BoringViewCoordinator.shared.currentView = .home
+                    }
+                }
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                    isCameraExpanded = true
+                }
                 webcamManager.startSession()
-                isCameraExpanded = true
             }
 
         case .denied, .restricted:

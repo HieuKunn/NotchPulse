@@ -320,12 +320,15 @@ function toggleBezelMode() {
   }
 }
 
-// Camera Preview Toggle Simulator
+// Camera Preview Toggle Simulator (Instant zero-delay mirror)
 function toggleCameraPreview() {
-  const mirror = document.getElementById('cameraPreviewOverlay');
-  if (mirror) {
-    mirror.classList.toggle('show');
+  const card = document.getElementById('cameraMirrorCard');
+  if (!card) return;
+  const isHidden = card.style.display === 'none' || !card.style.display;
+  if (isHidden) {
+    switchTab('home');
+    card.style.display = 'flex';
   } else {
-    alert('Webcam / Mirror Preview: Bật xem trước camera phía trước');
+    card.style.display = 'none';
   }
 }

@@ -35,7 +35,7 @@ class WebcamManager: NSObject, ObservableObject {
         }
     }
 
-    private let sessionQueue = DispatchQueue(label: "BoringNotch.WebcamManager.SessionQueue", qos: .userInitiated)
+    private let sessionQueue = DispatchQueue(label: "BoringNotch.WebcamManager.SessionQueue", qos: .userInteractive)
     
     private var isCleaningUp: Bool = false
     
@@ -65,6 +65,13 @@ class WebcamManager: NSObject, ObservableObject {
         NotificationCenter.default.addObserver(self, selector: #selector(deviceWasDisconnected), name: .AVCaptureDeviceWasDisconnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(deviceWasConnected), name: .AVCaptureDeviceWasConnected, object: nil)
         checkCameraAvailability()
+        
+        // Check authorization and pre-warm capture session in background so turning on camera is INSTANT!
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        self.authorizationStatus = status
+        if status == .authorized {
+            self.prewarmCaptureSession()
+        }
     }
     
     deinit {
@@ -82,6 +89,17 @@ class WebcamManager: NSObject, ObservableObject {
 
     // MARK: - Camera Management
     
+    /// Pre-configures AVCaptureSession and preview layer in the background
+    /// so that when the user taps the camera button, startRunning() takes effect immediately with zero delay.
+    func prewarmCaptureSession() {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            if self.captureSession == nil {
+                self.setupCaptureSession { _ in }
+            }
+        }
+    }
+    
     /// Checks current authorization status and requests access if needed
     func checkAndRequestVideoAuthorization() {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
@@ -91,7 +109,8 @@ class WebcamManager: NSObject, ObservableObject {
         
         switch status {
         case .authorized:
-            checkCameraAvailability() // Check availability if authorized
+            checkCameraAvailability()
+            prewarmCaptureSession()
         case .notDetermined:
             requestVideoAccess()
         case .denied, .restricted:
@@ -107,7 +126,8 @@ class WebcamManager: NSObject, ObservableObject {
             DispatchQueue.main.async {
                 self?.authorizationStatus = granted ? .authorized : .denied
                 if granted {
-                    self?.checkCameraAvailability() // Check availability if access granted
+                    self?.checkCameraAvailability()
+                    self?.prewarmCaptureSession()
                 }
             }
         }
@@ -173,12 +193,6 @@ class WebcamManager: NSObject, ObservableObject {
                 session.beginConfiguration()
                 session.sessionPreset = .high
                 session.addInput(videoInput)
-                
-                let videoOutput = AVCaptureVideoDataOutput()
-                videoOutput.setSampleBufferDelegate(nil, queue: nil)
-                if session.canAddOutput(videoOutput) {
-                    session.addOutput(videoOutput)
-                }
                 session.commitConfiguration()
                 
                 self.captureSession = session
@@ -194,7 +208,7 @@ class WebcamManager: NSObject, ObservableObject {
                     completion(true)
                 }
                 
-                NSLog("Capture session setup completed successfully")
+                NSLog("Capture session setup completed successfully (pre-warmed)")
             } catch {
                 NSLog("Failed to setup capture session: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -240,7 +254,7 @@ class WebcamManager: NSObject, ObservableObject {
         NSLog("Camera device was disconnected")
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
-            self.stopSession()
+            self.cleanupExistingSession()
             DispatchQueue.main.async {
                 self.cameraAvailable = false
             }
@@ -252,6 +266,7 @@ class WebcamManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             self.checkCameraAvailability()
+            self.prewarmCaptureSession()
         }
     }
 
@@ -263,19 +278,23 @@ class WebcamManager: NSObject, ObservableObject {
     }
     
     func startSession() {
+        // Immediately set isSessionRunning = true so SwiftUI layout doesn't lag
+        DispatchQueue.main.async {
+            self.isSessionRunning = true
+        }
+
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
-            // If no session exists, create new session
+            // If no session exists, create new session and run
             if self.captureSession == nil {
                 self.setupCaptureSession { success in
                     if success {
-                        // Only start the session if setup was successful
                         self.startRunningCaptureSession()
                     }
                 }
             } else {
-                // Session already exists, just start it
+                // Session already pre-warmed / configured! Just start it immediately!
                 self.startRunningCaptureSession()
             }
         }
@@ -283,16 +302,16 @@ class WebcamManager: NSObject, ObservableObject {
     
     private func startRunningCaptureSession() {
         sessionQueue.async { [weak self] in
-            guard let self = self, let session = self.captureSession, !session.isRunning else {
-                return
-            }
+            guard let self = self, let session = self.captureSession else { return }
             
-            session.startRunning()
+            if !session.isRunning {
+                session.startRunning()
+            }
             
             // Update state on main thread
             self.updateSessionState()
             
-            NSLog("Capture session started successfully")
+            NSLog("Capture session started successfully (instant)")
         }
     }
     
@@ -300,14 +319,18 @@ class WebcamManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
-            // Update state to indicate we're stopping
+            // Update state immediately
             DispatchQueue.main.async {
                 self.isSessionRunning = false
             }
             
-            self.cleanupExistingSession()
+            // Stop hardware sensor to turn off green camera LED and save power,
+            // BUT keep session & previewLayer pre-warmed so reopening is INSTANT!
+            if let session = self.captureSession, session.isRunning {
+                session.stopRunning()
+            }
             
-            NSLog("Capture session stopped and cleaned up")
+            NSLog("Capture session paused (kept pre-warmed for zero latency)")
         }
     }
 }
