@@ -71,6 +71,9 @@ jobs:
 
           # Copy .app vào thư mục staging
           cp -R build/Build/Products/Release/boringNotch.app dmg_staging/
+
+          # Ký lại toàn bộ ứng dụng và nested frameworks bằng ad-hoc signing để tránh lỗi Library Validation trên macOS
+          codesign --force --deep --sign - dmg_staging/boringNotch.app
           
           # Tạo symlink Applications để người dùng kéo thả
           ln -s /Applications dmg_staging/Applications
