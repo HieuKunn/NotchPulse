@@ -226,15 +226,20 @@ struct CalendarView: View {
             let filteredEvents = EventListView.filteredEvents(
                 events: calendarManager.events
             )
-            if filteredEvents.isEmpty {
-                EmptyEventsView(selectedDate: selectedDate)
-                Spacer(minLength: 0)
-            } else {
-                EventListView(events: calendarManager.events)
+            Group {
+                if filteredEvents.isEmpty {
+                    EmptyEventsView(selectedDate: selectedDate)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    EventListView(events: calendarManager.events)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
         }
         .listRowBackground(Color.clear)
         .frame(height: 148)
+        .clipped()
         .onChange(of: selectedDate) {
             dateDebounceTask?.cancel()
             dateDebounceTask = Task { @MainActor in
@@ -351,7 +356,8 @@ struct EventListView: View {
                 scrollToRelevantEvent(proxy: proxy)
             }
         }
-        Spacer(minLength: 0)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 
     private func eventRow(_ event: EventModel) -> some View {

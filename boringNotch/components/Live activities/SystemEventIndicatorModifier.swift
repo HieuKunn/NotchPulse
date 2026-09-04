@@ -40,7 +40,7 @@ struct SystemEventIndicatorModifier: View {
                             .frame(width: 20, height: 15, alignment: .leading)
                     }
                 case .brightness:
-                    Image(systemName: "sun.max.fill")
+                    Image(systemName: icon.isEmpty ? (BrightnessManager.shared.isCurrentBuiltin ? "sun.max.fill" : "display") : icon)
                         .contentTransition(.symbolEffect)
                         .frame(width: 20, height: 15)
                         .foregroundStyle(.white)

@@ -301,6 +301,58 @@ body.bezel-mode .notch-wrapper {
   100% { height: 12px; }
 }
 
+/* Closed Notch HUD Preview */
+.hud-sneak-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.hud-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hud-left:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.04);
+}
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-slider-track {
+  width: 65px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hud-slider-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 3px;
+  transition: width 0.15s ease;
+}
+
 /* ==========================================
    OPEN NOTCH VIEW (640px x 200px)
    ========================================== */
@@ -600,10 +652,14 @@ body.bezel-mode .notch-wrapper {
   flex: 1.1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  justify-content: space-between;
+  height: 148px;
+  max-height: 148px;
+  min-height: 148px;
+  justify-content: flex-start;
   padding: 2px 6px;
   min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .cal-top-row {
@@ -612,6 +668,7 @@ body.bezel-mode .notch-wrapper {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 4px;
+  flex-shrink: 0;
 }
 
 .cal-month-year {
@@ -714,15 +771,25 @@ body.bezel-mode .notch-wrapper {
   font-weight: 700;
 }
 
-/* Event List filling vertical space cleanly */
+/* Event List filling vertical space cleanly and shrinking when date picker expands */
 .cal-events-list {
   flex: 1;
+  min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 5px;
   justify-content: flex-start;
   margin-top: 4px;
   padding-top: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cal-events-list::-webkit-scrollbar {
+  display: none;
 }
 
 .event-item {

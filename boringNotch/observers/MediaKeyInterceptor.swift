@@ -125,6 +125,7 @@ final class MediaKeyInterceptor {
         let option = flags.contains(.option)
         let shift = flags.contains(.shift)
         let command = flags.contains(.command)
+        let control = flags.contains(.control)
         
         // Handle option key action (without shift)
         if option && !shift {
@@ -134,7 +135,7 @@ final class MediaKeyInterceptor {
         }
         
         // Handle normal key press
-        handleKeyPress(keyType: keyType, option: option, shift: shift, command: command)
+        handleKeyPress(keyType: keyType, option: option, shift: shift, command: command, control: control)
         return nil
     }
     
@@ -196,7 +197,7 @@ final class MediaKeyInterceptor {
         player.play()
     }
 
-    private func handleKeyPress(keyType: NXKeyType, option: Bool, shift: Bool, command: Bool) {
+    private func handleKeyPress(keyType: NXKeyType, option: Bool, shift: Bool, command: Bool, control: Bool) {
         let stepDivisor: Float = (option && shift) ? 4.0 : 1.0
         
         switch keyType {
@@ -216,19 +217,19 @@ final class MediaKeyInterceptor {
             }
         case .brightnessUp, .keyboardBrightnessUp:
             let delta = step / stepDivisor
-            adjustBrightness(delta: delta, keyboard: keyType == .keyboardBrightnessUp || command)
+            adjustBrightness(delta: delta, keyboard: keyType == .keyboardBrightnessUp || command, control: control)
         case .brightnessDown, .keyboardBrightnessDown:
             let delta = -(step / stepDivisor)
-            adjustBrightness(delta: delta, keyboard: keyType == .keyboardBrightnessDown || command)
+            adjustBrightness(delta: delta, keyboard: keyType == .keyboardBrightnessDown || command, control: control)
         }
     }
     
-    private func adjustBrightness(delta: Float, keyboard: Bool) {
+    private func adjustBrightness(delta: Float, keyboard: Bool, control: Bool = false) {
         Task { @MainActor in
             if keyboard {
                 KeyboardBacklightManager.shared.setRelative(delta: delta)
             } else {
-                BrightnessManager.shared.setRelative(delta: delta)
+                BrightnessManager.shared.setRelative(delta: delta, alternateScreen: control)
             }
         }
     }

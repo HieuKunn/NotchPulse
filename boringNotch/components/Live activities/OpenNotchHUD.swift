@@ -29,8 +29,13 @@ struct OpenNotchHUD: View {
                             .contentTransition(.interpolate)
                     }
                 case .brightness:
-                    Image(systemName: "sun.max.fill")
-                        .contentTransition(.symbolEffect)
+                    Button(action: {
+                        BrightnessManager.shared.toggleTargetDisplay()
+                    }) {
+                        Image(systemName: icon.isEmpty ? (BrightnessManager.shared.isCurrentBuiltin ? "sun.max.fill" : "display") : icon)
+                            .contentTransition(.symbolEffect)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 case .backlight:
                     Image(systemName: value > 0.5 ? "light.max" : "light.min")
                         .contentTransition(.interpolate)

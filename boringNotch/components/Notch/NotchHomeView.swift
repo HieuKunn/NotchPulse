@@ -445,7 +445,8 @@ struct NotchHomeView: View {
 
             if Defaults[.showCalendar] {
                 CalendarView()
-                    .frame(width: shouldShowCamera ? 170 : 215)
+                    .frame(width: shouldShowCamera ? 170 : 215, height: 148)
+                    .clipped()
                     .onHover { isHovering in
                         vm.isHoveringCalendar = isHovering
                     }

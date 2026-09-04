@@ -99,20 +99,26 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
     @objc func setKeyboardBrightness(_ value: Float, with reply: @escaping (Bool) -> Void) {
         reply(Self.keyboardClient.setBrightness(value))
     }
-    // MARK: - Screen Brightness (moved from client app into helper)
+    // MARK: - Screen Brightness (multi-display and legacy)
 
-    @objc func isScreenBrightnessAvailable(with reply: @escaping (Bool) -> Void) {
+    @objc func isDisplayBrightnessAvailable(for displayID: UInt32, with reply: @escaping (Bool) -> Void) {
+        let did = CGDirectDisplayID(displayID)
         var b: Float = 0
-        reply(displayServicesGetBrightness(displayID: CGMainDisplayID(), out: &b) || ioServiceFor(displayID: CGMainDisplayID()) != nil)
+        if displayServicesGetBrightness(displayID: did, out: &b) || ioServiceFor(displayID: did) != nil {
+            reply(true)
+            return
+        }
+        reply(true)
     }
 
-    @objc func currentScreenBrightness(with reply: @escaping (NSNumber?) -> Void) {
+    @objc func currentDisplayBrightness(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void) {
+        let did = CGDirectDisplayID(displayID)
         var b: Float = 0
-        if displayServicesGetBrightness(displayID: CGMainDisplayID(), out: &b) {
+        if displayServicesGetBrightness(displayID: did, out: &b) {
             reply(NSNumber(value: b))
             return
         }
-        if let io = ioServiceFor(displayID: CGMainDisplayID()) {
+        if let io = ioServiceFor(displayID: did) {
             var level: Float = 0
             if IODisplayGetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, &level) == kIOReturnSuccess {
                 IOObjectRelease(io)
@@ -124,19 +130,49 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
         reply(nil)
     }
 
-    @objc func setScreenBrightness(_ value: Float, with reply: @escaping (Bool) -> Void) {
+    @objc func setDisplayBrightness(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void) {
+        let did = CGDirectDisplayID(displayID)
         let clamped = max(0, min(1, value))
-        if displayServicesSetBrightness(displayID: CGMainDisplayID(), value: clamped) {
+        if displayServicesSetBrightness(displayID: did, value: clamped) {
             reply(true)
             return
         }
-        if let io = ioServiceFor(displayID: CGMainDisplayID()) {
+        if let io = ioServiceFor(displayID: did) {
             let ok = IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped) == kIOReturnSuccess
             IOObjectRelease(io)
-            reply(ok)
-            return
+            if ok {
+                reply(true)
+                return
+            }
         }
-        reply(false)
+        let ok = setDisplayGammaBrightness(displayID: did, brightness: clamped)
+        reply(ok)
+    }
+
+    @objc func isScreenBrightnessAvailable(with reply: @escaping (Bool) -> Void) {
+        isDisplayBrightnessAvailable(for: CGMainDisplayID(), with: reply)
+    }
+
+    @objc func currentScreenBrightness(with reply: @escaping (NSNumber?) -> Void) {
+        currentDisplayBrightness(for: CGMainDisplayID(), with: reply)
+    }
+
+    @objc func setScreenBrightness(_ value: Float, with reply: @escaping (Bool) -> Void) {
+        setDisplayBrightness(value, for: CGMainDisplayID(), with: reply)
+    }
+
+    private func setDisplayGammaBrightness(displayID: CGDirectDisplayID, brightness: Float) -> Bool {
+        let clamped = max(0.05, min(1.0, brightness))
+        var red = [CGGammaValue](repeating: 0, count: 256)
+        var green = [CGGammaValue](repeating: 0, count: 256)
+        var blue = [CGGammaValue](repeating: 0, count: 256)
+        for i in 0..<256 {
+            let linear = Float(i) / 255.0 * clamped
+            red[i] = CGGammaValue(linear)
+            green[i] = CGGammaValue(linear)
+            blue[i] = CGGammaValue(linear)
+        }
+        return CGSetDisplayTransferByTable(displayID, 256, &red, &green, &blue) == .success
     }
 
     // MARK: - Private helpers for DisplayServices / IOKit access

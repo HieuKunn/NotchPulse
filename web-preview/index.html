@@ -58,6 +58,23 @@
         
         <!-- Closed Notch State -->
         <div class="notch-closed-content">
+          <!-- HUD Preview Overlay (Retina vs External Display) -->
+          <div class="hud-sneak-preview" id="hudSneakPreview" style="display: none;">
+            <div class="hud-left" id="hudDisplayToggle" onclick="toggleHudDisplay(event)" title="Click để chuyển đổi giữa Retina & Màn phụ">
+              <i id="hudIcon" class="fa-solid fa-sun" style="color: #fff; font-size: 13px;"></i>
+              <span id="hudTitle" style="color: #fff; font-size: 13px; font-weight: 600;">Retina</span>
+            </div>
+            <div class="camera-cutout">
+              <div class="camera-lens-dot"></div>
+            </div>
+            <div class="hud-right">
+              <div class="hud-slider-track">
+                <div class="hud-slider-fill" id="hudSliderFill" style="width: 65%;"></div>
+              </div>
+              <span id="hudPercent" style="color: #888; font-size: 12px; font-weight: 500; min-width: 28px;">65%</span>
+            </div>
+          </div>
+
           <div class="music-sneak-preview" id="musicSneakPreview">
             <!-- Left: Song Preview -->
             <div class="sneak-song-info">
@@ -538,6 +555,10 @@
       <button class="dock-btn" onclick="toggleSettings(true)">
         <i class="fa-solid fa-gear"></i>
         <span>Mở Cài đặt (⌘+,)</span>
+      </button>
+      <button class="dock-btn" onclick="triggerBrightnessHUD()">
+        <i class="fa-solid fa-sun" style="color: #f59e0b;"></i>
+        <span>Test HUD (Retina / Màn phụ)</span>
       </button>
       <button class="dock-btn" id="toggleBezelBtn" onclick="toggleBezelMode()">
         <i class="fa-solid fa-desktop" style="color: #a855f7;"></i>

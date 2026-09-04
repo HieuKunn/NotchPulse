@@ -332,3 +332,68 @@ function toggleCameraPreview() {
     card.style.display = 'none';
   }
 }
+
+// HUD Brightness & Display Target Simulator
+let hudTimeout = null;
+let currentDisplayMode = 'retina'; // 'retina' | 'external'
+let retinaBrightness = 65;
+let externalBrightness = 80;
+
+function triggerBrightnessHUD() {
+  const notch = document.getElementById('boringNotch');
+  const hud = document.getElementById('hudSneakPreview');
+  const music = document.getElementById('musicSneakPreview');
+  if (!hud || !notch) return;
+
+  // Make sure notch is closed for HUD sneak peek
+  if (notch.classList.contains('open')) {
+    toggleNotch(false);
+  }
+
+  music.style.display = 'none';
+  hud.style.display = 'flex';
+  updateHudDisplayUI();
+
+  clearTimeout(hudTimeout);
+  hudTimeout = setTimeout(() => {
+    hud.style.display = 'none';
+    if (state.musicPlaying) {
+      music.style.display = 'flex';
+    }
+  }, 2500);
+}
+
+function toggleHudDisplay(event) {
+  if (event) event.stopPropagation();
+  currentDisplayMode = currentDisplayMode === 'retina' ? 'external' : 'retina';
+  updateHudDisplayUI();
+  
+  // Refresh HUD timer
+  clearTimeout(hudTimeout);
+  hudTimeout = setTimeout(() => {
+    const hud = document.getElementById('hudSneakPreview');
+    const music = document.getElementById('musicSneakPreview');
+    if (hud) hud.style.display = 'none';
+    if (state.musicPlaying && music) music.style.display = 'flex';
+  }, 2500);
+}
+
+function updateHudDisplayUI() {
+  const icon = document.getElementById('hudIcon');
+  const title = document.getElementById('hudTitle');
+  const fill = document.getElementById('hudSliderFill');
+  const pct = document.getElementById('hudPercent');
+  if (!icon || !title || !fill || !pct) return;
+
+  if (currentDisplayMode === 'retina') {
+    icon.className = 'fa-solid fa-sun';
+    title.textContent = 'Retina';
+    fill.style.width = `${retinaBrightness}%`;
+    pct.textContent = `${retinaBrightness}%`;
+  } else {
+    icon.className = 'fa-solid fa-desktop';
+    title.textContent = 'Màn phụ';
+    fill.style.width = `${externalBrightness}%`;
+    pct.textContent = `${externalBrightness}%`;
+  }
+}

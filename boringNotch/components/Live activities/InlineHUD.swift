@@ -10,6 +10,7 @@ import Defaults
 
 struct InlineHUD: View {
     @EnvironmentObject var vm: BoringViewModel
+    @ObservedObject var brightnessManager = BrightnessManager.shared
     @Binding var type: SneakContentType
     @Binding var value: CGFloat
     @Binding var icon: String
@@ -34,9 +35,14 @@ struct InlineHUD: View {
                                     .frame(width: 20, height: 15, alignment: .leading)
                             }
                         case .brightness:
-                            Image(systemName: BrightnessSymbol(value))
-                                .contentTransition(.interpolate)
-                                .frame(width: 20, height: 15, alignment: .center)
+                            Button(action: {
+                                brightnessManager.toggleTargetDisplay()
+                            }) {
+                                Image(systemName: icon.isEmpty ? (brightnessManager.isCurrentBuiltin ? BrightnessSymbol(value) : "display") : icon)
+                                    .contentTransition(.interpolate)
+                                    .frame(width: 20, height: 15, alignment: .center)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         case .backlight:
                             Image(systemName: value > 0.5 ? "light.max" : "light.min")
                                 .contentTransition(.interpolate)
@@ -54,12 +60,26 @@ struct InlineHUD: View {
                 .foregroundStyle(.white)
                 .symbolVariant(.fill)
                 
-                Text(Type2Name(type))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                    .allowsTightening(true)
-                    .contentTransition(.numericText())
+                if type == .brightness {
+                    Button(action: {
+                        brightnessManager.toggleTargetDisplay()
+                    }) {
+                        Text(Type2Name(type))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .lineLimit(1)
+                            .allowsTightening(true)
+                            .contentTransition(.numericText())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else {
+                    Text(Type2Name(type))
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                        .allowsTightening(true)
+                        .contentTransition(.numericText())
+                }
             }
             .frame(width: 100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2, height: vm.notchSize.height - (hoverAnimation ? 0 : 12), alignment: .leading)
             
@@ -142,7 +162,7 @@ struct InlineHUD: View {
             case .volume:
                 return "Volume"
             case .brightness:
-                return "Brightness"
+                return brightnessManager.currentDisplayName
             case .backlight:
                 return "Backlight"
             case .mic:
