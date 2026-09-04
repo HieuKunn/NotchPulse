@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   startHardwareSimulation();
   renderSparklines();
+  switchTab(state.activeTab);
 });
 
 // Toggle Notch Open/Closed
@@ -307,5 +308,24 @@ function toggleMusicPlayback() {
   } else {
     sneak.style.display = 'none';
     waves.forEach(w => w.style.animationPlayState = 'paused');
+  }
+}
+
+// Toggle Bezel Mode (Offsets Notch so it's NEVER obscured by browser bars or physical Mac notches)
+function toggleBezelMode() {
+  const isBezel = document.body.classList.toggle('bezel-mode');
+  const label = document.getElementById('bezelModeLabel');
+  if (label) {
+    label.textContent = isBezel ? 'Chế độ Sát mép màn hình' : 'Hạ Notch xuống (Tránh bị che)';
+  }
+}
+
+// Camera Preview Toggle Simulator
+function toggleCameraPreview() {
+  const mirror = document.getElementById('cameraPreviewOverlay');
+  if (mirror) {
+    mirror.classList.toggle('show');
+  } else {
+    alert('Webcam / Mirror Preview: Bật xem trước camera phía trước');
   }
 }

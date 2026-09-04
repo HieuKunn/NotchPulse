@@ -54,7 +54,7 @@ body {
 
 /* macOS Top Menu Bar */
 .menu-bar {
-  height: 30px;
+  height: 32px;
   background: rgba(18, 18, 20, 0.65);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -66,7 +66,7 @@ body {
   font-weight: 500;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
-  z-index: 100;
+  z-index: 50; /* LOWER than notch-wrapper (10000) so notch is NEVER covered */
 }
 
 .menu-left, .menu-right {
@@ -109,7 +109,7 @@ body {
 /* Sparkle Menu Dropdown */
 .menu-dropdown {
   position: absolute;
-  top: 32px;
+  top: 34px;
   right: 16px;
   background: rgba(30, 30, 35, 0.94);
   backdrop-filter: blur(24px);
@@ -140,8 +140,7 @@ body {
 }
 
 .dropdown-item:hover {
-  background: var(--accent-blue);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .dropdown-divider {
@@ -158,19 +157,42 @@ body {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 90;
+  z-index: 10000; /* ALWAYS ON TOP, ZERO OVERLAP OR CLIPPING */
   display: flex;
   justify-content: center;
+  transition: top 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Bezel Mode: creates a realistic MacBook bezel top clearance so physical notches or browser tabs NEVER obscure the Notch */
+body.bezel-mode .desktop {
+  padding-top: 30px;
+}
+
+body.bezel-mode .desktop::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: #020205;
+  z-index: 999;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 -4px 10px rgba(0, 0, 0, 0.6);
+}
+
+body.bezel-mode .notch-wrapper {
+  top: 30px;
 }
 
 /* Closed State: 185px x 34px */
 .notch {
-  background: var(--notch-bg);
+  background: #000000;
   width: 185px;
   height: 34px;
   border-bottom-left-radius: 18px;
   border-bottom-right-radius: 18px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.85);
   transition: width 0.36s cubic-bezier(0.16, 1, 0.3, 1), 
               height 0.36s cubic-bezier(0.16, 1, 0.3, 1),
               border-radius 0.36s ease;
@@ -179,13 +201,13 @@ body {
   position: relative;
 }
 
-/* Open State: 640px x 190px */
+/* Open State: 640px x 200px (Plenty of room for tabs, camera, and cards) */
 .notch.open {
   width: 640px;
-  height: 190px;
+  height: 200px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 /* Closed Content (Camera Cutout & Music Visualizer Preview) */
@@ -280,36 +302,39 @@ body {
 }
 
 /* ==========================================
-   OPEN NOTCH VIEW (640px x 190px)
+   OPEN NOTCH VIEW (640px x 200px)
    ========================================== */
 .notch-open-content {
   width: 640px;
-  height: 190px;
+  height: 200px;
   display: none;
   flex-direction: column;
-  padding: 10px 14px 14px 14px;
+  padding: 8px 14px 12px 14px;
+  box-sizing: border-box;
 }
 
 .notch.open .notch-open-content {
   display: flex;
 }
 
-/* Notch Header (Tabs Bar) */
+/* Notch Header (100% Matching Native Boring Notch) */
 .notch-header {
-  height: 32px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  padding: 0 4px;
+  position: relative;
 }
 
-/* Tabs: Capsule Container matching user photo */
+/* Tabs: Capsule Container matching user photo & TabSelectionView.swift */
 .tabs-capsule {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 2.5px;
   gap: 2px;
 }
 
@@ -317,33 +342,108 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 30px;
   height: 26px;
-  padding: 0 14px;
-  border-radius: 12px;
+  border-radius: 999px;
   border: none;
   background: transparent;
-  color: #888;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 11.5px;
-  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tab-btn.active {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.24);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
 .tab-btn:hover:not(.active) {
-  color: #ccc;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
+/* Hardware Camera Notch Area (Center) */
+.header-notch-center {
+  width: 140px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.header-camera-lens {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #1e293b 0%, #030712 85%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Right Status Indicators & Controls */
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+.header-battery-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  user-select: none;
+}
+
+.header-cam-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  margin-right: 1px;
+}
+
+.header-battery-pct {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #e5e5e5;
+  font-variant-numeric: tabular-nums;
+}
+
+.header-battery-icon-pill {
+  width: 20px;
+  height: 11px;
+  border: 1.5px solid #22c55e;
+  border-radius: 3px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 1px;
+}
+
+.header-battery-level-fill {
+  width: 51%;
+  height: 100%;
+  background: #22c55e;
+  border-radius: 1px;
+}
+
+.header-battery-bolt {
+  font-size: 7.5px;
+  color: #ffffff;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 1px rgba(0,0,0,0.8));
 }
 
 .header-btn {
@@ -357,13 +457,19 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 12px;
-  transition: background 0.15s;
+  font-size: 11.5px;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
 }
 
 .header-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
+  transform: scale(1.05);
+}
+
+.header-btn.close-btn:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: #f87171;
 }
 
 /* Tab Content Panes */
@@ -670,7 +776,7 @@ body {
 }
 
 /* ==========================================
-   TAB 2: SHELF VIEW
+   TAB 2: SHELF VIEW (100% Matching Native Boring Notch)
    ========================================== */
 .shelf-view {
   width: 100%;
@@ -679,38 +785,73 @@ body {
   gap: 12px;
 }
 
-.shelf-drop-zone {
+.shelf-card {
   flex: 1;
   border: 1.5px dashed rgba(255, 255, 255, 0.2);
   border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  gap: 8px;
-  color: #888;
-  font-size: 12px;
-}
-
-.shelf-items-list {
-  display: flex;
   gap: 10px;
-  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 10px;
 }
 
-.shelf-item-card {
-  width: 80px;
-  height: 90px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
+.shelf-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.airdrop-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1.5px solid rgba(59, 130, 246, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #60a5fa;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.shelf-file-badge {
+  width: 46px;
+  height: 52px;
+  background: #f1f5f9;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 10px;
-  color: #ddd;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.zip-tag {
+  font-size: 8px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.file-zip-icon {
+  font-size: 22px;
+  color: #1e293b;
+  margin-top: 1px;
+}
+
+.shelf-card-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-align: center;
+  line-height: 1.25;
 }
 
 /* ==========================================
