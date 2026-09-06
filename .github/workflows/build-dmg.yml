@@ -4,9 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tạo GitHub Release (nhập tag ví dụ v2.7.4, bắt buộc)'
+        description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.2, bắt buộc)'
         required: true
-        default: 'v3.0.0'
+        default: 'v2.9.2'
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -114,19 +117,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v3.0.0"
+          TAG="v2.9.2"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
             TAG="${{ github.event.inputs.release_tag }}"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
           fi
           echo "Publishing release $TAG..."
+
+          DEFAULT_NOTES="Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit ${{ github.sha }}.
+
+### Thay đổi trong bản $TAG:
+- Sửa lại hoàn thiện và thay đổi Face ID sử dụng ML model nhỏ (CoreML FaceNet).
+- Căn chỉnh biểu tượng Face ID pop-down từ notch / Dynamic Island tinh gọn, đồng bộ.
+- Bổ sung thanh điều khiển media ở chế độ toàn màn hình lời bài hát.
+- Tối ưu hiệu năng và độ ổn định."
+
           gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
             --title "NotchPulse $TAG" \
             --notes-from-tag || \
           gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
             --title "NotchPulse $TAG" \
-            --notes "Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit ${{ github.sha }}." \
+            --notes "$DEFAULT_NOTES" \
             --draft=false \
             --prerelease=false || \
+          gh release edit "$TAG" --title "NotchPulse $TAG" --notes "$DEFAULT_NOTES" || \
           gh release upload "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip --clobber
