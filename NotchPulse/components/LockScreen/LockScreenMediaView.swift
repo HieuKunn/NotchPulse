@@ -185,24 +185,8 @@ struct LockScreenMediaView: View {
             ambientDynamicBackground
             
             VStack(spacing: 0) {
-                // Thanh tiêu đề phía trên: Nút thu nhỏ lại thẻ compact
+                // Thanh tiêu đề phía trên (Thu nhỏ chỉ cần bấm vào ảnh đĩa/album)
                 HStack {
-                    Button {
-                        windowController.setFullScreen(false)
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.down.circle.fill")
-                                .font(.system(size: 20))
-                            Text("Thu nhỏ")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        }
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(Color.white.opacity(0.12)))
-                    }
-                    .buttonStyle(.plain)
-                    
                     Spacer()
                     
                     // Nút tua lùi 5s / tua tới 5s

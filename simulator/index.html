@@ -690,21 +690,6 @@
       pointer-events: auto;
       transform: scale(1);
     }
-    .lyrics-close-btn {
-      position: absolute;
-      top: 24px;
-      right: 32px;
-      background: rgba(255, 255, 255, 0.15);
-      border: none;
-      color: #fff;
-      padding: 7px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
-      z-index: 10;
-    }
     .lyrics-left-artwork {
       flex: 0 0 38%;
       max-width: 38%;
@@ -1100,8 +1085,6 @@
 
       <!-- Mode 2: Full-Screen Immersive Synced Lyrics -->
       <div class="fullscreen-immersive-lyrics" id="immersiveLyrics">
-        <button class="lyrics-close-btn" onclick="closeImmersiveLyrics()">✕ Thu nhỏ Player</button>
-        
         <div class="lyrics-left-artwork" onclick="closeImmersiveLyrics()" title="Chạm vào ảnh album để thu nhỏ về màn hình khoá">
           <img class="lyrics-big-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&h=600&fit=crop" alt="big art">
           <div style="text-align: center;">
