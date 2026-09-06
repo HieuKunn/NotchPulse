@@ -12,7 +12,7 @@ import SwiftUI
 
 struct LockScreenMediaView: View {
     @ObservedObject var musicManager = MusicManager.shared
-    @ObservedObject var windowController = LockScreenMediaWindow.shared
+    @ObservedObject var windowController: LockScreenMediaWindow
     
     var body: some View {
         ZStack {

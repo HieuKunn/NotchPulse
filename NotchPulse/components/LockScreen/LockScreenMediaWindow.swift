@@ -46,7 +46,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             .ignoresCycle
         ]
         
-        contentView = NSHostingView(rootView: LockScreenMediaView())
+        contentView = NSHostingView(rootView: LockScreenMediaView(windowController: self))
     }
     
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
