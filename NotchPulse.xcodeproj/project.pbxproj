@@ -26,7 +26,7 @@
 		F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200082ED0000100000001 /* FaceIDSettingsView.swift */; };
 		F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */; };
 		F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */; };
-		F1D2000D2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000E2ED0000100000001 /* LockScreenFaceIDWindow.swift */; };
+		F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */; };
 		1113ABD02E80E6BB00EC13B2 /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1113ABCF2E80E6BB00EC13B2 /* ThumbnailService.swift */; };
 		111BE95D2ECD71E10079DD4E /* AsyncXPCConnection in Frameworks */ = {isa = PBXBuildFile; productRef = 111BE95C2ECD71E10079DD4E /* AsyncXPCConnection */; };
 		111BE9952ECF2DF40079DD4E /* DragDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111BE9942ECF2DEF0079DD4E /* DragDetector.swift */; };
@@ -207,7 +207,7 @@
 		F1D200082ED0000100000001 /* FaceIDSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsView.swift; sourceTree = "<group>"; };
 		F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaView.swift; sourceTree = "<group>"; };
 		F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaWindow.swift; sourceTree = "<group>"; };
-		F1D2000E2ED0000100000001 /* LockScreenFaceIDWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenFaceIDWindow.swift; sourceTree = "<group>"; };
+		F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenFaceIDWindow.swift; sourceTree = "<group>"; };
 		111BE9942ECF2DEF0079DD4E /* DragDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDetector.swift; sourceTree = "<group>"; };
 		111BEA602ED09B1B0079DD4E /* NSScreen+UUID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+UUID.swift"; sourceTree = "<group>"; };
 		112B0EB32E30DD0F00562D6C /* mediaremote-adapter.pl */ = {isa = PBXFileReference; lastKnownFileType = text.script.perl; path = "mediaremote-adapter.pl"; sourceTree = "<group>"; };
@@ -528,7 +528,7 @@
 			children = (
 				F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */,
 				F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */,
-				F1D2000E2ED0000100000001 /* LockScreenFaceIDWindow.swift */,
+				F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */,
 			);
 			path = LockScreen;
 			sourceTree = "<group>";
@@ -947,7 +947,7 @@
 				F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */,
 				F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */,
 				F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */,
-				F1D2000D2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */,
+				F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */,
 				14C08BB92C8DE4B1000F8AA0 /* NotchPulseCalendar.swift in Sources */,
 				5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */,
 				1100292A2E8691B400035A57 /* FileShareView.swift in Sources */,
