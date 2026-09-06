@@ -42,13 +42,13 @@ jobs:
 
       - name: Resolve Swift Package Dependencies
         run: |
-          xcodebuild -resolvePackageDependencies -project boringNotch.xcodeproj
+          xcodebuild -resolvePackageDependencies -project NotchPulse.xcodeproj
 
       - name: Build App (Ad-Hoc Signing, No Paid Apple Cert Required)
         run: |
           xcodebuild clean build \
-            -project boringNotch.xcodeproj \
-            -scheme boringNotch \
+            -project NotchPulse.xcodeproj \
+            -scheme NotchPulse \
             -configuration Release \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="-" \
@@ -58,11 +58,11 @@ jobs:
 
       - name: Verify Built App
         run: |
-          if [ ! -d "build/Build/Products/Release/boringNotch.app" ]; then
-            echo "::error::Không tìm thấy boringNotch.app sau khi build!"
+          if [ ! -d "build/Build/Products/Release/NotchPulse.app" ]; then
+            echo "::error::Không tìm thấy NotchPulse.app sau khi build!"
             exit 1
           fi
-          echo "Build thành công boringNotch.app!"
+          echo "Build thành công NotchPulse.app!"
 
       - name: Create DMG & ZIP Packages
         run: |
@@ -70,7 +70,7 @@ jobs:
           mkdir -p dmg_staging
 
           # Copy .app vào thư mục staging và đặt tên là NotchPulse.app
-          cp -R build/Build/Products/Release/boringNotch.app dmg_staging/NotchPulse.app
+          cp -R build/Build/Products/Release/NotchPulse.app dmg_staging/NotchPulse.app
 
           # Ký lại toàn bộ ứng dụng và nested frameworks bằng ad-hoc signing để tránh lỗi Library Validation trên macOS
           codesign --force --deep --sign - dmg_staging/NotchPulse.app

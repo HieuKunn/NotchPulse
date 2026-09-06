@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Boring Notch - Interactive Web Simulator</title>
+  <title>NotchPulse - Interactive Web Simulator</title>
   <link rel="stylesheet" href="style.css">
   <!-- Phosphor / Lucide Icons via SVG or CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -18,7 +18,7 @@
     <div class="menu-bar">
       <div class="menu-left">
         <span class="menu-item"><i class="fa-brands fa-apple" style="font-size: 15px;"></i></span>
-        <span class="menu-item menu-app-name">BoringNotch</span>
+        <span class="menu-item menu-app-name">NotchPulse</span>
         <span class="menu-item">File</span>
         <span class="menu-item">Edit</span>
         <span class="menu-item">View</span>
@@ -27,8 +27,8 @@
       </div>
 
       <div class="menu-right">
-        <!-- Sparkle Menu Button for Boring Notch -->
-        <button id="sparkleMenuBtn" class="sparkle-icon-btn" title="Boring Notch Options">
+        <!-- Sparkle Menu Button for NotchPulse -->
+        <button id="sparkleMenuBtn" class="sparkle-icon-btn" title="NotchPulse Options">
           <i class="fa-solid fa-sparkles"></i> ✨
         </button>
         <span class="menu-item"><i class="fa-solid fa-wifi"></i></span>
@@ -46,15 +46,15 @@
       </div>
       <div class="dropdown-item">Check for Updates...</div>
       <div class="dropdown-divider"></div>
-      <div class="dropdown-item" onclick="location.reload()">Restart Boring Notch</div>
+      <div class="dropdown-item" onclick="location.reload()">Restart NotchPulse</div>
       <div class="dropdown-item" style="color: #ff6b6b;">Quit</div>
     </div>
 
     <!-- ==========================================
-         INTERACTIVE BORING NOTCH
+         INTERACTIVE NOTCH PULSE
          ========================================== -->
     <div class="notch-wrapper">
-      <div id="boringNotch" class="notch" onclick="toggleNotch()">
+      <div id="notchPulse" class="notch" onclick="toggleNotch()">
         
         <!-- Closed Notch State -->
         <div class="notch-closed-content">
@@ -100,7 +100,7 @@
         <!-- Open Notch State (640px x 190px) -->
         <div class="notch-open-content" onclick="event.stopPropagation()">
           
-          <!-- Header Bar: Tabs, Camera Cutout & Status (100% Matching Native Boring Notch) -->
+          <!-- Header Bar: Tabs, Camera Cutout & Status (100% Matching Native NotchPulse) -->
           <div class="notch-header">
             <!-- Left: Capsule Tab Bar (Icon-only matching TabSelectionView.swift & user screenshot) -->
             <div class="tabs-capsule" id="tabsCapsule">
@@ -261,7 +261,7 @@
                   <div class="zip-tag">ZIP</div>
                   <i class="fa-solid fa-file-zipper file-zip-icon"></i>
                 </div>
-                <span class="shelf-card-title">Boring Notch<br>main.zip</span>
+                <span class="shelf-card-title">NotchPulse<br>main.zip</span>
               </div>
             </div>
           </div>

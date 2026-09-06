@@ -150,7 +150,7 @@ body {
 }
 
 /* ==========================================
-   THE BORING NOTCH CONTAINER
+   THE NOTCH PULSE CONTAINER
    ========================================== */
 .notch-wrapper {
   position: absolute;
@@ -369,7 +369,7 @@ body.bezel-mode .notch-wrapper {
   display: flex;
 }
 
-/* Notch Header (100% Matching Native Boring Notch) */
+/* Notch Header (100% Matching Native NotchPulse) */
 .notch-header {
   height: 34px;
   display: flex;
@@ -895,7 +895,7 @@ body.bezel-mode .notch-wrapper {
 }
 
 /* ==========================================
-   TAB 2: SHELF VIEW (100% Matching Native Boring Notch)
+   TAB 2: SHELF VIEW (100% Matching Native NotchPulse)
    ========================================== */
 .shelf-view {
   width: 100%;

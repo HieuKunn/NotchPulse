@@ -27,7 +27,7 @@ const state = {
 };
 
 // DOM Elements
-const notch = document.getElementById('boringNotch');
+const notch = document.getElementById('notchPulse');
 const tabsCapsule = document.getElementById('tabsCapsule');
 const statsTabBtn = document.getElementById('tabBtnStats');
 const settingsOverlay = document.getElementById('settingsOverlay');
@@ -340,7 +340,7 @@ let retinaBrightness = 65;
 let externalBrightness = 80;
 
 function triggerBrightnessHUD() {
-  const notch = document.getElementById('boringNotch');
+  const notch = document.getElementById('notchPulse');
   const hud = document.getElementById('hudSneakPreview');
   const music = document.getElementById('musicSneakPreview');
   if (!hud || !notch) return;
