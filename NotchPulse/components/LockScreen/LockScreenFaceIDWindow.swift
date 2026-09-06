@@ -57,14 +57,14 @@ final class LockScreenFaceIDWindow: NSPanel {
         
         guard let screen = screen else { return }
         
-        // Match the width of the active notch so it aligns perfectly with the notch!
-        let width: CGFloat = openNotchSize.width
-        let height: CGFloat = 50
+        // Size it to look like a small drop-down extension from the physical notch
+        let width: CGFloat = 185
+        let height: CGFloat = 66
         let notchHeight: CGFloat = screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : 34
         
         // Position directly and symmetrically centered underneath the notch on the target display
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
-        let y = screen.frame.origin.y + screen.frame.height - notchHeight - height - 8
+        let y = screen.frame.origin.y + screen.frame.height - notchHeight - height
         
         setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
         
@@ -332,6 +332,22 @@ struct AppleFaceIDGlyphView: View {
     }
 }
 
+struct FaceIDExtensionShape: Shape {
+    var cornerRadius: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
+        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 0), endAngle: Angle(degrees: 90), clockwise: false)
+        path.addLine(to: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY))
+        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 90), endAngle: Angle(degrees: 180), clockwise: false)
+        path.closeSubpath()
+        return path
+    }
+}
+
 // MARK: - Lock Screen Face ID Pill View
 struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
@@ -345,48 +361,30 @@ struct LockScreenFaceIDPillView: View {
                 faceIDManager.startRecognitionOnWake()
             }
         } label: {
-            HStack(spacing: 10) {
+            VStack {
+                Spacer(minLength: 4)
                 AppleFaceIDGlyphView(
                     isScanning: faceIDManager.isScanning,
                     isSuccess: faceIDManager.lastUnlockSuccess,
                     isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                    size: 26
+                    size: 34
                 )
-                
-                if faceIDManager.lastUnlockSuccess {
-                    Text("Đã mở khoá")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(appleGreen)
-                        .transition(.scale.combined(with: .opacity))
-                } else if faceIDManager.isScanning {
-                    Text("Face ID…")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.95))
-                } else {
-                    Text("Chạm để quét lại")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.85))
-                }
+                Spacer(minLength: 8)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .background(
                 ZStack {
-                    Capsule()
-                        .fill(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
+                    FaceIDExtensionShape(cornerRadius: 24)
+                        .fill(Color.black)
                     
-                    Capsule()
-                        .fill(Color.black.opacity(0.7))
-                    
-                    Capsule()
-                        .strokeBorder(borderColor, lineWidth: 1.2)
+                    FaceIDExtensionShape(cornerRadius: 24)
+                        .strokeBorder(borderColor, lineWidth: 1.5)
                 }
             )
-            .shadow(color: .black.opacity(0.4), radius: 12, x: 0, y: 5)
+            .shadow(color: .black.opacity(0.6), radius: 15, x: 0, y: 8)
         }
         .buttonStyle(.plain)
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var borderColor: Color {

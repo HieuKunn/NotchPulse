@@ -13,6 +13,7 @@ import SwiftUI
 struct LockScreenMediaView: View {
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var windowController: LockScreenMediaWindow
+    @Default(.musicControlSlots) private var musicControlSlots
     
     var body: some View {
         ZStack {
@@ -24,7 +25,7 @@ struct LockScreenMediaView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.82), value: windowController.isFullScreen)
+        .animation(.spring(response: 0.65, dampingFraction: 0.82, blendDuration: 0), value: windowController.isFullScreen)
         .preferredColorScheme(.dark)
     }
     
@@ -189,25 +190,27 @@ struct LockScreenMediaView: View {
                 HStack {
                     Spacer()
                     
-                    // Nút tua lùi 5s / tua tới 5s
-                    HStack(spacing: 12) {
-                        Button {
-                            musicManager.skip(seconds: -5)
-                        } label: {
-                            Image(systemName: "gobackward.5")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.white.opacity(0.75))
+                    // Nút tua lùi 5s / tua tới 5s (chỉ hiện nếu user có thêm trong tuỳ chỉnh)
+                    if musicControlSlots.contains(.goBackward) || musicControlSlots.contains(.goForward) {
+                        HStack(spacing: 12) {
+                            Button {
+                                musicManager.skip(seconds: -5)
+                            } label: {
+                                Image(systemName: "gobackward.5")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(.white.opacity(0.75))
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button {
+                                musicManager.skip(seconds: 5)
+                            } label: {
+                                Image(systemName: "goforward.5")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(.white.opacity(0.75))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                        
-                        Button {
-                            musicManager.skip(seconds: 5)
-                        } label: {
-                            Image(systemName: "goforward.5")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.white.opacity(0.75))
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 48)
@@ -229,6 +232,7 @@ struct LockScreenMediaView: View {
                 
                 Spacer(minLength: 40)
             }
+            .scaleEffect(0.85)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
@@ -449,6 +453,7 @@ struct LockScreenMediaView: View {
                                             .scaleEffect(isCurrent ? 1.05 : 1.0, anchor: .leading)
                                             .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
                                             .multilineTextAlignment(.leading)
+                                            .fixedSize(horizontal: false, vertical: true)
                                             .animation(.easeInOut(duration: 0.25), value: isCurrent)
                                     }
                                     .buttonStyle(.plain)

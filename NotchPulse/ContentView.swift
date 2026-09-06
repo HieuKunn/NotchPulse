@@ -145,7 +145,8 @@ struct ContentView: View {
                 mainLayout
                     .frame(
                         width: vm.notchState == .open ? notchOpenWidth : nil,
-                        height: vm.notchState == .open ? vm.notchSize.height : nil
+                        height: vm.notchState == .open ? vm.notchSize.height : nil,
+                        alignment: .top
                     )
                     .conditionalModifier(true) { view in
                         let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)

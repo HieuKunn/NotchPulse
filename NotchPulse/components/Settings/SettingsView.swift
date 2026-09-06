@@ -308,6 +308,9 @@ struct GeneralSettings: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
+                .onChange(of: notchOpenWidth) {
+                    vm.open()
+                }
             } header: {
                 Text("Notch Dimensions (Width)")
             }

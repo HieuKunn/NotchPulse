@@ -482,7 +482,7 @@ struct NotchHomeView: View {
                 GeometryReader { geo in
                     mainContent(totalWidth: geo.size.width)
                 }
-                .frame(height: 148)
+                .frame(minHeight: 148, maxHeight: .infinity, alignment: .top)
             }
         }
         .transition(.opacity)

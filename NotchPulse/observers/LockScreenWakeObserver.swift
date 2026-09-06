@@ -44,7 +44,10 @@ final class LockScreenWakeObserver: ObservableObject {
                 self.updateLockScreenMediaWindowVisibility()
                 
                 // User intentionally locked their screen while working at desk.
-                // Do NOT scan face or auto-unlock immediately! Wait for screen wake / lid open!
+                // Show the waiting Face ID UI so they can click to scan, but do NOT scan automatically.
+                if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
+                    LockScreenFaceIDWindow.shared.show()
+                }
             }
         }
         distributedTokens.append(lockToken)

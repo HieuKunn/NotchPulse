@@ -561,17 +561,31 @@
       align-items: center;
       gap: 14px;
       margin-top: 8px;
+      padding-top: 84px; /* Push clock down to make space for FaceID */
     }
     .faceid-scanner-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      position: relative;
+      justify-content: center;
+      gap: 0;
+      position: absolute;
+      top: -40px; /* Counteract the 40px padding of lock-screen-overlay so it starts at the very top of the screen */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 185px; /* Matches the width of the closed physical notch */
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-top: none;
+      border-radius: 0 0 22px 22px;
+      padding: 40px 16px 12px 16px; /* 40px top padding pushes the Face ID icon down below the physical notch/dynamic island */
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8);
+      z-index: 900; /* Behind the physical notch (which is 1000) so it hides the top part seamlessly */
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .apple-faceid-box {
-      width: 58px;
-      height: 58px;
+      width: 50px;
+      height: 50px;
       position: relative;
       perspective: 350px;
     }
@@ -637,11 +651,7 @@
       100% { transform: scale(1.8); opacity: 0; }
     }
     .faceid-status-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: #64d2ff;
-      letter-spacing: 0.2px;
-      transition: color 0.3s;
+      display: none;
     }
     .lock-time {
       font-size: 68px;
@@ -745,10 +755,10 @@
       color: rgba(255, 255, 255, 0.3);
       cursor: pointer;
       transition: all 0.3s ease;
-      line-height: 1.35;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 1.4;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
     .lyrics-line.active {
       color: #fff;
@@ -1079,9 +1089,9 @@
           </div>
 
           <div style="display: flex; justify-content: center; gap: 28px; font-size: 18px;">
-            <span>⏮</span>
-            <span>⏸</span>
-            <span>⏭</span>
+            <span style="cursor: pointer;" onclick="prevTrack()">⏮</span>
+            <span style="cursor: pointer;" class="btn-play-toggle" onclick="togglePlay()">⏸</span>
+            <span style="cursor: pointer;" onclick="nextTrack()">⏭</span>
           </div>
         </div>
 
@@ -1093,11 +1103,24 @@
 
       <!-- Mode 2: Full-Screen Immersive Synced Lyrics -->
       <div class="fullscreen-immersive-lyrics" id="immersiveLyrics">
-        <div class="lyrics-left-artwork" onclick="closeImmersiveLyrics()" title="Chạm vào ảnh album để thu nhỏ về màn hình khoá">
-          <img class="lyrics-big-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&h=600&fit=crop" alt="big art">
-          <div style="text-align: center;">
+        <div class="lyrics-left-artwork">
+          <img class="lyrics-big-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&h=600&fit=crop" alt="big art" onclick="closeImmersiveLyrics()" title="Chạm vào ảnh album để thu nhỏ về màn hình khoá">
+          <div style="text-align: center; margin-top: 10px; cursor: pointer;" onclick="closeImmersiveLyrics()">
             <div style="font-size: 24px; font-weight: 700;">Starboy</div>
             <div style="font-size: 16px; color: rgba(255,255,255,0.7); margin-top: 4px;">The Weeknd, Daft Punk</div>
+          </div>
+
+          <!-- Fullscreen Media Controls -->
+          <div class="scrubber-wrap" style="width: 85%; margin-top: 28px;">
+            <span class="time-stamp">1:24</span>
+            <div class="progress-bar-bg" onclick="seekTrack(event)"><div class="progress-bar-fill"></div></div>
+            <span class="time-stamp">3:50</span>
+          </div>
+
+          <div style="display: flex; justify-content: center; gap: 36px; font-size: 24px; margin-top: 16px; width: 100%;">
+            <span style="cursor: pointer;" onclick="prevTrack()">⏮</span>
+            <span style="cursor: pointer;" class="btn-play-toggle" onclick="togglePlay()">⏸</span>
+            <span style="cursor: pointer;" onclick="nextTrack()">⏭</span>
           </div>
         </div>
 
@@ -1181,6 +1204,9 @@
 
     // Update Notch Width
     function updateNotchWidth(val) {
+      if (!isNotchOpen) {
+        toggleNotch(true);
+      }
       currentWidth = val;
       document.documentElement.style.setProperty('--notch-width', `${val}px`);
       sliderValueText.textContent = `${val} px`;
@@ -1278,8 +1304,9 @@
     // Play / Pause
     function togglePlay() {
       isPlaying = !isPlaying;
-      const btn = document.getElementById('btnPlay');
-      btn.textContent = isPlaying ? '⏸' : '▶️';
+      document.querySelectorAll('#btnPlay, .btn-play-toggle').forEach(btn => {
+        btn.textContent = isPlaying ? '⏸' : '▶️';
+      });
       document.querySelectorAll('.mini-wave span').forEach(s => {
         s.style.animationPlayState = isPlaying ? 'running' : 'paused';
       });
@@ -1290,7 +1317,9 @@
       const rect = e.currentTarget.getBoundingClientRect();
       const pos = (e.clientX - rect.left) / rect.width;
       progressPercent = Math.round(pos * 100);
-      document.getElementById('trackProgress').style.width = `${progressPercent}%`;
+      document.querySelectorAll('#trackProgress, .progress-bar-fill').forEach(el => {
+        el.style.width = `${progressPercent}%`;
+      });
     }
 
     // Song changer

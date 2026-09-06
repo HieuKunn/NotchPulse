@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FFFFFFFF1122334400556677 /* FaceNet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = FFFFFFFF1122334400556688 /* FaceNet.mlmodel */; };
 		1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */; };
 		110029272E84FD4C00035A57 /* TemporaryFileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */; };
 		1100292A2E8691B400035A57 /* FileShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029292E8691B400035A57 /* FileShareView.swift */; };
@@ -187,6 +188,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		FFFFFFFF1122334400556688 /* FaceNet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = FaceNet.mlmodel; sourceTree = "<group>"; };
 		1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSItemProvider+LoadHelpers.swift"; sourceTree = "<group>"; };
 		110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryFileStorageService.swift; sourceTree = "<group>"; };
 		110029292E8691B400035A57 /* FileShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShareView.swift; sourceTree = "<group>"; };
@@ -597,6 +599,7 @@
 		14CEF4142C5CAED300855D72 /* NotchPulse */ = {
 			isa = PBXGroup;
 			children = (
+				FFFFFFFF1122334400556688 /* FaceNet.mlmodel */,
 				11F748672EC9AC9600F841DB /* XPCHelperClient */,
 				116398942DF5D6B40052E6AF /* Providers */,
 				14288DE22C6E016F00B9F80C /* observers */,
@@ -938,6 +941,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FFFFFFFF1122334400556677 /* FaceNet.mlmodel in Sources */,
 				115C12EC2ED3D003009754CA /* OpenNotchHUD.swift in Sources */,
 				AA0000022ED0000100000002 /* SystemMonitorManager.swift in Sources */,
 				AA0000042ED0000200000004 /* StatsView.swift in Sources */,
@@ -1091,7 +1095,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1116,7 +1120,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1290,7 +1294,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1343,7 +1347,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 2.9.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
