@@ -49,15 +49,22 @@ final class LockScreenFaceIDWindow: NSPanel {
     }
     
     func show() {
-        guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main ?? NSScreen.screens.first else { return }
+        // Target specifically the screen where NotchPulse displays the notch
+        let screen: NSScreen? = NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
+            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
         
-        let width: CGFloat = 200
+        guard let screen = screen else { return }
+        
+        // Match the width of the active notch so it aligns perfectly with the notch!
+        let width: CGFloat = openNotchSize.width
         let height: CGFloat = 50
         let notchHeight: CGFloat = screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : 34
         
-        // Position directly and symmetrically underneath the physical MacBook notch
-        let x = screen.frame.midX - width / 2
-        let y = screen.frame.maxY - notchHeight - height - 8
+        // Position directly and symmetrically centered underneath the notch on the target display
+        let x = screen.frame.origin.x + (screen.frame.width - width) / 2
+        let y = screen.frame.origin.y + screen.frame.height - notchHeight - height - 8
         
         setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
         
@@ -379,6 +386,7 @@ struct LockScreenFaceIDPillView: View {
             .shadow(color: .black.opacity(0.4), radius: 12, x: 0, y: 5)
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .center)
     }
     
     private var borderColor: Color {

@@ -278,10 +278,10 @@ struct GeneralSettings: View {
                         .disabled(notchOpenWidth == 740)
                     }
                     
-                    Slider(value: $notchOpenWidth, in: 520...960, step: 10) {
+                    Slider(value: $notchOpenWidth, in: 560...960, step: 10) {
                         Text("Notch Width")
                     } minimumValueLabel: {
-                        Text("520px")
+                        Text("560px")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     } maximumValueLabel: {

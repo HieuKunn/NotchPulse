@@ -54,8 +54,8 @@ final class FaceIDManager: NSObject, ObservableObject {
     private var consecutiveMatches: Int = 0
     private var lastMatchedFaceName: String? = nil
     
-    // Strict Biometric Threshold: Same person is ~0.02-0.05, different people are >0.11
-    private let matchThreshold: Double = 0.068
+    // Strict biometric threshold: same person is ~0.015 - 0.032. Different people are > 0.065.
+    private let matchThreshold: Double = 0.038
     
     private let profilesFileName = "faceid_profiles.json"
     private var profilesURL: URL {
@@ -435,7 +435,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     // MARK: - Combined Biometric Distance Metric
     /// Returns distance between 0.0 (identical) and ~0.25+ (different person).
-    /// Same person is typically 0.015 - 0.050. Different people are > 0.110.
+    /// Same person is typically 0.012 - 0.032. Different people are > 0.065 - 0.150+.
     private func computeBiometricDistance(_ v1: [Double], _ v2: [Double]) -> Double {
         guard v1.count == v2.count, !v1.isEmpty else { return 1.0 }
         
@@ -443,12 +443,17 @@ final class FaceIDManager: NSObject, ObservableObject {
         let coordCount = v1.count - ratioCount
         let pointCount = coordCount / 2
         
-        // 1. Mean Euclidean Landmark Distance (MELD)
+        // 1. Mean Euclidean Landmark Distance (MELD) & Maximum Single Landmark Deviation
         var sumDist = 0.0
+        var maxPointDist = 0.0
         for i in 0..<pointCount {
             let dx = v1[i * 2] - v2[i * 2]
             let dy = v1[i * 2 + 1] - v2[i * 2 + 1]
-            sumDist += sqrt(dx * dx + dy * dy)
+            let d = sqrt(dx * dx + dy * dy)
+            sumDist += d
+            if d > maxPointDist {
+                maxPointDist = d
+            }
         }
         let meld = sumDist / Double(pointCount)
         
@@ -456,12 +461,16 @@ final class FaceIDManager: NSObject, ObservableObject {
         var ratioError = 0.0
         for j in 0..<ratioCount {
             let idx = coordCount + j
-            let denom = max(0.1, abs(v2[idx]))
+            let denom = max(0.08, abs(v2[idx]))
             ratioError += abs(v1[idx] - v2[idx]) / denom
         }
         let grre = ratioError / Double(ratioCount)
         
-        return meld * 0.80 + grre * 0.20
+        // 3. Significant Outlier Penalty
+        // If key facial features (such as jawline, nose crest, or eye distance) drift significantly, penalize heavily
+        let outlierPenalty = max(0.0, (maxPointDist - 0.070) * 1.6)
+        
+        return meld * 0.65 + grre * 0.35 + outlierPenalty
     }
     
     // MARK: - Hardware Key Code Translation
@@ -728,7 +737,7 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                     }
                 }
                 
-                let confidence = max(0, min(100, Int((1.0 - (bestDistance / 0.12)) * 100)))
+                let confidence = max(0, min(100, Int((1.0 - (bestDistance / 0.08)) * 100)))
                 self.testConfidence = confidence
                 
                 if bestDistance <= self.matchThreshold {
@@ -755,13 +764,13 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                 }
             }
             
-            // Strict match check: Distance must be strictly under threshold
+            // Strict match check: Distance must be strictly under threshold (<= 0.038)
             if bestDistance <= self.matchThreshold {
                 self.consecutiveMatches += 1
                 self.lastMatchedFaceName = matchedName
                 
-                // Require 2 consecutive matching frames to prevent any momentary false positive
-                if self.consecutiveMatches >= 2 {
+                // Require 3 consecutive matching frames to prevent any momentary false positive
+                if self.consecutiveMatches >= 3 {
                     self.recognitionTimer?.cancel()
                     self.stopCameraSession()
                     self.isScanning = false

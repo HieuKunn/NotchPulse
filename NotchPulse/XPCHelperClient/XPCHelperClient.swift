@@ -5,7 +5,7 @@ import AsyncXPCConnection
 final class XPCHelperClient: NSObject {
     nonisolated static let shared = XPCHelperClient()
     
-    private let serviceName = "com.notchpulse.NotchPulse.NotchPulseXPCHelper"
+    private let serviceName = "com.notchpulse.NotchPulseXPCHelper"
     
     private var remoteService: RemoteXPCService<NotchPulseXPCHelperProtocol>?
     private var connection: NSXPCConnection?
@@ -98,6 +98,18 @@ final class XPCHelperClient: NSObject {
     // MARK: - Accessibility
     
     nonisolated func requestAccessibilityAuthorization() {
+        // 1. Direct macOS system check and permission prompt dialog
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        let isTrusted = AXIsProcessTrustedWithOptions(options)
+        
+        if !isTrusted {
+            // Open System Settings > Privacy & Security > Accessibility directly
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        
+        // 2. Also prompt via XPC service if available
         Task {
             let service = await MainActor.run {
                 ensureRemoteService()
@@ -109,6 +121,14 @@ final class XPCHelperClient: NSObject {
     }
     
     nonisolated func isAccessibilityAuthorized() async -> Bool {
+        // Direct macOS Accessibility check first (native, instantaneous, reliable)
+        if AXIsProcessTrusted() {
+            await MainActor.run {
+                notifyAuthorizationChange(true)
+            }
+            return true
+        }
+        
         do {
             let service = await MainActor.run {
                 ensureRemoteService()
@@ -123,27 +143,32 @@ final class XPCHelperClient: NSObject {
             }
             return result
         } catch {
-            return false
+            let directCheck = AXIsProcessTrusted()
+            await MainActor.run {
+                notifyAuthorizationChange(directCheck)
+            }
+            return directCheck
         }
     }
     
     nonisolated func ensureAccessibilityAuthorization(promptIfNeeded: Bool) async -> Bool {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            let result: Bool = try await service.withContinuation { service, continuation in
-                service.ensureAccessibilityAuthorization(promptIfNeeded) { authorized in
-                    continuation.resume(returning: authorized)
-                }
-            }
+        if AXIsProcessTrusted() {
             await MainActor.run {
-                notifyAuthorizationChange(result)
+                notifyAuthorizationChange(true)
             }
-            return result
-        } catch {
-            return false
+            return true
         }
+        
+        if promptIfNeeded {
+            requestAccessibilityAuthorization()
+        }
+        
+        try? await Task.sleep(for: .milliseconds(500))
+        let directCheck = AXIsProcessTrusted()
+        await MainActor.run {
+            notifyAuthorizationChange(directCheck)
+        }
+        return directCheck
     }
     
     // MARK: - Keyboard Brightness

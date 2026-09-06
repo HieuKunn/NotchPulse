@@ -11,7 +11,7 @@
     :root {
       --mac-bg: #0b0f19;
       --notch-width: 740px;
-      --notch-min-width: 520px;
+      --notch-min-width: 560px;
       --notch-max-width: 960px;
       --notch-height-open: 190px;
       --notch-height-closed: 34px;
@@ -37,14 +37,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      padding: 20px;
+      overflow-x: hidden;
+      padding: 12px;
+      margin: 0;
     }
 
-    /* MacBook Frame */
+    /* MacBook Frame (Responsive) */
     .macbook-bezel {
-      width: 1200px;
-      height: 750px;
+      width: 100%;
+      max-width: min(1180px, 95vw);
+      height: clamp(580px, 78vh, 720px);
       background: #11141a;
       border: 12px solid #20242e;
       border-radius: 28px;
@@ -664,19 +666,23 @@
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
     }
 
-    /* FULL SCREEN IMMERSIVE LYRICS VIEW */
+    /* FULL SCREEN IMMERSIVE LYRICS VIEW (NO SCROLLBARS) */
     .fullscreen-immersive-lyrics {
       position: absolute;
       inset: 0;
       background: linear-gradient(135deg, #431122 0%, #17070e 50%, #080306 100%);
       z-index: 2500;
       display: flex;
-      padding: 60px 80px;
-      gap: 60px;
+      padding: 30px 48px;
+      gap: 40px;
       opacity: 0;
       pointer-events: none;
       transform: scale(0.95);
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+      box-sizing: border-box;
+      max-width: 100%;
+      max-height: 100%;
     }
     .fullscreen-immersive-lyrics.active {
       opacity: 1;
@@ -685,54 +691,61 @@
     }
     .lyrics-close-btn {
       position: absolute;
-      top: 30px;
-      right: 40px;
+      top: 24px;
+      right: 32px;
       background: rgba(255, 255, 255, 0.15);
       border: none;
       color: #fff;
-      padding: 8px 16px;
+      padding: 7px 16px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       backdrop-filter: blur(10px);
+      z-index: 10;
     }
     .lyrics-left-artwork {
-      flex: 1;
+      flex: 0 0 38%;
+      max-width: 38%;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 24px;
+      gap: 16px;
     }
     .lyrics-big-art {
-      width: 320px;
-      height: 320px;
-      border-radius: 20px;
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      width: min(250px, 75%);
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      object-fit: cover;
     }
     .lyrics-right-column {
-      flex: 1.2;
+      flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 20px;
-      overflow-y: hidden;
+      gap: 14px;
+      overflow: hidden;
       position: relative;
+      min-width: 0;
     }
     .lyrics-line {
-      font-size: 26px;
+      font-size: clamp(16px, 2.2vw, 24px);
       font-weight: 700;
       color: rgba(255, 255, 255, 0.3);
       cursor: pointer;
       transition: all 0.3s ease;
-      line-height: 1.4;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .lyrics-line.active {
       color: #fff;
-      font-size: 32px;
-      transform: scale(1.04) translateX(10px);
-      text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+      font-size: clamp(20px, 2.7vw, 29px);
+      transform: scale(1.02) translateX(8px);
+      text-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
     }
 
     /* ========================================================
@@ -1108,13 +1121,13 @@
         <span id="sliderValueText" style="color: #64d2ff; font-weight: 700;">740 px</span>
       </div>
       <div class="slider-row">
-        <input type="range" class="custom-range" id="widthSlider" min="520" max="960" step="10" value="740" oninput="updateNotchWidth(this.value)">
+        <input type="range" class="custom-range" id="widthSlider" min="560" max="960" step="10" value="740" oninput="updateNotchWidth(this.value)">
       </div>
       <div class="preset-btn-group">
-        <button class="preset-btn" onclick="setPresetWidth(580)">Compact (580px)</button>
-        <button class="preset-btn" onclick="setPresetWidth(740)">Standard (740px)</button>
-        <button class="preset-btn" onclick="setPresetWidth(860)">Wide (860px)</button>
-        <button class="preset-btn" onclick="setPresetWidth(960)">Max (960px)</button>
+        <button class="preset-btn" onclick="setPresetWidth(560)">Tối thiểu (560px)</button>
+        <button class="preset-btn" onclick="setPresetWidth(740)">Tiêu chuẩn (740px)</button>
+        <button class="preset-btn" onclick="setPresetWidth(860)">Rộng (860px)</button>
+        <button class="preset-btn" onclick="setPresetWidth(960)">Tối đa (960px)</button>
       </div>
     </div>
 
@@ -1130,10 +1143,13 @@
     <!-- Actions -->
     <div class="dock-group" style="flex-direction: row; gap: 10px; align-items: flex-end;">
       <button class="action-button" onclick="toggleNotch()">
-        ⚡ Bật/Tắt Mở Notch
+        ⚡ Mở / Đóng Notch
       </button>
       <button class="action-button" onclick="toggleLockScreen()">
-        🔒 Màn hình khoá (Lock Screen)
+        🔒 Khóa màn hình
+      </button>
+      <button class="action-button" style="background: rgba(48, 209, 88, 0.2); border-color: rgba(48, 209, 88, 0.4);" onclick="simulateLidOpenWake()">
+        💻 Mở nắp máy (Wake Face ID)
       </button>
     </div>
   </div>
@@ -1292,18 +1308,25 @@
       document.querySelector('.lyrics-big-art').src = s.art;
     }
 
-    // Lock Screen Toggle & Auto Face ID
+    // Lock Screen Toggle: Manual lock stays on lockscreen without auto-scanning
     function toggleLockScreen() {
       isLocked = !isLocked;
       const lockOverlay = document.getElementById('lockScreen');
       lockOverlay.classList.toggle('active', isLocked);
+      // Khi khoá màn hình thủ công: Giữ nguyên ở màn hình khoá, không tự ý quét hay mở khoá!
+    }
 
-      if (isLocked) {
-        // Automatically start Face ID verification scan
-        setTimeout(() => {
-          simulateFaceIDUnlock();
-        }, 400);
+    // Simulate Lid Open / Screen Wake: Only then activate Face ID scan
+    function simulateLidOpenWake() {
+      const lockOverlay = document.getElementById('lockScreen');
+      if (!isLocked) {
+        isLocked = true;
+        lockOverlay.classList.add('active');
       }
+      // Đóng nắp/mở nắp hoặc bật màn hình sáng dậy mới kích hoạt Face ID
+      setTimeout(() => {
+        simulateFaceIDUnlock();
+      }, 350);
     }
 
     // Face ID 3D Unlock & Automatic Mac Unlock

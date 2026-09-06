@@ -14,7 +14,7 @@ let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
 let maxNotchWidth: CGFloat = 1000
-let minNotchWidth: CGFloat = 520
+let minNotchWidth: CGFloat = 560
 let defaultNotchWidth: CGFloat = 740
 
 var openNotchWidth: CGFloat {
