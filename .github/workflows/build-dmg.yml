@@ -127,11 +127,11 @@ jobs:
 
           DEFAULT_NOTES="Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit ${{ github.sha }}.
 
-### Thay đổi trong bản $TAG:
-- Sửa lại hoàn thiện và thay đổi Face ID sử dụng ML model nhỏ (CoreML FaceNet).
-- Căn chỉnh biểu tượng Face ID pop-down từ notch / Dynamic Island tinh gọn, đồng bộ.
-- Bổ sung thanh điều khiển media ở chế độ toàn màn hình lời bài hát.
-- Tối ưu hiệu năng và độ ổn định."
+          ### Thay đổi trong bản $TAG:
+          - Sửa lại hoàn thiện và thay đổi Face ID sử dụng ML model nhỏ (CoreML FaceNet).
+          - Căn chỉnh biểu tượng Face ID pop-down từ notch / Dynamic Island tinh gọn, đồng bộ.
+          - Bổ sung thanh điều khiển media ở chế độ toàn màn hình lời bài hát.
+          - Tối ưu hiệu năng và độ ổn định."
 
           gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
             --title "NotchPulse $TAG" \
