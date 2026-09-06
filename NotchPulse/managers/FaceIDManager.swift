@@ -474,7 +474,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     }
     
     // MARK: - Hardware Key Code Translation
-    private static func keyEventInfo(for char: Character) -> (keyCode: CGKeyCode, shift: Bool)? {
+    nonisolated private static func keyEventInfo(for char: Character) -> (keyCode: CGKeyCode, shift: Bool)? {
         switch char {
         // Lowercase & Uppercase letters
         case "a": return (0x00, false)

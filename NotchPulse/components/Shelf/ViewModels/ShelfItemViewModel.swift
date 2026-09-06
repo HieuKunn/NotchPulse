@@ -521,7 +521,7 @@ final class ShelfItemViewModel: ObservableObject {
                 Task {
                     let fileURLs = await selected.asyncCompactMap { item -> URL? in
                         if case .file = item.kind {
-                            return ShelfStateViewModel.shared.resolveAndUpdateBookmark(for: item)
+                            return await ShelfStateViewModel.shared.resolveAndUpdateBookmark(for: item)
                         }
                         return nil
                     }
