@@ -455,12 +455,13 @@
       position: relative;
     }
 
-    /* Slots Toolbar */
+    /* Slots Toolbar: Các icon luôn ở gần nhau ở giữa, không dãn cách xa theo độ rộng Notch */
     .slots-toolbar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      width: 100%;
+      justify-content: center;
+      gap: 10px;
+      align-self: center;
       padding-top: 4px;
     }
     .control-btn {
@@ -1195,11 +1196,9 @@
       sliderValueText.textContent = `${val} px`;
       menuWidthBadge.textContent = `✦ Width: ${val}px`;
 
-      // Auto-adjust calendar card if width is small
+      // Cả Media và Calendar luôn luôn hiển thị đầy đủ cùng nhau (55% - 45%) ở mọi kích thước width (kể cả min 560px)
       const calCard = document.getElementById('calCard');
-      if (val < 620) {
-        calCard.style.display = 'none';
-      } else {
+      if (calCard) {
         calCard.style.display = 'flex';
       }
     }

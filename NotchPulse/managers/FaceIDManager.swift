@@ -54,8 +54,8 @@ final class FaceIDManager: NSObject, ObservableObject {
     private var consecutiveMatches: Int = 0
     private var lastMatchedFaceName: String? = nil
     
-    // Strict biometric threshold: same person is ~0.015 - 0.032. Different people are > 0.065.
-    private let matchThreshold: Double = 0.038
+    // Hyper-strict biometric threshold: same person is ~0.010 - 0.022. Different people are > 0.045+.
+    private let matchThreshold: Double = 0.026
     
     private let profilesFileName = "faceid_profiles.json"
     private var profilesURL: URL {
@@ -309,15 +309,15 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         // Quality check: Reject blurry or dark frames
-        if let qualityObs = qualityRequest.results?.first, qualityObs.faceCaptureQuality ?? 0 < 0.20 {
+        if let qualityObs = qualityRequest.results?.first, qualityObs.faceCaptureQuality ?? 0 < 0.28 {
             return nil
         }
         
         // Pose Angle Filter: Strictly reject faces turned sideways or looking up/down
-        if let yaw = faceObservation.yaw?.doubleValue, abs(yaw) > 0.18 {
+        if let yaw = faceObservation.yaw?.doubleValue, abs(yaw) > 0.14 {
             return nil
         }
-        if let pitch = faceObservation.pitch?.doubleValue, abs(pitch) > 0.18 {
+        if let pitch = faceObservation.pitch?.doubleValue, abs(pitch) > 0.14 {
             return nil
         }
         
@@ -467,10 +467,10 @@ final class FaceIDManager: NSObject, ObservableObject {
         let grre = ratioError / Double(ratioCount)
         
         // 3. Significant Outlier Penalty
-        // If key facial features (such as jawline, nose crest, or eye distance) drift significantly, penalize heavily
-        let outlierPenalty = max(0.0, (maxPointDist - 0.070) * 1.6)
+        // Extreme strictness: If any facial landmark drifts > 0.038, penalize aggressively
+        let outlierPenalty = max(0.0, (maxPointDist - 0.038) * 3.0)
         
-        return meld * 0.65 + grre * 0.35 + outlierPenalty
+        return meld * 0.60 + grre * 0.40 + outlierPenalty
     }
     
     // MARK: - Hardware Key Code Translation
@@ -737,7 +737,7 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                     }
                 }
                 
-                let confidence = max(0, min(100, Int((1.0 - (bestDistance / 0.08)) * 100)))
+                let confidence = max(0, min(100, Int((1.0 - (bestDistance / 0.045)) * 100)))
                 self.testConfidence = confidence
                 
                 if bestDistance <= self.matchThreshold {
@@ -764,13 +764,13 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                 }
             }
             
-            // Strict match check: Distance must be strictly under threshold (<= 0.038)
+            // Strict match check: Distance must be strictly under threshold (<= 0.026)
             if bestDistance <= self.matchThreshold {
                 self.consecutiveMatches += 1
                 self.lastMatchedFaceName = matchedName
                 
-                // Require 3 consecutive matching frames to prevent any momentary false positive
-                if self.consecutiveMatches >= 3 {
+                // Require 4 consecutive matching frames to prevent any momentary false positive
+                if self.consecutiveMatches >= 4 {
                     self.recognitionTimer?.cancel()
                     self.stopCameraSession()
                     self.isScanning = false
