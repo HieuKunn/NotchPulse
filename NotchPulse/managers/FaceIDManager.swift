@@ -464,41 +464,196 @@ final class FaceIDManager: NSObject, ObservableObject {
         return meld * 0.80 + grre * 0.20
     }
     
+    // MARK: - Hardware Key Code Translation
+    private static func keyEventInfo(for char: Character) -> (keyCode: CGKeyCode, shift: Bool)? {
+        switch char {
+        // Lowercase & Uppercase letters
+        case "a": return (0x00, false)
+        case "A": return (0x00, true)
+        case "b": return (0x0B, false)
+        case "B": return (0x0B, true)
+        case "c": return (0x08, false)
+        case "C": return (0x08, true)
+        case "d": return (0x02, false)
+        case "D": return (0x02, true)
+        case "e": return (0x0E, false)
+        case "E": return (0x0E, true)
+        case "f": return (0x03, false)
+        case "F": return (0x03, true)
+        case "g": return (0x05, false)
+        case "G": return (0x05, true)
+        case "h": return (0x04, false)
+        case "H": return (0x04, true)
+        case "i": return (0x22, false)
+        case "I": return (0x22, true)
+        case "j": return (0x26, false)
+        case "J": return (0x26, true)
+        case "k": return (0x28, false)
+        case "K": return (0x28, true)
+        case "l": return (0x25, false)
+        case "L": return (0x25, true)
+        case "m": return (0x2E, false)
+        case "M": return (0x2E, true)
+        case "n": return (0x2D, false)
+        case "N": return (0x2D, true)
+        case "o": return (0x1F, false)
+        case "O": return (0x1F, true)
+        case "p": return (0x23, false)
+        case "P": return (0x23, true)
+        case "q": return (0x0C, false)
+        case "Q": return (0x0C, true)
+        case "r": return (0x0F, false)
+        case "R": return (0x0F, true)
+        case "s": return (0x01, false)
+        case "S": return (0x01, true)
+        case "t": return (0x11, false)
+        case "T": return (0x11, true)
+        case "u": return (0x20, false)
+        case "U": return (0x20, true)
+        case "v": return (0x09, false)
+        case "V": return (0x09, true)
+        case "w": return (0x0D, false)
+        case "W": return (0x0D, true)
+        case "x": return (0x07, false)
+        case "X": return (0x07, true)
+        case "y": return (0x10, false)
+        case "Y": return (0x10, true)
+        case "z": return (0x06, false)
+        case "Z": return (0x06, true)
+        
+        // Numbers & Shifted Number Symbols
+        case "1": return (0x12, false)
+        case "!": return (0x12, true)
+        case "2": return (0x13, false)
+        case "@": return (0x13, true)
+        case "3": return (0x14, false)
+        case "#": return (0x14, true)
+        case "4": return (0x15, false)
+        case "$": return (0x15, true)
+        case "5": return (0x17, false)
+        case "%": return (0x17, true)
+        case "6": return (0x16, false)
+        case "^": return (0x16, true)
+        case "7": return (0x1A, false)
+        case "&": return (0x1A, true)
+        case "8": return (0x1C, false)
+        case "*": return (0x1C, true)
+        case "9": return (0x19, false)
+        case "(": return (0x19, true)
+        case "0": return (0x1D, false)
+        case ")": return (0x1D, true)
+        
+        // Punctuation & Symbols
+        case " ": return (0x31, false)
+        case "-": return (0x1B, false)
+        case "_": return (0x1B, true)
+        case "=": return (0x18, false)
+        case "+": return (0x18, true)
+        case "[": return (0x21, false)
+        case "{": return (0x21, true)
+        case "]": return (0x1E, false)
+        case "}": return (0x1E, true)
+        case "\\": return (0x2A, false)
+        case "|": return (0x2A, true)
+        case ";": return (0x29, false)
+        case ":": return (0x29, true)
+        case "'": return (0x27, false)
+        case "\"": return (0x27, true)
+        case ",": return (0x2B, false)
+        case "<": return (0x2B, true)
+        case ".": return (0x2F, false)
+        case ">": return (0x2F, true)
+        case "/": return (0x2C, false)
+        case "?": return (0x2C, true)
+        case "`": return (0x32, false)
+        case "~": return (0x32, true)
+        default: return nil
+        }
+    }
+    
     // MARK: - Automatic Mac Unlock Execution
     private func performMacUnlock() {
         guard let password = KeychainHelper.shared.readPassword(), !password.isEmpty else {
-            statusMessage = "No unlock password stored"
+            statusMessage = "Chưa lưu mật khẩu mở máy trong Keychain"
             return
         }
         
-        statusMessage = "Face ID Verified! Unlocking…"
+        statusMessage = "Face ID Xác thực! Đang mở khoá…"
         lastUnlockSuccess = true
         
         if Defaults[.faceIDSound] {
             NSSound(named: "Glass")?.play()
         }
         
-        // Post password keystrokes to lock screen password prompt after 350ms visual confirmation
         Task.detached(priority: .high) {
-            try? await Task.sleep(for: .milliseconds(350))
+            let source = CGEventSource(stateID: .combinedSessionState)
             
-            for char in password {
-                let str = String(char)
-                let utf16Chars = Array(str.utf16)
-                if let eventDown = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
-                   let eventUp = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false) {
-                    eventDown.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: utf16Chars)
-                    eventUp.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: utf16Chars)
-                    eventDown.post(tap: .cghidEventTap)
-                    eventUp.post(tap: .cghidEventTap)
-                }
-                try? await Task.sleep(for: .milliseconds(15))
+            // 1. Awaken screen and dismiss lockscreen clock by sending Space key (0x31)
+            if let spaceDown = CGEvent(keyboardEventSource: source, virtualKey: 0x31, keyDown: true),
+               let spaceUp = CGEvent(keyboardEventSource: source, virtualKey: 0x31, keyDown: false) {
+                spaceDown.post(tap: .cghidEventTap)
+                try? await Task.sleep(for: .milliseconds(30))
+                spaceUp.post(tap: .cghidEventTap)
             }
             
-            // Press Return key (0x24)
-            if let returnDown = CGEvent(keyboardEventSource: nil, virtualKey: 0x24, keyDown: true),
-               let returnUp = CGEvent(keyboardEventSource: nil, virtualKey: 0x24, keyDown: false) {
+            // 2. Wait 380ms for login window password input field to animate and gain focus
+            try? await Task.sleep(for: .milliseconds(380))
+            
+            // 3. Clear existing text in input box (Cmd+A + Backspace)
+            if let cmdADown = CGEvent(keyboardEventSource: source, virtualKey: 0x00, keyDown: true),
+               let cmdAUp = CGEvent(keyboardEventSource: source, virtualKey: 0x00, keyDown: false) {
+                cmdADown.flags = .maskCommand
+                cmdADown.post(tap: .cghidEventTap)
+                try? await Task.sleep(for: .milliseconds(25))
+                cmdAUp.post(tap: .cghidEventTap)
+            }
+            try? await Task.sleep(for: .milliseconds(30))
+            if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
+               let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
+                delDown.post(tap: .cghidEventTap)
+                try? await Task.sleep(for: .milliseconds(25))
+                delUp.post(tap: .cghidEventTap)
+            }
+            try? await Task.sleep(for: .milliseconds(60))
+            
+            // 4. Type each password character with native hardware keycodes & shift flags
+            for char in password {
+                if let keyInfo = Self.keyEventInfo(for: char) {
+                    if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
+                       let up = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: false) {
+                        if keyInfo.shift {
+                            down.flags = .maskShift
+                            up.flags = .maskShift
+                        }
+                        let utf16 = Array(String(char).utf16)
+                        down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                        up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                        
+                        down.post(tap: .cghidEventTap)
+                        try? await Task.sleep(for: .milliseconds(22))
+                        up.post(tap: .cghidEventTap)
+                        try? await Task.sleep(for: .milliseconds(22))
+                    }
+                } else {
+                    let utf16 = Array(String(char).utf16)
+                    if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
+                       let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
+                        down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                        up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                        down.post(tap: .cghidEventTap)
+                        try? await Task.sleep(for: .milliseconds(22))
+                        up.post(tap: .cghidEventTap)
+                        try? await Task.sleep(for: .milliseconds(22))
+                    }
+                }
+            }
+            
+            // 5. Submit password with Return key (0x24)
+            try? await Task.sleep(for: .milliseconds(60))
+            if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
+               let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
                 returnDown.post(tap: .cghidEventTap)
+                try? await Task.sleep(for: .milliseconds(30))
                 returnUp.post(tap: .cghidEventTap)
             }
         }

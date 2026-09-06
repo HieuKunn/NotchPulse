@@ -49,14 +49,15 @@ final class LockScreenFaceIDWindow: NSPanel {
     }
     
     func show() {
-        guard let screen = NSScreen.main else { return }
+        guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main ?? NSScreen.screens.first else { return }
         
-        let width: CGFloat = 230
-        let height: CGFloat = 44
+        let width: CGFloat = 200
+        let height: CGFloat = 50
+        let notchHeight: CGFloat = screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : 34
         
-        // Position gracefully directly under the MacBook Notch / top center
-        let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
-        let y = screen.frame.origin.y + screen.frame.height - height - 12
+        // Position directly and symmetrically underneath the physical MacBook notch
+        let x = screen.frame.midX - width / 2
+        let y = screen.frame.maxY - notchHeight - height - 8
         
         setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
         
@@ -95,29 +96,125 @@ final class LockScreenFaceIDWindow: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+// MARK: - Apple Face ID Corner Brackets (Vector)
+struct AppleFaceIDCornerBrackets: View {
+    var color: Color
+    var lineWidth: CGFloat
+    
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            let r = w * 0.28
+            let arm = w * 0.24
+            
+            Path { path in
+                // Top-Left Corner
+                path.move(to: CGPoint(x: 0, y: r + arm))
+                path.addLine(to: CGPoint(x: 0, y: r))
+                path.addQuadCurve(to: CGPoint(x: r, y: 0), control: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: r + arm, y: 0))
+                
+                // Top-Right Corner
+                path.move(to: CGPoint(x: w - r - arm, y: 0))
+                path.addLine(to: CGPoint(x: w - r, y: 0))
+                path.addQuadCurve(to: CGPoint(x: w, y: r), control: CGPoint(x: w, y: 0))
+                path.addLine(to: CGPoint(x: w, y: r + arm))
+                
+                // Bottom-Left Corner
+                path.move(to: CGPoint(x: 0, y: h - r - arm))
+                path.addLine(to: CGPoint(x: 0, y: h - r))
+                path.addQuadCurve(to: CGPoint(x: r, y: h), control: CGPoint(x: 0, y: h))
+                path.addLine(to: CGPoint(x: r + arm, y: h))
+                
+                // Bottom-Right Corner
+                path.move(to: CGPoint(x: w - r - arm, y: h))
+                path.addLine(to: CGPoint(x: w - r, y: h))
+                path.addQuadCurve(to: CGPoint(x: w, y: h - r), control: CGPoint(x: w, y: h))
+                path.addLine(to: CGPoint(x: w, y: h - r - arm))
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+        }
+    }
+}
+
+// MARK: - Apple Face ID Inner Features (Eyes, J-Nose, Smile)
+struct AppleFaceIDFeatures: View {
+    var color: Color
+    var lineWidth: CGFloat
+    
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            
+            let eyeW = max(2.5, w * 0.08)
+            let eyeH = max(6.0, h * 0.19)
+            
+            ZStack {
+                // Left Eye (Vertical capsule)
+                Capsule()
+                    .fill(color)
+                    .frame(width: eyeW, height: eyeH)
+                    .position(x: w * 0.38, y: h * 0.44)
+                
+                // Right Eye (Vertical capsule)
+                Capsule()
+                    .fill(color)
+                    .frame(width: eyeW, height: eyeH)
+                    .position(x: w * 0.62, y: h * 0.44)
+                
+                // J-Nose: vertical line curving to the left
+                Path { path in
+                    path.move(to: CGPoint(x: w * 0.50, y: h * 0.42))
+                    path.addLine(to: CGPoint(x: w * 0.50, y: h * 0.56))
+                    path.addQuadCurve(
+                        to: CGPoint(x: w * 0.44, y: h * 0.58),
+                        control: CGPoint(x: w * 0.50, y: h * 0.59)
+                    )
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                
+                // Mouth: Signature sweet curved smile
+                Path { path in
+                    path.move(to: CGPoint(x: w * 0.38, y: h * 0.69))
+                    path.addQuadCurve(
+                        to: CGPoint(x: w * 0.62, y: h * 0.69),
+                        control: CGPoint(x: w * 0.50, y: h * 0.77)
+                    )
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+            }
+        }
+    }
+}
+
 // MARK: - Apple 3D Face ID Swivel & Green Unlocking Lock Glyph
 struct AppleFaceIDGlyphView: View {
     var isScanning: Bool
     var isSuccess: Bool
     var isFailure: Bool = false
-    var size: CGFloat = 22
+    var size: CGFloat = 28
     
     @State private var swivelY: Double = -18
-    @State private var swivelX: Double = -4
+    @State private var swivelX: Double = -5
     @State private var shockwaveScale: CGFloat = 0.8
     @State private var shockwaveOpacity: Double = 0.0
     @State private var successPop: CGFloat = 1.0
     @State private var shakeOffset: CGFloat = 0
+    @State private var bracketPulse: CGFloat = 1.0
     
-    // Apple vibrant iOS green (#30D158)
+    // Apple Electric Blue (#0A84FF)
+    private let appleBlue = Color(red: 0.04, green: 0.52, blue: 1.0)
+    // Apple Vibrant Neon Green (#30D158)
     private let appleGreen = Color(red: 0.188, green: 0.855, blue: 0.376)
     
     var body: some View {
         ZStack {
             // Radiant Shockwave Glow Ring upon unlock
             Circle()
-                .strokeBorder(appleGreen.opacity(shockwaveOpacity), lineWidth: 2.0)
-                .frame(width: size * 1.5, height: size * 1.5)
+                .strokeBorder(appleGreen.opacity(shockwaveOpacity), lineWidth: 2.5)
+                .frame(width: size * 1.6, height: size * 1.6)
                 .scaleEffect(shockwaveScale)
             
             if isSuccess {
@@ -132,15 +229,18 @@ struct AppleFaceIDGlyphView: View {
                         removal: .opacity
                     ))
             } else {
-                // Scanning / Idle State: 3D Swiveling Face ID Mesh
+                // Scanning / Idle State: Authentic Vector Face ID with 3D Swivel
+                let glyphColor: Color = isFailure ? Color.orange : appleBlue
+                
                 ZStack {
-                    Image(systemName: "faceid")
-                        .font(.system(size: size, weight: .regular))
-                        .foregroundStyle(isFailure ? Color.orange : Color.white)
-                        .shadow(
-                            color: isFailure ? Color.orange.opacity(0.6) : (isScanning ? Color.cyan.opacity(0.5) : .clear),
-                            radius: 6, x: 0, y: 0
-                        )
+                    // Outer 4 Corner Brackets
+                    AppleFaceIDCornerBrackets(color: glyphColor, lineWidth: max(2.2, size * 0.09))
+                        .frame(width: size, height: size)
+                        .scaleEffect(bracketPulse)
+                    
+                    // Inner Face (Eyes, Nose, Mouth) with 3D perspective swivel
+                    AppleFaceIDFeatures(color: glyphColor, lineWidth: max(2.2, size * 0.09))
+                        .frame(width: size, height: size)
                         .rotation3DEffect(
                             .degrees(isScanning ? swivelY : 0),
                             axis: (x: 0.0, y: 1.0, z: 0.0),
@@ -151,7 +251,12 @@ struct AppleFaceIDGlyphView: View {
                             axis: (x: 1.0, y: 0.0, z: 0.0),
                             perspective: 0.35
                         )
+                        .offset(
+                            x: isScanning ? CGFloat(swivelY * 0.16) : 0,
+                            y: isScanning ? CGFloat(swivelX * 0.16) : 0
+                        )
                 }
+                .shadow(color: glyphColor.opacity(isScanning ? 0.65 : 0.2), radius: 6, x: 0, y: 0)
                 .offset(x: shakeOffset)
             }
         }
@@ -180,16 +285,21 @@ struct AppleFaceIDGlyphView: View {
     
     private func startSwivelAnimation() {
         withAnimation(
-            .easeInOut(duration: 1.2)
+            .easeInOut(duration: 1.1)
             .repeatForever(autoreverses: true)
         ) {
             swivelY = 18
-            swivelX = 4
+            swivelX = 6
+        }
+        withAnimation(
+            .easeInOut(duration: 1.8)
+            .repeatForever(autoreverses: true)
+        ) {
+            bracketPulse = 1.04
         }
     }
     
     private func triggerSuccessAnimation() {
-        // Shockwave expansion
         shockwaveScale = 0.8
         shockwaveOpacity = 0.95
         withAnimation(.easeOut(duration: 0.5)) {
@@ -197,7 +307,6 @@ struct AppleFaceIDGlyphView: View {
             shockwaveOpacity = 0.0
         }
         
-        // Elastic Pop
         successPop = 0.65
         withAnimation(.spring(response: 0.35, dampingFraction: 0.52, blendDuration: 0)) {
             successPop = 1.0
@@ -220,6 +329,7 @@ struct AppleFaceIDGlyphView: View {
 struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     
+    private let appleBlue = Color(red: 0.04, green: 0.52, blue: 1.0)
     private let appleGreen = Color(red: 0.188, green: 0.855, blue: 0.376)
     
     var body: some View {
@@ -233,7 +343,7 @@ struct LockScreenFaceIDPillView: View {
                     isScanning: faceIDManager.isScanning,
                     isSuccess: faceIDManager.lastUnlockSuccess,
                     isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                    size: 21
+                    size: 26
                 )
                 
                 if faceIDManager.lastUnlockSuccess {
@@ -275,7 +385,7 @@ struct LockScreenFaceIDPillView: View {
         if faceIDManager.lastUnlockSuccess {
             return appleGreen.opacity(0.85)
         } else if faceIDManager.isScanning {
-            return .cyan.opacity(0.6)
+            return appleBlue.opacity(0.75)
         } else {
             return .orange.opacity(0.5)
         }

@@ -526,74 +526,106 @@
       pointer-events: auto;
     }
 
-    /* Top Lock Header & 3D Face ID */
+    /* Top Lock Header & 3D Face ID directly under Notch */
     .lock-top-area {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      margin-top: 8px;
     }
     .faceid-scanner-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+    .apple-faceid-box {
+      width: 58px;
+      height: 58px;
+      position: relative;
+      perspective: 350px;
+    }
+    .faceid-brackets-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 10px rgba(0, 122, 255, 0.45));
+      transition: all 0.3s ease;
+    }
+    .faceid-features-wrap {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      animation: appleFaceSwivel 2.5s ease-in-out infinite;
+      filter: drop-shadow(0 0 8px rgba(0, 122, 255, 0.5));
+    }
+    @keyframes appleFaceSwivel {
+      0% { transform: rotateY(-20deg) rotateX(8deg) translateX(-3px); }
+      25% { transform: rotateY(0deg) rotateX(-12deg) translateY(-2px); }
+      50% { transform: rotateY(20deg) rotateX(8deg) translateX(3px); }
+      75% { transform: rotateY(0deg) rotateX(12deg) translateY(2px); }
+      100% { transform: rotateY(-20deg) rotateX(8deg) translateX(-3px); }
+    }
+    .faceid-padlock {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .apple-faceid-box.unlocked .faceid-brackets-svg {
+      opacity: 0;
+      transform: scale(1.15);
+    }
+    .apple-faceid-box.unlocked .faceid-features-wrap {
+      opacity: 0;
+    }
+    .apple-faceid-box.unlocked .faceid-padlock {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    .faceid-shockwave {
+      position: absolute;
       width: 70px;
       height: 70px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .faceid-3d-glyph {
-      width: 48px;
-      height: 48px;
-      border: 2.5px solid rgba(255, 255, 255, 0.85);
-      border-radius: 12px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      animation: gyroScan 2.5s infinite ease-in-out;
-    }
-    .faceid-3d-glyph.unlocked {
-      border-color: var(--apple-green);
-      background: rgba(48, 209, 88, 0.15);
-      box-shadow: 0 0 25px rgba(48, 209, 88, 0.6);
-      animation: popShockwave 0.5s forwards;
-    }
-    @keyframes gyroScan {
-      0%, 100% { transform: perspective(300px) rotateY(-18deg) rotateX(8deg); }
-      50% { transform: perspective(300px) rotateY(18deg) rotateX(-8deg); }
-    }
-    @keyframes popShockwave {
-      0% { transform: scale(0.9); }
-      50% { transform: scale(1.18); }
-      100% { transform: scale(1.05); }
-    }
-    .faceid-eye {
-      width: 6px;
-      height: 6px;
-      background: #fff;
       border-radius: 50%;
-      position: absolute;
+      border: 2px solid var(--apple-green);
+      opacity: 0;
+      pointer-events: none;
     }
-    .faceid-eye.left { left: 12px; top: 14px; }
-    .faceid-eye.right { right: 12px; top: 14px; }
-    .faceid-smile {
-      width: 18px;
-      height: 8px;
-      border-bottom: 2.5px solid #fff;
-      border-radius: 0 0 10px 10px;
-      position: absolute;
-      bottom: 12px;
+    .faceid-shockwave.active {
+      animation: shockwaveRing 0.5s ease-out forwards;
+    }
+    @keyframes shockwaveRing {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+    .faceid-status-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #64d2ff;
+      letter-spacing: 0.2px;
+      transition: color 0.3s;
     }
     .lock-time {
-      font-size: 64px;
+      font-size: 68px;
       font-weight: 300;
-      letter-spacing: -1px;
+      letter-spacing: -1.5px;
+      margin-top: 4px;
     }
     .lock-date {
       font-size: 18px;
       font-weight: 500;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.75);
+      margin-top: -6px;
     }
 
     /* Compact Media Card */
@@ -951,13 +983,40 @@
            ============================================ -->
       <div class="lock-screen-overlay" id="lockScreen">
         <div class="lock-top-area">
-          <!-- 3D Face ID Scanner Simulation -->
+          <!-- 3D Apple Face ID Scanner Directly Under Notch -->
           <div class="faceid-scanner-wrap">
-            <div class="faceid-3d-glyph" id="faceIdGlyph">
-              <div class="faceid-eye left"></div>
-              <div class="faceid-eye right"></div>
-              <div class="faceid-smile"></div>
+            <div class="apple-faceid-box" id="faceIdBox" onclick="simulateFaceIDUnlock()" title="Click to test Face ID Unlock">
+              <svg class="faceid-brackets-svg" viewBox="0 0 58 58" fill="none" stroke="#0A84FF" stroke-width="3.5" stroke-linecap="round">
+                <!-- Top Left -->
+                <path d="M 18 7 H 12 A 5 5 0 0 0 7 12 V 18" />
+                <!-- Top Right -->
+                <path d="M 40 7 H 46 A 5 5 0 0 1 51 12 V 18" />
+                <!-- Bottom Left -->
+                <path d="M 7 40 V 46 A 5 5 0 0 0 12 51 H 18" />
+                <!-- Bottom Right -->
+                <path d="M 51 40 V 46 A 5 5 0 0 1 46 51 H 40" />
+              </svg>
+              <div class="faceid-features-wrap">
+                <svg viewBox="0 0 58 58" fill="none" stroke="#0A84FF" stroke-width="3.2" stroke-linecap="round">
+                  <!-- Eyes (Pill / Capsule) -->
+                  <line x1="22" y1="21" x2="22" y2="25" />
+                  <line x1="36" y1="21" x2="36" y2="25" />
+                  <!-- Nose (J-hook) -->
+                  <path d="M 29 21.5 V 31 A 2.2 2.2 0 0 1 26.8 33.2 H 25.5" />
+                  <!-- Smile Arc -->
+                  <path d="M 23 38.5 Q 29 44.5 35 38.5" />
+                </svg>
+              </div>
+              <div class="faceid-padlock" id="faceIdPadlock">
+                <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="#30D158" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="10" y="20" width="28" height="22" rx="5" fill="rgba(48, 209, 88, 0.2)" />
+                  <path d="M 17 20 V 13 A 7 7 0 0 1 31 13 V 17" />
+                  <circle cx="24" cy="30" r="2.5" fill="#30D158" />
+                </svg>
+              </div>
+              <div class="faceid-shockwave" id="faceIdShockwave"></div>
             </div>
+            <div class="faceid-status-text" id="faceIdStatus">Face ID</div>
           </div>
           <div class="lock-time" id="lockClock">17:45</div>
           <div class="lock-date">Chủ Nhật, 6 tháng 9</div>
@@ -1216,43 +1275,59 @@
       document.querySelector('.lyrics-big-art').src = s.art;
     }
 
-    // Lock Screen Toggle
+    // Lock Screen Toggle & Auto Face ID
     function toggleLockScreen() {
       isLocked = !isLocked;
       const lockOverlay = document.getElementById('lockScreen');
       lockOverlay.classList.toggle('active', isLocked);
 
       if (isLocked) {
-        // Trigger camera LED for 1.2s to simulate Face ID wake
-        camLed.style.opacity = '1';
+        // Automatically start Face ID verification scan
         setTimeout(() => {
-          camLed.style.opacity = '0';
-        }, 1500);
+          simulateFaceIDUnlock();
+        }, 400);
       }
     }
 
-    // Face ID 3D Unlock
+    // Face ID 3D Unlock & Automatic Mac Unlock
+    let isScanning = false;
     function simulateFaceIDUnlock() {
-      const glyph = document.getElementById('faceIdGlyph');
-      camLed.style.opacity = '1';
-      
-      // Face scanning animation
-      setTimeout(() => {
-        glyph.classList.add('unlocked');
-        glyph.innerHTML = `<span style="font-size:24px; color:#30D158;">🔓</span>`;
-        camLed.style.opacity = '0';
+      if (!isLocked || isScanning) return;
+      isScanning = true;
 
-        // Unlock after pop
+      const box = document.getElementById('faceIdBox');
+      const status = document.getElementById('faceIdStatus');
+      const shockwave = document.getElementById('faceIdShockwave');
+
+      // 1. Camera LED glows & Face begins 3D scan
+      camLed.style.opacity = '1';
+      box.classList.remove('unlocked');
+      shockwave.classList.remove('active');
+      status.textContent = 'Đang quét khuôn mặt...';
+      status.style.color = '#64d2ff';
+
+      // 2. Scan duration 1.2s
+      setTimeout(() => {
+        // Face recognized!
+        box.classList.add('unlocked');
+        shockwave.classList.add('active');
+        camLed.style.opacity = '0';
+        status.textContent = 'Đã mở khoá';
+        status.style.color = '#30D158';
+
+        // 3. Automatically unlocks the Mac (dismisses lockscreen to desktop)
         setTimeout(() => {
-          glyph.classList.remove('unlocked');
-          glyph.innerHTML = `
-            <div class="faceid-eye left"></div>
-            <div class="faceid-eye right"></div>
-            <div class="faceid-smile"></div>
-          `;
-          toggleLockScreen();
-        }, 900);
-      }, 800);
+          box.classList.remove('unlocked');
+          shockwave.classList.remove('active');
+          status.textContent = 'Face ID';
+          status.style.color = '#64d2ff';
+          isScanning = false;
+
+          // Unlock Mac to desktop!
+          isLocked = false;
+          document.getElementById('lockScreen').classList.remove('active');
+        }, 850);
+      }, 1200);
     }
 
     // Immersive Lyrics
