@@ -100,13 +100,13 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         isDynamicIsland
-                        ? (vm.notchState == .open ? 14 : 12)
+                        ? (vm.notchState == .open ? 10 : 12)
                         : (vm.notchState == .open
                             ? Defaults[.cornerRadiusScaling]
                             ? (cornerRadiusInsets.opened.top) : (cornerRadiusInsets.opened.bottom)
                             : cornerRadiusInsets.closed.bottom)
                     )
-                    .padding([.horizontal, .bottom], vm.notchState == .open ? 8 : 0)
+                    .padding([.horizontal, .bottom], vm.notchState == .open ? 4 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view

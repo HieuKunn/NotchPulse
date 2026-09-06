@@ -49,7 +49,7 @@ struct AlbumArtView: View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
             .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(maxWidth: 160, maxHeight: 110)
+            .frame(width: 110, height: 110)
             .clipped()
             .clipShape(
                 RoundedRectangle(
@@ -86,7 +86,7 @@ struct AlbumArtView: View {
                 ? MusicPlayerImageSizes.cornerRadiusInset.opened
                 : MusicPlayerImageSizes.cornerRadiusInset.closed)
             .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(maxWidth: 160, maxHeight: 110)
+            .frame(width: 110, height: 110)
             .foregroundColor(Color.black)
             .opacity(musicManager.isPlaying ? 0 : 0.8)
             .blur(radius: 50)
@@ -98,7 +98,7 @@ struct AlbumArtView: View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
             .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(maxWidth: 160, maxHeight: 110)
+            .frame(width: 110, height: 110)
             .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
             .clipped()
             .clipShape(
