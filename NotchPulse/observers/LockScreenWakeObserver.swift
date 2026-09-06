@@ -41,6 +41,7 @@ final class LockScreenWakeObserver: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.isScreenLocked = true
+                FaceIDManager.shared.cancelCurrentSession()
                 self.updateLockScreenMediaWindowVisibility()
                 
                 // User intentionally locked their screen while working at desk.

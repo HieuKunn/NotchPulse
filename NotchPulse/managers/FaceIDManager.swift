@@ -144,6 +144,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         isEnrollmentMode = false
         isTestingMode = false
         lastUnlockSuccess = false
+        lastUnlockSuccess = false
         consecutiveMatches = 0
         lastMatchedFaceName = nil
         statusMessage = "Verifying face…"
@@ -170,6 +171,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         pendingFaceName = name ?? (enrolledFaces.isEmpty ? "Face 1" : "Appearance \(enrolledFaces.count + 1)")
         isEnrollmentMode = true
         isTestingMode = false
+        lastUnlockSuccess = false
         lastUnlockSuccess = false
         enrollmentSamples.removeAll()
         enrollmentProgress = 0.0
@@ -215,6 +217,7 @@ final class FaceIDManager: NSObject, ObservableObject {
             self.stopCameraSession()
             self.isScanning = false
             self.isTestingMode = false
+        lastUnlockSuccess = false
             self.testResultText = "Test complete"
             self.testResultColor = .secondary
         }
@@ -225,6 +228,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         stopCameraSession()
         isScanning = false
         isTestingMode = false
+        lastUnlockSuccess = false
         testResultText = ""
         testConfidence = 0
     }
@@ -235,6 +239,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         isScanning = false
         isEnrollmentMode = false
         isTestingMode = false
+        lastUnlockSuccess = false
         statusMessage = "Cancelled"
     }
     
