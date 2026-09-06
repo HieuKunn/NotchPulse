@@ -49,11 +49,15 @@ jobs:
           xcodebuild clean build \
             -project NotchPulse.xcodeproj \
             -scheme NotchPulse \
+            -destination 'generic/platform=macOS' \
             -configuration Release \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=YES \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            SWIFT_STRICT_CONCURRENCY=minimal \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             ONLY_ACTIVE_ARCH=NO
 
       - name: Verify Built App

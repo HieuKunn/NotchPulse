@@ -1100,7 +1100,7 @@ final class ShelfItemViewModel: ObservableObject {
 }
 
 fileprivate extension Sequence {
-    func asyncCompactMap<T>(_ transform: (Element) async -> T?) async -> [T] {
+    func asyncCompactMap<T>(_ transform: @Sendable (Element) async -> T?) async -> [T] {
         var result: [T] = []
         for element in self {
             if let transformed = await transform(element) {
