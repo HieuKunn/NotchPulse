@@ -181,16 +181,23 @@ struct FaceIDSettingsView: View {
                         }
                         
                         if !faceIDManager.testResultText.isEmpty {
-                            HStack {
+                            HStack(spacing: 12) {
+                                AppleFaceIDGlyphView(
+                                    isScanning: faceIDManager.isTestingMode,
+                                    isSuccess: faceIDManager.testResultColor == .green,
+                                    isFailure: faceIDManager.testResultColor == .red,
+                                    size: 26
+                                )
+                                
                                 Text(faceIDManager.testResultText)
                                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                                     .foregroundStyle(faceIDManager.testResultColor)
                                 
                                 Spacer()
                             }
-                            .padding(8)
+                            .padding(10)
                             .background(faceIDManager.testResultColor.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
                     }
                     .padding(.vertical, 4)

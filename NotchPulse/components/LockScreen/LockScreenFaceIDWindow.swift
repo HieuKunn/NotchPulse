@@ -18,7 +18,7 @@ final class LockScreenFaceIDWindow: NSPanel {
     private var isSkyLightAttached = false
     
     private init() {
-        let initialRect = NSRect(x: 0, y: 0, width: 230, height: 42)
+        let initialRect = NSRect(x: 0, y: 0, width: 230, height: 44)
         super.init(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -52,7 +52,7 @@ final class LockScreenFaceIDWindow: NSPanel {
         guard let screen = NSScreen.main else { return }
         
         let width: CGFloat = 230
-        let height: CGFloat = 42
+        let height: CGFloat = 44
         
         // Position gracefully directly under the MacBook Notch / top center
         let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
@@ -95,10 +95,132 @@ final class LockScreenFaceIDWindow: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+// MARK: - Apple 3D Face ID Swivel & Green Unlocking Lock Glyph
+struct AppleFaceIDGlyphView: View {
+    var isScanning: Bool
+    var isSuccess: Bool
+    var isFailure: Bool = false
+    var size: CGFloat = 22
+    
+    @State private var swivelY: Double = -18
+    @State private var swivelX: Double = -4
+    @State private var shockwaveScale: CGFloat = 0.8
+    @State private var shockwaveOpacity: Double = 0.0
+    @State private var successPop: CGFloat = 1.0
+    @State private var shakeOffset: CGFloat = 0
+    
+    // Apple vibrant iOS green (#30D158)
+    private let appleGreen = Color(red: 0.188, green: 0.855, blue: 0.376)
+    
+    var body: some View {
+        ZStack {
+            // Radiant Shockwave Glow Ring upon unlock
+            Circle()
+                .strokeBorder(appleGreen.opacity(shockwaveOpacity), lineWidth: 2.0)
+                .frame(width: size * 1.5, height: size * 1.5)
+                .scaleEffect(shockwaveScale)
+            
+            if isSuccess {
+                // Success State: Unlocked Padlock in vibrant Apple Green with pop
+                Image(systemName: "lock.open.fill")
+                    .font(.system(size: size * 0.95, weight: .bold))
+                    .foregroundStyle(appleGreen)
+                    .shadow(color: appleGreen.opacity(0.85), radius: 8, x: 0, y: 0)
+                    .scaleEffect(successPop)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.5).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+            } else {
+                // Scanning / Idle State: 3D Swiveling Face ID Mesh
+                ZStack {
+                    Image(systemName: "faceid")
+                        .font(.system(size: size, weight: .regular))
+                        .foregroundStyle(isFailure ? Color.orange : Color.white)
+                        .shadow(
+                            color: isFailure ? Color.orange.opacity(0.6) : (isScanning ? Color.cyan.opacity(0.5) : .clear),
+                            radius: 6, x: 0, y: 0
+                        )
+                        .rotation3DEffect(
+                            .degrees(isScanning ? swivelY : 0),
+                            axis: (x: 0.0, y: 1.0, z: 0.0),
+                            perspective: 0.35
+                        )
+                        .rotation3DEffect(
+                            .degrees(isScanning ? swivelX : 0),
+                            axis: (x: 1.0, y: 0.0, z: 0.0),
+                            perspective: 0.35
+                        )
+                }
+                .offset(x: shakeOffset)
+            }
+        }
+        .frame(width: size * 1.4, height: size * 1.4)
+        .onAppear {
+            if isScanning {
+                startSwivelAnimation()
+            }
+        }
+        .onChange(of: isScanning) { _, scanning in
+            if scanning {
+                startSwivelAnimation()
+            }
+        }
+        .onChange(of: isSuccess) { _, success in
+            if success {
+                triggerSuccessAnimation()
+            }
+        }
+        .onChange(of: isFailure) { _, failure in
+            if failure {
+                triggerShakeAnimation()
+            }
+        }
+    }
+    
+    private func startSwivelAnimation() {
+        withAnimation(
+            .easeInOut(duration: 1.2)
+            .repeatForever(autoreverses: true)
+        ) {
+            swivelY = 18
+            swivelX = 4
+        }
+    }
+    
+    private func triggerSuccessAnimation() {
+        // Shockwave expansion
+        shockwaveScale = 0.8
+        shockwaveOpacity = 0.95
+        withAnimation(.easeOut(duration: 0.5)) {
+            shockwaveScale = 1.9
+            shockwaveOpacity = 0.0
+        }
+        
+        // Elastic Pop
+        successPop = 0.65
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.52, blendDuration: 0)) {
+            successPop = 1.0
+        }
+    }
+    
+    private func triggerShakeAnimation() {
+        let offsets: [CGFloat] = [0, -8, 8, -6, 6, -3, 3, 0]
+        for (index, offset) in offsets.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.04) {
+                withAnimation(.linear(duration: 0.04)) {
+                    self.shakeOffset = offset
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Lock Screen Face ID Pill View
 struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
-    @State private var isPulsing: Bool = false
+    
+    private let appleGreen = Color(red: 0.188, green: 0.855, blue: 0.376)
     
     var body: some View {
         Button {
@@ -106,39 +228,30 @@ struct LockScreenFaceIDPillView: View {
                 faceIDManager.startRecognitionOnWake()
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
+                AppleFaceIDGlyphView(
+                    isScanning: faceIDManager.isScanning,
+                    isSuccess: faceIDManager.lastUnlockSuccess,
+                    isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                    size: 21
+                )
+                
                 if faceIDManager.lastUnlockSuccess {
-                    Image(systemName: "lock.open.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.green)
-                    
-                    Text("Đã mở khoá!")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
+                    Text("Đã mở khoá")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(appleGreen)
+                        .transition(.scale.combined(with: .opacity))
                 } else if faceIDManager.isScanning {
-                    Image(systemName: "faceid")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.cyan)
-                        .scaleEffect(isPulsing ? 1.15 : 0.95)
-                        .animation(
-                            .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
-                            value: isPulsing
-                        )
-                    
-                    Text("Đang quét Face ID…")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.9))
+                    Text("Face ID…")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.95))
                 } else {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.orange)
-                    
                     Text("Chạm để quét lại")
-                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.85))
                 }
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 ZStack {
@@ -147,23 +260,20 @@ struct LockScreenFaceIDPillView: View {
                         .environment(\.colorScheme, .dark)
                     
                     Capsule()
-                        .fill(Color.black.opacity(0.65))
+                        .fill(Color.black.opacity(0.7))
                     
                     Capsule()
                         .strokeBorder(borderColor, lineWidth: 1.2)
                 }
             )
-            .shadow(color: .black.opacity(0.35), radius: 10, x: 0, y: 4)
+            .shadow(color: .black.opacity(0.4), radius: 12, x: 0, y: 5)
         }
         .buttonStyle(.plain)
-        .onAppear {
-            isPulsing = true
-        }
     }
     
     private var borderColor: Color {
         if faceIDManager.lastUnlockSuccess {
-            return .green.opacity(0.8)
+            return appleGreen.opacity(0.85)
         } else if faceIDManager.isScanning {
             return .cyan.opacity(0.6)
         } else {

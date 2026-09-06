@@ -120,20 +120,23 @@ struct LockScreenMediaView: View {
                     Button {
                         faceIDManager.startRecognitionOnWake()
                     } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: "faceid")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(faceIDManager.isScanning ? .cyan : .white.opacity(0.85))
+                        HStack(spacing: 6) {
+                            AppleFaceIDGlyphView(
+                                isScanning: faceIDManager.isScanning,
+                                isSuccess: faceIDManager.lastUnlockSuccess,
+                                isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                                size: 16
+                            )
                             
-                            Text(faceIDManager.isScanning ? "Đang quét…" : "Face ID")
-                                .font(.system(size: 8.5, weight: .semibold, design: .rounded))
-                                .foregroundStyle(faceIDManager.isScanning ? .cyan : .white.opacity(0.75))
+                            Text(faceIDManager.lastUnlockSuccess ? "Đã mở khoá" : (faceIDManager.isScanning ? "Đang quét…" : "Face ID"))
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundStyle(faceIDManager.lastUnlockSuccess ? Color(red: 0.188, green: 0.855, blue: 0.376) : (faceIDManager.isScanning ? .cyan : .white.opacity(0.85)))
                         }
-                        .padding(.horizontal, 7)
+                        .padding(.horizontal, 9)
                         .padding(.vertical, 5)
                         .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(faceIDManager.isScanning ? Color.cyan.opacity(0.25) : Color.white.opacity(0.1))
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(faceIDManager.lastUnlockSuccess ? Color.green.opacity(0.25) : (faceIDManager.isScanning ? Color.cyan.opacity(0.2) : Color.white.opacity(0.1)))
                         )
                     }
                     .buttonStyle(.plain)
