@@ -4,15 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tạo GitHub Release (nhập tag ví dụ v2.7.4, để trống nếu chỉ tải Artifact)'
-        required: false
-        default: ''
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - 'v*'
+        description: 'Tạo GitHub Release (nhập tag ví dụ v2.7.4, bắt buộc)'
+        required: true
+        default: 'v3.0.0'
 
 jobs:
   build:
