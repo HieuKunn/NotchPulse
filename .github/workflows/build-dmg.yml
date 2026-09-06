@@ -75,14 +75,25 @@ jobs:
           # Ký lại toàn bộ ứng dụng và nested frameworks bằng ad-hoc signing để tránh lỗi Library Validation trên macOS
           codesign --force --deep --sign - dmg_staging/NotchPulse.app
           
+          # Nén file .app dạng zip với ditto (giữ nguyên quyền và resource macOS)
+          ditto -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
+
           # Tạo symlink Applications để người dùng kéo thả
           ln -s /Applications dmg_staging/Applications
 
-          # Tạo file .dmg bằng hdiutil native chuẩn macOS
-          hdiutil create -volname "NotchPulse" -srcfolder dmg_staging -ov -format UDZO release_out/NotchPulse.dmg
+          sync
+          sleep 2
 
-          # Nén file .app dạng zip với ditto (giữ nguyên quyền và resource macOS)
-          ditto -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
+          # Tạo file .dmg bằng hdiutil native chuẩn macOS (kèm retry phòng ngừa Resource busy)
+          for attempt in 1 2 3; do
+            if hdiutil create -volname "NotchPulse" -srcfolder dmg_staging -ov -format UDZO release_out/NotchPulse.dmg; then
+              echo "Tạo DMG thành công ở lần thử $attempt"
+              break
+            else
+              echo "hdiutil bận, thử lại sau 3s (lần $attempt/3)..."
+              sleep 3
+            fi
+          done
 
           echo "Đã đóng gói xong:"
           ls -lh release_out/
