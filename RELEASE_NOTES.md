@@ -1,8 +1,14 @@
 Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit {{COMMIT_SHA}}.
 
-### Có gì mới trong bản v2.9.2:
-- Sửa lại hoàn thiện Face ID sử dụng mô hình học máy nhỏ (CoreML FaceNet).
-- Nhận diện khuôn mặt chính xác và mở khoá mượt mà hơn.
-- Căn chỉnh biểu tượng Face ID pop-down từ notch / Dynamic Island tinh gọn, đồng bộ.
-- Bổ sung thanh điều khiển media ở chế độ xem lời bài hát toàn màn hình.
-- Tối ưu hiệu năng và độ ổn định hệ thống.
+### Có gì mới trong bản v2.9.3:
+- 🚀 **Tự động cập nhật (Sparkle Auto-Update)**: Tích hợp hệ thống tự động kiểm tra và nâng cấp trực tiếp qua GitHub Releases, cài đè phiên bản mới nhanh chóng mà không cần tải DMG thủ công.
+- 📅 **Nâng cấp trải nghiệm Calendar**:
+  - Vùng bấm nhận click toàn diện trên từng ô ngày (kể cả khoảng trống giữa thứ và số ngày), khắc phục triệt để lỗi trượt click.
+  - Hỗ trợ cuộn tự do lướt qua nhiều ngày bằng con lăn chuột (mouse wheel) và trackpad mượt mà, không còn bị khựng giật cục từng ngày.
+  - Mở rộng dải ngày khả dụng (30 ngày quá khứ, 60 ngày tương lai).
+- 🔒 **Tối ưu hiển thị màn hình khoá (Lock Screen Media & Face ID)**:
+  - Ẩn nhãn karaoke thừa, tự động căn giữa hài hoà khi bài hát không có lyrics và chia đôi cân đối khi có lyrics.
+  - Xử lý triệt để viền vuông góc bị lộ, bo góc mượt mà đồng bộ với giao diện macOS.
+  - Đồng bộ Face ID pop-down tự nhiên kéo dài từ notch / Dynamic Island.
+- 🎛️ **Live Notch Width Preview**: Xem trước trực tiếp kích thước notch khi kéo thanh trượt điều chỉnh độ rộng trong Settings.
+- ⚡ Tối ưu hiệu năng, độ mượt mà và sửa các lỗi nhỏ.

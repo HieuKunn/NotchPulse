@@ -495,12 +495,21 @@ final class FaceIDManager: NSObject, ObservableObject {
                 }
             }
             
-            try? await Task.sleep(for: .milliseconds(60))
+            try? await Task.sleep(for: .milliseconds(300))
             if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
                let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
                 returnDown.post(tap: .cghidEventTap)
                 try? await Task.sleep(for: .milliseconds(30))
                 returnUp.post(tap: .cghidEventTap)
+            }
+            
+            // Post an extra return in case the first one is ignored during animation
+            try? await Task.sleep(for: .milliseconds(150))
+            if let returnDown2 = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
+               let returnUp2 = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
+                returnDown2.post(tap: .cghidEventTap)
+                try? await Task.sleep(for: .milliseconds(30))
+                returnUp2.post(tap: .cghidEventTap)
             }
         }
     }

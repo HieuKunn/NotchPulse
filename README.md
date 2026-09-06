@@ -10,24 +10,27 @@
 
 ---
 
-## ✨ Key Features & What's New in v2.9.2
+## ✨ Key Features & What's New in v2.9.3
 
+- 🚀 **Seamless Auto-Update (Sparkle 2 & GitHub Releases)**:
+  - Built-in automatic update engine with cryptographic EdDSA verification. Download and upgrade directly within the app without manually fetching `.dmg` files.
+- 📅 **Fluid Calendar & Extended Date Glance**: 
+  - Comprehensive click target covering the entire date cell for foolproof date switching.
+  - Smooth multi-day mouse wheel and trackpad navigation across a 90-day interactive calendar strip.
 - 👤 **Face ID with Lightweight Neural Network (CoreML FaceNet)**: 
   - Real-time facial embedding extraction (512-dimensional vectors) using **CoreML MobileFaceNet** accelerated by Apple Neural Engine (ANE) and Metal GPU.
   - Ultra-fast recognition (0.2s – 0.4s) on screen wake with Cosine Distance verification and consecutive multi-frame anti-spoofing.
   - Native pop-down Face ID glyph animation extending naturally below the MacBook notch / Dynamic Island.
   - Secure automatic unlock powered by credentials stored inside macOS Keychain.
 - 📱 **Lock Screen Media & Fullscreen Karaoke Lyrics**: 
-  - 2-column glassmorphism widget hovering seamlessly over the macOS lock screen via `SkyLightWindow`.
+  - Adaptive 2-column glassmorphism widget hovering seamlessly over the macOS lock screen with smooth rounded borders.
   - Real-time **Synced Karaoke Lyrics** with fullscreen immersive mode and dedicated media transport controls (Play/Pause, Next/Previous, Shuffle, Repeat).
 - 🏝️ **MacBook Notch ⇋ Dynamic Island Seamless Switcher**: 
-  - Switch instantly between the classic MacBook Notch and a floating iPhone-style Dynamic Island pill with customizable open dimensions and live interactive expansion preview.
+  - Switch instantly between the classic MacBook Notch and a floating iPhone-style Dynamic Island pill with live interactive width slider preview.
 - 🎵 **Adaptive Media Hub**: 
   - Seamless playback controls, audio visualizer wave, scrubber, and volume integration for Spotify, Apple Music, YouTube, and web browsers.
 - 📁 **Notch Shelf & Quick Share**: 
   - Drag, drop, stash, and share files directly through the top notch with instant AirDrop and clipboard support.
-- 📅 **Integrated Calendar & Task Glance**: 
-  - Instant-response day wheel, ergonomic schedule widget layout, and smooth date switching.
 - ☀️ **Intelligent Multi-Display Brightness & Volume HUD**: 
   - Automatically detects built-in MacBook Retina displays vs. external monitors, controlling hardware and software brightness independently.
 - ⚡ **Zero-Overhead & Battery Efficient**: 

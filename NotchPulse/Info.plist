@@ -12,5 +12,9 @@
 	<array>
 		<dict/>
 	</array>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/HieuKunn/NotchPulse/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>NBjL78EXiHC6q+U7brTMTqaqbs1aQKXvB8ybD2ZxLNw=</string>
 </dict>
 </plist>

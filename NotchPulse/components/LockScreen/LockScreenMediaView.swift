@@ -163,11 +163,7 @@ struct LockScreenMediaView: View {
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .environment(\.colorScheme, .dark)
-                
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.black.opacity(0.72))
+                    .fill(Color.black.opacity(0.85))
                 
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
@@ -219,14 +215,26 @@ struct LockScreenMediaView: View {
                 Spacer(minLength: 20)
                 
                 // Nội dung 2 cột: Trái là Ảnh bìa to & Điều khiển, Phải là Lời bài hát Karaoke
+                let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty || musicManager.isFetchingLyrics
+                
                 HStack(alignment: .center, spacing: 60) {
-                    // CỘT TRÁI: Ảnh bìa to + Tên bài hát + Timeline + Phím điều khiển
-                    fullScreenLeftColumn
-                        .frame(maxWidth: 440)
-                    
-                    // CỘT PHẢI: Lời bài hát Karaoke chạy thời gian thực
-                    fullScreenLyricsColumn
-                        .frame(maxWidth: 580)
+                    if hasLyrics {
+                        // CỘT TRÁI: Ảnh bìa to + Tên bài hát + Timeline + Phím điều khiển
+                        fullScreenLeftColumn
+                            .frame(maxWidth: 440)
+                        
+                        // CỘT PHẢI: Lời bài hát Karaoke chạy thời gian thực
+                        fullScreenLyricsColumn
+                            .frame(maxWidth: 580)
+                    } else {
+                        Spacer()
+                        
+                        // CỘT TRÁI: Đưa ra giữa khi không có lời bài hát
+                        fullScreenLeftColumn
+                            .frame(maxWidth: 440)
+                        
+                        Spacer()
+                    }
                 }
                 .padding(.horizontal, 50)
                 
@@ -413,17 +421,14 @@ struct LockScreenMediaView: View {
     // Cột phải Full Screen: Lời bài hát Karaoke toàn màn hình
     private var fullScreenLyricsColumn: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label("LỜI BÀI HÁT (KARAOKE)", systemImage: "quote.bubble.fill")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.65))
-                Spacer()
-                if musicManager.isFetchingLyrics {
+            if musicManager.isFetchingLyrics {
+                HStack {
+                    Spacer()
                     ProgressView()
                         .scaleEffect(0.7)
                 }
+                .padding(.bottom, 8)
             }
-            .padding(.bottom, 8)
             
             if !musicManager.syncedLyrics.isEmpty {
                 TimelineView(.animation(minimumInterval: 0.25)) { timeline in

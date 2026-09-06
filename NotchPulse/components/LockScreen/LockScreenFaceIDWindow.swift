@@ -58,7 +58,8 @@ final class LockScreenFaceIDWindow: NSPanel {
         guard let screen = screen else { return }
         
         // Size it to look like a small drop-down extension from the physical notch
-        let width: CGFloat = 185
+        let closedSize = getClosedNotchSize(screenUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
+        let width: CGFloat = max(185, closedSize.width)
         let height: CGFloat = 66
         let notchHeight: CGFloat = screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : 34
         
@@ -348,6 +349,22 @@ struct FaceIDExtensionShape: Shape {
     }
 }
 
+struct FaceIDExtensionStrokeShape: Shape {
+    var cornerRadius: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        // Start from top-right, go down, curve bottom-right, go left, curve bottom-left, go up to top-left
+        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
+        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 0), endAngle: Angle(degrees: 90), clockwise: false)
+        path.addLine(to: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY))
+        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 90), endAngle: Angle(degrees: 180), clockwise: false)
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        return path
+    }
+}
+
 // MARK: - Lock Screen Face ID Pill View
 struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
@@ -377,7 +394,7 @@ struct LockScreenFaceIDPillView: View {
                     FaceIDExtensionShape(cornerRadius: 24)
                         .fill(Color.black)
                     
-                    FaceIDExtensionShape(cornerRadius: 24)
+                    FaceIDExtensionStrokeShape(cornerRadius: 24)
                         .stroke(borderColor, lineWidth: 1.5)
                 }
             )

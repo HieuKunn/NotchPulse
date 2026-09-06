@@ -10,12 +10,133 @@ import SwiftUI
 
 struct Config: Equatable {
     //    var count: Int = 10  // 3 days past + today + 7 days future
-    var past: Int = 7
-    var future: Int = 14
+    var past: Int = 30
+    var future: Int = 60
     var steps: Int = 1  // Each step is one day
-    var spacing: CGFloat = 0
+    var spacing: CGFloat = 2
     var showsText: Bool = true
     var offset: Int = 2  // Number of dates to the left of the selected date
+}
+
+private struct CalendarScrollWheelHelper: NSViewRepresentable {
+    func makeNSView(context: Context) -> HelperView {
+        HelperView()
+    }
+
+    func updateNSView(_ nsView: HelperView, context: Context) {}
+
+    class HelperView: NSView {
+        private var monitor: Any?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if window != nil {
+                setupMonitor()
+            } else {
+                removeMonitor()
+            }
+        }
+
+        deinit {
+            removeMonitor()
+        }
+
+        private func removeMonitor() {
+            if let m = monitor {
+                NSEvent.removeMonitor(m)
+                monitor = nil
+            }
+        }
+
+        private func setupMonitor() {
+            removeMonitor()
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
+                guard let self = self,
+                      let window = self.window,
+                      event.window === window,
+                      let scrollView = self.enclosingScrollView else {
+                    return event
+                }
+
+                let locationInWindow = event.locationInWindow
+                let locationInSV = scrollView.convert(locationInWindow, from: nil)
+                guard scrollView.bounds.contains(locationInSV) else {
+                    return event
+                }
+
+                // If user scrolls vertically (physical mouse wheel or vertical gesture),
+                // convert deltaY to smooth horizontal scrolling of this NSScrollView!
+                if event.scrollingDeltaX == 0 && event.scrollingDeltaY != 0 {
+                    let clipView = scrollView.contentView
+                    var origin = clipView.bounds.origin
+                    let multiplier: CGFloat = event.hasPreciseScrollingDeltas ? 1.0 : 16.0
+                    let delta = event.scrollingDeltaY * multiplier
+                    let docWidth = scrollView.documentView?.bounds.width ?? 0
+                    let maxX = max(0, docWidth - clipView.bounds.width)
+                    origin.x = min(maxX, max(0, origin.x - delta))
+                    clipView.scroll(to: origin)
+                    scrollView.reflectScrolledClipView(clipView)
+                    return nil // Handled: prevent event from closing notch or other handlers
+                }
+
+                return event
+            }
+        }
+    }
+}
+
+struct CalendarDateButton: View {
+    let date: Date
+    let isSelected: Bool
+    let id: Int
+    let onClick: () -> Void
+    @State private var isHovered: Bool = false
+
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
+
+    private var dayString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "E"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        Button(action: onClick) {
+            VStack(spacing: 4) {
+                Text(dayString)
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .white : Color(white: 0.65))
+
+                ZStack {
+                    Circle()
+                        .fill(isToday ? Color.effectiveAccent : .clear)
+                        .frame(width: 22, height: 22)
+                        .overlay(
+                            Circle()
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 0)
+                        )
+                    Text("\(date.date)")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(isSelected ? .white : Color(white: isToday ? 0.9 : 0.65))
+                }
+            }
+            .frame(width: 36, height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? Color.effectiveAccentBackground : (isHovered ? Color.white.opacity(0.08) : Color.clear))
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(PlainButtonStyle())
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .id(id)
+    }
 }
 
 struct WheelPicker: View {
@@ -24,7 +145,6 @@ struct WheelPicker: View {
     @Binding var selectedDate: Date
     @State private var scrollPosition: Int?
     @State private var haptics: Bool = false
-    @State private var byClick: Bool = false
     let config: Config
 
     var body: some View {
@@ -37,117 +157,53 @@ struct WheelPicker: View {
                     if index < spacerNum || index >= spacerNum + dateCount {
                         // Leading/trailing spacers sized to match a date cell
                         Spacer()
-                            .frame(width: 24, height: 24)
+                            .frame(width: 36, height: 50)
                             .id(index)
                     } else {
                         let date = dateForItemIndex(index: index, spacerNum: spacerNum)
                         let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                        dateButton(date: date, isSelected: isSelected, id: index) {
-                            selectedDate = date
-                            byClick = true
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                                scrollPosition = index
-                            }
-                            if Defaults[.enableHaptics] {
-                                haptics.toggle()
-                            }
-                            Task { @MainActor in
-                                await calendarManager.updateCurrentDate(date)
-                            }
+                        CalendarDateButton(date: date, isSelected: isSelected, id: index) {
+                            selectDate(date, index: index)
                         }
                     }
                 }
             }
             .frame(height: 50)
-            .scrollTargetLayout()
+            .background(CalendarScrollWheelHelper())
         }
         .scrollIndicators(.never)
         .scrollPosition(id: $scrollPosition, anchor: .center)
-        .scrollTargetBehavior(.viewAligned)  // Ensures scroll view snaps the centered view
         .safeAreaPadding(.horizontal)
         .sensoryFeedback(.alignment, trigger: haptics)
-        .onChange(of: scrollPosition) { oldValue, newValue in
-            if !byClick {
-                handleScrollChange(newValue: newValue, config: config)
-            } else {
-                byClick = false
-            }
-        }
         .onAppear {
             scrollToToday(config: config)
         }
-        // When parent updates the bound selectedDate (e.g., view reopen), center the wheel on it
+        // When parent updates the bound selectedDate (e.g., view reopen or external select), center the wheel on it
         .onChange(of: selectedDate) { _, newValue in
             let targetIndex = indexForDate(newValue)
             if scrollPosition != targetIndex {
-                byClick = true
-                withAnimation {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
                     scrollPosition = targetIndex
                 }
             }
         }
     }
 
-    private func dateButton(
-        date: Date, isSelected: Bool, id: Int, onClick: @escaping () -> Void
-    ) -> some View {
-        let isToday = Calendar.current.isDateInToday(date)
-        return Button(action: onClick) {
-            VStack(spacing: 8) {
-                dayText(date: dateToString(for: date), isToday: isToday, isSelected: isSelected)
-                dateCircle(date: date, isToday: isToday, isSelected: isSelected)
-            }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 4)
-            .background(isSelected ? Color.effectiveAccentBackground : Color.clear)
-            .cornerRadius(8)
+    private func selectDate(_ date: Date, index: Int) {
+        selectedDate = date
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+            scrollPosition = index
         }
-        .buttonStyle(PlainButtonStyle())
-        .id(id)
-    }
-
-    private func dayText(date: String, isToday: Bool, isSelected: Bool) -> some View {
-        Text(date)
-            .font(.caption)
-            .foregroundColor(isSelected ? .white : Color(white: 0.65))
-    }
-
-    private func dateCircle(date: Date, isToday: Bool, isSelected: Bool) -> some View {
-        ZStack {
-            Circle()
-                .fill(isToday ? Color.effectiveAccent : .clear)
-                .frame(width: 20, height: 20)
-                .overlay(
-                    Circle()
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 0)
-                )
-            Text("\(date.date)")
-                .font(.body)
-                .fontWeight(.medium)
-                .foregroundColor(isSelected ? .white : Color(white: isToday ? 0.9 : 0.65))
+        if Defaults[.enableHaptics] {
+            haptics.toggle()
         }
-    }
-
-    func handleScrollChange(newValue: Int?, config: Config) {
-        guard let newIndex = newValue else { return }
-        let spacerNum = config.offset
-        let dateCount = totalDateItems()
-        guard (spacerNum..<(spacerNum + dateCount)).contains(newIndex) else { return }
-        let date = dateForItemIndex(index: newIndex, spacerNum: spacerNum)
-        if !Calendar.current.isDate(date, inSameDayAs: selectedDate) {
-            selectedDate = date
-            if Defaults[.enableHaptics] {
-                haptics.toggle()
-            }
-            Task { @MainActor in
-                await calendarManager.updateCurrentDate(date)
-            }
+        Task { @MainActor in
+            await calendarManager.updateCurrentDate(date)
         }
     }
 
     private func scrollToToday(config: Config) {
         let today = Date()
-        byClick = true
         scrollPosition = indexForDate(today)
         selectedDate = today
     }
@@ -176,12 +232,6 @@ struct WheelPicker: View {
         let range = config.past + config.future
         let step = max(config.steps, 1)
         return Int(ceil(Double(range) / Double(step))) + 1
-    }
-
-    private func dateToString(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "E"
-        return formatter.string(from: date)
     }
 }
 
@@ -218,6 +268,7 @@ struct CalendarView: View {
                         )
                         .frame(width: 20)
                     }
+                    .allowsHitTesting(false)
                 }
             }
 

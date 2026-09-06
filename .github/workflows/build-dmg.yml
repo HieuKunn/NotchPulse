@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.2, bắt buộc)'
+        description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.3, bắt buộc)'
         required: true
-        default: 'v2.9.2'
+        default: 'v2.9.3'
   push:
     tags:
       - 'v*'
@@ -113,11 +113,44 @@ jobs:
           path: release_out/NotchPulse.app.zip
           if-no-files-found: error
 
+      - name: Generate Sparkle Appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          curl -L -s -o Sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz"
+          mkdir -p Sparkle-tools
+          tar -xf Sparkle.tar.xz -C Sparkle-tools
+          
+          mkdir -p appcast_staging
+          cp release_out/NotchPulse.app.zip appcast_staging/
+          
+          if [ -f "appcast.xml" ]; then
+            cp appcast.xml appcast_staging/
+          fi
+          
+          TAG="v2.9.3"
+          if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
+            TAG="${{ github.event.inputs.release_tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+          fi
+          
+          echo "$SPARKLE_PRIVATE_KEY" | ./Sparkle-tools/bin/generate_appcast --ed-key-file - --download-url-prefix "https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/" appcast_staging/
+          
+          cp appcast_staging/appcast.xml .
+          
+      - name: Commit and Push Appcast
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: Update appcast.xml for release" && git push)
+
       - name: Create or Update GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v2.9.2"
+          TAG="v2.9.3"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
             TAG="${{ github.event.inputs.release_tag }}"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
