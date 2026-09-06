@@ -125,7 +125,10 @@ jobs:
           echo "Publishing release $TAG..."
           gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
             --title "NotchPulse $TAG" \
-            --notes "Bản cài đặt NotchPulse (.dmg) chính thức, tự động đóng gói từ commit ${{ github.sha }}." \
+            --notes-from-tag || \
+          gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
+            --title "NotchPulse $TAG" \
+            --notes "Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit ${{ github.sha }}." \
             --draft=false \
             --prerelease=false || \
           gh release upload "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip --clobber
