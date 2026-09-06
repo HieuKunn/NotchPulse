@@ -3,7 +3,7 @@
 > **A dynamic, fluid Dynamic Island & Productivity Center for macOS.**
 > *Crafted with Swift & SwiftUI by [HieuKunn](https://github.com/HieuKunn)*
 
-THANK YOU SO MUCH FOR SUPPORTING NOTCHPULSE!
+THANK YOU SO MUCH BORING NOTCH FOR SUPPORTING NOTCHPULSE!
 
 ---
 
