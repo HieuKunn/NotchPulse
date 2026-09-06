@@ -196,10 +196,22 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .onChange(of: notchOpenWidth) { _, _ in
-                        if vm.notchState == .open {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                vm.notchSize = openNotchSize
+                    .onReceive(NotificationCenter.default.publisher(for: .previewNotchWidth)) { notification in
+                        let targetWidth = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            vm.open()
+                            vm.notchSize = CGSize(width: targetWidth, height: openNotchSize.height)
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
+                        withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
+                            vm.close()
+                        }
+                    }
+                    .onChange(of: notchOpenWidth) { _, newWidth in
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            if vm.notchState == .open {
+                                vm.notchSize = CGSize(width: max(minNotchWidth, min(maxNotchWidth, newWidth)), height: openNotchSize.height)
                             }
                         }
                     }

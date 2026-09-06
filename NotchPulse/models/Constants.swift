@@ -39,6 +39,8 @@ enum HideNotchOption: String, Defaults.Serializable {
 // Define notification names at file scope
 extension Notification.Name {
     static let mediaControllerChanged = Notification.Name("mediaControllerChanged")
+    static let previewNotchWidth = Notification.Name("previewNotchWidth")
+    static let closeNotchPreview = Notification.Name("closeNotchPreview")
 }
 
 // Media controller types for selection in settings

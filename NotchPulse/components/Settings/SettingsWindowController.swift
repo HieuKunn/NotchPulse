@@ -12,7 +12,8 @@ import Sparkle
 
 class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
-    private var updaterController: SPUStandardUpdaterController?
+    var updaterController: SPUStandardUpdaterController?
+    private var vm: NotchPulseViewModel?
     
     private init() {
         let window = NSWindow(
@@ -31,8 +32,11 @@ class SettingsWindowController: NSWindowController {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setUpdaterController(_ controller: SPUStandardUpdaterController) {
+    func setUpdaterController(_ controller: SPUStandardUpdaterController, viewModel: NotchPulseViewModel? = nil) {
         self.updaterController = controller
+        if let viewModel = viewModel {
+            self.vm = viewModel
+        }
         // Recreate the content view with the proper updater controller
         setupWindow()
     }
@@ -59,6 +63,7 @@ class SettingsWindowController: NSWindowController {
         
         // Create the SwiftUI content
         let settingsView = SettingsView(updaterController: updaterController)
+            .environmentObject(self.vm ?? NotchPulseViewModel())
         let hostingView = NSHostingView(rootView: settingsView)
         window.contentView = hostingView
         
@@ -93,6 +98,7 @@ class SettingsWindowController: NSWindowController {
     }
     
     override func close() {
+        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
         super.close()
         relinquishFocus()
     }
@@ -107,6 +113,7 @@ class SettingsWindowController: NSWindowController {
 
 extension SettingsWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
+        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
         relinquishFocus()
     }
     

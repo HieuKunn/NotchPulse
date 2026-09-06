@@ -295,6 +295,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let updater = SettingsWindowController.shared.updaterController {
+            SettingsWindowController.shared.setUpdaterController(updater, viewModel: self.vm)
+        }
 
         NotificationCenter.default.addObserver(
             self,
@@ -346,6 +349,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.setupDragDetectors()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name.previewNotchWidth, object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            let width = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                self.vm.open()
+                self.vm.notchSize = CGSize(width: width, height: openNotchSize.height)
+                for (_, subVm) in self.viewModels {
+                    subVm.open()
+                    subVm.notchSize = CGSize(width: width, height: openNotchSize.height)
+                }
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name.closeNotchPreview, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
+                self.vm.close()
+                for (_, subVm) in self.viewModels {
+                    subVm.close()
+                }
             }
         }
 

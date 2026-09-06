@@ -137,6 +137,99 @@ struct SettingsView: View {
     }
 }
 
+struct NotchWidthLivePreview: View {
+    let width: CGFloat
+    let style: NotchStyle
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .frame(height: 64)
+                    .overlay(
+                        Rectangle()
+                            .fill(Color.primary.opacity(0.04))
+                            .frame(height: 20),
+                        alignment: .top
+                    )
+                
+                VStack(spacing: 0) {
+                    if style == .dynamicIsland {
+                        Spacer().frame(height: 6)
+                    }
+                    
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Color.black.opacity(0.8))
+                            .frame(width: 8, height: 8)
+                        
+                        Spacer()
+                        
+                        Text("\(Int(width)) px")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "waveform")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.effectiveAccent)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(
+                        width: max(160, min(360, 160 + (width - 560) / (960 - 560) * 200)),
+                        height: 28
+                    )
+                    .background(
+                        style == .dynamicIsland ?
+                        AnyView(Capsule().fill(Color.black)) :
+                        AnyView(
+                            UnevenRoundedRectangle(
+                                cornerRadii: .init(
+                                    topLeading: 0,
+                                    bottomLeading: 12,
+                                    bottomTrailing: 12,
+                                    topTrailing: 0
+                                )
+                            ).fill(Color.black)
+                        )
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 2)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.8), value: width)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.8), value: style)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            )
+            
+            HStack {
+                Text("560 px (Compact)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 6, height: 6)
+                    Text("Đang xem trước trực tiếp trên tai thỏ")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("960 px (Extra Wide)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 struct GeneralSettings: View {
     @State private var screens: [(uuid: String, name: String)] = NSScreen.screens.compactMap { screen in
         guard let uuid = screen.displayUUID else { return nil }
@@ -160,6 +253,21 @@ struct GeneralSettings: View {
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
+
+    @State private var autoClosePreviewTask: Task<Void, Never>? = nil
+
+    private func triggerWidthPreview(width: CGFloat, isEditing: Bool = false) {
+        NotificationCenter.default.post(name: .previewNotchWidth, object: width)
+        
+        autoClosePreviewTask?.cancel()
+        if !isEditing {
+            autoClosePreviewTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(3500))
+                guard !Task.isCancelled else { return }
+                NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
+            }
+        }
+    }
 
     var body: some View {
         Form {
@@ -234,27 +342,38 @@ struct GeneralSettings: View {
                                     .fontWeight(notchStyle == .dynamicIsland ? .semibold : .regular)
                             }
                         }
-                        .padding(10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(notchStyle == .dynamicIsland ? Color.accentColor : Color.gray.opacity(0.25), lineWidth: notchStyle == .dynamicIsland ? 2 : 1)
-                        )
                     }
                     .buttonStyle(.plain)
                 }
                 .padding(.vertical, 4)
 
+                // Show top offset slider only for Dynamic Island
                 if notchStyle == .dynamicIsland {
-                    Slider(value: $dynamicIslandTopOffset, in: 4...24, step: 1) {
-                        Text("Top spacing: \(Int(dynamicIslandTopOffset)) px")
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Top Gap (Distance from Screen Edge)")
+                            Spacer()
+                            Text("\(Int(dynamicIslandTopOffset)) px")
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Slider(value: $dynamicIslandTopOffset, in: 0...24, step: 1) {
+                            Text("Top Gap")
+                        } minimumValueLabel: {
+                            Text("0px")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        } maximumValueLabel: {
+                            Text("24px")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("Sets the floating gap between the top bezel and the Dynamic Island capsule.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    Text("Dynamic Island: Floating pill detached from the top edge with smooth rounded corners.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("MacBook Notch: Classic notch shape seamlessly attached to the top screen bezel.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             } header: {
                 Text("Notch / Island Style")
@@ -272,13 +391,28 @@ struct GeneralSettings: View {
                         
                         Button("Reset") {
                             notchOpenWidth = 740
+                            triggerWidthPreview(width: 740, isEditing: false)
                         }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                         .disabled(notchOpenWidth == 740)
                     }
                     
-                    Slider(value: $notchOpenWidth, in: 560...960, step: 10) {
+                    // Live Visual Preview directly inside Settings
+                    NotchWidthLivePreview(width: notchOpenWidth, style: notchStyle)
+                    
+                    Slider(
+                        value: $notchOpenWidth,
+                        in: 560...960,
+                        step: 10,
+                        onEditingChanged: { editing in
+                            if editing {
+                                triggerWidthPreview(width: notchOpenWidth, isEditing: true)
+                            } else {
+                                triggerWidthPreview(width: notchOpenWidth, isEditing: false)
+                            }
+                        }
+                    ) {
                         Text("Notch Width")
                     } minimumValueLabel: {
                         Text("560px")
@@ -291,30 +425,39 @@ struct GeneralSettings: View {
                     }
                     
                     HStack(spacing: 8) {
-                        Button("Compact (580px)") { notchOpenWidth = 580 }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        Button("Standard (740px)") { notchOpenWidth = 740 }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        Button("Wide (860px)") { notchOpenWidth = 860 }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                        Button("Compact (580px)") {
+                            notchOpenWidth = 580
+                            triggerWidthPreview(width: 580, isEditing: false)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        Button("Standard (740px)") {
+                            notchOpenWidth = 740
+                            triggerWidthPreview(width: 740, isEditing: false)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        Button("Wide (860px)") {
+                            notchOpenWidth = 860
+                            triggerWidthPreview(width: 860, isEditing: false)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
                     .padding(.top, 2)
                     
-                    Text("Controls the horizontal expansion length when the notch or dynamic island is open. Internal elements dynamically adjust their layout to preserve visual symmetry and balance.")
+                    Text("Controls the horizontal expansion length when the notch or dynamic island is open. The notch opens and resizes live on your screen as you drag the slider.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
-                .onChange(of: notchOpenWidth) {
-                    vm.open()
+                .onChange(of: notchOpenWidth) { _, newWidth in
+                    triggerWidthPreview(width: newWidth, isEditing: true)
                 }
             } header: {
                 Text("Notch Dimensions (Width)")
-            }
-
             Section {
                 Toggle(isOn: Binding(
                     get: { Defaults[.menubarIcon] },
