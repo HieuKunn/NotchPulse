@@ -76,14 +76,8 @@ jobs:
           # Copy .app vào thư mục staging và đặt tên là NotchPulse.app
           cp -R build/Build/Products/Release/NotchPulse.app dmg_staging/NotchPulse.app
 
-          # Ký lại inner XPC services & frameworks với entitlements trước, sau đó mới ký app chính
-          if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices" ]; then
-            find dmg_staging/NotchPulse.app/Contents/XPCServices -name "*.xpc" -exec codesign --force --sign - --preserve-metadata=identifier,entitlements,flags {} \;
-          fi
-          if [ -d "dmg_staging/NotchPulse.app/Contents/Frameworks" ]; then
-            find dmg_staging/NotchPulse.app/Contents/Frameworks -name "*.framework" -exec codesign --force --sign - --preserve-metadata=identifier,entitlements,flags {} \;
-          fi
-          codesign --force --sign - --preserve-metadata=identifier,entitlements,flags dmg_staging/NotchPulse.app
+          # Ký đồng bộ toàn bộ app bundle và embedded frameworks/services bằng ad-hoc signing (-)
+          codesign --force --deep --sign - dmg_staging/NotchPulse.app
           
           # Nén file .app dạng zip với ditto (giữ nguyên quyền và resource macOS)
           ditto -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
