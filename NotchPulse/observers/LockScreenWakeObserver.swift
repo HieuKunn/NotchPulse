@@ -23,10 +23,6 @@ final class LockScreenWakeObserver: ObservableObject {
         setupObservers()
     }
     
-    deinit {
-        cleanup()
-    }
-    
     func cleanup() {
         for token in distributedTokens {
             DistributedNotificationCenter.default().removeObserver(token)

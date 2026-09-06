@@ -330,7 +330,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         // Post password keystrokes to lock screen password prompt
-        Task.detached(priority: .userInteractive) {
+        Task.detached(priority: .high) {
             // Short delay to ensure lock screen input is ready
             try? await Task.sleep(for: .milliseconds(50))
             
