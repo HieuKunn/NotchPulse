@@ -712,6 +712,14 @@
       justify-content: center;
       align-items: center;
       gap: 16px;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lyrics-left-artwork:hover {
+      transform: scale(0.975);
+    }
+    .lyrics-left-artwork:active {
+      transform: scale(0.94);
     }
     .lyrics-big-art {
       width: min(250px, 75%);
@@ -719,6 +727,10 @@
       border-radius: 18px;
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
       object-fit: cover;
+      transition: box-shadow 0.25s ease;
+    }
+    .lyrics-left-artwork:hover .lyrics-big-art {
+      box-shadow: 0 32px 75px rgba(0, 0, 0, 0.95), 0 0 0 2px rgba(255, 255, 255, 0.3);
     }
     .lyrics-right-column {
       flex: 1;
@@ -1089,11 +1101,12 @@
       <div class="fullscreen-immersive-lyrics" id="immersiveLyrics">
         <button class="lyrics-close-btn" onclick="closeImmersiveLyrics()">✕ Thu nhỏ Player</button>
         
-        <div class="lyrics-left-artwork">
+        <div class="lyrics-left-artwork" onclick="closeImmersiveLyrics()" title="Chạm vào ảnh album để thu nhỏ về màn hình khoá">
           <img class="lyrics-big-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&h=600&fit=crop" alt="big art">
           <div style="text-align: center;">
             <div style="font-size: 24px; font-weight: 700;">Starboy</div>
             <div style="font-size: 16px; color: rgba(255,255,255,0.7); margin-top: 4px;">The Weeknd, Daft Punk</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 6px;">✦ Chạm vào ảnh album để thu nhỏ</div>
           </div>
         </div>
 
