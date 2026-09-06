@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NotchPulse Simulator - macOS Dynamic Notch & Island</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=SF+Pro+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --mac-bg: #0b0f19;
+      --notch-width: 740px;
+      --notch-min-width: 520px;
+      --notch-max-width: 960px;
+      --notch-height-open: 190px;
+      --notch-height-closed: 34px;
+      --accent-color: #0A84FF;
+      --apple-green: #30D158;
+      --dynamic-island-top: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: #08090d;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 20px;
+    }
+
+    /* MacBook Frame */
+    .macbook-bezel {
+      width: 1200px;
+      height: 750px;
+      background: #11141a;
+      border: 12px solid #20242e;
+      border-radius: 28px;
+      position: relative;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Physical Camera Notch cut into bezel */
+    .physical-camera-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 185px;
+      height: 32px;
+      background: #000;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: opacity 0.3s ease;
+    }
+    .physical-camera-notch .lens {
+      width: 10px;
+      height: 10px;
+      background: #0d1a2d;
+      border: 1.5px solid #1a2942;
+      border-radius: 50%;
+      box-shadow: inset 0 0 4px #0055ff55;
+    }
+    .physical-camera-notch .green-indicator {
+      width: 4px;
+      height: 4px;
+      background: #30D158;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #30D158;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Desktop Wallpaper */
+    .mac-screen {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at 50% 20%, #1e3a5f 0%, #0d1b2a 40%, #050811 100%);
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
+    }
+
+    /* Dynamic Wallpaper Mesh */
+    .wallpaper-art {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 60% 40% at 75% 20%, rgba(245, 87, 108, 0.35), transparent),
+        radial-gradient(ellipse 50% 50% at 20% 70%, rgba(79, 172, 254, 0.35), transparent),
+        radial-gradient(ellipse 40% 60% at 80% 80%, rgba(138, 43, 226, 0.3), transparent);
+      filter: blur(60px);
+      z-index: 1;
+    }
+
+    /* Menu Bar */
+    .menu-bar {
+      height: 32px;
+      background: rgba(15, 18, 26, 0.65);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 99;
+      position: relative;
+    }
+    .menu-bar-left, .menu-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .menu-bar-item {
+      cursor: pointer;
+      opacity: 0.88;
+      transition: opacity 0.15s;
+    }
+    .menu-bar-item:hover { opacity: 1; }
+    .apple-logo { font-size: 15px; font-weight: 700; }
+    .pulse-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(10, 132, 255, 0.2);
+      color: #64d2ff;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      border: 1px solid rgba(100, 210, 255, 0.3);
+      cursor: pointer;
+    }
+
+    /* ========================================================
+       NOTCHPULSE MAIN COMPONENT
+       ======================================================== */
+    .notch-container {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: top 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Style 1: Dynamic Island Mode */
+    .notch-container.is-dynamic-island {
+      top: var(--dynamic-island-top);
+    }
+    .notch-container.is-dynamic-island .notch-body {
+      border-radius: 26px;
+      border: 0.8px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7);
+    }
+    .notch-container.is-dynamic-island .notch-body.closed {
+      border-radius: 20px;
+    }
+
+    /* Style 2: Physical Notch Mode */
+    .notch-container.is-physical-notch {
+      top: 0;
+    }
+    .notch-container.is-physical-notch .notch-body {
+      border-bottom-left-radius: 24px;
+      border-bottom-right-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    }
+    .notch-container.is-physical-notch .notch-body.closed {
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+    }
+
+    /* Notch Body */
+    .notch-body {
+      background: #000000;
+      color: #ffffff;
+      width: 220px;
+      height: var(--notch-height-closed);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: width 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.15),
+                  height 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.15),
+                  border-radius 0.35s ease,
+                  box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Open state */
+    .notch-body.open {
+      width: var(--notch-width);
+      height: var(--notch-height-open);
+      cursor: default;
+    }
+
+    /* CLOSED NOTCH CONTENT */
+    .closed-content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 12px;
+      transition: opacity 0.25s ease;
+    }
+    .notch-body.open .closed-content {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .closed-left, .closed-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mini-art {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      object-fit: cover;
+    }
+    .mini-wave {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 14px;
+    }
+    .mini-wave span {
+      width: 2.5px;
+      background: #30D158;
+      border-radius: 2px;
+      animation: wave 1.2s infinite ease-in-out;
+    }
+    .mini-wave span:nth-child(2) { animation-delay: 0.2s; height: 10px; }
+    .mini-wave span:nth-child(3) { animation-delay: 0.4s; height: 14px; }
+    .mini-wave span:nth-child(4) { animation-delay: 0.1s; height: 8px; }
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1); }
+    }
+
+    /* OPEN NOTCH CONTENT */
+    .open-content {
+      position: absolute;
+      inset: 0;
+      padding: 10px 18px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+      transition: opacity 0.3s ease 0.05s, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.05s;
+    }
+    .notch-body.open .open-content {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    /* Open Notch Header */
+    .open-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 28px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 6px;
+    }
+    .tabs-group {
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px;
+      border-radius: 12px;
+    }
+    .tab-btn {
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 10px;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .action-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .action-icon:hover { background: rgba(255, 255, 255, 0.2); }
+
+    /* Open Notch Body (Home Music Layout) */
+    .notch-home-layout {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    /* Album Art (Fixed 110x110) */
+    .album-art-wrap {
+      width: 110px;
+      height: 110px;
+      min-width: 110px;
+      border-radius: 14px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+    .album-art-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.25s;
+    }
+    .album-art-wrap:hover .album-art-img {
+      transform: scale(1.04);
+    }
+    .album-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: radial-gradient(circle, rgba(235, 77, 75, 0.4) 0%, transparent 80%);
+      filter: blur(12px);
+      z-index: -1;
+    }
+
+    /* Dynamic Music Controls Flex Area */
+    .music-controls-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .song-title-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .song-title {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .song-artist {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.65);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .live-lyrics-preview {
+      font-size: 11px;
+      color: #64d2ff;
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      height: 16px;
+      opacity: 0.9;
+    }
+
+    /* Progress Scrubber */
+    .scrubber-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      margin: 2px 0;
+    }
+    .time-stamp {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+      font-variant-numeric: tabular-nums;
+    }
+    .progress-bar-bg {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 42%;
+      background: #fff;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    /* Slots Toolbar */
+    .slots-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding-top: 4px;
+    }
+    .control-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .control-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+    .play-btn {
+      font-size: 22px;
+      color: #fff;
+    }
+
+    /* Calendar Mini Card */
+    .calendar-card {
+      width: 180px;
+      min-width: 160px;
+      height: 110px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 600;
+      color: #ff453a;
+      text-transform: uppercase;
+    }
+    .cal-body {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .cal-date { font-size: 28px; font-weight: 700; }
+    .cal-event {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.3;
+    }
+
+    /* ========================================================
+       LOCK SCREEN & IMMERSIVE PLAYER SIMULATION
+       ======================================================== */
+    .lock-screen-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(8, 11, 18, 0.85);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 40px 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    .lock-screen-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Top Lock Header & 3D Face ID */
+    .lock-top-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .faceid-scanner-wrap {
+      width: 70px;
+      height: 70px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .faceid-3d-glyph {
+      width: 48px;
+      height: 48px;
+      border: 2.5px solid rgba(255, 255, 255, 0.85);
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: gyroScan 2.5s infinite ease-in-out;
+    }
+    .faceid-3d-glyph.unlocked {
+      border-color: var(--apple-green);
+      background: rgba(48, 209, 88, 0.15);
+      box-shadow: 0 0 25px rgba(48, 209, 88, 0.6);
+      animation: popShockwave 0.5s forwards;
+    }
+    @keyframes gyroScan {
+      0%, 100% { transform: perspective(300px) rotateY(-18deg) rotateX(8deg); }
+      50% { transform: perspective(300px) rotateY(18deg) rotateX(-8deg); }
+    }
+    @keyframes popShockwave {
+      0% { transform: scale(0.9); }
+      50% { transform: scale(1.18); }
+      100% { transform: scale(1.05); }
+    }
+    .faceid-eye {
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+    }
+    .faceid-eye.left { left: 12px; top: 14px; }
+    .faceid-eye.right { right: 12px; top: 14px; }
+    .faceid-smile {
+      width: 18px;
+      height: 8px;
+      border-bottom: 2.5px solid #fff;
+      border-radius: 0 0 10px 10px;
+      position: absolute;
+      bottom: 12px;
+    }
+    .lock-time {
+      font-size: 64px;
+      font-weight: 300;
+      letter-spacing: -1px;
+    }
+    .lock-date {
+      font-size: 18px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Compact Media Card */
+    .lock-compact-player {
+      width: 410px;
+      height: 180px;
+      background: rgba(30, 35, 45, 0.55);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 16px 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .lock-compact-player:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    }
+
+    /* FULL SCREEN IMMERSIVE LYRICS VIEW */
+    .fullscreen-immersive-lyrics {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #431122 0%, #17070e 50%, #080306 100%);
+      z-index: 2500;
+      display: flex;
+      padding: 60px 80px;
+      gap: 60px;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.95);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .fullscreen-immersive-lyrics.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+    .lyrics-close-btn {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+    }
+    .lyrics-left-artwork {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+    }
+    .lyrics-big-art {
+      width: 320px;
+      height: 320px;
+      border-radius: 20px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+    .lyrics-right-column {
+      flex: 1.2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+      overflow-y: hidden;
+      position: relative;
+    }
+    .lyrics-line {
+      font-size: 26px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      line-height: 1.4;
+    }
+    .lyrics-line.active {
+      color: #fff;
+      font-size: 32px;
+      transform: scale(1.04) translateX(10px);
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+    }
+
+    /* ========================================================
+       SIMULATOR BOTTOM CONTROL DOCK
+       ======================================================== */
+    .control-dock {
+      margin-top: 18px;
+      background: rgba(24, 28, 38, 0.92);
+      backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      z-index: 3000;
+    }
+    .dock-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .dock-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.55);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .custom-range {
+      -webkit-appearance: none;
+      width: 220px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 4px;
+      outline: none;
+    }
+    .custom-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--accent-color);
+    }
+    .preset-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover { background: rgba(255, 255, 255, 0.2); }
+    .toggle-pill {
+      display: flex;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 3px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .toggle-opt {
+      padding: 5px 12px;
+      font-size: 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .toggle-opt.active {
+      background: var(--accent-color);
+      color: #fff;
+      font-weight: 600;
+    }
+    .action-button {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .action-button:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MacBook Pro Frame -->
+  <div class="macbook-bezel" id="macBezel">
+
+    <!-- Physical Hardware Notch in bezel -->
+    <div class="physical-camera-notch" id="hardwareNotch">
+      <div class="lens"></div>
+      <div class="green-indicator" id="camLed"></div>
+    </div>
+
+    <!-- Desktop Screen -->
+    <div class="mac-screen" id="macScreen">
+      <div class="wallpaper-art"></div>
+
+      <!-- macOS Menu Bar -->
+      <div class="menu-bar">
+        <div class="menu-bar-left">
+          <span class="menu-bar-item apple-logo"></span>
+          <span class="menu-bar-item" style="font-weight: 600;">NotchPulse</span>
+          <span class="menu-bar-item">File</span>
+          <span class="menu-bar-item">Edit</span>
+          <span class="menu-bar-item">View</span>
+          <span class="menu-bar-item">Controls</span>
+          <span class="menu-bar-item">Help</span>
+        </div>
+
+        <div class="menu-bar-right">
+          <span class="pulse-badge" id="menuWidthBadge" onclick="alert('Độ rộng Notch hiện tại: ' + currentWidth + 'px')">✦ Width: 740px</span>
+          <span class="menu-bar-item">100%</span>
+          <span class="menu-bar-item">Wi-Fi</span>
+          <span class="menu-bar-item">Sun Sep 6 &nbsp; 5:45 PM</span>
+        </div>
+      </div>
+
+      <!-- ============================================
+           NOTCHPULSE ISLAND / NOTCH
+           ============================================ -->
+      <div class="notch-container is-physical-notch" id="notchContainer">
+        <div class="notch-body closed" id="notchBody">
+          
+          <!-- Closed State Content -->
+          <div class="closed-content" id="closedContent">
+            <div class="closed-left">
+              <img class="mini-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=120&h=120&fit=crop" alt="album">
+              <div class="mini-wave">
+                <span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+            <div class="closed-right">
+              <span style="font-size: 11px; opacity: 0.85;">Starboy</span>
+            </div>
+          </div>
+
+          <!-- Open State Content -->
+          <div class="open-content" id="openContent">
+            <!-- Header with Tabs & Cutout placeholder -->
+            <div class="open-header">
+              <div class="tabs-group">
+                <button class="tab-btn active" id="tabHome" onclick="switchTab('home')">Home</button>
+                <button class="tab-btn" id="tabShelf" onclick="switchTab('shelf')">Shelf</button>
+                <button class="tab-btn" id="tabStats" onclick="switchTab('stats')">Stats</button>
+              </div>
+
+              <!-- Physical Cutout Spacer in center -->
+              <div style="width: 140px; height: 10px;"></div>
+
+              <div class="header-actions">
+                <div class="action-icon" title="Webcam Preview">📷</div>
+                <div class="action-icon" title="Settings" onclick="alert('Cài đặt NotchPulse: Bạn có thể chỉnh kích thước, màu sắc và Face ID!')">⚙️</div>
+                <div class="action-icon" title="Thu nhỏ Notch" onclick="toggleNotch(false)">✕</div>
+              </div>
+            </div>
+
+            <!-- Home Tab: Responsive Music Player & Calendar -->
+            <div class="notch-home-layout" id="viewHome">
+              <!-- Album Artwork with dynamic ambient glow -->
+              <div class="album-art-wrap" onclick="triggerLockScreenLyrics()">
+                <div class="album-glow"></div>
+                <img class="album-art-img" id="mainAlbumArt" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=320&h=320&fit=crop" alt="Starboy">
+              </div>
+
+              <!-- Flexible Controls (Auto-stretches proportionally) -->
+              <div class="music-controls-area">
+                <div class="song-title-row">
+                  <div class="song-title" id="trackTitle">Starboy (feat. Daft Punk)</div>
+                  <div class="song-artist" id="trackArtist">The Weeknd — Starboy</div>
+                  <div class="live-lyrics-preview" id="miniLyrics">"I'm tryna put you in the worst mood, ah..."</div>
+                </div>
+
+                <!-- Scrubber Progress Bar -->
+                <div class="scrubber-wrap">
+                  <span class="time-stamp" id="currentTime">1:24</span>
+                  <div class="progress-bar-bg" onclick="seekTrack(event)">
+                    <div class="progress-bar-fill" id="trackProgress"></div>
+                  </div>
+                  <span class="time-stamp" id="totalDuration">3:50</span>
+                </div>
+
+                <!-- Controls Slots (Auto-centered flex) -->
+                <div class="slots-toolbar">
+                  <button class="control-btn" title="Shuffle" onclick="this.style.color = this.style.color ? '' : '#ff3b30'">🔀</button>
+                  <button class="control-btn" title="Previous" onclick="prevTrack()">⏮</button>
+                  <button class="control-btn play-btn" id="btnPlay" title="Play/Pause" onclick="togglePlay()">⏸</button>
+                  <button class="control-btn" title="Next" onclick="nextTrack()">⏭</button>
+                  <button class="control-btn" title="Repeat" onclick="this.style.color = this.style.color ? '' : '#30D158'">🔁</button>
+                </div>
+              </div>
+
+              <!-- Calendar Card -->
+              <div class="calendar-card" id="calCard">
+                <div class="cal-header">
+                  <span>Sunday</span>
+                  <span>SEP</span>
+                </div>
+                <div class="cal-body">
+                  <span class="cal-date">06</span>
+                  <div class="cal-event">
+                    <strong>18:30</strong><br>
+                    Review NotchPulse v2.0
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Shelf Tab (Placeholder) -->
+            <div id="viewShelf" style="display: none; height: 100%; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); font-size: 13px;">
+              📁 Kéo và thả tệp bất kỳ vào đây để lưu trữ nhanh trên Shelf
+            </div>
+
+            <!-- Stats Tab (Placeholder) -->
+            <div id="viewStats" style="display: none; height: 100%; align-items: center; justify-content: space-around;">
+              <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700; color: #30D158;">12%</div>
+                <div style="font-size: 11px; opacity: 0.6;">Apple M-Chip CPU</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700; color: #0A84FF;">3.4 GB</div>
+                <div style="font-size: 11px; opacity: 0.6;">RAM Usage</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700; color: #FF9F0A;">0%</div>
+                <div style="font-size: 11px; opacity: 0.6;">NotchPulse Overhead</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================
+           LOCK SCREEN SIMULATION OVERLAY
+           ============================================ -->
+      <div class="lock-screen-overlay" id="lockScreen">
+        <div class="lock-top-area">
+          <!-- 3D Face ID Scanner Simulation -->
+          <div class="faceid-scanner-wrap">
+            <div class="faceid-3d-glyph" id="faceIdGlyph">
+              <div class="faceid-eye left"></div>
+              <div class="faceid-eye right"></div>
+              <div class="faceid-smile"></div>
+            </div>
+          </div>
+          <div class="lock-time" id="lockClock">17:45</div>
+          <div class="lock-date">Chủ Nhật, 6 tháng 9</div>
+        </div>
+
+        <!-- Mode 1: Compact Player Card on Lock Screen -->
+        <div class="lock-compact-player" onclick="expandImmersiveLyrics()">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <img style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover;" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=140&h=140&fit=crop" alt="art">
+            <div style="flex: 1;">
+              <div style="font-size: 15px; font-weight: 600;">Starboy (feat. Daft Punk)</div>
+              <div style="font-size: 12px; color: rgba(255,255,255,0.65);">The Weeknd</div>
+            </div>
+            <div class="mini-wave"><span></span><span></span><span></span></div>
+          </div>
+          
+          <div class="scrubber-wrap">
+            <span class="time-stamp">1:24</span>
+            <div class="progress-bar-bg"><div class="progress-bar-fill"></div></div>
+            <span class="time-stamp">3:50</span>
+          </div>
+
+          <div style="display: flex; justify-content: center; gap: 28px; font-size: 18px;">
+            <span>⏮</span>
+            <span>⏸</span>
+            <span>⏭</span>
+          </div>
+          <div style="text-align: center; font-size: 10px; color: rgba(255,255,255,0.4); margin-top: -2px;">
+            ✦ Chạm ảnh bìa để mở Lời bài hát Karaoke Full Màn Hình
+          </div>
+        </div>
+
+        <!-- Unlock button -->
+        <button class="action-button" style="margin-top: 10px;" onclick="simulateFaceIDUnlock()">
+          🔓 Mở khoá bằng Face ID (Apple 3D)
+        </button>
+      </div>
+
+      <!-- Mode 2: Full-Screen Immersive Synced Lyrics -->
+      <div class="fullscreen-immersive-lyrics" id="immersiveLyrics">
+        <button class="lyrics-close-btn" onclick="closeImmersiveLyrics()">✕ Thu nhỏ Player</button>
+        
+        <div class="lyrics-left-artwork">
+          <img class="lyrics-big-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&h=600&fit=crop" alt="big art">
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700;">Starboy</div>
+            <div style="font-size: 16px; color: rgba(255,255,255,0.7); margin-top: 4px;">The Weeknd, Daft Punk</div>
+          </div>
+        </div>
+
+        <div class="lyrics-right-column">
+          <div class="lyrics-line" onclick="jumpLyric(0)">I'm tryna put you in the worst mood, ah</div>
+          <div class="lyrics-line" onclick="jumpLyric(1)">P1 cleaner than your church shoes, ah</div>
+          <div class="lyrics-line active" id="lyricActive" onclick="jumpLyric(2)">Milli point two just to hurt you, ah</div>
+          <div class="lyrics-line" onclick="jumpLyric(3)">All red Lamb' just to tease you, ah</div>
+          <div class="lyrics-line" onclick="jumpLyric(4)">None of these toys on lease too, ah</div>
+          <div class="lyrics-line" onclick="jumpLyric(5)">Look what you've done... I'm a motherfuckin' starboy!</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================
+       SIMULATOR BOTTOM CONTROL DOCK
+       ============================================ -->
+  <div class="control-dock">
+    <!-- Notch Width Slider -->
+    <div class="dock-group">
+      <div class="dock-label">
+        <span>Độ rộng Notch (Notch Width)</span>
+        <span id="sliderValueText" style="color: #64d2ff; font-weight: 700;">740 px</span>
+      </div>
+      <div class="slider-row">
+        <input type="range" class="custom-range" id="widthSlider" min="520" max="960" step="10" value="740" oninput="updateNotchWidth(this.value)">
+      </div>
+      <div class="preset-btn-group">
+        <button class="preset-btn" onclick="setPresetWidth(580)">Compact (580px)</button>
+        <button class="preset-btn" onclick="setPresetWidth(740)">Standard (740px)</button>
+        <button class="preset-btn" onclick="setPresetWidth(860)">Wide (860px)</button>
+        <button class="preset-btn" onclick="setPresetWidth(960)">Max (960px)</button>
+      </div>
+    </div>
+
+    <!-- Style Switcher -->
+    <div class="dock-group">
+      <div class="dock-label">Chế độ hiển thị</div>
+      <div class="toggle-pill">
+        <div class="toggle-opt active" id="optPhysical" onclick="switchNotchStyle('notch')">MacBook Notch</div>
+        <div class="toggle-opt" id="optIsland" onclick="switchNotchStyle('island')">Dynamic Island</div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="dock-group" style="flex-direction: row; gap: 10px; align-items: flex-end;">
+      <button class="action-button" onclick="toggleNotch()">
+        ⚡ Bật/Tắt Mở Notch
+      </button>
+      <button class="action-button" onclick="toggleLockScreen()">
+        🔒 Màn hình khoá (Lock Screen)
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let isNotchOpen = true;
+    let currentWidth = 740;
+    let isPlaying = true;
+    let isLocked = false;
+    let notchStyle = 'notch'; // 'notch' or 'island'
+    let progressPercent = 42;
+
+    const notchContainer = document.getElementById('notchContainer');
+    const notchBody = document.getElementById('notchBody');
+    const widthSlider = document.getElementById('widthSlider');
+    const sliderValueText = document.getElementById('sliderValueText');
+    const menuWidthBadge = document.getElementById('menuWidthBadge');
+    const hardwareNotch = document.getElementById('hardwareNotch');
+    const camLed = document.getElementById('camLed');
+
+    // Initialize
+    updateNotchWidth(currentWidth);
+    toggleNotch(true);
+
+    // Update Notch Width
+    function updateNotchWidth(val) {
+      currentWidth = val;
+      document.documentElement.style.setProperty('--notch-width', `${val}px`);
+      sliderValueText.textContent = `${val} px`;
+      menuWidthBadge.textContent = `✦ Width: ${val}px`;
+
+      // Auto-adjust calendar card if width is small
+      const calCard = document.getElementById('calCard');
+      if (val < 620) {
+        calCard.style.display = 'none';
+      } else {
+        calCard.style.display = 'flex';
+      }
+    }
+
+    function setPresetWidth(val) {
+      widthSlider.value = val;
+      updateNotchWidth(val);
+    }
+
+    // Toggle Open / Close
+    function toggleNotch(forceState) {
+      if (typeof forceState === 'boolean') {
+        isNotchOpen = forceState;
+      } else {
+        isNotchOpen = !isNotchOpen;
+      }
+
+      if (isNotchOpen) {
+        notchBody.classList.remove('closed');
+        notchBody.classList.add('open');
+      } else {
+        notchBody.classList.remove('open');
+        notchBody.classList.add('closed');
+      }
+    }
+
+    // Hover on notch to auto-open
+    notchBody.addEventListener('mouseenter', () => {
+      if (!isNotchOpen) toggleNotch(true);
+    });
+
+    // Switch Notch Style (MacBook Notch vs Dynamic Island)
+    function switchNotchStyle(style) {
+      notchStyle = style;
+      const optPhysical = document.getElementById('optPhysical');
+      const optIsland = document.getElementById('optIsland');
+
+      if (style === 'island') {
+        notchContainer.classList.remove('is-physical-notch');
+        notchContainer.classList.add('is-dynamic-island');
+        optIsland.classList.add('active');
+        optPhysical.classList.remove('active');
+        hardwareNotch.style.opacity = '0.3';
+      } else {
+        notchContainer.classList.remove('is-dynamic-island');
+        notchContainer.classList.add('is-physical-notch');
+        optPhysical.classList.add('active');
+        optIsland.classList.remove('active');
+        hardwareNotch.style.opacity = '1';
+      }
+    }
+
+    // Switch Tabs
+    function switchTab(tab) {
+      document.getElementById('tabHome').classList.toggle('active', tab === 'home');
+      document.getElementById('tabShelf').classList.toggle('active', tab === 'shelf');
+      document.getElementById('tabStats').classList.toggle('active', tab === 'stats');
+
+      document.getElementById('viewHome').style.display = tab === 'home' ? 'flex' : 'none';
+      document.getElementById('viewShelf').style.display = tab === 'shelf' ? 'flex' : 'none';
+      document.getElementById('viewStats').style.display = tab === 'stats' ? 'flex' : 'none';
+    }
+
+    // Play / Pause
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('btnPlay');
+      btn.textContent = isPlaying ? '⏸' : '▶️';
+      document.querySelectorAll('.mini-wave span').forEach(s => {
+        s.style.animationPlayState = isPlaying ? 'running' : 'paused';
+      });
+    }
+
+    // Seek track
+    function seekTrack(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      progressPercent = Math.round(pos * 100);
+      document.getElementById('trackProgress').style.width = `${progressPercent}%`;
+    }
+
+    // Song changer
+    const songs = [
+      {
+        title: "Starboy (feat. Daft Punk)",
+        artist: "The Weeknd — Starboy",
+        lyrics: "I'm tryna put you in the worst mood, ah...",
+        art: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=320&h=320&fit=crop"
+      },
+      {
+        title: "Blinding Lights",
+        artist: "The Weeknd — After Hours",
+        lyrics: "I said, ooh, I'm blinded by the lights...",
+        art: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=320&h=320&fit=crop"
+      },
+      {
+        title: "Levitating",
+        artist: "Dua Lipa — Future Nostalgia",
+        lyrics: "If you wanna run away with me, I know a galaxy...",
+        art: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=320&h=320&fit=crop"
+      }
+    ];
+    let songIdx = 0;
+
+    function nextTrack() {
+      songIdx = (songIdx + 1) % songs.length;
+      loadSong(songIdx);
+    }
+    function prevTrack() {
+      songIdx = (songIdx - 1 + songs.length) % songs.length;
+      loadSong(songIdx);
+    }
+    function loadSong(idx) {
+      const s = songs[idx];
+      document.getElementById('trackTitle').textContent = s.title;
+      document.getElementById('trackArtist').textContent = s.artist;
+      document.getElementById('miniLyrics').textContent = `"${s.lyrics}"`;
+      document.getElementById('mainAlbumArt').src = s.art;
+      document.querySelector('.lyrics-big-art').src = s.art;
+    }
+
+    // Lock Screen Toggle
+    function toggleLockScreen() {
+      isLocked = !isLocked;
+      const lockOverlay = document.getElementById('lockScreen');
+      lockOverlay.classList.toggle('active', isLocked);
+
+      if (isLocked) {
+        // Trigger camera LED for 1.2s to simulate Face ID wake
+        camLed.style.opacity = '1';
+        setTimeout(() => {
+          camLed.style.opacity = '0';
+        }, 1500);
+      }
+    }
+
+    // Face ID 3D Unlock
+    function simulateFaceIDUnlock() {
+      const glyph = document.getElementById('faceIdGlyph');
+      camLed.style.opacity = '1';
+      
+      // Face scanning animation
+      setTimeout(() => {
+        glyph.classList.add('unlocked');
+        glyph.innerHTML = `<span style="font-size:24px; color:#30D158;">🔓</span>`;
+        camLed.style.opacity = '0';
+
+        // Unlock after pop
+        setTimeout(() => {
+          glyph.classList.remove('unlocked');
+          glyph.innerHTML = `
+            <div class="faceid-eye left"></div>
+            <div class="faceid-eye right"></div>
+            <div class="faceid-smile"></div>
+          `;
+          toggleLockScreen();
+        }, 900);
+      }, 800);
+    }
+
+    // Immersive Lyrics
+    function triggerLockScreenLyrics() {
+      if (!isLocked) toggleLockScreen();
+      expandImmersiveLyrics();
+    }
+    function expandImmersiveLyrics() {
+      document.getElementById('immersiveLyrics').classList.add('active');
+    }
+    function closeImmersiveLyrics() {
+      document.getElementById('immersiveLyrics').classList.remove('active');
+    }
+
+    function jumpLyric(idx) {
+      const lines = document.querySelectorAll('.lyrics-line');
+      lines.forEach((l, i) => l.classList.toggle('active', i === idx));
+    }
+  </script>
+</body>
+</html>

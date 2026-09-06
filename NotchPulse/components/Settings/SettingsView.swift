@@ -159,6 +159,7 @@ struct GeneralSettings: View {
     @Default(.openNotchOnHover) var openNotchOnHover
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
+    @Default(.notchOpenWidth) var notchOpenWidth
 
     var body: some View {
         Form {
@@ -257,6 +258,58 @@ struct GeneralSettings: View {
                 }
             } header: {
                 Text("Notch / Island Style")
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Expanded Width")
+                        Spacer()
+                        Text("\(Int(notchOpenWidth)) px")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .fontWeight(.medium)
+                        
+                        Button("Reset") {
+                            notchOpenWidth = 740
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                        .disabled(notchOpenWidth == 740)
+                    }
+                    
+                    Slider(value: $notchOpenWidth, in: 520...960, step: 10) {
+                        Text("Notch Width")
+                    } minimumValueLabel: {
+                        Text("520px")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } maximumValueLabel: {
+                        Text("960px")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack(spacing: 8) {
+                        Button("Compact (580px)") { notchOpenWidth = 580 }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        Button("Standard (740px)") { notchOpenWidth = 740 }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        Button("Wide (860px)") { notchOpenWidth = 860 }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                    .padding(.top, 2)
+                    
+                    Text("Controls the horizontal expansion length when the notch or dynamic island is open. Internal elements dynamically adjust their layout to preserve visual symmetry and balance.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Notch Dimensions (Width)")
             }
 
             Section {

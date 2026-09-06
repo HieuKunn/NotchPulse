@@ -13,8 +13,18 @@ let downloadSneakSize: CGSize = .init(width: 65, height: 1)
 let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
-let openNotchSize: CGSize = .init(width: 740, height: 190)
-let windowSize: CGSize = .init(width: openNotchSize.width + 60, height: openNotchSize.height + shadowPadding)
+let maxNotchWidth: CGFloat = 1000
+let minNotchWidth: CGFloat = 520
+let defaultNotchWidth: CGFloat = 740
+
+var openNotchWidth: CGFloat {
+    max(minNotchWidth, min(maxNotchWidth, Defaults[.notchOpenWidth]))
+}
+
+var openNotchSize: CGSize {
+    .init(width: openNotchWidth, height: 190)
+}
+let windowSize: CGSize = .init(width: maxNotchWidth + 60, height: 190 + shadowPadding)
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 19, bottom: 24), closed: (top: 6, bottom: 14))
 
 enum MusicPlayerImageSizes {

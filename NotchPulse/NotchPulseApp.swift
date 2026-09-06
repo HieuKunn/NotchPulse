@@ -36,6 +36,20 @@ struct DynamicNotchApp: App {
                 }
             }
             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
+            
+            Menu("Notch Width (\(Int(Defaults[.notchOpenWidth]))px)") {
+                Button("Compact (580px)") { Defaults[.notchOpenWidth] = 580 }
+                Button("Standard (740px)") { Defaults[.notchOpenWidth] = 740 }
+                Button("Wide (860px)") { Defaults[.notchOpenWidth] = 860 }
+                Button("Extra Wide (940px)") { Defaults[.notchOpenWidth] = 940 }
+                Divider()
+                Button("Custom Dimensions...") {
+                    DispatchQueue.main.async {
+                        SettingsWindowController.shared.showWindow()
+                    }
+                }
+            }
+            
             CheckForUpdatesView(updater: updaterController.updater)
             Divider()
             Button("Restart NotchPulse") {

@@ -38,6 +38,7 @@ struct ContentView: View {
     @Default(.showNotHumanFace) var showNotHumanFace
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
+    @Default(.notchOpenWidth) var notchOpenWidth
 
     // Shared interactive spring for movement/resizing to avoid conflicting animations
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
@@ -142,7 +143,10 @@ struct ContentView: View {
                     )
                 
                 mainLayout
-                    .frame(height: vm.notchState == .open ? vm.notchSize.height : nil)
+                    .frame(
+                        width: vm.notchState == .open ? notchOpenWidth : nil,
+                        height: vm.notchState == .open ? vm.notchSize.height : nil
+                    )
                     .conditionalModifier(true) { view in
                         let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
                         let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
@@ -191,6 +195,13 @@ struct ContentView: View {
                             }
                         }
                     }
+                    .onChange(of: notchOpenWidth) { _, _ in
+                        if vm.notchState == .open {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                vm.notchSize = openNotchSize
+                            }
+                        }
+                    }
                     .onChange(of: vm.isBatteryPopoverActive) {
                         if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose {
                             hoverTask?.cancel()
@@ -213,11 +224,15 @@ struct ContentView: View {
                             }
                         }
                         .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
-                        //                    Button("Edit") { // Doesnt work....
-                        //                        let dn = DynamicNotch(content: EditPanelView())
-                        //                        dn.toggle()
-                        //                    }
-                        //                    .keyboardShortcut("E", modifiers: .command)
+                        
+                        Divider()
+                        
+                        Menu("Notch Width (\(Int(notchOpenWidth))px)") {
+                            Button("Compact (580px)") { notchOpenWidth = 580 }
+                            Button("Standard (740px)") { notchOpenWidth = 740 }
+                            Button("Wide (860px)") { notchOpenWidth = 860 }
+                            Button("Extra Wide (940px)") { notchOpenWidth = 940 }
+                        }
                     }
                 if vm.chinHeight > 0 {
                     Rectangle()

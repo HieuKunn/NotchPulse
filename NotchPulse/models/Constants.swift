@@ -80,6 +80,7 @@ extension Defaults.Keys {
     // MARK: General
     static let notchStyle = Key<NotchStyle>("notchStyle", default: .notch)
     static let dynamicIslandTopOffset = Key<CGFloat>("dynamicIslandTopOffset", default: 8)
+    static let notchOpenWidth = Key<CGFloat>("notchOpenWidth", default: 740)
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
     static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: true)
