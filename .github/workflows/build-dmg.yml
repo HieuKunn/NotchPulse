@@ -105,8 +105,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v1.1"
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          TAG="v2.0.0"
+          if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
+            TAG="${{ github.event.inputs.release_tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
           fi
           echo "Publishing release $TAG..."
