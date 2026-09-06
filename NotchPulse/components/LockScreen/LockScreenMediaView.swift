@@ -208,7 +208,7 @@ struct LockScreenMediaView: View {
                     // Nút tua lùi 5s / tua tới 5s
                     HStack(spacing: 12) {
                         Button {
-                            musicManager.seekRelative(seconds: -5)
+                            musicManager.skip(seconds: -5)
                         } label: {
                             Image(systemName: "gobackward.5")
                                 .font(.system(size: 16))
@@ -217,7 +217,7 @@ struct LockScreenMediaView: View {
                         .buttonStyle(.plain)
                         
                         Button {
-                            musicManager.seekRelative(seconds: 5)
+                            musicManager.skip(seconds: 5)
                         } label: {
                             Image(systemName: "goforward.5")
                                 .font(.system(size: 16))

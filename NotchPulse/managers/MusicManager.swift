@@ -650,6 +650,10 @@ class MusicManager: ObservableObject {
         let newPos = min(max(0, elapsedTime + seconds), songDuration)
         seek(to: newPos)
     }
+
+    func seekRelative(seconds: TimeInterval) {
+        skip(seconds: seconds)
+    }
     
     func setVolume(to level: Double) {
         if let controller = activeController {
