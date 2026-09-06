@@ -458,6 +458,8 @@ struct GeneralSettings: View {
                 }
             } header: {
                 Text("Notch Dimensions (Width)")
+            }
+
             Section {
                 Toggle(isOn: Binding(
                     get: { Defaults[.menubarIcon] },
