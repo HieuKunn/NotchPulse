@@ -24,7 +24,7 @@ struct FaceIDSettingsView: View {
                 }
                 .disabled(!faceIDManager.isEnrolled || !faceIDManager.hasPasswordSet)
                 
-                Text("Uses Apple Vision & Apple Neural Engine (NPU) for instant face recognition (0.2s - 0.4s) when the lock screen lights up. Automatically stops after 1s with 0% idle CPU/RAM usage.")
+                Text("Uses Apple Vision & Apple Neural Engine (NPU) with Procrustes canonical facial landmark matching. Automatically verifies upon screen lock or wake (up to 4.0s) with 0% idle battery drain.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 
@@ -100,7 +100,7 @@ struct FaceIDSettingsView: View {
 
                     // Add alternate face button
                     if faceIDManager.enrolledFaces.count < 5 {
-                        if faceIDManager.isScanning {
+                        if faceIDManager.isScanning && !faceIDManager.isTestingMode {
                             Button("Cancel Scanning") {
                                 faceIDManager.cancelCurrentSession()
                             }
@@ -113,6 +113,7 @@ struct FaceIDSettingsView: View {
                             }
                             .buttonStyle(.borderless)
                             .foregroundStyle(Color.accentColor)
+                            .disabled(faceIDManager.isScanning)
                         }
                     }
                 }
@@ -135,6 +136,7 @@ struct FaceIDSettingsView: View {
                         Text("Reset All Face ID Data")
                             .foregroundStyle(.red)
                     }
+                    .disabled(faceIDManager.isScanning)
                 }
             } header: {
                 HStack {
@@ -147,7 +149,57 @@ struct FaceIDSettingsView: View {
                     .foregroundStyle(.secondary)
             }
             
-            // MARK: - Section 3: Lock Screen Password Setup
+            // MARK: - Section 3: Face Recognition Live Tester
+            if !faceIDManager.enrolledFaces.isEmpty {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Test whether your camera accurately recognizes your enrolled face vs an unregistered person in real time.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
+                        HStack(spacing: 12) {
+                            if faceIDManager.isTestingMode {
+                                Button("Stop Test") {
+                                    faceIDManager.stopTestRecognition()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.red)
+                            } else {
+                                Button {
+                                    faceIDManager.startTestRecognition()
+                                } label: {
+                                    Label("Test Face ID Recognition", systemImage: "faceid")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(faceIDManager.isScanning)
+                            }
+                            
+                            if faceIDManager.isTestingMode {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                        }
+                        
+                        if !faceIDManager.testResultText.isEmpty {
+                            HStack {
+                                Text(faceIDManager.testResultText)
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(faceIDManager.testResultColor)
+                                
+                                Spacer()
+                            }
+                            .padding(8)
+                            .background(faceIDManager.testResultColor.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Label("Live Biometric Test", systemImage: "checkmark.shield")
+                }
+            }
+            
+            // MARK: - Section 4: Lock Screen Password Setup
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Enter your Mac login password to allow Face ID to unlock the screen. Password is encrypted and stored securely in macOS Keychain.")
@@ -184,7 +236,7 @@ struct FaceIDSettingsView: View {
                 Text("Security Credentials")
             }
             
-            // MARK: - Section 4: Lock Screen Media Player
+            // MARK: - Section 5: Lock Screen Media Player
             Section {
                 Defaults.Toggle(key: .enableLockScreenPlayer) {
                     Text("Show Media Player on Lock Screen")

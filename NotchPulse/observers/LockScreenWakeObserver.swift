@@ -42,6 +42,12 @@ final class LockScreenWakeObserver: ObservableObject {
                 guard let self = self else { return }
                 self.isScreenLocked = true
                 self.updateLockScreenMediaWindowVisibility()
+                
+                // Show Lock Screen Face ID Notch HUD and trigger recognition
+                if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
+                    LockScreenFaceIDWindow.shared.show()
+                    FaceIDManager.shared.startRecognitionOnWake()
+                }
             }
         }
         distributedTokens.append(lockToken)
@@ -56,6 +62,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 guard let self = self else { return }
                 self.isScreenLocked = false
                 FaceIDManager.shared.cancelCurrentSession()
+                LockScreenFaceIDWindow.shared.hide()
                 self.updateLockScreenMediaWindowVisibility()
             }
         }
@@ -67,8 +74,10 @@ final class LockScreenWakeObserver: ObservableObject {
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 if self.isScreenLocked {
-                    // Trigger Zero-Overhead Face ID recognition for max 1.0s
-                    FaceIDManager.shared.startRecognitionOnWake()
+                    if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
+                        LockScreenFaceIDWindow.shared.show()
+                        FaceIDManager.shared.startRecognitionOnWake()
+                    }
                     self.updateLockScreenMediaWindowVisibility()
                 }
             }
@@ -79,6 +88,7 @@ final class LockScreenWakeObserver: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { _ in
                 FaceIDManager.shared.cancelCurrentSession()
+                LockScreenFaceIDWindow.shared.hide()
             }
             .store(in: &cancellables)
             
@@ -94,6 +104,19 @@ final class LockScreenWakeObserver: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateLockScreenMediaWindowVisibility()
+            }
+            .store(in: &cancellables)
+            
+        // 6. Listen for Face ID state changes to hide LockScreenFaceIDWindow on success after delay
+        FaceIDManager.shared.$lastUnlockSuccess
+            .receive(on: DispatchQueue.main)
+            .sink { success in
+                if success {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(1200))
+                        LockScreenFaceIDWindow.shared.hide()
+                    }
+                }
             }
             .store(in: &cancellables)
     }
