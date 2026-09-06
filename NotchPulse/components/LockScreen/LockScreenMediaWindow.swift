@@ -6,18 +6,20 @@
 //
 
 import Cocoa
+import Combine
 import Defaults
 import SkyLightWindow
 import SwiftUI
 
 @MainActor
-final class LockScreenMediaWindow: NSPanel {
+final class LockScreenMediaWindow: NSPanel, ObservableObject {
     static let shared = LockScreenMediaWindow()
     
+    @Published var isFullScreen: Bool = false
     private var isSkyLightAttached = false
     
     private init() {
-        let initialRect = NSRect(x: 0, y: 0, width: 720, height: 250)
+        let initialRect = NSRect(x: 0, y: 0, width: 410, height: 180)
         super.init(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -47,18 +49,32 @@ final class LockScreenMediaWindow: NSPanel {
         contentView = NSHostingView(rootView: LockScreenMediaView())
     }
     
+    func targetCompactFrame(for screen: NSScreen) -> NSRect {
+        let width: CGFloat = 410
+        let height: CGFloat = 180
+        let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
+        let y = screen.frame.origin.y + (screen.frame.height * 0.12)
+        return NSRect(x: x, y: y, width: width, height: height)
+    }
+    
+    func setFullScreen(_ fullScreen: Bool) {
+        guard let screen = NSScreen.main else { return }
+        self.isFullScreen = fullScreen
+        
+        let targetRect = fullScreen ? screen.frame : targetCompactFrame(for: screen)
+        
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.38
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            self.animator().setFrame(targetRect, display: true)
+        }
+    }
+    
     func show() {
         guard let screen = NSScreen.main else { return }
         
-        let showLyrics = Defaults[.lockScreenPlayerShowLyrics]
-        let width: CGFloat = showLyrics ? 720 : 460
-        let height: CGFloat = 250
-        
-        // Position gracefully in the lower third / center of the screen
-        let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
-        let y = screen.frame.origin.y + (screen.frame.height * 0.16)
-        
-        setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
+        let targetRect = isFullScreen ? screen.frame : targetCompactFrame(for: screen)
+        setFrame(targetRect, display: true)
         
         if !isSkyLightAttached {
             SkyLightOperator.shared.delegateWindow(self)
@@ -84,6 +100,7 @@ final class LockScreenMediaWindow: NSPanel {
             self.animator().alphaValue = 0.0
         }, completionHandler: {
             self.orderOut(nil)
+            self.isFullScreen = false
             if self.isSkyLightAttached {
                 SkyLightOperator.shared.undelegateWindow(self)
                 self.isSkyLightAttached = false
