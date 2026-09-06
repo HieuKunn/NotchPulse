@@ -342,13 +342,25 @@
       align-items: center;
       gap: 16px;
       width: 100%;
+      padding: 0 16px;
+      box-sizing: border-box;
     }
 
-    /* Album Art (Fixed 110x110) */
+    /* 55% Media Column */
+    .music-player-col {
+      flex: 0 0 55%;
+      max-width: 55%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    /* Album Art (Adaptive 96px - 110px) */
     .album-art-wrap {
-      width: 110px;
-      height: 110px;
-      min-width: 110px;
+      width: 96px;
+      height: 96px;
+      min-width: 96px;
       border-radius: 14px;
       position: relative;
       cursor: pointer;
@@ -468,10 +480,10 @@
       color: #fff;
     }
 
-    /* Calendar Mini Card */
+    /* Calendar Mini Card (45% Proportional Column) */
     .calendar-card {
-      width: 180px;
-      min-width: 160px;
+      flex: 0 0 45%;
+      max-width: 45%;
       height: 110px;
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -481,6 +493,8 @@
       flex-direction: column;
       justify-content: space-between;
       transition: all 0.2s ease;
+      min-width: 0;
+      box-sizing: border-box;
     }
     .cal-header {
       display: flex;
@@ -902,38 +916,41 @@
               </div>
             </div>
 
-            <!-- Home Tab: Responsive Music Player & Calendar -->
+            <!-- Home Tab: Responsive 55-45 Music Player & Calendar -->
             <div class="notch-home-layout" id="viewHome">
-              <!-- Album Artwork with dynamic ambient glow -->
-              <div class="album-art-wrap" onclick="triggerLockScreenLyrics()">
-                <div class="album-glow"></div>
-                <img class="album-art-img" id="mainAlbumArt" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=320&h=320&fit=crop" alt="Starboy">
-              </div>
-
-              <!-- Flexible Controls (Auto-stretches proportionally) -->
-              <div class="music-controls-area">
-                <div class="song-title-row">
-                  <div class="song-title" id="trackTitle">Starboy (feat. Daft Punk)</div>
-                  <div class="song-artist" id="trackArtist">The Weeknd — Starboy</div>
-                  <div class="live-lyrics-preview" id="miniLyrics">"I'm tryna put you in the worst mood, ah..."</div>
+              <!-- 55% Media Player Column -->
+              <div class="music-player-col">
+                <!-- Album Artwork with dynamic ambient glow -->
+                <div class="album-art-wrap" onclick="triggerLockScreenLyrics()">
+                  <div class="album-glow"></div>
+                  <img class="album-art-img" id="mainAlbumArt" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=320&h=320&fit=crop" alt="Starboy">
                 </div>
 
-                <!-- Scrubber Progress Bar -->
-                <div class="scrubber-wrap">
-                  <span class="time-stamp" id="currentTime">1:24</span>
-                  <div class="progress-bar-bg" onclick="seekTrack(event)">
-                    <div class="progress-bar-fill" id="trackProgress"></div>
+                <!-- Flexible Controls (Auto-stretches proportionally) -->
+                <div class="music-controls-area">
+                  <div class="song-title-row">
+                    <div class="song-title" id="trackTitle">Starboy (feat. Daft Punk)</div>
+                    <div class="song-artist" id="trackArtist">The Weeknd — Starboy</div>
+                    <div class="live-lyrics-preview" id="miniLyrics">"I'm tryna put you in the worst mood, ah..."</div>
                   </div>
-                  <span class="time-stamp" id="totalDuration">3:50</span>
-                </div>
 
-                <!-- Controls Slots (Auto-centered flex) -->
-                <div class="slots-toolbar">
-                  <button class="control-btn" title="Shuffle" onclick="this.style.color = this.style.color ? '' : '#ff3b30'">🔀</button>
-                  <button class="control-btn" title="Previous" onclick="prevTrack()">⏮</button>
-                  <button class="control-btn play-btn" id="btnPlay" title="Play/Pause" onclick="togglePlay()">⏸</button>
-                  <button class="control-btn" title="Next" onclick="nextTrack()">⏭</button>
-                  <button class="control-btn" title="Repeat" onclick="this.style.color = this.style.color ? '' : '#30D158'">🔁</button>
+                  <!-- Scrubber Progress Bar -->
+                  <div class="scrubber-wrap">
+                    <span class="time-stamp" id="currentTime">1:24</span>
+                    <div class="progress-bar-bg" onclick="seekTrack(event)">
+                      <div class="progress-bar-fill" id="trackProgress"></div>
+                    </div>
+                    <span class="time-stamp" id="totalDuration">3:50</span>
+                  </div>
+
+                  <!-- Controls Slots (Auto-centered flex) -->
+                  <div class="slots-toolbar">
+                    <button class="control-btn" title="Shuffle" onclick="this.style.color = this.style.color ? '' : '#ff3b30'">🔀</button>
+                    <button class="control-btn" title="Previous" onclick="prevTrack()">⏮</button>
+                    <button class="control-btn play-btn" id="btnPlay" title="Play/Pause" onclick="togglePlay()">⏸</button>
+                    <button class="control-btn" title="Next" onclick="nextTrack()">⏭</button>
+                    <button class="control-btn" title="Repeat" onclick="this.style.color = this.style.color ? '' : '#30D158'">🔁</button>
+                  </div>
                 </div>
               </div>
 

@@ -15,10 +15,19 @@ import SwiftUI
 struct MusicPlayerView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     let albumArtNamespace: Namespace.ID
+    var allocatedWidth: CGFloat? = nil
+
+    private var artSize: CGFloat {
+        if let width = allocatedWidth {
+            // Adaptive album art sizing from 82px to 110px based on allocated column width
+            return min(110, max(82, (width - 24) * 0.30))
+        }
+        return 110
+    }
 
     var body: some View {
         HStack(spacing: 8) {
-            AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace)
+            AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace, size: artSize)
                 .padding(.vertical, 2)
             MusicControlsView().drawingGroup().compositingGroup()
         }
@@ -29,11 +38,12 @@ struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var vm: NotchPulseViewModel
     let albumArtNamespace: Namespace.ID
+    var size: CGFloat = 110
 
     private var imageAspectRatio: CGFloat {
-        let size = musicManager.albumArt.size
-        guard size.width > 0 && size.height > 0 else { return 1.0 }
-        return size.width / size.height
+        let imgSize = musicManager.albumArt.size
+        guard imgSize.width > 0 && imgSize.height > 0 else { return 1.0 }
+        return imgSize.width / imgSize.height
     }
 
     var body: some View {
@@ -43,13 +53,15 @@ struct AlbumArtView: View {
             }
             albumArtButton
         }
+        // Comfortable breathing room from the left curved notch corner
+        .padding(.leading, 8)
     }
 
     private var albumArtBackground: some View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
             .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(width: 110, height: 110)
+            .frame(width: size, height: size)
             .clipped()
             .clipShape(
                 RoundedRectangle(
@@ -86,19 +98,18 @@ struct AlbumArtView: View {
                 ? MusicPlayerImageSizes.cornerRadiusInset.opened
                 : MusicPlayerImageSizes.cornerRadiusInset.closed)
             .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(width: 110, height: 110)
+            .frame(width: size, height: size)
             .foregroundColor(Color.black)
             .opacity(musicManager.isPlaying ? 0 : 0.8)
             .blur(radius: 50)
             .allowsHitTesting(false)
     }
-                
 
     private var albumArtImage: some View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
             .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(width: 110, height: 110)
+            .frame(width: size, height: size)
             .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
             .clipped()
             .clipShape(
@@ -112,11 +123,12 @@ struct AlbumArtView: View {
     @ViewBuilder
     private var appIconOverlay: some View {
         if vm.notchState == .open && !musicManager.usingAppIconForArtwork {
+            let iconSize: CGFloat = max(22, size * 0.27)
             AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 30, height: 30)
-                .offset(x: 10, y: 10)
+                .frame(width: iconSize, height: iconSize)
+                .offset(x: 8, y: 8)
                 .transition(.scale.combined(with: .opacity))
                 .zIndex(2)
         }
@@ -460,15 +472,18 @@ struct NotchHomeView: View {
     @ObservedObject var webcamManager = WebcamManager.shared
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
+    @Default(.notchOpenWidth) private var notchOpenWidth
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
         Group {
             if !coordinator.firstLaunch {
-                mainContent
+                GeometryReader { geo in
+                    mainContent(totalWidth: geo.size.width)
+                }
+                .frame(height: 148)
             }
         }
-        // simplified: use a straightforward opacity transition
         .transition(.opacity)
     }
 
@@ -476,13 +491,42 @@ struct NotchHomeView: View {
         Defaults[.showMirror] && webcamManager.cameraAvailable && vm.isCameraExpanded
     }
 
-    private var mainContent: some View {
-        HStack(alignment: .top, spacing: (shouldShowCamera && Defaults[.showCalendar]) ? 10 : 15) {
-            MusicPlayerView(albumArtNamespace: albumArtNamespace)
+    @ViewBuilder
+    private func mainContent(totalWidth: CGFloat) -> some View {
+        let isCalendarVisible = Defaults[.showCalendar]
+        let isCameraVisible = shouldShowCamera
+        
+        // Comfortable horizontal margin to prevent corner clipping
+        let horizontalPadding: CGFloat = 12
+        let spacing: CGFloat = 14
+        let baseWidth = totalWidth > 0 ? totalWidth : notchOpenWidth
+        let availableWidth = max(280, baseWidth - (horizontalPadding * 2))
+        
+        let (mediaWidth, calendarWidth, cameraWidth): (CGFloat, CGFloat, CGFloat) = {
+            if isCalendarVisible && isCameraVisible {
+                let camW: CGFloat = 130
+                let remainW = max(200, availableWidth - camW - (spacing * 2))
+                return (remainW * 0.55, remainW * 0.45, camW)
+            } else if isCalendarVisible {
+                // 55% Media - 45% Calendar distribution!
+                let remainW = max(240, availableWidth - spacing)
+                return (remainW * 0.55, remainW * 0.45, 0)
+            } else if isCameraVisible {
+                let camW: CGFloat = 160
+                let remainW = max(200, availableWidth - camW - spacing)
+                return (remainW, 0, camW)
+            } else {
+                return (availableWidth, 0, 0)
+            }
+        }()
 
-            if Defaults[.showCalendar] {
+        HStack(alignment: .top, spacing: spacing) {
+            MusicPlayerView(albumArtNamespace: albumArtNamespace, allocatedWidth: mediaWidth)
+                .frame(width: mediaWidth)
+
+            if isCalendarVisible {
                 CalendarView()
-                    .frame(width: shouldShowCamera ? 170 : 232, height: 148)
+                    .frame(width: calendarWidth, height: 148)
                     .clipped()
                     .onHover { isHovering in
                         vm.isHoveringCalendar = isHovering
@@ -491,14 +535,16 @@ struct NotchHomeView: View {
                     .transition(.opacity)
             }
 
-            if shouldShowCamera {
+            if isCameraVisible {
                 CameraPreviewView(webcamManager: webcamManager)
+                    .frame(width: cameraWidth)
                     .scaledToFit()
                     .opacity(vm.notchState == .closed ? 0 : 1)
                     .blur(radius: vm.notchState == .closed ? 20 : 0)
                     .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.76, blendDuration: 0), value: shouldShowCamera)
             }
         }
+        .padding(.horizontal, horizontalPadding)
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
         .blur(radius: vm.notchState == .closed ? 30 : 0)
     }
