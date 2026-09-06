@@ -378,7 +378,7 @@ struct LockScreenFaceIDPillView: View {
                         .fill(Color.black)
                     
                     FaceIDExtensionShape(cornerRadius: 24)
-                        .strokeBorder(borderColor, lineWidth: 1.5)
+                        .stroke(borderColor, lineWidth: 1.5)
                 }
             )
             .shadow(color: .black.opacity(0.6), radius: 15, x: 0, y: 8)
