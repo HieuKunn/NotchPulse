@@ -18,6 +18,11 @@
       --accent-color: #0A84FF;
       --apple-green: #30D158;
       --dynamic-island-top: 8px;
+      --slot-gap: 6px;
+      --slot-icon-size: 14px;
+      --slot-play-size: 18px;
+      --slot-btn-pad: 3px 5px;
+      --album-art-size: 88px;
     }
 
     * {
@@ -354,20 +359,22 @@
       max-width: 55%;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       min-width: 0;
     }
 
-    /* Album Art (Adaptive 96px - 110px) */
+    /* Album Art (Adaptive 84px - 96px) */
     .album-art-wrap {
-      width: 96px;
-      height: 96px;
-      min-width: 96px;
+      width: var(--album-art-size, 88px);
+      height: var(--album-art-size, 88px);
+      min-width: var(--album-art-size, 88px);
       border-radius: 14px;
       position: relative;
       cursor: pointer;
       overflow: hidden;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      flex-shrink: 0;
+      transition: width 0.2s ease, height 0.2s ease;
     }
     .album-art-img {
       width: 100%;
@@ -455,32 +462,36 @@
       position: relative;
     }
 
-    /* Slots Toolbar: Các icon luôn ở gần nhau ở giữa, không dãn cách xa theo độ rộng Notch */
+    /* Slots Toolbar: Tự động co khoảng cách giữa các icon khi notch ở min width để không dính ảnh bìa hay calendar */
     .slots-toolbar {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: var(--slot-gap, 6px);
       align-self: center;
       padding-top: 4px;
+      margin: 0 auto;
+      transition: gap 0.2s ease;
     }
     .control-btn {
       background: transparent;
       border: none;
       color: rgba(255, 255, 255, 0.85);
-      font-size: 16px;
+      font-size: var(--slot-icon-size, 14px);
       cursor: pointer;
-      padding: 4px 8px;
+      padding: var(--slot-btn-pad, 3px 5px);
       border-radius: 6px;
       transition: all 0.15s;
+      line-height: 1;
     }
     .control-btn:hover {
       background: rgba(255, 255, 255, 0.15);
       color: #fff;
     }
     .play-btn {
-      font-size: 22px;
+      font-size: var(--slot-play-size, 18px);
       color: #fff;
+      padding: var(--slot-btn-pad, 3px 6px);
     }
 
     /* Calendar Mini Card (45% Proportional Column) */
@@ -1178,6 +1189,29 @@
       document.documentElement.style.setProperty('--notch-width', `${val}px`);
       sliderValueText.textContent = `${val} px`;
       menuWidthBadge.textContent = `✦ Width: ${val}px`;
+
+      // Khi ở gần min width (560px - 620px):
+      // Thu nhỏ khoảng cách giữa các icon (5px) và giảm nhẹ padding để các nút gom gọn ở giữa,
+      // tạo khoảng thở rộng rãi 2 bên, tuyệt đối không bị dính vào ảnh album hay calendar.
+      if (val <= 620) {
+        document.documentElement.style.setProperty('--slot-gap', '5px');
+        document.documentElement.style.setProperty('--slot-icon-size', '13px');
+        document.documentElement.style.setProperty('--slot-play-size', '17px');
+        document.documentElement.style.setProperty('--slot-btn-pad', '2px 4px');
+        document.documentElement.style.setProperty('--album-art-size', '84px');
+      } else if (val <= 740) {
+        document.documentElement.style.setProperty('--slot-gap', '7px');
+        document.documentElement.style.setProperty('--slot-icon-size', '14px');
+        document.documentElement.style.setProperty('--slot-play-size', '19px');
+        document.documentElement.style.setProperty('--slot-btn-pad', '3px 5px');
+        document.documentElement.style.setProperty('--album-art-size', '90px');
+      } else {
+        document.documentElement.style.setProperty('--slot-gap', '10px');
+        document.documentElement.style.setProperty('--slot-icon-size', '15px');
+        document.documentElement.style.setProperty('--slot-play-size', '21px');
+        document.documentElement.style.setProperty('--slot-btn-pad', '4px 7px');
+        document.documentElement.style.setProperty('--album-art-size', '96px');
+      }
 
       // Cả Media và Calendar luôn luôn hiển thị đầy đủ cùng nhau (55% - 45%) ở mọi kích thước width (kể cả min 560px)
       const calCard = document.getElementById('calCard');

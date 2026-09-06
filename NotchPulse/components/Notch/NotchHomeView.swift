@@ -238,7 +238,8 @@ struct MusicControlsView: View {
 
     private var slotToolbar: some View {
         let slots = activeSlots
-        return HStack(spacing: 6) {
+        let spacing: CGFloat = Defaults[.notchOpenWidth] <= 620 ? 4 : 6
+        return HStack(spacing: spacing) {
             ForEach(Array(slots.enumerated()), id: \.offset) { index, slot in
                 slotView(for: slot)
                     .frame(alignment: .center)
