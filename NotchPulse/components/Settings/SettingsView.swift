@@ -269,307 +269,318 @@ struct GeneralSettings: View {
         }
     }
 
-    var body: some View {
-        Form {
-            Section {
-                HStack(spacing: 14) {
-                    // Option 1: Classic MacBook Notch
-                    Button {
-                        notchStyle = .notch
-                    } label: {
-                        VStack(spacing: 8) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(nsColor: .controlBackgroundColor))
-                                    .frame(height: 52)
+    @ViewBuilder
+    private var styleSection: some View {
+        Section {
+            HStack(spacing: 14) {
+                // Option 1: Classic MacBook Notch
+                Button {
+                    notchStyle = .notch
+                } label: {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                                .frame(height: 52)
 
-                                // Mini Notch illustration (attached to top)
-                                VStack(spacing: 0) {
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.35))
-                                        .frame(height: 3)
-                                    NotchShape(topCornerRadius: 3, bottomCornerRadius: 6)
-                                        .fill(notchStyle == .notch ? Color.accentColor : Color.primary.opacity(0.7))
-                                        .frame(width: 60, height: 16)
-                                    Spacer()
-                                }
-                            }
-
-                            HStack(spacing: 5) {
-                                Image(systemName: notchStyle == .notch ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(notchStyle == .notch ? Color.accentColor : .secondary)
-                                Text("MacBook Notch")
-                                    .font(.subheadline)
-                                    .fontWeight(notchStyle == .notch ? .semibold : .regular)
+                            // Mini Notch illustration (attached to top)
+                            VStack(spacing: 0) {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.35))
+                                    .frame(height: 3)
+                                NotchShape(topCornerRadius: 3, bottomCornerRadius: 6)
+                                    .fill(notchStyle == .notch ? Color.accentColor : Color.primary.opacity(0.7))
+                                    .frame(width: 60, height: 16)
+                                Spacer()
                             }
                         }
-                        .padding(10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(notchStyle == .notch ? Color.accentColor : Color.gray.opacity(0.25), lineWidth: notchStyle == .notch ? 2 : 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
 
-                    // Option 2: Floating Dynamic Island
-                    Button {
-                        notchStyle = .dynamicIsland
-                    } label: {
-                        VStack(spacing: 8) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(nsColor: .controlBackgroundColor))
-                                    .frame(height: 52)
-
-                                // Mini Dynamic Island illustration (floating pill)
-                                VStack(spacing: 0) {
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.35))
-                                        .frame(height: 3)
-                                    Capsule()
-                                        .fill(notchStyle == .dynamicIsland ? Color.accentColor : Color.primary.opacity(0.7))
-                                        .frame(width: 52, height: 13)
-                                        .padding(.top, 5)
-                                    Spacer()
-                                }
-                            }
-
-                            HStack(spacing: 5) {
-                                Image(systemName: notchStyle == .dynamicIsland ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(notchStyle == .dynamicIsland ? Color.accentColor : .secondary)
-                                Text("Dynamic Island")
-                                    .font(.subheadline)
-                                    .fontWeight(notchStyle == .dynamicIsland ? .semibold : .regular)
-                            }
+                        HStack(spacing: 5) {
+                            Image(systemName: notchStyle == .notch ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(notchStyle == .notch ? Color.accentColor : .secondary)
+                            Text("MacBook Notch")
+                                .font(.subheadline)
+                                .fontWeight(notchStyle == .notch ? .semibold : .regular)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(notchStyle == .notch ? Color.accentColor : Color.gray.opacity(0.25), lineWidth: notchStyle == .notch ? 2 : 1)
+                    )
                 }
-                .padding(.vertical, 4)
+                .buttonStyle(.plain)
 
-                // Show top offset slider only for Dynamic Island
-                if notchStyle == .dynamicIsland {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Top Gap (Distance from Screen Edge)")
-                            Spacer()
-                            Text("\(Int(dynamicIslandTopOffset)) px")
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
+                // Option 2: Floating Dynamic Island
+                Button {
+                    notchStyle = .dynamicIsland
+                } label: {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                                .frame(height: 52)
+
+                            // Mini Dynamic Island illustration (floating pill)
+                            VStack(spacing: 0) {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.35))
+                                    .frame(height: 3)
+                                Capsule()
+                                    .fill(notchStyle == .dynamicIsland ? Color.accentColor : Color.primary.opacity(0.7))
+                                    .frame(width: 52, height: 13)
+                                    .padding(.top, 5)
+                                Spacer()
+                            }
                         }
-                        Slider(value: $dynamicIslandTopOffset, in: 0...24, step: 1) {
-                            Text("Top Gap")
-                        } minimumValueLabel: {
-                            Text("0px")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        } maximumValueLabel: {
-                            Text("24px")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+
+                        HStack(spacing: 5) {
+                            Image(systemName: notchStyle == .dynamicIsland ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(notchStyle == .dynamicIsland ? Color.accentColor : .secondary)
+                            Text("Dynamic Island")
+                                .font(.subheadline)
+                                .fontWeight(notchStyle == .dynamicIsland ? .semibold : .regular)
                         }
-                        Text("Sets the floating gap between the top bezel and the Dynamic Island capsule.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
-                    .padding(.top, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-            } header: {
-                Text("Notch / Island Style")
+                .buttonStyle(.plain)
             }
+            .padding(.vertical, 4)
 
-            Section {
-                VStack(alignment: .leading, spacing: 10) {
+            // Show top offset slider only for Dynamic Island
+            if notchStyle == .dynamicIsland {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Expanded Width")
+                        Text("Top Gap (Distance from Screen Edge)")
                         Spacer()
-                        Text("\(Int(notchOpenWidth)) px")
+                        Text("\(Int(dynamicIslandTopOffset)) px")
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
-                            .fontWeight(.medium)
-                        
-                        Button("Reset") {
-                            notchOpenWidth = 740
-                            triggerWidthPreview(width: 740, isEditing: false)
-                        }
-                        .buttonStyle(.borderless)
-                        .controlSize(.small)
-                        .disabled(notchOpenWidth == 740)
                     }
-                    
-                    // Live Visual Preview directly inside Settings
-                    NotchWidthLivePreview(width: notchOpenWidth, style: notchStyle)
-                    
-                    Slider(
-                        value: $notchOpenWidth,
-                        in: 560...960,
-                        step: 10,
-                        onEditingChanged: { editing in
-                            if editing {
-                                triggerWidthPreview(width: notchOpenWidth, isEditing: true)
-                            } else {
-                                triggerWidthPreview(width: notchOpenWidth, isEditing: false)
-                            }
-                        }
-                    ) {
-                        Text("Notch Width")
+                    Slider(value: $dynamicIslandTopOffset, in: 0...24, step: 1) {
+                        Text("Top Gap")
                     } minimumValueLabel: {
-                        Text("560px")
+                        Text("0px")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     } maximumValueLabel: {
-                        Text("960px")
+                        Text("24px")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
-                    
-                    HStack(spacing: 8) {
-                        Button("Compact (580px)") {
-                            notchOpenWidth = 580
-                            triggerWidthPreview(width: 580, isEditing: false)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        
-                        Button("Standard (740px)") {
-                            notchOpenWidth = 740
-                            triggerWidthPreview(width: 740, isEditing: false)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        
-                        Button("Wide (860px)") {
-                            notchOpenWidth = 860
-                            triggerWidthPreview(width: 860, isEditing: false)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                    .padding(.top, 2)
-                    
-                    Text("Controls the horizontal expansion length when the notch or dynamic island is open. The notch opens and resizes live on your screen as you drag the slider.")
+                    Text("Sets the floating gap between the top bezel and the Dynamic Island capsule.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 4)
-                .onChange(of: notchOpenWidth) { _, newWidth in
-                    triggerWidthPreview(width: newWidth, isEditing: true)
-                }
-            } header: {
-                Text("Notch Dimensions (Width)")
+                .padding(.top, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
+        } header: {
+            Text("Notch / Island Style")
+        }
+    }
 
-            Section {
-                Toggle(isOn: Binding(
-                    get: { Defaults[.menubarIcon] },
-                    set: { Defaults[.menubarIcon] = $0 }
-                )) {
-                    Text("Show menu bar icon")
-                }
-                .tint(.effectiveAccent)
-                LaunchAtLogin.Toggle("Launch at login")
-                Defaults.Toggle(key: .showOnAllDisplays) {
-                    Text("Show on all displays")
-                }
-                .onChange(of: showOnAllDisplays) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.showOnAllDisplaysChanged, object: nil)
-                }
-                Picker("Preferred display", selection: $coordinator.preferredScreenUUID) {
-                    ForEach(screens, id: \.uuid) { screen in
-                        Text(screen.name).tag(screen.uuid as String?)
+    @ViewBuilder
+    private var dimensionsSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Expanded Width")
+                    Spacer()
+                    Text("\(Int(notchOpenWidth)) px")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .fontWeight(.medium)
+                    
+                    Button("Reset") {
+                        notchOpenWidth = 740
+                        triggerWidthPreview(width: 740, isEditing: false)
                     }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .disabled(notchOpenWidth == 740)
                 }
-                .onChange(of: NSScreen.screens) {
-                    screens = NSScreen.screens.compactMap { screen in
-                        guard let uuid = screen.displayUUID else { return nil }
-                        return (uuid, screen.localizedName)
-                    }
-                }
-                .disabled(showOnAllDisplays)
                 
-                Defaults.Toggle(key: .automaticallySwitchDisplay) {
-                    Text("Automatically switch displays")
-                }
-                    .onChange(of: automaticallySwitchDisplay) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.automaticallySwitchDisplayChanged, object: nil)
+                // Live Visual Preview directly inside Settings
+                NotchWidthLivePreview(width: notchOpenWidth, style: notchStyle)
+                
+                Slider(
+                    value: $notchOpenWidth,
+                    in: 560...960,
+                    step: 10,
+                    onEditingChanged: { editing in
+                        triggerWidthPreview(width: notchOpenWidth, isEditing: editing)
                     }
-                    .disabled(showOnAllDisplays)
-            } header: {
-                Text("System features")
-            }
-
-            Section {
-                Picker(
-                    selection: $notchHeightMode,
-                    label:
-                        Text("Notch height on notch displays")
                 ) {
-                    Text("Match real notch height")
-                        .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Match menu bar height")
-                        .tag(WindowHeightMode.matchMenuBar)
-                    Text("Custom height")
-                        .tag(WindowHeightMode.custom)
+                    Text("Notch Width")
+                } minimumValueLabel: {
+                    Text("560px")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } maximumValueLabel: {
+                    Text("960px")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                .onChange(of: notchHeightMode) {
-                    switch notchHeightMode {
-                    case .matchRealNotchSize:
-                        notchHeight = 38
-                    case .matchMenuBar:
-                        notchHeight = 44
-                    case .custom:
-                        notchHeight = 38
+                
+                HStack(spacing: 8) {
+                    Button("Compact (580px)") {
+                        notchOpenWidth = 580
+                        triggerWidthPreview(width: 580, isEditing: false)
                     }
-                    NotificationCenter.default.post(
-                        name: Notification.Name.notchHeightChanged, object: nil)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    
+                    Button("Standard (740px)") {
+                        notchOpenWidth = 740
+                        triggerWidthPreview(width: 740, isEditing: false)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    
+                    Button("Wide (860px)") {
+                        notchOpenWidth = 860
+                        triggerWidthPreview(width: 860, isEditing: false)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                if notchHeightMode == .custom {
-                    Slider(value: $notchHeight, in: 15...45, step: 1) {
-                        Text("Custom notch size - \(notchHeight, specifier: "%.0f")")
-                    }
-                    .onChange(of: notchHeight) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.notchHeightChanged, object: nil)
-                    }
-                }
-                Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
-                    Text("Match menubar height")
-                        .tag(WindowHeightMode.matchMenuBar)
-                    Text("Match real notch height")
-                        .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Custom height")
-                        .tag(WindowHeightMode.custom)
-                }
-                .onChange(of: nonNotchHeightMode) {
-                    switch nonNotchHeightMode {
-                    case .matchMenuBar:
-                        nonNotchHeight = 24
-                    case .matchRealNotchSize:
-                        nonNotchHeight = 32
-                    case .custom:
-                        nonNotchHeight = 32
-                    }
-                    NotificationCenter.default.post(
-                        name: Notification.Name.notchHeightChanged, object: nil)
-                }
-                if nonNotchHeightMode == .custom {
-                    Slider(value: $nonNotchHeight, in: 0...40, step: 1) {
-                        Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
-                    }
-                    .onChange(of: nonNotchHeight) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.notchHeightChanged, object: nil)
-                    }
-                }
-            } header: {
-                Text("Notch sizing")
+                .padding(.top, 2)
+                
+                Text("Controls the horizontal expansion length when the notch or dynamic island is open. The notch opens and resizes live on your screen as you drag the slider.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .padding(.vertical, 4)
+            .onChange(of: notchOpenWidth) { _, newWidth in
+                triggerWidthPreview(width: newWidth, isEditing: true)
+            }
+        } header: {
+            Text("Notch Dimensions (Width)")
+        }
+    }
 
+    @ViewBuilder
+    private var systemFeaturesSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { Defaults[.menubarIcon] },
+                set: { Defaults[.menubarIcon] = $0 }
+            )) {
+                Text("Show menu bar icon")
+            }
+            .tint(.effectiveAccent)
+            LaunchAtLogin.Toggle("Launch at login")
+            Defaults.Toggle(key: .showOnAllDisplays) {
+                Text("Show on all displays")
+            }
+            .onChange(of: showOnAllDisplays) {
+                NotificationCenter.default.post(
+                    name: Notification.Name.showOnAllDisplaysChanged, object: nil)
+            }
+            Picker("Preferred display", selection: $coordinator.preferredScreenUUID) {
+                ForEach(screens, id: \.uuid) { screen in
+                    Text(screen.name).tag(screen.uuid as String?)
+                }
+            }
+            .onChange(of: NSScreen.screens) {
+                screens = NSScreen.screens.compactMap { screen in
+                    guard let uuid = screen.displayUUID else { return nil }
+                    return (uuid, screen.localizedName)
+                }
+            }
+            .disabled(showOnAllDisplays)
+            
+            Defaults.Toggle(key: .automaticallySwitchDisplay) {
+                Text("Automatically switch displays")
+            }
+            .onChange(of: automaticallySwitchDisplay) {
+                NotificationCenter.default.post(
+                    name: Notification.Name.automaticallySwitchDisplayChanged, object: nil)
+            }
+            .disabled(showOnAllDisplays)
+        } header: {
+            Text("System features")
+        }
+    }
+
+    @ViewBuilder
+    private var notchSizingSection: some View {
+        Section {
+            Picker(
+                selection: $notchHeightMode,
+                label:
+                    Text("Notch height on notch displays")
+            ) {
+                Text("Match real notch height")
+                    .tag(WindowHeightMode.matchRealNotchSize)
+                Text("Match menu bar height")
+                    .tag(WindowHeightMode.matchMenuBar)
+                Text("Custom height")
+                    .tag(WindowHeightMode.custom)
+            }
+            .onChange(of: notchHeightMode) {
+                switch notchHeightMode {
+                case .matchRealNotchSize:
+                    notchHeight = 38
+                case .matchMenuBar:
+                    notchHeight = 44
+                case .custom:
+                    notchHeight = 38
+                }
+                NotificationCenter.default.post(
+                    name: Notification.Name.notchHeightChanged, object: nil)
+            }
+            if notchHeightMode == .custom {
+                Slider(value: $notchHeight, in: 15...45, step: 1) {
+                    Text("Custom notch size - \(notchHeight, specifier: "%.0f")")
+                }
+                .onChange(of: notchHeight) {
+                    NotificationCenter.default.post(
+                        name: Notification.Name.notchHeightChanged, object: nil)
+                }
+            }
+            Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
+                Text("Match menubar height")
+                    .tag(WindowHeightMode.matchMenuBar)
+                Text("Match real notch height")
+                    .tag(WindowHeightMode.matchRealNotchSize)
+                Text("Custom height")
+                    .tag(WindowHeightMode.custom)
+            }
+            .onChange(of: nonNotchHeightMode) {
+                switch nonNotchHeightMode {
+                case .matchMenuBar:
+                    nonNotchHeight = 24
+                case .matchRealNotchSize:
+                    nonNotchHeight = 32
+                case .custom:
+                    nonNotchHeight = 32
+                }
+                NotificationCenter.default.post(
+                    name: Notification.Name.notchHeightChanged, object: nil)
+            }
+            if nonNotchHeightMode == .custom {
+                Slider(value: $nonNotchHeight, in: 0...40, step: 1) {
+                    Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
+                }
+                .onChange(of: nonNotchHeight) {
+                    NotificationCenter.default.post(
+                        name: Notification.Name.notchHeightChanged, object: nil)
+                }
+            }
+        } header: {
+            Text("Notch sizing")
+        }
+    }
+
+    var body: some View {
+        Form {
+            styleSection
+            dimensionsSection
+            systemFeaturesSection
+            notchSizingSection
             NotchBehaviour()
-
             gestureControls()
         }
         .toolbar {
