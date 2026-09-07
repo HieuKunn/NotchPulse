@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.4, bắt buộc)'
+        description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.4.3, bắt buộc)'
         required: true
-        default: 'v2.9.4.2'
+        default: 'v2.9.4.3'
 
 jobs:
   build:
@@ -78,8 +78,14 @@ jobs:
           # Copy .app vào thư mục staging và đặt tên là NotchPulse.app
           cp -R build/Build/Products/Release/NotchPulse.app dmg_staging/NotchPulse.app
 
-          # Ký đồng bộ toàn bộ app bundle và embedded frameworks/services bằng ad-hoc signing (-)
-          codesign --force --deep --sign - dmg_staging/NotchPulse.app
+          # Ký đồng bộ toàn bộ app bundle và embedded helpers bằng ad-hoc signing (-) kèm file entitlements tương ứng
+          if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc" ]; then
+            codesign --force --sign - --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
+          fi
+          codesign --force --sign - --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
+
+          # Xác minh cấu trúc chữ ký hợp lệ
+          codesign --verify --deep --strict --verbose=4 dmg_staging/NotchPulse.app
           
           # Nén file .app dạng zip với ditto (giữ nguyên quyền và resource macOS)
           ditto -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
@@ -133,7 +139,7 @@ jobs:
             cp appcast.xml appcast_staging/
           fi
           
-          TAG="v2.9.4.2"
+          TAG="v2.9.4.3"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
             TAG="${{ github.event.inputs.release_tag }}"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
@@ -163,7 +169,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v2.9.4.2"
+          TAG="v2.9.4.3"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
             TAG="${{ github.event.inputs.release_tag }}"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
