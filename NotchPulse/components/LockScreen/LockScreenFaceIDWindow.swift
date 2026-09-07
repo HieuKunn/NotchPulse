@@ -57,17 +57,27 @@ final class LockScreenFaceIDWindow: NSPanel {
         
         guard let screen = screen else { return }
         
-        // Size it to look like a small drop-down extension from the physical notch
+        let hasPhysicalNotch = screen.safeAreaInsets.top > 0
         let closedSize = getClosedNotchSize(screenUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
         let width: CGFloat = max(185, closedSize.width)
-        let height: CGFloat = 66
-        let notchHeight: CGFloat = screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : 34
         
-        // Position directly and symmetrically centered underneath the notch on the target display
+        // When on a Mac with physical notch:
+        // The window starts from the very top bezel of the Mac, covering the physical notch
+        // and extending 48px downward as a single unified shape.
+        // When on an external monitor (no notch):
+        // The notch doesn't have a camera bezel, so its height is compact (44px) attached to the top edge.
+        let notchHardwareHeight: CGFloat = hasPhysicalNotch ? screen.safeAreaInsets.top : 0
+        let totalHeight: CGFloat = hasPhysicalNotch ? (notchHardwareHeight + 48) : 44
+        
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
-        let y = screen.frame.origin.y + screen.frame.height - notchHeight - height
+        let y = screen.frame.origin.y + screen.frame.height - totalHeight
         
-        setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
+        contentView = NSHostingView(rootView: LockScreenFaceIDPillView(
+            hasPhysicalNotch: hasPhysicalNotch,
+            notchHardwareHeight: notchHardwareHeight
+        ))
+        
+        setFrame(NSRect(x: x, y: y, width: width, height: totalHeight), display: true)
         
         if !isSkyLightAttached {
             SkyLightOperator.shared.delegateWindow(self)
@@ -368,6 +378,8 @@ struct FaceIDExtensionStrokeShape: Shape {
 // MARK: - Lock Screen Face ID Pill View
 struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
+    var hasPhysicalNotch: Bool = true
+    var notchHardwareHeight: CGFloat = 38
     
     private let appleBlue = Color(red: 0.04, green: 0.52, blue: 1.0)
     private let appleGreen = Color(red: 0.188, green: 0.855, blue: 0.376)
@@ -378,27 +390,35 @@ struct LockScreenFaceIDPillView: View {
                 faceIDManager.startRecognitionOnWake()
             }
         } label: {
-            VStack {
-                Spacer(minLength: 4)
-                AppleFaceIDGlyphView(
-                    isScanning: faceIDManager.isScanning,
-                    isSuccess: faceIDManager.lastUnlockSuccess,
-                    isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                    size: 34
-                )
-                Spacer(minLength: 8)
+            VStack(spacing: 0) {
+                if hasPhysicalNotch {
+                    // Sits under physical camera bezel area
+                    Spacer().frame(height: notchHardwareHeight)
+                }
+                
+                VStack {
+                    Spacer(minLength: 2)
+                    AppleFaceIDGlyphView(
+                        isScanning: faceIDManager.isScanning,
+                        isSuccess: faceIDManager.lastUnlockSuccess,
+                        isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                        size: hasPhysicalNotch ? 32 : 26
+                    )
+                    Spacer(minLength: 4)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 ZStack {
-                    FaceIDExtensionShape(cornerRadius: 24)
+                    FaceIDExtensionShape(cornerRadius: hasPhysicalNotch ? 20 : 14)
                         .fill(Color.black)
                     
-                    FaceIDExtensionStrokeShape(cornerRadius: 24)
+                    FaceIDExtensionStrokeShape(cornerRadius: hasPhysicalNotch ? 20 : 14)
                         .stroke(borderColor, lineWidth: 1.5)
                 }
             )
-            .shadow(color: .black.opacity(0.6), radius: 15, x: 0, y: 8)
+            .shadow(color: .black.opacity(0.6), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
