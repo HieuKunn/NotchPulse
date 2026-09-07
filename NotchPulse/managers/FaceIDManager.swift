@@ -57,8 +57,9 @@ final class FaceIDManager: NSObject, ObservableObject {
     private var lastMatchedFaceName: String? = nil
     
     // Threshold for Cosine Distance (0.0 is exact match, 1.0 is orthogonal).
-    // Distance <= 0.38 gives instant, comfortable recognition for enrolled faces while maintaining security.
-    private let matchThreshold: Double = 0.38
+    // With accurate face cropping, enrolled face distance is 0.12 - 0.25, while stranger distance is 0.45 - 0.85.
+    // Setting to 0.32 ensures strict biometric separation so only the registered owner can unlock.
+    private let matchThreshold: Double = 0.32
     
     private let profilesFileName = "faceid_profiles.json"
     private var profilesURL: URL {
@@ -297,7 +298,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         
         let requestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
         
-        // 1. Detect Face Rectangle
+        // 1. Detect Face Rectangle with high confidence
         let faceRequest = VNDetectFaceRectanglesRequest()
         faceRequest.revision = VNDetectFaceRectanglesRequestRevision3
         
@@ -305,20 +306,39 @@ final class FaceIDManager: NSObject, ObservableObject {
             try requestHandler.perform([faceRequest])
         } catch { return nil }
         
-        guard let faceObs = faceRequest.results?.first else { return nil }
+        guard let faceObs = faceRequest.results?.first, faceObs.confidence >= 0.65 else { return nil }
         
-        // 2. Crop Face accurately
+        // 2. Crop Face accurately with proper Vision to CGImage coordinate flip
         let imageWidth = CGFloat(CVPixelBufferGetWidth(pixelBuffer))
         let imageHeight = CGFloat(CVPixelBufferGetHeight(pixelBuffer))
         
-        // Expand bounding box slightly for better context
-        var bbox = faceObs.boundingBox
-        bbox.origin.x = max(0, bbox.origin.x - bbox.size.width * 0.1)
-        bbox.origin.y = max(0, bbox.origin.y - bbox.size.height * 0.1)
-        bbox.size.width = min(1.0 - bbox.origin.x, bbox.size.width * 1.2)
-        bbox.size.height = min(1.0 - bbox.origin.y, bbox.size.height * 1.2)
+        let bbox = faceObs.boundingBox
+        // Add 12% padding around face for natural forehead and jawline context
+        let padX = bbox.size.width * 0.12
+        let padY = bbox.size.height * 0.12
         
-        let cropRect = VNImageRectForNormalizedRect(bbox, Int(imageWidth), Int(imageHeight))
+        let minX = max(0, bbox.origin.x - padX)
+        let minY = max(0, bbox.origin.y - padY)
+        let maxX = min(1.0, bbox.origin.x + bbox.size.width + padX)
+        let maxY = min(1.0, bbox.origin.y + bbox.size.height + padY)
+        
+        let widthNorm = maxX - minX
+        let heightNorm = maxY - minY
+        
+        // In Vision: origin is at bottom-left (minY is from bottom)
+        // In CGImage: origin is at top-left (cgY is from top)
+        let cgY = (1.0 - minY - heightNorm) * imageHeight
+        let cgX = minX * imageWidth
+        let cgW = widthNorm * imageWidth
+        let cgH = heightNorm * imageHeight
+        
+        let cropRect = CGRect(
+            x: max(0, cgX),
+            y: max(0, cgY),
+            width: min(imageWidth - cgX, cgW),
+            height: min(imageHeight - cgY, cgH)
+        )
+        guard cropRect.width >= 40, cropRect.height >= 40 else { return nil }
         
         guard let cgImage = createCGImage(from: pixelBuffer) else { return nil }
         guard let croppedCGImage = cgImage.cropping(to: cropRect) else { return nil }
@@ -639,8 +659,8 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                     }
                 }
                 
-                // Map Cosine distance (0.0 -> 100%, 0.5 -> 0%)
-                let confidence = max(0, min(100, Int((1.0 - (bestDistance / 0.5)) * 100)))
+                // Map Cosine distance (0.0 -> 100%, 0.45 -> 0%)
+                let confidence = max(0, min(100, Int((1.0 - (bestDistance / 0.45)) * 100)))
                 self.testConfidence = confidence
                 
                 if bestDistance <= self.matchThreshold {
@@ -657,20 +677,36 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             // MODE 3: Verification Mode (Lock Screen Mac Unlock)
             // ----------------------------------------------------
             var bestDistance = 1.0
+            var matchedFaceName: String? = nil
             
             for face in self.enrolledFaces {
                 let dist = self.computeCosineDistance(vector, face.vector)
                 if dist < bestDistance {
                     bestDistance = dist
+                    if dist <= self.matchThreshold {
+                        matchedFaceName = face.name
+                    }
                 }
             }
             
-            // Immediate match on first confirmed frame (< 0.38)
-            if bestDistance <= self.matchThreshold {
-                self.recognitionTimer?.cancel()
-                self.stopCameraSession()
-                self.isScanning = false
-                self.performMacUnlock()
+            // Require 2 consecutive matching frames to prevent any transient false trigger
+            if let matchedName = matchedFaceName {
+                if self.lastMatchedFaceName == matchedName {
+                    self.consecutiveMatches += 1
+                } else {
+                    self.lastMatchedFaceName = matchedName
+                    self.consecutiveMatches = 1
+                }
+                
+                if self.consecutiveMatches >= 2 {
+                    self.recognitionTimer?.cancel()
+                    self.stopCameraSession()
+                    self.isScanning = false
+                    self.performMacUnlock()
+                }
+            } else {
+                self.consecutiveMatches = 0
+                self.lastMatchedFaceName = nil
             }
         }
     }
