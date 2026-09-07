@@ -498,21 +498,22 @@ final class FaceIDManager: NSObject, ObservableObject {
                 }
             }
             
-            try? await Task.sleep(for: .milliseconds(300))
-            if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
-               let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
-                returnDown.post(tap: .cghidEventTap)
-                try? await Task.sleep(for: .milliseconds(30))
-                returnUp.post(tap: .cghidEventTap)
-            }
+            try? await Task.sleep(for: .milliseconds(600))
             
-            // Post an extra return in case the first one is ignored during animation
-            try? await Task.sleep(for: .milliseconds(150))
-            if let returnDown2 = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
-               let returnUp2 = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
-                returnDown2.post(tap: .cghidEventTap)
-                try? await Task.sleep(for: .milliseconds(30))
-                returnUp2.post(tap: .cghidEventTap)
+            // Post Return key multiple times with delays to ensure the SecurityAgent processes it
+            // Also explicitly set the unicode string to carriage return (\r)
+            for _ in 0..<3 {
+                if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
+                   let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
+                    let enterUtf16 = [UniChar(0x000D)]
+                    returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: enterUtf16)
+                    returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: enterUtf16)
+                    
+                    returnDown.post(tap: .cghidEventTap)
+                    try? await Task.sleep(for: .milliseconds(40))
+                    returnUp.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(for: .milliseconds(400))
             }
         }
     }

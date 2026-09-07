@@ -240,7 +240,7 @@ struct LockScreenMediaView: View {
                 
                 Spacer(minLength: 40)
             }
-            .scaleEffect(0.85)
+            .scaleEffect(0.9)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()

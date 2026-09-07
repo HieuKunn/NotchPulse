@@ -49,6 +49,13 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         contentView = NSHostingView(rootView: LockScreenMediaView(windowController: self))
     }
     
+    private func getTargetScreen() -> NSScreen {
+        return NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
+            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first!
+    }
+    
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
         let width: CGFloat = 410
         let height: CGFloat = 180
@@ -58,7 +65,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func setFullScreen(_ fullScreen: Bool) {
-        guard let screen = NSScreen.main else { return }
+        let screen = getTargetScreen()
         self.isFullScreen = fullScreen
         
         let targetRect = fullScreen ? screen.frame : targetCompactFrame(for: screen)
@@ -71,15 +78,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func show() {
-        guard let screen = NSScreen.main else { return }
+        let screen = getTargetScreen()
         
         let targetRect = isFullScreen ? screen.frame : targetCompactFrame(for: screen)
         setFrame(targetRect, display: true)
-        
-        if !isSkyLightAttached {
-            SkyLightOperator.shared.delegateWindow(self)
-            isSkyLightAttached = true
-        }
         
         alphaValue = 0
         orderFrontRegardless()
@@ -101,10 +103,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }, completionHandler: {
             self.orderOut(nil)
             self.isFullScreen = false
-            if self.isSkyLightAttached {
-                SkyLightOperator.shared.undelegateWindow(self)
-                self.isSkyLightAttached = false
-            }
         })
     }
     

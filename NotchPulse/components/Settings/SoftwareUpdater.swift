@@ -58,6 +58,13 @@ struct UpdaterSettingsView: View {
                 .onChange(of: automaticallyDownloadsUpdates) { _, newValue in
                     updater.automaticallyDownloadsUpdates = newValue
                 }
+
+            Divider()
+
+            HStack {
+                Spacer()
+                CheckForUpdatesView(updater: updater)
+            }
         } header: {
             HStack {
                 Text("Software updates")

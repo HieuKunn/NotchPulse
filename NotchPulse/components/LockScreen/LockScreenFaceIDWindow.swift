@@ -79,11 +79,6 @@ final class LockScreenFaceIDWindow: NSPanel {
         
         setFrame(NSRect(x: x, y: y, width: width, height: totalHeight), display: true)
         
-        if !isSkyLightAttached {
-            SkyLightOperator.shared.delegateWindow(self)
-            isSkyLightAttached = true
-        }
-        
         alphaValue = 0
         orderFrontRegardless()
         
@@ -103,10 +98,6 @@ final class LockScreenFaceIDWindow: NSPanel {
             self.animator().alphaValue = 0.0
         }, completionHandler: {
             self.orderOut(nil)
-            if self.isSkyLightAttached {
-                SkyLightOperator.shared.undelegateWindow(self)
-                self.isSkyLightAttached = false
-            }
         })
     }
     
