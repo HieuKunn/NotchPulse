@@ -1,6 +1,11 @@
 Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit {{COMMIT_SHA}}.
 
 ### 🚀 Có gì mới trong bản v2.9.4.2:
+- 👁️ **Tuỳ chọn Kiểu hiển thị Face ID (Pop-down / Inline) & Bo cong Notch Chân thực**:
+  - Hỗ trợ 2 kiểu hiển thị Face ID tại màn hình khoá:
+    - **Thả xuống (Pop-down)**: Notch mở rộng êm ái xuống dưới camera với biểu tượng 3D Face ID lớn nổi bật.
+    - **Gọn trong Notch (Inline)**: Nằm ngang gọn gàng, tinh tế bên trong chiều cao của Notch mà không rủ xuống màn hình.
+  - Các góc viền Notch được thiết kế lại hoàn toàn: bo cong góc dưới mềm mại chuẩn Apple (24px) và hai tai trên mở rộng ôm sát mép viền (bezel) như notch thật.
 - ⚡ **Siêu tối ưu hiệu năng & Triệt tiêu hoàn toàn giật lag CPU**:
   - Chuyển đổi thanh lịch sang `LazyHStack`, loại bỏ vòng lặp tính toán ngày vô tận trong bộ nhớ. Giảm tải CPU từ 80% xuống dưới **0.5%** và bộ nhớ RAM về mức cực nhẹ.
   - Tối ưu hóa điều hướng cuộn thanh lịch mượt mà, loại bỏ triệt để xung đột render giữa AppKit và SwiftUI.

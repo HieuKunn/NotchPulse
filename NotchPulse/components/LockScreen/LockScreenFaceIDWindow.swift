@@ -97,22 +97,29 @@ final class LockScreenFaceIDWindow: NSPanel {
         
         let hasPhysicalNotch = screen.safeAreaInsets.top > 0
         let closedSize = getClosedNotchSize(screenUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
-        let width: CGFloat = max(185, closedSize.width)
+        let displayStyle = Defaults[.faceIDDisplayStyle]
         
         let notchHardwareHeight: CGFloat = hasPhysicalNotch ? screen.safeAreaInsets.top : 0
-        let totalHeight: CGFloat = hasPhysicalNotch ? (notchHardwareHeight + 48) : 44
+        
+        let width: CGFloat
+        let totalHeight: CGFloat
+        
+        switch displayStyle {
+        case .popDown:
+            width = max(200, closedSize.width + 12)
+            totalHeight = hasPhysicalNotch ? (notchHardwareHeight + 50) : 48
+        case .inline:
+            width = max(220, closedSize.width + 24)
+            totalHeight = hasPhysicalNotch ? (notchHardwareHeight + 4) : 38
+        }
         
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
         let y = screen.frame.origin.y + screen.frame.height - totalHeight
         
-        if isVisible && alphaValue > 0.95 && isSkyLightAttached {
-            orderFrontRegardless()
-            return
-        }
-        
         let trackingHostingView = LockScreenTrackingHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
-            notchHardwareHeight: notchHardwareHeight
+            notchHardwareHeight: notchHardwareHeight,
+            displayStyle: displayStyle
         ))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
@@ -135,6 +142,11 @@ final class LockScreenFaceIDWindow: NSPanel {
         if !isSkyLightAttached {
             SkyLightOperator.shared.delegateWindow(self)
             isSkyLightAttached = true
+        }
+        
+        if isVisible && alphaValue > 0.95 {
+            orderFrontRegardless()
+            return
         }
         
         alphaValue = 0
@@ -396,34 +408,82 @@ struct AppleFaceIDGlyphView: View {
     }
 }
 
-struct FaceIDExtensionShape: Shape {
-    var cornerRadius: CGFloat
+// MARK: - Authentic Apple MacBook Notch Shape with Top Concave Ears & Rounded Bottom Corners
+struct FaceIDNotchShape: Shape {
+    var topCornerRadius: CGFloat = 8
+    var bottomCornerRadius: CGFloat = 24
     
     func path(in rect: CGRect) -> Path {
         var path = Path()
+        
+        // Start top-left outer bezel
         path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
-        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 0), endAngle: Angle(degrees: 90), clockwise: false)
-        path.addLine(to: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY))
-        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 90), endAngle: Angle(degrees: 180), clockwise: false)
+        
+        // Top-left concave flare into notch
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
+            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY)
+        )
+        
+        // Left vertical edge down to bottom curve
+        path.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
+        
+        // Bottom-left rounded corner (continuous curve)
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY),
+            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY)
+        )
+        
+        // Bottom horizontal edge
+        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
+        
+        // Bottom-right rounded corner
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius),
+            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY)
+        )
+        
+        // Right vertical edge up to top curve
+        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
+        
+        // Top-right concave flare out to bezel
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.minY),
+            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY)
+        )
+        
         path.closeSubpath()
         return path
     }
 }
 
-struct FaceIDExtensionStrokeShape: Shape {
-    var cornerRadius: CGFloat
+struct FaceIDNotchStrokeShape: Shape {
+    var topCornerRadius: CGFloat = 8
+    var bottomCornerRadius: CGFloat = 24
     
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        // Start from top-right, go down, curve bottom-right, go left, curve bottom-left, go up to top-left
-        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
-        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 0), endAngle: Angle(degrees: 90), clockwise: false)
-        path.addLine(to: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY))
-        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius), radius: cornerRadius, startAngle: Angle(degrees: 90), endAngle: Angle(degrees: 180), clockwise: false)
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        // Top-left ear down through bottom to top-right ear (leaving top edge flush with bezel)
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
+            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY)
+        )
+        path.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY),
+            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius),
+            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.minY),
+            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY)
+        )
         return path
     }
 }
@@ -433,6 +493,7 @@ struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
+    var displayStyle: FaceIDDisplayStyle = Defaults[.faceIDDisplayStyle]
     
     @State private var isHovered: Bool = false
     
@@ -443,40 +504,15 @@ struct LockScreenFaceIDPillView: View {
         Button {
             triggerScan()
         } label: {
-            VStack(spacing: 0) {
-                if hasPhysicalNotch {
-                    // Sits under physical camera bezel area
-                    Spacer().frame(height: notchHardwareHeight)
+            Group {
+                if displayStyle == .inline {
+                    inlineContent
+                } else {
+                    popDownContent
                 }
-                
-                VStack(spacing: 1) {
-                    Spacer(minLength: 2)
-                    AppleFaceIDGlyphView(
-                        isScanning: faceIDManager.isScanning,
-                        isSuccess: faceIDManager.lastUnlockSuccess,
-                        isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                        size: hasPhysicalNotch ? 30 : 24
-                    )
-                    
-                    Text(statusDisplayText)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(statusDisplayColor)
-                        .lineLimit(1)
-                        .padding(.bottom, 2)
-                    Spacer(minLength: 2)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                ZStack {
-                    FaceIDExtensionShape(cornerRadius: hasPhysicalNotch ? 20 : 14)
-                        .fill(Color.black)
-                    
-                    FaceIDExtensionStrokeShape(cornerRadius: hasPhysicalNotch ? 20 : 14)
-                        .stroke(borderColor, lineWidth: isHovered ? 2.2 : 1.5)
-                }
-            )
+            .background(backgroundShape)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -487,6 +523,67 @@ struct LockScreenFaceIDPillView: View {
             if hovering {
                 triggerScan()
             }
+        }
+    }
+    
+    // MARK: - Pop-down Layout (Mở rộng thả xuống dưới notch)
+    private var popDownContent: some View {
+        VStack(spacing: 0) {
+            if hasPhysicalNotch {
+                // Sits under physical camera bezel area
+                Spacer().frame(height: notchHardwareHeight)
+            }
+            
+            VStack(spacing: 2) {
+                Spacer(minLength: 2)
+                AppleFaceIDGlyphView(
+                    isScanning: faceIDManager.isScanning,
+                    isSuccess: faceIDManager.lastUnlockSuccess,
+                    isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                    size: hasPhysicalNotch ? 30 : 25
+                )
+                
+                Text(statusDisplayText)
+                    .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                    .foregroundColor(statusDisplayColor)
+                    .lineLimit(1)
+                    .padding(.bottom, 3)
+                Spacer(minLength: 2)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+    
+    // MARK: - Inline Layout (Nằm gọn theo hàng trong Notch)
+    private var inlineContent: some View {
+        HStack(spacing: 8) {
+            AppleFaceIDGlyphView(
+                isScanning: faceIDManager.isScanning,
+                isSuccess: faceIDManager.lastUnlockSuccess,
+                isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                size: 20
+            )
+            
+            Text(statusDisplayText)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundColor(statusDisplayColor)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    @ViewBuilder
+    private var backgroundShape: some View {
+        let topRadius: CGFloat = displayStyle == .inline ? 6 : 8
+        let bottomRadius: CGFloat = displayStyle == .inline ? (hasPhysicalNotch ? 18 : 14) : (hasPhysicalNotch ? 24 : 18)
+        
+        ZStack {
+            FaceIDNotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
+                .fill(Color.black)
+            
+            FaceIDNotchStrokeShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
+                .stroke(borderColor, lineWidth: isHovered ? 2.2 : 1.5)
         }
     }
     

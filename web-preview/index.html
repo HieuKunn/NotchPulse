@@ -566,7 +566,11 @@
       </button>
       <button class="dock-btn" onclick="toggleLockScreen()">
         <i class="fa-solid fa-lock" style="color: #f43f5e;"></i>
-        <span>Test Lock Screen FaceID</span>
+        <span>Test Lock Screen</span>
+      </button>
+      <button class="dock-btn" onclick="toggleFaceIDStyle()">
+        <i class="fa-solid fa-arrows-up-down" style="color: #38bdf8;"></i>
+        <span id="faceIDStyleLabel">Kiểu FaceID: Pop-down</span>
       </button>
     </div>
 
@@ -579,10 +583,12 @@
         <div class="glow-circle-right"></div>
       </div>
       
-      <!-- Top FaceID Icon -->
-      <div class="lock-faceid-container">
-        <i class="fa-solid fa-face-smile" style="color: #22c55e; font-size: 24px; text-shadow: 0 0 10px rgba(34,197,94,0.8);"></i>
-        <div style="color: #22c55e; font-size: 13px; margin-top: 6px; font-weight: 600;">Đã khớp! Đang mở khoá…</div>
+      <!-- Top FaceID Notch (Pop-down / Inline) -->
+      <div id="lockFaceIDNotch" class="lock-faceid-container pop-down" onclick="toggleFaceIDStyle()" title="Nhấp để đổi giữa Pop-down và Inline">
+        <div class="lock-faceid-content">
+          <i class="fa-solid fa-face-smile lock-faceid-icon"></i>
+          <div class="lock-faceid-text">Đã khớp! Đang mở khoá…</div>
+        </div>
       </div>
 
       <!-- Center Media Player -->

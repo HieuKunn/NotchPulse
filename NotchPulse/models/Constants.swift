@@ -61,6 +61,21 @@ enum SneakPeekStyle: String, CaseIterable, Identifiable, Defaults.Serializable {
     var id: String { self.rawValue }
 }
 
+// Face ID display styles for Lock Screen
+enum FaceIDDisplayStyle: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case popDown = "PopDown"
+    case inline = "Inline"
+    
+    var id: String { self.rawValue }
+    
+    var title: String {
+        switch self {
+        case .popDown: return "Thả xuống (Pop-down)"
+        case .inline: return "Gọn trong Notch (Inline)"
+        }
+    }
+}
+
 // Action to perform when Option (⌥) is held while pressing media keys
 enum OptionKeyAction: String, CaseIterable, Identifiable, Defaults.Serializable {
     case openSettings = "Open System Settings"
@@ -155,6 +170,7 @@ extension Defaults.Keys {
     static let enableFaceID = Key<Bool>("enableFaceID", default: false)
     static let faceIDSound = Key<Bool>("faceIDSound", default: true)
     static let faceIDEnterPressCount = Key<Int>("faceIDEnterPressCount", default: 1)
+    static let faceIDDisplayStyle = Key<FaceIDDisplayStyle>("faceIDDisplayStyle", default: .popDown)
     static let enableLockScreenPlayer = Key<Bool>("enableLockScreenPlayer", default: true)
     static let lockScreenPlayerShowLyrics = Key<Bool>("lockScreenPlayerShowLyrics", default: true)
     
