@@ -170,7 +170,7 @@ jobs:
             <sparkle:version>$PLAIN_VER</sparkle:version>
             <sparkle:shortVersionString>$PLAIN_VER</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/NotchPulse.app.zip" length="$ZIP_SIZE" type="application/octet-stream" sparkle:edSignature="NBjL78EXiHC6q+U7brTMTqaqbs1aQKXvB8ybD2ZxLNw=" />
+            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/NotchPulse.app.zip" length="$ZIP_SIZE" type="application/octet-stream" sparkle:edSignature="4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=" />
         </item>
     </channel>
 </rss>
