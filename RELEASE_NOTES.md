@@ -1,6 +1,6 @@
 Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit {{COMMIT_SHA}}.
 
-### 🚀 Có gì mới trong bản v2.9.4.5:
+### 🚀 Có gì mới trong bản v2.9.4.6:
 - 🔒 **Khắc phục triệt để bảo mật Face ID (Sinh trắc học chính xác tuyệt đối)**:
   - Sửa lỗi hệ toạ độ giữa Apple Vision và CoreGraphics: Cắt chính xác 100% từng đường nét khuôn mặt (trán, mắt, mũi, miệng, cằm) thay vì cắt nhầm xuống áo/ngực.
   - Siết chặt ngưỡng nhận diện sinh trắc học (`matchThreshold = 0.32`), ngăn chặn hoàn toàn việc người khác mở khoá.

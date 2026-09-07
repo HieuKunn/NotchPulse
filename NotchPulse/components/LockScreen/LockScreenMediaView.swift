@@ -14,6 +14,7 @@ struct LockScreenMediaView: View {
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var windowController: LockScreenMediaWindow
     @Default(.musicControlSlots) private var musicControlSlots
+    @State private var activeLyricIndex: Int = 0
     
     var body: some View {
         ZStack {
@@ -228,7 +229,8 @@ struct LockScreenMediaView: View {
     // MARK: - 2. Full-Screen Immersive Player View (Ảnh bìa to + Lời Karaoke)
     // =========================================================================
     private var fullScreenPlayerView: some View {
-        ZStack {
+        GeometryReader { geo in
+            ZStack {
             // Nền Ambient phát sáng màu của bài hát phủ toàn màn hình
             ambientDynamicBackground
             
@@ -267,16 +269,17 @@ struct LockScreenMediaView: View {
                 
                 // Nội dung 2 cột: Trái là Ảnh bìa to & Điều khiển, Phải là Lời bài hát Karaoke
                 let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty || musicManager.isFetchingLyrics
+                let contentWidth = geo.size.width * 0.85
                 
                 HStack(alignment: .center, spacing: 60) {
                     if hasLyrics {
                         // CỘT TRÁI: Ảnh bìa to + Tên bài hát + Timeline + Phím điều khiển
                         fullScreenLeftColumn
-                            .frame(maxWidth: 440)
+                            .frame(maxWidth: contentWidth * 0.42)
                         
                         // CỘT PHẢI: Lời bài hát Karaoke chạy thời gian thực
                         fullScreenLyricsColumn
-                            .frame(maxWidth: 580)
+                            .frame(maxWidth: contentWidth * 0.58)
                     } else {
                         Spacer()
                         
@@ -292,8 +295,8 @@ struct LockScreenMediaView: View {
                 Spacer(minLength: 40)
             }
             .scaleEffect(0.9)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
     }
     
@@ -482,46 +485,53 @@ struct LockScreenMediaView: View {
             }
             
             if !musicManager.syncedLyrics.isEmpty {
-                TimelineView(.animation(minimumInterval: 0.25)) { timeline in
-                    let currentElapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
-                    let activeIndex = currentLyricIndex(at: currentElapsed)
-                    
-                    ScrollViewReader { proxy in
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 22) {
-                                ForEach(Array(musicManager.syncedLyrics.enumerated()), id: \.offset) { index, item in
-                                    let isCurrent = (index == activeIndex)
-                                    let isPast = (index < activeIndex)
-                                    
-                                    Button {
-                                        // Nhấp vào câu hát bất kỳ để tua tới đoạn đó
-                                        musicManager.seek(to: item.time)
-                                    } label: {
-                                        Text(item.text)
-                                            .font(.system(size: isCurrent ? 28 : 19, weight: isCurrent ? .bold : .medium, design: .rounded))
-                                            .foregroundStyle(
-                                                isCurrent
-                                                ? Color.white
-                                                : isPast
-                                                ? Color.white.opacity(0.3)
-                                                : Color.white.opacity(0.6)
-                                            )
-                                            .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
-                                            .multilineTextAlignment(.leading)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                            .padding(.vertical, 4)
-                                            .animation(.easeInOut(duration: 0.25), value: isCurrent)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .id(index)
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 22) {
+                            ForEach(Array(musicManager.syncedLyrics.enumerated()), id: \.offset) { index, item in
+                                let isCurrent = (index == activeLyricIndex)
+                                let isPast = (index < activeLyricIndex)
+                                
+                                Button {
+                                    // Nhấp vào câu hát bất kỳ để tua tới đoạn đó
+                                    musicManager.seek(to: item.time)
+                                } label: {
+                                    Text(item.text)
+                                        .font(.system(size: isCurrent ? 28 : 19, weight: isCurrent ? .bold : .medium, design: .rounded))
+                                        .foregroundStyle(
+                                            isCurrent
+                                            ? Color.white
+                                            : isPast
+                                            ? Color.white.opacity(0.3)
+                                            : Color.white.opacity(0.6)
+                                        )
+                                        .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.vertical, 4)
+                                        .animation(.easeInOut(duration: 0.25), value: isCurrent)
                                 }
+                                .buttonStyle(.plain)
+                                .id(index)
                             }
-                            .padding(.vertical, 100)
                         }
-                        .onChange(of: activeIndex) { _, newIndex in
+                        .padding(.vertical, 100)
+                    }
+                    .onReceive(Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()) { _ in
+                        let currentElapsed = max(0, musicManager.estimatedPlaybackPosition() - 0.5)
+                        let newIndex = currentLyricIndex(at: currentElapsed)
+                        if newIndex != activeLyricIndex {
+                            activeLyricIndex = newIndex
                             withAnimation(.smooth(duration: 0.45)) {
                                 proxy.scrollTo(newIndex, anchor: .center)
                             }
+                        }
+                    }
+                    .onAppear {
+                        let currentElapsed = max(0, musicManager.estimatedPlaybackPosition() - 0.5)
+                        activeLyricIndex = currentLyricIndex(at: currentElapsed)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            proxy.scrollTo(activeLyricIndex, anchor: .center)
                         }
                     }
                 }
