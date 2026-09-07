@@ -8,9 +8,9 @@
 import Defaults
 import SwiftUI
 
-struct Config {
-    var past: Int = 730    // 2 full years in the past (730 days)
-    var future: Int = 1095 // 3 full years in the future (1095 days)
+struct Config: Equatable {
+    var past: Int = 180    // ~6 months past
+    var future: Int = 365  // 1 full year future
     var steps: Int = 1     // Each step is one day
     var spacing: CGFloat = 2
     var showsText: Bool = true
@@ -24,34 +24,23 @@ private let dayOfWeekFormatter: DateFormatter = {
 }()
 
 private struct CalendarScrollWheelHelper: NSViewRepresentable {
-    var onVisibleCenterChange: ((CGFloat) -> Void)?
-
     func makeNSView(context: Context) -> HelperView {
-        let view = HelperView()
-        view.onVisibleCenterChange = onVisibleCenterChange
-        return view
+        HelperView()
     }
 
     func updateNSView(_ nsView: HelperView, context: Context) {
-        nsView.onVisibleCenterChange = onVisibleCenterChange
         nsView.checkSetup()
     }
 
     class HelperView: NSView {
-        var onVisibleCenterChange: ((CGFloat) -> Void)?
         private var monitor: Any?
-        private var boundsObserver: Any?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             if window != nil {
                 checkSetup()
-                DispatchQueue.main.async { [weak self] in
-                    self?.checkSetup()
-                }
             } else {
                 removeMonitor()
-                removeBoundsObserver()
             }
         }
 
@@ -64,7 +53,6 @@ private struct CalendarScrollWheelHelper: NSViewRepresentable {
 
         deinit {
             removeMonitor()
-            removeBoundsObserver()
         }
 
         private func removeMonitor() {
@@ -74,38 +62,8 @@ private struct CalendarScrollWheelHelper: NSViewRepresentable {
             }
         }
 
-        private func removeBoundsObserver() {
-            if let bo = boundsObserver {
-                NotificationCenter.default.removeObserver(bo)
-                boundsObserver = nil
-            }
-        }
-
         func checkSetup() {
-            guard window != nil else { return }
-            setupBoundsObserver()
-            setupMonitor()
-        }
-
-        private func setupBoundsObserver() {
-            guard boundsObserver == nil else { return }
-            guard let scrollView = enclosingScrollView else { return }
-            let clipView = scrollView.contentView
-            clipView.postsBoundsChangedNotifications = true
-            boundsObserver = NotificationCenter.default.addObserver(
-                forName: NSView.boundsDidChangeNotification,
-                object: clipView,
-                queue: .main
-            ) { [weak self, weak clipView] _ in
-                guard let self = self, let cv = clipView else { return }
-                let visibleCenterInClipView = CGPoint(x: cv.bounds.midX, y: cv.bounds.midY)
-                let centerInHStack = self.convert(visibleCenterInClipView, from: cv)
-                self.onVisibleCenterChange?(centerInHStack.x)
-            }
-        }
-
-        private func setupMonitor() {
-            guard monitor == nil else { return }
+            guard window != nil, monitor == nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
                 guard let self = self,
                       let window = self.window,
@@ -213,7 +171,7 @@ struct WheelPicker: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: config.spacing) {
+            LazyHStack(spacing: config.spacing) {
                 let spacerNum = config.offset
                 let dateCount = totalDateItems()
                 let totalItems = dateCount + 2 * spacerNum
@@ -233,16 +191,7 @@ struct WheelPicker: View {
                 }
             }
             .frame(height: 50)
-            .background(CalendarScrollWheelHelper(onVisibleCenterChange: { visibleCenterX in
-                let itemWidth = 36.0 + config.spacing
-                let floatIndex = (visibleCenterX - 18.0) / itemWidth
-                let index = Int(round(floatIndex))
-                let date = dateForItemIndex(index: index, spacerNum: config.offset)
-                if Calendar.current.component(.month, from: date) != Calendar.current.component(.month, from: displayedDate) ||
-                   Calendar.current.component(.year, from: date) != Calendar.current.component(.year, from: displayedDate) {
-                    displayedDate = date
-                }
-            }))
+            .background(CalendarScrollWheelHelper())
         }
         .scrollIndicators(.never)
         .scrollPosition(id: $scrollPosition, anchor: .center)
