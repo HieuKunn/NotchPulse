@@ -807,15 +807,6 @@ body.bezel-mode .notch-wrapper {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.event-item.active-now {
-  background: rgba(34, 197, 94, 0.09);
-  border: 1px solid rgba(34, 197, 94, 0.35);
-}
-
-.event-item.active-now .event-indicator {
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
-}
-
 .event-item:last-child {
   border-bottom: none;
 }
@@ -844,36 +835,6 @@ body.bezel-mode .notch-wrapper {
   align-items: center;
   justify-content: space-between;
   flex: 1;
-}
-
-.event-title-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.event-badge.in-progress {
-  font-size: 8.5px;
-  font-weight: 700;
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.18);
-  padding: 1px 5px;
-  border-radius: 8px;
-}
-
-.event-badge.next {
-  font-size: 8.5px;
-  font-weight: 600;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.18);
-  padding: 1px 5px;
-  border-radius: 8px;
-}
-
-.event-time.highlight {
-  color: #22c55e !important;
-  font-weight: 600;
-}
   font-size: 12px;
 }
 

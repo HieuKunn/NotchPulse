@@ -392,13 +392,6 @@ struct EventListView: View {
         Self.filteredEvents(events: events)
     }
 
-    private var nextUpcomingEventId: String? {
-        let now = Date()
-        let isToday = Calendar.current.isDateInToday(calendarManager.currentWeekStartDate)
-        guard isToday else { return nil }
-        return filteredEvents.first(where: { !$0.isAllDay && $0.start > now })?.id
-    }
-
     private func getRelevantTargetId() -> String? {
         let now = Date()
         let isToday = Calendar.current.isDateInToday(calendarManager.currentWeekStartDate)
@@ -419,13 +412,13 @@ struct EventListView: View {
         }
     }
 
-    private func scrollToRelevantEvent(proxy: ScrollViewProxy, animated: Bool = true) {
+    private func scrollToRelevantEvent(proxy: ScrollViewProxy, animated: Bool = false) {
         guard autoScrollToNextEvent, let targetId = getRelevantTargetId() else { return }
 
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(80))
+            try? await Task.sleep(for: .milliseconds(60))
             if animated {
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                     proxy.scrollTo(targetId, anchor: .top)
                 }
             } else {
@@ -446,9 +439,7 @@ struct EventListView: View {
                         }) {
                             EventRowItemView(
                                 event: event,
-                                showFullEventTitles: showFullEventTitles,
-                                isInProgress: Calendar.current.isDateInToday(event.start) && !event.isAllDay && event.start <= Date.now && event.end > Date.now,
-                                isNextUp: event.id == nextUpcomingEventId
+                                showFullEventTitles: showFullEventTitles
                             )
                         }
                         .id(event.id)
@@ -465,21 +456,16 @@ struct EventListView: View {
             .onChange(of: filteredEvents) { _, _ in
                 scrollToRelevantEvent(proxy: proxy, animated: true)
             }
-            .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
-                scrollToRelevantEvent(proxy: proxy, animated: true)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
     }
 }
 
-// MARK: - Dedicated Event Row Item with Real-Time Highlight & Hover
+// MARK: - Dedicated Clean Event Row Item
 struct EventRowItemView: View {
     let event: EventModel
     let showFullEventTitles: Bool
-    let isInProgress: Bool
-    let isNextUp: Bool
     
     @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var isHovered: Bool = false
@@ -563,42 +549,18 @@ struct EventRowItemView: View {
 
     private var calendarEventRow: some View {
         HStack(alignment: .top, spacing: 6) {
-            // Indicator Bar
+            // Indicator Bar with calendar color
             Rectangle()
-                .fill(isInProgress ? Color(red: 0.19, green: 0.86, blue: 0.38) : Color(event.calendar.color))
-                .frame(width: isInProgress ? 3.5 : 3)
+                .fill(Color(event.calendar.color))
+                .frame(width: 3)
                 .cornerRadius(1.5)
-                .shadow(color: isInProgress ? Color(red: 0.19, green: 0.86, blue: 0.38).opacity(0.7) : .clear, radius: 3)
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 5) {
-                    Text(event.title)
-                        .font(.callout)
-                        .fontWeight(isInProgress ? .bold : .medium)
-                        .foregroundColor(.white)
-                        .lineLimit(showFullEventTitles ? nil : 2)
-                    
-                    if isInProgress {
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(Color(red: 0.19, green: 0.86, blue: 0.38))
-                                .frame(width: 4.5, height: 4.5)
-                            Text("Đang diễn ra")
-                                .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(red: 0.19, green: 0.86, blue: 0.38))
-                        }
-                        .padding(.horizontal, 4.5)
-                        .padding(.vertical, 1.5)
-                        .background(Capsule().fill(Color(red: 0.19, green: 0.86, blue: 0.38).opacity(0.18)))
-                    } else if isNextUp {
-                        Text("Tiếp theo")
-                            .font(.system(size: 8.5, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.cyan)
-                            .padding(.horizontal, 4.5)
-                            .padding(.vertical, 1.5)
-                            .background(Capsule().fill(Color.cyan.opacity(0.18)))
-                    }
-                }
+                Text(event.title)
+                    .font(.callout)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .lineLimit(showFullEventTitles ? nil : 2)
 
                 if let location = event.location, !location.isEmpty {
                     Text(location)
@@ -619,8 +581,7 @@ struct EventRowItemView: View {
                         .lineLimit(1)
                 } else {
                     Text(event.start, style: .time)
-                        .fontWeight(isInProgress ? .bold : .regular)
-                        .foregroundColor(isInProgress ? Color(red: 0.19, green: 0.86, blue: 0.38) : .white)
+                        .foregroundColor(.white)
                     Text(event.end, style: .time)
                         .foregroundColor(Color(white: 0.65))
                 }
@@ -632,22 +593,9 @@ struct EventRowItemView: View {
         .padding(.vertical, 2.5)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(
-                    isInProgress
-                        ? Color.white.opacity(0.08)
-                        : (isHovered ? Color.white.opacity(0.06) : Color.clear)
-                )
+                .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(
-                    isInProgress
-                        ? Color(red: 0.19, green: 0.86, blue: 0.38).opacity(0.35)
-                        : Color.clear,
-                    lineWidth: 1
-                )
-        )
-        .opacity(isEnded && !isHovered ? 0.45 : 1.0)
+        .opacity(isEnded && !isHovered ? 0.6 : 1.0)
         .onHover { hovering in
             isHovered = hovering
         }
