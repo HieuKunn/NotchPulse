@@ -398,155 +398,264 @@ struct EventListView: View {
         Self.filteredEvents(events: events)
     }
 
-    private func scrollToRelevantEvent(proxy: ScrollViewProxy) {
+    private var nextUpcomingEventId: String? {
         let now = Date()
-        // Determine a single target using preferred search order:
-        // 1) first non-all-day upcoming/in-progress event
-        // 2) first all-day event
-        // 3) last event (fallback)
-        let nonAllDayUpcoming = filteredEvents.first(where: { !$0.isAllDay && $0.end > now })
-        let firstAllDay = filteredEvents.first(where: { $0.isAllDay })
-        let lastEvent = filteredEvents.last
-        guard let target = nonAllDayUpcoming ?? firstAllDay ?? lastEvent else { return }
+        let isToday = Calendar.current.isDateInToday(calendarManager.currentWeekStartDate)
+        guard isToday else { return nil }
+        return filteredEvents.first(where: { !$0.isAllDay && $0.start > now })?.id
+    }
+
+    private func getRelevantTargetId() -> String? {
+        let now = Date()
+        let isToday = Calendar.current.isDateInToday(calendarManager.currentWeekStartDate)
+        if isToday {
+            // 1) Sự kiện đang diễn ra trong khung thời gian hiện tại (ví dụ: 11h)
+            if let inProgress = filteredEvents.first(where: { !$0.isAllDay && $0.start <= now && $0.end > now }) {
+                return inProgress.id
+            }
+            // 2) Sự kiện gần nhất tiếp theo sau giờ hiện tại
+            if let nextUpcoming = filteredEvents.first(where: { !$0.isAllDay && $0.start > now }) {
+                return nextUpcoming.id
+            }
+            // 3) Fallback nếu tất cả đã kết thúc hoặc chỉ có all-day
+            return filteredEvents.first(where: { !$0.isAllDay })?.id ?? filteredEvents.first?.id
+        } else {
+            // Xem ngày khác trong tương lai/quá khứ: cuộn tới sự kiện đầu tiên
+            return filteredEvents.first(where: { !$0.isAllDay })?.id ?? filteredEvents.first?.id
+        }
+    }
+
+    private func scrollToRelevantEvent(proxy: ScrollViewProxy, animated: Bool = true) {
+        guard autoScrollToNextEvent, let targetId = getRelevantTargetId() else { return }
 
         Task { @MainActor in
-            withTransaction(Transaction(animation: nil)) {
-                proxy.scrollTo(target.id, anchor: .top)
+            try? await Task.sleep(for: .milliseconds(80))
+            if animated {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    proxy.scrollTo(targetId, anchor: .top)
+                }
+            } else {
+                proxy.scrollTo(targetId, anchor: .top)
             }
         }
     }
 
     var body: some View {
         ScrollViewReader { proxy in
-            List {
-                ForEach(filteredEvents) { event in
-                    Button(action: {
-                        if let url = event.calendarAppURL() {
-                            openURL(url)
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 3) {
+                    ForEach(filteredEvents) { event in
+                        Button(action: {
+                            if let url = event.calendarAppURL() {
+                                openURL(url)
+                            }
+                        }) {
+                            EventRowItemView(
+                                event: event,
+                                showFullEventTitles: showFullEventTitles,
+                                isInProgress: Calendar.current.isDateInToday(event.start) && !event.isAllDay && event.start <= Date.now && event.end > Date.now,
+                                isNextUp: event.id == nextUpcomingEventId
+                            )
                         }
-                    }) {
-                        eventRow(event)
+                        .id(event.id)
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .id(event.id)
-                    .padding(.leading, -5)
-                    .buttonStyle(PlainButtonStyle())
-                    .listRowSeparator(.automatic)
-                    .listRowSeparatorTint(.gray.opacity(0.2))
-                    .listRowBackground(Color.clear)
                 }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 3)
             }
-            .listStyle(.plain)
             .scrollIndicators(.never)
-            .scrollContentBackground(.hidden)
-            .background(Color.clear)
             .onAppear {
-                scrollToRelevantEvent(proxy: proxy)
+                scrollToRelevantEvent(proxy: proxy, animated: false)
             }
             .onChange(of: filteredEvents) { _, _ in
-                scrollToRelevantEvent(proxy: proxy)
+                scrollToRelevantEvent(proxy: proxy, animated: true)
+            }
+            .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
+                scrollToRelevantEvent(proxy: proxy, animated: true)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
     }
+}
 
-    private func eventRow(_ event: EventModel) -> some View {
+// MARK: - Dedicated Event Row Item with Real-Time Highlight & Hover
+struct EventRowItemView: View {
+    let event: EventModel
+    let showFullEventTitles: Bool
+    let isInProgress: Bool
+    let isNextUp: Bool
+    
+    @ObservedObject private var calendarManager = CalendarManager.shared
+    @State private var isHovered: Bool = false
+    
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(event.start)
+    }
+    
+    private var isEnded: Bool {
+        isToday && !event.isAllDay && event.end <= Date.now
+    }
+
+    var body: some View {
         if event.type.isReminder {
-            let isCompleted: Bool
-            if case .reminder(let completed) = event.type {
-                isCompleted = completed
-            } else {
-                isCompleted = false
-            }
-            return AnyView(
-                HStack(spacing: 8) {
-                    ReminderToggle(
-                        isOn: Binding(
-                            get: { isCompleted },
-                            set: { newValue in
-                                Task {
-                                    await calendarManager.setReminderCompleted(
-                                        reminderID: event.id, completed: newValue
-                                    )
-                                }
-                            }
-                        ),
-                        color: Color(event.calendar.color)
-                    )
-                    .opacity(1.0)  // Ensure the toggle is always fully opaque
-                    HStack {
-                        Text(event.title)
-                            .font(.callout)
-                            .foregroundColor(.white)
-                            .lineLimit(showFullEventTitles ? nil : 1)
-                        Spacer(minLength: 0)
-                        VStack(alignment: .trailing, spacing: 4) {
-                            if event.isAllDay {
-                                Text("All-day")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-                            } else {
-                                Text(event.start, style: .time)
-                                    .foregroundColor(.white)
-                                    .font(.caption)
-                            }
+            reminderRow
+        } else {
+            calendarEventRow
+        }
+    }
+
+    private var reminderRow: some View {
+        let isCompleted: Bool
+        if case .reminder(let completed) = event.type {
+            isCompleted = completed
+        } else {
+            isCompleted = false
+        }
+        
+        return HStack(spacing: 8) {
+            ReminderToggle(
+                isOn: Binding(
+                    get: { isCompleted },
+                    set: { newValue in
+                        Task {
+                            await calendarManager.setReminderCompleted(
+                                reminderID: event.id, completed: newValue
+                            )
                         }
                     }
-                    .opacity(
-                        isCompleted
-                            ? 0.4
-                            : event.start < Date.now && Calendar.current.isDateInToday(event.start)
-                                ? 0.6 : 1.0
-                    )
-                }
-                .padding(.vertical, 4)
+                ),
+                color: Color(event.calendar.color)
             )
-        } else {
-            return AnyView(
-                HStack(alignment: .top, spacing: 4) {
-                    Rectangle()
-                        .fill(Color(event.calendar.color))
-                        .frame(width: 3)
-                        .cornerRadius(1.5)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(event.title)
-                            .font(.callout)
+            .opacity(1.0)
+            
+            HStack {
+                Text(event.title)
+                    .font(.callout)
+                    .foregroundColor(.white)
+                    .lineLimit(showFullEventTitles ? nil : 1)
+                Spacer(minLength: 0)
+                VStack(alignment: .trailing, spacing: 4) {
+                    if event.isAllDay {
+                        Text("All-day")
+                            .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
-                            .lineLimit(showFullEventTitles ? nil : 2)
-
-                        if let location = event.location, !location.isEmpty {
-                            Text(location)
-                                .font(.caption)
-                                .foregroundColor(Color(white: 0.65))
-                                .lineLimit(1)
-                        }
+                            .lineLimit(1)
+                    } else {
+                        Text(event.start, style: .time)
+                            .foregroundColor(.white)
+                            .font(.caption)
                     }
-                    Spacer(minLength: 0)
-                    VStack(alignment: .trailing, spacing: 4) {
-                        if event.isAllDay {
-                            Text("All-day")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                        } else {
-                            Text(event.start, style: .time)
-                                .foregroundColor(.white)
-                            Text(event.end, style: .time)
-                                .foregroundColor(Color(white: 0.65))
-                        }
-                    }
-                    .font(.caption)
-                    .frame(minWidth: 44, alignment: .trailing)
                 }
-                .opacity(
-                    event.eventStatus == .ended && Calendar.current.isDateInToday(event.start)
-                        ? 0.6 : 1.0)
+            }
+            .opacity(
+                isCompleted
+                    ? 0.4
+                    : (event.start < Date.now && isToday && !isHovered) ? 0.6 : 1.0
             )
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
+        )
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+
+    private var calendarEventRow: some View {
+        HStack(alignment: .top, spacing: 6) {
+            // Indicator Bar
+            Rectangle()
+                .fill(isInProgress ? Color(red: 0.19, green: 0.86, blue: 0.38) : Color(event.calendar.color))
+                .frame(width: isInProgress ? 3.5 : 3)
+                .cornerRadius(1.5)
+                .shadow(color: isInProgress ? Color(red: 0.19, green: 0.86, blue: 0.38).opacity(0.7) : .clear, radius: 3)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 5) {
+                    Text(event.title)
+                        .font(.callout)
+                        .fontWeight(isInProgress ? .bold : .medium)
+                        .foregroundColor(.white)
+                        .lineLimit(showFullEventTitles ? nil : 2)
+                    
+                    if isInProgress {
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(Color(red: 0.19, green: 0.86, blue: 0.38))
+                                .frame(width: 4.5, height: 4.5)
+                            Text("Đang diễn ra")
+                                .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                                .foregroundColor(Color(red: 0.19, green: 0.86, blue: 0.38))
+                        }
+                        .padding(.horizontal, 4.5)
+                        .padding(.vertical, 1.5)
+                        .background(Capsule().fill(Color(red: 0.19, green: 0.86, blue: 0.38).opacity(0.18)))
+                    } else if isNextUp {
+                        Text("Tiếp theo")
+                            .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                            .foregroundColor(Color.cyan)
+                            .padding(.horizontal, 4.5)
+                            .padding(.vertical, 1.5)
+                            .background(Capsule().fill(Color.cyan.opacity(0.18)))
+                    }
+                }
+
+                if let location = event.location, !location.isEmpty {
+                    Text(location)
+                        .font(.caption)
+                        .foregroundColor(Color(white: 0.65))
+                        .lineLimit(1)
+                }
+            }
+            
+            Spacer(minLength: 0)
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                if event.isAllDay {
+                    Text("All-day")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                } else {
+                    Text(event.start, style: .time)
+                        .fontWeight(isInProgress ? .bold : .regular)
+                        .foregroundColor(isInProgress ? Color(red: 0.19, green: 0.86, blue: 0.38) : .white)
+                    Text(event.end, style: .time)
+                        .foregroundColor(Color(white: 0.65))
+                }
+            }
+            .font(.caption)
+            .frame(minWidth: 44, alignment: .trailing)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(
+                    isInProgress
+                        ? Color.white.opacity(0.08)
+                        : (isHovered ? Color.white.opacity(0.06) : Color.clear)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(
+                    isInProgress
+                        ? Color(red: 0.19, green: 0.86, blue: 0.38).opacity(0.35)
+                        : Color.clear,
+                    lineWidth: 1
+                )
+        )
+        .opacity(isEnded && !isHovered ? 0.45 : 1.0)
+        .onHover { hovering in
+            isHovered = hovering
         }
     }
 }
