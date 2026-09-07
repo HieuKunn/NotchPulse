@@ -156,25 +156,24 @@ jobs:
           if [ ! -f "appcast.xml" ] || [ ! -s "appcast.xml" ]; then
             ZIP_SIZE=$(stat -f%z release_out/NotchPulse.app.zip 2>/dev/null || wc -c < release_out/NotchPulse.app.zip | tr -d ' ' || echo "100578285")
             PLAIN_VER="${TAG#v}"
-            cat <<EOF > appcast.xml
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <channel>
-        <title>NotchPulse Changelog</title>
-        <link>https://github.com/HieuKunn/NotchPulse</link>
-        <description>Most recent changes with links to updates.</description>
-        <language>en</language>
-        <item>
-            <title>Version $PLAIN_VER</title>
-            <pubDate>$(date -R)</pubDate>
-            <sparkle:version>$PLAIN_VER</sparkle:version>
-            <sparkle:shortVersionString>$PLAIN_VER</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/NotchPulse.app.zip" length="$ZIP_SIZE" type="application/octet-stream" sparkle:edSignature="4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=" />
-        </item>
-    </channel>
-</rss>
-EOF
+            printf '%s\n' \
+              '<?xml version="1.0" encoding="utf-8"?>' \
+              '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">' \
+              '    <channel>' \
+              '        <title>NotchPulse Changelog</title>' \
+              '        <link>https://github.com/HieuKunn/NotchPulse</link>' \
+              '        <description>Most recent changes with links to updates.</description>' \
+              '        <language>en</language>' \
+              '        <item>' \
+              "            <title>Version $PLAIN_VER</title>" \
+              '            <pubDate>Mon, 08 Sep 2026 01:25:00 +0700</pubDate>' \
+              "            <sparkle:version>$PLAIN_VER</sparkle:version>" \
+              "            <sparkle:shortVersionString>$PLAIN_VER</sparkle:shortVersionString>" \
+              '            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>' \
+              "            <enclosure url=\"https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/NotchPulse.app.zip\" length=\"$ZIP_SIZE\" type=\"application/octet-stream\" sparkle:edSignature=\"4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=\" />" \
+              '        </item>' \
+              '    </channel>' \
+              '</rss>' > appcast.xml
           fi
           
       - name: Commit and Push Appcast
