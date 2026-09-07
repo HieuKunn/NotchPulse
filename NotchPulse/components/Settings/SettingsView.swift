@@ -989,6 +989,9 @@ struct SystemMonitorSettingsView: View {
                                     .foregroundStyle(.secondary)
                                 Text(String(format: "%.1f / %.0f GB", monitor.ramUsedGB, monitor.ramTotalGB))
                                     .font(.system(size: 13, weight: .bold, design: .rounded))
+                                Text("Swap: \(monitor.swapUsedFormatted)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)

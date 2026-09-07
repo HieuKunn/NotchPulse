@@ -179,6 +179,20 @@ struct StatsView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white)
 
+                    // Pressure Pill
+                    HStack(spacing: 3) {
+                        Circle()
+                            .fill(monitor.ramPressure == "Normal" ? Color.green : (monitor.ramPressure == "Warning" ? Color.yellow : Color.red))
+                            .frame(width: 4, height: 4)
+                        Text(monitor.ramPressure)
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1.5)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(Capsule())
+
                     Spacer()
 
                     Text(String(format: "%.1f GB", monitor.ramUsedGB))
@@ -211,7 +225,7 @@ struct StatsView: View {
                 }
                 .frame(height: 4)
 
-                // Breakdown Labels & Pressure
+                // Breakdown Labels (App | Wired | Swap)
                 HStack(spacing: 5) {
                     HStack(spacing: 3) {
                         Circle().fill(Color.green).frame(width: 5, height: 5)
@@ -226,14 +240,11 @@ struct StatsView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    // Pressure Pill
                     HStack(spacing: 3) {
-                        Circle()
-                            .fill(monitor.ramPressure == "Normal" ? Color.green : (monitor.ramPressure == "Warning" ? Color.yellow : Color.red))
-                            .frame(width: 5, height: 5)
-                        Text(monitor.ramPressure)
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.secondary)
+                        Circle().fill(monitor.swapUsedMB > 0 ? Color.purple : Color.gray.opacity(0.6)).frame(width: 5, height: 5)
+                        Text("Swap:\(monitor.swapUsedFormatted)")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(monitor.swapUsedMB > 500 ? Color.orange : .secondary)
                     }
                 }
 

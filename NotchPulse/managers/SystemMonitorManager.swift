@@ -6,6 +6,7 @@
 //
 
 import Combine
+import Darwin
 import Foundation
 import IOKit
 import MachO
@@ -42,6 +43,16 @@ public class SystemMonitorManager: ObservableObject {
     @Published public var ramFreeGB: Double = 0.0
     @Published public var ramPressure: String = "Normal"
     @Published public var ramHistory: [Double] = Array(repeating: 50.0, count: 24)
+    @Published public var swapUsedMB: Double = 0.0
+    @Published public var swapTotalMB: Double = 0.0
+
+    public var swapUsedFormatted: String {
+        if swapUsedMB >= 1024.0 {
+            return String(format: "%.1f GB", swapUsedMB / 1024.0)
+        } else {
+            return String(format: "%.0f MB", swapUsedMB)
+        }
+    }
 
     // MARK: - GPU Properties
     @Published public var gpuUsage: Double = 0.0
@@ -93,6 +104,7 @@ public class SystemMonitorManager: ObservableObject {
     private func updateMetrics() {
         let (totalCPU, userCPU, sysCPU, idleCPU) = fetchCPUUsage()
         let (usedRAM, totalRAM, percentRAM, appRAM, wiredRAM, compRAM, freeRAM, pressure) = fetchRAMUsage()
+        let (usedSwap, totalSwap) = fetchSwapUsage()
         let gpu = fetchGPUUsage()
         let (topCpu, topRam) = fetchTopProcesses()
 
@@ -118,6 +130,8 @@ public class SystemMonitorManager: ObservableObject {
             self.ramCompressedGB = compRAM
             self.ramFreeGB = freeRAM
             self.ramPressure = pressure
+            self.swapUsedMB = usedSwap
+            self.swapTotalMB = totalSwap
             self.ramHistory.append(percentRAM)
             if self.ramHistory.count > 24 {
                 self.ramHistory.removeFirst()
@@ -211,6 +225,19 @@ public class SystemMonitorManager: ObservableObject {
         }
 
         return (usedGB, totalGB, percent, appGB, wiredGB, compGB, freeGB, pressure)
+    }
+
+    // MARK: - Swap Fetch
+    private func fetchSwapUsage() -> (usedMB: Double, totalMB: Double) {
+        var mib: [Int32] = [CTL_VM, VM_SWAPUSAGE]
+        var swapUsage = xsw_usage()
+        var size = MemoryLayout<xsw_usage>.size
+        if sysctl(&mib, 2, &swapUsage, &size, nil, 0) == 0 {
+            let usedMB = Double(swapUsage.xsu_used) / (1024.0 * 1024.0)
+            let totalMB = Double(swapUsage.xsu_total) / (1024.0 * 1024.0)
+            return (usedMB, totalMB)
+        }
+        return (0.0, 0.0)
     }
 
     // MARK: - GPU Fetch
