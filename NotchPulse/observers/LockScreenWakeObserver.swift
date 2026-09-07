@@ -20,7 +20,7 @@ final class LockScreenWakeObserver: ObservableObject {
     private var distributedTokens: [NSObjectProtocol] = []
     private var lockSessionTimer: Task<Void, Never>?
     
-    static var isSessionLocked: Bool {
+    nonisolated static var isSessionLocked: Bool {
         if let dict = CGSessionCopyCurrentDictionary() as? [String: Any] {
             if let val = dict["CGSSessionScreenIsLocked"] {
                 return (val as? Bool) ?? ((val as? NSNumber)?.boolValue ?? false)

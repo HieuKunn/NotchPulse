@@ -43,6 +43,7 @@ jobs:
 
       - name: Build App (Ad-Hoc Signing, No Paid Apple Cert Required)
         run: |
+          set -o pipefail
           xcodebuild clean build \
             -project NotchPulse.xcodeproj \
             -scheme NotchPulse \
@@ -55,7 +56,11 @@ jobs:
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             SWIFT_STRICT_CONCURRENCY=minimal \
             COMPILER_INDEX_STORE_ENABLE=NO \
-            ONLY_ACTIVE_ARCH=NO
+            ONLY_ACTIVE_ARCH=NO 2>&1 | tee xcodebuild.log || {
+              echo "::error::Xcodebuild thất bại! Dưới đây là các dòng lỗi chi tiết:"
+              grep -C 3 -E "error:" xcodebuild.log | tail -n 60 || tail -n 80 xcodebuild.log
+              exit 1
+            }
 
       - name: Verify Built App
         run: |
