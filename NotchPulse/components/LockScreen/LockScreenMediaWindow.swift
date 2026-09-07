@@ -37,7 +37,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         hasShadow = false
         isMovable = false
         level = .screenSaver
-        appearance = NSAppearance(named: .darkAqua)
         
         collectionBehavior = [
             .fullScreenAuxiliary,
@@ -46,7 +45,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             .ignoresCycle
         ]
         
-        contentView = NSHostingView(rootView: LockScreenMediaView(windowController: self))
+        let hostingView = NSHostingView(rootView: LockScreenMediaView(windowController: self))
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        contentView = hostingView
     }
     
     private func getTargetScreen() -> NSScreen {
@@ -83,6 +85,11 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         let targetRect = isFullScreen ? screen.frame : targetCompactFrame(for: screen)
         setFrame(targetRect, display: true)
         
+        if !isSkyLightAttached {
+            SkyLightOperator.shared.delegateWindow(self)
+            isSkyLightAttached = true
+        }
+        
         alphaValue = 0
         orderFrontRegardless()
         
@@ -103,6 +110,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }, completionHandler: {
             self.orderOut(nil)
             self.isFullScreen = false
+            if self.isSkyLightAttached {
+                SkyLightOperator.shared.undelegateWindow(self)
+                self.isSkyLightAttached = false
+            }
         })
     }
     

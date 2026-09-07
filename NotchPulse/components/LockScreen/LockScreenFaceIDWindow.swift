@@ -36,7 +36,6 @@ final class LockScreenFaceIDWindow: NSPanel {
         hasShadow = false
         isMovable = false
         level = .screenSaver
-        appearance = NSAppearance(named: .darkAqua)
         
         collectionBehavior = [
             .fullScreenAuxiliary,
@@ -45,7 +44,10 @@ final class LockScreenFaceIDWindow: NSPanel {
             .ignoresCycle
         ]
         
-        contentView = NSHostingView(rootView: LockScreenFaceIDPillView())
+        let hostingView = NSHostingView(rootView: LockScreenFaceIDPillView())
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        contentView = hostingView
     }
     
     func show() {
@@ -72,12 +74,20 @@ final class LockScreenFaceIDWindow: NSPanel {
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
         let y = screen.frame.origin.y + screen.frame.height - totalHeight
         
-        contentView = NSHostingView(rootView: LockScreenFaceIDPillView(
+        let hostingView = NSHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
             notchHardwareHeight: notchHardwareHeight
         ))
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        contentView = hostingView
         
         setFrame(NSRect(x: x, y: y, width: width, height: totalHeight), display: true)
+        
+        if !isSkyLightAttached {
+            SkyLightOperator.shared.delegateWindow(self)
+            isSkyLightAttached = true
+        }
         
         alphaValue = 0
         orderFrontRegardless()
@@ -98,6 +108,10 @@ final class LockScreenFaceIDWindow: NSPanel {
             self.animator().alphaValue = 0.0
         }, completionHandler: {
             self.orderOut(nil)
+            if self.isSkyLightAttached {
+                SkyLightOperator.shared.undelegateWindow(self)
+                self.isSkyLightAttached = false
+            }
         })
     }
     
@@ -409,7 +423,6 @@ struct LockScreenFaceIDPillView: View {
                         .stroke(borderColor, lineWidth: 1.5)
                 }
             )
-            .shadow(color: .black.opacity(0.6), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -26,7 +26,6 @@ struct LockScreenMediaView: View {
             }
         }
         .animation(.spring(response: 0.65, dampingFraction: 0.82, blendDuration: 0), value: windowController.isFullScreen)
-        .preferredColorScheme(.dark)
     }
     
     // =========================================================================
@@ -170,7 +169,6 @@ struct LockScreenMediaView: View {
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: .black.opacity(0.55), radius: 24, x: 0, y: 12)
     }
     
     // =========================================================================
