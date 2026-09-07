@@ -408,20 +408,23 @@ struct GeneralSettings: View {
                     value: $notchOpenWidth,
                     in: 560...960,
                     step: 10,
+                    label: {
+                        Text("Notch Width")
+                    },
+                    minimumValueLabel: {
+                        Text("560px")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    },
+                    maximumValueLabel: {
+                        Text("960px")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    },
                     onEditingChanged: { editing in
                         triggerWidthPreview(width: notchOpenWidth, isEditing: editing)
                     }
-                ) {
-                    Text("Notch Width")
-                } minimumValueLabel: {
-                    Text("560px")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } maximumValueLabel: {
-                    Text("960px")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                )
                 
                 HStack(spacing: 8) {
                     Button("Compact (580px)") {
