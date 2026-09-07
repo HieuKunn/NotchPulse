@@ -14,6 +14,8 @@ struct FaceIDSettingsView: View {
     @State private var showPasswordSavedAlert: Bool = false
     @State private var isEnrollingFace: Bool = false
     
+    @Default(.faceIDEnterPressCount) var faceIDEnterPressCount
+    
     var body: some View {
         Form {
             // MARK: - Section 1: Face ID Unlock (Zero-Overhead)
@@ -31,6 +33,15 @@ struct FaceIDSettingsView: View {
                 Defaults.Toggle(key: .faceIDSound) {
                     Text("Face ID Sound Effect (Chime)")
                 }
+
+                HStack {
+                    Text("Số lần ấn phím Enter khi mở khoá")
+                    Spacer()
+                    Stepper("\(faceIDEnterPressCount) lần", value: $faceIDEnterPressCount, in: 1...5)
+                }
+                Text("Tuỳ chỉnh số lần gửi tín hiệu phím Enter/Return để mở máy sau khi nhận diện thành công (1 - 5 lần).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } header: {
                 Label("Face ID Unlock (Zero-Overhead)", systemImage: "faceid")
             }

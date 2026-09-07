@@ -19,7 +19,22 @@ final class LockScreenWakeObserver: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var distributedTokens: [NSObjectProtocol] = []
     
+    static var isSessionLocked: Bool {
+        if let dict = CGSessionCopyCurrentDictionary() as? [String: Any] {
+            if let val = dict["CGSSessionScreenIsLocked"] {
+                return (val as? Bool) ?? ((val as? NSNumber)?.boolValue ?? false)
+            }
+        }
+        return false
+    }
+
     private init() {
+        if Self.isSessionLocked {
+            self.isScreenLocked = true
+            if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
+                LockScreenFaceIDWindow.shared.show()
+            }
+        }
         setupObservers()
     }
     
@@ -32,7 +47,7 @@ final class LockScreenWakeObserver: ObservableObject {
     }
     
     private func setupObservers() {
-        // 1. Listen for screen lock (when user locks screen, do NOT auto-unlock immediately)
+        // 1. Listen for screen lock
         let lockToken = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name("com.apple.screenIsLocked"),
             object: nil,
@@ -41,11 +56,8 @@ final class LockScreenWakeObserver: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.isScreenLocked = true
-                FaceIDManager.shared.cancelCurrentSession()
                 self.updateLockScreenMediaWindowVisibility()
                 
-                // User intentionally locked their screen while working at desk.
-                // Show the waiting Face ID UI so they can click to scan, but do NOT scan automatically.
                 if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
                     LockScreenFaceIDWindow.shared.show()
                 }
@@ -69,34 +81,32 @@ final class LockScreenWakeObserver: ObservableObject {
         }
         distributedTokens.append(unlockToken)
         
-        // 3. Listen for screen wake (user opens MacBook lid, touches trackpad/keyboard to wake display from sleep)
+        // 3. Listen for screen wake & system wake
+        let handleWake = { [weak self] in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                try? await Task.sleep(for: .milliseconds(120))
+                let locked = self.isScreenLocked || Self.isSessionLocked
+                if locked {
+                    self.isScreenLocked = true
+                    if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
+                        LockScreenFaceIDWindow.shared.show()
+                        FaceIDManager.shared.startRecognitionOnWake()
+                    }
+                    self.updateLockScreenMediaWindowVisibility()
+                }
+            }
+        }
+
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidWakeNotification)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                if self.isScreenLocked {
-                    if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
-                        LockScreenFaceIDWindow.shared.show()
-                        FaceIDManager.shared.startRecognitionOnWake()
-                    }
-                    self.updateLockScreenMediaWindowVisibility()
-                }
-            }
+            .sink { _ in handleWake() }
             .store(in: &cancellables)
 
-        // 3b. Listen for system wake from sleep (e.g. MacBook lid opened)
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                if self.isScreenLocked {
-                    if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
-                        LockScreenFaceIDWindow.shared.show()
-                        FaceIDManager.shared.startRecognitionOnWake()
-                    }
-                    self.updateLockScreenMediaWindowVisibility()
-                }
-            }
+            .sink { _ in handleWake() }
             .store(in: &cancellables)
             
         // 4. Listen for screen sleep (lid closed, screensaver sleep, display sleep)

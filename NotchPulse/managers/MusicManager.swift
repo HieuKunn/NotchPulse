@@ -341,11 +341,19 @@ class MusicManager: ObservableObject {
     }
 
     // MARK: - Lyrics
-    private func fetchLyricsIfAvailable(bundleIdentifier: String?, title: String, artist: String) {
-        guard Defaults[.enableLyrics], !title.isEmpty else {
+    func ensureLyricsLoaded() {
+        guard !songTitle.isEmpty else { return }
+        if currentLyrics.isEmpty && syncedLyrics.isEmpty && !isFetchingLyrics {
+            fetchLyricsIfAvailable(bundleIdentifier: bundleIdentifier, title: songTitle, artist: artistName)
+        }
+    }
+
+    func fetchLyricsIfAvailable(bundleIdentifier: String?, title: String, artist: String) {
+        guard !title.isEmpty else {
             DispatchQueue.main.async {
                 self.isFetchingLyrics = false
                 self.currentLyrics = ""
+                self.syncedLyrics = []
             }
             return
         }
@@ -410,54 +418,64 @@ class MusicManager: ObservableObject {
             .replacingOccurrences(of: "\u{FFFD}", with: "")
     }
 
+    private func cleanSongTitle(_ title: String) -> String {
+        var clean = title
+        let patterns = [
+            #"\(feat\..*?\)"#, #"\(\s*ft\..*?\)"#, #"\(\s*with.*?\)"#,
+            #"\[feat\..*?\]"#, #"\[\s*ft\..*?\]"#,
+            #"\(.*?video.*?/i"#, #"\[.*?video.*?\]"#,
+            #"\(.*?remaster.*?/i"#, #"\[.*?remaster.*?\]"#,
+            #"\-.*?remaster.*"#
+        ]
+        for p in patterns {
+            if let regex = try? NSRegularExpression(pattern: p, options: [.caseInsensitive]) {
+                clean = regex.stringByReplacingMatches(in: clean, options: [], range: NSRange(location: 0, length: (clean as NSString).length), withTemplate: "")
+            }
+        }
+        return clean.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     @MainActor
     private func fetchLyricsFromWeb(title: String, artist: String) async {
-        let cleanTitle = normalizedQuery(title)
+        let cleanTitle = normalizedQuery(cleanSongTitle(title))
         let cleanArtist = normalizedQuery(artist)
-        guard let encodedTitle = cleanTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let encodedArtist = cleanArtist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            self.currentLyrics = ""
-            self.isFetchingLyrics = false
-            return
-        }
-
-        // LRCLIB simple search (no auth): https://lrclib.net/api/search?track_name=...&artist_name=...
-        let urlString = "https://lrclib.net/api/search?track_name=\(encodedTitle)&artist_name=\(encodedArtist)"
-        guard let url = URL(string: urlString) else {
-            self.currentLyrics = ""
-            self.isFetchingLyrics = false
-            return
-        }
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                self.currentLyrics = ""
-                self.isFetchingLyrics = false
-                return
-            }
-            if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-               let first = jsonArray.first {
-                // Prefer plain lyrics (syncedLyrics may also be present)
-                let plain = (first["plainLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let synced = (first["syncedLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let resolved = plain.isEmpty ? synced : plain
-                self.currentLyrics = resolved
-                self.isFetchingLyrics = false
-                if !synced.isEmpty {
-                    self.syncedLyrics = self.parseLRC(synced)
-                } else {
-                    self.syncedLyrics = []
+        
+        let searchUrls: [String] = [
+            // 1. Exact track_name & artist_name
+            "https://lrclib.net/api/search?track_name=\(cleanTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&artist_name=\(cleanArtist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
+            // 2. Loose query search
+            "https://lrclib.net/api/search?q=\("\(cleanTitle) \(cleanArtist)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+        ]
+        
+        for urlString in searchUrls {
+            guard let url = URL(string: urlString) else { continue }
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+                guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { continue }
+                if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+                   let first = jsonArray.first {
+                    let plain = (first["plainLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let synced = (first["syncedLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let resolved = plain.isEmpty ? synced : plain
+                    if !resolved.isEmpty {
+                        self.currentLyrics = resolved
+                        self.isFetchingLyrics = false
+                        if !synced.isEmpty {
+                            self.syncedLyrics = self.parseLRC(synced)
+                        } else {
+                            self.syncedLyrics = []
+                        }
+                        return
+                    }
                 }
-            } else {
-                self.currentLyrics = ""
-                self.isFetchingLyrics = false
-                self.syncedLyrics = []
+            } catch {
+                continue
             }
-        } catch {
-            self.currentLyrics = ""
-            self.isFetchingLyrics = false
-            self.syncedLyrics = []
         }
+        
+        self.currentLyrics = ""
+        self.isFetchingLyrics = false
+        self.syncedLyrics = []
     }
 
     // MARK: - Synced lyrics helpers

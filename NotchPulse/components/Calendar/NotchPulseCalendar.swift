@@ -8,37 +8,63 @@
 import Defaults
 import SwiftUI
 
-struct Config: Equatable {
-    //    var count: Int = 10  // 3 days past + today + 7 days future
-    var past: Int = 30
-    var future: Int = 60
-    var steps: Int = 1  // Each step is one day
+struct Config {
+    var past: Int = 730    // 2 full years in the past (730 days)
+    var future: Int = 1095 // 3 full years in the future (1095 days)
+    var steps: Int = 1     // Each step is one day
     var spacing: CGFloat = 2
     var showsText: Bool = true
-    var offset: Int = 2  // Number of dates to the left of the selected date
+    var offset: Int = 2    // Number of dates to the left of the selected date
 }
 
+private let dayOfWeekFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "E"
+    return formatter
+}()
+
 private struct CalendarScrollWheelHelper: NSViewRepresentable {
+    var onVisibleCenterChange: ((CGFloat) -> Void)?
+
     func makeNSView(context: Context) -> HelperView {
-        HelperView()
+        let view = HelperView()
+        view.onVisibleCenterChange = onVisibleCenterChange
+        return view
     }
 
-    func updateNSView(_ nsView: HelperView, context: Context) {}
+    func updateNSView(_ nsView: HelperView, context: Context) {
+        nsView.onVisibleCenterChange = onVisibleCenterChange
+        nsView.checkSetup()
+    }
 
     class HelperView: NSView {
+        var onVisibleCenterChange: ((CGFloat) -> Void)?
         private var monitor: Any?
+        private var boundsObserver: Any?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             if window != nil {
-                setupMonitor()
+                checkSetup()
+                DispatchQueue.main.async { [weak self] in
+                    self?.checkSetup()
+                }
             } else {
                 removeMonitor()
+                removeBoundsObserver()
+            }
+        }
+
+        override func viewDidMoveToSuperview() {
+            super.viewDidMoveToSuperview()
+            if superview != nil {
+                checkSetup()
             }
         }
 
         deinit {
             removeMonitor()
+            removeBoundsObserver()
         }
 
         private func removeMonitor() {
@@ -48,8 +74,38 @@ private struct CalendarScrollWheelHelper: NSViewRepresentable {
             }
         }
 
+        private func removeBoundsObserver() {
+            if let bo = boundsObserver {
+                NotificationCenter.default.removeObserver(bo)
+                boundsObserver = nil
+            }
+        }
+
+        func checkSetup() {
+            guard window != nil else { return }
+            setupBoundsObserver()
+            setupMonitor()
+        }
+
+        private func setupBoundsObserver() {
+            guard boundsObserver == nil else { return }
+            guard let scrollView = enclosingScrollView else { return }
+            let clipView = scrollView.contentView
+            clipView.postsBoundsChangedNotifications = true
+            boundsObserver = NotificationCenter.default.addObserver(
+                forName: NSView.boundsDidChangeNotification,
+                object: clipView,
+                queue: .main
+            ) { [weak self, weak clipView] _ in
+                guard let self = self, let cv = clipView else { return }
+                let visibleCenterInClipView = CGPoint(x: cv.bounds.midX, y: cv.bounds.midY)
+                let centerInHStack = self.convert(visibleCenterInClipView, from: cv)
+                self.onVisibleCenterChange?(centerInHStack.x)
+            }
+        }
+
         private func setupMonitor() {
-            removeMonitor()
+            guard monitor == nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
                 guard let self = self,
                       let window = self.window,
@@ -97,9 +153,11 @@ struct CalendarDateButton: View {
     }
 
     private var dayString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "E"
-        return formatter.string(from: date)
+        dayOfWeekFormatter.string(from: date)
+    }
+
+    private var dayNumberString: String {
+        "\(Calendar.current.component(.day, from: date))"
     }
 
     var body: some View {
@@ -110,14 +168,19 @@ struct CalendarDateButton: View {
                     .foregroundColor(isSelected ? .white : Color(white: 0.65))
 
                 ZStack {
+                    if isToday {
+                        Circle()
+                            .fill(isSelected ? Color.clear : Color.effectiveAccentBackground)
+                            .frame(width: 24, height: 24)
+                    }
                     Circle()
-                        .fill(isToday ? Color.effectiveAccent : .clear)
-                        .frame(width: 22, height: 22)
-                        .overlay(
+                        .stroke(isSelected ? Color.clear : (isToday ? Color.effectiveAccentBackground : Color.clear), lineWidth: 1)
+                        .frame(width: 28, height: 28)
+                        .background(
                             Circle()
                                 .stroke(Color.gray.opacity(0.3), lineWidth: 0)
                         )
-                    Text("\(date.date)")
+                    Text(dayNumberString)
                         .font(.body)
                         .fontWeight(.medium)
                         .foregroundColor(isSelected ? .white : Color(white: isToday ? 0.9 : 0.65))
@@ -143,6 +206,7 @@ struct WheelPicker: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
     @Binding var selectedDate: Date
+    @Binding var displayedDate: Date
     @State private var scrollPosition: Int?
     @State private var haptics: Bool = false
     let config: Config
@@ -169,7 +233,16 @@ struct WheelPicker: View {
                 }
             }
             .frame(height: 50)
-            .background(CalendarScrollWheelHelper())
+            .background(CalendarScrollWheelHelper(onVisibleCenterChange: { visibleCenterX in
+                let itemWidth = 36.0 + config.spacing
+                let floatIndex = (visibleCenterX - 18.0) / itemWidth
+                let index = Int(round(floatIndex))
+                let date = dateForItemIndex(index: index, spacerNum: config.offset)
+                if Calendar.current.component(.month, from: date) != Calendar.current.component(.month, from: displayedDate) ||
+                   Calendar.current.component(.year, from: date) != Calendar.current.component(.year, from: displayedDate) {
+                    displayedDate = date
+                }
+            }))
         }
         .scrollIndicators(.never)
         .scrollPosition(id: $scrollPosition, anchor: .center)
@@ -177,6 +250,14 @@ struct WheelPicker: View {
         .sensoryFeedback(.alignment, trigger: haptics)
         .onAppear {
             scrollToToday(config: config)
+        }
+        .onChange(of: scrollPosition) { _, newPosition in
+            guard let newIndex = newPosition else { return }
+            let date = dateForItemIndex(index: newIndex, spacerNum: config.offset)
+            if Calendar.current.component(.month, from: date) != Calendar.current.component(.month, from: displayedDate) ||
+               Calendar.current.component(.year, from: date) != Calendar.current.component(.year, from: displayedDate) {
+                displayedDate = date
+            }
         }
         // When parent updates the bound selectedDate (e.g., view reopen or external select), center the wheel on it
         .onChange(of: selectedDate) { _, newValue in
@@ -186,11 +267,13 @@ struct WheelPicker: View {
                     scrollPosition = targetIndex
                 }
             }
+            displayedDate = newValue
         }
     }
 
     private func selectDate(_ date: Date, index: Int) {
         selectedDate = date
+        displayedDate = date
         withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
             scrollPosition = index
         }
@@ -206,6 +289,7 @@ struct WheelPicker: View {
         let today = Date()
         scrollPosition = indexForDate(today)
         selectedDate = today
+        displayedDate = today
     }
 
     // MARK: - Index/Date mapping with steps and spacers
@@ -224,7 +308,7 @@ struct WheelPicker: View {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         let startDate = cal.date(byAdding: .day, value: -config.past, to: today) ?? today
-        let stepIndex = index - spacerNum
+        let stepIndex = max(0, min(totalDateItems() - 1, index - spacerNum))
         return cal.date(byAdding: .day, value: stepIndex * max(config.steps, 1), to: startDate) ?? today
     }
 
@@ -239,24 +323,33 @@ struct CalendarView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var selectedDate = Date()
+    @State private var displayedDate = Date()
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading) {
-                    Text(selectedDate.formatted(.dateTime.month(.abbreviated)))
+                    Text(displayedDate.formatted(.dateTime.month(.abbreviated)))
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
-                    Text(selectedDate.formatted(.dateTime.year()))
+                    Text(displayedDate.formatted(.dateTime.year()))
                         .font(.title3)
                         .fontWeight(.light)
                         .foregroundColor(Color(white: 0.65))
                 }
+                .frame(minWidth: 48, alignment: .leading)
                 .padding(.top, 4)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                        selectedDate = Date.now
+                        displayedDate = Date.now
+                    }
+                }
 
                 ZStack(alignment: .top) {
-                    WheelPicker(selectedDate: $selectedDate, config: Config())
+                    WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())
                     HStack(alignment: .top) {
                         LinearGradient(
                             colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing
@@ -298,12 +391,14 @@ struct CalendarView: View {
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
+                displayedDate = Date.now
             }
         }
         .onAppear {
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
+                displayedDate = Date.now
             }
         }
     }

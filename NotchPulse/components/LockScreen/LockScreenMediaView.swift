@@ -26,13 +26,21 @@ struct LockScreenMediaView: View {
             }
         }
         .animation(.spring(response: 0.65, dampingFraction: 0.82, blendDuration: 0), value: windowController.isFullScreen)
+        .onAppear {
+            musicManager.ensureLyricsLoaded()
+        }
+        .onChange(of: musicManager.songTitle) { _, _ in
+            musicManager.ensureLyricsLoaded()
+        }
     }
     
     // =========================================================================
     // MARK: - 1. Compact Player View (Y hệt ảnh Lock Screen iPhone người dùng gửi)
     // =========================================================================
     private var compactPlayerView: some View {
-        VStack(spacing: 12) {
+        let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty
+        
+        return VStack(spacing: 10) {
             // Hàng 1: Ảnh bìa nhỏ + Tên bài hát/ca sĩ + Sóng nhạc góc phải
             HStack(alignment: .center, spacing: 12) {
                 // Album Art nhỏ (52x52) - Nhấp vào đây để phóng to Full Screen
@@ -77,6 +85,50 @@ struct LockScreenMediaView: View {
                 soundWaveform
             }
             
+            // Hàng 1.5: Câu hát Karaoke thời gian thực (nếu bài có lời)
+            if !musicManager.syncedLyrics.isEmpty {
+                TimelineView(.animation(minimumInterval: 0.25)) { timeline in
+                    let elapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
+                    let activeIndex = currentLyricIndex(at: elapsed)
+                    if activeIndex >= 0 && activeIndex < musicManager.syncedLyrics.count {
+                        let text = musicManager.syncedLyrics[activeIndex].text
+                        if !text.isEmpty {
+                            Button {
+                                windowController.setFullScreen(true)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "quote.bubble.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
+                                    Text(text)
+                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(.white.opacity(0.92))
+                                        .lineLimit(1)
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .help("Nhấp để phóng to toàn màn hình hiển thị lời bài hát (Karaoke)")
+                        }
+                    }
+                }
+            } else if !musicManager.currentLyrics.isEmpty {
+                Button {
+                    windowController.setFullScreen(true)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "quote.bubble.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
+                        Text("Xem lời bài hát (Lyrics)")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.75))
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            
             // Hàng 2: Thanh tiến trình (Scrubber) + Thời gian 2 bên
             TimelineView(.animation(minimumInterval: 0.25)) { timeline in
                 let elapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
@@ -109,7 +161,7 @@ struct LockScreenMediaView: View {
                 }
             }
             
-            // Hàng 3: Cụm phím điều khiển Previous, Play/Pause, Next & AirPlay icon
+            // Hàng 3: Cụm phím điều khiển Previous, Play/Pause, Next & Nút Lời bài hát
             HStack(spacing: 0) {
                 Spacer()
                 
@@ -145,20 +197,21 @@ struct LockScreenMediaView: View {
                 
                 Spacer()
                 
-                // Icon nguồn nhạc / AirPlay góc phải
+                // Icon Lời bài hát (Karaoke) góc phải
                 Button {
                     windowController.setFullScreen(true)
                 } label: {
-                    Image(systemName: "airplayaudio")
+                    Image(systemName: "quote.bubble.fill")
                         .font(.system(size: 16))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(hasLyrics ? Color.white.opacity(0.95) : Color.white.opacity(0.45))
                 }
                 .buttonStyle(.plain)
+                .help("Nhấp để phóng to toàn màn hình hiển thị lời bài hát (Karaoke)")
             }
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 16)
-        .frame(width: 410, height: 180)
+        .frame(width: 410, height: hasLyrics ? 205 : 180)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)

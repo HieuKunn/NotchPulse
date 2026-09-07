@@ -1419,7 +1419,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>2.9.3.5</string>
+				<string>2.9.3.6</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulseXPCHelper</string>
 				<key>PRODUCT_NAME</key>
@@ -1467,7 +1467,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>2.9.3.5</string>
+				<string>2.9.3.6</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulseXPCHelper</string>
 				<key>PRODUCT_NAME</key>
@@ -2802,7 +2802,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>2.9.3.5</string>
+				<string>2.9.3.6</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulse</string>
 				<key>PRODUCT_NAME</key>
@@ -2897,7 +2897,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>2.9.3.5</string>
+				<string>2.9.3.6</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulse</string>
 				<key>PRODUCT_NAME</key>

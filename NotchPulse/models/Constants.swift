@@ -141,7 +141,7 @@ extension Defaults.Keys {
     static let sneakPeekStyles = Key<SneakPeekStyle>("sneakPeekStyles", default: .standard)
     static let waitInterval = Key<Double>("waitInterval", default: 3)
     static let showShuffleAndRepeat = Key<Bool>("showShuffleAndRepeat", default: false)
-    static let enableLyrics = Key<Bool>("enableLyrics", default: false)
+    static let enableLyrics = Key<Bool>("enableLyrics", default: true)
     static let musicControlSlots = Key<[MusicControlButton]>(
         "musicControlSlots",
         default: MusicControlButton.defaultLayout
@@ -154,6 +154,7 @@ extension Defaults.Keys {
     // MARK: Face ID & Lock Screen (v2.0)
     static let enableFaceID = Key<Bool>("enableFaceID", default: false)
     static let faceIDSound = Key<Bool>("faceIDSound", default: true)
+    static let faceIDEnterPressCount = Key<Int>("faceIDEnterPressCount", default: 1)
     static let enableLockScreenPlayer = Key<Bool>("enableLockScreenPlayer", default: true)
     static let lockScreenPlayerShowLyrics = Key<Bool>("lockScreenPlayerShowLyrics", default: true)
     

@@ -440,37 +440,35 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         Task.detached(priority: .high) {
-            // Use hidSystemState for direct hardware HID event generation
             let source = CGEventSource(stateID: .hidSystemState)
             
-            // 1. Wake & activate password field
-            if let spaceDown = CGEvent(keyboardEventSource: source, virtualKey: 0x31, keyDown: true),
-               let spaceUp = CGEvent(keyboardEventSource: source, virtualKey: 0x31, keyDown: false) {
-                spaceDown.post(tap: .cghidEventTap)
-                try? await Task.sleep(for: .milliseconds(30))
-                spaceUp.post(tap: .cghidEventTap)
+            // 1. Wake & dismiss any screen-saver/clock overlay using Escape (0x35)
+            // DO NOT use Spacebar (0x31), as Spacebar injects an extra space into the password field!
+            if let escDown = CGEvent(keyboardEventSource: source, virtualKey: 0x35, keyDown: true),
+               let escUp = CGEvent(keyboardEventSource: source, virtualKey: 0x35, keyDown: false) {
+                escDown.flags = []
+                escUp.flags = []
+                escDown.post(tap: .cghidEventTap)
+                try? await Task.sleep(for: .milliseconds(35))
+                escUp.post(tap: .cghidEventTap)
             }
             
-            try? await Task.sleep(for: .milliseconds(350))
+            try? await Task.sleep(for: .milliseconds(250))
             
-            // 2. Clear existing text in password field (Cmd+A -> Delete)
-            if let cmdADown = CGEvent(keyboardEventSource: source, virtualKey: 0x00, keyDown: true),
-               let cmdAUp = CGEvent(keyboardEventSource: source, virtualKey: 0x00, keyDown: false) {
-                cmdADown.flags = .maskCommand
-                cmdADown.post(tap: .cghidEventTap)
-                try? await Task.sleep(for: .milliseconds(25))
-                cmdAUp.post(tap: .cghidEventTap)
-            }
-            try? await Task.sleep(for: .milliseconds(30))
-            if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
-               let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
-                delDown.post(tap: .cghidEventTap)
-                try? await Task.sleep(for: .milliseconds(25))
-                delUp.post(tap: .cghidEventTap)
+            // 2. Wipe any pre-existing text or leftover input using multiple Delete strokes
+            for _ in 0..<20 {
+                if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
+                   let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
+                    delDown.flags = []
+                    delUp.flags = []
+                    delDown.post(tap: .cghidEventTap)
+                    delUp.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(for: .milliseconds(12))
             }
             try? await Task.sleep(for: .milliseconds(80))
             
-            // 3. Type password characters
+            // 3. Type password characters cleanly
             for char in password {
                 if let keyInfo = Self.keyEventInfo(for: char) {
                     if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
@@ -478,6 +476,9 @@ final class FaceIDManager: NSObject, ObservableObject {
                         if keyInfo.shift {
                             down.flags = .maskShift
                             up.flags = .maskShift
+                        } else {
+                            down.flags = []
+                            up.flags = []
                         }
                         let utf16 = Array(String(char).utf16)
                         down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
@@ -492,6 +493,8 @@ final class FaceIDManager: NSObject, ObservableObject {
                     let utf16 = Array(String(char).utf16)
                     if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
                        let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
+                        down.flags = []
+                        up.flags = []
                         down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                         up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                         down.post(tap: .cghidEventTap)
@@ -502,33 +505,40 @@ final class FaceIDManager: NSObject, ObservableObject {
                 }
             }
             
-            // 4. Crucial delay after typing to let SecurityAgent process all characters
-            try? await Task.sleep(for: .milliseconds(400))
+            // 4. Delay to let SecurityAgent complete rendering all bullet dots
+            try? await Task.sleep(for: .milliseconds(350))
             
-            // 5. Submit password with Return (0x24) & Keypad Enter (0x4C)
-            // DO NOT set keyboardSetUnicodeString on Return - pure hardware key event triggers NSSecureTextField insertNewline:
-            for _ in 0..<3 {
+            // 5. Submit password with Return (0x24) via CGEvent and System Events
+            func sendReturn() async {
                 if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
                    let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
+                    returnDown.flags = []
+                    returnUp.flags = []
+                    let returnUnicode: [UniChar] = [0x000D]
+                    returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
+                    returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
                     returnDown.post(tap: .cghidEventTap)
-                    returnDown.post(tap: .cgSessionEventTap)
                     try? await Task.sleep(for: .milliseconds(50))
                     returnUp.post(tap: .cghidEventTap)
-                    returnUp.post(tap: .cgSessionEventTap)
                 }
                 
-                try? await Task.sleep(for: .milliseconds(100))
-                
-                if let keypadDown = CGEvent(keyboardEventSource: source, virtualKey: 0x4C, keyDown: true),
-                   let keypadUp = CGEvent(keyboardEventSource: source, virtualKey: 0x4C, keyDown: false) {
-                    keypadDown.post(tap: .cghidEventTap)
-                    keypadDown.post(tap: .cgSessionEventTap)
-                    try? await Task.sleep(for: .milliseconds(50))
-                    keypadUp.post(tap: .cghidEventTap)
-                    keypadUp.post(tap: .cgSessionEventTap)
+                // Secondary path: System Events key code 36
+                let script = NSAppleScript(source: "tell application \"System Events\" to key code 36")
+                script?.executeAndReturnError(nil)
+            }
+            
+            let pressCount = max(1, min(5, Defaults[.faceIDEnterPressCount]))
+            for i in 0..<pressCount {
+                if i > 0 {
+                    try? await Task.sleep(for: .milliseconds(180))
                 }
-                
-                try? await Task.sleep(for: .milliseconds(250))
+                await sendReturn()
+            }
+            
+            // In case SecurityAgent had focus delay, send confirmation Return after 400ms
+            try? await Task.sleep(for: .milliseconds(400))
+            if LockScreenWakeObserver.isSessionLocked {
+                await sendReturn()
             }
         }
     }

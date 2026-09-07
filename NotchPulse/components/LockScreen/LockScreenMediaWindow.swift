@@ -36,7 +36,9 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         backgroundColor = .clear
         hasShadow = false
         isMovable = false
-        level = .screenSaver
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
+        acceptsMouseMovedEvents = true
+        ignoresMouseEvents = false
         
         collectionBehavior = [
             .fullScreenAuxiliary,
@@ -60,7 +62,8 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
         let width: CGFloat = 410
-        let height: CGFloat = 180
+        let hasLyrics = !MusicManager.shared.syncedLyrics.isEmpty || !MusicManager.shared.currentLyrics.isEmpty
+        let height: CGFloat = hasLyrics ? 205 : 180
         let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
         let y = screen.frame.origin.y + (screen.frame.height * 0.12)
         return NSRect(x: x, y: y, width: width, height: height)

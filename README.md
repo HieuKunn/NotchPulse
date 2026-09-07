@@ -10,7 +10,7 @@
 
 ---
 
-## ✨ Key Features & What's New in v2.9.3.5
+## ✨ Key Features & What's New in v2.9.3.6
 
 - 🚀 **Seamless Auto-Update (Sparkle 2 & GitHub Releases)**:
   - Built-in automatic update engine with cryptographic EdDSA verification. Download and upgrade directly within the app without manually fetching `.dmg` files.

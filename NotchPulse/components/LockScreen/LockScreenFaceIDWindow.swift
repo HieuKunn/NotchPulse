@@ -11,6 +11,44 @@ import Defaults
 import SkyLightWindow
 import SwiftUI
 
+// MARK: - AppKit Tracking Hosting View with activeAlways for Lock Screen
+final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content> {
+    var onHoverChanged: ((Bool) -> Void)?
+    var onClicked: (() -> Void)?
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let ta = trackingArea {
+            removeTrackingArea(ta)
+        }
+        let options: NSTrackingArea.Options = [
+            .mouseEnteredAndExited,
+            .mouseMoved,
+            .activeAlways,
+            .inVisibleRect
+        ]
+        let ta = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
+        addTrackingArea(ta)
+        self.trackingArea = ta
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        onHoverChanged?(true)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        onHoverChanged?(false)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        onClicked?()
+    }
+}
+
 @MainActor
 final class LockScreenFaceIDWindow: NSPanel {
     static let shared = LockScreenFaceIDWindow()
@@ -35,8 +73,9 @@ final class LockScreenFaceIDWindow: NSPanel {
         backgroundColor = .clear
         hasShadow = false
         isMovable = false
-        level = .screenSaver
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
         acceptsMouseMovedEvents = true
+        ignoresMouseEvents = false
         
         collectionBehavior = [
             .fullScreenAuxiliary,
@@ -44,11 +83,6 @@ final class LockScreenFaceIDWindow: NSPanel {
             .canJoinAllSpaces,
             .ignoresCycle
         ]
-        
-        let hostingView = NSHostingView(rootView: LockScreenFaceIDPillView())
-        hostingView.wantsLayer = true
-        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
-        contentView = hostingView
     }
     
     func show() {
@@ -64,24 +98,31 @@ final class LockScreenFaceIDWindow: NSPanel {
         let closedSize = getClosedNotchSize(screenUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
         let width: CGFloat = max(185, closedSize.width)
         
-        // When on a Mac with physical notch:
-        // The window starts from the very top bezel of the Mac, covering the physical notch
-        // and extending 48px downward as a single unified shape.
-        // When on an external monitor (no notch):
-        // The notch doesn't have a camera bezel, so its height is compact (44px) attached to the top edge.
         let notchHardwareHeight: CGFloat = hasPhysicalNotch ? screen.safeAreaInsets.top : 0
         let totalHeight: CGFloat = hasPhysicalNotch ? (notchHardwareHeight + 48) : 44
         
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
         let y = screen.frame.origin.y + screen.frame.height - totalHeight
         
-        let hostingView = NSHostingView(rootView: LockScreenFaceIDPillView(
+        let trackingHostingView = LockScreenTrackingHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
             notchHardwareHeight: notchHardwareHeight
         ))
-        hostingView.wantsLayer = true
-        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
-        contentView = hostingView
+        trackingHostingView.wantsLayer = true
+        trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        trackingHostingView.onHoverChanged = { hovering in
+            if hovering {
+                if !FaceIDManager.shared.isScanning && !FaceIDManager.shared.lastUnlockSuccess {
+                    FaceIDManager.shared.startRecognitionOnWake()
+                }
+            }
+        }
+        trackingHostingView.onClicked = {
+            if !FaceIDManager.shared.isScanning && !FaceIDManager.shared.lastUnlockSuccess {
+                FaceIDManager.shared.startRecognitionOnWake()
+            }
+        }
+        contentView = trackingHostingView
         
         setFrame(NSRect(x: x, y: y, width: width, height: totalHeight), display: true)
         
@@ -402,15 +443,23 @@ struct LockScreenFaceIDPillView: View {
                     Spacer().frame(height: notchHardwareHeight)
                 }
                 
-                VStack {
+                VStack(spacing: 1) {
                     Spacer(minLength: 2)
                     AppleFaceIDGlyphView(
                         isScanning: faceIDManager.isScanning,
                         isSuccess: faceIDManager.lastUnlockSuccess,
                         isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                        size: hasPhysicalNotch ? 32 : 26
+                        size: hasPhysicalNotch ? 30 : 24
                     )
-                    Spacer(minLength: 4)
+                    
+                    if !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess {
+                        Text(isHovered ? "Rê chuột/Nhấp để quét lại" : (faceIDManager.statusMessage == "Face Not Recognized" ? "Chưa nhận diện" : "Face ID"))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(faceIDManager.statusMessage == "Face Not Recognized" ? .orange : Color.white.opacity(isHovered ? 0.95 : 0.6))
+                            .lineLimit(1)
+                            .padding(.bottom, 2)
+                    }
+                    Spacer(minLength: 2)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -421,7 +470,7 @@ struct LockScreenFaceIDPillView: View {
                         .fill(Color.black)
                     
                     FaceIDExtensionStrokeShape(cornerRadius: hasPhysicalNotch ? 20 : 14)
-                        .stroke(borderColor, lineWidth: isHovered ? 2.0 : 1.5)
+                        .stroke(borderColor, lineWidth: isHovered ? 2.2 : 1.5)
                 }
             )
         }
@@ -448,8 +497,10 @@ struct LockScreenFaceIDPillView: View {
             return appleGreen.opacity(0.85)
         } else if faceIDManager.isScanning {
             return appleBlue.opacity(0.75)
+        } else if faceIDManager.statusMessage == "Face Not Recognized" {
+            return .orange.opacity(isHovered ? 0.9 : 0.6)
         } else {
-            return .orange.opacity(0.5)
+            return appleBlue.opacity(isHovered ? 0.85 : 0.4)
         }
     }
 }
