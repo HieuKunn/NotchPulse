@@ -120,36 +120,31 @@ struct CalendarDateButton: View {
 
     var body: some View {
         Button(action: onClick) {
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text(dayString)
-                    .font(.caption)
+                    .font(.system(size: 9.5, weight: .medium, design: .rounded))
                     .foregroundColor(isSelected ? .white : Color(white: 0.65))
 
                 ZStack {
                     if isToday {
                         Circle()
                             .fill(isSelected ? Color.clear : Color.effectiveAccentBackground)
-                            .frame(width: 24, height: 24)
+                            .frame(width: 22, height: 22)
                     }
                     Circle()
                         .stroke(isSelected ? Color.clear : (isToday ? Color.effectiveAccentBackground : Color.clear), lineWidth: 1)
-                        .frame(width: 28, height: 28)
-                        .background(
-                            Circle()
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 0)
-                        )
+                        .frame(width: 24, height: 24)
                     Text(dayNumberString)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(isSelected ? .white : Color(white: isToday ? 0.9 : 0.65))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundColor(isSelected ? .white : Color(white: isToday ? 0.95 : 0.65))
                 }
             }
-            .frame(width: 36, height: 50)
+            .frame(width: 32, height: 40)
             .background(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 7)
                     .fill(isSelected ? Color.effectiveAccentBackground : (isHovered ? Color.white.opacity(0.08) : Color.clear))
             )
-            .contentShape(RoundedRectangle(cornerRadius: 8))
+            .contentShape(RoundedRectangle(cornerRadius: 7))
         }
         .buttonStyle(PlainButtonStyle())
         .contentShape(Rectangle())
@@ -179,7 +174,7 @@ struct WheelPicker: View {
                     if index < spacerNum || index >= spacerNum + dateCount {
                         // Leading/trailing spacers sized to match a date cell
                         Spacer()
-                            .frame(width: 36, height: 50)
+                            .frame(width: 32, height: 40)
                             .id(index)
                     } else {
                         let date = dateForItemIndex(index: index, spacerNum: spacerNum)
@@ -190,7 +185,7 @@ struct WheelPicker: View {
                     }
                 }
             }
-            .frame(height: 50)
+            .frame(height: 40)
             .background(CalendarScrollWheelHelper())
         }
         .scrollIndicators(.never)
@@ -275,20 +270,17 @@ struct CalendarView: View {
     @State private var displayedDate = Date()
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading) {
+        VStack(spacing: 2) {
+            HStack(alignment: .center, spacing: 6) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(displayedDate.formatted(.dateTime.month(.abbreviated)))
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     Text(displayedDate.formatted(.dateTime.year()))
-                        .font(.title3)
-                        .fontWeight(.light)
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
                         .foregroundColor(Color(white: 0.65))
                 }
-                .frame(minWidth: 48, alignment: .leading)
-                .padding(.top, 4)
+                .frame(minWidth: 42, alignment: .leading)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
@@ -303,16 +295,17 @@ struct CalendarView: View {
                         LinearGradient(
                             colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing
                         )
-                        .frame(width: 20)
+                        .frame(width: 16)
                         Spacer()
                         LinearGradient(
                             colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing
                         )
-                        .frame(width: 20)
+                        .frame(width: 16)
                     }
                     .allowsHitTesting(false)
                 }
             }
+            .frame(height: 40)
 
             let filteredEvents = EventListView.filteredEvents(
                 events: calendarManager.events
@@ -328,6 +321,7 @@ struct CalendarView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
         }
+        .padding(.bottom, 8)
         .listRowBackground(Color.clear)
         .frame(height: 148)
         .clipped()
@@ -557,7 +551,7 @@ struct EventRowItemView: View {
             )
         }
         .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.vertical, 2.5)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
@@ -635,7 +629,7 @@ struct EventRowItemView: View {
             .frame(minWidth: 44, alignment: .trailing)
         }
         .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.vertical, 2.5)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(
