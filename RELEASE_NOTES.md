@@ -15,3 +15,7 @@ Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) aut
   - Không chớp màn hình, hình nền chuyển động theo màu Album, nâng vị trí thanh media tránh đè avatar tài khoản.
 - 🎤 **Karaoke & Lời bài hát Tinh tế**:
   - Dòng lời đang phát in đậm sáng bóng, tăng cỡ chữ chuẩn UX, không bị che lấp khi zoom.
+- 📅 **Lịch & Sự kiện Tối giản, Tự Động Định Vị Theo Giờ Thực**:
+  - Tự động cuộn đến sự kiện đang diễn ra trong khung giờ hiện tại hoặc sự kiện kế tiếp trong ngày mà không tốn pin/CPU/RAM.
+  - Giao diện sự kiện được tinh giản tối đa theo phong cách native macOS nguyên bản, loại bỏ các huy hiệu rối mắt.
+
