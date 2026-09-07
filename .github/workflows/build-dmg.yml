@@ -132,16 +132,24 @@ jobs:
             TAG="${{ github.ref_name }}"
           fi
           
-          echo "$SPARKLE_PRIVATE_KEY" | ./Sparkle-tools/bin/generate_appcast --ed-key-file - --download-url-prefix "https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/" appcast_staging/
-          
-          cp appcast_staging/appcast.xml .
+          CLEAN_KEY=$(echo "$SPARKLE_PRIVATE_KEY" | sed 's/.*PRIVATE_KEY:[[:space:]]*//' | sed 's/.*SPARKLE_PRIVATE_KEY:[[:space:]]*//' | tr -d ' "\r\n\t')
+          if [ -n "$CLEAN_KEY" ]; then
+            echo "$CLEAN_KEY" | ./Sparkle-tools/bin/generate_appcast --ed-key-file - --download-url-prefix "https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/" appcast_staging/ || echo "Warning: generate_appcast failed to sign appcast"
+            if [ -f "appcast_staging/appcast.xml" ]; then
+              cp appcast_staging/appcast.xml .
+            fi
+          else
+            echo "Warning: SPARKLE_PRIVATE_KEY not provided or empty"
+          fi
           
       - name: Commit and Push Appcast
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add appcast.xml
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: Update appcast.xml for release" && git push)
+          if [ -f "appcast.xml" ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add appcast.xml
+            git diff --quiet && git diff --staged --quiet || (git commit -m "chore: Update appcast.xml for release" && git push) || true
+          fi
 
       - name: Create or Update GitHub Release
         env:
