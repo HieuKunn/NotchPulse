@@ -564,6 +564,45 @@
         <i class="fa-solid fa-desktop" style="color: #a855f7;"></i>
         <span id="bezelModeLabel">Chế độ Sát mép / Hạ Notch</span>
       </button>
+      <button class="dock-btn" onclick="toggleLockScreen()">
+        <i class="fa-solid fa-lock" style="color: #f43f5e;"></i>
+        <span>Test Lock Screen FaceID</span>
+      </button>
+    </div>
+
+    <!-- ==========================================
+         LOCK SCREEN SIMULATION OVERLAY
+         ========================================== -->
+    <div id="lockScreenOverlay" class="lock-screen-overlay">
+      <div class="lock-ambient-bg">
+        <div class="glow-circle-left"></div>
+        <div class="glow-circle-right"></div>
+      </div>
+      
+      <!-- Top FaceID Icon -->
+      <div class="lock-faceid-container">
+        <i class="fa-solid fa-face-smile" style="color: #22c55e; font-size: 24px; text-shadow: 0 0 10px rgba(34,197,94,0.8);"></i>
+        <div style="color: #22c55e; font-size: 13px; margin-top: 6px; font-weight: 600;">Đã khớp! Đang mở khoá…</div>
+      </div>
+
+      <!-- Center Media Player -->
+      <div class="lock-media-player">
+        <div class="lock-album-art">🎵</div>
+        <div class="lock-song-info">
+          <div style="font-size: 24px; font-weight: 700; color: white;">Starboy</div>
+          <div style="font-size: 16px; color: rgba(255,255,255,0.7); margin-top: 4px;">The Weeknd</div>
+        </div>
+        
+        <div class="lock-progress">
+          <div class="lock-progress-fill"></div>
+        </div>
+        
+        <div class="lock-controls">
+          <i class="fa-solid fa-backward-step"></i>
+          <div class="lock-play-btn"><i class="fa-solid fa-pause"></i></div>
+          <i class="fa-solid fa-forward-step"></i>
+        </div>
+      </div>
     </div>
 
   </div>

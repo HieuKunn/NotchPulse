@@ -65,7 +65,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         let hasLyrics = !MusicManager.shared.syncedLyrics.isEmpty || !MusicManager.shared.currentLyrics.isEmpty
         let height: CGFloat = hasLyrics ? 205 : 180
         let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
-        let y = screen.frame.origin.y + (screen.frame.height * 0.12)
+        let y = screen.frame.origin.y + (screen.frame.height * 0.22)
         return NSRect(x: x, y: y, width: width, height: height)
     }
     
@@ -93,13 +93,17 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             isSkyLightAttached = true
         }
         
-        alphaValue = 0
-        orderFrontRegardless()
-        
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.35
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            self.animator().alphaValue = 1.0
+        if !isVisible || alphaValue == 0 {
+            alphaValue = 0
+            orderFrontRegardless()
+            
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.35
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                self.animator().alphaValue = 1.0
+            }
+        } else {
+            orderFrontRegardless()
         }
     }
     

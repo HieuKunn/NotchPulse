@@ -300,18 +300,18 @@ struct LockScreenMediaView: View {
     // Nền Ambient động phủ toàn màn hình
     private var ambientDynamicBackground: some View {
         ZStack {
-            Color.black
+            Color(nsColor: musicManager.avgColor)
             
             // Quầng sáng to chính giữa bên trái
             Circle()
-                .fill(Color(nsColor: musicManager.avgColor).opacity(0.45))
+                .fill(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.9).opacity(0.6))
                 .frame(width: 650, height: 650)
                 .blur(radius: 120)
                 .offset(x: -250, y: -50)
             
             // Quầng sáng phụ bên phải
             Circle()
-                .fill(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.9).opacity(0.35))
+                .fill(Color.white.opacity(0.2))
                 .frame(width: 550, height: 550)
                 .blur(radius: 110)
                 .offset(x: 280, y: 120)
@@ -322,7 +322,7 @@ struct LockScreenMediaView: View {
                 .environment(\.colorScheme, .dark)
             
             Rectangle()
-                .fill(Color.black.opacity(0.45))
+                .fill(Color.black.opacity(0.2))
         }
     }
     
@@ -498,7 +498,7 @@ struct LockScreenMediaView: View {
                                         musicManager.seek(to: item.time)
                                     } label: {
                                         Text(item.text)
-                                            .font(.system(size: isCurrent ? 26 : 19, weight: isCurrent ? .bold : .medium, design: .rounded))
+                                            .font(.system(size: isCurrent ? 28 : 19, weight: isCurrent ? .bold : .medium, design: .rounded))
                                             .foregroundStyle(
                                                 isCurrent
                                                 ? Color.white
@@ -506,10 +506,10 @@ struct LockScreenMediaView: View {
                                                 ? Color.white.opacity(0.3)
                                                 : Color.white.opacity(0.6)
                                             )
-                                            .scaleEffect(isCurrent ? 1.05 : 1.0, anchor: .leading)
                                             .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
                                             .multilineTextAlignment(.leading)
                                             .fixedSize(horizontal: false, vertical: true)
+                                            .padding(.vertical, 4)
                                             .animation(.easeInOut(duration: 0.25), value: isCurrent)
                                     }
                                     .buttonStyle(.plain)

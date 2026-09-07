@@ -397,3 +397,15 @@ function updateHudDisplayUI() {
     pct.textContent = `${externalBrightness}%`;
   }
 }
+
+// Lock Screen Simulation Toggle
+function toggleLockScreen() {
+  const overlay = document.getElementById('lockScreenOverlay');
+  if (overlay) {
+    if (overlay.classList.contains('active')) {
+      overlay.classList.remove('active');
+    } else {
+      overlay.classList.add('active');
+    }
+  }
+}

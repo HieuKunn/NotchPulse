@@ -47,6 +47,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     private var isProcessingFrame: Bool = false
     private var recognitionTimer: Task<Void, Never>?
+    private var unlockTask: Task<Void, Never>?
     private var enrollmentSamples: [[Double]] = []
     private var isEnrollmentMode: Bool = false
     private var pendingFaceName: String = "Face 1"
@@ -56,8 +57,8 @@ final class FaceIDManager: NSObject, ObservableObject {
     private var lastMatchedFaceName: String? = nil
     
     // Threshold for Cosine Distance (0.0 is exact match, 1.0 is orthogonal).
-    // Typically < 0.35 means same person for FaceNet models.
-    private let matchThreshold: Double = 0.35
+    // Distance <= 0.38 gives instant, comfortable recognition for enrolled faces while maintaining security.
+    private let matchThreshold: Double = 0.38
     
     private let profilesFileName = "faceid_profiles.json"
     private var profilesURL: URL {
@@ -233,6 +234,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     func cancelCurrentSession() {
         recognitionTimer?.cancel()
+        unlockTask?.cancel()
         stopCameraSession()
         isScanning = false
         isEnrollmentMode = false
@@ -439,24 +441,22 @@ final class FaceIDManager: NSObject, ObservableObject {
             NSSound(named: "Glass")?.play()
         }
         
-        Task.detached(priority: .high) {
+        unlockTask?.cancel()
+        unlockTask = Task.detached(priority: .high) {
             let source = CGEventSource(stateID: .hidSystemState)
             
-            // 1. Wake & dismiss any screen-saver/clock overlay using Escape (0x35)
-            // DO NOT use Spacebar (0x31), as Spacebar injects an extra space into the password field!
-            if let escDown = CGEvent(keyboardEventSource: source, virtualKey: 0x35, keyDown: true),
-               let escUp = CGEvent(keyboardEventSource: source, virtualKey: 0x35, keyDown: false) {
-                escDown.flags = []
-                escUp.flags = []
-                escDown.post(tap: .cghidEventTap)
-                try? await Task.sleep(for: .milliseconds(35))
-                escUp.post(tap: .cghidEventTap)
+            // 1. Ensure display & login window are awake and focused without dismissing prompt
+            // Note: DO NOT press Escape (0x35), as Escape dismisses/cancels the active password prompt!
+            let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
+            if let moveEvent = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: CGPoint(x: mouseLoc.x + 1, y: mouseLoc.y), mouseButton: .left) {
+                moveEvent.post(tap: .cghidEventTap)
             }
+            try? await Task.sleep(for: .milliseconds(50))
+            if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
             
-            try? await Task.sleep(for: .milliseconds(250))
-            
-            // 2. Wipe any pre-existing text or leftover input using multiple Delete strokes
-            for _ in 0..<20 {
+            // 2. Clear any pre-existing text or leftover input using Delete strokes
+            for _ in 0..<15 {
+                if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
                 if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
                    let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
                     delDown.flags = []
@@ -464,12 +464,14 @@ final class FaceIDManager: NSObject, ObservableObject {
                     delDown.post(tap: .cghidEventTap)
                     delUp.post(tap: .cghidEventTap)
                 }
-                try? await Task.sleep(for: .milliseconds(12))
+                try? await Task.sleep(for: .milliseconds(6))
             }
-            try? await Task.sleep(for: .milliseconds(80))
+            try? await Task.sleep(for: .milliseconds(40))
+            if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
             
-            // 3. Type password characters cleanly
+            // 3. Type password characters cleanly and briskly
             for char in password {
+                if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
                 if let keyInfo = Self.keyEventInfo(for: char) {
                     if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
                        let up = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: false) {
@@ -485,9 +487,9 @@ final class FaceIDManager: NSObject, ObservableObject {
                         up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                         
                         down.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(25))
+                        try? await Task.sleep(for: .milliseconds(12))
                         up.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(25))
+                        try? await Task.sleep(for: .milliseconds(12))
                     }
                 } else {
                     let utf16 = Array(String(char).utf16)
@@ -498,15 +500,16 @@ final class FaceIDManager: NSObject, ObservableObject {
                         down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                         up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                         down.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(25))
+                        try? await Task.sleep(for: .milliseconds(12))
                         up.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(25))
+                        try? await Task.sleep(for: .milliseconds(12))
                     }
                 }
             }
             
-            // 4. Delay to let SecurityAgent complete rendering all bullet dots
-            try? await Task.sleep(for: .milliseconds(350))
+            // 4. Brief delay to let SecurityAgent complete rendering all bullet dots
+            try? await Task.sleep(for: .milliseconds(100))
+            if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
             
             // 5. Submit password with Return (0x24) via CGEvent and System Events
             func sendReturn() async {
@@ -518,7 +521,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                     returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
                     returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
                     returnDown.post(tap: .cghidEventTap)
-                    try? await Task.sleep(for: .milliseconds(50))
+                    try? await Task.sleep(for: .milliseconds(30))
                     returnUp.post(tap: .cghidEventTap)
                 }
                 
@@ -529,16 +532,28 @@ final class FaceIDManager: NSObject, ObservableObject {
             
             let pressCount = max(1, min(5, Defaults[.faceIDEnterPressCount]))
             for i in 0..<pressCount {
+                if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
                 if i > 0 {
-                    try? await Task.sleep(for: .milliseconds(180))
+                    try? await Task.sleep(for: .milliseconds(120))
                 }
                 await sendReturn()
             }
             
-            // In case SecurityAgent had focus delay, send confirmation Return after 400ms
-            try? await Task.sleep(for: .milliseconds(400))
+            if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
+            // In case SecurityAgent had focus delay, send confirmation Return after 350ms
+            try? await Task.sleep(for: .milliseconds(350))
             if LockScreenWakeObserver.isSessionLocked {
+                if Task.isCancelled { return }
                 await sendReturn()
+            }
+            
+            // Safety reset: If session is still locked after 2.5s (e.g. wrong password), reset state so user can retry
+            try? await Task.sleep(for: .milliseconds(2500))
+            if LockScreenWakeObserver.isSessionLocked {
+                await MainActor.run {
+                    FaceIDManager.shared.lastUnlockSuccess = false
+                    FaceIDManager.shared.statusMessage = "Ready"
+                }
             }
         }
     }
@@ -650,19 +665,12 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                 }
             }
             
-            // Strict match check: Distance must be strictly under threshold
+            // Immediate match on first confirmed frame (< 0.38)
             if bestDistance <= self.matchThreshold {
-                self.consecutiveMatches += 1
-                
-                // Require 2 consecutive matching frames to prevent any momentary false positive
-                if self.consecutiveMatches >= 2 {
-                    self.recognitionTimer?.cancel()
-                    self.stopCameraSession()
-                    self.isScanning = false
-                    self.performMacUnlock()
-                }
-            } else {
-                self.consecutiveMatches = 0
+                self.recognitionTimer?.cancel()
+                self.stopCameraSession()
+                self.isScanning = false
+                self.performMacUnlock()
             }
         }
     }

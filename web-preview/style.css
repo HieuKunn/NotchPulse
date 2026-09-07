@@ -1413,3 +1413,131 @@ body.bezel-mode .notch-wrapper {
 .dock-btn.primary:hover {
   background: #0070e0;
 }
+
+/* Lock Screen Overlay */
+.lock-screen-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20000;
+  background: black;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  overflow: hidden;
+}
+
+.lock-screen-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.lock-ambient-bg {
+  position: absolute;
+  inset: 0;
+  background: #2e1065; /* Deep purple album color */
+  z-index: 1;
+}
+
+.lock-ambient-bg .glow-circle-left {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: rgba(168, 85, 247, 0.6);
+  border-radius: 50%;
+  filter: blur(120px);
+  top: -100px;
+  left: -200px;
+}
+
+.lock-ambient-bg .glow-circle-right {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  filter: blur(100px);
+  bottom: -50px;
+  right: -100px;
+}
+
+.lock-faceid-container {
+  position: absolute;
+  top: 40px; /* High up, above everything */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0,0,0,0.4);
+  padding: 10px 20px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.lock-media-player {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 80px;
+}
+
+.lock-album-art {
+  width: 320px;
+  height: 320px;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  margin-bottom: 30px;
+}
+
+.lock-song-info {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.lock-progress {
+  width: 380px;
+  height: 6px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+  margin-bottom: 30px;
+}
+
+.lock-progress-fill {
+  width: 45%;
+  height: 100%;
+  background: #fff;
+  border-radius: 3px;
+}
+
+.lock-controls {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  color: white;
+  font-size: 24px;
+}
+
+.lock-play-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  cursor: pointer;
+}

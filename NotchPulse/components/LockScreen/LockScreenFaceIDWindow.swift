@@ -73,7 +73,8 @@ final class LockScreenFaceIDWindow: NSPanel {
         backgroundColor = .clear
         hasShadow = false
         isMovable = false
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
+        // Ensure FaceID is always above everything else, including fullscreen media
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
         acceptsMouseMovedEvents = true
         ignoresMouseEvents = false
         
@@ -104,6 +105,11 @@ final class LockScreenFaceIDWindow: NSPanel {
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
         let y = screen.frame.origin.y + screen.frame.height - totalHeight
         
+        if isVisible && alphaValue > 0.95 && isSkyLightAttached {
+            orderFrontRegardless()
+            return
+        }
+        
         let trackingHostingView = LockScreenTrackingHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
             notchHardwareHeight: notchHardwareHeight
@@ -112,13 +118,13 @@ final class LockScreenFaceIDWindow: NSPanel {
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
             if hovering {
-                if !FaceIDManager.shared.isScanning && !FaceIDManager.shared.lastUnlockSuccess {
+                if !FaceIDManager.shared.isScanning {
                     FaceIDManager.shared.startRecognitionOnWake()
                 }
             }
         }
         trackingHostingView.onClicked = {
-            if !FaceIDManager.shared.isScanning && !FaceIDManager.shared.lastUnlockSuccess {
+            if !FaceIDManager.shared.isScanning {
                 FaceIDManager.shared.startRecognitionOnWake()
             }
         }
@@ -452,13 +458,11 @@ struct LockScreenFaceIDPillView: View {
                         size: hasPhysicalNotch ? 30 : 24
                     )
                     
-                    if !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess {
-                        Text(isHovered ? "Rê chuột/Nhấp để quét lại" : (faceIDManager.statusMessage == "Face Not Recognized" ? "Chưa nhận diện" : "Face ID"))
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(faceIDManager.statusMessage == "Face Not Recognized" ? .orange : Color.white.opacity(isHovered ? 0.95 : 0.6))
-                            .lineLimit(1)
-                            .padding(.bottom, 2)
-                    }
+                    Text(statusDisplayText)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(statusDisplayColor)
+                        .lineLimit(1)
+                        .padding(.bottom, 2)
                     Spacer(minLength: 2)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -487,8 +491,32 @@ struct LockScreenFaceIDPillView: View {
     }
     
     private func triggerScan() {
-        if !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess {
+        if !faceIDManager.isScanning {
             faceIDManager.startRecognitionOnWake()
+        }
+    }
+    
+    private var statusDisplayText: String {
+        if faceIDManager.lastUnlockSuccess {
+            return "Đã khớp! Đang mở khoá…"
+        } else if faceIDManager.isScanning {
+            return "Đang quét mặt…"
+        } else if faceIDManager.statusMessage == "Face Not Recognized" {
+            return "Chưa nhận diện"
+        } else {
+            return isHovered ? "Rê chuột/Nhấp để quét" : "Face ID"
+        }
+    }
+    
+    private var statusDisplayColor: Color {
+        if faceIDManager.lastUnlockSuccess {
+            return appleGreen
+        } else if faceIDManager.isScanning {
+            return appleBlue
+        } else if faceIDManager.statusMessage == "Face Not Recognized" {
+            return .orange
+        } else {
+            return Color.white.opacity(isHovered ? 0.95 : 0.6)
         }
     }
     
