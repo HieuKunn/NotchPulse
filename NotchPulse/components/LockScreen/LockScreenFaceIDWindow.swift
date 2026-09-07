@@ -36,6 +36,7 @@ final class LockScreenFaceIDWindow: NSPanel {
         hasShadow = false
         isMovable = false
         level = .screenSaver
+        acceptsMouseMovedEvents = true
         
         collectionBehavior = [
             .fullScreenAuxiliary,
@@ -386,14 +387,14 @@ struct LockScreenFaceIDPillView: View {
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
     
+    @State private var isHovered: Bool = false
+    
     private let appleBlue = Color(red: 0.04, green: 0.52, blue: 1.0)
     private let appleGreen = Color(red: 0.188, green: 0.855, blue: 0.376)
     
     var body: some View {
         Button {
-            if !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess {
-                faceIDManager.startRecognitionOnWake()
-            }
+            triggerScan()
         } label: {
             VStack(spacing: 0) {
                 if hasPhysicalNotch {
@@ -420,12 +421,26 @@ struct LockScreenFaceIDPillView: View {
                         .fill(Color.black)
                     
                     FaceIDExtensionStrokeShape(cornerRadius: hasPhysicalNotch ? 20 : 14)
-                        .stroke(borderColor, lineWidth: 1.5)
+                        .stroke(borderColor, lineWidth: isHovered ? 2.0 : 1.5)
                 }
             )
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                self.isHovered = hovering
+            }
+            if hovering {
+                triggerScan()
+            }
+        }
+    }
+    
+    private func triggerScan() {
+        if !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess {
+            faceIDManager.startRecognitionOnWake()
+        }
     }
     
     private var borderColor: Color {
