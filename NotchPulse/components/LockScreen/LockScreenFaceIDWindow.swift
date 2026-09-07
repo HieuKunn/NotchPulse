@@ -88,18 +88,21 @@ final class LockScreenFaceIDWindow: NSPanel {
     
     func show() {
         // Target specifically the screen where NotchPulse displays the notch
-        let screen: NSScreen? = NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
-            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+        let preferredUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID
+        let selectedUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
+        let screen: NSScreen? = (preferredUUID.flatMap { NSScreen.screen(withUUID: $0) })
+            ?? NSScreen.screen(withUUID: selectedUUID)
+            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil })
             ?? NSScreen.main
             ?? NSScreen.screens.first
         
         guard let screen = screen else { return }
         
-        let hasPhysicalNotch = screen.safeAreaInsets.top > 0
-        let closedSize = getClosedNotchSize(screenUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
+        let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
+        let closedSize = getClosedNotchSize(screenUUID: screen.displayUUID)
         let displayStyle = Defaults[.faceIDDisplayStyle]
         
-        let notchHardwareHeight: CGFloat = hasPhysicalNotch ? screen.safeAreaInsets.top : 34
+        let notchHardwareHeight: CGFloat = (screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : (hasPhysicalNotch ? 32 : 34))
         
         let width: CGFloat
         let totalHeight: CGFloat
@@ -107,11 +110,11 @@ final class LockScreenFaceIDWindow: NSPanel {
         switch displayStyle {
         case .popDown:
             width = max(185, closedSize.width + 10)
-            totalHeight = hasPhysicalNotch ? (notchHardwareHeight + 26) : 38
+            totalHeight = hasPhysicalNotch ? (notchHardwareHeight + 24) : 38
         case .inline:
             if hasPhysicalNotch {
-                let sideItemSize = max(22, notchHardwareHeight - 12)
-                width = closedSize.width + (2 * sideItemSize + 20)
+                let wingSize = max(0, notchHardwareHeight - 12)
+                width = closedSize.width + (2 * wingSize + 20)
                 totalHeight = notchHardwareHeight
             } else {
                 width = 210
@@ -125,8 +128,7 @@ final class LockScreenFaceIDWindow: NSPanel {
         let trackingHostingView = LockScreenTrackingHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
             notchHardwareHeight: notchHardwareHeight,
-            physicalNotchWidth: closedSize.width,
-            displayStyle: displayStyle
+            physicalNotchWidth: closedSize.width
         ))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
@@ -532,7 +534,7 @@ struct LockScreenFaceIDPillView: View {
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
     var physicalNotchWidth: CGFloat = 185
-    var displayStyle: FaceIDDisplayStyle = Defaults[.faceIDDisplayStyle]
+    @Default(.faceIDDisplayStyle) var displayStyle: FaceIDDisplayStyle
     
     @State private var isHovered: Bool = false
     
@@ -579,7 +581,7 @@ struct LockScreenFaceIDPillView: View {
                     isScanning: faceIDManager.isScanning,
                     isSuccess: faceIDManager.lastUnlockSuccess,
                     isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                    size: 18
+                    size: 17
                 )
                 
                 Text(statusDisplayText)
@@ -597,28 +599,34 @@ struct LockScreenFaceIDPillView: View {
     @ViewBuilder
     private var inlineContent: some View {
         if hasPhysicalNotch {
-            // Màn Mac có notch: 2 bên tai mở rộng giống hệt ô Album Art & Waveform của Media
-            let sideWidth = max(28, notchHardwareHeight - 4)
+            let wingSize = max(0, notchHardwareHeight - 12)
             HStack(spacing: 0) {
-                // Ô bên trái: Biểu tượng Face ID nhỏ nhắn, cân đối
+                // Ô bên trái: Biểu tượng Face ID nhỏ nhắn, nằm đúng vị trí của bìa nhạc (album art)
                 ZStack {
                     AppleFaceIDGlyphView(
                         isScanning: faceIDManager.isScanning,
                         isSuccess: faceIDManager.lastUnlockSuccess,
                         isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                        size: 17
+                        size: max(14, wingSize - 2)
                     )
                 }
-                .frame(width: sideWidth, height: notchHardwareHeight)
+                .frame(width: wingSize, height: wingSize)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.white.opacity(isHovered ? 0.12 : 0.06))
+                )
+                .frame(width: wingSize + 10, height: notchHardwareHeight)
                 
-                // Khoảng đen ở giữa: Khớp hoàn toàn với phần notch nhựa/camera vật lý
-                Spacer(minLength: max(40, physicalNotchWidth - 8))
+                // Khoảng đen ở giữa: Khớp hoàn toàn với phần notch nhựa/camera vật lý, không bị notch che
+                Rectangle()
+                    .fill(Color.black)
+                    .frame(width: max(40, physicalNotchWidth - 6), height: notchHardwareHeight)
                 
-                // Ô bên phải: Trạng thái mở khoá (chấm quét / ổ khoá xanh lá mở khi thành công)
+                // Ô bên phải: Trạng thái mở khoá (chấm quét / ổ khoá mở khi thành công - vị trí như sóng nhạc)
                 ZStack {
                     if faceIDManager.lastUnlockSuccess {
                         Image(systemName: "lock.open.fill")
-                            .font(.system(size: 12.5, weight: .bold))
+                            .font(.system(size: max(11, wingSize - 6), weight: .bold))
                             .foregroundStyle(appleGreen)
                             .shadow(color: appleGreen.opacity(0.85), radius: 5)
                             .transition(.scale.combined(with: .opacity))
@@ -627,15 +635,16 @@ struct LockScreenFaceIDPillView: View {
                             .transition(.opacity)
                     } else if faceIDManager.statusMessage == "Face Not Recognized" {
                         Image(systemName: "exclamationmark.circle.fill")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: max(11, wingSize - 6), weight: .semibold))
                             .foregroundStyle(Color.orange)
                     } else {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 10.5, weight: .medium))
+                            .font(.system(size: max(10, wingSize - 8), weight: .medium))
                             .foregroundStyle(Color.white.opacity(isHovered ? 0.8 : 0.35))
                     }
                 }
-                .frame(width: sideWidth, height: notchHardwareHeight)
+                .frame(width: wingSize, height: wingSize)
+                .frame(width: wingSize + 10, height: notchHardwareHeight)
             }
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -662,14 +671,16 @@ struct LockScreenFaceIDPillView: View {
     @ViewBuilder
     private var backgroundShape: some View {
         let topRadius: CGFloat = 6
-        let bottomRadius: CGFloat = 14
+        let bottomRadius: CGFloat = displayStyle == .popDown ? 20 : 14
         
         ZStack {
-            FaceIDNotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
+            NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
                 .fill(Color.black)
             
-            FaceIDNotchStrokeShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
-                .stroke(borderColor, lineWidth: isHovered ? 1.8 : 1.2)
+            if displayStyle == .popDown || !hasPhysicalNotch {
+                FaceIDNotchStrokeShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
+                    .stroke(borderColor, lineWidth: isHovered ? 1.8 : 1.2)
+            }
         }
     }
     
