@@ -7,9 +7,6 @@ on:
         description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.3, bắt buộc)'
         required: true
         default: 'v2.9.3'
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   build:
