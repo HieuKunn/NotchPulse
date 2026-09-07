@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>NotchPulse Changelog</title>
+        <link>https://github.com/HieuKunn/NotchPulse</link>
+        <description>Most recent changes with links to updates.</description>
+        <language>en</language>
+        <item>
+            <title>Version 2.9.4.3</title>
+            <pubDate>Mon, 08 Sep 2026 01:00:00 +0700</pubDate>
+            <sparkle:version>2.9.4.3</sparkle:version>
+            <sparkle:shortVersionString>2.9.4.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/v2.9.4.3/NotchPulse.app.zip" length="100578285" type="application/octet-stream" sparkle:edSignature="NBjL78EXiHC6q+U7brTMTqaqbs1aQKXvB8ybD2ZxLNw=" />
+        </item>
+    </channel>
+</rss>
