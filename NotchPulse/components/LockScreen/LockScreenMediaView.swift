@@ -229,73 +229,74 @@ struct LockScreenMediaView: View {
     // MARK: - 2. Full-Screen Immersive Player View (Ảnh bìa to + Lời Karaoke)
     // =========================================================================
     private var fullScreenPlayerView: some View {
-        GeometryReader { geo in
-            ZStack {
+        ZStack {
             // Nền Ambient phát sáng màu của bài hát phủ toàn màn hình
             ambientDynamicBackground
             
-            VStack(spacing: 0) {
-                // Thanh tiêu đề phía trên (Thu nhỏ chỉ cần bấm vào ảnh đĩa/album)
-                HStack {
-                    Spacer()
-                    
-                    // Nút tua lùi 5s / tua tới 5s (chỉ hiện nếu user có thêm trong tuỳ chỉnh)
-                    if musicControlSlots.contains(.goBackward) || musicControlSlots.contains(.goForward) {
-                        HStack(spacing: 12) {
-                            Button {
-                                musicManager.skip(seconds: -5)
-                            } label: {
-                                Image(systemName: "gobackward.5")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(.white.opacity(0.75))
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    // Thanh tiêu đề phía trên (Thu nhỏ chỉ cần bấm vào ảnh đĩa/album)
+                    HStack {
+                        Spacer()
+                        
+                        // Nút tua lùi 5s / tua tới 5s (chỉ hiện nếu user có thêm trong tuỳ chỉnh)
+                        if musicControlSlots.contains(.goBackward) || musicControlSlots.contains(.goForward) {
+                            HStack(spacing: 12) {
+                                Button {
+                                    musicManager.skip(seconds: -5)
+                                } label: {
+                                    Image(systemName: "gobackward.5")
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(.white.opacity(0.75))
+                                }
+                                .buttonStyle(.plain)
+                                
+                                Button {
+                                    musicManager.skip(seconds: 5)
+                                } label: {
+                                    Image(systemName: "goforward.5")
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(.white.opacity(0.75))
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
-                            
-                            Button {
-                                musicManager.skip(seconds: 5)
-                            } label: {
-                                Image(systemName: "goforward.5")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(.white.opacity(0.75))
-                            }
-                            .buttonStyle(.plain)
                         }
                     }
-                }
-                .padding(.horizontal, 48)
-                .padding(.top, 40)
-                
-                Spacer(minLength: 20)
-                
-                // Nội dung 2 cột: Trái là Ảnh bìa to & Điều khiển, Phải là Lời bài hát Karaoke
-                let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty || musicManager.isFetchingLyrics
-                let contentWidth = geo.size.width * 0.85
-                
-                HStack(alignment: .center, spacing: 60) {
-                    if hasLyrics {
-                        // CỘT TRÁI: Ảnh bìa to + Tên bài hát + Timeline + Phím điều khiển
-                        fullScreenLeftColumn
-                            .frame(maxWidth: contentWidth * 0.42)
-                        
-                        // CỘT PHẢI: Lời bài hát Karaoke chạy thời gian thực
-                        fullScreenLyricsColumn
-                            .frame(maxWidth: contentWidth * 0.58)
-                    } else {
-                        Spacer()
-                        
-                        // CỘT TRÁI: Đưa ra giữa khi không có lời bài hát
-                        fullScreenLeftColumn
-                            .frame(maxWidth: 440)
-                        
-                        Spacer()
+                    .padding(.horizontal, 48)
+                    .padding(.top, 40)
+                    
+                    Spacer(minLength: 20)
+                    
+                    // Nội dung 2 cột: Trái là Ảnh bìa to & Điều khiển, Phải là Lời bài hát Karaoke
+                    let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty || musicManager.isFetchingLyrics
+                    let contentWidth = geo.size.width * 0.85
+                    
+                    HStack(alignment: .center, spacing: 60) {
+                        if hasLyrics {
+                            // CỘT TRÁI: Ảnh bìa to + Tên bài hát + Timeline + Phím điều khiển
+                            fullScreenLeftColumn
+                                .frame(maxWidth: contentWidth * 0.42)
+                            
+                            // CỘT PHẢI: Lời bài hát Karaoke chạy thời gian thực
+                            fullScreenLyricsColumn
+                                .frame(maxWidth: contentWidth * 0.58)
+                        } else {
+                            Spacer()
+                            
+                            // CỘT TRÁI: Đưa ra giữa khi không có lời bài hát
+                            fullScreenLeftColumn
+                                .frame(maxWidth: 440)
+                            
+                            Spacer()
+                        }
                     }
+                    .padding(.horizontal, 50)
+                    
+                    Spacer(minLength: 40)
                 }
-                .padding(.horizontal, 50)
-                
-                Spacer(minLength: 40)
+                .scaleEffect(0.9)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .scaleEffect(0.9)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .ignoresSafeArea()
     }
