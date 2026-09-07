@@ -144,7 +144,6 @@ final class FaceIDManager: NSObject, ObservableObject {
         isEnrollmentMode = false
         isTestingMode = false
         lastUnlockSuccess = false
-        lastUnlockSuccess = false
         consecutiveMatches = 0
         lastMatchedFaceName = nil
         statusMessage = "Verifying face…"
@@ -171,7 +170,6 @@ final class FaceIDManager: NSObject, ObservableObject {
         pendingFaceName = name ?? (enrolledFaces.isEmpty ? "Face 1" : "Appearance \(enrolledFaces.count + 1)")
         isEnrollmentMode = true
         isTestingMode = false
-        lastUnlockSuccess = false
         lastUnlockSuccess = false
         enrollmentSamples.removeAll()
         enrollmentProgress = 0.0
