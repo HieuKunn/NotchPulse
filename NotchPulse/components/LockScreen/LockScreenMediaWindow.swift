@@ -53,11 +53,11 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         contentView = hostingView
     }
     
-    private func getTargetScreen() -> NSScreen {
+    private func getTargetScreen() -> NSScreen? {
         return NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
             ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
             ?? NSScreen.main
-            ?? NSScreen.screens.first!
+            ?? NSScreen.screens.first
     }
     
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
@@ -70,7 +70,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func setFullScreen(_ fullScreen: Bool) {
-        let screen = getTargetScreen()
+        guard let screen = getTargetScreen() else { return }
         self.isFullScreen = fullScreen
         
         let targetRect = fullScreen ? screen.frame : targetCompactFrame(for: screen)
@@ -83,7 +83,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func show() {
-        let screen = getTargetScreen()
+        guard let screen = getTargetScreen() else { return }
         
         let targetRect = isFullScreen ? screen.frame : targetCompactFrame(for: screen)
         setFrame(targetRect, display: true)

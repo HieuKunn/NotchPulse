@@ -456,11 +456,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if !Defaults[.showOnAllDisplays] {
-            let viewModel = self.vm
-            let window = createNotchPulseWindow(
-                for: NSScreen.main ?? NSScreen.screens.first!, with: viewModel)
-            self.window = window
-            adjustWindowPosition(changeAlpha: true)
+            if let screen = NSScreen.main ?? NSScreen.screens.first {
+                let viewModel = self.vm
+                let window = createNotchPulseWindow(
+                    for: screen, with: viewModel)
+                self.window = window
+                adjustWindowPosition(changeAlpha: true)
+            }
         } else {
             adjustWindowPosition(changeAlpha: true)
         }
