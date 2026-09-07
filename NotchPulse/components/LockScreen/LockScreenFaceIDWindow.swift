@@ -99,18 +99,24 @@ final class LockScreenFaceIDWindow: NSPanel {
         let closedSize = getClosedNotchSize(screenUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
         let displayStyle = Defaults[.faceIDDisplayStyle]
         
-        let notchHardwareHeight: CGFloat = hasPhysicalNotch ? screen.safeAreaInsets.top : 0
+        let notchHardwareHeight: CGFloat = hasPhysicalNotch ? screen.safeAreaInsets.top : 34
         
         let width: CGFloat
         let totalHeight: CGFloat
         
         switch displayStyle {
         case .popDown:
-            width = max(200, closedSize.width + 12)
-            totalHeight = hasPhysicalNotch ? (notchHardwareHeight + 50) : 48
+            width = max(185, closedSize.width + 10)
+            totalHeight = hasPhysicalNotch ? (notchHardwareHeight + 26) : 38
         case .inline:
-            width = max(220, closedSize.width + 24)
-            totalHeight = hasPhysicalNotch ? (notchHardwareHeight + 4) : 38
+            if hasPhysicalNotch {
+                let sideItemSize = max(22, notchHardwareHeight - 12)
+                width = closedSize.width + (2 * sideItemSize + 20)
+                totalHeight = notchHardwareHeight
+            } else {
+                width = 210
+                totalHeight = 34
+            }
         }
         
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
@@ -119,6 +125,7 @@ final class LockScreenFaceIDWindow: NSPanel {
         let trackingHostingView = LockScreenTrackingHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
             notchHardwareHeight: notchHardwareHeight,
+            physicalNotchWidth: closedSize.width,
             displayStyle: displayStyle
         ))
         trackingHostingView.wantsLayer = true
@@ -408,10 +415,10 @@ struct AppleFaceIDGlyphView: View {
     }
 }
 
-// MARK: - Authentic Apple MacBook Notch Shape with Top Concave Ears & Rounded Bottom Corners
+// MARK: - Authentic Apple MacBook Notch Shape with Top Concave Ears & Smooth Rounded Bottom Fillets
 struct FaceIDNotchShape: Shape {
-    var topCornerRadius: CGFloat = 8
-    var bottomCornerRadius: CGFloat = 24
+    var topCornerRadius: CGFloat = 6
+    var bottomCornerRadius: CGFloat = 14
     
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -420,36 +427,40 @@ struct FaceIDNotchShape: Shape {
         path.move(to: CGPoint(x: rect.minX, y: rect.minY))
         
         // Top-left concave flare into notch
-        path.addQuadCurve(
-            to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
-            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY)
+        path.addArc(
+            tangent1End: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY),
+            tangent2End: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
+            radius: topCornerRadius
         )
         
         // Left vertical edge down to bottom curve
         path.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
         
-        // Bottom-left rounded corner (continuous curve)
-        path.addQuadCurve(
-            to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY),
-            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY)
+        // Bottom-left smooth circular fillet
+        path.addArc(
+            tangent1End: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY),
+            tangent2End: CGPoint(x: rect.midX, y: rect.maxY),
+            radius: bottomCornerRadius
         )
         
         // Bottom horizontal edge
         path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
         
-        // Bottom-right rounded corner
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius),
-            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY)
+        // Bottom-right smooth circular fillet
+        path.addArc(
+            tangent1End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY),
+            tangent2End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY),
+            radius: bottomCornerRadius
         )
         
         // Right vertical edge up to top curve
         path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
         
         // Top-right concave flare out to bezel
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX, y: rect.minY),
-            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY)
+        path.addArc(
+            tangent1End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY),
+            tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
+            radius: topCornerRadius
         )
         
         path.closeSubpath()
@@ -458,33 +469,60 @@ struct FaceIDNotchShape: Shape {
 }
 
 struct FaceIDNotchStrokeShape: Shape {
-    var topCornerRadius: CGFloat = 8
-    var bottomCornerRadius: CGFloat = 24
+    var topCornerRadius: CGFloat = 6
+    var bottomCornerRadius: CGFloat = 14
     
     func path(in rect: CGRect) -> Path {
         var path = Path()
         // Top-left ear down through bottom to top-right ear (leaving top edge flush with bezel)
         path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
-            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY)
+        path.addArc(
+            tangent1End: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY),
+            tangent2End: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
+            radius: topCornerRadius
         )
         path.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY),
-            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY)
+        path.addArc(
+            tangent1End: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY),
+            tangent2End: CGPoint(x: rect.midX, y: rect.maxY),
+            radius: bottomCornerRadius
         )
         path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius),
-            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY)
+        path.addArc(
+            tangent1End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY),
+            tangent2End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY),
+            radius: bottomCornerRadius
         )
         path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX, y: rect.minY),
-            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY)
+        path.addArc(
+            tangent1End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY),
+            tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
+            radius: topCornerRadius
         )
         return path
+    }
+}
+
+// MARK: - Mini Scanning Pulsing Dots View
+struct FaceIDScanningDotsView: View {
+    var color: Color
+    @State private var phase: Int = 0
+    let timer = Timer.publish(every: 0.22, on: .main, in: .common).autoconnect()
+    
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<3) { i in
+                Circle()
+                    .fill(color)
+                    .frame(width: 3.5, height: 3.5)
+                    .opacity(phase == i ? 1.0 : 0.3)
+                    .scaleEffect(phase == i ? 1.25 : 0.85)
+                    .animation(.easeInOut(duration: 0.2), value: phase)
+            }
+        }
+        .onReceive(timer) { _ in
+            phase = (phase + 1) % 3
+        }
     }
 }
 
@@ -493,6 +531,7 @@ struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
+    var physicalNotchWidth: CGFloat = 185
     var displayStyle: FaceIDDisplayStyle = Defaults[.faceIDDisplayStyle]
     
     @State private var isHovered: Bool = false
@@ -526,7 +565,7 @@ struct LockScreenFaceIDPillView: View {
         }
     }
     
-    // MARK: - Pop-down Layout (Mở rộng thả xuống dưới notch)
+    // MARK: - Pop-down Layout (Mở rộng ngắn, tinh tế, thanh thoát dưới notch)
     private var popDownContent: some View {
         VStack(spacing: 0) {
             if hasPhysicalNotch {
@@ -534,56 +573,103 @@ struct LockScreenFaceIDPillView: View {
                 Spacer().frame(height: notchHardwareHeight)
             }
             
-            VStack(spacing: 2) {
-                Spacer(minLength: 2)
+            VStack(spacing: 1.5) {
+                Spacer(minLength: 1)
                 AppleFaceIDGlyphView(
                     isScanning: faceIDManager.isScanning,
                     isSuccess: faceIDManager.lastUnlockSuccess,
                     isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                    size: hasPhysicalNotch ? 30 : 25
+                    size: 18
                 )
                 
                 Text(statusDisplayText)
-                    .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                    .font(.system(size: 8.5, weight: .medium, design: .rounded))
                     .foregroundColor(statusDisplayColor)
                     .lineLimit(1)
-                    .padding(.bottom, 3)
-                Spacer(minLength: 2)
+                    .padding(.bottom, 2)
+                Spacer(minLength: 1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
     
-    // MARK: - Inline Layout (Nằm gọn theo hàng trong Notch)
+    // MARK: - Inline Layout (Mở rộng sang 2 bên như Media khi ở màn Mac có Notch thật)
+    @ViewBuilder
     private var inlineContent: some View {
-        HStack(spacing: 8) {
-            AppleFaceIDGlyphView(
-                isScanning: faceIDManager.isScanning,
-                isSuccess: faceIDManager.lastUnlockSuccess,
-                isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                size: 20
-            )
-            
-            Text(statusDisplayText)
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundColor(statusDisplayColor)
-                .lineLimit(1)
+        if hasPhysicalNotch {
+            // Màn Mac có notch: 2 bên tai mở rộng giống hệt ô Album Art & Waveform của Media
+            let sideWidth = max(28, notchHardwareHeight - 4)
+            HStack(spacing: 0) {
+                // Ô bên trái: Biểu tượng Face ID nhỏ nhắn, cân đối
+                ZStack {
+                    AppleFaceIDGlyphView(
+                        isScanning: faceIDManager.isScanning,
+                        isSuccess: faceIDManager.lastUnlockSuccess,
+                        isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                        size: 17
+                    )
+                }
+                .frame(width: sideWidth, height: notchHardwareHeight)
+                
+                // Khoảng đen ở giữa: Khớp hoàn toàn với phần notch nhựa/camera vật lý
+                Spacer(minLength: max(40, physicalNotchWidth - 8))
+                
+                // Ô bên phải: Trạng thái mở khoá (chấm quét / ổ khoá xanh lá mở khi thành công)
+                ZStack {
+                    if faceIDManager.lastUnlockSuccess {
+                        Image(systemName: "lock.open.fill")
+                            .font(.system(size: 12.5, weight: .bold))
+                            .foregroundStyle(appleGreen)
+                            .shadow(color: appleGreen.opacity(0.85), radius: 5)
+                            .transition(.scale.combined(with: .opacity))
+                    } else if faceIDManager.isScanning {
+                        FaceIDScanningDotsView(color: appleBlue)
+                            .transition(.opacity)
+                    } else if faceIDManager.statusMessage == "Face Not Recognized" {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.orange)
+                    } else {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(isHovered ? 0.8 : 0.35))
+                    }
+                }
+                .frame(width: sideWidth, height: notchHardwareHeight)
+            }
+            .padding(.horizontal, 6)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            // Màn hình ngoài không có notch: dạng thanh pill thanh lịch ở giữa
+            HStack(spacing: 8) {
+                AppleFaceIDGlyphView(
+                    isScanning: faceIDManager.isScanning,
+                    isSuccess: faceIDManager.lastUnlockSuccess,
+                    isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                    size: 17
+                )
+                
+                Text(statusDisplayText)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(statusDisplayColor)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     @ViewBuilder
     private var backgroundShape: some View {
-        let topRadius: CGFloat = displayStyle == .inline ? 6 : 8
-        let bottomRadius: CGFloat = displayStyle == .inline ? (hasPhysicalNotch ? 18 : 14) : (hasPhysicalNotch ? 24 : 18)
+        let topRadius: CGFloat = 6
+        let bottomRadius: CGFloat = 14
         
         ZStack {
             FaceIDNotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
                 .fill(Color.black)
             
             FaceIDNotchStrokeShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
-                .stroke(borderColor, lineWidth: isHovered ? 2.2 : 1.5)
+                .stroke(borderColor, lineWidth: isHovered ? 1.8 : 1.2)
         }
     }
     
@@ -595,13 +681,13 @@ struct LockScreenFaceIDPillView: View {
     
     private var statusDisplayText: String {
         if faceIDManager.lastUnlockSuccess {
-            return "Đã khớp! Đang mở khoá…"
+            return "Đã khớp!"
         } else if faceIDManager.isScanning {
-            return "Đang quét mặt…"
+            return "Đang quét…"
         } else if faceIDManager.statusMessage == "Face Not Recognized" {
-            return "Chưa nhận diện"
+            return "Chưa khớp"
         } else {
-            return isHovered ? "Rê chuột/Nhấp để quét" : "Face ID"
+            return isHovered ? "Nhấp quét" : "Face ID"
         }
     }
     

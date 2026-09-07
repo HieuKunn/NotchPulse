@@ -1482,61 +1482,90 @@ body.bezel-mode .notch-wrapper {
   cursor: pointer;
 }
 
-/* Pop-down Style: Taller extension with extra rounded 24px bottom corners */
+/* Pop-down Style: Shortened, subtle extension with authentic 14px notch fillets */
 .lock-faceid-container.pop-down {
-  width: 215px;
-  height: 86px;
-  border-bottom-left-radius: 24px;
-  border-bottom-right-radius: 24px;
-  padding-top: 36px; /* Space for hardware camera notch */
+  width: 195px;
+  height: 60px;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  padding-top: 34px; /* Space for hardware camera notch */
 }
 
 .lock-faceid-container.pop-down .lock-faceid-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+}
+
+.lock-faceid-container.pop-down .lock-faceid-notch-center,
+.lock-faceid-container.pop-down .lock-faceid-wing-right {
+  display: none;
 }
 
 .lock-faceid-container.pop-down .lock-faceid-icon {
   color: #22c55e;
-  font-size: 26px;
-  text-shadow: 0 0 12px rgba(34, 197, 94, 0.85);
+  font-size: 17px;
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
 }
 
 .lock-faceid-container.pop-down .lock-faceid-text {
+  display: block;
   color: #22c55e;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: -0.2px;
 }
 
-/* Inline Style: Compact single-row pill inside the notch height */
+/* Inline Style: Dual-wing expansion matching media compact layout on Mac screen */
 .lock-faceid-container.inline {
-  width: 235px;
-  height: 38px;
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
-  padding: 0 16px;
+  width: 250px;
+  height: 34px;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  padding: 0 8px;
 }
 
 .lock-faceid-container.inline .lock-faceid-content {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.lock-faceid-container.inline .lock-faceid-wing-left {
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lock-faceid-container.inline .lock-faceid-notch-center {
+  display: block;
+  flex: 1;
+}
+
+.lock-faceid-container.inline .lock-faceid-wing-right {
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lock-faceid-container.inline .lock-faceid-text {
+  display: none;
 }
 
 .lock-faceid-container.inline .lock-faceid-icon {
   color: #22c55e;
-  font-size: 18px;
-  text-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+  font-size: 16px;
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
 }
 
-.lock-faceid-container.inline .lock-faceid-text {
+.lock-faceid-container.inline .lock-faceid-status-badge {
   color: #22c55e;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
 }
 
 .lock-media-player {

@@ -50,7 +50,7 @@ struct FaceIDSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                Text(faceIDDisplayStyle == .popDown ? "Notch mở rộng bo cong thả xuống phía dưới camera hiển thị biểu tượng Face ID lớn." : "Face ID nằm ngang gọn gàng bên trong chiều cao của Notch, không rủ xuống màn hình.")
+                Text(faceIDDisplayStyle == .popDown ? "Notch kéo dài nhẹ xuống dưới với góc bo cong mềm mại như tai thỏ thật và biểu tượng Face ID tinh tế." : "Mở rộng sang 2 bên cánh tai thỏ (giống vị trí ô Media) trên màn Mac hoặc dạng thanh ngang gọn gàng trong chiều cao của Notch.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
