@@ -410,24 +410,5 @@ function toggleLockScreen() {
   }
 }
 
-// Face ID Style Toggle (Pop-down vs Inline)
-let currentFaceIDStyle = 'pop-down';
-function toggleFaceIDStyle() {
-  const container = document.getElementById('lockFaceIDNotch');
-  const label = document.getElementById('faceIDStyleLabel');
-  if (currentFaceIDStyle === 'pop-down') {
-    currentFaceIDStyle = 'inline';
-    if (container) {
-      container.classList.remove('pop-down');
-      container.classList.add('inline');
-    }
-    if (label) label.textContent = 'Kiểu FaceID: Inline';
-  } else {
-    currentFaceIDStyle = 'pop-down';
-    if (container) {
-      container.classList.remove('inline');
-      container.classList.add('pop-down');
-    }
-    if (label) label.textContent = 'Kiểu FaceID: Pop-down';
-  }
-}
+// Face ID Style (Pure Inline on Mac and external displays)
+let currentFaceIDStyle = 'inline';

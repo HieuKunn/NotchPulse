@@ -15,7 +15,6 @@ struct FaceIDSettingsView: View {
     @State private var isEnrollingFace: Bool = false
     
     @Default(.faceIDEnterPressCount) var faceIDEnterPressCount
-    @Default(.faceIDDisplayStyle) var faceIDDisplayStyle
     
     var body: some View {
         Form {
@@ -41,16 +40,6 @@ struct FaceIDSettingsView: View {
                     Stepper("\(faceIDEnterPressCount) lần", value: $faceIDEnterPressCount, in: 1...5)
                 }
                 Text("Tuỳ chỉnh số lần gửi tín hiệu phím Enter/Return để mở máy sau khi nhận diện thành công (1 - 5 lần).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Picker("Kiểu hiển thị Face ID màn hình khoá", selection: $faceIDDisplayStyle) {
-                    ForEach(FaceIDDisplayStyle.allCases) { style in
-                        Text(style.title).tag(style)
-                    }
-                }
-                .pickerStyle(.segmented)
-                Text(faceIDDisplayStyle == .popDown ? "Notch kéo dài nhẹ xuống dưới với góc bo cong mềm mại như tai thỏ thật và biểu tượng Face ID tinh tế." : "Mở rộng sang 2 bên cánh tai thỏ (giống vị trí ô Media) trên màn Mac hoặc dạng thanh ngang gọn gàng trong chiều cao của Notch.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
