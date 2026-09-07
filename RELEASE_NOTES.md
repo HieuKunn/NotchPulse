@@ -1,21 +1,21 @@
 Official NotchPulse macOS installer (.dmg) and application bundle (.app.zip) automatically packaged from commit {{COMMIT_SHA}}.
 
-### 🚀 Có gì mới trong bản v2.9.4.3:
-- 🛡️ **Sửa lỗi mở ứng dụng & Đóng gói Codesign đầy đủ Entitlements**:
-  - Tích hợp chuẩn xác toàn bộ tệp quyền (`NotchPulse.entitlements` và `NotchPulseXPCHelper.entitlements`) trong quá trình đóng gói release, đảm bảo app không bị Gatekeeper từ chối khởi chạy.
-  - Hướng dẫn mở ứng dụng không bị chặn Gatekeeper/Quarantine: Chạy lệnh `xattr -cr /Applications/NotchPulse.app` hoặc nhấn chuột phải chọn Open.
-- 👁️ **Tuỳ chọn Kiểu hiển thị Face ID (Pop-down / Inline) & Bo cong Notch Chân thực**:
-  - Hỗ trợ 2 kiểu hiển thị Face ID tại màn hình khoá trong Cài đặt:
-    - **Thả xuống (Pop-down)**: Notch mở rộng êm ái xuống dưới camera với biểu tượng 3D Face ID lớn nổi bật.
-    - **Gọn trong Notch (Inline)**: Nằm ngang gọn gàng, tinh tế bên trong chiều cao của Notch mà không rủ xuống màn hình.
-  - Các góc viền Notch được thiết kế lại: bo cong góc dưới mềm mại chuẩn Apple (24px) và hai tai trên mở rộng ôm sát mép viền (bezel) như notch thật.
+### 🚀 Có gì mới trong bản v2.9.4.5:
+- 🔒 **Khắc phục triệt để bảo mật Face ID (Sinh trắc học chính xác tuyệt đối)**:
+  - Sửa lỗi hệ toạ độ giữa Apple Vision và CoreGraphics: Cắt chính xác 100% từng đường nét khuôn mặt (trán, mắt, mũi, miệng, cằm) thay vì cắt nhầm xuống áo/ngực.
+  - Siết chặt ngưỡng nhận diện sinh trắc học (`matchThreshold = 0.32`), ngăn chặn hoàn toàn việc người khác mở khoá.
+  - Tích hợp cơ chế xác thực 2 khung hình liên tiếp chống nhận diện giả do chớp sáng/ánh sáng ngẫu nhiên.
+  - *Lưu ý: Bạn hãy vào Cài đặt Face ID xoá khuôn mặt cũ và bấm "Đăng ký khuôn mặt mới" để lưu vector chuẩn.*
+- 🖤 **Face ID Màn hình khoá Chuẩn Inline Độc quyền**:
+  - Loại bỏ hoàn toàn kiểu pop-down thả xuống che màn hình; chuyển sang hiển thị Inline thanh lịch.
+  - Màn hình MacBook: Thiết kế cánh đôi (dual-wing) tách biệt - icon nụ cười Face ID nằm ở cánh bên trái hoàn toàn ngoài camera vật lý của Mac, cánh phải hiển thị trạng thái ổ khóa.
+  - Màn hình phụ / rời: Hiển thị viên thuốc 34px bo tròn thanh thoát ôm sát mép trên.
+- 🔄 **Cập nhật trong ứng dụng (Sparkle Auto-Update)**:
+  - Tích hợp chuẩn xác chữ ký Ed25519 cho Sparkle Updater, sửa lỗi 404 Appcast và cho phép tải trực tiếp các bản cập nhật mới từ trong ứng dụng.
 - ⚡ **Siêu tối ưu hiệu năng & Triệt tiêu hoàn toàn giật lag CPU**:
-  - Chuyển đổi thanh lịch sang `LazyHStack`, giảm tải CPU từ 80% xuống dưới **0.5%** và bộ nhớ RAM về mức cực nhẹ.
-- 🎵 **Trải nghiệm Media Màn hình khoá Siêu mượt**:
-  - Không chớp màn hình, hình nền chuyển động theo màu Album, nâng vị trí thanh media tránh đè avatar tài khoản.
-- 🎤 **Karaoke & Lời bài hát Tinh tế**:
-  - Dòng lời đang phát in đậm sáng bóng, tăng cỡ chữ chuẩn UX, không bị che lấp khi zoom.
+  - Chuyển đổi toàn bộ sang `LazyHStack`, duy trì mức CPU dưới **0.5%** và RAM cực nhẹ.
+- 🎵 **Trải nghiệm Media & Lời bài hát Karaoke Màn hình khoá**:
+  - Chuyển động êm ái theo màu Album, nâng vị trí thanh media tránh đè avatar tài khoản.
+  - Dòng lời đang phát in đậm sáng bóng, cỡ chữ lớn chuẩn UX.
 - 📅 **Lịch & Sự kiện Tối giản, Tự Động Định Vị Theo Giờ Thực**:
-  - Tự động cuộn đến sự kiện đang diễn ra trong khung giờ hiện tại hoặc sự kiện kế tiếp trong ngày mà không tốn pin/CPU/RAM.
-  - Giao diện sự kiện được tinh giản tối đa theo phong cách native macOS nguyên bản, loại bỏ các huy hiệu rối mắt.
-
+  - Tự động cuộn đến sự kiện đang diễn ra trong khung giờ hiện tại hoặc sự kiện kế tiếp trong ngày mà không tốn tài nguyên.

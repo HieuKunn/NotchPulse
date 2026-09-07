@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.4.3, bắt buộc)'
+        description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.4.5, bắt buộc)'
         required: true
-        default: 'v2.9.4.3'
+        default: 'v2.9.4.5'
 
 jobs:
   build:
@@ -136,7 +136,7 @@ jobs:
             cp appcast.xml appcast_staging/
           fi
           
-          TAG="v2.9.4.3"
+          TAG="v2.9.4.5"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
             TAG="${{ github.event.inputs.release_tag }}"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
@@ -190,7 +190,7 @@ EOF
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v2.9.4.3"
+          TAG="v2.9.4.5"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
             TAG="${{ github.event.inputs.release_tag }}"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then

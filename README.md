@@ -10,7 +10,7 @@
 
 ---
 
-## ✨ Key Features & What's New in v2.9.4.3
+## ✨ Key Features & What's New in v2.9.4.5
 
 - 🚀 **Seamless Auto-Update (Sparkle 2 & GitHub Releases)**:
   - Built-in automatic update engine with cryptographic EdDSA verification. Download and upgrade directly within the app without manually fetching `.dmg` files.
@@ -20,7 +20,7 @@
 - 👤 **Face ID with Lightweight Neural Network (CoreML FaceNet)**: 
   - Real-time facial embedding extraction (512-dimensional vectors) using **CoreML MobileFaceNet** accelerated by Apple Neural Engine (ANE) and Metal GPU.
   - Ultra-fast recognition (0.2s – 0.4s) on screen wake with Cosine Distance verification and consecutive multi-frame anti-spoofing.
-  - Native pop-down Face ID glyph animation extending naturally below the MacBook notch / Dynamic Island.
+  - Native sleek Inline Face ID glyph extending naturally beside the MacBook notch / Dynamic Island.
   - Secure automatic unlock powered by credentials stored inside macOS Keychain.
 - 📱 **Lock Screen Media & Fullscreen Karaoke Lyrics**: 
   - Adaptive 2-column glassmorphism widget hovering seamlessly over the macOS lock screen with smooth rounded borders.
