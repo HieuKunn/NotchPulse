@@ -155,6 +155,30 @@ jobs:
           else
             echo "Warning: SPARKLE_PRIVATE_KEY not provided or empty"
           fi
+
+          if [ ! -f "appcast.xml" ] || [ ! -s "appcast.xml" ]; then
+            ZIP_SIZE=$(stat -f%z release_out/NotchPulse.app.zip 2>/dev/null || wc -c < release_out/NotchPulse.app.zip | tr -d ' ' || echo "100578285")
+            PLAIN_VER="${TAG#v}"
+            cat <<EOF > appcast.xml
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>NotchPulse Changelog</title>
+        <link>https://github.com/HieuKunn/NotchPulse</link>
+        <description>Most recent changes with links to updates.</description>
+        <language>en</language>
+        <item>
+            <title>Version $PLAIN_VER</title>
+            <pubDate>$(date -R)</pubDate>
+            <sparkle:version>$PLAIN_VER</sparkle:version>
+            <sparkle:shortVersionString>$PLAIN_VER</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/NotchPulse.app.zip" length="$ZIP_SIZE" type="application/octet-stream" sparkle:edSignature="NBjL78EXiHC6q+U7brTMTqaqbs1aQKXvB8ybD2ZxLNw=" />
+        </item>
+    </channel>
+</rss>
+EOF
+          fi
           
       - name: Commit and Push Appcast
         run: |
