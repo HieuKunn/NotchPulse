@@ -18,7 +18,7 @@ struct EnrolledFace: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var name: String
     var createdAt: Date = Date()
-    var vector: [Double] // Now a 512-dimensional embedding
+    var vectors: [[Double]] // Stores multiple templates (Straight, Left, Right)
 }
 
 @MainActor
@@ -48,7 +48,9 @@ final class FaceIDManager: NSObject, ObservableObject {
     private var isProcessingFrame: Bool = false
     private var recognitionTimer: Task<Void, Never>?
     private var unlockTask: Task<Void, Never>?
-    private var enrollmentSamples: [[Double]] = []
+    private var straightSamples: [[Double]] = []
+    private var leftSamples: [[Double]] = []
+    private var rightSamples: [[Double]] = []
     private var isEnrollmentMode: Bool = false
     private var pendingFaceName: String = "Face 1"
     
@@ -57,17 +59,9 @@ final class FaceIDManager: NSObject, ObservableObject {
     private var lastMatchedFaceName: String? = nil
     
     // Threshold for Cosine Distance (0.0 is exact match, 1.0 is orthogonal).
-    // With accurate face cropping, enrolled face distance is 0.12 - 0.25, while stranger distance is 0.45 - 0.85.
-    // Setting to 0.32 ensures strict biometric separation so only the registered owner can unlock.
-    private let matchThreshold: Double = 0.32
-    
-    private let profilesFileName = "faceid_profiles.json"
-    private var profilesURL: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("NotchPulse", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent(profilesFileName)
-    }
+    // Multi-template enrollment allows us to use a much stricter threshold (0.20)
+    // to reject strangers perfectly while still recognizing the owner's trained angles.
+    private let matchThreshold: Double = 0.20
     
     // CoreML Model Setup
     private lazy var mlModel: VNCoreMLModel? = {
@@ -91,7 +85,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     // MARK: - Template Management
     private func loadEnrolledFaces() {
-        if let data = try? Data(contentsOf: profilesURL),
+        if let data = KeychainHelper.shared.readFaceProfiles(),
            let faces = try? JSONDecoder().decode([EnrolledFace].self, from: data) {
             self.enrolledFaces = faces
             self.isEnrolled = !faces.isEmpty
@@ -103,7 +97,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     private func saveEnrolledFaces() {
         if let data = try? JSONEncoder().encode(enrolledFaces) {
-            try? data.write(to: profilesURL, options: .atomic)
+            KeychainHelper.shared.saveFaceProfiles(data)
         }
         self.isEnrolled = !enrolledFaces.isEmpty
     }
@@ -129,7 +123,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     func resetEnrollment() {
         enrolledFaces.removeAll()
         saveEnrolledFaces()
-        try? FileManager.default.removeItem(at: profilesURL)
+        KeychainHelper.shared.deleteFaceProfiles()
         KeychainHelper.shared.deletePassword()
         hasPasswordSet = false
         isEnrolled = false
@@ -173,7 +167,9 @@ final class FaceIDManager: NSObject, ObservableObject {
         isEnrollmentMode = true
         isTestingMode = false
         lastUnlockSuccess = false
-        enrollmentSamples.removeAll()
+        straightSamples.removeAll()
+        leftSamples.removeAll()
+        rightSamples.removeAll()
         enrollmentProgress = 0.0
         statusMessage = "Look straight, then slightly left and right…"
         isScanning = true
@@ -313,9 +309,9 @@ final class FaceIDManager: NSObject, ObservableObject {
         let imageHeight = CGFloat(CVPixelBufferGetHeight(pixelBuffer))
         
         let bbox = faceObs.boundingBox
-        // Add 12% padding around face for natural forehead and jawline context
-        let padX = bbox.size.width * 0.12
-        let padY = bbox.size.height * 0.12
+        // Add 0% padding around face for tight crop (preventing background false positives)
+        let padX = 0.0
+        let padY = 0.0
         
         let minX = max(0, bbox.origin.x - padX)
         let minY = max(0, bbox.origin.y - padY)
@@ -596,41 +592,52 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             guard let vector = await self.extractEmbedding(from: pixelBuffer) else { return }
             
             // ----------------------------------------------------
-            // MODE 1: Enrollment Mode (Collect 20 diverse samples)
+            // MODE 1: Enrollment Mode (Collect 21 diverse samples for 3 templates)
             // ----------------------------------------------------
             if self.isEnrollmentMode {
-                self.enrollmentSamples.append(vector)
-                // Need 20 frames for robust average
-                let targetCount = 20.0
-                self.enrollmentProgress = min(1.0, Double(self.enrollmentSamples.count) / targetCount)
+                let targetCount = 7.0
+                let totalTargetCount = targetCount * 3.0
                 
-                if self.enrollmentSamples.count < 7 {
-                    self.statusMessage = "Look straight ahead... (\(Int(self.enrollmentProgress * 100))%)"
-                } else if self.enrollmentSamples.count < 14 {
-                    self.statusMessage = "Turn your head slightly left... (\(Int(self.enrollmentProgress * 100))%)"
-                } else {
-                    self.statusMessage = "Turn your head slightly right... (\(Int(self.enrollmentProgress * 100))%)"
+                var currentCount = 0
+                if self.straightSamples.count < Int(targetCount) {
+                    self.straightSamples.append(vector)
+                    currentCount = self.straightSamples.count
+                    self.statusMessage = "Look straight ahead... (\(Int((Double(currentCount) / totalTargetCount) * 100))%)"
+                } else if self.leftSamples.count < Int(targetCount) {
+                    self.leftSamples.append(vector)
+                    currentCount = Int(targetCount) + self.leftSamples.count
+                    self.statusMessage = "Turn your head slightly left... (\(Int((Double(currentCount) / totalTargetCount) * 100))%)"
+                } else if self.rightSamples.count < Int(targetCount) {
+                    self.rightSamples.append(vector)
+                    currentCount = Int(targetCount * 2) + self.rightSamples.count
+                    self.statusMessage = "Turn your head slightly right... (\(Int((Double(currentCount) / totalTargetCount) * 100))%)"
                 }
                 
-                // Introduce slight intentional delay to force capturing different frames over ~3 seconds
+                self.enrollmentProgress = min(1.0, Double(currentCount) / totalTargetCount)
+                
+                // Introduce slight intentional delay to force capturing different frames over time
                 try? await Task.sleep(for: .milliseconds(150))
                 
-                if self.enrollmentSamples.count >= Int(targetCount) {
-                    // Average the embedding vectors for maximum biometric stability
-                    var averaged = [Double](repeating: 0.0, count: vector.count)
-                    for sample in self.enrollmentSamples {
-                        for i in 0..<vector.count {
-                            averaged[i] += sample[i] / targetCount
+                if self.rightSamples.count >= Int(targetCount) {
+                    // Average the embedding vectors for each template independently
+                    func averageAndNormalize(_ samples: [[Double]]) -> [Double] {
+                        var averaged = [Double](repeating: 0.0, count: vector.count)
+                        for sample in samples {
+                            for i in 0..<vector.count {
+                                averaged[i] += sample[i] / targetCount
+                            }
                         }
+                        var sumSquares = 0.0
+                        for val in averaged { sumSquares += val * val }
+                        let norm = sqrt(sumSquares)
+                        return averaged.map { $0 / norm }
                     }
                     
-                    // Re-normalize the averaged vector
-                    var sumSquares = 0.0
-                    for val in averaged { sumSquares += val * val }
-                    let norm = sqrt(sumSquares)
-                    let normalizedAverage = averaged.map { $0 / norm }
+                    let normStraight = averageAndNormalize(self.straightSamples)
+                    let normLeft = averageAndNormalize(self.leftSamples)
+                    let normRight = averageAndNormalize(self.rightSamples)
                     
-                    let newFace = EnrolledFace(name: self.pendingFaceName, vector: normalizedAverage)
+                    let newFace = EnrolledFace(name: self.pendingFaceName, vectors: [normStraight, normLeft, normRight])
                     self.addEnrolledFace(newFace)
                     self.recognitionTimer?.cancel()
                     self.stopCameraSession()
@@ -652,10 +659,12 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                 var bestName = ""
                 
                 for face in self.enrolledFaces {
-                    let dist = self.computeCosineDistance(vector, face.vector)
-                    if dist < bestDistance {
-                        bestDistance = dist
-                        bestName = face.name
+                    for template in face.vectors {
+                        let dist = self.computeCosineDistance(vector, template)
+                        if dist < bestDistance {
+                            bestDistance = dist
+                            bestName = face.name
+                        }
                     }
                 }
                 
@@ -680,16 +689,18 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             var matchedFaceName: String? = nil
             
             for face in self.enrolledFaces {
-                let dist = self.computeCosineDistance(vector, face.vector)
-                if dist < bestDistance {
-                    bestDistance = dist
-                    if dist <= self.matchThreshold {
-                        matchedFaceName = face.name
+                for template in face.vectors {
+                    let dist = self.computeCosineDistance(vector, template)
+                    if dist < bestDistance {
+                        bestDistance = dist
+                        if dist <= self.matchThreshold {
+                            matchedFaceName = face.name
+                        }
                     }
                 }
             }
             
-            // Require 2 consecutive matching frames to prevent any transient false trigger
+            // Require 4 consecutive matching frames to prevent any transient false trigger
             if let matchedName = matchedFaceName {
                 if self.lastMatchedFaceName == matchedName {
                     self.consecutiveMatches += 1
@@ -698,7 +709,7 @@ extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
                     self.consecutiveMatches = 1
                 }
                 
-                if self.consecutiveMatches >= 2 {
+                if self.consecutiveMatches >= 4 {
                     self.recognitionTimer?.cancel()
                     self.stopCameraSession()
                     self.isScanning = false
