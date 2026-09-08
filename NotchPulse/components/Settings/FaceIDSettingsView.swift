@@ -230,7 +230,9 @@ struct FaceIDSettingsView: View {
                         
                         Button("Save to Keychain") {
                             if !passwordInput.isEmpty {
-                                KeychainHelper.shared.savePassword(passwordInput)
+                                if let data = passwordInput.data(using: .utf8) {
+                                    try? NotchPulseVault.savePassword(data)
+                                }
                                 faceIDManager.hasPasswordSet = true
                                 passwordInput = ""
                                 showPasswordSavedAlert = true
