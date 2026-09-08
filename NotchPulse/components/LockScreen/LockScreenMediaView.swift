@@ -382,6 +382,7 @@ struct LockScreenMediaView: View {
     }
     
     // Cột phải Full Screen: Lời bài hát Karaoke toàn màn hình
+    @ViewBuilder
     private var fullScreenLyricsColumn: some View {
         GeometryReader { geo in
             let w = geo.size.width
