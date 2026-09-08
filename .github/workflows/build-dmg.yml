@@ -82,7 +82,7 @@ jobs:
           if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc" ]; then
             codesign --force --sign - --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
           fi
-          codesign --force --sign - --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
+          codesign --force --deep --sign - --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
 
           # Xác minh cấu trúc chữ ký hợp lệ
           codesign --verify --deep --strict --verbose=4 dmg_staging/NotchPulse.app
@@ -170,7 +170,7 @@ jobs:
               '        <item>' \
               "            <title>Version $PLAIN_VER</title>" \
               '            <pubDate>Mon, 08 Sep 2026 01:25:00 +0700</pubDate>' \
-              "            <sparkle:version>9</sparkle:version>" \
+              "            <sparkle:version>10</sparkle:version>" \
               "            <sparkle:shortVersionString>$PLAIN_VER</sparkle:shortVersionString>" \
               '            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>' \
               "            <enclosure url=\"https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/NotchPulse.app.zip\" length=\"$ZIP_SIZE\" type=\"application/octet-stream\" sparkle:edSignature=\"4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=\" />" \
