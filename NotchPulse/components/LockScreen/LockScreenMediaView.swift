@@ -479,6 +479,7 @@ struct LockScreenMediaView: View {
         }
         .frame(maxHeight: 520)
     }
+    }
     
     // MARK: - Dynamic Media Button
     @ViewBuilder
