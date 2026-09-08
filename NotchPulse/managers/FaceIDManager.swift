@@ -2,23 +2,20 @@
 //  FaceIDManager.swift
 //  NotchPulse
 //
-//  Created for NotchPulse v2.0 - Face ID Unlock (Zero-Overhead + CoreML FaceNet)
-//
 
 import AVFoundation
 import Cocoa
 import Combine
-import CoreML
-import Defaults
+import CoreGraphics
 import Foundation
 import SwiftUI
-import Vision
+import CoreVideo
 
 struct EnrolledFace: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var name: String
     var createdAt: Date = Date()
-    var vectors: [[Double]] // Stores multiple templates (Straight, Left, Right)
+    var vectors: [[Double]] = [] // Unused now, but kept for UI compatibility
 }
 
 @MainActor
@@ -40,156 +37,252 @@ final class FaceIDManager: NSObject, ObservableObject {
     @Published var testResultColor: Color = .secondary
     @Published var testConfidence: Int = 0
     
-    // MARK: - Camera & Vision Properties
-    private var captureSession: AVCaptureSession?
-    private var videoOutput: AVCaptureVideoDataOutput?
-    private let sessionQueue = DispatchQueue(label: "com.notchpulse.faceid.session", qos: .userInitiated)
+    // Core engine
+    private let camera = NotchPulseCamera()
+    private let enrollmentService = NotchPulseEnrollmentService()
     
-    private var isProcessingFrame: Bool = false
-    private var recognitionTimer: Task<Void, Never>?
+    private var recognitionTask: Task<Void, Never>?
     private var unlockTask: Task<Void, Never>?
-    private var straightSamples: [[Double]] = []
-    private var leftSamples: [[Double]] = []
-    private var rightSamples: [[Double]] = []
     private var isEnrollmentMode: Bool = false
-    private var pendingFaceName: String = "Face 1"
-    
-    // Strict Anti-Spoof Consecutive Match Counter
-    private var consecutiveMatches: Int = 0
-    private var lastMatchedFaceName: String? = nil
-    
-    // Threshold for Cosine Distance (0.0 is exact match, 1.0 is orthogonal).
-    // Multi-template enrollment allows us to use a much stricter threshold (0.15)
-    // to reject strangers perfectly while still recognizing the owner's trained angles.
-    private let matchThreshold: Double = 0.15
-    
-    // CoreML Model Setup
-    private lazy var mlModel: VNCoreMLModel? = {
-        do {
-            let config = MLModelConfiguration()
-            config.computeUnits = .all
-            let model = try FaceNet(configuration: config)
-            return try VNCoreMLModel(for: model.model)
-        } catch {
-            print("Failed to load FaceNet model: \(error)")
-            return nil
-        }
-    }()
     
     // MARK: - Initialization
     override private init() {
         super.init()
-        loadEnrolledFaces()
-        hasPasswordSet = KeychainHelper.shared.hasPassword
-    }
-    
-    // MARK: - Template Management
-    private func loadEnrolledFaces() {
-        if let data = KeychainHelper.shared.readFaceProfiles(),
-           let faces = try? JSONDecoder().decode([EnrolledFace].self, from: data) {
-            self.enrolledFaces = faces
-            self.isEnrolled = !faces.isEmpty
-            return
+        refreshState()
+        
+        // Setup observer for camera frames
+        _ = withObservationTracking {
+            self.camera.isRunning
+        } onChange: {
+            // Camera state changed
         }
-        self.enrolledFaces = []
-        self.isEnrolled = false
     }
     
-    private func saveEnrolledFaces() {
-        if let data = try? JSONEncoder().encode(enrolledFaces) {
-            KeychainHelper.shared.saveFaceProfiles(data)
+    func refreshState() {
+        hasPasswordSet = NotchPulseVault.hasStoredPassword()
+        isEnrolled = NotchPulseEnrollmentService.hasEnrolledFace()
+        if isEnrolled {
+            enrolledFaces = [EnrolledFace(name: "My Face")]
+        } else {
+            enrolledFaces = []
         }
-        self.isEnrolled = !enrolledFaces.isEmpty
     }
     
-    func addEnrolledFace(_ face: EnrolledFace) {
-        enrolledFaces.append(face)
-        saveEnrolledFaces()
-        statusMessage = "Added \(face.name) successfully"
+    func ensureSessionUnlocked() async -> Bool {
+        if NotchPulseVault.isSessionUnlocked { return true }
+        if NotchPulseVault.hasSessionKey() {
+            do {
+                try await Task.detached(priority: .userInitiated) {
+                    try NotchPulseVault.unlockSession(reason: "Unlock Face ID Security")
+                }.value
+                return true
+            } catch {
+                self.statusMessage = "Biometric authentication required"
+                return false
+            }
+        }
+        return true
     }
+    
+    // MARK: - API
     
     func deleteFace(id: UUID) {
-        enrolledFaces.removeAll { $0.id == id }
-        saveEnrolledFaces()
-        if enrolledFaces.isEmpty {
-            KeychainHelper.shared.deletePassword()
-            hasPasswordSet = false
-            statusMessage = "All Face IDs cleared"
-        } else {
-            statusMessage = "Face ID removed"
-        }
+        resetEnrollment()
     }
     
     func resetEnrollment() {
-        enrolledFaces.removeAll()
-        saveEnrolledFaces()
-        KeychainHelper.shared.deleteFaceProfiles()
-        KeychainHelper.shared.deletePassword()
-        hasPasswordSet = false
-        isEnrolled = false
+        try? NotchPulseEnrollmentService.deleteEnrolledFace()
+        try? NotchPulseVault.deletePassword()
+        refreshState()
         statusMessage = "All Face ID data cleared"
     }
     
-    // MARK: - Zero-Overhead Camera Control
+    func cancelCurrentSession() {
+        recognitionTask?.cancel()
+        unlockTask?.cancel()
+        camera.stop()
+        isScanning = false
+        isEnrollmentMode = false
+        isTestingMode = false
+        lastUnlockSuccess = false
+        statusMessage = "Cancelled"
+        enrollmentProgress = 0.0
+    }
+    
     func startRecognitionOnWake() {
-        guard Defaults[.enableFaceID], isEnrolled, !enrolledFaces.isEmpty, KeychainHelper.shared.hasPassword else {
-            return
-        }
+        guard Defaults[.enableFaceID], isEnrolled, hasPasswordSet else { return }
         guard !isScanning else { return }
         
         isEnrollmentMode = false
         isTestingMode = false
         lastUnlockSuccess = false
-        consecutiveMatches = 0
-        lastMatchedFaceName = nil
-        statusMessage = "Verifying face…"
+        statusMessage = "Verifying face..."
         isScanning = true
         
-        startCameraSession()
-        
-        recognitionTimer?.cancel()
-        recognitionTimer = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(4000))
-            guard let self = self, self.isScanning else { return }
-            self.stopCameraSession()
-            self.statusMessage = "Face Not Recognized"
-            self.isScanning = false
+        recognitionTask?.cancel()
+        recognitionTask = Task { [weak self] in
+            guard let self = self else { return }
             
-            try? await Task.sleep(for: .milliseconds(1200))
-            if !self.isScanning {
-                self.statusMessage = "Ready"
+            // First ensure we have access to the session key
+            let unlocked = await self.ensureSessionUnlocked()
+            if !unlocked {
+                self.isScanning = false
+                return
+            }
+            
+            await self.camera.requestAccessAndStart()
+            
+            let startTime = Date()
+            var consecutiveMatches = 0
+            
+            while !Task.isCancelled && Date().timeIntervalSince(startTime) < 4.0 {
+                guard let buffer = self.camera.currentFrame() else {
+                    try? await Task.sleep(for: .milliseconds(50))
+                    continue
+                }
+                
+                do {
+                    let analysis = try self.enrollmentService.analyzeFrame(buffer, includeQuality: false)
+                    
+                    // ArcFace embeddings are [Float] not [Double], verify using the service
+                    let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
+                    
+                    if result.matched {
+                        consecutiveMatches += 1
+                        if consecutiveMatches >= 2 { // Require 2 frames
+                            self.camera.stop()
+                            self.isScanning = false
+                            self.performMacUnlock()
+                            return
+                        }
+                    } else {
+                        consecutiveMatches = 0
+                    }
+                } catch {
+                    // Ignore transient errors (no face, etc)
+                }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            
+            if !Task.isCancelled {
+                self.camera.stop()
+                self.statusMessage = "Face Not Recognized"
+                self.isScanning = false
+                try? await Task.sleep(for: .milliseconds(1200))
+                if !self.isScanning {
+                    self.statusMessage = "Ready"
+                }
             }
         }
     }
     
     func startEnrollment(name: String? = nil) {
-        pendingFaceName = name ?? (enrolledFaces.isEmpty ? "Face 1" : "Appearance \(enrolledFaces.count + 1)")
         isEnrollmentMode = true
         isTestingMode = false
         lastUnlockSuccess = false
-        straightSamples.removeAll()
-        leftSamples.removeAll()
-        rightSamples.removeAll()
         enrollmentProgress = 0.0
-        statusMessage = "Look straight, then slightly left and right…"
         isScanning = true
+        statusMessage = "Starting enrollment..."
         
-        startCameraSession()
-        
-        // Enrollment timeout: 15 seconds max
-        recognitionTimer?.cancel()
-        recognitionTimer = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(15))
-            guard let self = self, self.isScanning, self.isEnrollmentMode else { return }
-            self.stopCameraSession()
-            self.statusMessage = "Enrollment timed out. Please try again."
+        recognitionTask?.cancel()
+        recognitionTask = Task { [weak self] in
+            guard let self = self else { return }
+            
+            // Ensure session key is created/unlocked before we save embeddings
+            _ = await self.ensureSessionUnlocked()
+            
+            await self.camera.requestAccessAndStart()
+            
+            var collectedEmbeddings: [[Float]] = []
+            let requiredPoses = FacePose.allCases
+            let totalPoses = requiredPoses.count
+            
+            // We capture 3 valid frames per pose to average out noise
+            let framesPerPose = 3
+            
+            for (index, pose) in requiredPoses.enumerated() {
+                self.statusMessage = pose.prompt
+                self.enrollmentProgress = Double(index) / Double(totalPoses)
+                
+                var poseFramesCaptured = 0
+                var poseEmbeddings: [[Float]] = []
+                let poseStartTime = Date()
+                
+                while !Task.isCancelled && poseFramesCaptured < framesPerPose {
+                    // Timeout per pose: 15s
+                    if Date().timeIntervalSince(poseStartTime) > 15.0 {
+                        self.statusMessage = "Enrollment timed out"
+                        self.camera.stop()
+                        self.isScanning = false
+                        self.isEnrollmentMode = false
+                        return
+                    }
+                    
+                    guard let buffer = self.camera.currentFrame() else {
+                        try? await Task.sleep(for: .milliseconds(50))
+                        continue
+                    }
+                    
+                    do {
+                        // For enrollment, we enforce quality checks and bbox constraints
+                        let analysis = try self.enrollmentService.analyzeFrame(buffer, includeQuality: true)
+                        
+                        if analysis.quality < NotchPulseEnrollmentService.minimumCaptureQuality {
+                            self.statusMessage = "Quality too low. Improve lighting."
+                        } else if !pose.matches(yaw: analysis.yaw, roll: analysis.roll, faceWidth: analysis.face.boundingBox.width) {
+                            self.statusMessage = pose.prompt
+                        } else {
+                            poseEmbeddings.append(analysis.embedding)
+                            poseFramesCaptured += 1
+                            self.statusMessage = "Hold still... (\(poseFramesCaptured)/\(framesPerPose))"
+                        }
+                    } catch {
+                        if let error = error as? NotchPulseEnrollmentError {
+                            self.statusMessage = error.localizedDescription
+                        }
+                    }
+                    
+                    try? await Task.sleep(for: .milliseconds(150))
+                }
+                
+                if Task.isCancelled { return }
+                
+                // Average the 3 frames for this pose
+                if !poseEmbeddings.isEmpty {
+                    var mean = [Float](repeating: 0, count: poseEmbeddings[0].count)
+                    for e in poseEmbeddings {
+                        for i in 0..<e.count {
+                            mean[i] += e[i]
+                        }
+                    }
+                    let avgEmbedding = NotchPulseFaceEmbedder.l2Normalize(mean)
+                    collectedEmbeddings.append(avgEmbedding)
+                }
+            }
+            
+            if Task.isCancelled { return }
+            
+            // Save embeddings
+            do {
+                try self.enrollmentService.saveEmbeddings(collectedEmbeddings)
+                self.refreshState()
+                self.statusMessage = "Enrollment complete! 🎉"
+                if Defaults[.faceIDSound] { NSSound(named: "Ping")?.play() }
+            } catch {
+                self.statusMessage = "Failed to save: \(error.localizedDescription)"
+            }
+            
+            self.enrollmentProgress = 1.0
+            self.camera.stop()
             self.isScanning = false
             self.isEnrollmentMode = false
+            try? await Task.sleep(for: .seconds(2))
+            if !self.isScanning { self.statusMessage = "Ready" }
         }
     }
     
     func startTestRecognition() {
-        guard isEnrolled, !enrolledFaces.isEmpty else {
+        guard isEnrolled else {
             testResultText = "⚠️ Please enroll a face first"
             testResultColor = .orange
             return
@@ -198,254 +291,69 @@ final class FaceIDManager: NSObject, ObservableObject {
         isTestingMode = true
         isEnrollmentMode = false
         lastUnlockSuccess = false
-        testResultText = "Looking for face…"
+        testResultText = "Looking for face..."
         testResultColor = .secondary
         testConfidence = 0
         isScanning = true
         
-        startCameraSession()
-        
-        // Test timeout: 8 seconds max
-        recognitionTimer?.cancel()
-        recognitionTimer = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(8))
-            guard let self = self, self.isScanning, self.isTestingMode else { return }
-            self.stopCameraSession()
-            self.isScanning = false
-            self.isTestingMode = false
-        lastUnlockSuccess = false
-            self.testResultText = "Test complete"
-            self.testResultColor = .secondary
+        recognitionTask?.cancel()
+        recognitionTask = Task { [weak self] in
+            guard let self = self else { return }
+            
+            let unlocked = await self.ensureSessionUnlocked()
+            if !unlocked {
+                self.testResultText = "Session locked"
+                self.isScanning = false
+                return
+            }
+            
+            await self.camera.requestAccessAndStart()
+            
+            let startTime = Date()
+            while !Task.isCancelled && Date().timeIntervalSince(startTime) < 8.0 {
+                guard let buffer = self.camera.currentFrame() else {
+                    try? await Task.sleep(for: .milliseconds(50))
+                    continue
+                }
+                
+                do {
+                    let analysis = try self.enrollmentService.analyzeFrame(buffer, includeQuality: false)
+                    let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
+                    
+                    let sim = result.similarity
+                    let confidence = max(0, min(100, Int(((sim - 0.4) / (1.0 - 0.4)) * 100)))
+                    self.testConfidence = confidence
+                    
+                    if result.matched {
+                        self.testResultText = "✅ Matched: (\(confidence)%)"
+                        self.testResultColor = .green
+                    } else {
+                        self.testResultText = "❌ Unrecognized Face (Score: \(confidence)%)"
+                        self.testResultColor = .red
+                    }
+                } catch {
+                    self.testResultText = "Searching..."
+                    self.testResultColor = .secondary
+                }
+                try? await Task.sleep(for: .milliseconds(150))
+            }
+            
+            if !Task.isCancelled {
+                self.camera.stop()
+                self.isScanning = false
+                self.isTestingMode = false
+                self.testResultText = "Test complete"
+                self.testResultColor = .secondary
+            }
         }
     }
     
     func stopTestRecognition() {
-        recognitionTimer?.cancel()
-        stopCameraSession()
-        isScanning = false
-        isTestingMode = false
-        lastUnlockSuccess = false
-        testResultText = ""
-        testConfidence = 0
+        cancelCurrentSession()
     }
     
-    func cancelCurrentSession() {
-        recognitionTimer?.cancel()
-        unlockTask?.cancel()
-        stopCameraSession()
-        isScanning = false
-        isEnrollmentMode = false
-        isTestingMode = false
-        lastUnlockSuccess = false
-        statusMessage = "Cancelled"
-    }
+    // MARK: - Mac Unlock Execution
     
-    private func startCameraSession() {
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-            let session = AVCaptureSession()
-            session.sessionPreset = .vga640x480
-            
-            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-                    ?? AVCaptureDevice.default(for: .video),
-                  let input = try? AVCaptureDeviceInput(device: device) else {
-                Task { @MainActor in
-                    self.statusMessage = "Camera unavailable"
-                    self.isScanning = false
-                }
-                return
-            }
-            
-            if session.canAddInput(input) { session.addInput(input) }
-            
-            let output = AVCaptureVideoDataOutput()
-            output.alwaysDiscardsLateVideoFrames = true
-            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
-            output.setSampleBufferDelegate(self, queue: self.sessionQueue)
-            
-            if session.canAddOutput(output) { session.addOutput(output) }
-            session.startRunning()
-            
-            Task { @MainActor in
-                self.captureSession = session
-                self.videoOutput = output
-            }
-        }
-    }
-    
-    private func stopCameraSession() {
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-            if let session = self.captureSession, session.isRunning {
-                session.stopRunning()
-            }
-            Task { @MainActor in
-                self.captureSession = nil
-                self.videoOutput = nil
-                self.isProcessingFrame = false
-            }
-        }
-    }
-    
-    // MARK: - ML Embedding Extraction
-    
-    private func extractEmbedding(from pixelBuffer: CVPixelBuffer) async -> [Double]? {
-        guard let mlModel = mlModel else { return nil }
-        
-        let requestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
-        
-        // 1. Detect Face Rectangles and Capture Quality (Anti-blur / Liveness base)
-        var requests: [VNRequest] = []
-        
-        let faceRequest = VNDetectFaceRectanglesRequest()
-        faceRequest.revision = VNDetectFaceRectanglesRequestRevision3
-        requests.append(faceRequest)
-        
-        var qualityRequest: VNRequest?
-        if #available(macOS 11.0, *) {
-            let req = VNDetectFaceCaptureQualityRequest()
-            qualityRequest = req
-            requests.append(req)
-        }
-        
-        do {
-            try requestHandler.perform(requests)
-        } catch { return nil }
-        
-        let observations: [VNFaceObservation]
-        if #available(macOS 11.0, *), let qReq = qualityRequest as? VNDetectFaceCaptureQualityRequest, let qResults = qReq.results {
-            observations = qResults
-        } else if let fResults = faceRequest.results {
-            observations = fResults
-        } else {
-            return nil
-        }
-        
-        // 2. Lọc lấy khuôn mặt CHÍNH (to nhất, gần camera nhất) & RÕ NÉT nhất
-        let dominantFace = observations
-            .filter { obs in
-                // Bắt buộc độ tin cậy cao
-                guard obs.confidence >= 0.85 else { return false }
-                
-                // Bắt buộc chất lượng ảnh phải tốt (tránh nhoè, nhiễu sáng, ảnh in)
-                if #available(macOS 11.0, *), let quality = obs.faceCaptureQuality {
-                    // Ngưỡng 0.35 lọc được đa số các trường hợp rung tay hoặc ảnh chụp lén mờ nhạt
-                    if quality < 0.35 { return false }
-                }
-                return true
-            }
-            .max { a, b in
-                let areaA = a.boundingBox.width * a.boundingBox.height
-                let areaB = b.boundingBox.width * b.boundingBox.height
-                return areaA < areaB
-            }
-            
-        guard let faceObs = dominantFace else { return nil }
-        
-        // 2. Crop Face accurately with proper Vision to CGImage coordinate flip
-        let imageWidth = CGFloat(CVPixelBufferGetWidth(pixelBuffer))
-        let imageHeight = CGFloat(CVPixelBufferGetHeight(pixelBuffer))
-        
-        let bbox = faceObs.boundingBox
-        // Add 0% padding around face for tight crop (preventing background false positives)
-        let padX = 0.0
-        let padY = 0.0
-        
-        let minX = max(0, bbox.origin.x - padX)
-        let minY = max(0, bbox.origin.y - padY)
-        let maxX = min(1.0, bbox.origin.x + bbox.size.width + padX)
-        let maxY = min(1.0, bbox.origin.y + bbox.size.height + padY)
-        
-        let widthNorm = maxX - minX
-        let heightNorm = maxY - minY
-        
-        // In Vision: origin is at bottom-left (minY is from bottom)
-        // In CGImage: origin is at top-left (cgY is from top)
-        let cgY = (1.0 - minY - heightNorm) * imageHeight
-        let cgX = minX * imageWidth
-        let cgW = widthNorm * imageWidth
-        let cgH = heightNorm * imageHeight
-        
-        // MUST make the crop a perfect square. Vision bounding boxes are rectangular.
-        // If we don't square it here, .scaleFill will stretch the face horizontally,
-        // destroying proportions and making all faces look identical to the model.
-        let sideLength = max(cgW, cgH)
-        let centerX = cgX + cgW / 2.0
-        let centerY = cgY + cgH / 2.0
-        
-        var squareX = centerX - sideLength / 2.0
-        var squareY = centerY - sideLength / 2.0
-        
-        // Clamp to image bounds while keeping it square
-        if squareX < 0 { squareX = 0 }
-        if squareY < 0 { squareY = 0 }
-        if squareX + sideLength > imageWidth { squareX = max(0, imageWidth - sideLength) }
-        if squareY + sideLength > imageHeight { squareY = max(0, imageHeight - sideLength) }
-        
-        let finalSide = min(sideLength, min(imageWidth - squareX, imageHeight - squareY))
-        
-        let cropRect = CGRect(
-            x: squareX,
-            y: squareY,
-            width: finalSide,
-            height: finalSide
-        )
-        guard cropRect.width >= 40, cropRect.height >= 40 else { return nil }
-        
-        guard let cgImage = createCGImage(from: pixelBuffer) else { return nil }
-        guard let croppedCGImage = cgImage.cropping(to: cropRect) else { return nil }
-        
-        // 3. Feed cropped face to CoreML FaceNet
-        let coreMLRequest = VNCoreMLRequest(model: mlModel)
-        coreMLRequest.imageCropAndScaleOption = .scaleFill
-        
-        let croppedRequestHandler = VNImageRequestHandler(cgImage: croppedCGImage, options: [:])
-        do {
-            try croppedRequestHandler.perform([coreMLRequest])
-        } catch { return nil }
-        
-        guard let result = coreMLRequest.results?.first as? VNCoreMLFeatureValueObservation,
-              let multiArray = result.featureValue.multiArrayValue else { return nil }
-        
-        // 4. Extract and L2-Normalize the Vector
-        let length = multiArray.count
-        var vector: [Double] = []
-        vector.reserveCapacity(length)
-        
-        var sumSquares = 0.0
-        for i in 0..<length {
-            let val = multiArray[i].doubleValue
-            vector.append(val)
-            sumSquares += val * val
-        }
-        
-        let norm = sqrt(sumSquares)
-        guard norm > 0 else { return nil }
-        
-        return vector.map { $0 / norm }
-    }
-    
-    private func createCGImage(from pixelBuffer: CVPixelBuffer) -> CGImage? {
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext(options: nil)
-        return context.createCGImage(ciImage, from: ciImage.extent)
-    }
-    
-    /// Computes Cosine Distance (0.0 is perfect match, 1.0 is orthogonal)
-    private func computeCosineDistance(_ v1: [Double], _ v2: [Double]) -> Double {
-        guard v1.count == v2.count, !v1.isEmpty else { return 1.0 }
-        
-        var dotProduct = 0.0
-        for i in 0..<v1.count {
-            dotProduct += v1[i] * v2[i]
-        }
-        
-        // Since vectors are already L2-normalized, Cosine Similarity is just the dot product.
-        // Cosine Distance = 1 - Cosine Similarity
-        return max(0.0, 1.0 - dotProduct)
-    }
-    
-    // MARK: - Automatic Mac Unlock Execution
     nonisolated private static func keyEventInfo(for char: Character) -> (keyCode: CGKeyCode, shift: Bool)? {
         switch char {
         case "a": return (0x00, false); case "A": return (0x00, true)
@@ -501,7 +409,8 @@ final class FaceIDManager: NSObject, ObservableObject {
     }
     
     private func performMacUnlock() {
-        guard let password = KeychainHelper.shared.readPassword(), !password.isEmpty else {
+        guard let passwordData = try? NotchPulseVault.readPassword(),
+              let password = String(data: passwordData, encoding: .utf8), !password.isEmpty else {
             statusMessage = "Chưa lưu mật khẩu mở máy trong Keychain"
             return
         }
@@ -517,8 +426,6 @@ final class FaceIDManager: NSObject, ObservableObject {
         unlockTask = Task.detached(priority: .high) {
             let source = CGEventSource(stateID: .hidSystemState)
             
-            // 1. Ensure display & login window are awake and focused without dismissing prompt
-            // Note: DO NOT press Escape (0x35), as Escape dismisses/cancels the active password prompt!
             let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
             if let moveEvent = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: CGPoint(x: mouseLoc.x + 1, y: mouseLoc.y), mouseButton: .left) {
                 moveEvent.post(tap: .cghidEventTap)
@@ -526,7 +433,6 @@ final class FaceIDManager: NSObject, ObservableObject {
             try? await Task.sleep(for: .milliseconds(50))
             if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
             
-            // 2. Clear any pre-existing text or leftover input using Delete strokes
             for _ in 0..<15 {
                 if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
                 if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
@@ -541,7 +447,6 @@ final class FaceIDManager: NSObject, ObservableObject {
             try? await Task.sleep(for: .milliseconds(40))
             if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
             
-            // 3. Type password characters cleanly and briskly
             for char in password {
                 if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
                 if let keyInfo = Self.keyEventInfo(for: char) {
@@ -563,27 +468,12 @@ final class FaceIDManager: NSObject, ObservableObject {
                         up.post(tap: .cghidEventTap)
                         try? await Task.sleep(for: .milliseconds(12))
                     }
-                } else {
-                    let utf16 = Array(String(char).utf16)
-                    if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
-                       let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
-                        down.flags = []
-                        up.flags = []
-                        down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                        up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                        down.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(12))
-                        up.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(12))
-                    }
                 }
             }
             
-            // 4. Brief delay to let SecurityAgent complete rendering all bullet dots
             try? await Task.sleep(for: .milliseconds(100))
             if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
             
-            // 5. Submit password with Return (0x24) via CGEvent and System Events
             func sendReturn() async {
                 if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
                    let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
@@ -597,7 +487,6 @@ final class FaceIDManager: NSObject, ObservableObject {
                     returnUp.post(tap: .cghidEventTap)
                 }
                 
-                // Secondary path: System Events key code 36
                 let script = NSAppleScript(source: "tell application \"System Events\" to key code 36")
                 script?.executeAndReturnError(nil)
             }
@@ -605,175 +494,16 @@ final class FaceIDManager: NSObject, ObservableObject {
             let pressCount = max(1, min(5, Defaults[.faceIDEnterPressCount]))
             for i in 0..<pressCount {
                 if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
-                if i > 0 {
-                    try? await Task.sleep(for: .milliseconds(120))
-                }
+                if i > 0 { try? await Task.sleep(for: .milliseconds(120)) }
                 await sendReturn()
             }
             
-            if Task.isCancelled || !LockScreenWakeObserver.isSessionLocked { return }
-            // In case SecurityAgent had focus delay, send confirmation Return after 350ms
-            try? await Task.sleep(for: .milliseconds(350))
-            if LockScreenWakeObserver.isSessionLocked {
-                if Task.isCancelled { return }
-                await sendReturn()
-            }
-            
-            // Safety reset: If session is still locked after 2.5s (e.g. wrong password), reset state so user can retry
             try? await Task.sleep(for: .milliseconds(2500))
             if LockScreenWakeObserver.isSessionLocked {
                 await MainActor.run {
                     FaceIDManager.shared.lastUnlockSuccess = false
                     FaceIDManager.shared.statusMessage = "Ready"
                 }
-            }
-        }
-    }
-}
-
-// MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
-extension FaceIDManager: AVCaptureVideoDataOutputSampleBufferDelegate {
-    nonisolated func captureOutput(
-        _ output: AVCaptureOutput,
-        didOutput sampleBuffer: CMSampleBuffer,
-        from connection: AVCaptureConnection
-    ) {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        
-        Task { @MainActor [weak self] in
-            guard let self = self, self.isScanning, !self.isProcessingFrame else { return }
-            self.isProcessingFrame = true
-            defer { self.isProcessingFrame = false }
-            
-            guard let vector = await self.extractEmbedding(from: pixelBuffer) else { return }
-            
-            // ----------------------------------------------------
-            // MODE 1: Enrollment Mode (Collect 21 diverse samples for 3 templates)
-            // ----------------------------------------------------
-            if self.isEnrollmentMode {
-                let targetCount = 7.0
-                let totalTargetCount = targetCount * 3.0
-                
-                var currentCount = 0
-                if self.straightSamples.count < Int(targetCount) {
-                    self.straightSamples.append(vector)
-                    currentCount = self.straightSamples.count
-                    self.statusMessage = "Look straight ahead... (\(Int((Double(currentCount) / totalTargetCount) * 100))%)"
-                } else if self.leftSamples.count < Int(targetCount) {
-                    self.leftSamples.append(vector)
-                    currentCount = Int(targetCount) + self.leftSamples.count
-                    self.statusMessage = "Turn your head slightly left... (\(Int((Double(currentCount) / totalTargetCount) * 100))%)"
-                } else if self.rightSamples.count < Int(targetCount) {
-                    self.rightSamples.append(vector)
-                    currentCount = Int(targetCount * 2) + self.rightSamples.count
-                    self.statusMessage = "Turn your head slightly right... (\(Int((Double(currentCount) / totalTargetCount) * 100))%)"
-                }
-                
-                self.enrollmentProgress = min(1.0, Double(currentCount) / totalTargetCount)
-                
-                // Introduce slight intentional delay to force capturing different frames over time
-                try? await Task.sleep(for: .milliseconds(150))
-                
-                if self.rightSamples.count >= Int(targetCount) {
-                    // Average the embedding vectors for each template independently
-                    func averageAndNormalize(_ samples: [[Double]]) -> [Double] {
-                        var averaged = [Double](repeating: 0.0, count: vector.count)
-                        for sample in samples {
-                            for i in 0..<vector.count {
-                                averaged[i] += sample[i] / targetCount
-                            }
-                        }
-                        var sumSquares = 0.0
-                        for val in averaged { sumSquares += val * val }
-                        let norm = sqrt(sumSquares)
-                        return averaged.map { $0 / norm }
-                    }
-                    
-                    let normStraight = averageAndNormalize(self.straightSamples)
-                    let normLeft = averageAndNormalize(self.leftSamples)
-                    let normRight = averageAndNormalize(self.rightSamples)
-                    
-                    let newFace = EnrolledFace(name: self.pendingFaceName, vectors: [normStraight, normLeft, normRight])
-                    self.addEnrolledFace(newFace)
-                    self.recognitionTimer?.cancel()
-                    self.stopCameraSession()
-                    self.isScanning = false
-                    self.isEnrollmentMode = false
-                    self.statusMessage = "Face ID (\(newFace.name)) Enrolled! 🎉"
-                    if Defaults[.faceIDSound] {
-                        NSSound(named: "Ping")?.play()
-                    }
-                }
-                return
-            }
-            
-            // ----------------------------------------------------
-            // MODE 2: Live Testing Mode (Settings Preview)
-            // ----------------------------------------------------
-            if self.isTestingMode {
-                var bestDistance = 1.0
-                var bestName = ""
-                
-                for face in self.enrolledFaces {
-                    for template in face.vectors {
-                        let dist = self.computeCosineDistance(vector, template)
-                        if dist < bestDistance {
-                            bestDistance = dist
-                            bestName = face.name
-                        }
-                    }
-                }
-                
-                // Map Cosine distance (0.0 -> 100%, 0.45 -> 0%)
-                let confidence = max(0, min(100, Int((1.0 - (bestDistance / 0.45)) * 100)))
-                self.testConfidence = confidence
-                
-                if bestDistance <= self.matchThreshold {
-                    self.testResultText = "✅ Matched: \(bestName) (\(confidence)%)"
-                    self.testResultColor = .green
-                } else {
-                    self.testResultText = "❌ Unrecognized Face (Score: \(confidence)%)"
-                    self.testResultColor = .red
-                }
-                return
-            }
-            
-            // ----------------------------------------------------
-            // MODE 3: Verification Mode (Lock Screen Mac Unlock)
-            // ----------------------------------------------------
-            var bestDistance = 1.0
-            var matchedFaceName: String? = nil
-            
-            for face in self.enrolledFaces {
-                for template in face.vectors {
-                    let dist = self.computeCosineDistance(vector, template)
-                    if dist < bestDistance {
-                        bestDistance = dist
-                        if dist <= self.matchThreshold {
-                            matchedFaceName = face.name
-                        }
-                    }
-                }
-            }
-            
-            // Require 4 consecutive matching frames to prevent any transient false trigger
-            if let matchedName = matchedFaceName {
-                if self.lastMatchedFaceName == matchedName {
-                    self.consecutiveMatches += 1
-                } else {
-                    self.lastMatchedFaceName = matchedName
-                    self.consecutiveMatches = 1
-                }
-                
-                if self.consecutiveMatches >= 4 {
-                    self.recognitionTimer?.cancel()
-                    self.stopCameraSession()
-                    self.isScanning = false
-                    self.performMacUnlock()
-                }
-            } else {
-                self.consecutiveMatches = 0
-                self.lastMatchedFaceName = nil
             }
         }
     }
