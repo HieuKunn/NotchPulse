@@ -80,13 +80,13 @@ enum FacePose: CaseIterable {
     func matches(yaw: Float, roll: Float, faceWidth: CGFloat) -> Bool {
         switch self {
         case .straight:
-            return abs(yaw) < 0.12 && abs(roll) < 0.10
-        case .turnLeft:  return yaw   < -0.15
-        case .turnRight: return yaw   >  0.15
-        case .rollLeft:  return roll  < -0.15
-        case .rollRight: return roll  >  0.15
-        case .closer:    return faceWidth > 0.32
-        case .farther:   return faceWidth < 0.22
+            return abs(yaw) < 0.30 && abs(roll) < 0.30
+        case .turnLeft:  return yaw   < -0.10
+        case .turnRight: return yaw   >  0.10
+        case .rollLeft:  return roll  < -0.10
+        case .rollRight: return roll  >  0.10
+        case .closer:    return faceWidth > 0.25
+        case .farther:   return faceWidth < 0.28
         }
     }
 }
@@ -127,7 +127,7 @@ final class NotchPulseEnrollmentService {
     // considered valid. 0.10 corresponds to a distance of roughly 93 cm on a typical
     // laptop camera (78° FOV, ~15 cm face) — well past the 70 cm working target.
     nonisolated static let minimumFaceWidthFraction: CGFloat = 0.10
-    nonisolated static let minimumCaptureQuality: Float = 0.35
+    nonisolated static let minimumCaptureQuality: Float = 0.20
 
     /// Hard cap on total embeddings kept on disk. Additive enrollment beyond this
     /// evicts the OLDEST embeddings (FIFO) — 7 poses × 5 sessions is enough to

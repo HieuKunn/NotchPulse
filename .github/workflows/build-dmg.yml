@@ -200,8 +200,17 @@ jobs:
           fi
           echo "Publishing release $TAG..."
 
-          sed "s/{{COMMIT_SHA}}/${{ github.sha }}/g" RELEASE_NOTES.md > current_release_notes.md
-
+          git fetch --tags --unshallow || true
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "## 🚀 What's New in $TAG" > current_release_notes.md
+          echo "" >> current_release_notes.md
+          if [ -n "$PREV_TAG" ]; then
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s" >> current_release_notes.md
+          else
+            git log -n 5 --pretty=format:"- %s" >> current_release_notes.md
+          fi
+          echo "" >> current_release_notes.md
+          echo "_Built from commit ${{ github.sha }}_" >> current_release_notes.md
           gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
             --title "NotchPulse $TAG" \
             --notes-file current_release_notes.md \

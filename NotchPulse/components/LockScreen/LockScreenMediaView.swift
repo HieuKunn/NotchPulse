@@ -387,8 +387,8 @@ struct LockScreenMediaView: View {
     private var fullScreenLyricsColumn: some View {
         GeometryReader { geo in
             let w = geo.size.width
-            let activeFontSize = min(max(w * 0.05, 20), 40)
-            let inactiveFontSize = min(max(w * 0.035, 14), 28)
+            let activeFontSize = min(max(w * 0.08, 36), 72)
+            let inactiveFontSize = min(max(w * 0.06, 24), 48)
             
             VStack(alignment: .leading, spacing: 14) {
                 if musicManager.isFetchingLyrics {
@@ -478,7 +478,7 @@ struct LockScreenMediaView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(maxHeight: 520)
+        .frame(maxHeight: 650)
     }
     }
     
