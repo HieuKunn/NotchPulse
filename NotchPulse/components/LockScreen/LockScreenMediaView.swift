@@ -212,45 +212,32 @@ struct LockScreenMediaView: View {
             ambientDynamicBackground
             
             GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let albumSize = min(max(h * 0.45, 280), 600)
+                let contentWidth = w * 0.85
+                let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty || musicManager.isFetchingLyrics
+                
                 VStack(spacing: 0) {
-                    // Thanh tiêu đề phía trên
-                    HStack {
-                        Spacer()
-                    }
-                    .padding(.horizontal, 48)
-                    .padding(.top, 40)
+                    Spacer()
                     
-                    Spacer(minLength: 20)
-                    
-                    // Nội dung 2 cột: Trái là Ảnh bìa to & Điều khiển, Phải là Lời bài hát Karaoke
-                    let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty || musicManager.isFetchingLyrics
-                    let contentWidth = geo.size.width * 0.85
-                    
-                    HStack(alignment: .center, spacing: 60) {
+                    HStack(alignment: .center, spacing: w * 0.05) {
                         if hasLyrics {
-                            // CỘT TRÁI: Ảnh bìa to + Tên bài hát + Timeline + Phím điều khiển
-                            fullScreenLeftColumn
-                                .frame(maxWidth: contentWidth * 0.50)
+                            fullScreenLeftColumn(albumSize: albumSize)
+                                .frame(width: contentWidth * 0.45)
                             
-                            // CỘT PHẢI: Lời bài hát Karaoke chạy thời gian thực
-                            fullScreenLyricsColumn
-                                .frame(maxWidth: contentWidth * 0.50)
+                            fullScreenLyricsColumn(columnWidth: contentWidth * 0.50, viewHeight: h * 0.7)
+                                .frame(width: contentWidth * 0.50)
                         } else {
-                            Spacer()
-                            
-                            // CỘT TRÁI: Đưa ra giữa khi không có lời bài hát
-                            fullScreenLeftColumn
-                                .frame(maxWidth: 440)
-                            
-                            Spacer()
+                            fullScreenLeftColumn(albumSize: albumSize)
+                                .frame(width: albumSize * 1.3)
                         }
                     }
-                    .padding(.horizontal, 50)
+                    .padding(.horizontal, w * 0.075)
                     
-                    Spacer(minLength: 40)
+                    Spacer()
                 }
-                .scaleEffect(0.9)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: w, height: h)
             }
         }
         .ignoresSafeArea()
@@ -286,8 +273,8 @@ struct LockScreenMediaView: View {
     }
     
     // Cột trái Full Screen: Ảnh bài hát to + Thông tin + Điều khiển
-    private var fullScreenLeftColumn: some View {
-        VStack(spacing: 24) {
+    private func fullScreenLeftColumn(albumSize: CGFloat) -> some View {
+        VStack(spacing: albumSize * 0.08) {
             // Ảnh bìa bài hát to nổi bật (bấm vào để thu nhỏ về compact)
             Button {
                 windowController.setFullScreen(false)
@@ -296,16 +283,16 @@ struct LockScreenMediaView: View {
                     Image(nsImage: musicManager.albumArt)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 320, height: 320)
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .shadow(color: Color(nsColor: musicManager.avgColor).opacity(0.55), radius: 35, x: 0, y: 15)
-                        .shadow(color: .black.opacity(0.6), radius: 20, x: 0, y: 8)
+                        .frame(width: albumSize, height: albumSize)
+                        .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
+                        .shadow(color: Color(nsColor: musicManager.avgColor).opacity(0.55), radius: albumSize * 0.1, x: 0, y: albumSize * 0.05)
+                        .shadow(color: .black.opacity(0.6), radius: albumSize * 0.06, x: 0, y: albumSize * 0.02)
                     
                     AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 34, height: 34)
-                        .offset(x: 6, y: 6)
+                        .frame(width: albumSize * 0.1, height: albumSize * 0.1)
+                        .offset(x: albumSize * 0.02, y: albumSize * 0.02)
                         .shadow(radius: 6)
                 }
             }
@@ -313,21 +300,21 @@ struct LockScreenMediaView: View {
             .help("Nhấp vào ảnh để thu nhỏ")
             
             // Thông tin bài hát
-            VStack(spacing: 6) {
+            VStack(spacing: albumSize * 0.02) {
                 Text(musicManager.songTitle)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: max(albumSize * 0.075, 20), weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .multilineTextAlignment(.center)
                 
                 Text(musicManager.artistName)
-                    .font(.system(size: 17, weight: .medium, design: .rounded))
+                    .font(.system(size: max(albumSize * 0.055, 15), weight: .medium, design: .rounded))
                     .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.8))
                     .lineLimit(1)
                 
                 if !musicManager.album.isEmpty {
                     Text(musicManager.album)
-                        .font(.system(size: 13, weight: .regular))
+                        .font(.system(size: max(albumSize * 0.04, 12), weight: .regular))
                         .foregroundStyle(.white.opacity(0.5))
                         .lineLimit(1)
                 }
@@ -361,15 +348,15 @@ struct LockScreenMediaView: View {
                     
                     HStack {
                         Text(timeFormatted(seconds: elapsed))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .font(.system(size: max(albumSize * 0.04, 11), weight: .medium, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.65))
                         Spacer()
                         Text("-" + timeFormatted(seconds: max(0, duration - elapsed)))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .font(.system(size: max(albumSize * 0.04, 11), weight: .medium, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.65))
                     }
                 }
-                .frame(width: 320 * 1.3)
+                .frame(width: albumSize * 1.3)
             }
             
             // Bộ phím điều khiển đồng bộ
@@ -384,85 +371,84 @@ struct LockScreenMediaView: View {
     
     // Cột phải Full Screen: Lời bài hát Karaoke toàn màn hình
     @ViewBuilder
-    private var fullScreenLyricsColumn: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let activeFontSize = min(max(w * 0.08, 36), 72)
-            let inactiveFontSize = min(max(w * 0.06, 24), 48)
-            
-            VStack(alignment: .leading, spacing: 14) {
-                if musicManager.isFetchingLyrics {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .scaleEffect(0.7)
-                    }
-                    .padding(.bottom, 8)
+    private func fullScreenLyricsColumn(columnWidth: CGFloat, viewHeight: CGFloat) -> some View {
+        let baseFontSize = min(max(columnWidth * 0.065, 24), 48)
+        let activeFontSize = baseFontSize + 2 // Zoom nhẹ 2px tránh xuống dòng
+        let inactiveFontSize = baseFontSize
+        
+        VStack(alignment: .leading, spacing: 14) {
+            if musicManager.isFetchingLyrics {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .scaleEffect(0.7)
                 }
-                
-                if !musicManager.syncedLyrics.isEmpty {
-                    ScrollViewReader { proxy in
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 22) {
-                                ForEach(Array(musicManager.syncedLyrics.enumerated()), id: \.offset) { index, item in
-                                    let isCurrent = (index == activeLyricIndex)
-                                    let isPast = (index < activeLyricIndex)
-                                    
-                                    Button {
-                                        musicManager.seek(to: item.time)
-                                    } label: {
-                                        Text(item.text)
-                                            .font(.system(size: isCurrent ? activeFontSize : inactiveFontSize, weight: isCurrent ? .bold : .medium, design: .rounded))
-                                            .foregroundStyle(
-                                                isCurrent
-                                                ? Color.white
-                                                : isPast
-                                                ? Color.white.opacity(0.3)
-                                                : Color.white.opacity(0.6)
-                                            )
-                                            .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
-                                            .multilineTextAlignment(.leading)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                            .padding(.vertical, 4)
-                                            .animation(.easeInOut(duration: 0.25), value: isCurrent)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .id(index)
+                .padding(.bottom, 8)
+            }
+            
+            if !musicManager.syncedLyrics.isEmpty {
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 22) {
+                            ForEach(Array(musicManager.syncedLyrics.enumerated()), id: \.offset) { index, item in
+                                let isCurrent = (index == activeLyricIndex)
+                                let isPast = (index < activeLyricIndex)
+                                
+                                Button {
+                                    musicManager.seek(to: item.time)
+                                } label: {
+                                    Text(item.text)
+                                        .font(.system(size: isCurrent ? activeFontSize : inactiveFontSize, weight: isCurrent ? .bold : .medium, design: .rounded))
+                                        .foregroundStyle(
+                                            isCurrent
+                                            ? Color.white
+                                            : isPast
+                                            ? Color.white.opacity(0.3)
+                                            : Color.white.opacity(0.6)
+                                        )
+                                        .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.vertical, 4)
+                                        .animation(.easeInOut(duration: 0.25), value: isCurrent)
                                 }
+                                .buttonStyle(.plain)
+                                .id(index)
                             }
-                            .padding(.vertical, 100)
                         }
-                        .background(
-                            TimelineView(.animation(minimumInterval: 0.2)) { timeline in
-                                let currentElapsed = max(0, musicManager.estimatedPlaybackPosition(at: timeline.date) - 0.5)
-                                let newIndex = currentLyricIndex(at: currentElapsed)
-                                Color.clear
-                                    .onChange(of: newIndex) { _, newValue in
-                                        DispatchQueue.main.async {
-                                            if newValue != activeLyricIndex {
-                                                activeLyricIndex = newValue
-                                                withAnimation(.smooth(duration: 0.45)) {
-                                                    proxy.scrollTo(newValue, anchor: .center)
-                                                }
+                        .padding(.vertical, viewHeight * 0.4)
+                    }
+                    .background(
+                        TimelineView(.animation(minimumInterval: 0.2)) { timeline in
+                            let currentElapsed = max(0, musicManager.estimatedPlaybackPosition(at: timeline.date) - 0.5)
+                            let newIndex = currentLyricIndex(at: currentElapsed)
+                            Color.clear
+                                .onChange(of: newIndex) { _, newValue in
+                                    DispatchQueue.main.async {
+                                        if newValue != activeLyricIndex {
+                                            activeLyricIndex = newValue
+                                            withAnimation(.smooth(duration: 0.45)) {
+                                                proxy.scrollTo(newValue, anchor: .center)
                                             }
                                         }
                                     }
-                                    .onAppear {
-                                        activeLyricIndex = newIndex
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                            proxy.scrollTo(activeLyricIndex, anchor: .center)
-                                        }
+                                }
+                                .onAppear {
+                                    activeLyricIndex = newIndex
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        proxy.scrollTo(activeLyricIndex, anchor: .center)
                                     }
-                            }
-                        )
-                    }
-                } else if !musicManager.currentLyrics.isEmpty {
+                                }
+                        }
+                    )
+                }
+            } else if !musicManager.currentLyrics.isEmpty {
                 ScrollView(.vertical, showsIndicators: false) {
                     Text(musicManager.currentLyrics)
-                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .font(.system(size: max(columnWidth * 0.04, 18), weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.8))
                         .lineSpacing(10)
-                        .padding(.vertical, 30)
+                        .padding(.vertical, viewHeight * 0.4)
                 }
             } else {
                 VStack(spacing: 14) {
@@ -478,9 +464,9 @@ struct LockScreenMediaView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(maxHeight: 650)
+        .frame(height: viewHeight)
     }
-    }
+
     
     // MARK: - Dynamic Media Button
     @ViewBuilder
