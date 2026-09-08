@@ -57,20 +57,14 @@ enum FacePose: CaseIterable {
     case straight
     case turnLeft
     case turnRight
-    case rollLeft
-    case rollRight
-    case closer
-    case farther
+    case tilt
 
     var prompt: String {
         switch self {
-        case .straight:  return "Look straight at the camera"
-        case .turnLeft:  return "Turn your head to the RIGHT"
-        case .turnRight: return "Turn your head to the LEFT"
-        case .rollLeft:  return "Tilt head - LEFT ear toward shoulder"
-        case .rollRight: return "Tilt head - RIGHT ear toward shoulder"
-        case .closer:    return "Move CLOSER to the camera"
-        case .farther:   return "Move FARTHER from the camera (arm's length)"
+        case .straight:  return "Nhìn thẳng vào camera"
+        case .turnRight: return "Quay mặt sang TRÁI"
+        case .turnLeft:  return "Quay mặt sang PHẢI"
+        case .tilt:      return "Ngước mặt lên / Cúi nhẹ"
         }
     }
 
@@ -83,10 +77,7 @@ enum FacePose: CaseIterable {
             return abs(yaw) < 0.30 && abs(roll) < 0.30
         case .turnLeft:  return yaw   < -0.10
         case .turnRight: return yaw   >  0.10
-        case .rollLeft:  return roll  < -0.10
-        case .rollRight: return roll  >  0.10
-        case .closer:    return faceWidth > 0.25
-        case .farther:   return faceWidth < 0.28
+        case .tilt:      return true
         }
     }
 }
