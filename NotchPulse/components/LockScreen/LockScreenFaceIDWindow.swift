@@ -583,7 +583,7 @@ struct LockScreenFaceIDPillView: View {
         } else if faceIDManager.statusMessage == "Face Not Recognized" {
             return "Chưa khớp"
         } else {
-            return isHovered ? "Nhấp quét" : "Face ID"
+            return "Face ID"
         }
     }
     
