@@ -59,9 +59,9 @@ final class FaceIDManager: NSObject, ObservableObject {
     private var lastMatchedFaceName: String? = nil
     
     // Threshold for Cosine Distance (0.0 is exact match, 1.0 is orthogonal).
-    // Multi-template enrollment allows us to use a much stricter threshold (0.20)
+    // Multi-template enrollment allows us to use a much stricter threshold (0.15)
     // to reject strangers perfectly while still recognizing the owner's trained angles.
-    private let matchThreshold: Double = 0.20
+    private let matchThreshold: Double = 0.15
     
     // CoreML Model Setup
     private lazy var mlModel: VNCoreMLModel? = {
@@ -294,15 +294,53 @@ final class FaceIDManager: NSObject, ObservableObject {
         
         let requestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
         
-        // 1. Detect Face Rectangle with high confidence
+        // 1. Detect Face Rectangles and Capture Quality (Anti-blur / Liveness base)
+        var requests: [VNRequest] = []
+        
         let faceRequest = VNDetectFaceRectanglesRequest()
         faceRequest.revision = VNDetectFaceRectanglesRequestRevision3
+        requests.append(faceRequest)
+        
+        var qualityRequest: VNRequest?
+        if #available(macOS 11.0, *) {
+            let req = VNDetectFaceCaptureQualityRequest()
+            qualityRequest = req
+            requests.append(req)
+        }
         
         do {
-            try requestHandler.perform([faceRequest])
+            try requestHandler.perform(requests)
         } catch { return nil }
         
-        guard let faceObs = faceRequest.results?.first, faceObs.confidence >= 0.65 else { return nil }
+        let observations: [VNFaceObservation]
+        if #available(macOS 11.0, *), let qReq = qualityRequest as? VNDetectFaceCaptureQualityRequest, let qResults = qReq.results {
+            observations = qResults
+        } else if let fResults = faceRequest.results {
+            observations = fResults
+        } else {
+            return nil
+        }
+        
+        // 2. Lọc lấy khuôn mặt CHÍNH (to nhất, gần camera nhất) & RÕ NÉT nhất
+        let dominantFace = observations
+            .filter { obs in
+                // Bắt buộc độ tin cậy cao
+                guard obs.confidence >= 0.85 else { return false }
+                
+                // Bắt buộc chất lượng ảnh phải tốt (tránh nhoè, nhiễu sáng, ảnh in)
+                if #available(macOS 11.0, *), let quality = obs.faceCaptureQuality {
+                    // Ngưỡng 0.35 lọc được đa số các trường hợp rung tay hoặc ảnh chụp lén mờ nhạt
+                    if quality < 0.35 { return false }
+                }
+                return true
+            }
+            .max { a, b in
+                let areaA = a.boundingBox.width * a.boundingBox.height
+                let areaB = b.boundingBox.width * b.boundingBox.height
+                return areaA < areaB
+            }
+            
+        guard let faceObs = dominantFace else { return nil }
         
         // 2. Crop Face accurately with proper Vision to CGImage coordinate flip
         let imageWidth = CGFloat(CVPixelBufferGetWidth(pixelBuffer))
@@ -328,11 +366,29 @@ final class FaceIDManager: NSObject, ObservableObject {
         let cgW = widthNorm * imageWidth
         let cgH = heightNorm * imageHeight
         
+        // MUST make the crop a perfect square. Vision bounding boxes are rectangular.
+        // If we don't square it here, .scaleFill will stretch the face horizontally,
+        // destroying proportions and making all faces look identical to the model.
+        let sideLength = max(cgW, cgH)
+        let centerX = cgX + cgW / 2.0
+        let centerY = cgY + cgH / 2.0
+        
+        var squareX = centerX - sideLength / 2.0
+        var squareY = centerY - sideLength / 2.0
+        
+        // Clamp to image bounds while keeping it square
+        if squareX < 0 { squareX = 0 }
+        if squareY < 0 { squareY = 0 }
+        if squareX + sideLength > imageWidth { squareX = max(0, imageWidth - sideLength) }
+        if squareY + sideLength > imageHeight { squareY = max(0, imageHeight - sideLength) }
+        
+        let finalSide = min(sideLength, min(imageWidth - squareX, imageHeight - squareY))
+        
         let cropRect = CGRect(
-            x: max(0, cgX),
-            y: max(0, cgY),
-            width: min(imageWidth - cgX, cgW),
-            height: min(imageHeight - cgY, cgH)
+            x: squareX,
+            y: squareY,
+            width: finalSide,
+            height: finalSide
         )
         guard cropRect.width >= 40, cropRect.height >= 40 else { return nil }
         

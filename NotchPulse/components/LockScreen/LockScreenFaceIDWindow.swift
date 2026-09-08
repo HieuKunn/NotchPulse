@@ -297,16 +297,16 @@ struct AppleFaceIDGlyphView: View {
         ZStack {
             // Radiant Shockwave Glow Ring upon unlock
             Circle()
-                .strokeBorder(appleGreen.opacity(shockwaveOpacity), lineWidth: 2.5)
+                .strokeBorder(appleBlue.opacity(shockwaveOpacity), lineWidth: 2.5)
                 .frame(width: size * 1.6, height: size * 1.6)
                 .scaleEffect(shockwaveScale)
             
             if isSuccess {
-                // Success State: Unlocked Padlock in vibrant Apple Green with pop
+                // Success State: Unlocked Padlock in vibrant Apple Blue with pop
                 Image(systemName: "lock.open.fill")
                     .font(.system(size: size * 0.95, weight: .bold))
-                    .foregroundStyle(appleGreen)
-                    .shadow(color: appleGreen.opacity(0.85), radius: 8, x: 0, y: 0)
+                    .foregroundStyle(appleBlue)
+                    .shadow(color: appleBlue.opacity(0.85), radius: 8, x: 0, y: 0)
                     .scaleEffect(successPop)
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.5).combined(with: .opacity),
@@ -527,29 +527,9 @@ struct LockScreenFaceIDPillView: View {
                     .fill(Color.black)
                     .frame(width: max(40, physicalNotchWidth - 6), height: notchHardwareHeight)
                 
-                // Ô bên phải: Trạng thái mở khoá (chấm quét / ổ khoá mở khi thành công - vị trí như sóng nhạc)
-                ZStack {
-                    if faceIDManager.lastUnlockSuccess {
-                        Image(systemName: "lock.open.fill")
-                            .font(.system(size: max(11, wingSize - 6), weight: .bold))
-                            .foregroundStyle(appleGreen)
-                            .shadow(color: appleGreen.opacity(0.85), radius: 5)
-                            .transition(.scale.combined(with: .opacity))
-                    } else if faceIDManager.isScanning {
-                        FaceIDScanningDotsView(color: appleBlue)
-                            .transition(.opacity)
-                    } else if faceIDManager.statusMessage == "Face Not Recognized" {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .font(.system(size: max(11, wingSize - 6), weight: .semibold))
-                            .foregroundStyle(Color.orange)
-                    } else {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: max(10, wingSize - 8), weight: .medium))
-                            .foregroundStyle(Color.white.opacity(isHovered ? 0.8 : 0.35))
-                    }
-                }
-                .frame(width: wingSize, height: wingSize)
-                .frame(width: wingSize + 10, height: notchHardwareHeight)
+                // Ô bên phải: Trống hoàn toàn theo yêu cầu (không hiển thị gì)
+                Color.clear
+                    .frame(width: wingSize + 10, height: notchHardwareHeight)
             }
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -230,11 +230,11 @@ struct LockScreenMediaView: View {
                         if hasLyrics {
                             // CỘT TRÁI: Ảnh bìa to + Tên bài hát + Timeline + Phím điều khiển
                             fullScreenLeftColumn
-                                .frame(maxWidth: contentWidth * 0.42)
+                                .frame(maxWidth: contentWidth * 0.50)
                             
                             // CỘT PHẢI: Lời bài hát Karaoke chạy thời gian thực
                             fullScreenLyricsColumn
-                                .frame(maxWidth: contentWidth * 0.58)
+                                .frame(maxWidth: contentWidth * 0.50)
                         } else {
                             Spacer()
                             
@@ -369,6 +369,7 @@ struct LockScreenMediaView: View {
                             .foregroundStyle(.white.opacity(0.65))
                     }
                 }
+                .frame(width: 320 * 1.3)
             }
             
             // Bộ phím điều khiển đồng bộ
