@@ -10,6 +10,7 @@ import CoreGraphics
 import Foundation
 import SwiftUI
 import CoreVideo
+import Defaults
 
 struct EnrolledFace: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
