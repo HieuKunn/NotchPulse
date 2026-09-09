@@ -78,11 +78,14 @@ jobs:
           # Copy .app vào thư mục staging và đặt tên là NotchPulse.app
           cp -R build/Build/Products/Release/NotchPulse.app dmg_staging/NotchPulse.app
 
-          # Ký đồng bộ toàn bộ app bundle và embedded helpers bằng ad-hoc signing (-) kèm file entitlements tương ứng
+          # Ký chuẩn inside-out (từ trong ra ngoài) để không làm hỏng chữ ký của Sparkle.framework và Autoupdate.app
           if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc" ]; then
             codesign --force --sign - --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
           fi
-          codesign --force --deep --sign - --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
+          if [ -d "dmg_staging/NotchPulse.app/Contents/Frameworks" ]; then
+            find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 -exec codesign --force --sign - {} \;
+          fi
+          codesign --force --sign - --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
 
           # Xác minh cấu trúc chữ ký hợp lệ
           codesign --verify --deep --strict --verbose=4 dmg_staging/NotchPulse.app
