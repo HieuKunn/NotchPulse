@@ -112,7 +112,6 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     func startRecognitionOnWake() {
         guard Defaults[.enableFaceID], isEnrolled, hasPasswordSet else { return }
-        guard !isScanning else { return }
         
         isEnrollmentMode = false
         isTestingMode = false
@@ -136,21 +135,20 @@ final class FaceIDManager: NSObject, ObservableObject {
             let startTime = Date()
             var consecutiveMatches = 0
             
-            while !Task.isCancelled && Date().timeIntervalSince(startTime) < 4.0 {
+            // Allow up to 3.5 seconds to scan face comfortably
+            while !Task.isCancelled && Date().timeIntervalSince(startTime) < 3.5 {
                 guard let buffer = self.camera.currentFrame() else {
-                    try? await Task.sleep(for: .milliseconds(50))
+                    try? await Task.sleep(for: .milliseconds(35))
                     continue
                 }
                 
                 do {
                     let analysis = try self.enrollmentService.analyzeFrame(buffer, includeQuality: false)
-                    
-                    // ArcFace embeddings are [Float] not [Double], verify using the service
                     let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
                     
                     if result.matched {
                         consecutiveMatches += 1
-                        if consecutiveMatches >= 2 { // Require 2 frames
+                        if consecutiveMatches >= 2 { // Require 2 solid frames
                             self.camera.stop()
                             self.isScanning = false
                             self.performMacUnlock()
@@ -160,9 +158,9 @@ final class FaceIDManager: NSObject, ObservableObject {
                         consecutiveMatches = 0
                     }
                 } catch {
-                    // Ignore transient errors (no face, etc)
+                    // Ignore transient errors (no face, lighting adjustment, etc)
                 }
-                try? await Task.sleep(for: .milliseconds(50))
+                try? await Task.sleep(for: .milliseconds(35))
             }
             
             if !Task.isCancelled {
@@ -198,8 +196,8 @@ final class FaceIDManager: NSObject, ObservableObject {
             let requiredPoses = FacePose.allCases
             let totalPoses = requiredPoses.count
             
-            // We capture 3 valid frames per pose to average out noise
-            let framesPerPose = 3
+            // We capture 6 valid frames per pose to deeply cover face features
+            let framesPerPose = 6
             
             for (index, pose) in requiredPoses.enumerated() {
                 self.statusMessage = pose.prompt
@@ -210,8 +208,8 @@ final class FaceIDManager: NSObject, ObservableObject {
                 let poseStartTime = Date()
                 
                 while !Task.isCancelled && poseFramesCaptured < framesPerPose {
-                    // Timeout per pose: 15s
-                    if Date().timeIntervalSince(poseStartTime) > 15.0 {
+                    // Timeout per pose: 20s
+                    if Date().timeIntervalSince(poseStartTime) > 20.0 {
                         self.statusMessage = "Enrollment timed out"
                         self.camera.stop()
                         self.isScanning = false
@@ -235,7 +233,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                         } else {
                             poseEmbeddings.append(analysis.embedding)
                             poseFramesCaptured += 1
-                            self.statusMessage = "Hold still... (\(poseFramesCaptured)/\(framesPerPose))"
+                            self.statusMessage = "Giữ nguyên... (\(poseFramesCaptured)/\(framesPerPose))"
                         }
                     } catch {
                         if let error = error as? NotchPulseEnrollmentError {
@@ -243,12 +241,12 @@ final class FaceIDManager: NSObject, ObservableObject {
                         }
                     }
                     
-                    try? await Task.sleep(for: .milliseconds(150))
+                    try? await Task.sleep(for: .milliseconds(120))
                 }
                 
                 if Task.isCancelled { return }
                 
-                // Average the 3 frames for this pose
+                // Average the frames for this pose + save key pose samples for rich representation
                 if !poseEmbeddings.isEmpty {
                     var mean = [Float](repeating: 0, count: poseEmbeddings[0].count)
                     for e in poseEmbeddings {
@@ -258,6 +256,12 @@ final class FaceIDManager: NSObject, ObservableObject {
                     }
                     let avgEmbedding = NotchPulseFaceEmbedder.l2Normalize(mean)
                     collectedEmbeddings.append(avgEmbedding)
+                    
+                    // Also include 1st and last frame to capture micro angle/lighting variations
+                    if poseEmbeddings.count >= 3 {
+                        collectedEmbeddings.append(poseEmbeddings.first!)
+                        collectedEmbeddings.append(poseEmbeddings.last!)
+                    }
                 }
             }
             

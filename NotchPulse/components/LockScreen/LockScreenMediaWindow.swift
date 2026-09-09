@@ -16,6 +16,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     static let shared = LockScreenMediaWindow()
     
     @Published var isFullScreen: Bool = false
+    @Published var isWindowVisible: Bool = false
     private var isSkyLightAttached = false
     
     private init() {
@@ -105,6 +106,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         } else {
             orderFrontRegardless()
         }
+        isWindowVisible = true
     }
     
     func hide() {
@@ -117,6 +119,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }, completionHandler: {
             self.orderOut(nil)
             self.isFullScreen = false
+            self.isWindowVisible = false
             if self.isSkyLightAttached {
                 SkyLightOperator.shared.undelegateWindow(self)
                 self.isSkyLightAttached = false

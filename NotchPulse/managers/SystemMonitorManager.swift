@@ -66,7 +66,7 @@ public class SystemMonitorManager: ObservableObject {
     // MARK: - Internal State
     private var previousCpuLoadInfo: host_cpu_load_info?
     private var timer: Timer?
-    private var activeSubscribers: Int = 0
+    private var isMonitoring: Bool = false
     private let queue = DispatchQueue(label: "com.notchpulse.systemmonitor", qos: .utility)
 
     private init() {
@@ -78,10 +78,13 @@ public class SystemMonitorManager: ObservableObject {
 
     public func startMonitoring() {
         DispatchQueue.main.async {
-            self.activeSubscribers += 1
+            guard !self.isMonitoring else { return }
+            self.isMonitoring = true
+            
             if self.timer == nil {
                 self.updateMetrics() // Immediate update
-                self.timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+                // Tăng delay lên 2.5s để giảm tải CPU (trước là 1.5s)
+                self.timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
                     self?.queue.async {
                         self?.updateMetrics()
                     }
@@ -92,11 +95,9 @@ public class SystemMonitorManager: ObservableObject {
 
     public func stopMonitoring() {
         DispatchQueue.main.async {
-            self.activeSubscribers = max(0, self.activeSubscribers - 1)
-            if self.activeSubscribers == 0 {
-                self.timer?.invalidate()
-                self.timer = nil
-            }
+            self.isMonitoring = false
+            self.timer?.invalidate()
+            self.timer = nil
         }
     }
 

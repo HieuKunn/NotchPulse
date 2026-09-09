@@ -18,12 +18,14 @@ struct LockScreenMediaView: View {
     
     var body: some View {
         ZStack {
-            if windowController.isFullScreen {
-                fullScreenPlayerView
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-            } else {
-                compactPlayerView
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            if windowController.isWindowVisible {
+                if windowController.isFullScreen {
+                    fullScreenPlayerView
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                } else {
+                    compactPlayerView
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                }
             }
         }
         .animation(.spring(response: 0.65, dampingFraction: 0.82, blendDuration: 0), value: windowController.isFullScreen)
@@ -32,6 +34,14 @@ struct LockScreenMediaView: View {
         }
         .onChange(of: musicManager.songTitle) { _, _ in
             musicManager.ensureLyricsLoaded()
+            let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
+            activeLyricIndex = currentLyricIndex(at: max(0, elapsed - 0.7))
+        }
+        .onChange(of: windowController.isFullScreen) { _, isFull in
+            if isFull {
+                let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
+                activeLyricIndex = currentLyricIndex(at: max(0, elapsed - 0.7))
+            }
         }
     }
     
@@ -90,7 +100,7 @@ struct LockScreenMediaView: View {
             if !musicManager.syncedLyrics.isEmpty {
                 TimelineView(.animation(minimumInterval: 0.25)) { timeline in
                     let elapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
-                    let activeIndex = currentLyricIndex(at: elapsed)
+                    let activeIndex = currentLyricIndex(at: max(0, elapsed - 0.7))
                     if activeIndex >= 0 && activeIndex < musicManager.syncedLyrics.count {
                         let text = musicManager.syncedLyrics[activeIndex].text
                         if !text.isEmpty {
@@ -420,7 +430,7 @@ struct LockScreenMediaView: View {
                     }
                     .background(
                         TimelineView(.animation(minimumInterval: 0.2)) { timeline in
-                            let currentElapsed = max(0, musicManager.estimatedPlaybackPosition(at: timeline.date) - 0.5)
+                            let currentElapsed = max(0, musicManager.estimatedPlaybackPosition(at: timeline.date) - 0.7)
                             let newIndex = currentLyricIndex(at: currentElapsed)
                             Color.clear
                                 .onChange(of: newIndex) { _, newValue in

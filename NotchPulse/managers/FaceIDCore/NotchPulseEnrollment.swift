@@ -55,29 +55,32 @@ enum NotchPulseEnrollmentError: LocalizedError {
 
 enum FacePose: CaseIterable {
     case straight
-    case turnLeft
-    case turnRight
-    case tilt
+    case slightLeft
+    case slightRight
+    case tiltUp
+    case tiltDown
 
     var prompt: String {
         switch self {
-        case .straight:  return "Nhìn thẳng vào camera"
-        case .turnRight: return "Quay mặt sang TRÁI"
-        case .turnLeft:  return "Quay mặt sang PHẢI"
-        case .tilt:      return "Ngước mặt lên / Cúi nhẹ"
+        case .straight:    return "Nhìn thẳng vào camera"
+        case .slightLeft:  return "Hơi quay mặt sang TRÁI"
+        case .slightRight: return "Hơi quay mặt sang PHẢI"
+        case .tiltUp:      return "Hơi ngước mặt LÊN"
+        case .tiltDown:    return "Hơi cúi mặt XUỐNG"
         }
     }
 
-    /// Pose thresholds. Yaw and roll are radians; `faceWidth` is the normalized
-    /// face bounding-box width (0..1), used as a distance proxy. Vision's pitch
-    /// estimate isn't consistent enough to gate on, so it's not in the check.
+    /// Pose thresholds. Relaxed to make setup easy like iPhone.
     func matches(yaw: Float, roll: Float, faceWidth: CGFloat) -> Bool {
         switch self {
         case .straight:
-            return abs(yaw) < 0.30 && abs(roll) < 0.30
-        case .turnLeft:  return yaw   < -0.10
-        case .turnRight: return yaw   >  0.10
-        case .tilt:      return true
+            return abs(yaw) < 0.35 && abs(roll) < 0.35
+        case .slightLeft:
+            return yaw < -0.05
+        case .slightRight:
+            return yaw > 0.05
+        case .tiltUp, .tiltDown:
+            return true // Vision pitch isn't reliable, accept any centered face after a short delay
         }
     }
 }
@@ -113,7 +116,7 @@ final class NotchPulseEnrollmentService {
     static let enrolledFilename = "embeddings.enc"
     /// Legacy plaintext JSON from pre-encryption versions; readable for auto-migration.
     static let legacyEnrolledFilename = "embeddings.json"
-    nonisolated static let defaultMatchThreshold: Float = 0.70
+    nonisolated static let defaultMatchThreshold: Float = 0.63
     // Face bbox width must be at least this fraction of the frame width to be
     // considered valid. 0.10 corresponds to a distance of roughly 93 cm on a typical
     // laptop camera (78° FOV, ~15 cm face) — well past the 70 cm working target.
