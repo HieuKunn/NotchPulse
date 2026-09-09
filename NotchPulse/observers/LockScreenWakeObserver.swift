@@ -92,7 +92,6 @@ final class LockScreenWakeObserver: ObservableObject {
                     FaceIDManager.shared.lastUnlockSuccess = false
                     FaceIDManager.shared.statusMessage = "Ready"
                     LockScreenFaceIDWindow.shared.show()
-                    FaceIDManager.shared.startRecognitionOnWake()
                 }
             }
         }

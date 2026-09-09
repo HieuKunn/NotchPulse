@@ -135,8 +135,8 @@ final class FaceIDManager: NSObject, ObservableObject {
             let startTime = Date()
             var consecutiveMatches = 0
             
-            // Allow up to 3.5 seconds to scan face comfortably
-            while !Task.isCancelled && Date().timeIntervalSince(startTime) < 3.5 {
+            // Allow up to 4.0 seconds to scan face comfortably
+            while !Task.isCancelled && Date().timeIntervalSince(startTime) < 4.0 {
                 guard let buffer = self.camera.currentFrame() else {
                     try? await Task.sleep(for: .milliseconds(35))
                     continue

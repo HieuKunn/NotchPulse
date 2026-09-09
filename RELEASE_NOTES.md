@@ -1,11 +1,12 @@
-# 🚀 What's New in NotchPulse v3.1.2
+# 🚀 What's New in NotchPulse v3.1.3
 
-Welcome to NotchPulse **v3.1.2**! This release brings significant improvements to Face ID enrollment, Lock Screen Lyrics synchronization, idle CPU & memory efficiency, and in-app automatic updates via Sparkle.
+Welcome to NotchPulse **v3.1.3**! This release brings significant improvements to Face ID enrollment, Lock Screen Lyrics synchronization, idle CPU & memory efficiency, and in-app automatic updates via Sparkle.
 
 ---
 
 ### 🔒 Face ID & Enrollment Enhancements
-- **3.5s Timeout**: Fine-tuned face scanning timeout to 3.5 seconds for snappier lock screen unlocking.
+- **4.0s Timeout**: Increased face scanning timeout back to 4.0 seconds for more comfortable lock screen unlocking.
+- **Manual Lock Improvement**: Disabled automatic Face ID camera start when the user manually locks the screen from an active session. Face ID will now only auto-start when the Mac wakes up from sleep.
 - **5-Step iPhone-Style Setup**: Redesigned face enrollment into a smooth 5-stage pose sequence (Straight, Slight Left, Slight Right, Pitch Up, Pitch Down) with relaxed yaw thresholds and clear UI progress indicators.
 - **Hover & Wake Lock Screen Integration**: Improved Face ID wake triggers when hovering on the lock screen overlay.
 
