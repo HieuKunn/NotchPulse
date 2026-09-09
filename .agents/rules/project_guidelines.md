@@ -1,37 +1,40 @@
 # NotchPulse Project Guidelines & Memory Rules
 
-File này chứa các quy tắc và lưu ý quan trọng cho dự án NotchPulse. Các AI Agent làm việc trên codebase này BẮT BUỘC phải đọc và tuân thủ tự động.
+This document outlines the core rules, architectural guidelines, and release procedures for the NotchPulse project. All AI agents working on this codebase MUST read and strictly adhere to these instructions.
 
 > **CRITICAL RULE FOR ALL AGENTS:** Always refer to and enforce `.agents/rules/project_guidelines.md` before releasing or committing.
 
 ---
 
-## 1. Quy định Commit Message & Release Notes chuẩn tiếng Anh (BẮT BUỘC)
-- **Commit Message Chi Tiết:** Mỗi khi commit code, BẮT BUỘC phải viết nội dung mô tả chi tiết từng thay đổi, sửa lỗi (itemized list). KHÔNG dùng các câu commit chung chung như "update code", "fix bug".
-- **Release Notes Bằng Tiếng Anh Chi Tiết (`RELEASE_NOTES.md`):** Mỗi khi thực hiện Release phiên bản mới (ví dụ: `v3.1.2`), Agent BẮT BUỘC phải cập nhật file `RELEASE_NOTES.md` ở thư mục gốc repo với nội dung **HOÀN TOÀN BẰNG TIẾNG ANH**, mô tả đầy đủ các tính năng mới (`🚀 Features`), sửa lỗi (`🐛 Fixes`), tối ưu hiệu năng (`⚡ Performance`), và hướng dẫn cập nhật. KHÔNG ĐƯỢC ĐỂ GitHub Release hiển thị log commit tự động đơn lẻ như `- chore: Update appcast.xml for release`.
+## 1. Commit Messages & Release Notes Guidelines (MANDATORY)
+- **Descriptive Commit Messages:** When committing code, ALWAYS provide a concise, itemized description of the specific changes and fixes. NEVER use generic messages like "update code" or "fix bug".
+- **English Release Notes (`RELEASE_NOTES.md`):** For every new release, update `RELEASE_NOTES.md` in the repository root ENTIRELY IN ENGLISH. Focus on the actual changes in the specific version (`🚀 What's New`, `🐛 Bug Fixes`, `⚡ Improvements`). NEVER let GitHub Releases display raw automated single commits such as `- chore: Update appcast.xml for release`.
 
 ---
 
-## 2. Quy Trình Release, Đồng Bộ Version & Auto-Update Qua App
-- **Đồng bộ phiên bản chính xác (BẮT BUỘC cho Auto-Update):** Trước khi release bản mới, BẮT BUỘC phải đổi và kiểm tra chính xác số version mới nhất ở tất cả các vị trí để ứng dụng có thể cập nhật trực tiếp (In-App Update via Sparkle) mà không bị kẹt hoặc báo sai phiên bản:
+## 2. Release Workflow, Version Synchronization & In-App Auto-Update
+- **Strict Version Synchronization (REQUIRED for Sparkle Auto-Update):** Before publishing any release, verify and synchronize the exact version number across all required configuration files:
   - `NotchPulse.xcodeproj/project.pbxproj` (`CURRENT_PROJECT_VERSION` & `MARKETING_VERSION`)
-  - `appcast.xml` (Sparkle auto-update feed XML - phải cập nhật tag `<sparkle:version>` và `<sparkle:shortVersionString>`)
-  - Thẻ Release/Tag trên GitHub (ví dụ: `v3.1.2`).
-  - File `RELEASE_NOTES.md` (Viết bằng tiếng Anh chuẩn cho người dùng).
-- **Sparkle Auto-Update & Code Signing cho DMG:** 
-  - File `NotchPulse.entitlements` phải luôn duy trì `com.apple.security.app-sandbox = false` đối với ứng dụng Mac phân phối ngoài App Store để công cụ cài đặt Sparkle (`Autoupdate.app`) có thể ghi đè bản mới vào `/Applications`.
-  - Quy trình ký chữ ký số trong `build-dmg.yml` phải ký theo chuẩn inside-out (ký từng framework riêng biệt không kèm `--entitlements` của app chính) để không làm hỏng chữ ký của Sparkle.framework.
+  - `appcast.xml` (Sparkle update feed XML — update `<sparkle:version>` and `<sparkle:shortVersionString>`)
+  - GitHub Tag & Release (e.g., `v3.1.5`)
+  - `RELEASE_NOTES.md` (English release description)
+- **Sparkle Auto-Update & Code Signing for DMG:**
+  - `NotchPulse.entitlements` must maintain `com.apple.security.app-sandbox = false` for direct non-Mac App Store distribution so Sparkle's `Autoupdate.app` helper can properly replace the existing app binary in `/Applications`.
+  - In `build-dmg.yml`, sign frameworks using the inside-out pattern without passing the parent app entitlements flag `--entitlements` to `--deep`, ensuring `Sparkle.framework` code signature integrity is preserved.
 
 ---
 
-## 3. Quy Chuẩn Layout & Đa Màn Hình (Multi-Monitor)
-- **Căn chỉnh theo Tỷ Lệ (Percentage-based):** Sử dụng tỷ lệ màn hình động thay vì hardcode pixel cứng cho các thành phần UI (Lyrics, Media View).
-- **Phân biệt Màn Hình:**
-  - Màn hình chính Mac: Thiết kế tối ưu theo kích thước và vị trí của Notch.
-  - Màn hình ngoại vi (External Display): Thiết kế chuẩn theo màn hình phẳng, căn giữa cân đối, không áp dụng khoảng trống Notch của Mac.
-- **Micro-animations & Zoom:** Khi phóng to/thu nhỏ Media View, chỉ điều chỉnh tỷ lệ rất nhỏ (1-2px) để tránh làm vỡ layout làm cho chữ Lyrics bị nhảy dòng ngoài ý muốn.
+## 3. Layout Standards & Multi-Monitor Support
+- **Percentage-Based Sizing:** Use dynamic, screen-relative dimensions rather than rigid hardcoded pixel values for responsive UI components (Lyrics, Media View).
+- **Display Awareness:**
+  - Built-in MacBook Display: Dynamically adapt UI around the camera Notch geometry.
+  - External Displays: Render standard flat designs centered symmetrically without Notch offsets.
+- **Micro-Animations & Text Flow:** When expanding or shrinking media views, apply subtle scaling (1–2px) to prevent layout shifts or premature line breaks in lyrics.
 
 ---
 
 ## 4. Lock Screen & FaceID Window
-- Khi chuyển quay lại Lock Screen lúc đang làm việc: Ưu tiên chế độ rê chuột (Hover) để kích hoạt/mở khóa FaceID thay vì yêu cầu nhấn nút bấm.
+- When returning to the Lock Screen during an active session: Prioritize hover-to-wake / hover-to-authenticate for Face ID rather than requiring a button click.
+- **Lyrics Behavior on Lock Screen:**
+  - Upon track change, immediately reset and scroll lyrics to the beginning of the song (line 0 / top) without waiting for the first lyric timestamp.
+  - When expanding from compact media view to full-screen lyrics, immediately illuminate and center the currently active lyric line without waiting for the next line's timestamp.

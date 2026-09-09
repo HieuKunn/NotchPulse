@@ -206,6 +206,10 @@ class MusicManager: ObservableObject {
 
         // Handle artwork and visual transitions for changed content
         if hasContentChange {
+            if titleChanged || artistChanged {
+                self.syncedLyrics = []
+                self.currentLyrics = ""
+            }
             self.triggerFlipAnimation()
 
             if artworkChanged, let artwork = state.artwork {
@@ -369,6 +373,7 @@ class MusicManager: ObservableObject {
 
                 self.isFetchingLyrics = true
                 self.currentLyrics = ""
+                self.syncedLyrics = []
                 do {
                     let script = """
                     tell application \"Music\"
@@ -407,6 +412,7 @@ class MusicManager: ObservableObject {
             Task { @MainActor in
                 self.isFetchingLyrics = true
                 self.currentLyrics = ""
+                self.syncedLyrics = []
                 await self.fetchLyricsFromWeb(title: title, artist: artist)
             }
         }

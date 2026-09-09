@@ -33,14 +33,13 @@ struct LockScreenMediaView: View {
             musicManager.ensureLyricsLoaded()
         }
         .onChange(of: musicManager.songTitle) { _, _ in
+            activeLyricIndex = 0
             musicManager.ensureLyricsLoaded()
-            let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
-            activeLyricIndex = currentLyricIndex(at: max(0, elapsed - 0.7))
         }
         .onChange(of: windowController.isFullScreen) { _, isFull in
             if isFull {
-                let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
-                activeLyricIndex = currentLyricIndex(at: max(0, elapsed - 0.7))
+                let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: Date()) - 0.7)
+                activeLyricIndex = currentLyricIndex(at: elapsed)
             }
         }
     }
@@ -443,14 +442,25 @@ struct LockScreenMediaView: View {
                                         }
                                     }
                                 }
-                                .onAppear {
-                                    activeLyricIndex = newIndex
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        proxy.scrollTo(activeLyricIndex, anchor: .center)
-                                    }
-                                }
                         }
                     )
+                    .onAppear {
+                        scheduleMultiPassScroll(proxy: proxy, forceTop: false)
+                    }
+                    .onChange(of: musicManager.songTitle) { _, _ in
+                        scheduleMultiPassScroll(proxy: proxy, forceTop: true)
+                    }
+                    .onChange(of: musicManager.syncedLyrics.count) { _, count in
+                        guard count > 0 else { return }
+                        let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: Date()) - 0.7)
+                        let target = currentLyricIndex(at: elapsed)
+                        scheduleMultiPassScroll(proxy: proxy, forceTop: target == 0)
+                    }
+                    .onChange(of: windowController.isFullScreen) { _, isFull in
+                        if isFull {
+                            scheduleMultiPassScroll(proxy: proxy, forceTop: false)
+                        }
+                    }
                 }
             } else if !musicManager.currentLyrics.isEmpty {
                 ScrollView(.vertical, showsIndicators: false) {
@@ -539,6 +549,36 @@ struct LockScreenMediaView: View {
             }
         }
         return result
+    }
+    
+    private func scrollToActiveLyric(proxy: ScrollViewProxy, forceTop: Bool = false) {
+        guard !musicManager.syncedLyrics.isEmpty else { return }
+        let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: Date()) - 0.7)
+        let target = forceTop ? 0 : currentLyricIndex(at: elapsed)
+        activeLyricIndex = target
+        let anchor: UnitPoint = (target == 0 || forceTop) ? .top : .center
+        proxy.scrollTo(target, anchor: anchor)
+    }
+    
+    private func scheduleMultiPassScroll(proxy: ScrollViewProxy, forceTop: Bool = false) {
+        scrollToActiveLyric(proxy: proxy, forceTop: forceTop)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            scrollToActiveLyric(proxy: proxy, forceTop: forceTop)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            scrollToActiveLyric(proxy: proxy, forceTop: forceTop)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.40) {
+            withAnimation(.smooth(duration: 0.3)) {
+                scrollToActiveLyric(proxy: proxy, forceTop: forceTop)
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+            withAnimation(.smooth(duration: 0.25)) {
+                scrollToActiveLyric(proxy: proxy, forceTop: forceTop)
+            }
+        }
     }
     
     private func timeFormatted(seconds: Double) -> String {
