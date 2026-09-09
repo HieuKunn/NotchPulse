@@ -2,6 +2,8 @@
 
 File này chứa các quy tắc và lưu ý quan trọng cho dự án NotchPulse. Các AI Agent làm việc trên codebase này BẮT BUỘC phải đọc và tuân thủ tự động.
 
+> **CRITICAL RULE FOR ALL AGENTS:** Always refer to and enforce `.agents/rules/project_guidelines.md` before releasing or committing.
+
 ---
 
 ## 1. Quy định Commit Message & Release Notes chuẩn tiếng Anh (BẮT BUỘC)

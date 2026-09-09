@@ -1,5 +1,7 @@
 # NotchPulse Agent Instructions & Release Guidelines
 
+> **IMPORTANT:** Always refer to and enforce `.agents/rules/project_guidelines.md` before releasing or committing.
+
 Whenever working on NotchPulse or executing releases, ALWAYS follow these instructions:
 
 ## 1. Mandatory English Release Notes Format
