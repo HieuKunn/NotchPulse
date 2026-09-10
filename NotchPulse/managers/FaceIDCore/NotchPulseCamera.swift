@@ -1,111 +1,111 @@
 //
-//  CameraManager.swift
-//  FaceUnlock
+//  NotchPulseCamera.swift
+//  NotchPulse
+//
+//  Owns the AVCaptureSession and publishes the newest camera frame as a CGImage. Runs entirely on-device.
+//  Includes native-resolution crop support for liveness detection (glare/spoof cues).
+//  Ported from Glance's CameraManager.swift with NotchPulse naming.
 //
 
-import AVFoundation
+@preconcurrency import AVFoundation
+import CoreImage
 import Observation
 
+enum NotchPulseCameraPermission {
+    case notDetermined
+    case granted
+    case denied
+}
+
+/// `source` is a `CIImage` — a lazy recipe, not rendered pixels — so holding onto it costs nothing until `renderCrop` uses it.
+struct CameraFrame {
+    let id: UInt64
+    let image: CGImage
+    let source: CIImage
+    let sourceSize: CGSize
+}
+
 @Observable
-final class NotchPulseCamera {
-    enum AuthorizationStatus {
-        case notDetermined
-        case denied
-        case authorized
-    }
+@MainActor
+final class NotchPulseCamera: NSObject {
+    private(set) var permission: NotchPulseCameraPermission = .notDetermined
+    private(set) var isRunning: Bool = false
+    private(set) var currentFrame: CameraFrame?
+    private(set) var errorMessage: String?
 
+    /// Exposed read-only so previews can attach to the same session.
     let session = AVCaptureSession()
-    var authorizationStatus: AuthorizationStatus = .notDetermined
-    var isRunning = false
-
-    private let sessionQueue = DispatchQueue(label: "com.faceunlock.camera.session")
-    private let videoOutputQueue = DispatchQueue(label: "com.faceunlock.camera.video-output")
     private let videoOutput = AVCaptureVideoDataOutput()
-    private let frameReceiver = FrameReceiver()
-    private var didConfigure = false
+    private let sessionQueue = DispatchQueue(label: "com.notchpulse.camera.session")
 
-    private let bufferLock = NSLock()
-    private var _latestPixelBuffer: CVPixelBuffer?
+    /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
+    private let framePublisher = FramePublisher()
 
-    init() {
-        frameReceiver.owner = self
-        refreshAuthorizationStatus()
-    }
-
-    func currentFrame() -> CVPixelBuffer? {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
-        return _latestPixelBuffer
-    }
-
-    fileprivate func updateLatestBuffer(_ buffer: CVPixelBuffer) {
-        bufferLock.lock()
-        _latestPixelBuffer = buffer
-        bufferLock.unlock()
-    }
-
-    func refreshAuthorizationStatus() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            authorizationStatus = .authorized
-        case .denied, .restricted:
-            authorizationStatus = .denied
-        case .notDetermined:
-            authorizationStatus = .notDetermined
-        @unknown default:
-            authorizationStatus = .denied
-        }
+    override init() {
+        super.init()
+        framePublisher.owner = self
     }
 
     func requestAccessAndStart() async {
-        let granted = await AVCaptureDevice.requestAccess(for: .video)
-        authorizationStatus = granted ? .authorized : .denied
-        if granted {
-            await start()
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        switch status {
+        case .authorized:
+            permission = .granted
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            permission = granted ? .granted : .denied
+        default:
+            permission = .denied
         }
+
+        guard permission == .granted else {
+            errorMessage = "Camera access not granted. Check System Settings > Privacy & Security > Camera."
+            return
+        }
+
+        errorMessage = nil
+        configureSessionIfNeeded()
+
+        sessionQueue.async { [session] in
+            if !session.isRunning {
+                session.startRunning()
+            }
+        }
+        isRunning = true
     }
 
     func start() async {
-        guard authorizationStatus == .authorized else { return }
-        await withCheckedContinuation { continuation in
-            sessionQueue.async { [weak self] in
-                guard let self else {
-                    continuation.resume()
-                    return
-                }
-                self.configureSessionIfNeeded()
-                if !self.session.isRunning {
-                    self.session.startRunning()
-                }
-                let running = self.session.isRunning
-                DispatchQueue.main.async {
-                    self.isRunning = running
-                    continuation.resume()
+        if permission == .notDetermined {
+            await requestAccessAndStart()
+        } else if permission == .granted {
+            errorMessage = nil
+            configureSessionIfNeeded()
+            sessionQueue.async { [session] in
+                if !session.isRunning {
+                    session.startRunning()
                 }
             }
+            isRunning = true
         }
     }
 
     func stop() {
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-            if self.session.isRunning {
-                self.session.stopRunning()
-            }
-            // Drop the last captured frame so a subsequent restart can't
-            // return a stale buffer from the previous session while waiting
-            // for fresh frames to arrive.
-            self.bufferLock.lock()
-            self._latestPixelBuffer = nil
-            self.bufferLock.unlock()
-            DispatchQueue.main.async {
-                self.isRunning = false
+        sessionQueue.async { [session] in
+            if session.isRunning {
+                session.stopRunning()
             }
         }
+        isRunning = false
+        currentFrame = nil
     }
 
+    private var isConfigured = false
+    private var currentInput: AVCaptureDeviceInput?
+
     private func configureSessionIfNeeded() {
-        guard !didConfigure else { return }
+        guard !isConfigured else { return }
+        isConfigured = true
+
         session.beginConfiguration()
         session.sessionPreset = .high
 
@@ -113,31 +113,115 @@ final class NotchPulseCamera {
            let input = try? AVCaptureDeviceInput(device: device),
            session.canAddInput(input) {
             session.addInput(input)
+            currentInput = input
+            selectHighestResolutionFormat(for: device)
         }
 
+        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
         videoOutput.alwaysDiscardsLateVideoFrames = true
-        videoOutput.videoSettings = [
-            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
-        ]
-        videoOutput.setSampleBufferDelegate(frameReceiver, queue: videoOutputQueue)
+        videoOutput.setSampleBufferDelegate(framePublisher, queue: sessionQueue)
         if session.canAddOutput(videoOutput) {
             session.addOutput(videoOutput)
         }
 
         session.commitConfiguration()
-        didConfigure = true
     }
-}
 
-private final class FrameReceiver: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    weak var owner: NotchPulseCamera?
+    /// Highest resolution regardless of fps — Vision still works from the downscaled frame; this only affects
+    /// what `CameraFrame.source` (and therefore `renderCrop`) has to work with.
+    private func selectHighestResolutionFormat(for device: AVCaptureDevice) {
+        let best = device.formats.max { lhs, rhs in
+            let l = CMVideoFormatDescriptionGetDimensions(lhs.formatDescription)
+            let r = CMVideoFormatDescriptionGetDimensions(rhs.formatDescription)
+            return Int(l.width) * Int(l.height) < Int(r.width) * Int(r.height)
+        }
+        guard let best else { return }
+        do {
+            try device.lockForConfiguration()
+            device.activeFormat = best
+            device.unlockForConfiguration()
+        } catch {
+            errorMessage = "Couldn't select the camera's highest-resolution format: \(error.localizedDescription)"
+        }
+    }
 
-    func captureOutput(
-        _ output: AVCaptureOutput,
-        didOutput sampleBuffer: CMSampleBuffer,
-        from connection: AVCaptureConnection
-    ) {
-        guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        owner?.updateLatestBuffer(buffer)
+    fileprivate func publish(frame: CameraFrame) {
+        currentFrame = frame
+    }
+
+    /// Renders a native-resolution crop of `imageRect` from `frame.source`, for spoof-cue extraction which
+    /// needs pixel detail (screen texture, moiré, gloss) the downscaled working frame throws away.
+    nonisolated static func renderCrop(from frame: CameraFrame, imageRect: CGRect, maxEdge: CGFloat = 448) -> CGImage? {
+        let workingWidth = CGFloat(frame.image.width)
+        let workingHeight = CGFloat(frame.image.height)
+        guard workingWidth > 0, workingHeight > 0 else { return nil }
+        let scaleX = frame.sourceSize.width / workingWidth
+        let scaleY = frame.sourceSize.height / workingHeight
+
+        // Expand ~1.3x so device edges/bezels are captured for texture/moiré cues.
+        let expanded = imageRect.insetBy(dx: -imageRect.width * 0.15, dy: -imageRect.height * 0.15)
+
+        // Flip from `imageRect`'s top-left/y-down space to Core Image's bottom-left/y-up
+        let nativeX = expanded.origin.x * scaleX
+        let nativeWidth = expanded.width * scaleX
+        let nativeHeight = expanded.height * scaleY
+        let nativeY = frame.sourceSize.height - (expanded.origin.y + expanded.height) * scaleY
+        var nativeRect = CGRect(x: nativeX, y: nativeY, width: nativeWidth, height: nativeHeight)
+
+        let sourceExtent = CGRect(origin: .zero, size: frame.sourceSize)
+        nativeRect = nativeRect.intersection(sourceExtent)
+        guard !nativeRect.isEmpty else { return nil }
+
+        var cropped = frame.source.cropped(to: nativeRect)
+            .transformed(by: CGAffineTransform(translationX: -nativeRect.minX, y: -nativeRect.minY))
+        let longEdge = max(nativeRect.width, nativeRect.height)
+        if longEdge > maxEdge {
+            let scale = maxEdge / longEdge
+            cropped = cropped.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        }
+
+        return cropRenderContext.createCGImage(cropped, from: cropped.extent)
+    }
+
+    /// `CIContext` is expensive to create and safe to reuse concurrently.
+    private nonisolated static let cropRenderContext = CIContext()
+
+    /// Sample-buffer callbacks arrive on `sessionQueue`, off the main actor.
+    private final class FramePublisher: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+        weak var owner: NotchPulseCamera?
+        private let ciContext = CIContext()
+        /// Detection only needs a modest resolution; the live preview renders from the capture session directly and
+        /// is unaffected. The undownscaled `source` is kept alongside for callers needing native pixels (`renderCrop`).
+        private let maxLongEdge: CGFloat = 640
+        private var nextFrameID: UInt64 = 0
+
+        func captureOutput(
+            _ output: AVCaptureOutput,
+            didOutput sampleBuffer: CMSampleBuffer,
+            from connection: AVCaptureConnection
+        ) {
+            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+            let sourceImage = CIImage(cvPixelBuffer: pixelBuffer)
+            let sourceExtent = sourceImage.extent
+            var ciImage = sourceImage
+            let longEdge = max(ciImage.extent.width, ciImage.extent.height)
+            if longEdge > maxLongEdge {
+                let scale = maxLongEdge / longEdge
+                ciImage = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+            }
+            guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
+
+            nextFrameID &+= 1
+            let frame = CameraFrame(
+                id: nextFrameID,
+                image: cgImage,
+                source: sourceImage,
+                sourceSize: sourceExtent.size
+            )
+
+            Task { @MainActor [weak owner] in
+                owner?.publish(frame: frame)
+            }
+        }
     }
 }

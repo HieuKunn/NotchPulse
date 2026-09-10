@@ -484,6 +484,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // NotchPulse 2.0: Initialize Face ID & Lock Screen Observer
         _ = LockScreenWakeObserver.shared
+        _ = NotchPulseFaceUnlockCoordinator.shared
 
         previousScreens = NSScreen.screens
     }

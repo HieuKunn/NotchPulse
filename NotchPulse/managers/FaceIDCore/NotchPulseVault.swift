@@ -1,14 +1,11 @@
 //
 //  NotchPulseVault.swift
-//  FaceUnlock
+//  NotchPulse
 //
 //  Two-tier password storage:
-//    1. Session key (256-bit AES) — Keychain-stored (kSecAttrAccessibleWhenUnlockedThisDeviceOnly).
-//       Touch ID is enforced by the app via LAContext.evaluatePolicy in
-//       unlockSession(reason:), NOT by Keychain-level SecAccessControl. The
-//       `.userPresence` access control was removed for ad-hoc signing
-//       compatibility (see Changes_i_did.txt). Held in memory as a
-//       `SymmetricKey` after one successful unwrap per app launch.
+//    1. Session key (256-bit AES) — Keychain-stored with `.userPresence` Touch ID access control.
+//       This enforces OS-level biometric authentication when reading the key. Held in memory as a
+//       `SymmetricKey` after one successful unwrap.
 //    2. Encrypted password blob (AES-GCM) — Keychain-stored, no biometric gate.
 //       Meaningless without the session key.
 //
@@ -21,15 +18,17 @@ import Security
 import LocalAuthentication
 import CryptoKit
 
+extension Notification.Name {
+    static let notchPulseSessionDidChange = Notification.Name("notchPulseSessionDidChange")
+}
+
 enum NotchPulseVaultError: LocalizedError {
     case emptyPassword
     case dataEncodingFailed
-    case accessControlFailed(String)
-    case keychainError(OSStatus)
-    case userCancelled
     case sessionLocked
     case encryptionFailed
     case decryptionFailed
+    case keychainError(Error)
 
     var errorDescription: String? {
         switch self {
@@ -37,25 +36,19 @@ enum NotchPulseVaultError: LocalizedError {
             return "Password cannot be empty."
         case .dataEncodingFailed:
             return "Couldn't encode the password as UTF-8 data."
-        case .accessControlFailed(let msg):
-            return "Couldn't create Keychain access control: \(msg)"
-        case .keychainError(let status):
-            let message = SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus \(status)"
-            return "Keychain error: \(message)"
-        case .userCancelled:
-            return "Authentication was cancelled."
         case .sessionLocked:
             return "Session is locked. Touch ID is required to unlock the session before encrypted data can be accessed."
         case .encryptionFailed:
             return "Encryption failed."
         case .decryptionFailed:
             return "Decryption failed. The stored password may be corrupted."
+        case .keychainError(let error):
+            return "Keychain error: \(error.localizedDescription)"
         }
     }
 }
 
 enum NotchPulseVault {
-    nonisolated static let service = "com.notchpulse.FaceID"
     nonisolated static let sessionKeyAccount = "sessionKey"
     nonisolated static let encryptedBlobAccount = "encryptedPasswordBlob"
 
@@ -66,11 +59,24 @@ enum NotchPulseVault {
 
     nonisolated private static let sessionLock = NSLock()
     nonisolated(unsafe) private static var _cachedKey: SymmetricKey? = nil
+    nonisolated(unsafe) private static var _lastActivityAt: Date = Date()
 
     nonisolated static var isSessionUnlocked: Bool {
         sessionLock.lock()
         defer { sessionLock.unlock() }
         return _cachedKey != nil
+    }
+    
+    nonisolated static var lastActivityAt: Date {
+        sessionLock.lock()
+        defer { sessionLock.unlock() }
+        return _lastActivityAt
+    }
+
+    nonisolated static func markActivity() {
+        sessionLock.lock()
+        _lastActivityAt = Date()
+        sessionLock.unlock()
     }
 
     nonisolated private static func loadCachedKey() -> SymmetricKey? {
@@ -81,54 +87,46 @@ enum NotchPulseVault {
 
     nonisolated private static func storeCachedKey(_ key: SymmetricKey?) {
         sessionLock.lock()
+        let changed = (_cachedKey != nil) != (key != nil)
         _cachedKey = key
+        _lastActivityAt = Date()
         sessionLock.unlock()
+        
+        if changed {
+            NotificationCenter.default.post(name: .notchPulseSessionDidChange, object: nil)
+        }
     }
 
     // MARK: - Public API
 
     /// Does an encrypted blob exist? (Existence check — no auth required.)
     nonisolated static func hasStoredPassword() -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: encryptedBlobAccount,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        return status != errSecItemNotFound
+        return NotchPulseKeychainManager.exists(account: encryptedBlobAccount)
     }
 
-    /// Does a session key exist in the Keychain? (Existence check via
-    /// attributes-only query — does not prompt for Touch ID.)
-    ///
-    /// If this returns true but `isSessionUnlocked` is false, the caller must
-    /// call `unlockSession(reason:)` before any save/encrypt/decrypt call.
+    /// Does a session key exist in the Keychain? (Existence check via attributes-only query)
     nonisolated static func hasSessionKey() -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: sessionKeyAccount,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecReturnAttributes as String: true
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        return status != errSecItemNotFound
+        return NotchPulseKeychainManager.exists(account: sessionKeyAccount)
+    }
+    
+    /// Are there other encrypted files (like faces) depending on this session key?
+    nonisolated static func hasSessionEncryptedData() -> Bool {
+        // We consider the session having encrypted data if there's a stored password
+        // Or if the encrypted face store file exists.
+        let faceStoreURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("NotchPulseFaceID")
+            .appendingPathComponent("face-identities.enc")
+        
+        return hasStoredPassword() || FileManager.default.fileExists(atPath: faceStoreURL.path)
     }
 
-    /// Save (or replace) the password. Uses the existing session key if one is
-    /// available (cached or freshly-generated); if the Keychain already has a key
-    /// but the session is locked, throws `.sessionLocked` — caller must unlock first.
-    ///
+    /// Save (or replace) the password. Uses the existing session key if one is available.
     /// Blocking; call from a background actor.
     nonisolated static func savePassword(_ passwordBytes: Data) throws {
         guard !passwordBytes.isEmpty else { throw NotchPulseVaultError.emptyPassword }
 
         let key = try ensureSessionKey()
 
-        // Encrypt with AES-GCM
         let combined: Data
         do {
             let sealed = try AES.GCM.seal(passwordBytes, using: key)
@@ -138,65 +136,51 @@ enum NotchPulseVault {
             throw NotchPulseVaultError.encryptionFailed
         }
 
-        // Persist encrypted blob (no biometric gate — meaningless without the key)
-        try saveEncryptedBlob(combined)
+        do {
+            try NotchPulseKeychainManager.save(account: encryptedBlobAccount, data: combined)
+        } catch {
+            throw NotchPulseVaultError.keychainError(error)
+        }
+        markActivity()
     }
 
-    /// Encrypt arbitrary data with the current session key. Used by
-    /// `FaceEnrollmentService` to encrypt the enrolled face embeddings at rest.
-    ///
-    /// Requires either a cached session key OR no session key at all (first use
-    /// creates one). Fails if a key exists in Keychain but the session is locked —
-    /// caller must call `unlockSession(reason:)` first.
+    /// Encrypt arbitrary data with the current session key.
     nonisolated static func encryptWithSessionKey(_ plaintext: Data) throws -> Data {
         let key = try ensureSessionKey()
         do {
             let sealed = try AES.GCM.seal(plaintext, using: key)
             guard let combined = sealed.combined else { throw NotchPulseVaultError.encryptionFailed }
+            markActivity()
             return combined
         } catch {
             throw NotchPulseVaultError.encryptionFailed
         }
     }
 
-    /// Decrypt data that was encrypted with `encryptWithSessionKey`. Requires the
-    /// session to be unlocked (or first-use with no key yet, which would then fail
-    /// to decrypt anyway — legitimate use always follows an encrypted-write).
+    /// Decrypt data that was encrypted with `encryptWithSessionKey`. Requires the session to be unlocked.
     nonisolated static func decryptWithSessionKey(_ ciphertext: Data) throws -> Data {
         guard let key = loadCachedKey() else {
             throw NotchPulseVaultError.sessionLocked
         }
         do {
             let sealed = try AES.GCM.SealedBox(combined: ciphertext)
-            return try AES.GCM.open(sealed, using: key)
+            let plaintext = try AES.GCM.open(sealed, using: key)
+            markActivity()
+            return plaintext
         } catch {
             throw NotchPulseVaultError.decryptionFailed
         }
     }
 
-    /// Returns the session key: cached in memory if available, freshly created
-    /// (and persisted to Keychain) if none exists yet, or throws `.sessionLocked`
-    /// if a key is present but not yet unwrapped this session.
+    /// Returns the session key: cached in memory if available, freshly created if none exists yet,
+    /// or throws `.sessionLocked` if a key is present but not yet unwrapped this session.
     nonisolated private static func ensureSessionKey() throws -> SymmetricKey {
         if let cached = loadCachedKey() { return cached }
 
-        // Attributes-only query — doesn't need auth, just checks presence.
-        let existsQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: sessionKeyAccount,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecReturnAttributes as String: true
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(existsQuery as CFDictionary, &item)
-        if status != errSecItemNotFound {
-            // Key already exists in Keychain but we don't have it in memory.
-            // Caller must call unlockSession(reason:) to unwrap it via Touch ID.
+        if hasSessionKey() {
             throw NotchPulseVaultError.sessionLocked
         }
 
-        // No key anywhere — create one now, silently (Touch ID is enforced on future READS).
         let key = SymmetricKey(size: .bits256)
         try saveSessionKey(key)
         storeCachedKey(key)
@@ -204,53 +188,19 @@ enum NotchPulseVault {
     }
 
     /// Prompts Touch ID / device password and unwraps the session key into memory.
-    /// Call once per app launch (typically at startup) before any reads.
-    ///
     /// Blocking; call from a background actor.
     nonisolated static func unlockSession(reason: String) throws {
         let context = LAContext()
-        var authError: NSError?
-
-        // Explicitly prompt Touch ID — required because the Keychain item no
-        // longer has .userPresence access control (removed for ad-hoc signing
-        // compatibility), so kSecUseAuthenticationContext is ignored by SecItem.
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &authError) else {
-            throw NotchPulseVaultError.userCancelled
+        context.localizedReason = reason
+        
+        let data: Data
+        do {
+            data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: context)
+        } catch {
+            throw NotchPulseVaultError.keychainError(error)
         }
-
-        var authResult = false
-        let sema = DispatchSemaphore(value: 0)
-        context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, _ in
-            authResult = success
-            sema.signal()
-        }
-        sema.wait()
-
-        guard authResult else {
-            throw NotchPulseVaultError.userCancelled
-        }
-
-        // Touch ID passed — now read the key silently (no auth gate on the item)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: sessionKeyAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        switch status {
-        case errSecSuccess:
-            guard let data = item as? Data else {
-                throw NotchPulseVaultError.dataEncodingFailed
-            }
-            storeCachedKey(SymmetricKey(data: data))
-        case errSecUserCanceled, errSecAuthFailed:
-            throw NotchPulseVaultError.userCancelled
-        default:
-            throw NotchPulseVaultError.keychainError(status)
-        }
+        
+        storeCachedKey(SymmetricKey(data: data))
     }
 
     /// Explicitly clear the cached session key. Next read will require Touch ID again.
@@ -258,9 +208,7 @@ enum NotchPulseVault {
         storeCachedKey(nil)
     }
 
-    /// Read + decrypt the password. Requires the session to be unlocked
-    /// (call `unlockSession(reason:)` first if not).
-    ///
+    /// Read + decrypt the password. Requires the session to be unlocked.
     /// Returns raw bytes — the caller MUST zero them via `.resetBytes(in:)` after use.
     /// Blocking; call from a background actor.
     nonisolated static func readPassword() throws -> Data {
@@ -268,24 +216,18 @@ enum NotchPulseVault {
             throw NotchPulseVaultError.sessionLocked
         }
 
-        // Fetch encrypted blob (no Touch ID prompt — just accessible when unlocked)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: encryptedBlobAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let ciphertext = item as? Data else {
-            throw NotchPulseVaultError.keychainError(status)
+        let ciphertext: Data
+        do {
+            ciphertext = try NotchPulseKeychainManager.read(account: encryptedBlobAccount)
+        } catch {
+            throw NotchPulseVaultError.keychainError(error)
         }
 
-        // Decrypt
         do {
             let sealed = try AES.GCM.SealedBox(combined: ciphertext)
-            return try AES.GCM.open(sealed, using: key)
+            let plaintext = try AES.GCM.open(sealed, using: key)
+            markActivity()
+            return plaintext
         } catch {
             throw NotchPulseVaultError.decryptionFailed
         }
@@ -296,15 +238,7 @@ enum NotchPulseVault {
     nonisolated static func deletePassword() throws {
         let accountsToDelete = [encryptedBlobAccount, sessionKeyAccount] + legacyAccounts
         for account in accountsToDelete {
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: account
-            ]
-            let status = SecItemDelete(query as CFDictionary)
-            guard status == errSecSuccess || status == errSecItemNotFound else {
-                throw NotchPulseVaultError.keychainError(status)
-            }
+            try? NotchPulseKeychainManager.delete(account: account)
         }
         storeCachedKey(nil)
     }
@@ -312,46 +246,13 @@ enum NotchPulseVault {
     // MARK: - Internal Keychain helpers
 
     nonisolated private static func saveSessionKey(_ key: SymmetricKey) throws {
-        let deleteQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: sessionKeyAccount
-        ]
-        SecItemDelete(deleteQuery as CFDictionary)
-
         let keyData = key.withUnsafeBytes { Data($0) }
-
-        let addQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: sessionKeyAccount,
-            kSecValueData as String: keyData,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly  // no .userPresence
-        ]
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw NotchPulseVaultError.keychainError(status)
-        }
-    }
-    
-    nonisolated private static func saveEncryptedBlob(_ data: Data) throws {
-        let deleteQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: encryptedBlobAccount
-        ]
-        SecItemDelete(deleteQuery as CFDictionary)
-
-        let addQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: encryptedBlobAccount,
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        ]
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw NotchPulseVaultError.keychainError(status)
+        
+        do {
+            let accessControl = try NotchPulseKeychainManager.makeUserPresenceAccessControl()
+            try NotchPulseKeychainManager.save(account: sessionKeyAccount, data: keyData, accessControl: accessControl)
+        } catch {
+            throw NotchPulseVaultError.keychainError(error)
         }
     }
 }
