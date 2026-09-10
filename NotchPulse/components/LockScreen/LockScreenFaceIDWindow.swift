@@ -33,9 +33,56 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
         self.trackingArea = ta
     }
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
+        let targetHeight: CGFloat = isExpanded ? 210 : 38
+        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let activeRect = NSRect(
+            x: (bounds.width - targetWidth) / 2,
+            y: bounds.height - targetHeight,
+            width: targetWidth,
+            height: targetHeight
+        )
+        if activeRect.contains(point) {
+            return super.hitTest(point)
+        }
+        return nil
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        let point = convert(event.locationInWindow, from: nil)
+        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
+        let targetHeight: CGFloat = isExpanded ? 210 : 38
+        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let activeRect = NSRect(
+            x: (bounds.width - targetWidth) / 2,
+            y: bounds.height - targetHeight,
+            width: targetWidth,
+            height: targetHeight
+        )
+        if activeRect.contains(point) {
+            onHoverChanged?(true)
+        } else if !isExpanded {
+            onHoverChanged?(false)
+        }
+    }
+
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
-        onHoverChanged?(true)
+        let point = convert(event.locationInWindow, from: nil)
+        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
+        let targetHeight: CGFloat = isExpanded ? 210 : 38
+        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let activeRect = NSRect(
+            x: (bounds.width - targetWidth) / 2,
+            y: bounds.height - targetHeight,
+            width: targetWidth,
+            height: targetHeight
+        )
+        if activeRect.contains(point) {
+            onHoverChanged?(true)
+        }
     }
 
     override func mouseExited(with event: NSEvent) {
@@ -44,8 +91,20 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
     }
 
     override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        onClicked?()
+        let point = convert(event.locationInWindow, from: nil)
+        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
+        let targetHeight: CGFloat = isExpanded ? 210 : 38
+        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let activeRect = NSRect(
+            x: (bounds.width - targetWidth) / 2,
+            y: bounds.height - targetHeight,
+            width: targetWidth,
+            height: targetHeight
+        )
+        if activeRect.contains(point) {
+            super.mouseDown(with: event)
+            onClicked?()
+        }
     }
 }
 
