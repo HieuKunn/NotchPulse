@@ -8,7 +8,7 @@ This document outlines the core rules, architectural guidelines, and release pro
 
 ## 1. Commit Messages & Release Notes Guidelines (MANDATORY)
 - **Descriptive Commit Messages:** When committing code, ALWAYS provide a concise, itemized description of the specific changes and fixes. NEVER use generic messages like "update code" or "fix bug".
-- **English Release Notes (`RELEASE_NOTES.md`):** For every new release, update `RELEASE_NOTES.md` in the repository root ENTIRELY IN ENGLISH. Focus on the actual changes in the specific version (`🚀 What's New`, `🐛 Bug Fixes`, `⚡ Improvements`). NEVER let GitHub Releases display raw automated single commits such as `- chore: Update appcast.xml for release`.
+- **English Release Notes (`RELEASE_NOTES.md`):** For every new release, update `RELEASE_NOTES.md` in the repository root ENTIRELY IN ENGLISH. **Only include categories/sections that actually changed in that version** (e.g. `🚀 What's New`, `🔒 Face ID Upgrades`, `🐛 Bug Fixes`, `⚡ Performance Improvements`). Do NOT include boilerplate, empty, or unchanged categories. NEVER let GitHub Releases display raw automated single commits such as `- chore: Update appcast.xml for release`.
 
 ---
 

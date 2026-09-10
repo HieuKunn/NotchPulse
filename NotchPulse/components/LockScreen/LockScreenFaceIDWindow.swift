@@ -101,17 +101,35 @@ final class LockScreenFaceIDWindow: NSPanel {
         
         let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
         let notchHardwareHeight: CGFloat = (screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : (hasPhysicalNotch ? 32 : 34))
+        let notchStyle = Defaults[.notchStyle]
+        let dynamicIslandTopOffset = Defaults[.dynamicIslandTopOffset]
         
         // Exact centered Dynamic Island drop-down notch
         let width: CGFloat = 78
-        let totalHeight: CGFloat = notchHardwareHeight + 36
+        let totalHeight: CGFloat
+        let y: CGFloat
+        
+        if hasPhysicalNotch {
+            totalHeight = notchHardwareHeight + 36
+            y = screen.frame.origin.y + screen.frame.height - totalHeight
+        } else {
+            if notchStyle == .dynamicIsland {
+                totalHeight = 46
+                y = screen.frame.origin.y + screen.frame.height - totalHeight - dynamicIslandTopOffset
+            } else {
+                // Top-attached simulated notch mode
+                let baseHeight = Defaults[.nonNotchHeight]
+                totalHeight = max(baseHeight, 32) + 32
+                y = screen.frame.origin.y + screen.frame.height - totalHeight
+            }
+        }
         
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
-        let y = screen.frame.origin.y + screen.frame.height - totalHeight
         
         let trackingHostingView = LockScreenTrackingHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
-            notchHardwareHeight: notchHardwareHeight
+            notchHardwareHeight: notchHardwareHeight,
+            notchStyle: notchStyle
         ))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
@@ -403,6 +421,7 @@ struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
+    var notchStyle: NotchStyle = .notch
     
     @State private var isHovered: Bool = false
     
@@ -431,12 +450,37 @@ struct LockScreenFaceIDPillView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.black)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                Group {
+                    if !hasPhysicalNotch && notchStyle == .notch {
+                        // Attached to top menu bar in Notch mode
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 0,
+                            bottomLeadingRadius: 16,
+                            bottomTrailingRadius: 16,
+                            topTrailingRadius: 0,
+                            style: .continuous
+                        )
+                        .fill(Color.black)
+                        .overlay(
+                            UnevenRoundedRectangle(
+                                topLeadingRadius: 0,
+                                bottomLeadingRadius: 16,
+                                bottomTrailingRadius: 16,
+                                topTrailingRadius: 0,
+                                style: .continuous
+                            )
                             .stroke(Color.white.opacity(isHovered ? 0.22 : 0.08), lineWidth: 1)
-                    )
+                        )
+                    } else {
+                        // Floating capsule in Dynamic Island mode or drop-down under hardware notch
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.black)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.white.opacity(isHovered ? 0.22 : 0.08), lineWidth: 1)
+                            )
+                    }
+                }
             )
         }
         .buttonStyle(.plain)
