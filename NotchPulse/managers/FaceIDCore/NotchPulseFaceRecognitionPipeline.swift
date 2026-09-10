@@ -11,7 +11,7 @@ import Foundation
 import CoreGraphics
 import Observation
 
-nonisolated struct FaceRecognitionResult {
+struct FaceRecognitionResult {
     let embedding: [Float]
     /// What was actually fed to the embedder, for debug UIs to inspect.
     let alignedImage: CGImage
@@ -20,7 +20,7 @@ nonisolated struct FaceRecognitionResult {
     let face: DetectedFace
 }
 
-nonisolated enum FaceRecognitionPipelineError: LocalizedError {
+enum FaceRecognitionPipelineError: LocalizedError {
     case noFaceDetected
     case alignmentFailed
 
@@ -119,7 +119,7 @@ final class NotchPulseFaceRecognitionPipeline {
     }
 }
 
-nonisolated struct ScoredIdentity {
+struct ScoredIdentity {
     let identity: FaceIdentity
     /// Similarity against the identity's averaged template.
     let centroidSimilarity: Float

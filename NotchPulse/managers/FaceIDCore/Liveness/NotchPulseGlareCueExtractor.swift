@@ -9,7 +9,7 @@
 
 import CoreGraphics
 
-nonisolated enum NotchPulseGlareCueExtractor {
+enum NotchPulseGlareCueExtractor {
     /// Near-white, near-gray pixel — signature of a direct specular highlight vs. a bright colored surface.
     private static let specularLumaFloor: Float = 235
     private static let specularChromaTolerance: Float = 10

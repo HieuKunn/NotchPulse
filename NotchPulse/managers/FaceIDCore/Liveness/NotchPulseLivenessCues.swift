@@ -265,7 +265,7 @@ struct LivenessEvaluator {
 
 /// Turns a rolling window into this frame's reading for every cue. Deny cues read only
 /// the latest frame (per-frame appearance); confirm cues read the whole window (cross-frame motion).
-nonisolated enum NotchPulseLivenessCues {
+enum NotchPulseLivenessCues {
     nonisolated static func readings(
         window: [LivenessFrame], geometry: GeometryLivenessResult
     ) -> [LivenessCue: CueReading] {

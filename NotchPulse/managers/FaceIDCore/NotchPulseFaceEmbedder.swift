@@ -34,7 +34,7 @@ protocol NotchPulseFaceEmbedder: Sendable {
 
 // MARK: - Shared Utilities
 
-nonisolated enum FaceEmbedding {
+enum FaceEmbedding {
     /// Scales `vector` to unit length; matters once vectors are combined (see `average` below).
     static func l2Normalized(_ vector: [Float]) -> [Float] {
         let norm = sqrt(vector.reduce(Float(0)) { $0 + $1 * $1 })
@@ -122,7 +122,7 @@ enum NotchPulseFaceEmbedderError: LocalizedError {
 /// - Global gamma correction (target mean luminance = 127)
 /// - CLAHE 8×8 tiles (local contrast equalization)
 /// - Test-Time Augmentation (original + horizontal flip → average)
-nonisolated final class NotchPulseArcFaceEmbedder: NotchPulseFaceEmbedder, @unchecked Sendable {
+final class NotchPulseArcFaceEmbedder: NotchPulseFaceEmbedder, @unchecked Sendable {
     nonisolated let name = "ArcFace (w600k_mbf) + TTA"
     nonisolated let modelIdentifier = "arcface-notchpulse-tta-v1"
     nonisolated let embeddingDimension = 512

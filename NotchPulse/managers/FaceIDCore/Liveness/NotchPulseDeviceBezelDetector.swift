@@ -20,7 +20,7 @@ struct DeviceBezelObservation {
     nonisolated static let none = DeviceBezelObservation(rectangle: nil, faceOverlapFraction: nil)
 }
 
-nonisolated enum NotchPulseDeviceBezelDetector {
+enum NotchPulseDeviceBezelDetector {
     /// First-pass estimates, not validated against real footage — tune here if false positives/negatives show up.
     private static func makeRequest() -> VNDetectRectanglesRequest {
         let request = VNDetectRectanglesRequest()

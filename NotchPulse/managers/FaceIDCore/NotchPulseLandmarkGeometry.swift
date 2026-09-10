@@ -30,7 +30,7 @@ struct LandmarkPoint {
 
 /// Pure geometry — `nonisolated` so it's callable from the same background
 /// tasks `NotchPulseFaceAligner`/`NotchPulseFaceDetector` already run on.
-nonisolated enum NotchPulseLandmarkGeometry {
+enum NotchPulseLandmarkGeometry {
     /// Vision returns points in bottom-left-origin, y-up; flipped here to top-left/y-down
     /// to match `DetectedFace.boundingBox`.
     static func imagePoints(of region: VNFaceLandmarkRegion2D, imageSize: CGSize) -> [CGPoint] {

@@ -33,7 +33,7 @@ struct DetectedFace {
 
 /// Pure, synchronous, CPU-bound work — `nonisolated` so it can run on a
 /// background task despite the project's default main-actor isolation.
-nonisolated enum NotchPulseFaceDetector {
+enum NotchPulseFaceDetector {
     /// Runs face-rectangle, capture-quality, and landmarks detection on a single frame.
     static func detectFaces(in image: CGImage) throws -> [DetectedFace] {
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
