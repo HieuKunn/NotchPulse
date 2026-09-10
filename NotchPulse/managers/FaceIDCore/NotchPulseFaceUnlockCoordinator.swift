@@ -85,23 +85,16 @@ final class NotchPulseFaceUnlockCoordinator {
         let validTriggers: [LockEventKind] = [.wake]
         guard let event = lockMonitor.lastEvent, validTriggers.contains(event) else { return }
 
-        // Ensure session key is unlocked and password exists
+        // Ensure password exists
         guard NotchPulseVault.hasStoredPassword() else {
             faceIDManager.statusMessage = "Face ID unlock is on, but no password is stored yet."
-            return
-        }
-        
-        // In NotchPulse, we can unlock the Vault session using TouchID if needed, but for automated wake
-        // it should already be unlocked or we fail gracefully if it needs prompt.
-        if !NotchPulseVault.isSessionUnlocked {
-            // Can't auto-unlock without session key
             return
         }
 
         hasArmedForCurrentLock = true
         lastArmedAt = .now
         Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 250_000_000)
+            try? await Task.sleep(nanoseconds: 200_000_000)
             self?.startScanCycle()
         }
     }
@@ -120,15 +113,16 @@ final class NotchPulseFaceUnlockCoordinator {
         camera.stop()
         
         faceIDManager.isScanning = false
-        // Hide if needed
     }
 
     /// Called by FaceIDManager for manual hover/click retry
     func startScanManually() {
-        if !faceIDManager.isScanning {
-            hasArmedForCurrentLock = true
-            startScanCycle()
+        guard NotchPulseVault.hasStoredPassword() else {
+            faceIDManager.statusMessage = "No password stored"
+            return
         }
+        hasArmedForCurrentLock = true
+        startScanCycle()
     }
 
     private func startScanCycle() {
@@ -332,6 +326,9 @@ final class NotchPulseFaceUnlockCoordinator {
         }
     }
     
+    private static let injectionLock = NSLock()
+    private static var isCurrentlyInjecting = false
+
     private func performMacUnlock() async {
         guard let passwordData = try? NotchPulseVault.readPassword(),
               let password = String(data: passwordData, encoding: .utf8), !password.isEmpty else {
@@ -350,6 +347,20 @@ final class NotchPulseFaceUnlockCoordinator {
     }
     
     nonisolated private static func injectUnlockEvents(password: String, pressCount: Int) {
+        injectionLock.lock()
+        if isCurrentlyInjecting {
+            injectionLock.unlock()
+            return
+        }
+        isCurrentlyInjecting = true
+        injectionLock.unlock()
+
+        defer {
+            injectionLock.lock()
+            isCurrentlyInjecting = false
+            injectionLock.unlock()
+        }
+
         let source = CGEventSource(stateID: .hidSystemState)
         
         let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
@@ -368,9 +379,9 @@ final class NotchPulseFaceUnlockCoordinator {
                 delDown.post(tap: .cghidEventTap)
                 delUp.post(tap: .cghidEventTap)
             }
-            Thread.sleep(forTimeInterval: 0.006)
+            Thread.sleep(forTimeInterval: 0.005)
         }
-        Thread.sleep(forTimeInterval: 0.04)
+        Thread.sleep(forTimeInterval: 0.03)
         if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
         
         for char in password {
@@ -390,14 +401,14 @@ final class NotchPulseFaceUnlockCoordinator {
                     up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                     
                     down.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.012)
+                    Thread.sleep(forTimeInterval: 0.010)
                     up.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.012)
+                    Thread.sleep(forTimeInterval: 0.010)
                 }
             }
         }
         
-        Thread.sleep(forTimeInterval: 0.1)
+        Thread.sleep(forTimeInterval: 0.08)
         if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
         
         func sendReturn() {
@@ -412,18 +423,15 @@ final class NotchPulseFaceUnlockCoordinator {
                 Thread.sleep(forTimeInterval: 0.03)
                 returnUp.post(tap: .cghidEventTap)
             }
-            
-            let script = NSAppleScript(source: "tell application \"System Events\" to key code 36")
-            script?.executeAndReturnError(nil)
         }
         
         for i in 0..<pressCount {
             if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            if i > 0 { Thread.sleep(forTimeInterval: 0.12) }
+            if i > 0 { Thread.sleep(forTimeInterval: 0.1) }
             sendReturn()
         }
 
-        Thread.sleep(forTimeInterval: 2.5)
+        Thread.sleep(forTimeInterval: 1.5)
         if NotchPulseLockMonitor.isScreenActuallyLocked() {
             DispatchQueue.main.async {
                 FaceIDManager.shared.lastUnlockSuccess = false

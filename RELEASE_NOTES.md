@@ -1,12 +1,12 @@
-# 🚀 NotchPulse v3.5.6
+# 🚀 NotchPulse v3.5.7
 
-Welcome to NotchPulse **v3.5.6**! This release refines the Lock Screen Face ID drop-down notch layout and animation scaling so the Face ID glyph fits perfectly within the notch silhouette.
+Welcome to NotchPulse **v3.5.7**! This release resolves camera wake activation and makes lock screen Face ID unlock instant, reliable, and lag-free.
 
 ---
 
 ### 🔒 Face ID & Lock Screen Improvements
-- **Spacious Notch Frame**: Expanded the expanded drop-down notch body width and relaxed the bottom corner radius so the notch bottom stays wide and elegant.
-- **Perfect Glyph Sizing & Centering**: Scaled the Face ID animated graphic to 80% with optimized padding, guaranteeing that the entire face glyph and framing brackets fit completely within the black notch background with zero edge clipping.
+- **Seamless Camera Wake Trigger**: Fixed an issue where the camera would not activate on wake. Streamlined the Keychain Vault encryption layer so Face ID scans immediately upon display power-on or hover.
+- **Lag-Free Native Unlock Injection**: Eliminated background AppleScript bottlenecks and added strict concurrency locking during password typing, ensuring smooth, instant macOS lock screen unlocking without overlapping input.
 
 ---
 
