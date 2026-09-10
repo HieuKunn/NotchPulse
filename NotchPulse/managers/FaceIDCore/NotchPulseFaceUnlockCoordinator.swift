@@ -69,6 +69,13 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         guard !lockMonitor.isSleeping else { return }
 
+        if lockMonitor.lastEvent == .screenLocked {
+            hasArmedForCurrentLock = false
+            hasAutoRetriedForCurrentLock = false
+            disarmOverlay()
+            return
+        }
+
         if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
             hasArmedForCurrentLock = false
         }
