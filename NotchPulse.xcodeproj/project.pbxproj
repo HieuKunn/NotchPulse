@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		582CF36F389BF99687810AB3 /* NotchPulseEnrollmentRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D73F8B27569898B3C4D2DB /* NotchPulseEnrollmentRingView.swift */; };
 		D92DC5E3F6AA7443C5C54311 /* NotchPulseFaceAligner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32ECD629E60EE829983330CE /* NotchPulseFaceAligner.swift */; };
 		00F5A59EDEF40C44ACAA05B8 /* NotchPulseFaceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */; };
 		8884F3A1F9098CC0083444A3 /* NotchPulseFaceEnrollmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D15FF202F3BFE51BAC1447 /* NotchPulseFaceEnrollmentStore.swift */; };
@@ -208,6 +209,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C0D73F8B27569898B3C4D2DB /* NotchPulseEnrollmentRingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseEnrollmentRingView.swift; sourceTree = "<group>"; };
 		32ECD629E60EE829983330CE /* NotchPulseFaceAligner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceAligner.swift; sourceTree = "<group>"; };
 		3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceDetector.swift; sourceTree = "<group>"; };
 		C8D15FF202F3BFE51BAC1447 /* NotchPulseFaceEnrollmentStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceEnrollmentStore.swift; sourceTree = "<group>"; };
@@ -866,6 +868,7 @@
 		EA3A0859B1FA539A5464FF90 /* FaceIDCore */ = {
 			isa = PBXGroup;
 			children = (
+				C0D73F8B27569898B3C4D2DB /* NotchPulseEnrollmentRingView.swift */,
 				19E3F44E629EE5B4762E12F7 /* NotchPulseCamera.swift */,
 				31340710F1936CFA9DA14C18 /* NotchPulseFaceEmbedder.swift */,
 				E337E26DE7B6044D535EF392 /* NotchPulseVault.swift */,
@@ -1166,6 +1169,7 @@
 				989D9CB908B47CBD90D90528 /* NotchPulseFaceEmbedder.swift in Sources */,
 				3945421C14D60D0B09B52EE4 /* NotchPulseVault.swift in Sources */,
 				7EC2C41184BEA958CB2643D8 /* ArcFace.mlpackage in Sources */,
+				582CF36F389BF99687810AB3 /* NotchPulseEnrollmentRingView.swift in Sources */,
 				D92DC5E3F6AA7443C5C54311 /* NotchPulseFaceAligner.swift in Sources */,
 				00F5A59EDEF40C44ACAA05B8 /* NotchPulseFaceDetector.swift in Sources */,
 				8884F3A1F9098CC0083444A3 /* NotchPulseFaceEnrollmentStore.swift in Sources */,
