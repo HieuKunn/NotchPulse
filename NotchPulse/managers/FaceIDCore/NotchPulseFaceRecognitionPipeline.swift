@@ -91,8 +91,8 @@ final class NotchPulseFaceRecognitionPipeline {
         faces.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
     }
 
-    /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — shared with onboarding's "move closer" prompt.
-    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.18
+    /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — lowered to 0.08 to easily detect faces sitting back from the camera.
+    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.08
 
     /// Max normalized-coordinate drift between frames still counted as "the same person".
     nonisolated private static let continuityDistanceTolerance: CGFloat = 0.3

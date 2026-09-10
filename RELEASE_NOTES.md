@@ -1,19 +1,14 @@
-# 🚀 NotchPulse v3.5.2
+# 🚀 NotchPulse v3.5.3
 
-Welcome to NotchPulse **v3.5.2**! This release restores the authentic v3.1.5 Lock Screen Notch styling and introduces smart, power-efficient camera activation.
-
----
-
-### 🚀 What's New
-- **Authentic Lock Screen Notch Styling Restored**: Restored the classic v3.1.5 notch layout on lock screen — authentic physical notch wings (Face ID icon on left wing, physical cutout in center, right wing clear) and adaptive stroke shape on external displays.
-- **Smart Work-Session Camera Control**: When you lock your screen while working, the camera stays completely OFF and idle until you hover over or click the notch.
-- **Lid-Open & Wake-Only Auto Scan**: Automatic Face ID scanning now activates exclusively when opening the laptop lid or waking the system/display from sleep.
+Welcome to NotchPulse **v3.5.3**! This release fixes camera preview mirroring, enhances far-distance face capture, and makes Face ID enrollment and recognition lightning fast.
 
 ---
 
-### 🔒 Biometric Face ID Engine
-- **ArcFace ML & Liveness Engine**: Retained Glance's ArcFace ML biometric pipeline (`w600k_mbf`), AES-256 Keychain vault, and optical liveness verification.
-- **Apple 80-Tick Guided Enrollment Ring**: Full circular head-rotation enrollment sweep UI (`NotchPulseEnrollmentRingView`) with live guidance cues and tick animations.
+### 🚀 What's New & Improvements
+- **Mirrored Selfie Preview**: Camera feed in the Face ID enrollment modal is now properly mirrored horizontally, matching natural head movement.
+- **Far-Distance Face Detection**: Lowered minimum face width threshold from 18% to 8%, allowing instantaneous face detection from normal sitting distances without leaning forward.
+- **Natural Circular Head Sweep Tracking**: Fixed yaw/pitch axes mapping for smooth, responsive 80-tick rotation guidance and effortless enrollment.
+- **Instantaneous Lock Screen Unlock**: Optimized ArcFace cosine similarity thresholds (0.38) and fast liveness evaluation for sub-second recognition on wake.
 
 ---
 

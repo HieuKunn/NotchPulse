@@ -3,7 +3,7 @@
 //  NotchPulse
 //
 //  Apple Face ID 80-Tick Circular Guided Head Sweep & Enrollment Ring.
-//  Adapted from Glance with NotchPulse theme & native camera pipeline.
+//  Adapted from Glance with mirrored selfie preview, natural head tracking & instant ArcFace embedding.
 //
 
 import SwiftUI
@@ -11,7 +11,7 @@ import AppKit
 import CoreGraphics
 import Defaults
 
-// MARK: - Guided Head Poses (Center + 8 Compass Directions)
+// MARK: - Guided Head Poses (Center + 8 Compass Directions in Clockwise Sweep)
 
 enum GuidedEnrollmentPose: Int, CaseIterable, Identifiable {
     case center = 0
@@ -54,26 +54,32 @@ enum GuidedEnrollmentPose: Int, CaseIterable, Identifiable {
         }
     }
     
-    func matches(yaw: Float, roll: Float, pitch: Float) -> Bool {
+    /// Vision Reports: +yaw turns left, -yaw turns right; +pitch looks down, -pitch looks up.
+    func matches(yaw: Float, pitch: Float) -> Bool {
+        let yawThresh: Float = 0.16
+        let yawCenter: Float = 0.18
+        let pitchThresh: Float = 0.12
+        let pitchCenter: Float = 0.16
+        
         switch self {
         case .center:
-            return abs(yaw) < 0.18 && abs(roll) < 0.18
+            return abs(yaw) < yawCenter && abs(pitch) < pitchCenter
         case .left:
-            return yaw > 0.14 && abs(roll) < 0.22
+            return yaw > yawThresh && abs(pitch) < pitchCenter * 1.5
         case .right:
-            return yaw < -0.14 && abs(roll) < 0.22
+            return yaw < -yawThresh && abs(pitch) < pitchCenter * 1.5
         case .top:
-            return roll > 0.12 || (abs(yaw) < 0.25 && pitch > 0.10)
+            return pitch < -pitchThresh && abs(yaw) < yawCenter * 1.5
         case .bottom:
-            return roll < -0.12 || (abs(yaw) < 0.25 && pitch < -0.10)
+            return pitch > pitchThresh && abs(yaw) < yawCenter * 1.5
         case .topLeft:
-            return yaw > 0.10 && roll > 0.08
+            return yaw > (yawThresh * 0.65) && pitch < -(pitchThresh * 0.65)
         case .topRight:
-            return yaw < -0.10 && roll > 0.08
+            return yaw < -(yawThresh * 0.65) && pitch < -(pitchThresh * 0.65)
         case .bottomLeft:
-            return yaw > 0.10 && roll < -0.08
+            return yaw > (yawThresh * 0.65) && pitch > (pitchThresh * 0.65)
         case .bottomRight:
-            return yaw < -0.10 && roll < -0.08
+            return yaw < -(yawThresh * 0.65) && pitch > (pitchThresh * 0.65)
         }
     }
 }
@@ -203,15 +209,14 @@ struct NotchPulseGuidedEnrollmentView: View {
     @State private var camera = NotchPulseCamera()
     @State private var capturedPoses: Set<GuidedEnrollmentPose> = []
     @State private var activePose: GuidedEnrollmentPose = .center
-    @State private var collectedEmbeddings: [[Float]] = []
+    @State private var collectedSamples: [FaceSample] = []
     @State private var poseEmbeddings: [[Float]] = []
     
     @State private var currentTurnAngle: Double? = nil
     @State private var currentTurnIntensity: Double = 0.0
     @State private var isComplete = false
     @State private var pulseCenter = false
-    @State private var statusPrompt = "Định vị khuôn mặt trong vòng tròn"
-    @State private var frameCounter = 0
+    @State private var statusPrompt = "Nhìn thẳng vào camera"
     
     private let embedder: NotchPulseFaceEmbedder = (try? NotchPulseArcFaceEmbedder()) ?? NotchPulseVisionFeaturePrintEmbedder()
     
@@ -238,11 +243,12 @@ struct NotchPulseGuidedEnrollmentView: View {
             
             // Circular Camera & 80-Tick Ring Cluster
             ZStack {
-                // Live Camera Frame
+                // Live Camera Frame - Mirrored as a selfie mirror view
                 if let image = camera.currentFrame?.image {
                     Image(decorative: image, scale: 1.0, orientation: .up)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                        .scaleEffect(x: -1, y: 1) // Mirrored for intuitive selfie preview
                         .frame(width: 175, height: 175)
                         .clipShape(Circle())
                 } else {
@@ -264,7 +270,7 @@ struct NotchPulseGuidedEnrollmentView: View {
                 // Animated Checkmark on finish
                 if isComplete {
                     Circle()
-                        .fill(Color.black.opacity(0.45))
+                        .fill(Color.black.opacity(0.55))
                         .frame(width: 175, height: 175)
                     NotchPulseAnimatedCheckmark(lineWidth: 7)
                         .frame(width: 72, height: 72)
@@ -324,7 +330,7 @@ struct NotchPulseGuidedEnrollmentView: View {
             }
             
             await processFrame(frame)
-            try? await Task.sleep(for: .milliseconds(60))
+            try? await Task.sleep(for: .milliseconds(50))
         }
     }
     
@@ -333,29 +339,41 @@ struct NotchPulseGuidedEnrollmentView: View {
               let face = faces.first, faces.count == 1 else {
             statusPrompt = "Định vị khuôn mặt trong vòng tròn"
             currentTurnIntensity = 0
+            currentTurnAngle = nil
             return
         }
         
         let yaw = face.yaw ?? 0
-        let roll = face.roll ?? 0
         let pitch = face.pitch ?? 0
         
-        // Calculate live head angle for ring indicator
-        let angleRad = atan2(Double(roll), Double(-yaw))
-        var deg = angleRad * (180.0 / .pi) + 90.0
-        if deg < 0 { deg += 360 }
-        currentTurnAngle = deg
-        currentTurnIntensity = min(1.0, Double(hypot(yaw, roll)) * 3.0)
+        // Accurate Head Turn Angle matching Glance (+yaw left, +pitch down; Screen: x right, y down)
+        let x = Double(-yaw / 0.20)
+        let y = Double(-pitch / 0.14)
+        let magnitude = (x * x + y * y).squareRoot()
+        if magnitude > 0.10 {
+            let deg = atan2(x, y) * 180.0 / .pi
+            currentTurnAngle = deg < 0 ? deg + 360.0 : deg
+            currentTurnIntensity = min(1.0, magnitude)
+        } else {
+            currentTurnAngle = nil
+            currentTurnIntensity = 0.0
+        }
         
         // Check active pose
-        if activePose.matches(yaw: yaw, roll: roll, pitch: pitch) {
+        if activePose.matches(yaw: yaw, pitch: pitch) {
             if let aligned = NotchPulseFaceAligner.align(face, from: image),
                let embedding = try? embedder.embedding(for: aligned.image) {
                 poseEmbeddings.append(embedding)
                 
-                if poseEmbeddings.count >= 4 {
+                // 2 high-quality captures per pose is fast and stable
+                if poseEmbeddings.count >= 2 {
                     if let avg = FaceEmbedding.average(poseEmbeddings) {
-                        collectedEmbeddings.append(avg)
+                        collectedSamples.append(FaceSample(
+                            embedding: avg,
+                            pose: "\(activePose.rawValue)",
+                            capturedAt: Date(),
+                            quality: face.quality ?? 0.9
+                        ))
                     }
                     capturedPoses.insert(activePose)
                     poseEmbeddings.removeAll()
@@ -371,7 +389,7 @@ struct NotchPulseGuidedEnrollmentView: View {
                         await finishEnrollment()
                     }
                 } else {
-                    statusPrompt = "Giữ nguyên góc này..."
+                    statusPrompt = "Giữ nguyên..."
                 }
             }
         } else {
@@ -383,22 +401,17 @@ struct NotchPulseGuidedEnrollmentView: View {
         isComplete = true
         if Defaults[.faceIDSound] { NSSound(named: "Ping")?.play() }
         
-        let samples = collectedEmbeddings.map { emb in
-            FaceSample(embedding: emb, pose: nil, capturedAt: Date(), quality: 0.95)
-        }
-        let identity = FaceIdentity(
-            id: UUID(),
+        let targetID = NotchPulseFaceEnrollmentStore.shared.activeIdentities.first?.id
+        _ = try? NotchPulseFaceEnrollmentStore.shared.commitEnrollment(
+            replacing: targetID,
             name: "My Face",
-            samples: samples,
-            modelIdentifier: embedder.modelIdentifier,
-            embeddingDimension: embedder.embeddingDimension,
-            createdAt: Date(),
-            isEnabled: true
+            samples: collectedSamples,
+            embedder: embedder
         )
-        try? NotchPulseSecureFaceStore.save([identity])
+        
         faceIDManager.refreshState()
         
-        try? await Task.sleep(for: .seconds(2.2))
+        try? await Task.sleep(for: .seconds(1.8))
         camera.stop()
         onFinished()
     }

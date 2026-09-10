@@ -195,9 +195,9 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func observeScanWindow(deadline: Date) async -> ScanOutcome {
-        let livenessEnabled = true // Configurable?
+        let livenessEnabled = true
         let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { .heavy } // Or light based on settings
+        liveness.modeProvider = { .light } // Fast optical & 3D landmark liveness confirmation
         
         var consecutiveWrongFaceFrames = 0
         var readyMatch: Bool = false
@@ -246,7 +246,8 @@ final class NotchPulseFaceUnlockCoordinator {
             // In NotchPulse we currently fetch the single enrolled face via EnrollmentStore
             let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            let matched = pipeline.bestMatch(in: scored, threshold: 0.8) // Use Defaults match threshold
+            // ArcFace 512-D cosine similarity match threshold: 0.38 for instantaneous robust match
+            let matched = pipeline.bestMatch(in: scored, threshold: 0.38)
 
             if matched != nil {
                 consecutiveWrongFaceFrames = 0
