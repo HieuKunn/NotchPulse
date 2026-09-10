@@ -1,6 +1,6 @@
-# 🚀 NotchPulse v3.5.0
+# 🚀 NotchPulse v3.5.1
 
-Welcome to NotchPulse **v3.5.0**! This major release upgrades our biometric Face ID engine, introduces an authentic Apple-style guided enrollment sweep, and enhances multi-display styling on the Lock Screen.
+Welcome to NotchPulse **v3.5.1**! This release delivers the Glance biometric Face ID engine, authentic Apple guided head-sweep enrollment, multi-monitor Adaptive Lock Screen notch, and reduces the app download footprint by ~50%.
 
 ---
 
@@ -19,7 +19,8 @@ Welcome to NotchPulse **v3.5.0**! This major release upgrades our biometric Face
 
 ---
 
-### ⚡ CPU & Performance Optimizations
+### ⚡ Package Size & Performance Optimizations
+- **50% Smaller Package Size**: Removed legacy redundant model weights, bundling only the optimized ArcFace neural network for faster downloads (~90MB).
 - **Zero Idle CPU Load**: Complete camera and background pipeline teardown on display sleep or lock disarm, maintaining 0% idle CPU footprint.
 - **Concurrency & Event Injection Safety**: Optimized lock screen unlock injection using thread-safe background dispatch.
 
