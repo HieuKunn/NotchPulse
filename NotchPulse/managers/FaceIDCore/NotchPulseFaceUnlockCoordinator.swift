@@ -334,116 +334,94 @@ final class NotchPulseFaceUnlockCoordinator {
             NSSound(named: "Glass")?.play()
         }
         
-        // We use a detached task for injecting events
-        Task.detached(priority: .high) { () -> Void in
-            let source = CGEventSource(stateID: .hidSystemState)
-            
-            let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
-            if let moveEvent = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: CGPoint(x: mouseLoc.x + 1, y: mouseLoc.y), mouseButton: .left) {
-                moveEvent.post(tap: .cghidEventTap)
+        let pressCount = max(1, min(5, Defaults[.faceIDEnterPressCount]))
+        
+        DispatchQueue.global(qos: .userInteractive).async {
+            Self.injectUnlockEvents(password: password, pressCount: pressCount)
+        }
+    }
+    
+    nonisolated private static func injectUnlockEvents(password: String, pressCount: Int) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        
+        let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
+        if let moveEvent = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: CGPoint(x: mouseLoc.x + 1, y: mouseLoc.y), mouseButton: .left) {
+            moveEvent.post(tap: .cghidEventTap)
+        }
+        Thread.sleep(forTimeInterval: 0.05)
+        if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+        
+        for _ in 0..<15 {
+            if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+            if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
+               let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
+                delDown.flags = []
+                delUp.flags = []
+                delDown.post(tap: .cghidEventTap)
+                delUp.post(tap: .cghidEventTap)
             }
-            try? await Task.sleep(for: .milliseconds(50))
-            if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            
-            for _ in 0..<15 {
-                if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-                if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
-                   let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
-                    delDown.flags = []
-                    delUp.flags = []
-                    delDown.post(tap: .cghidEventTap)
-                    delUp.post(tap: .cghidEventTap)
-                }
-                try? await Task.sleep(for: .milliseconds(6))
-            }
-            try? await Task.sleep(for: .milliseconds(40))
-            if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            
-            for char in password {
-                if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-                if let keyInfo = Self.keyEventInfo(for: char) {
-                    if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
-                       let up = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: false) {
-                        if keyInfo.shift {
-                            down.flags = .maskShift
-                            up.flags = .maskShift
-                        } else {
-                            down.flags = []
-                            up.flags = []
-                        }
-                        let utf16 = Array(String(char).utf16)
-                        down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                        up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                        
-                        down.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(12))
-                        up.post(tap: .cghidEventTap)
-                        try? await Task.sleep(for: .milliseconds(12))
+            Thread.sleep(forTimeInterval: 0.006)
+        }
+        Thread.sleep(forTimeInterval: 0.04)
+        if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+        
+        for char in password {
+            if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+            if let keyInfo = Self.keyEventInfo(for: char) {
+                if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
+                   let up = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: false) {
+                    if keyInfo.shift {
+                        down.flags = .maskShift
+                        up.flags = .maskShift
+                    } else {
+                        down.flags = []
+                        up.flags = []
                     }
+                    let utf16 = Array(String(char).utf16)
+                    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                    
+                    down.post(tap: .cghidEventTap)
+                    Thread.sleep(forTimeInterval: 0.012)
+                    up.post(tap: .cghidEventTap)
+                    Thread.sleep(forTimeInterval: 0.012)
                 }
             }
-            
-            try? await Task.sleep(for: .milliseconds(100))
-            if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            
-            func sendReturn() async {
-                if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
-                   let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
-                    returnDown.flags = []
-                    returnUp.flags = []
-                    let returnUnicode: [UniChar] = [0x000D]
-                    returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-                    returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-                    returnDown.post(tap: .cghidEventTap)
-                    try? await Task.sleep(for: .milliseconds(30))
-                    returnUp.post(tap: .cghidEventTap)
-                }
-                
-                let script = NSAppleScript(source: "tell application \"System Events\" to key code 36")
-                script?.executeAndReturnError(nil)
+        }
+        
+        Thread.sleep(forTimeInterval: 0.1)
+        if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+        
+        func sendReturn() {
+            if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
+               let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
+                returnDown.flags = []
+                returnUp.flags = []
+                let returnUnicode: [UniChar] = [0x000D]
+                returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
+                returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
+                returnDown.post(tap: .cghidEventTap)
+                Thread.sleep(forTimeInterval: 0.03)
+                returnUp.post(tap: .cghidEventTap)
             }
             
-            let pressCount = max(1, min(5, Defaults[.faceIDEnterPressCount]))
-            for i in 0..<pressCount {
-                if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-                if i > 0 { try? await Task.sleep(for: .milliseconds(120)) }
-                await sendReturn()
-            }
+            let script = NSAppleScript(source: "tell application \"System Events\" to key code 36")
+            script?.executeAndReturnError(nil)
+        }
+        
+        for i in 0..<pressCount {
+            if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+            if i > 0 { Thread.sleep(forTimeInterval: 0.12) }
+            sendReturn()
+        }
 
-            try? await Task.sleep(for: .milliseconds(2500))
-            if NotchPulseLockMonitor.isScreenActuallyLocked() {
-                await MainActor.run {
-                    FaceIDManager.shared.lastUnlockSuccess = false
-                    FaceIDManager.shared.statusMessage = "Ready"
-                }
-            }
-            
-            try? await Task.sleep(for: .milliseconds(100))
-            if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            
-            func sendReturn() async {
-                if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
-                   let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
-                    returnDown.flags = []
-                    returnUp.flags = []
-                    let returnUnicode: [UniChar] = [0x000D]
-                    returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-                    returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-                    returnDown.post(tap: .cghidEventTap)
-                    try? await Task.sleep(for: .milliseconds(30))
-                    returnUp.post(tap: .cghidEventTap)
-                }
-                
-                let script = NSAppleScript(source: "tell application \"System Events\" to key code 36")
-                script?.executeAndReturnError(nil)
-            }
-            
-            let pressCount = max(1, min(5, Defaults[.faceIDEnterPressCount]))
-            for i in 0..<pressCount {
-                if Task.isCancelled || !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-                if i > 0 { try? await Task.sleep(for: .milliseconds(120)) }
-                await sendReturn()
+        Thread.sleep(forTimeInterval: 2.5)
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            DispatchQueue.main.async {
+                FaceIDManager.shared.lastUnlockSuccess = false
+                FaceIDManager.shared.statusMessage = "Ready"
             }
         }
     }
 }
+
