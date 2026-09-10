@@ -222,6 +222,6 @@ jobs:
             --title "NotchPulse $TAG" \
             --notes-file current_release_notes.md \
             --draft=false \
-            --prerelease=false || \
-          gh release edit "$TAG" --title "NotchPulse $TAG" --notes-file current_release_notes.md || \
-          gh release upload "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip --clobber
+            --prerelease=false || ( \
+          gh release edit "$TAG" --title "NotchPulse $TAG" --notes-file current_release_notes.md && \
+          gh release upload "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip --clobber )
