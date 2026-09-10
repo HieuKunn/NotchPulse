@@ -73,9 +73,9 @@ final class NotchPulseFaceUnlockCoordinator {
             hasArmedForCurrentLock = false
         }
 
-        guard Defaults[.enableFaceID], !hasArmedForCurrentLock else { return }
-        
-        let validTriggers: [LockEventKind] = [.wake, .screenLocked]
+        // Only auto-trigger scan on display/system wake (e.g. lid open or wake from sleep).
+        // For screen lock during active work session, camera remains off until user hovers/clicks the notch.
+        let validTriggers: [LockEventKind] = [.wake]
         guard let event = lockMonitor.lastEvent, validTriggers.contains(event) else { return }
 
         // Ensure session key is unlocked and password exists
