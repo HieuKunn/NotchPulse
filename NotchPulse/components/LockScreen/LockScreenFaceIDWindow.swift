@@ -253,23 +253,32 @@ struct LockScreenFaceIDPillView: View {
             Button {
                 triggerScan()
             } label: {
-                ZStack(alignment: .top) {
-                    // 1. Large Notch Drop-Down Black Silhouette
-                    backgroundShape
-                    
-                    // 2. Centered Authentic Face ID Scan & Green Checkmark Animation
-                    ScanAnimationView(media: scanMedia)
-                        .padding(.top, hasPhysicalNotch ? 40 : 28)
-                        .padding(.horizontal, hasPhysicalNotch ? 32 : 24)
-                        .padding(.bottom, 24)
-                        .scaleEffect(faceIDManager.isScanning && isScanPulseDimmed ? 0.97 : 1.0)
-                        .opacity(faceIDManager.isScanning && isScanPulseDimmed ? 0.70 : 1.0)
-                        .blur(radius: isExpanded ? 0 : 30)
-                        .opacity(isExpanded ? 1.0 : 0.0)
-                        .scaleEffect(isExpanded ? 1.0 : 0.3)
-                        .frame(width: currentSize.width, height: currentSize.height)
-                }
-                .frame(width: currentSize.width, height: currentSize.height)
+                applyNotchClip(
+                    ZStack(alignment: .top) {
+                        ScanAnimationView(media: scanMedia)
+                            .padding(.top, hasPhysicalNotch ? 40 : 28)
+                            .padding(.horizontal, hasPhysicalNotch ? 32 : 24)
+                            .padding(.bottom, 24)
+                            .scaleEffect(faceIDManager.isScanning && isScanPulseDimmed ? 0.97 : 1.0)
+                            .opacity(faceIDManager.isScanning && isScanPulseDimmed ? 0.70 : 1.0)
+                            .blur(radius: isExpanded ? 0 : 30)
+                            .opacity(isExpanded ? 1.0 : 0.0)
+                            .scaleEffect(isExpanded ? 1.0 : 0.3)
+                    }
+                    .frame(width: currentSize.width, height: currentSize.height)
+                    .background(Color.black)
+                )
+                .overlay(
+                    Group {
+                        if !hasPhysicalNotch && notchStyle == .dynamicIsland {
+                            RoundedRectangle(cornerRadius: bottomRadius, style: .continuous)
+                                .stroke(
+                                    faceIDManager.lastUnlockSuccess ? Color.green.opacity(0.8) : Color.blue.opacity(isHovered ? 0.8 : 0.4),
+                                    lineWidth: isHovered ? 1.5 : 1.0
+                                )
+                        }
+                    }
+                )
                 .shadow(
                     color: Color.black.opacity(isExpanded ? (isHovered ? 0.65 : 0.45) : 0),
                     radius: 12,
@@ -303,28 +312,13 @@ struct LockScreenFaceIDPillView: View {
     }
     
     @ViewBuilder
-    private var backgroundShape: some View {
+    private func applyNotchClip<V: View>(_ content: V) -> some View {
         if hasPhysicalNotch {
-            NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
-                .fill(Color.black)
-                .frame(width: currentSize.width, height: currentSize.height)
+            content.clipShape(NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius))
+        } else if notchStyle == .dynamicIsland {
+            content.clipShape(RoundedRectangle(cornerRadius: bottomRadius, style: .continuous))
         } else {
-            if notchStyle == .dynamicIsland {
-                RoundedRectangle(cornerRadius: bottomRadius, style: .continuous)
-                    .fill(Color.black)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: bottomRadius, style: .continuous)
-                            .stroke(
-                                faceIDManager.lastUnlockSuccess ? Color.green.opacity(0.8) : Color.blue.opacity(isHovered ? 0.8 : 0.4),
-                                lineWidth: isHovered ? 1.5 : 1.0
-                            )
-                    )
-                    .frame(width: currentSize.width, height: currentSize.height)
-            } else {
-                NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
-                    .fill(Color.black)
-                    .frame(width: currentSize.width, height: currentSize.height)
-            }
+            content.clipShape(NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius))
         }
     }
     

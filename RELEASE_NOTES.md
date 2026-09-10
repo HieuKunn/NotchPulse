@@ -1,14 +1,12 @@
-# 🚀 NotchPulse v3.5.5
+# 🚀 NotchPulse v3.5.6
 
-Welcome to NotchPulse **v3.5.5**! This release introduces the full-size Glance-style drop-down Notch overlay with authentic Face ID scan-to-green-checkmark video animation on both MacBook displays and external monitors.
+Welcome to NotchPulse **v3.5.6**! This release fixes the Lock Screen Face ID video animation clipping to seamlessly follow the continuous rounded Notch silhouette with zero border bleed.
 
 ---
 
-### 🔒 Authentic Face ID & Large Drop-Down Notch
-- **Large Drop-Down Notch Overlay**: When waking your Mac or hovering over the Notch on the Lock Screen, the Notch drops down into a full-sized rounded notch housing (`220x200` on MacBook with physical notch, `180x180` on external displays).
-- **Face ID Scan to Green Checkmark Animation**: Integrated the complete authentic Apple Face ID video animation asset that scans during recognition and seamlessly morphs into the vivid glowing green checkmark upon unlock.
-- **Breathing Search Pulse**: Added subtle dynamic breathing opacity & scaling during active camera search.
-- **Hover & Wake Activation**: Camera remains fully disarmed when manually locking from your desktop session, and smoothly awakens upon hover or wake.
+### 🐛 Bug Fixes & Visual Polish
+- **Perfect Notch Silhouette Clipping**: Applied direct `NotchShape` and dynamic continuous corner mask clipping to the Face ID video player layer, completely eliminating rectangular background box artifacts.
+- **Flawless Lock Screen Transition**: The large drop-down notch now animates fluidly and sits flush against the camera bezel.
 
 ---
 

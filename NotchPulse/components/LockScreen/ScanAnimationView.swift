@@ -48,15 +48,19 @@ final class ScanAnimationHostView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer = CALayer()
+        let rootLayer = CALayer()
+        rootLayer.masksToBounds = true
+        layer = rootLayer
 
         stillImageLayer.contentsGravity = .resizeAspect
+        stillImageLayer.masksToBounds = true
         if let still = Self.loadStillFromBundle() {
             stillImageLayer.contents = still
         }
         layer?.addSublayer(stillImageLayer)
 
         playerLayer.videoGravity = .resizeAspect
+        playerLayer.masksToBounds = true
         playerLayer.isHidden = true
         layer?.addSublayer(playerLayer)
     }
