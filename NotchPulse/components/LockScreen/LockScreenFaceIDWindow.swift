@@ -3,6 +3,7 @@
 //  NotchPulse
 //
 //  Created for NotchPulse v2.0 - Lock Screen Face ID Notch Indicator
+//  Updated for v3.5: Exact iPhone Dynamic Island Centered Drop-down Notch with 3D Vector Face ID Glyph
 //
 
 import Cocoa
@@ -56,7 +57,7 @@ final class LockScreenFaceIDWindow: NSPanel {
     private var isSkyLightAttached = false
     
     private init() {
-        let initialRect = NSRect(x: 0, y: 0, width: 230, height: 44)
+        let initialRect = NSRect(x: 0, y: 0, width: 84, height: 72)
         super.init(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -99,28 +100,18 @@ final class LockScreenFaceIDWindow: NSPanel {
         guard let screen = screen else { return }
         
         let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
-        let closedSize = getClosedNotchSize(screenUUID: screen.displayUUID)
         let notchHardwareHeight: CGFloat = (screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : (hasPhysicalNotch ? 32 : 34))
         
-        let width: CGFloat
-        let totalHeight: CGFloat
-        
-        if hasPhysicalNotch {
-            let wingSize = max(0, notchHardwareHeight - 12)
-            width = closedSize.width + (2 * wingSize + 20)
-            totalHeight = notchHardwareHeight
-        } else {
-            width = 210
-            totalHeight = 34
-        }
+        // Exact centered Dynamic Island drop-down notch
+        let width: CGFloat = 78
+        let totalHeight: CGFloat = notchHardwareHeight + 36
         
         let x = screen.frame.origin.x + (screen.frame.width - width) / 2
         let y = screen.frame.origin.y + screen.frame.height - totalHeight
         
         let trackingHostingView = LockScreenTrackingHostingView(rootView: LockScreenFaceIDPillView(
             hasPhysicalNotch: hasPhysicalNotch,
-            notchHardwareHeight: notchHardwareHeight,
-            physicalNotchWidth: closedSize.width
+            notchHardwareHeight: notchHardwareHeight
         ))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
@@ -278,7 +269,7 @@ struct AppleFaceIDGlyphView: View {
     var isScanning: Bool
     var isSuccess: Bool
     var isFailure: Bool = false
-    var size: CGFloat = 28
+    var size: CGFloat = 30
     
     @State private var swivelY: Double = -18
     @State private var swivelX: Double = -5
@@ -398,95 +389,55 @@ struct AppleFaceIDGlyphView: View {
     }
     
     private func triggerShakeAnimation() {
-        let offsets: [CGFloat] = [0, -8, 8, -6, 6, -3, 3, 0]
-        for (index, offset) in offsets.enumerated() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.04) {
-                withAnimation(.linear(duration: 0.04)) {
-                    self.shakeOffset = offset
-                }
-            }
+        withAnimation(.default) {
+            shakeOffset = -8
+        }
+        withAnimation(.spring(response: 0.15, dampingFraction: 0.2, blendDuration: 0).delay(0.05)) {
+            shakeOffset = 0
         }
     }
 }
 
-
-struct FaceIDNotchStrokeShape: Shape {
-    var topCornerRadius: CGFloat = 6
-    var bottomCornerRadius: CGFloat = 14
-    
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        // Top-left ear down through bottom to top-right ear (leaving top edge flush with bezel)
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addArc(
-            tangent1End: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY),
-            tangent2End: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius),
-            radius: topCornerRadius
-        )
-        path.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
-        path.addArc(
-            tangent1End: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY),
-            tangent2End: CGPoint(x: rect.midX, y: rect.maxY),
-            radius: bottomCornerRadius
-        )
-        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
-        path.addArc(
-            tangent1End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY),
-            tangent2End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY),
-            radius: bottomCornerRadius
-        )
-        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
-        path.addArc(
-            tangent1End: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY),
-            tangent2End: CGPoint(x: rect.maxX, y: rect.minY),
-            radius: topCornerRadius
-        )
-        return path
-    }
-}
-
-// MARK: - Mini Scanning Pulsing Dots View
-struct FaceIDScanningDotsView: View {
-    var color: Color
-    @State private var phase: Int = 0
-    let timer = Timer.publish(every: 0.22, on: .main, in: .common).autoconnect()
-    
-    var body: some View {
-        HStack(spacing: 3) {
-            ForEach(0..<3) { i in
-                Circle()
-                    .fill(color)
-                    .frame(width: 3.5, height: 3.5)
-                    .opacity(phase == i ? 1.0 : 0.3)
-                    .scaleEffect(phase == i ? 1.25 : 0.85)
-                    .animation(.easeInOut(duration: 0.2), value: phase)
-            }
-        }
-        .onReceive(timer) { _ in
-            phase = (phase + 1) % 3
-        }
-    }
-}
-
-// MARK: - Lock Screen Face ID Pill View
+// MARK: - Lock Screen Face ID Pill View (Exact Centered Drop-down Notch Layout)
 struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
-    var physicalNotchWidth: CGFloat = 185
     
     @State private var isHovered: Bool = false
-    
-    private let appleBlue = Color(red: 0.04, green: 0.52, blue: 1.0)
-    private let appleGreen = Color(red: 0.188, green: 0.855, blue: 0.376)
     
     var body: some View {
         Button {
             triggerScan()
         } label: {
-            inlineContent
+            VStack(spacing: 0) {
+                // Top area under the physical camera notch
+                if hasPhysicalNotch {
+                    Color.clear
+                        .frame(height: max(0, notchHardwareHeight - 6))
+                }
+                
+                // Centered 3D Face ID Glyph
+                ZStack {
+                    AppleFaceIDGlyphView(
+                        isScanning: faceIDManager.isScanning,
+                        isSuccess: faceIDManager.lastUnlockSuccess,
+                        isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
+                        size: 30
+                    )
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(backgroundShape)
+                .padding(.bottom, 6)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.black)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.white.opacity(isHovered ? 0.22 : 0.08), lineWidth: 1)
+                    )
+            )
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -500,114 +451,9 @@ struct LockScreenFaceIDPillView: View {
         }
     }
     
-    // MARK: - Inline Layout (Mở rộng sang 2 bên như Media khi ở màn Mac có Notch thật)
-    @ViewBuilder
-    private var inlineContent: some View {
-        if hasPhysicalNotch {
-            let wingSize = max(0, notchHardwareHeight - 12)
-            HStack(spacing: 0) {
-                // Ô bên trái: Biểu tượng Face ID nhỏ nhắn, nằm đúng vị trí của bìa nhạc (album art)
-                ZStack {
-                    AppleFaceIDGlyphView(
-                        isScanning: faceIDManager.isScanning,
-                        isSuccess: faceIDManager.lastUnlockSuccess,
-                        isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                        size: max(14, wingSize - 2)
-                    )
-                }
-                .frame(width: wingSize, height: wingSize)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.white.opacity(isHovered ? 0.12 : 0.06))
-                )
-                .frame(width: wingSize + 10, height: notchHardwareHeight)
-                
-                // Khoảng đen ở giữa: Khớp hoàn toàn với phần notch nhựa/camera vật lý, không bị notch che
-                Rectangle()
-                    .fill(Color.black)
-                    .frame(width: max(40, physicalNotchWidth - 6), height: notchHardwareHeight)
-                
-                // Ô bên phải: Trống hoàn toàn theo yêu cầu (không hiển thị gì)
-                Color.clear
-                    .frame(width: wingSize + 10, height: notchHardwareHeight)
-            }
-            .padding(.horizontal, 6)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            // Màn hình ngoài không có notch: dạng thanh pill thanh lịch ở giữa
-            HStack(spacing: 8) {
-                AppleFaceIDGlyphView(
-                    isScanning: faceIDManager.isScanning,
-                    isSuccess: faceIDManager.lastUnlockSuccess,
-                    isFailure: !faceIDManager.isScanning && !faceIDManager.lastUnlockSuccess && faceIDManager.statusMessage == "Face Not Recognized",
-                    size: 17
-                )
-                
-                Text(statusDisplayText)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(statusDisplayColor)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-    
-    @ViewBuilder
-    private var backgroundShape: some View {
-        let topRadius: CGFloat = 6
-        let bottomRadius: CGFloat = 14
-        
-        ZStack {
-            NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
-                .fill(Color.black)
-            
-            if !hasPhysicalNotch {
-                FaceIDNotchStrokeShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius)
-                    .stroke(borderColor, lineWidth: isHovered ? 1.8 : 1.2)
-            }
-        }
-    }
-    
     private func triggerScan() {
         if !faceIDManager.isScanning {
             faceIDManager.startRecognitionOnWake()
-        }
-    }
-    
-    private var statusDisplayText: String {
-        if faceIDManager.lastUnlockSuccess {
-            return "Đã khớp!"
-        } else if faceIDManager.isScanning {
-            return "Đang quét…"
-        } else if faceIDManager.statusMessage == "Face Not Recognized" {
-            return "Chưa khớp"
-        } else {
-            return "Face ID"
-        }
-    }
-    
-    private var statusDisplayColor: Color {
-        if faceIDManager.lastUnlockSuccess {
-            return appleGreen
-        } else if faceIDManager.isScanning {
-            return appleBlue
-        } else if faceIDManager.statusMessage == "Face Not Recognized" {
-            return .orange
-        } else {
-            return Color.white.opacity(isHovered ? 0.95 : 0.6)
-        }
-    }
-    
-    private var borderColor: Color {
-        if faceIDManager.lastUnlockSuccess {
-            return appleGreen.opacity(0.85)
-        } else if faceIDManager.isScanning {
-            return appleBlue.opacity(0.75)
-        } else if faceIDManager.statusMessage == "Face Not Recognized" {
-            return .orange.opacity(isHovered ? 0.9 : 0.6)
-        } else {
-            return appleBlue.opacity(isHovered ? 0.85 : 0.4)
         }
     }
 }
