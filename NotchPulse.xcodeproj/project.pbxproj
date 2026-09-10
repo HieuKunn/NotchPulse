@@ -170,6 +170,7 @@
 		F1D200032ED0000100000001 /* FaceIDManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200042ED0000100000001 /* FaceIDManager.swift */; };
 		F1D200052ED0000100000001 /* LockScreenWakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */; };
 		F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200082ED0000100000001 /* FaceIDSettingsView.swift */; };
+		11FA000B2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */; };
 		F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */; };
 		F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */; };
 		F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */; };
@@ -371,6 +372,7 @@
 		F1D200042ED0000100000001 /* FaceIDManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDManager.swift; sourceTree = "<group>"; };
 		F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWakeObserver.swift; sourceTree = "<group>"; };
 		F1D200082ED0000100000001 /* FaceIDSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsView.swift; sourceTree = "<group>"; };
+		11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleFaceIDGlyphView.swift; sourceTree = "<group>"; };
 		F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaView.swift; sourceTree = "<group>"; };
 		F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaWindow.swift; sourceTree = "<group>"; };
 		F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenFaceIDWindow.swift; sourceTree = "<group>"; };
@@ -829,6 +831,7 @@
 			isa = PBXGroup;
 			children = (
 				F1D200082ED0000100000001 /* FaceIDSettingsView.swift */,
+				11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */,
 				11F748832ECB27DC00F841DB /* MusicSlotConfigurationView.swift */,
 				11C5E3152DFE88510065821E /* SettingsView.swift */,
 				11C5E3112DFE85970065821E /* SettingsWindowController.swift */,
@@ -1071,6 +1074,7 @@
 				F1D200032ED0000100000001 /* FaceIDManager.swift in Sources */,
 				F1D200052ED0000100000001 /* LockScreenWakeObserver.swift in Sources */,
 				F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */,
+				11FA000B2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift in Sources */,
 				F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */,
 				F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */,
 				F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */,
