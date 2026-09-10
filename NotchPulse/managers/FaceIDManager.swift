@@ -19,6 +19,144 @@ struct EnrolledFace: Identifiable, Codable, Equatable {
     var vectors: [[Double]] = [] // Unused now, but kept for UI compatibility
 }
 
+enum FacePose: String, CaseIterable, Identifiable {
+    case frontal = "frontal"
+    case lookLeft = "lookLeft"
+    case lookRight = "lookRight"
+    case lookUp = "lookUp"
+    case lookDown = "lookDown"
+    case smile = "smile"
+    
+    var id: String { rawValue }
+    
+    var prompt: String {
+        switch self {
+        case .frontal: return "Nhìn thẳng vào camera"
+        case .lookLeft: return "Nghiêng nhẹ sang trái"
+        case .lookRight: return "Nghiêng nhẹ sang phải"
+        case .lookUp: return "Hơi ngước đầu lên"
+        case .lookDown: return "Hơi cúi đầu xuống"
+        case .smile: return "Mỉm cười một chút"
+        }
+    }
+    
+    func matches(yaw: Double, roll: Double, faceWidth: CGFloat) -> Bool {
+        switch self {
+        case .frontal, .smile:
+            return abs(yaw) < 0.25 && abs(roll) < 0.25
+        case .lookLeft:
+            return yaw > 0.15
+        case .lookRight:
+            return yaw < -0.15
+        case .lookUp:
+            return roll > 0.12 || abs(yaw) < 0.3
+        case .lookDown:
+            return roll < -0.12 || abs(yaw) < 0.3
+        }
+    }
+}
+
+enum NotchPulseEnrollmentError: LocalizedError {
+    case noFaceDetected
+    case multipleFacesDetected
+    case alignmentFailed
+    case embeddingFailed
+    case qualityTooLow
+    case sessionLocked
+    
+    var errorDescription: String? {
+        switch self {
+        case .noFaceDetected: return "Không tìm thấy khuôn mặt"
+        case .multipleFacesDetected: return "Phát hiện nhiều hơn 1 khuôn mặt"
+        case .alignmentFailed: return "Không thể căn chỉnh khuôn mặt"
+        case .embeddingFailed: return "Trích xuất đặc trưng thất bại"
+        case .qualityTooLow: return "Chất lượng hình ảnh quá thấp"
+        case .sessionLocked: return "Phiên bảo mật đang bị khoá"
+        }
+    }
+}
+
+struct FrameAnalysis {
+    let face: DetectedFace
+    let embedding: [Float]
+    let quality: Float
+    let yaw: Double
+    let roll: Double
+}
+
+struct VerifyResult {
+    let matched: Bool
+    let similarity: Float
+}
+
+final class NotchPulseEnrollmentService: @unchecked Sendable {
+    static let minimumCaptureQuality: Float = 0.35
+    private let embedder: NotchPulseFaceEmbedder = (try? NotchPulseArcFaceEmbedder()) ?? NotchPulseVisionFeaturePrintEmbedder()
+    
+    static func hasEnrolledFace() -> Bool {
+        do {
+            let identities = try NotchPulseSecureFaceStore.load()
+            return !identities.isEmpty && identities.contains { !$0.samples.isEmpty }
+        } catch {
+            return false
+        }
+    }
+    
+    static func deleteEnrolledFace() throws {
+        NotchPulseSecureFaceStore.deleteAll()
+    }
+    
+    func analyzeFrame(_ image: CGImage, includeQuality: Bool = true) throws -> FrameAnalysis {
+        let faces = try NotchPulseFaceDetector.detectFaces(in: image)
+        guard let face = faces.first else {
+            throw NotchPulseEnrollmentError.noFaceDetected
+        }
+        guard faces.count == 1 else {
+            throw NotchPulseEnrollmentError.multipleFacesDetected
+        }
+        
+        guard let aligned = NotchPulseFaceAligner.align(face, from: image) else {
+            throw NotchPulseEnrollmentError.alignmentFailed
+        }
+        
+        let embedding = try embedder.embedding(for: aligned.image)
+        let quality = face.quality ?? 0.8
+        let yaw = Double(face.yaw ?? 0.0)
+        let roll = Double(face.roll ?? 0.0)
+        
+        return FrameAnalysis(face: face, embedding: embedding, quality: quality, yaw: yaw, roll: roll)
+    }
+    
+    func saveEmbeddings(_ embeddings: [[Float]]) throws {
+        let samples = embeddings.map { emb in
+            FaceSample(embedding: emb, pose: nil, capturedAt: Date(), quality: 0.9)
+        }
+        let identity = FaceIdentity(
+            id: UUID(),
+            name: "My Face",
+            samples: samples,
+            modelIdentifier: embedder.modelIdentifier,
+            embeddingDimension: embedder.embeddingDimension,
+            createdAt: Date(),
+            isEnabled: true
+        )
+        try NotchPulseSecureFaceStore.save([identity])
+    }
+    
+    func verify(currentEmbedding: [Float]) throws -> VerifyResult {
+        let identities = try NotchPulseSecureFaceStore.load()
+        guard let identity = identities.first(where: { $0.isEnabled && !$0.samples.isEmpty }),
+              let template = identity.template else {
+            return VerifyResult(matched: false, similarity: 0)
+        }
+        
+        let similarity = FaceEmbedding.cosineSimilarity(currentEmbedding, template)
+        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.40 : 0.60
+        let matched = similarity >= threshold
+        return VerifyResult(matched: matched, similarity: similarity)
+    }
+}
+
 @MainActor
 final class FaceIDManager: NSObject, ObservableObject {
     static let shared = FaceIDManager()
@@ -73,7 +211,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         if NotchPulseVault.isSessionUnlocked { return true }
         if NotchPulseVault.hasSessionKey() {
             do {
-                try await Task.detached(priority: .userInitiated) {
+                try await Task.detached(priority: .userInitiated) { () -> Void in
                     try NotchPulseVault.unlockSession(reason: "Unlock Face ID Security")
                 }.value
                 return true
@@ -156,7 +294,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                         return
                     }
                     
-                    guard let buffer = self.camera.currentFrame() else {
+                    guard let buffer = self.camera.currentFrame?.image else {
                         try? await Task.sleep(for: .milliseconds(50))
                         continue
                     }
@@ -187,14 +325,9 @@ final class FaceIDManager: NSObject, ObservableObject {
                 
                 // Average the frames for this pose + save key pose samples for rich representation
                 if !poseEmbeddings.isEmpty {
-                    var mean = [Float](repeating: 0, count: poseEmbeddings[0].count)
-                    for e in poseEmbeddings {
-                        for i in 0..<e.count {
-                            mean[i] += e[i]
-                        }
+                    if let avgEmbedding = FaceEmbedding.average(poseEmbeddings) {
+                        collectedEmbeddings.append(avgEmbedding)
                     }
-                    let avgEmbedding = NotchPulseFaceEmbedder.l2Normalize(mean)
-                    collectedEmbeddings.append(avgEmbedding)
                     
                     // Also include 1st and last frame to capture micro angle/lighting variations
                     if poseEmbeddings.count >= 3 {
@@ -255,7 +388,7 @@ final class FaceIDManager: NSObject, ObservableObject {
             
             let startTime = Date()
             while !Task.isCancelled && Date().timeIntervalSince(startTime) < 8.0 {
-                guard let buffer = self.camera.currentFrame() else {
+                guard let buffer = self.camera.currentFrame?.image else {
                     try? await Task.sleep(for: .milliseconds(50))
                     continue
                 }

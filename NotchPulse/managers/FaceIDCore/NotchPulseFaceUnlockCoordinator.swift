@@ -335,7 +335,7 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         
         // We use a detached task for injecting events
-        Task.detached(priority: .high) {
+        Task.detached(priority: .high) { () -> Void in
             let source = CGEventSource(stateID: .hidSystemState)
             
             let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
