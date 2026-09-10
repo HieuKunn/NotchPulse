@@ -35,8 +35,8 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 210 : 38
-        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let targetHeight: CGFloat = isExpanded ? 220 : 38
+        let targetWidth: CGFloat = isExpanded ? 290 : 210
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,
@@ -53,8 +53,8 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
         super.mouseMoved(with: event)
         let point = convert(event.locationInWindow, from: nil)
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 210 : 38
-        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let targetHeight: CGFloat = isExpanded ? 220 : 38
+        let targetWidth: CGFloat = isExpanded ? 290 : 210
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,
@@ -72,8 +72,8 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
         super.mouseEntered(with: event)
         let point = convert(event.locationInWindow, from: nil)
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 210 : 38
-        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let targetHeight: CGFloat = isExpanded ? 220 : 38
+        let targetWidth: CGFloat = isExpanded ? 290 : 210
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,
@@ -93,8 +93,8 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 210 : 38
-        let targetWidth: CGFloat = isExpanded ? 270 : 210
+        let targetHeight: CGFloat = isExpanded ? 220 : 38
+        let targetWidth: CGFloat = isExpanded ? 290 : 210
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,
@@ -115,7 +115,7 @@ final class LockScreenFaceIDWindow: NSPanel {
     private var isSkyLightAttached = false
     
     private init() {
-        let initialRect = NSRect(x: 0, y: 0, width: 320, height: 240)
+        let initialRect = NSRect(x: 0, y: 0, width: 360, height: 260)
         super.init(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -163,8 +163,8 @@ final class LockScreenFaceIDWindow: NSPanel {
         let notchStyle = Defaults[.notchStyle]
         let dynamicIslandTopOffset = Defaults[.dynamicIslandTopOffset]
         
-        let windowWidth: CGFloat = 340
-        let windowHeight: CGFloat = 240
+        let windowWidth: CGFloat = 360
+        let windowHeight: CGFloat = 260
         let y: CGFloat
         
         if hasPhysicalNotch {
@@ -279,9 +279,9 @@ struct LockScreenFaceIDPillView: View {
     
     private var openBodySize: CGSize {
         if hasPhysicalNotch {
-            return CGSize(width: 220, height: 200)
+            return CGSize(width: 250, height: 210)
         } else {
-            return CGSize(width: 180, height: 180)
+            return CGSize(width: 210, height: 190)
         }
     }
     
@@ -295,7 +295,7 @@ struct LockScreenFaceIDPillView: View {
     
     private var bottomRadius: CGFloat {
         if isExpanded {
-            return hasPhysicalNotch ? 60 : 48
+            return hasPhysicalNotch ? 48 : 48
         } else {
             return hasPhysicalNotch ? 12 : (closedBodySize.height / 2)
         }
@@ -315,14 +315,14 @@ struct LockScreenFaceIDPillView: View {
                 applyNotchClip(
                     ZStack(alignment: .top) {
                         ScanAnimationView(media: scanMedia)
-                            .padding(.top, hasPhysicalNotch ? 40 : 28)
-                            .padding(.horizontal, hasPhysicalNotch ? 32 : 24)
+                            .padding(.top, hasPhysicalNotch ? 36 : 24)
+                            .padding(.horizontal, hasPhysicalNotch ? 36 : 26)
                             .padding(.bottom, 24)
+                            .scaleEffect(0.80)
                             .scaleEffect(faceIDManager.isScanning && isScanPulseDimmed ? 0.97 : 1.0)
                             .opacity(faceIDManager.isScanning && isScanPulseDimmed ? 0.70 : 1.0)
                             .blur(radius: isExpanded ? 0 : 30)
                             .opacity(isExpanded ? 1.0 : 0.0)
-                            .scaleEffect(isExpanded ? 1.0 : 0.3)
                     }
                     .frame(width: currentSize.width, height: currentSize.height)
                     .background(Color.black)
