@@ -12,6 +12,9 @@ import Observation
 import Defaults
 import AppKit
 
+fileprivate let injectionLock = NSLock()
+fileprivate var isCurrentlyInjecting = false
+
 @Observable
 @MainActor
 final class NotchPulseFaceUnlockCoordinator {
@@ -324,11 +327,8 @@ final class NotchPulseFaceUnlockCoordinator {
         case "~": return (0x32, true)
         default: return nil
         }
-    }
+    // Lock and state are file-private to avoid MainActor isolation
     
-    private static let injectionLock = NSLock()
-    private static var isCurrentlyInjecting = false
-
     private func performMacUnlock() async {
         guard let passwordData = try? NotchPulseVault.readPassword(),
               let password = String(data: passwordData, encoding: .utf8), !password.isEmpty else {

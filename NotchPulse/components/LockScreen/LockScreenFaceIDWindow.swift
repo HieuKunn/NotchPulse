@@ -36,7 +36,7 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
     override func hitTest(_ point: NSPoint) -> NSView? {
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
         let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 210
+        let targetWidth: CGFloat = isExpanded ? 290 : 180
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,
@@ -54,7 +54,7 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
         let point = convert(event.locationInWindow, from: nil)
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
         let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 210
+        let targetWidth: CGFloat = isExpanded ? 290 : 180
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,
@@ -73,7 +73,7 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
         let point = convert(event.locationInWindow, from: nil)
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
         let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 210
+        let targetWidth: CGFloat = isExpanded ? 290 : 180
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,
@@ -94,7 +94,7 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
         let point = convert(event.locationInWindow, from: nil)
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
         let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 210
+        let targetWidth: CGFloat = isExpanded ? 290 : 180
         let activeRect = NSRect(
             x: (bounds.width - targetWidth) / 2,
             y: bounds.height - targetHeight,

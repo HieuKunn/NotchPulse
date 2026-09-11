@@ -15,6 +15,7 @@ struct LockScreenMediaView: View {
     @ObservedObject var windowController: LockScreenMediaWindow
     @Default(.musicControlSlots) private var musicControlSlots
     @State private var activeLyricIndex: Int = 0
+    private let lyricsTimer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     
     var body: some View {
         ZStack {
@@ -39,6 +40,12 @@ struct LockScreenMediaView: View {
         .onChange(of: windowController.isFullScreen) { _, isFull in
             if isFull {
                 let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: Date()) - 0.7)
+                activeLyricIndex = currentLyricIndex(at: elapsed)
+            }
+        }
+        .onReceive(lyricsTimer) { date in
+            if windowController.isFullScreen {
+                let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: date) - 0.5)
                 activeLyricIndex = currentLyricIndex(at: elapsed)
             }
         }
@@ -396,56 +403,51 @@ struct LockScreenMediaView: View {
             }
             
             if !musicManager.syncedLyrics.isEmpty {
-                TimelineView(.animation(minimumInterval: 0.25)) { timeline in
-                    let currentElapsed = max(0, musicManager.estimatedPlaybackPosition(at: timeline.date) - 0.5)
-                    let currentIdx = currentLyricIndex(at: currentElapsed)
-                    
-                    ScrollViewReader { proxy in
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 22) {
-                                ForEach(Array(musicManager.syncedLyrics.enumerated()), id: \.offset) { index, item in
-                                    let isCurrent = (index == currentIdx)
-                                    let isPast = (index < currentIdx)
-                                    
-                                    Button {
-                                        musicManager.seek(to: item.time)
-                                    } label: {
-                                        Text(item.text)
-                                            .font(.system(size: isCurrent ? activeFontSize : inactiveFontSize, weight: isCurrent ? .bold : .medium, design: .rounded))
-                                            .foregroundStyle(
-                                                isCurrent
-                                                ? Color.white
-                                                : isPast
-                                                ? Color.white.opacity(0.3)
-                                                : Color.white.opacity(0.6)
-                                            )
-                                            .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
-                                            .multilineTextAlignment(.leading)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                            .padding(.vertical, 4)
-                                            .animation(.easeInOut(duration: 0.25), value: isCurrent)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .id(index)
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 22) {
+                            ForEach(Array(musicManager.syncedLyrics.enumerated()), id: \.offset) { index, item in
+                                let isCurrent = (index == activeLyricIndex)
+                                let isPast = (index < activeLyricIndex)
+                                
+                                Button {
+                                    musicManager.seek(to: item.time)
+                                } label: {
+                                    Text(item.text)
+                                        .font(.system(size: isCurrent ? activeFontSize : inactiveFontSize, weight: isCurrent ? .bold : .medium, design: .rounded))
+                                        .foregroundStyle(
+                                            isCurrent
+                                            ? Color.white
+                                            : isPast
+                                            ? Color.white.opacity(0.3)
+                                            : Color.white.opacity(0.6)
+                                        )
+                                        .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.vertical, 4)
+                                        .animation(.easeInOut(duration: 0.25), value: isCurrent)
                                 }
-                            }
-                            .padding(.vertical, viewHeight * 0.4)
-                        }
-                        .onChange(of: currentIdx) { _, newIdx in
-                            withAnimation(.smooth(duration: 0.45)) {
-                                proxy.scrollTo(newIdx, anchor: .center)
+                                .buttonStyle(.plain)
+                                .id(index)
                             }
                         }
-                        .onAppear {
+                        .padding(.vertical, viewHeight * 0.4)
+                    }
+                    .onChange(of: activeLyricIndex) { _, newIdx in
+                        withAnimation(.smooth(duration: 0.45)) {
+                            proxy.scrollTo(newIdx, anchor: .center)
+                        }
+                    }
+                    .onAppear {
+                        scheduleMultiPassScroll(proxy: proxy, forceTop: false)
+                    }
+                    .onChange(of: musicManager.songTitle) { _, _ in
+                        scheduleMultiPassScroll(proxy: proxy, forceTop: true)
+                    }
+                    .onChange(of: windowController.isFullScreen) { _, isFull in
+                        if isFull {
                             scheduleMultiPassScroll(proxy: proxy, forceTop: false)
-                        }
-                        .onChange(of: musicManager.songTitle) { _, _ in
-                            scheduleMultiPassScroll(proxy: proxy, forceTop: true)
-                        }
-                        .onChange(of: windowController.isFullScreen) { _, isFull in
-                            if isFull {
-                                scheduleMultiPassScroll(proxy: proxy, forceTop: false)
-                            }
                         }
                     }
                 }
