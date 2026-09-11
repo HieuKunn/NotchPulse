@@ -10,29 +10,29 @@
 
 ---
 
-## ✨ Key Features & What's New in v2.9.4.6
+## ✨ Key Features & What's New (v3.5+)
 
-- 🚀 **Seamless Auto-Update (Sparkle 2 & GitHub Releases)**:
-  - Built-in automatic update engine with cryptographic EdDSA verification. Download and upgrade directly within the app without manually fetching `.dmg` files.
-- 📅 **Fluid Calendar & Extended Date Glance**: 
-  - Comprehensive click target covering the entire date cell for foolproof date switching.
-  - Smooth multi-day mouse wheel and trackpad navigation across a 90-day interactive calendar strip.
-- 👤 **Face ID with Lightweight Neural Network (CoreML FaceNet)**: 
-  - Real-time facial embedding extraction (512-dimensional vectors) using **CoreML MobileFaceNet** accelerated by Apple Neural Engine (ANE) and Metal GPU.
-  - Ultra-fast recognition (0.2s – 0.4s) on screen wake with Cosine Distance verification and consecutive multi-frame anti-spoofing.
-  - Native sleek Inline Face ID glyph extending naturally beside the MacBook notch / Dynamic Island.
-  - Secure automatic unlock powered by credentials stored inside macOS Keychain.
-- 📱 **Lock Screen Media & Fullscreen Karaoke Lyrics**: 
-  - Adaptive 2-column glassmorphism widget hovering seamlessly over the macOS lock screen with smooth rounded borders.
-  - Real-time **Synced Karaoke Lyrics** with fullscreen immersive mode and dedicated media transport controls (Play/Pause, Next/Previous, Shuffle, Repeat).
+- 🔒 **Face ID Lock Screen Unlock & Dynamic Dropdown**:
+  - Seamless Face ID unlocking for macOS upon screen wake or returning to the Lock Screen.
+  - Native animated Face ID scanning glyph & fluid drop-notch animation morphing instantly into a green checkmark on success.
+  - On-device real-time facial recognition using **CoreML MobileFaceNet** (512-dimensional embeddings) with secure Keychain credential injection.
+  - Precise hover detection matching physical notch bounds to prevent unwanted triggering.
+- 📱 **Lock Screen Media & Synced Live Lyrics**:
+  - Adaptive glassmorphic Lock Screen widget for active media playback (Spotify, Apple Music, YouTube, Web Browsers).
+  - Real-time **Synced Karaoke Lyrics** with automatic active line highlighting, synchronized autoscroll, and expanded full-screen lyrics mode.
+  - Media transport controls (Play/Pause, Next/Previous).
 - 🏝️ **MacBook Notch ⇋ Dynamic Island Seamless Switcher**: 
-  - Switch instantly between the classic MacBook Notch and a floating iPhone-style Dynamic Island pill with live interactive width slider preview.
+  - Switch instantly between the classic MacBook Notch and a floating iPhone-style Dynamic Island pill with customizable width and preview.
+- 🚀 **Seamless Auto-Update (Sparkle 2 & GitHub Releases)**:
+  - Built-in automatic update engine with cryptographic EdDSA verification. Download and upgrade directly within the app.
+- 📅 **Fluid Calendar & Extended Date Glance**: 
+  - Comprehensive date switching with multi-day navigation across an interactive calendar strip.
 - 🎵 **Adaptive Media Hub**: 
-  - Seamless playback controls, audio visualizer wave, scrubber, and volume integration for Spotify, Apple Music, YouTube, and web browsers.
+  - Playback controls, audio visualizer wave, scrubber, and volume integration directly in the notch.
 - 📁 **Notch Shelf & Quick Share**: 
   - Drag, drop, stash, and share files directly through the top notch with instant AirDrop and clipboard support.
 - ☀️ **Intelligent Multi-Display Brightness & Volume HUD**: 
-  - Automatically detects built-in MacBook Retina displays vs. external monitors, controlling hardware and software brightness independently.
+  - Hardware and software brightness & volume control for built-in Retina displays and external monitors.
 - ⚡ **Zero-Overhead & Battery Efficient**: 
   - Built with pure native AppKit and SwiftUI for smooth 120Hz ProMotion performance without background battery drain.
 
