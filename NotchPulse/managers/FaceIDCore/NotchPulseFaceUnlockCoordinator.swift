@@ -327,6 +327,8 @@ final class NotchPulseFaceUnlockCoordinator {
         case "~": return (0x32, true)
         default: return nil
         }
+    }
+    
     // Lock and state are file-private to avoid MainActor isolation
     
     private func performMacUnlock() async {
