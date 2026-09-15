@@ -96,6 +96,7 @@ struct BatteryMenuView: View {
     var onDismiss: () -> Void
 
     @Environment(\.openURL) private var openURL
+    @StateObject private var batteryManager = BatteryToolkitManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -139,19 +140,53 @@ struct BatteryMenuView: View {
                         .font(.subheadline)
                         .fontWeight(.regular)
                 }
-                    
             }
             .padding(.vertical, 8)
 
-            Divider().background(Color.white)
+            if batteryManager.isSupported {
+                Divider().background(Color.white.opacity(0.3))
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Button {
+                        batteryManager.requestFullCharge()
+                    } label: {
+                        Label("Request Full Charge", systemImage: "battery.100.bolt")
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        batteryManager.requestMaxCharge()
+                    } label: {
+                        Label("Request Max Charge", systemImage: "battery.100")
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        batteryManager.disablePowerAdapter()
+                    } label: {
+                        Label("Disable Adapter", systemImage: "powerplug")
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        batteryManager.enablePowerAdapter()
+                    } label: {
+                        Label("Enable Adapter", systemImage: "powerplug.fill")
+                    }
+                    .buttonStyle(.plain)
+                }
+                .font(.subheadline)
+                .padding(.vertical, 4)
+            }
+
+            Divider().background(Color.white.opacity(0.3))
 
             Button(action: openBatteryPreferences) {
-                Label("Battery Settings", systemImage: "gearshape")
+                Label("System Settings...", systemImage: "gearshape")
                     .fontWeight(.regular)
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .buttonStyle(.plain)
-            .padding(.vertical, 8)
         }
         .padding()
         .frame(width: 280)

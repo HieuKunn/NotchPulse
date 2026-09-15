@@ -672,6 +672,8 @@ struct GeneralSettings: View {
 }
 
 struct Charge: View {
+    @StateObject private var batteryManager = BatteryToolkitManager.shared
+
     var body: some View {
         Form {
             Section {
@@ -694,10 +696,87 @@ struct Charge: View {
             } header: {
                 Text("Battery Information")
             }
+            
+            Section {
+                if batteryManager.isLoading {
+                    ProgressView()
+                } else if !batteryManager.isSupported {
+                    Text("Advanced Battery Settings are not supported or Daemon is not running.")
+                        .foregroundColor(.red)
+                } else {
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Max Charge Limit")
+                            Spacer()
+                            Text("\(batteryManager.maxCharge)%")
+                        }
+                        Slider(value: Binding(
+                            get: { Double(batteryManager.maxCharge) },
+                            set: { batteryManager.maxCharge = Int($0) }
+                        ), in: 50...100, step: 1)
+                        .onChange(of: batteryManager.maxCharge) {
+                            batteryManager.saveSettings()
+                        }
+                        Text("Limit the maximum battery charge level to preserve battery health.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Min Charge Limit")
+                            Spacer()
+                            Text("\(batteryManager.minCharge)%")
+                        }
+                        Slider(value: Binding(
+                            get: { Double(batteryManager.minCharge) },
+                            set: { batteryManager.minCharge = Int($0) }
+                        ), in: 20...100, step: 1)
+                        .onChange(of: batteryManager.minCharge) {
+                            batteryManager.saveSettings()
+                        }
+                        Text("Limit the minimum battery charge level before charging starts again.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Toggle("Disable sleep on power adapter disable", isOn: $batteryManager.adapterSleep)
+                        .onChange(of: batteryManager.adapterSleep) {
+                            batteryManager.saveSettings()
+                        }
+                        
+                    Toggle("Sync MagSafe LED", isOn: $batteryManager.magSafeSync)
+                        .onChange(of: batteryManager.magSafeSync) {
+                            batteryManager.saveSettings()
+                        }
+                        
+                    HStack {
+                        Button("Request Full Charge") {
+                            batteryManager.requestFullCharge()
+                        }
+                        Button("Request Max Charge") {
+                            batteryManager.requestMaxCharge()
+                        }
+                    }
+                    HStack {
+                        Button("Disable Adapter") {
+                            batteryManager.disablePowerAdapter()
+                        }
+                        Button("Enable Adapter") {
+                            batteryManager.enablePowerAdapter()
+                        }
+                    }
+                }
+            } header: {
+                Text("Advanced Battery Settings (Root required)")
+            } footer: {
+                Text("Battery limits and overrides powered by Battery Toolkit. Only works on Apple Silicon.")
+            }
         }
         .onAppear {
             Task { @MainActor in
                 await XPCHelperClient.shared.isAccessibilityAuthorized()
+                await batteryManager.loadSettings()
             }
         }
         .accentColor(.effectiveAccent)
