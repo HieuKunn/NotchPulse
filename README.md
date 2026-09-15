@@ -10,7 +10,7 @@
 
 ---
 
-## ✨ Key Features & What's New (v3.5+)
+## ✨ Key Features 
 
 - 🔒 **Face ID Lock Screen Unlock & Dynamic Dropdown**:
   - Seamless Face ID unlocking for macOS upon screen wake or returning to the Lock Screen.
@@ -43,7 +43,7 @@
 
 ## 💻 System Requirements
 
-- **macOS Sonoma (14.0)** or **macOS Sequoia (15.0+)**
+- **macOS 14.0+** (Supports Sonoma, Sequoia, and future versions)
 - Apple Silicon (M1/M2/M3/M4) or Intel Mac
 
 ---
