@@ -223,7 +223,7 @@
 		09BE00D5327BBBC5441BCCE7 /* Embed LaunchDaemons */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Library/LaunchDaemons";
 			dstSubfolderSpec = 16;
 			files = (
 				6213C11D3BF339D4EB4563AC /* NotchPulseBatteryDaemon in Embed LaunchDaemons */,
@@ -1695,6 +1695,7 @@
 				INFOPLIST_FILE = NotchPulseBatteryDaemon/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseBatteryDaemon;
+				PRODUCT_NAME = com.notchpulse.NotchPulseBatteryDaemon;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -1707,6 +1708,7 @@
 				INFOPLIST_FILE = NotchPulseBatteryDaemon/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseBatteryDaemon;
+				PRODUCT_NAME = com.notchpulse.NotchPulseBatteryDaemon;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
