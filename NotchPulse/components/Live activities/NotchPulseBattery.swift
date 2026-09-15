@@ -96,100 +96,140 @@ struct BatteryMenuView: View {
     var onDismiss: () -> Void
 
     @Environment(\.openURL) private var openURL
-    @StateObject private var batteryManager = BatteryToolkitManager.shared
+    @StateObject private var batteryManager = NativeBatteryManager.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
 
             HStack {
                 Text("Battery Status")
                     .font(.headline)
                     .fontWeight(.semibold)
                 Spacer()
-                Text("\(Int(levelBattery))%")
+                Text("\(batteryManager.level)%")
                     .font(.headline)
-                    .fontWeight(.semibold)
+                    .fontWeight(.bold)
+                    .foregroundColor(batteryManager.level <= 20 ? .red : .green)
             }
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Max Capacity: \(Int(maxCapacity))%")
+            // Health & Hardware info
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Label("Health: \(String(format: "%.1f", batteryManager.healthPercent))%", systemImage: "heart.fill")
+                    Spacer()
+                    Text("\(batteryManager.cycleCount) Cycles")
+                        .foregroundColor(.secondary)
+                }
+                .font(.subheadline)
+                
+                if batteryManager.wattage != 0 {
+                    HStack {
+                        if batteryManager.wattage > 0 {
+                            Label("Power: +\(String(format: "%.1f", batteryManager.wattage))W", systemImage: "bolt.fill")
+                                .foregroundColor(.green)
+                        } else {
+                            Label("Power: \(String(format: "%.1f", batteryManager.wattage))W", systemImage: "arrow.down")
+                                .foregroundColor(.orange)
+                        }
+                        Spacer()
+                        if batteryManager.temperature > 0 {
+                            Text("\(String(format: "%.1f", batteryManager.temperature))°C")
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     .font(.subheadline)
-                    .fontWeight(.regular)
+                }
+                
+                if batteryManager.adapterWatts > 0 {
+                    Label("Adapter: \(batteryManager.adapterWatts)W (\(batteryManager.adapterName))", systemImage: "powerplug.fill")
+                        .font(.subheadline)
+                }
+                
                 if isInLowPowerMode {
                     Label("Low Power Mode", systemImage: "bolt.circle")
                         .font(.subheadline)
-                        .fontWeight(.regular)
+                        .foregroundColor(.yellow)
                 }
-                if isCharging {
-                    Label("Charging", systemImage: "bolt.fill")
+                
+                if batteryManager.isDesktopMode {
+                    HStack {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                        Text("Desktop Mode (Dừng sạc ở \(batteryManager.chargeLimit)%)")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.green)
+                    }
+                    .padding(.vertical, 2)
+                } else if isCharging && timeToFullCharge > 0 {
+                    Label("Còn \(timeToFullCharge) phút để sạc đầy", systemImage: "clock")
                         .font(.subheadline)
-                        .fontWeight(.regular)
-                }
-                if isPluggedIn {
-                    Label("Plugged In", systemImage: "powerplug.fill")
-                        .font(.subheadline)
-                        .fontWeight(.regular)
-                }
-                if timeToFullCharge > 0 {
-                    Label("Time to Full Charge: \(timeToFullCharge) min", systemImage: "clock")
-                        .font(.subheadline)
-                        .fontWeight(.regular)
-                }
-                if !isCharging && isPluggedIn && levelBattery >= 80 {
-                    Label("Charging on Hold: Desktop Mode", systemImage: "desktopcomputer")
-                        .font(.subheadline)
-                        .fontWeight(.regular)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
 
-            if batteryManager.isSupported {
-                Divider().background(Color.white.opacity(0.3))
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    Button {
-                        batteryManager.requestFullCharge()
-                    } label: {
-                        Label("Request Full Charge", systemImage: "battery.100.bolt")
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button {
-                        batteryManager.requestMaxCharge()
-                    } label: {
-                        Label("Request Max Charge", systemImage: "battery.100")
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button {
-                        batteryManager.disablePowerAdapter()
-                    } label: {
-                        Label("Disable Adapter", systemImage: "powerplug")
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button {
-                        batteryManager.enablePowerAdapter()
-                    } label: {
-                        Label("Enable Adapter", systemImage: "powerplug.fill")
-                    }
-                    .buttonStyle(.plain)
+            Divider().background(Color.white.opacity(0.3))
+            
+            // Charge Limit controls
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Giới hạn sạc:")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("\(batteryManager.chargeLimit)%")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
                 }
-                .font(.subheadline)
-                .padding(.vertical, 4)
+                
+                HStack(spacing: 8) {
+                    Button {
+                        batteryManager.toggleChargeLimit()
+                    } label: {
+                        HStack {
+                            Image(systemName: batteryManager.chargeLimitEnabled ? "checkmark.circle.fill" : "circle")
+                            Text(batteryManager.chargeLimitEnabled ? "Đang bật (\(batteryManager.chargeLimit)%)" : "Bật giới hạn")
+                        }
+                        .font(.caption)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(batteryManager.chargeLimitEnabled ? Color.green.opacity(0.2) : Color.white.opacity(0.1))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    if batteryManager.isPluggedIn {
+                        Button {
+                            batteryManager.requestFullCharge()
+                        } label: {
+                            HStack {
+                                Image(systemName: "battery.100.bolt")
+                                Text("Sạc đầy")
+                            }
+                            .font(.caption)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
 
             Divider().background(Color.white.opacity(0.3))
 
             Button(action: openBatteryPreferences) {
                 Label("System Settings...", systemImage: "gearshape")
+                    .font(.subheadline)
                     .fontWeight(.regular)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .buttonStyle(.plain)
         }
         .padding()
-        .frame(width: 280)
+        .frame(width: 290)
         .foregroundColor(.white)
     }
 

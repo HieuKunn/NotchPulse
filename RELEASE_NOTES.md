@@ -1,14 +1,17 @@
 # 🚀 NotchPulse v3.8
 
-Welcome to NotchPulse **v3.8**! This release brings major enhancements to battery management, deeply integrated directly into macOS.
+Welcome to NotchPulse **v3.8**! This release introduces an all-new Native Battery Monitor and smart charging protection, redesigned from the ground up for modern Apple Silicon Macs and macOS 15 Sequoia.
 
 ---
 
-### 🔋 Advanced Battery Management (Apple Silicon)
-- **Native SMC Integration**: Added a dedicated, highly optimized background daemon that talks directly to the macOS SMC on Apple Silicon to manage charging limits.
-- **Charge Limits & Health**: You can now set exact Maximum and Minimum Charge Limits to prolong battery lifespan, natively without extra apps.
-- **Menu Bar Quick Actions**: Added instant quick actions right inside the NotchPulse battery drop-down menu to Force Full Charge, Force Max Charge, or Disable/Enable the Power Adapter instantly.
-- **Smart Adapter Sleep**: Added options to prevent macOS from going to sleep automatically when the power adapter is disabled, and an option to sync the MagSafe LED with the actual battery state.
+### 🔋 All-New Native Battery Monitor & Health
+- **Live Hardware Stats on Notch**: View real-time Battery Health %, Cycle Count, real-time Charging/Discharging Wattage (W), Battery Temperature (°C), Voltage, and connected Power Adapter details (e.g. 70W/96W/140W PD or MagSafe) right from the Notch HUD.
+- **Desktop Mode Indicator**: Automatically detects when your Mac is running purely on AC power while charging is on hold to protect battery lifespan.
+
+### ⚡ Smart Charging Protection
+- **Custom Charge Limit**: Set a custom charge threshold (50%–95%) to automatically pause charging and prevent battery wear when plugged in all day.
+- **One-Click Quick Actions**: Instantly trigger "Full Charge" or toggle custom charge limits directly from the Notch popup menu.
+- **Ultra-Lightweight & Gatekeeper Safe**: Removed bloated background daemons and complex models in favor of a streamlined, native architecture that opens instantly without macOS Gatekeeper damage warnings.
 
 ---
 

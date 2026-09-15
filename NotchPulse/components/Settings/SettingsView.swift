@@ -672,7 +672,7 @@ struct GeneralSettings: View {
 }
 
 struct Charge: View {
-    @StateObject private var batteryManager = BatteryToolkitManager.shared
+    @StateObject private var batteryManager = NativeBatteryManager.shared
 
     var body: some View {
         Form {
@@ -686,6 +686,7 @@ struct Charge: View {
             } header: {
                 Text("General")
             }
+            
             Section {
                 Defaults.Toggle(key: .showBatteryPercentage) {
                     Text("Show battery percentage")
@@ -698,85 +699,150 @@ struct Charge: View {
             }
             
             Section {
-                if batteryManager.isLoading {
-                    ProgressView()
-                } else if !batteryManager.isSupported {
-                    Text("Advanced Battery Settings are not supported or Daemon is not running.")
-                        .foregroundColor(.red)
-                } else {
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text("Max Charge Limit")
-                            Spacer()
-                            Text("\(batteryManager.maxCharge)%")
-                        }
-                        Slider(value: Binding(
-                            get: { Double(batteryManager.maxCharge) },
-                            set: { batteryManager.maxCharge = Int($0) }
-                        ), in: 50...100, step: 1)
-                        .onChange(of: batteryManager.maxCharge) {
-                            batteryManager.saveSettings()
-                        }
-                        Text("Limit the maximum battery charge level to preserve battery health.")
-                            .font(.caption)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Dung lượng pin: \(batteryManager.level)%")
+                            .font(.headline)
+                        Text("Sức khỏe pin: \(String(format: "%.1f", batteryManager.healthPercent))% • \(batteryManager.cycleCount) chu kỳ sạc")
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                    
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text("Min Charge Limit")
-                            Spacer()
-                            Text("\(batteryManager.minCharge)%")
-                        }
-                        Slider(value: Binding(
-                            get: { Double(batteryManager.minCharge) },
-                            set: { batteryManager.minCharge = Int($0) }
-                        ), in: 20...100, step: 1)
-                        .onChange(of: batteryManager.minCharge) {
-                            batteryManager.saveSettings()
-                        }
-                        Text("Limit the minimum battery charge level before charging starts again.")
+                    Spacer()
+                    if batteryManager.isDesktopMode {
+                        Text("Desktop Mode")
                             .font(.caption)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green.opacity(0.2))
+                            .foregroundColor(.green)
+                            .cornerRadius(6)
+                    } else if batteryManager.isCharging {
+                        Text("Đang sạc")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundColor(.blue)
+                            .cornerRadius(6)
+                    }
+                }
+                .padding(.vertical, 2)
+                
+                if batteryManager.wattage != 0 {
+                    HStack {
+                        Text("Công suất:")
+                        Spacer()
+                        Text("\(batteryManager.wattage > 0 ? "+" : "")\(String(format: "%.1f", batteryManager.wattage))W")
+                            .foregroundColor(batteryManager.wattage > 0 ? .green : .orange)
+                    }
+                }
+                
+                if batteryManager.temperature > 0 {
+                    HStack {
+                        Text("Nhiệt độ pin:")
+                        Spacer()
+                        Text("\(String(format: "%.1f", batteryManager.temperature))°C")
                             .foregroundColor(.secondary)
                     }
-                    
-                    Toggle("Disable sleep on power adapter disable", isOn: $batteryManager.adapterSleep)
-                        .onChange(of: batteryManager.adapterSleep) {
-                            batteryManager.saveSettings()
-                        }
-                        
-                    Toggle("Sync MagSafe LED", isOn: $batteryManager.magSafeSync)
-                        .onChange(of: batteryManager.magSafeSync) {
-                            batteryManager.saveSettings()
-                        }
-                        
+                }
+                
+                if batteryManager.adapterWatts > 0 {
                     HStack {
-                        Button("Request Full Charge") {
-                            batteryManager.requestFullCharge()
-                        }
-                        Button("Request Max Charge") {
-                            batteryManager.requestMaxCharge()
-                        }
-                    }
-                    HStack {
-                        Button("Disable Adapter") {
-                            batteryManager.disablePowerAdapter()
-                        }
-                        Button("Enable Adapter") {
-                            batteryManager.enablePowerAdapter()
-                        }
+                        Text("Củ sạc đang cắm:")
+                        Spacer()
+                        Text("\(batteryManager.adapterWatts)W (\(batteryManager.adapterName))")
+                            .foregroundColor(.secondary)
                     }
                 }
             } header: {
-                Text("Advanced Battery Settings (Root required)")
+                Text("Tình trạng Pin (Native)")
+            }
+            
+            Section {
+                Toggle("Bật tự động giới hạn sạc", isOn: $batteryManager.chargeLimitEnabled)
+                
+                if batteryManager.chargeLimitEnabled {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Dừng sạc ở mức:")
+                            Spacer()
+                            Text("\(batteryManager.chargeLimit)%")
+                                .fontWeight(.bold)
+                        }
+                        Slider(value: Binding(
+                            get: { Double(batteryManager.chargeLimit) },
+                            set: { batteryManager.chargeLimit = Int($0) }
+                        ), in: 50...95, step: 1)
+                        
+                        Text("Máy sẽ tự động ngắt dòng sạc khi đạt \(batteryManager.chargeLimit)% và chuyển sang chạy điện trực tiếp (AC Power), giúp cắm sạc cả ngày mà không bị chai pin.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                if !batteryManager.isHelperInstalled {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "shield.lefthalf.filled")
+                                .foregroundColor(.orange)
+                            Text("Cần cấp quyền điều khiển sạc phần cứng")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        Text("Để NotchPulse có thể ngắt dòng sạc pin khi cắm sạc cả ngày, hệ thống macOS cần cấp quyền điều khiển phần cứng SMC một lần duy nhất.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            
+                        Button {
+                            batteryManager.installHelper { success in
+                                print("Helper install result: \(success)")
+                            }
+                        } label: {
+                            HStack {
+                                if batteryManager.isBusy {
+                                    ProgressView().controlSize(.small)
+                                }
+                                Text("Kích hoạt quyền điều khiển sạc")
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(batteryManager.isBusy)
+                        
+                        if !batteryManager.helperStatusMessage.isEmpty {
+                            Text(batteryManager.helperStatusMessage)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } else {
+                    HStack {
+                        Label("Quyền điều khiển sạc đã sẵn sàng", systemImage: "checkmark.seal.fill")
+                            .foregroundColor(.green)
+                            .font(.subheadline)
+                        Spacer()
+                        Button("Sạc đầy 100%") {
+                            batteryManager.requestFullCharge()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+            } header: {
+                Text("Bảo vệ Pin khi cắm sạc (Apple Silicon)")
             } footer: {
-                Text("Battery limits and overrides powered by Battery Toolkit. Only works on Apple Silicon.")
+                Text("Tự động ngắt sạc khi đạt ngưỡng để bảo vệ tế bào pin lithium. Phù hợp cho người dùng cắm sạc máy tính cả ngày.")
             }
         }
         .onAppear {
             Task { @MainActor in
                 await XPCHelperClient.shared.isAccessibilityAuthorized()
-                await batteryManager.loadSettings()
+                batteryManager.updateBatteryStatus()
+                batteryManager.checkHelperInstalled()
             }
         }
         .accentColor(.effectiveAccent)
