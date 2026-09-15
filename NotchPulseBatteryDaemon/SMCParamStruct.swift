@@ -1,57 +1,79 @@
 import Foundation
 import IOKit
 
-let kSMCKeyNotFound: UInt8 = 0x84
-let kSMCSuccess: UInt8 = 0
-let kSMCError: UInt8 = 1
+public let kSMCKeyNotFound: UInt8 = 0x84
+public let kSMCSuccess: UInt8 = 0
+public let kSMCError: UInt8 = 1
 
-let kSMCUserClientOpen: UInt8 = 0
-let kSMCUserClientClose: UInt8 = 1
-let kSMCHandleYPCEvent: UInt8 = 2
-let kSMCReadKey: UInt8 = 5
-let kSMCWriteKey: UInt8 = 6
-let kSMCGetKeyCount: UInt8 = 7
-let kSMCGetKeyFromIndex: UInt8 = 8
-let kSMCGetKeyInfo: UInt8 = 9
+public let kSMCUserClientOpen: UInt8 = 0
+public let kSMCUserClientClose: UInt8 = 1
+public let kSMCHandleYPCEvent: UInt8 = 2
+public let kSMCReadKey: UInt8 = 5
+public let kSMCWriteKey: UInt8 = 6
+public let kSMCGetKeyCount: UInt8 = 7
+public let kSMCGetKeyFromIndex: UInt8 = 8
+public let kSMCGetKeyInfo: UInt8 = 9
 
-struct SMCVersion {
-    var major: CUnsignedChar
-    var minor: CUnsignedChar
-    var build: CUnsignedChar
-    var reserved: CUnsignedChar
-    var release: CUnsignedShort
+public struct SMCVersion: Sendable {
+    public var major: CUnsignedChar
+    public var minor: CUnsignedChar
+    public var build: CUnsignedChar
+    public var reserved: CUnsignedChar
+    public var release: CUnsignedShort
+
+    public init(major: CUnsignedChar, minor: CUnsignedChar, build: CUnsignedChar, reserved: CUnsignedChar, release: CUnsignedShort) {
+        self.major = major
+        self.minor = minor
+        self.build = build
+        self.reserved = reserved
+        self.release = release
+    }
 }
 
-struct SMCPLimitData {
-    var version: UInt16
-    var length: UInt16
-    var cpuPLimit: UInt32
-    var gpuPLimit: UInt32
-    var memPLimit: UInt32
+public struct SMCPLimitData: Sendable {
+    public var version: UInt16
+    public var length: UInt16
+    public var cpuPLimit: UInt32
+    public var gpuPLimit: UInt32
+    public var memPLimit: UInt32
+
+    public init(version: UInt16, length: UInt16, cpuPLimit: UInt32, gpuPLimit: UInt32, memPLimit: UInt32) {
+        self.version = version
+        self.length = length
+        self.cpuPLimit = cpuPLimit
+        self.gpuPLimit = gpuPLimit
+        self.memPLimit = memPLimit
+    }
 }
 
-struct SMCKeyInfoData {
-    var dataSize: UInt32
-    var dataType: UInt32
-    var dataAttributes: UInt8
+public struct SMCKeyInfoData: Sendable {
+    public var dataSize: UInt32
+    public var dataType: UInt32
+    public var dataAttributes: UInt8
+
+    public init(dataSize: UInt32, dataType: UInt32, dataAttributes: UInt8) {
+        self.dataSize = dataSize
+        self.dataType = dataType
+        self.dataAttributes = dataAttributes
+    }
 }
 
-struct SMCParamStruct {
-    var key: UInt32
-    var vers: SMCVersion
+public struct SMCParamStruct: Sendable {
+    public var key: UInt32
+    public var vers: SMCVersion
     private var padding1: UInt16
-    var pLimitData: SMCPLimitData
-    var keyInfo: SMCKeyInfoData
+    public var pLimitData: SMCPLimitData
+    public var keyInfo: SMCKeyInfoData
     private var padding2_0: UInt8
     private var padding2_1: UInt16
-    var result: UInt8
-    var status: UInt8
-    var data8: UInt8
+    public var result: UInt8
+    public var status: UInt8
+    public var data8: UInt8
     private var padding3: UInt8
-    var data32: UInt32
-    var bytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
+    public var data32: UInt32
+    public var bytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
     
-    init() {
+    public init() {
         self.key = 0
         self.vers = SMCVersion(major: 0, minor: 0, build: 0, reserved: 0, release: 0)
         self.padding1 = 0
