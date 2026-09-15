@@ -33,6 +33,9 @@
   - Drag, drop, stash, and share files directly through the top notch with instant AirDrop and clipboard support.
 - ☀️ **Intelligent Multi-Display Brightness & Volume HUD**: 
   - Hardware and software brightness & volume control for built-in Retina displays and external monitors.
+- 🔋 **Advanced Battery Management (Apple Silicon)**:
+  - Deeply integrated background root daemon connecting directly to the SMC to precisely manage battery health.
+  - Set strict minimum and maximum charge limits, force instant full/max charging, or disable the power adapter while plugged in, natively from the Notch drop-down.
 - ⚡ **Zero-Overhead & Battery Efficient**: 
   - Built with pure native AppKit and SwiftUI for smooth 120Hz ProMotion performance without background battery drain.
 
