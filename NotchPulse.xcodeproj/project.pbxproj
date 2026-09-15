@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00F5A59EDEF40C44ACAA05B8 /* NotchPulseFaceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */; };
+		02A4AFAEBAC834AFFFE4C5E1 /* SimpleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5C95C02EF711E7A2A2F3FC /* SimpleAuth.swift */; };
 		0BDAE322129259390435F13C /* BTDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7BCC45E5355DB816624AF78 /* BTDispatcher.swift */; };
 		0C94BCA027DEF4F9F37E4A25 /* NotchPulseFaceRecognitionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB5A294BFCE01F186B68418 /* NotchPulseFaceRecognitionPipeline.swift */; };
 		1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */; };
@@ -115,7 +116,10 @@
 		14FC6E502C7DED5600C7BEA5 /* DataTypes+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FC6E4F2C7DED5600C7BEA5 /* DataTypes+Extensions.swift */; };
 		17BB86BF4CF8AED364A3F042 /* NotchPulseGlareCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5BB72A0F985602D6A8E514 /* NotchPulseGlareCue.swift */; };
 		24BBBB221A1E37F5E403E404 /* NotchPulseDeviceBezelDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01D3A636300D547621DBC6C /* NotchPulseDeviceBezelDetector.swift */; };
+		270826BF381BE1317171A24F /* PowerEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7624E8B4BD375E0E4B2CD056 /* PowerEvents.swift */; };
 		2903CC6BEA6C3F7768F542FE /* BTDaemonManagement+Legacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7BA2E96233BBC6D8732B733 /* BTDaemonManagement+Legacy.swift */; };
+		2A8C3B8799945D8A440978F4 /* SMCComm+Power.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F3442FB03A62DFABC83FB6B /* SMCComm+Power.swift */; };
+		2AFAEEC19504AC52AB55BCCA /* BTPreprocessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270A88E039438297C5AABD82 /* BTPreprocessor.swift */; };
 		2E74A97DE6DD82121026817E /* NotchPulseLivenessScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */; };
 		3942A45DCBD0DD8CB3BC1C06 /* NotchPulseFaceUnlockCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B5FEFA534C2DFF5BD32667 /* NotchPulseFaceUnlockCoordinator.swift */; };
 		3945421C14D60D0B09B52EE4 /* NotchPulseVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = E337E26DE7B6044D535EF392 /* NotchPulseVault.swift */; };
@@ -131,12 +135,15 @@
 		6213C11D3BF339D4EB4563AC /* NotchPulseBatteryDaemon in Embed LaunchDaemons */ = {isa = PBXBuildFile; fileRef = 7117004B6BA637ED59126EC3 /* NotchPulseBatteryDaemon */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		62BCC7320DE6581766953DE0 /* BatteryToolkitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E38C9807ABB0E59253529F8 /* BatteryToolkitManager.swift */; };
 		6642DCC7CA1D72AFD79A4319 /* BTDaemon.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C2FFFDCA69765709AE3E9A /* BTDaemon.swift */; };
+		68D2738BA4136E5362D7316F /* SMCComm+MagSafe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB0331FDC09C5704A2C732F /* SMCComm+MagSafe.swift */; };
+		690D13C1652E73F7F9091EAC /* GlobalSleep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E9142A5A9747EAFBB26F90 /* GlobalSleep.swift */; };
 		6DE97347A4ED6DF8617B2BE8 /* NotchPulseLivenessCues.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC7DF92B8FE14000CC68008 /* NotchPulseLivenessCues.swift */; };
 		6E3428431F1E442188E153C0 /* BTSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655C3F73E0902325CBD37B3B /* BTSettings.swift */; };
 		7217AA4BFCCDEC8AEFE7F244 /* BTDaemonCommProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD841E0BFB1468A65A9B9D3B /* BTDaemonCommProtocol.swift */; };
 		792EF5ADEF63A31C6B9E4989 /* NotchPulseSecureFaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0BEB776444AD9ACD223EBF /* NotchPulseSecureFaceStore.swift */; };
 		7EC2C41184BEA958CB2643D8 /* ArcFace.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 2CD0F0887BA35865B4D689B1 /* ArcFace.mlpackage */; };
 		81AD7FFA5B27DF3204B38E60 /* BTPowerEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C163563EB732A9AAFA3120D2 /* BTPowerEvents.swift */; };
+		8396362F5A01960CE8E0C25F /* BTPreprocessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4F98BEB9A18D463FF4DBE3 /* BTPreprocessor.swift */; };
 		83F5F248A0E2C9501A6F9032 /* BTDaemonManagement+Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BD96F825CB5A9C973EF7A4E /* BTDaemonManagement+Service.swift */; };
 		8884F3A1F9098CC0083444A3 /* NotchPulseFaceEnrollmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D15FF202F3BFE51BAC1447 /* NotchPulseFaceEnrollmentStore.swift */; };
 		989D9CB908B47CBD90D90528 /* NotchPulseFaceEmbedder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31340710F1936CFA9DA14C18 /* NotchPulseFaceEmbedder.swift */; };
@@ -145,7 +152,9 @@
 		9A987A0D2C73CA66005CA465 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A987A032C73CA66005CA465 /* ShelfView.swift */; };
 		9A987A102C73CA8D005CA465 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 9A987A0F2C73CA8D005CA465 /* Collections */; };
 		9AB0C6BD2C73C9CB00F7CD30 /* NotchHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB0C6BB2C73C9CB00F7CD30 /* NotchHomeView.swift */; };
+		9E1C10130DEA6556EBBEF61F /* SMCComm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 686E9B993D78613AB9E70441 /* SMCComm.swift */; };
 		A06EC86923FF544AA5A020ED /* NotchPulseGeometryLiveness.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDB47BA7318AA56B1F3BBCD /* NotchPulseGeometryLiveness.swift */; };
+		A19A8772F29B94F11EAA2B5C /* SMCParamStruct.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB66A4D9568D801DACE596B9 /* SMCParamStruct.swift */; };
 		A5414ACF59C14BD7F84D50FD /* BTDaemonManagement+Status.swift in Sources */ = {isa = PBXBuildFile; fileRef = B38AF1B61F5C9B9A63859755 /* BTDaemonManagement+Status.swift */; };
 		AA0000022ED0000100000002 /* SystemMonitorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000012ED0000100000001 /* SystemMonitorManager.swift */; };
 		AA0000042ED0000200000004 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000032ED0000200000003 /* StatsView.swift */; };
@@ -181,6 +190,9 @@
 		B1FEB4992C7686630066EBBC /* PanGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1FEB4982C7686630066EBBC /* PanGesture.swift */; };
 		B82B11503D7144C73627E2A1 /* NotchPulseKeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75330633067C257030A788F6 /* NotchPulseKeychainManager.swift */; };
 		B8DE7BB7DA557A01F578860C /* BTDaemonManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7739A740E12EC02AB0AD92 /* BTDaemonManagement.swift */; };
+		B950FA452EBFBD9A5CC1E2E2 /* CSIdentification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C357FF5D69630EE754ABE27 /* CSIdentification.swift */; };
+		BA906CFBA0F797FE8B65EAA3 /* SimpleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD9F548BE7669FC7CF9D696 /* SimpleAuth.swift */; };
+		BC37062FCEBE07A127142257 /* CSIdentification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C4AB7E0841F235BB835D031 /* CSIdentification.swift */; };
 		CF3656BDFD4AC62583BB109F /* BTDaemonComm.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7961416F4AA1E1DCCB25655 /* BTDaemonComm.swift */; };
 		CFC1FCCF4879F70F0D5B3958 /* BTStateInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12C826558D9511D2D704682 /* BTStateInfo.swift */; };
 		D1D2FFD1600D135B11195BDF /* BTActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9581F1F9C7EFE93BBC59400 /* BTActions.swift */; };
@@ -198,6 +210,7 @@
 		F8B6F341EE966B181E3F127C /* NotchPulseLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9438603647C24A08005A7C /* NotchPulseLockMonitor.swift */; };
 		FACCE26ED6FD4CBC47FBD2F7 /* BTDaemonXPCServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B4F74742D6FC27469829EA /* BTDaemonXPCServer.swift */; };
 		FCA4136DCB7D4FE146CCF3BD /* BTLegacyHelperInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F57D438B5915DFFC3BB53949 /* BTLegacyHelperInfo.swift */; };
+		FD608A7DC66B7E1F377FCC0A /* IOPSPrivate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C24A997D58BC6A3BB37E874 /* IOPSPrivate.swift */; };
 		FE88CFB56DD9672462E35E80 /* NotchPulseLivenessFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB7D99F64FAC342249CE13 /* NotchPulseLivenessFeatures.swift */; };
 		FFFBD53A7B41E7AB251C4696 /* NotchPulseGlareCueExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901F6D1CE84EE584DD2CB954 /* NotchPulseGlareCueExtractor.swift */; };
 /* End PBXBuildFile section */
@@ -257,6 +270,7 @@
 
 /* Begin PBXFileReference section */
 		0C242AD97E6E40D33DEFC6DA /* BTError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTError.swift; sourceTree = "<group>"; };
+		0C357FF5D69630EE754ABE27 /* CSIdentification.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSIdentification.swift; sourceTree = "<group>"; };
 		1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSItemProvider+LoadHelpers.swift"; sourceTree = "<group>"; };
 		110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryFileStorageService.swift; sourceTree = "<group>"; };
 		110029292E8691B400035A57 /* FileShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShareView.swift; sourceTree = "<group>"; };
@@ -362,12 +376,18 @@
 		19E3F44E629EE5B4762E12F7 /* NotchPulseCamera.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseCamera.swift; sourceTree = "<group>"; };
 		1BD96F825CB5A9C973EF7A4E /* BTDaemonManagement+Service.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "BTDaemonManagement+Service.swift"; sourceTree = "<group>"; };
 		1EB5A294BFCE01F186B68418 /* NotchPulseFaceRecognitionPipeline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceRecognitionPipeline.swift; sourceTree = "<group>"; };
+		1F3442FB03A62DFABC83FB6B /* SMCComm+Power.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SMCComm+Power.swift"; sourceTree = "<group>"; };
+		270A88E039438297C5AABD82 /* BTPreprocessor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTPreprocessor.swift; sourceTree = "<group>"; };
+		2C24A997D58BC6A3BB37E874 /* IOPSPrivate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IOPSPrivate.swift; sourceTree = "<group>"; };
+		2C5C95C02EF711E7A2A2F3FC /* SimpleAuth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SimpleAuth.swift; sourceTree = "<group>"; };
 		2CD0F0887BA35865B4D689B1 /* ArcFace.mlpackage */ = {isa = PBXFileReference; includeInIndex = 1; path = ArcFace.mlpackage; sourceTree = "<group>"; };
 		31340710F1936CFA9DA14C18 /* NotchPulseFaceEmbedder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceEmbedder.swift; sourceTree = "<group>"; };
 		32ECD629E60EE829983330CE /* NotchPulseFaceAligner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceAligner.swift; sourceTree = "<group>"; };
 		33135338CE081F269E6D7D51 /* BTXPCValidation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTXPCValidation.swift; sourceTree = "<group>"; };
 		3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceDetector.swift; sourceTree = "<group>"; };
+		3C4AB7E0841F235BB835D031 /* CSIdentification.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSIdentification.swift; sourceTree = "<group>"; };
 		42130E8930B8C838AEB053D3 /* BTAuthorizationRights.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTAuthorizationRights.swift; sourceTree = "<group>"; };
+		4DD9F548BE7669FC7CF9D696 /* SimpleAuth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SimpleAuth.swift; sourceTree = "<group>"; };
 		507266DA2C908E2E00A2D00D /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
 		50B5FEFA534C2DFF5BD32667 /* NotchPulseFaceUnlockCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceUnlockCoordinator.swift; sourceTree = "<group>"; };
 		5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyInterceptor.swift; sourceTree = "<group>"; };
@@ -377,13 +397,18 @@
 		5F5BB72A0F985602D6A8E514 /* NotchPulseGlareCue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseGlareCue.swift; sourceTree = "<group>"; };
 		60F820E3CBDF78146B220FB2 /* BTSettingsInfo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTSettingsInfo.swift; sourceTree = "<group>"; };
 		655C3F73E0902325CBD37B3B /* BTSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTSettings.swift; sourceTree = "<group>"; };
+		686E9B993D78613AB9E70441 /* SMCComm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SMCComm.swift; sourceTree = "<group>"; };
+		6B4F98BEB9A18D463FF4DBE3 /* BTPreprocessor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTPreprocessor.swift; sourceTree = "<group>"; };
 		70B4F74742D6FC27469829EA /* BTDaemonXPCServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTDaemonXPCServer.swift; sourceTree = "<group>"; };
 		7117004B6BA637ED59126EC3 /* NotchPulseBatteryDaemon */ = {isa = PBXFileReference; includeInIndex = 0; path = NotchPulseBatteryDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
 		75330633067C257030A788F6 /* NotchPulseKeychainManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseKeychainManager.swift; sourceTree = "<group>"; };
+		7624E8B4BD375E0E4B2CD056 /* PowerEvents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PowerEvents.swift; sourceTree = "<group>"; };
 		79EB7D99F64FAC342249CE13 /* NotchPulseLivenessFeatures.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessFeatures.swift; sourceTree = "<group>"; };
 		8354C35C369060C9CE3142E3 /* BTPowerState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTPowerState.swift; sourceTree = "<group>"; };
+		8BB0331FDC09C5704A2C732F /* SMCComm+MagSafe.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SMCComm+MagSafe.swift"; sourceTree = "<group>"; };
 		901F6D1CE84EE584DD2CB954 /* NotchPulseGlareCueExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseGlareCueExtractor.swift; sourceTree = "<group>"; };
 		9989B26181AD9E955C883822 /* NotchPulseLivenessAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessAnalyzer.swift; sourceTree = "<group>"; };
+		99E9142A5A9747EAFBB26F90 /* GlobalSleep.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlobalSleep.swift; sourceTree = "<group>"; };
 		9A0887312C7A693000C160EA /* TabButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabButton.swift; sourceTree = "<group>"; };
 		9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSelectionView.swift; sourceTree = "<group>"; };
 		9A0BEB776444AD9ACD223EBF /* NotchPulseSecureFaceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseSecureFaceStore.swift; sourceTree = "<group>"; };
@@ -395,6 +420,7 @@
 		AA0000012ED0000100000001 /* SystemMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorManager.swift; sourceTree = "<group>"; };
 		AA0000032ED0000200000003 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		AA7739A740E12EC02AB0AD92 /* BTDaemonManagement.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTDaemonManagement.swift; sourceTree = "<group>"; };
+		AB66A4D9568D801DACE596B9 /* SMCParamStruct.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SMCParamStruct.swift; sourceTree = "<group>"; };
 		ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessScoring.swift; sourceTree = "<group>"; };
 		B10348D82C74E56000475897 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
 		B10F84A22C6C9596009F3026 /* TestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestView.swift; sourceTree = "<group>"; };
@@ -528,6 +554,9 @@
 				AA7739A740E12EC02AB0AD92 /* BTDaemonManagement.swift */,
 				A1E47BBC859B7ADB929106B0 /* BTDaemonXPCClient.swift */,
 				B38AF1B61F5C9B9A63859755 /* BTDaemonManagement+Status.swift */,
+				2C5C95C02EF711E7A2A2F3FC /* SimpleAuth.swift */,
+				3C4AB7E0841F235BB835D031 /* CSIdentification.swift */,
+				270A88E039438297C5AABD82 /* BTPreprocessor.swift */,
 			);
 			name = BatteryManager;
 			path = NotchPulse/managers/BatteryManager;
@@ -889,6 +918,16 @@
 				1640E9D00598A9D53A15DA7D /* BTDaemonManagement.swift */,
 				0C242AD97E6E40D33DEFC6DA /* BTError.swift */,
 				655C3F73E0902325CBD37B3B /* BTSettings.swift */,
+				2C24A997D58BC6A3BB37E874 /* IOPSPrivate.swift */,
+				4DD9F548BE7669FC7CF9D696 /* SimpleAuth.swift */,
+				8BB0331FDC09C5704A2C732F /* SMCComm+MagSafe.swift */,
+				1F3442FB03A62DFABC83FB6B /* SMCComm+Power.swift */,
+				7624E8B4BD375E0E4B2CD056 /* PowerEvents.swift */,
+				0C357FF5D69630EE754ABE27 /* CSIdentification.swift */,
+				99E9142A5A9747EAFBB26F90 /* GlobalSleep.swift */,
+				686E9B993D78613AB9E70441 /* SMCComm.swift */,
+				6B4F98BEB9A18D463FF4DBE3 /* BTPreprocessor.swift */,
+				AB66A4D9568D801DACE596B9 /* SMCParamStruct.swift */,
 			);
 			name = NotchPulseBatteryDaemon;
 			path = NotchPulseBatteryDaemon;
@@ -1364,6 +1403,9 @@
 				B8DE7BB7DA557A01F578860C /* BTDaemonManagement.swift in Sources */,
 				B1DA4352A0FA19D35C26729E /* BTDaemonXPCClient.swift in Sources */,
 				A5414ACF59C14BD7F84D50FD /* BTDaemonManagement+Status.swift in Sources */,
+				02A4AFAEBAC834AFFFE4C5E1 /* SimpleAuth.swift in Sources */,
+				BC37062FCEBE07A127142257 /* CSIdentification.swift in Sources */,
+				2AFAEEC19504AC52AB55BCCA /* BTPreprocessor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1386,6 +1428,16 @@
 				EA321E2CE9B4035816DA19AD /* BTDaemonManagement.swift in Sources */,
 				E715C12887B8DF229C3D24D5 /* BTError.swift in Sources */,
 				6E3428431F1E442188E153C0 /* BTSettings.swift in Sources */,
+				FD608A7DC66B7E1F377FCC0A /* IOPSPrivate.swift in Sources */,
+				BA906CFBA0F797FE8B65EAA3 /* SimpleAuth.swift in Sources */,
+				68D2738BA4136E5362D7316F /* SMCComm+MagSafe.swift in Sources */,
+				2A8C3B8799945D8A440978F4 /* SMCComm+Power.swift in Sources */,
+				270826BF381BE1317171A24F /* PowerEvents.swift in Sources */,
+				B950FA452EBFBD9A5CC1E2E2 /* CSIdentification.swift in Sources */,
+				690D13C1652E73F7F9091EAC /* GlobalSleep.swift in Sources */,
+				9E1C10130DEA6556EBBEF61F /* SMCComm.swift in Sources */,
+				8396362F5A01960CE8E0C25F /* BTPreprocessor.swift in Sources */,
+				A19A8772F29B94F11EAA2B5C /* SMCParamStruct.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
