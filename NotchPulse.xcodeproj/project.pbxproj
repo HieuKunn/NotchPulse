@@ -559,7 +559,7 @@
 				270A88E039438297C5AABD82 /* BTPreprocessor.swift */,
 			);
 			name = BatteryManager;
-			path = NotchPulse/managers/BatteryManager;
+			path = BatteryManager;
 			sourceTree = "<group>";
 		};
 		1113ABB82E80E27000EC13B2 /* Models */ = {
