@@ -44,7 +44,7 @@
 ## 💻 System Requirements
 
 - **macOS 14.0+** (Supports Sonoma, Sequoia, and future versions)
-- Apple Silicon (M1/M2/M3/M4) or Intel Mac
+- Apple Silicon (M1+) or Intel Mac
 
 ---
 
