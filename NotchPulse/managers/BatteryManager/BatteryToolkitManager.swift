@@ -55,7 +55,7 @@ final class BatteryToolkitManager: ObservableObject {
         
         Task {
             do {
-                try await BTDaemonXPCClient.setSettings(settings: settings)
+                try await BTActions.setSettings(settings: settings)
             } catch {
                 print("Failed to save settings: \(error)")
             }
@@ -63,22 +63,52 @@ final class BatteryToolkitManager: ObservableObject {
     }
     
     func requestFullCharge() {
-        BTDaemonXPCClient.chargeToFull()
+        Task {
+            do {
+                try await BTActions.chargeToFull()
+            } catch {
+                print("Failed to request full charge: \(error)")
+            }
+        }
     }
     
     func requestMaxCharge() {
-        BTDaemonXPCClient.chargeToMaximum()
+        Task {
+            do {
+                try await BTActions.chargeToLimit()
+            } catch {
+                print("Failed to request max charge: \(error)")
+            }
+        }
     }
     
     func disableCharging() {
-        BTDaemonXPCClient.disableCharging()
+        Task {
+            do {
+                try await BTActions.disableCharging()
+            } catch {
+                print("Failed to disable charging: \(error)")
+            }
+        }
     }
     
     func disablePowerAdapter() {
-        BTDaemonXPCClient.disablePowerAdapter()
+        Task {
+            do {
+                try await BTActions.disablePowerAdapter()
+            } catch {
+                print("Failed to disable power adapter: \(error)")
+            }
+        }
     }
     
     func enablePowerAdapter() {
-        BTDaemonXPCClient.enablePowerAdapter()
+        Task {
+            do {
+                try await BTActions.enablePowerAdapter()
+            } catch {
+                print("Failed to enable power adapter: \(error)")
+            }
+        }
     }
 }
