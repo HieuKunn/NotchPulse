@@ -5,8 +5,15 @@
 
 import Foundation
 import os.log
+import IOKit
 
-import IOPMPrivate
+let kIOPMSleepDisabledKey = "SleepDisabled"
+
+@_silgen_name("IOPMCopySystemPowerSettings")
+func IOPMCopySystemPowerSettings() -> Unmanaged<CFDictionary>?
+
+@_silgen_name("IOPMSetSystemPowerSetting")
+func IOPMSetSystemPowerSetting(_ key: CFString, _ value: CFTypeRef) -> IOReturn
 
 @MainActor
 public enum GlobalSleep {
