@@ -7,7 +7,7 @@ import Foundation
 import os.log
 
 
-import NSXPCConnectionAuditToken
+
 import Security
 
 internal enum BTDaemonXPCServer {

@@ -5,9 +5,9 @@
 
 
 import Foundation
-import NSXPCConnectionAuditToken
+
 import os.log
-import SecCodeEx
+
 
 internal enum BTXPCValidation {
     static func protectService(connection: NSXPCConnection) {
