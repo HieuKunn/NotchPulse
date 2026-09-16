@@ -53,8 +53,11 @@ final class SystemAuthPromptObserver: ObservableObject {
             return
         }
         
-        // SecurityAgent handles system dialogs requesting administrator privileges or Touch ID/Password
-        if bundleId == "com.apple.SecurityAgent" {
+        // SecurityAgent handles system dialogs requesting administrator privileges
+        // LocalAuthentication.UIAgent and coreservices.uiagent handle Touch ID / Passkey prompts
+        let authAgents = ["com.apple.SecurityAgent", "com.apple.coreservices.uiagent"]
+        
+        if authAgents.contains(bundleId) || bundleId.contains("LocalAuthentication") {
             triggerFaceIDForSecurityAgent(targetApp: app)
         }
     }

@@ -5,7 +5,7 @@ Welcome to NotchPulse **v3.8.6**! This release delivers major memory optimizatio
 ---
 
 ### 🔋 Battery Management & SMC Hardware Control
-- **Native Battery Daemon Restored**: Re-embedded and signed `NotchPulseBatteryDaemon` LaunchDaemon with AppleScript administrative installer for seamless macOS 14+ setup.
+- **Native Battery Daemon Restored**: Corrected LaunchDaemon bundle layout and embedded `NotchPulseBatteryDaemon` with AppleScript administrative installer for seamless macOS 14+ setup.
 - **Hardware Charge Limiting**: Fully wired SMC registers (`CHTE`, `CH0C`, MagSafe LED `ACLC`) for all 3 power modes: `To Limit` (e.g., 55%), `Charge to 100%`, and `AC Power Mode` (direct adapter power without cell charging).
 
 ### ⚡ Memory & Performance Optimization
@@ -15,8 +15,8 @@ Welcome to NotchPulse **v3.8.6**! This release delivers major memory optimizatio
 - **Massive RAM Reduction**: Reduced peak closed-notch RAM usage from ~350 MB down to **< 90 MB**.
 
 ### 🔒 Face ID & System Authorization Enhancements
-- **Precision Notch Hover Detection**: Corrected flipped coordinate calculations in `LockScreenTrackingHostingView`. Hover activation for Face ID is now strictly confined to the physical top notch bezel, preventing accidental triggers from lower screen areas.
-- **Auto-Authenticate System Prompts**: Added passive, event-driven observation for macOS `SecurityAgent` authorization dialogs. Automatically presents Face ID to verify admin privileges and system prompts with seamless Touch ID and manual password fallback.
+- **Precision Notch Hover Detection**: Replaced bounding box hover with exact notch clipping shapes (`currentNotchShape`) and fixed coordinate calculations in `LockScreenTrackingHostingView`. Hover activation for Face ID is now strictly confined to the physical notch geometry.
+- **Touch ID & Passkey Auto-Authentication**: Expanded system authorization interceptor to cover `com.apple.coreservices.uiagent` and `LocalAuthentication` UI agents. Face ID will seamlessly authenticate Passkeys, Touch ID dialogs, and sudo prompts with graceful native fallback.
 - **English Settings Standard**: Verified 100% native English UI text across all settings tabs and dialogs.
 
 ---

@@ -58,8 +58,8 @@ final class NSScreenUUIDCache {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.rebuildCache()
+            Task {
+                await self?.rebuildCache()
             }
         }
     }
