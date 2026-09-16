@@ -32,9 +32,9 @@ final class NativeBatteryManager: ObservableObject {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .toLimit: return "To Limit"
+            case .toLimit: return "Charge to Limit"
             case .toFull: return "Charge to 100%"
-            case .inhibit: return "AC Power"
+            case .inhibit: return "Disable Charging"
             }
         }
         var icon: String {
@@ -42,6 +42,13 @@ final class NativeBatteryManager: ObservableObject {
             case .toLimit: return "battery.75"
             case .toFull: return "battery.100.bolt"
             case .inhibit: return "powerplug.fill"
+            }
+        }
+        var subtitle: String {
+            switch self {
+            case .toLimit: return "Stops charging at limit & preserves battery"
+            case .toFull: return "Continuously charges to 100%"
+            case .inhibit: return "Direct AC power; charging is paused"
             }
         }
     }
@@ -174,7 +181,20 @@ final class NativeBatteryManager: ObservableObject {
         self.adapterWatts = adWatts
         self.adapterName = adDesc
         self.timeRemaining = timeRem
-        self.isDesktopMode = extConnected && (!charging || isInhibited) && currentCap >= (chargeLimit - 2)
+        self.isDesktopMode = extConnected && (!charging || isInhibited || (chargingMode == .toLimit && currentCap >= chargeLimit) || chargingMode == .inhibit)
+        
+        // Enforce charging limits if connected to power
+        if extConnected && isHelperInstalled {
+            if chargingMode == .toLimit && currentCap >= chargeLimit && charging {
+                Task {
+                    try? await BTActions.disableCharging()
+                }
+            } else if chargingMode == .inhibit && charging {
+                Task {
+                    try? await BTActions.disableCharging()
+                }
+            }
+        }
     }
     
     private func setupPowerNotification() {

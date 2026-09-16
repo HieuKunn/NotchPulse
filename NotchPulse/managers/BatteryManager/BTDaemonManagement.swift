@@ -50,10 +50,7 @@ internal enum BTDaemonManagement {
         chown root:wheel /Library/PrivilegedHelperTools/\(BT_DAEMON_ID)
         chmod 755 /Library/PrivilegedHelperTools/\(BT_DAEMON_ID)
 
-        if [ -f "\(plistSrc)" ]; then
-            cp "\(plistSrc)" /Library/LaunchDaemons/\(BT_DAEMON_ID).plist
-        else
-            cat << 'EOF' > /Library/LaunchDaemons/\(BT_DAEMON_ID).plist
+        cat << 'EOF' > /Library/LaunchDaemons/\(BT_DAEMON_ID).plist
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -79,7 +76,6 @@ internal enum BTDaemonManagement {
         </dict>
         </plist>
         EOF
-        fi
         chown root:wheel /Library/LaunchDaemons/\(BT_DAEMON_ID).plist
         chmod 644 /Library/LaunchDaemons/\(BT_DAEMON_ID).plist
 

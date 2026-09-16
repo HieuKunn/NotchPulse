@@ -131,12 +131,12 @@ struct FaceIDSettingsView: View {
                         }
                     }
                 )) {
-                    Text("Auto-Authenticate System Prompts")
+                    Text("Auto-Authenticate Touch ID & System Prompts")
                         .font(.subheadline)
                 }
                 .disabled(!Defaults[.enableFaceID] || !faceIDManager.isEnrolled || !faceIDManager.hasPasswordSet)
 
-                Text("Automatically presents Face ID when macOS prompts for administrator authorization, Touch ID, or system password (e.g. installing helper tools or changing system settings). Touch ID or manual password entry remains available as a fallback.")
+                Text("Automatically activates Face ID when macOS, apps, or websites prompt for Passkeys, Touch ID, or administrator passwords. Touch ID and manual password entry remain available as a fallback.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

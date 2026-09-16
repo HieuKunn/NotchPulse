@@ -69,11 +69,11 @@ struct NotchBatteryView: View {
                     }
                 }
                 
-                // Custom Charge Limit Slider (when in To Limit mode)
+                // Custom Charge Limit Slider (when in Charge to Limit mode)
                 if battery.chargingMode == .toLimit {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text("Stop charging at:")
+                            Text("Auto-stop limit:")
                                 .font(.system(size: 9))
                                 .foregroundStyle(.secondary)
                             Spacer()
@@ -99,10 +99,10 @@ struct NotchBatteryView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 7))
                 } else if battery.chargingMode == .inhibit {
                     HStack(spacing: 5) {
-                        Image(systemName: "shield.lefthalf.filled")
+                        Image(systemName: "powerplug.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.cyan)
-                        Text("Running on direct AC power; battery charging is paused.")
+                        Text("Direct AC power active; battery charging is paused.")
                             .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -115,7 +115,7 @@ struct NotchBatteryView: View {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.yellow)
-                        Text("Unrestricted charging up to 100%.")
+                        Text("Top up to 100% full capacity.")
                             .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                     }

@@ -18,6 +18,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     @Published var isFullScreen: Bool = false
     @Published var isWindowVisible: Bool = false
     private var isSkyLightAttached = false
+    private var lyricsCancellables = Set<AnyCancellable>()
     
     private init() {
         let initialRect = NSRect(x: 0, y: 0, width: 410, height: 180)
@@ -29,6 +30,24 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         )
         
         configureWindow()
+        setupLyricsObserver()
+    }
+    
+    private func setupLyricsObserver() {
+        Publishers.CombineLatest(MusicManager.shared.$syncedLyrics, MusicManager.shared.$currentLyrics)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _, _ in
+                guard let self = self, self.isWindowVisible, !self.isFullScreen, let screen = self.getTargetScreen() else { return }
+                let newFrame = self.targetCompactFrame(for: screen)
+                if abs(self.frame.height - newFrame.height) > 1 {
+                    NSAnimationContext.runAnimationGroup { ctx in
+                        ctx.duration = 0.25
+                        ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                        self.animator().setFrame(newFrame, display: true)
+                    }
+                }
+            }
+            .store(in: &lyricsCancellables)
     }
     
     private func configureWindow() {
@@ -111,6 +130,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             orderFrontRegardless()
         }
         isWindowVisible = true
+        MusicManager.shared.ensureLyricsLoaded()
     }
     
     func hide() {

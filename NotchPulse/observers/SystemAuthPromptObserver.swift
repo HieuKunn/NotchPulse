@@ -40,11 +40,21 @@ final class SystemAuthPromptObserver: ObservableObject {
             || bundleId == "com.apple.coreservices.uiagent"
             || bundleId.contains("LocalAuthentication")
             || bundleId.contains("CoreAuthUI")
+            || bundleId.contains("AuthenticationServices")
+            || bundleId.contains("Credential")
+            || bundleId == "com.apple.CryptoTokenKit.pkitoken"
     }
     
     private func setupObserver() {
-        // Event-driven: Only wakes up when an application changes focus
+        // Event-driven: Wakes up when application focus changes or an auth agent launches
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didActivateApplicationNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                self?.handleApplicationActivated(notification)
+            }
+            .store(in: &cancellables)
+            
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didLaunchApplicationNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 self?.handleApplicationActivated(notification)
@@ -121,20 +131,34 @@ final class SystemAuthPromptObserver: ObservableObject {
             }
             
             if verified {
-                // Safety check: Verify the auth agent is still frontmost before injecting credentials
-                if let frontApp = NSWorkspace.shared.frontmostApplication,
-                   Self.isAuthAgent(frontApp) {
+                // Safety check: Find active auth agent to inject credentials
+                let targetAppToInject: NSRunningApplication? = {
+                    if let frontApp = NSWorkspace.shared.frontmostApplication, Self.isAuthAgent(frontApp) {
+                        return frontApp
+                    }
+                    if Self.isAuthAgent(targetApp) {
+                        return targetApp
+                    }
+                    return NSWorkspace.shared.runningApplications.first(where: { Self.isAuthAgent($0) })
+                }()
+                
+                if let authApp = targetAppToInject {
+                    authApp.activate(options: [.activateIgnoringOtherApps])
                     
                     if let passwordData = try? NotchPulseVault.readPassword(),
                        let password = String(data: passwordData, encoding: .utf8),
                        !password.isEmpty {
                         
-                        let isLocalAuth = frontApp.bundleIdentifier?.contains("LocalAuthentication") == true
-                        let targetPid = frontApp.processIdentifier
+                        let bundle = authApp.bundleIdentifier ?? ""
+                        let requiresPasswordButton = bundle.contains("LocalAuthentication")
+                            || bundle.contains("CoreAuthUI")
+                            || bundle.contains("AuthenticationServices")
+                            || bundle.contains("coreservices.uiagent")
+                        let targetPid = authApp.processIdentifier
                         
                         // Inject password on background thread
                         DispatchQueue.global(qos: .userInteractive).async {
-                            if isLocalAuth {
+                            if requiresPasswordButton {
                                 Self.prepareLocalAuthenticationPasswordField(processIdentifier: targetPid)
                             }
                             Self.injectSecurityAgentPassword(password)
@@ -166,8 +190,19 @@ final class SystemAuthPromptObserver: ObservableObject {
         func findPasswordButton(_ el: AXUIElement) -> AXUIElement? {
             var titleRef: CFTypeRef?
             AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef)
-            if let title = titleRef as? String, title.contains("Password") {
-                return el
+            if let title = titleRef as? String {
+                let lower = title.lowercased()
+                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") {
+                    return el
+                }
+            }
+            var descRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXDescriptionAttribute as CFString, &descRef)
+            if let desc = descRef as? String {
+                let lower = desc.lowercased()
+                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") {
+                    return el
+                }
             }
             var childrenRef: CFTypeRef?
             if AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef) == .success,
@@ -181,7 +216,7 @@ final class SystemAuthPromptObserver: ObservableObject {
         
         if let btn = findPasswordButton(win) {
             _ = AXUIElementPerformAction(btn, kAXPressAction as CFString)
-            Thread.sleep(forTimeInterval: 0.15)
+            Thread.sleep(forTimeInterval: 0.25)
         }
     }
     

@@ -768,9 +768,21 @@ struct Charge: View {
             }
             
             Section {
-                Toggle("Enable charge limiter", isOn: $batteryManager.chargeLimitEnabled)
+                Picker("Mode", selection: Binding(
+                    get: { batteryManager.chargingMode },
+                    set: { batteryManager.setMode($0) }
+                )) {
+                    ForEach(NativeBatteryManager.ChargingMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
                 
-                if batteryManager.chargeLimitEnabled {
+                Text(batteryManager.chargingMode.subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if batteryManager.chargingMode == .toLimit {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text("Stop charging at:")
@@ -780,7 +792,7 @@ struct Charge: View {
                         }
                         Slider(value: Binding(
                             get: { Double(batteryManager.chargeLimit) },
-                            set: { batteryManager.chargeLimit = Int($0) }
+                            set: { batteryManager.setChargeLimit(percent: Int($0)) }
                         ), in: 50...95, step: 1)
                         
                         Text("Charging will pause automatically at \(batteryManager.chargeLimit)% and run directly on AC power to preserve battery lifespan.")

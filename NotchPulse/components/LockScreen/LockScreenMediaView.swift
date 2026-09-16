@@ -44,7 +44,7 @@ struct LockScreenMediaView: View {
             }
         }
         .onReceive(lyricsTimer) { date in
-            guard windowController.isWindowVisible && windowController.isFullScreen else { return }
+            guard windowController.isWindowVisible else { return }
             let elapsed = musicManager.estimatedPlaybackPosition(at: date)
             if let idx = musicManager.currentLyricIndex(at: elapsed) {
                 if activeLyricIndex != idx {
@@ -111,29 +111,32 @@ struct LockScreenMediaView: View {
                     let elapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
                     let activeIndex = musicManager.currentLyricIndex(at: elapsed)
                     let text = musicManager.lyricLine(at: elapsed)
-                    if !text.isEmpty {
-                        Button {
-                            windowController.setFullScreen(true)
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "quote.bubble.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
-                                Text(text)
-                                    .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(text)")
-                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(activeIndex != nil ? .white.opacity(0.95) : .white.opacity(0.6))
-                                    .lineLimit(1)
-                                    .transition(.opacity.combined(with: .offset(y: 2)))
-                                    .animation(.easeInOut(duration: 0.25), value: activeIndex)
-                                Spacer()
-                            }
+                    let displayText = text.isEmpty ? "♪  ♫  ♪" : text
+                    
+                    Button {
+                        windowController.setFullScreen(true)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "quote.bubble.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
+                            Text(displayText)
+                                .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(displayText)")
+                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .foregroundStyle(activeIndex != nil ? .white.opacity(0.95) : .white.opacity(0.6))
+                                .lineLimit(1)
+                                .transition(.opacity.combined(with: .offset(y: 2)))
+                                .animation(.easeInOut(duration: 0.25), value: activeIndex)
+                            Spacer()
                         }
-                        .buttonStyle(.plain)
-                        .help("Click to expand to full-screen lyrics (Karaoke)")
                     }
+                    .buttonStyle(.plain)
+                    .help("Click to expand to full-screen lyrics (Karaoke)")
                 }
             } else if !musicManager.currentLyrics.isEmpty {
+                let firstLine = musicManager.currentLyrics
+                    .components(separatedBy: .newlines)
+                    .first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? "View Lyrics"
                 Button {
                     windowController.setFullScreen(true)
                 } label: {
@@ -141,13 +144,15 @@ struct LockScreenMediaView: View {
                         Image(systemName: "quote.bubble.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
-                        Text("View Lyrics")
+                        Text(firstLine)
                             .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.75))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .lineLimit(1)
                         Spacer()
                     }
                 }
                 .buttonStyle(.plain)
+                .help("Click to expand lyrics")
             }
             
             // Hàng 2: Thanh tiến trình (Scrubber) + Thời gian 2 bên
