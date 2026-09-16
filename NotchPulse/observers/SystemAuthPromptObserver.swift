@@ -87,6 +87,7 @@ final class SystemAuthPromptObserver: ObservableObject {
             verificationTask?.cancel()
             verificationTask = nil
             FaceIDManager.shared.cancelCurrentSession()
+            LockScreenFaceIDWindow.shared.isSystemPromptMode = false
             LockScreenFaceIDWindow.shared.hide()
             isCurrentlyVerifying = false
         }
@@ -106,12 +107,14 @@ final class SystemAuthPromptObserver: ObservableObject {
             }
             
             // Present Face ID UI in the notch area
+            LockScreenFaceIDWindow.shared.isSystemPromptMode = true
             LockScreenFaceIDWindow.shared.show()
             
             // Run dedicated system prompt face verification without lock screen requirements
             let verified = await FaceIDManager.shared.verifyForSystemPrompt(timeoutSeconds: 4.0)
             
             guard !Task.isCancelled else {
+                LockScreenFaceIDWindow.shared.isSystemPromptMode = false
                 LockScreenFaceIDWindow.shared.hide()
                 self?.isCurrentlyVerifying = false
                 return
@@ -146,6 +149,7 @@ final class SystemAuthPromptObserver: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(300))
             }
             
+            LockScreenFaceIDWindow.shared.isSystemPromptMode = false
             LockScreenFaceIDWindow.shared.hide()
             self?.isCurrentlyVerifying = false
         }

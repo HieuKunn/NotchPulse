@@ -302,7 +302,17 @@ final class NativeBatteryManager: ObservableObject {
         helperStatusMessage = "Activating Battery Control Service..."
         
         Task {
-            let status = await BTDaemonManagement.installHelperDirect()
+            var status = await BTDaemonManagement.installHelperDirect()
+            
+            if status == .requiresApproval {
+                await MainActor.run {
+                    self.helperStatusMessage = "Please approve in System Settings..."
+                }
+                try? await BTActions.approveDaemon(timeout: 60)
+                // Re-check status after approval window
+                status = await BTDaemonManagement.installHelperDirect()
+            }
+            
             let success = (status == .enabled)
             await MainActor.run {
                 self.isBusy = false

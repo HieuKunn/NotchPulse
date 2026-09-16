@@ -95,6 +95,12 @@ final class LockScreenFaceIDWindow: NSPanel {
     
     private var isSkyLightAttached = false
     
+    var isSystemPromptMode: Bool = false {
+        didSet {
+            ignoresMouseEvents = isSystemPromptMode
+        }
+    }
+    
     private init() {
         let initialRect = NSRect(x: 0, y: 0, width: 360, height: 260)
         super.init(
@@ -191,12 +197,12 @@ final class LockScreenFaceIDWindow: NSPanel {
         }
         
         if isVisible && alphaValue > 0.95 {
-            orderFrontRegardless()
+            orderFront(nil)
             return
         }
         
         alphaValue = 0
-        orderFrontRegardless()
+        orderFront(nil)
         
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.28
