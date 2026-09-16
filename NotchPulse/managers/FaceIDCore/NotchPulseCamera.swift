@@ -192,7 +192,7 @@ final class NotchPulseCamera: NSObject {
         private let ciContext = CIContext()
         /// Detection only needs a modest resolution; the live preview renders from the capture session directly and
         /// is unaffected. The undownscaled `source` is kept alongside for callers needing native pixels (`renderCrop`).
-        private let maxLongEdge: CGFloat = 640
+        private let maxLongEdge: CGFloat = 1280
         private var nextFrameID: UInt64 = 0
 
         func captureOutput(

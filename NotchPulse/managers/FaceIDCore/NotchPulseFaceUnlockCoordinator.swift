@@ -30,7 +30,7 @@ final class NotchPulseFaceUnlockCoordinator {
     private var faceIDManager: FaceIDManager { FaceIDManager.shared }
 
     private var scanWindowDuration: TimeInterval = 4.0
-    private let wrongFaceStreakThreshold = 6
+    private let wrongFaceStreakThreshold = 30
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?

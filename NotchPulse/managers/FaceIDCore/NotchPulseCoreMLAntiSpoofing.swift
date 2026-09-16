@@ -105,9 +105,9 @@ final class NotchPulseCoreMLAntiSpoofing: @unchecked Sendable {
         let printScore = (pV2[0] + pV1SE[0]) / 2.0
         let replayScore = (pV2[2] + pV1SE[2]) / 2.0
         
-        // Real face must be the dominant class (highest probability) AND liveScore >= 0.50
+        // Real face must be the dominant class (highest probability) AND liveScore >= 0.35
         let isDominantReal = liveScore > printScore && liveScore > replayScore
-        return isDominantReal && liveScore >= 0.50
+        return isDominantReal && liveScore >= 0.35
     }
     
     /// Simplified version for when only a pre-cropped face image is available.
@@ -120,7 +120,7 @@ final class NotchPulseCoreMLAntiSpoofing: @unchecked Sendable {
         let replayScore = (pV2[2] + pV1SE[2]) / 2.0
         
         let isDominantReal = liveScore > printScore && liveScore > replayScore
-        return isDominantReal && liveScore >= 0.50
+        return isDominantReal && liveScore >= 0.35
     }
     
     // MARK: - Prediction

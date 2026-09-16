@@ -113,8 +113,8 @@ class SettingsWindowController: NSWindowController {
         FaceIDManager.shared.cancelCurrentSession()
         window?.orderOut(nil)
         
-        // Free entire SettingsView SwiftUI hierarchy and render buffers from RAM
-        window?.contentView = nil
+        // Removed: Freeing contentView here causes a white screen bug in macOS when switching app policies.
+        // window?.contentView = nil
         
         // Set app back to accessory mode immediately
         NSApp.setActivationPolicy(.accessory)
