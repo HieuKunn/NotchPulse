@@ -17,6 +17,7 @@ Welcome to NotchPulse **v3.8.6**! This release delivers major memory optimizatio
 ### 🔒 Face ID & System Authorization Enhancements
 - **Precision Notch Hover Detection**: Replaced bounding box hover with exact notch clipping shapes (`currentNotchShape`) and fixed coordinate calculations in `LockScreenTrackingHostingView`. Hover activation for Face ID is now strictly confined to the physical notch geometry.
 - **Touch ID & Passkey Auto-Authentication**: Expanded system authorization interceptor to cover `com.apple.coreservices.uiagent` and `LocalAuthentication` UI agents. Face ID will seamlessly authenticate Passkeys, Touch ID dialogs, and sudo prompts with graceful native fallback.
+- **AI Anti-Spoofing (Liveness Detection)**: Integrated a CoreML Neural Engine model for presentation attack detection. Blocks attempts to bypass Face ID using photos or videos held up to the camera. Evaluated lazily to ensure zero CPU/RAM overhead on standby.
 - **English Settings Standard**: Verified 100% native English UI text across all settings tabs and dialogs.
 
 ---
