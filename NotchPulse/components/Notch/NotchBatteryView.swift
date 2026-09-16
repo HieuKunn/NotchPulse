@@ -263,7 +263,10 @@ struct NotchBatteryView: View {
         .padding(.top, 2)
         .padding(.bottom, 14)
         .onAppear {
-            battery.updateBatteryStatus()
+            battery.startMonitoring()
+        }
+        .onDisappear {
+            battery.stopMonitoring()
         }
     }
 }

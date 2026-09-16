@@ -73,6 +73,9 @@ final class NativeBatteryManager: ObservableObject {
     
     private let helperPath = "/usr/local/bin/notchpulse-battery"
     
+    private var isMonitoring: Bool = false
+    private var monitoringTimer: AnyCancellable?
+    
     private init() {
         let savedMode = UserDefaults.standard.string(forKey: "NP_ChargingMode") ?? ChargingMode.toLimit.rawValue
         self.chargingMode = ChargingMode(rawValue: savedMode) ?? .toLimit
@@ -81,22 +84,33 @@ final class NativeBatteryManager: ObservableObject {
         
         checkHelperInstalled()
         updateBatteryStatus()
-        
-        // Timer to poll battery status every 3 seconds
-        Timer.publish(every: 3.0, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.updateBatteryStatus()
-            }
-            .store(in: &cancellables)
-            
         setupPowerNotification()
     }
     
     deinit {
+        monitoringTimer?.cancel()
         if let source = powerRunLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, .defaultMode)
         }
+    }
+    
+    // MARK: - On-Demand Polling (App Nap friendly)
+    func startMonitoring() {
+        guard !isMonitoring else { return }
+        isMonitoring = true
+        updateBatteryStatus()
+        
+        monitoringTimer = Timer.publish(every: 3.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateBatteryStatus()
+            }
+    }
+    
+    func stopMonitoring() {
+        isMonitoring = false
+        monitoringTimer?.cancel()
+        monitoringTimer = nil
     }
     
     // MARK: - Native Battery Status Reader

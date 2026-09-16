@@ -231,6 +231,12 @@ struct BatteryMenuView: View {
         .padding()
         .frame(width: 290)
         .foregroundColor(.white)
+        .onAppear {
+            batteryManager.startMonitoring()
+        }
+        .onDisappear {
+            batteryManager.stopMonitoring()
+        }
     }
 
     private func openBatteryPreferences() {
