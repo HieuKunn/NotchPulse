@@ -297,7 +297,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         let startTime = ContinuousClock.now
-        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.20 : 0.40
+        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.38 : 0.60
         var lastProcessedFrameID: UInt64?
         
         while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {

@@ -154,6 +154,7 @@ final class NotchPulseFaceUnlockCoordinator {
 
         faceIDManager.statusMessage = "Looking for your face…"
         faceIDManager.isScanning = true
+        LockScreenFaceIDWindow.shared.ignoresMouseEvents = false
 
         let outcome = await observeScanWindow(deadline: Date().addingTimeInterval(scanWindowDuration))
 
@@ -167,12 +168,16 @@ final class NotchPulseFaceUnlockCoordinator {
             await performMacUnlock()
         case .consistentlyWrongFace:
             faceIDManager.statusMessage = "Face Not Recognized"
+            // Let the user type their password — stop blocking input
+            LockScreenFaceIDWindow.shared.ignoresMouseEvents = true
             scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
         case .spoofSuspected:
             faceIDManager.statusMessage = "Face Not Recognized" // UI checks for this string
+            LockScreenFaceIDWindow.shared.ignoresMouseEvents = true
             scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
         case .noResolution:
             faceIDManager.statusMessage = "No face detected."
+            LockScreenFaceIDWindow.shared.ignoresMouseEvents = true
             scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
         }
     }
@@ -262,7 +267,7 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.20 : 0.40
+            let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.38 : 0.60
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
             if matched != nil {
