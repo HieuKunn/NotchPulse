@@ -36,22 +36,16 @@ enum FaceRecognitionPipelineError: LocalizedError {
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
-    nonisolated let embedder: NotchPulseFaceEmbedder
+    nonisolated var embedder: NotchPulseFaceEmbedder {
+        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
+    }
 
     /// Set when ArcFace failed to load and the weaker Vision feature-print embedder is in use instead.
-    private(set) var usingFallbackEmbedder: Bool
-    private(set) var fallbackReason: String?
+    private(set) var usingFallbackEmbedder: Bool = false
+    private(set) var fallbackReason: String? = nil
 
     init() {
-        do {
-            embedder = try NotchPulseArcFaceEmbedder()
-            usingFallbackEmbedder = false
-            fallbackReason = nil
-        } catch {
-            embedder = NotchPulseVisionFeaturePrintEmbedder()
-            usingFallbackEmbedder = true
-            fallbackReason = error.localizedDescription
-        }
+        // CoreML model is lazy-loaded via shared() on first recognition request
     }
 
     /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.

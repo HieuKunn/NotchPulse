@@ -71,8 +71,6 @@ final class NativeBatteryManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var powerRunLoopSource: CFRunLoopSource?
     
-    private let helperPath = "/usr/local/bin/notchpulse-battery"
-    
     private var isMonitoring: Bool = false
     private var monitoringTimer: AnyCancellable?
     
@@ -82,9 +80,19 @@ final class NativeBatteryManager: ObservableObject {
         self.chargeLimitEnabled = UserDefaults.standard.object(forKey: "NP_ChargeLimitEnabled") as? Bool ?? true
         self.chargeLimit = UserDefaults.standard.object(forKey: "NP_ChargeLimit") as? Int ?? 80
         
-        checkHelperInstalled()
         updateBatteryStatus()
         setupPowerNotification()
+        checkHelperInstalled()
+        
+        Task {
+            let status = await BTActions.startDaemon()
+            if status == .enabled {
+                await MainActor.run {
+                    self.isHelperInstalled = true
+                    self.syncSettingsToDaemon()
+                }
+            }
+        }
     }
     
     deinit {
@@ -221,25 +229,44 @@ final class NativeBatteryManager: ObservableObject {
     func setMode(_ mode: ChargingMode) {
         self.chargingMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "NP_ChargingMode")
+        
+        guard isHelperInstalled else {
+            installHelper { [weak self] success in
+                if success {
+                    self?.setMode(mode)
+                }
+            }
+            return
+        }
+        
         switch mode {
         case .toLimit:
             forceFullCharge = false
             chargeLimitEnabled = true
-            allowCharging()
-            checkAndEnforceLimit()
+            syncSettingsToDaemon()
+            Task {
+                try? await BTActions.chargeToLimit()
+                self.updateBatteryStatus()
+            }
         case .toFull:
-            requestFullCharge()
+            forceFullCharge = true
+            chargeLimitEnabled = false
+            Task {
+                try? await BTActions.chargeToFull()
+                self.updateBatteryStatus()
+            }
         case .inhibit:
             forceFullCharge = false
             chargeLimitEnabled = false
-            inhibitCharging()
+            Task {
+                try? await BTActions.disableCharging()
+                self.updateBatteryStatus()
+            }
         }
     }
     
     func requestFullCharge() {
-        self.chargingMode = .toFull
-        forceFullCharge = true
-        allowCharging()
+        setMode(.toFull)
     }
     
     func toggleChargeLimit() {
@@ -253,103 +280,87 @@ final class NativeBatteryManager: ObservableObject {
     
     func setChargeLimit(percent: Int) {
         self.chargeLimit = max(50, min(100, percent))
-    }
-    
-    // MARK: - Hardware Charging Control
-    func checkHelperInstalled() {
-        isHelperInstalled = FileManager.default.fileExists(atPath: helperPath)
-    }
-    
-    func inhibitCharging() {
-        guard isHelperInstalled else { return }
-        runHelper(command: "inhibit")
-    }
-    
-    func allowCharging() {
-        guard isHelperInstalled else { return }
-        runHelper(command: "allow")
-    }
-    
-    private func runHelper(command: String) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let task = Process()
-            task.launchPath = self.helperPath
-            task.arguments = [command]
-            task.standardOutput = Pipe()
-            task.standardError = Pipe()
-            try? task.run()
-            task.waitUntilExit()
-            
-            Task { @MainActor in
-                self.updateBatteryStatus()
+        if isHelperInstalled {
+            syncSettingsToDaemon()
+            if chargingMode == .toLimit {
+                Task {
+                    try? await BTActions.chargeToLimit()
+                }
             }
         }
     }
     
-    // MARK: - 1-Click Helper Installation
+    // MARK: - Hardware Charging Control (BatteryToolkit Daemon)
+    func checkHelperInstalled() {
+        Task {
+            do {
+                _ = try await BTActions.getState()
+                await MainActor.run {
+                    self.isHelperInstalled = true
+                }
+            } catch {
+                await MainActor.run {
+                    self.isHelperInstalled = false
+                }
+            }
+        }
+    }
+    
+    func inhibitCharging() {
+        Task {
+            do {
+                try await BTActions.disableCharging()
+            } catch {
+                print("Failed to inhibit charging: \(error)")
+            }
+        }
+    }
+    
+    func allowCharging() {
+        Task {
+            do {
+                if self.chargingMode == .toFull {
+                    try await BTActions.chargeToFull()
+                } else {
+                    try await BTActions.chargeToLimit()
+                }
+            } catch {
+                print("Failed to allow charging: \(error)")
+            }
+        }
+    }
+    
+    func syncSettingsToDaemon() {
+        let minVal = max(BTSettingsInfo.Bounds.minChargeMin, UInt8(max(20, chargeLimit - 5)))
+        let maxVal = min(100, max(BTSettingsInfo.Bounds.maxChargeMin, UInt8(chargeLimit)))
+        let settings: [String: NSObject & Sendable] = [
+            BTSettingsInfo.Keys.maxCharge: NSNumber(value: maxVal),
+            BTSettingsInfo.Keys.minCharge: NSNumber(value: minVal),
+            BTSettingsInfo.Keys.magSafeSync: NSNumber(value: true)
+        ]
+        Task {
+            try? await BTActions.setSettings(settings: settings)
+            if self.chargingMode == .toLimit {
+                try? await BTActions.chargeToLimit()
+            }
+        }
+    }
+    
+    // MARK: - 1-Click Daemon Installation / Activation
     func installHelper(completion: @escaping (Bool) -> Void) {
         isBusy = true
-        helperStatusMessage = "Installing battery control helper..."
+        helperStatusMessage = "Activating Battery Control Service..."
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Script to create the lightweight SMC battery helper at /usr/local/bin/notchpulse-battery
-            let helperSource = """
-            cat << 'EOF' > /tmp/notchpulse-battery.swift
-            import Foundation
-            import IOKit
-
-            let smc = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
-            guard smc != IO_OBJECT_NULL else { exit(1) }
-            var connect: io_connect_t = IO_OBJECT_NULL
-            guard IOServiceOpen(smc, mach_task_self_, 1, &connect) == kIOReturnSuccess else { exit(1) }
-            IOConnectCallMethod(connect, 0, nil, 0, nil, 0, nil, nil, nil, nil)
-
-            struct P {
-                var k: UInt32 = 0; var v: (UInt8,UInt8,UInt8,UInt8,UInt16) = (0,0,0,0,0); var p1: UInt16 = 0
-                var l: (UInt16,UInt16,UInt32,UInt32,UInt32) = (0,0,0,0,0); var i: (UInt32,UInt32,UInt8) = (0,0,0)
-                var p2: (UInt8,UInt16) = (0,0); var r: UInt8 = 0; var s: UInt8 = 0; var d8: UInt8 = 0; var p3: UInt8 = 0
-                var d32: UInt32 = 0; var b = (UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0),UInt8(0))
-            }
-
-            func writeKey(_ key: String, _ byte: UInt8) {
-                var val: UInt32 = 0
-                for c in key.utf8 { val = (val << 8) | UInt32(c) }
-                var inp = P()
-                inp.k = val; inp.i.0 = 1; inp.d8 = 6; inp.b.0 = byte
-                var out = P(); var sz = MemoryLayout<P>.stride
-                _ = IOConnectCallStructMethod(connect, 2, &inp, sz, &out, &sz)
-            }
-
-            let cmd = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : ""
-            if cmd == "inhibit" {
-                writeKey("CHIE", 0x08)
-                writeKey("CH0J", 0x20)
-            } else if cmd == "allow" {
-                writeKey("CHIE", 0x00)
-                writeKey("CH0J", 0x00)
-            }
-            IOConnectCallMethod(connect, 1, nil, 0, nil, 0, nil, nil, nil, nil)
-            IOServiceClose(connect)
-            EOF
-            mkdir -p /usr/local/bin
-            swiftc /tmp/notchpulse-battery.swift -O -o /usr/local/bin/notchpulse-battery
-            chown root:wheel /usr/local/bin/notchpulse-battery
-            chmod u+s /usr/local/bin/notchpulse-battery
-            rm -f /tmp/notchpulse-battery.swift
-            """
-            
-            let appleScript = "do shell script \"\(helperSource.replacingOccurrences(of: "\"", with: "\\\""))\" with administrator privileges"
-            var error: NSDictionary?
-            if let scriptObject = NSAppleScript(source: appleScript) {
-                scriptObject.executeAndReturnError(&error)
-            }
-            
-            let success = (error == nil) && FileManager.default.fileExists(atPath: self.helperPath)
-            
-            Task { @MainActor in
+        Task {
+            let status = await BTActions.startDaemon()
+            let success = (status == .enabled)
+            await MainActor.run {
                 self.isBusy = false
                 self.isHelperInstalled = success
-                self.helperStatusMessage = success ? "Installed successfully!" : "Failed to obtain administrator privileges."
+                self.helperStatusMessage = success ? "Battery service active!" : "Could not activate battery service."
+                if success {
+                    self.syncSettingsToDaemon()
+                }
                 completion(success)
             }
         }

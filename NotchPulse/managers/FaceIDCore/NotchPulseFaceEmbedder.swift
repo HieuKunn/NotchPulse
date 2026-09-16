@@ -133,6 +133,25 @@ final class NotchPulseArcFaceEmbedder: NotchPulseFaceEmbedder, @unchecked Sendab
     private let inputName: String
     private let outputName: String
     let modelName: String
+    private static let lock = NSLock()
+    private static var _sharedInstance: NotchPulseArcFaceEmbedder?
+
+    static func shared() throws -> NotchPulseArcFaceEmbedder {
+        lock.lock()
+        defer { lock.unlock() }
+        if let existing = _sharedInstance {
+            return existing
+        }
+        let instance = try NotchPulseArcFaceEmbedder()
+        _sharedInstance = instance
+        return instance
+    }
+
+    static func purgeCache() {
+        lock.lock()
+        defer { lock.unlock() }
+        _sharedInstance = nil
+    }
 
     init() throws {
         let candidates = ["ArcFace", "FaceEmbedding", "FaceNet"]

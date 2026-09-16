@@ -101,6 +101,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cleanupWindows()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         LockScreenWakeObserver.shared.cleanup()
+        SystemAuthPromptObserver.shared.cleanup()
     }
 
     @MainActor
@@ -485,6 +486,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // NotchPulse 2.0: Initialize Face ID & Lock Screen Observer
         _ = LockScreenWakeObserver.shared
         _ = NotchPulseFaceUnlockCoordinator.shared
+        _ = SystemAuthPromptObserver.shared
 
         previousScreens = NSScreen.screens
     }

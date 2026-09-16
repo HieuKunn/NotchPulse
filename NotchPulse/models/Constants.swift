@@ -153,6 +153,7 @@ extension Defaults.Keys {
     
     // MARK: Face ID & Lock Screen (v2.0)
     static let enableFaceID = Key<Bool>("enableFaceID", default: false)
+    static let enableFaceIDForSystemPrompts = Key<Bool>("enableFaceIDForSystemPrompts", default: false)
     static let faceIDSound = Key<Bool>("faceIDSound", default: true)
     static let faceIDEnterPressCount = Key<Int>("faceIDEnterPressCount", default: 1)
     static let enableLockScreenPlayer = Key<Bool>("enableLockScreenPlayer", default: true)

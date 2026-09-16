@@ -25,7 +25,7 @@ class SettingsWindowController: NSWindowController {
         
         super.init(window: window)
         
-        setupWindow()
+        configureWindowProperties()
     }
     
     required init?(coder: NSCoder) {
@@ -37,11 +37,15 @@ class SettingsWindowController: NSWindowController {
         if let viewModel = viewModel {
             self.vm = viewModel
         }
-        // Recreate the content view with the proper updater controller
-        setupWindow()
+        // If window is currently open, recreate the content view with the updated controller
+        if window?.isVisible == true {
+            let settingsView = SettingsView(updaterController: updaterController)
+                .environmentObject(self.vm ?? NotchPulseViewModel())
+            window?.contentView = NSHostingView(rootView: settingsView)
+        }
     }
     
-    private func setupWindow() {
+    private func configureWindowProperties() {
         guard let window = window else { return }
         
         window.title = "NotchPulse Settings"
@@ -61,12 +65,6 @@ class SettingsWindowController: NSWindowController {
         window.isRestorable = true
         window.identifier = NSUserInterfaceItemIdentifier("NotchPulseSettingsWindow")
         
-        // Create the SwiftUI content
-        let settingsView = SettingsView(updaterController: updaterController)
-            .environmentObject(self.vm ?? NotchPulseViewModel())
-        let hostingView = NSHostingView(rootView: settingsView)
-        window.contentView = hostingView
-        
         // Handle window closing
         window.delegate = self
     }
@@ -74,6 +72,14 @@ class SettingsWindowController: NSWindowController {
     func showWindow() {
         // Set app to regular mode first
         NSApp.setActivationPolicy(.regular)
+        
+        // Lazy-load the SwiftUI view hierarchy only when opening Settings
+        if window?.contentView == nil {
+            let settingsView = SettingsView(updaterController: updaterController)
+                .environmentObject(self.vm ?? NotchPulseViewModel())
+            let hostingView = NSHostingView(rootView: settingsView)
+            window?.contentView = hostingView
+        }
         
         // If window is already visible, bring it to front properly
         if window?.isVisible == true {
@@ -105,6 +111,9 @@ class SettingsWindowController: NSWindowController {
     
     private func relinquishFocus() {
         window?.orderOut(nil)
+        
+        // Free entire SettingsView SwiftUI hierarchy and render buffers from RAM
+        window?.contentView = nil
         
         // Set app back to accessory mode immediately
         NSApp.setActivationPolicy(.accessory)

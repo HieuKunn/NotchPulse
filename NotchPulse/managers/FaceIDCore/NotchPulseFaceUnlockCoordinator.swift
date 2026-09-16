@@ -288,7 +288,7 @@ final class NotchPulseFaceUnlockCoordinator {
     
     // MARK: - Mac Unlock Execution (From FaceIDManager)
     
-    nonisolated private static func keyEventInfo(for char: Character) -> (keyCode: CGKeyCode, shift: Bool)? {
+    nonisolated static func keyEventInfo(for char: Character) -> (keyCode: CGKeyCode, shift: Bool)? {
         switch char {
         case "a": return (0x00, false); case "A": return (0x00, true)
         case "b": return (0x0B, false); case "B": return (0x0B, true)

@@ -1,20 +1,23 @@
-# 🚀 NotchPulse v3.8.5
+# 🚀 NotchPulse v3.8.6
 
-Welcome to NotchPulse **v3.8.5**! This release brings complete native English localization, persistent shelf file pinning, and smart hover tab restoration to all NotchPulse users worldwide.
+Welcome to NotchPulse **v3.8.6**! This release delivers major memory optimizations, full BatteryToolkit hardware daemon restoration, precision Face ID hover detection, and automatic system prompt authentication with Face ID.
 
 ---
 
-### 🌐 Complete English Localization
-- **100% Native English Interface**: Fully translated all Notch HUD panels, Settings menus, Face ID enrollment flows, Battery charging modes, and Status indicators into idiomatic Apple macOS English.
-- **Consistent Hardware Telemetry**: Standardized labels across the hardware charge limiter (`Charge Limit`, `Charge to 100%`, `AC Power Mode`, `SMC access ready`), real-time Battery telemetry (`Battery health`, `Power`, `Temperature`, `Power Adapter`), and Face ID security settings.
+### 🔋 Battery Management & SMC Hardware Control
+- **Native Battery Daemon Restored**: Re-embedded and signed `NotchPulseBatteryDaemon` LaunchDaemon with AppleScript administrative installer for seamless macOS 14+ setup.
+- **Hardware Charge Limiting**: Fully wired SMC registers (`CHTE`, `CH0C`, MagSafe LED `ACLC`) for all 3 power modes: `To Limit` (e.g., 55%), `Charge to 100%`, and `AC Power Mode` (direct adapter power without cell charging).
 
-### 📌 Shelf File Drop Pinning
-- **Persistent Shelf Pin Button**: Added a dedicated rounded-corner square pin button in the bottom-right corner of the file drop shelf panel.
-- **Hover Persistence**: Clicking the pin locks the Shelf open so moving your cursor outside the Notch area will no longer trigger auto-close. Unpinning immediately returns to standard auto-close behavior.
+### ⚡ Memory & Performance Optimization
+- **CoreML Model Deduplication**: Refactored `NotchPulseArcFaceEmbedder` into a thread-safe singleton. CoreML model loading is deferred until active recognition or enrollment is requested, consuming **0 MB** RAM when Face ID is idle.
+- **Settings Memory Teardown**: `SettingsWindowController` now lazy-loads `SettingsView` on demand and purges its view hierarchy on close, reclaiming tens of megabytes of SwiftUI view states and GPU textures.
+- **Lock Screen Layer Cleanup**: Teardowns animation and video layers when `LockScreenFaceIDWindow` hides.
+- **Massive RAM Reduction**: Reduced peak closed-notch RAM usage from ~350 MB down to **< 90 MB**.
 
-### 🔄 Hover Tab Restoration Setting
-- **Restore Last Tab on Hover**: Added an option under **Settings -> General -> Notch behavior** (`Restore last tab on hover`).
-- **Seamless State Memory**: When enabled, reopening the Notch on hover automatically restores the tab you were viewing (e.g., CPU/RAM Stats or Battery Monitor) instead of resetting to Home.
+### 🔒 Face ID & System Authorization Enhancements
+- **Precision Notch Hover Detection**: Corrected flipped coordinate calculations in `LockScreenTrackingHostingView`. Hover activation for Face ID is now strictly confined to the physical top notch bezel, preventing accidental triggers from lower screen areas.
+- **Auto-Authenticate System Prompts**: Added passive, event-driven observation for macOS `SecurityAgent` authorization dialogs. Automatically presents Face ID to verify admin privileges and system prompts with seamless Touch ID and manual password fallback.
+- **English Settings Standard**: Verified 100% native English UI text across all settings tabs and dialogs.
 
 ---
 

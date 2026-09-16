@@ -82,6 +82,9 @@ jobs:
           if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc" ]; then
             codesign --force --sign - --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
           fi
+          if [ -f "dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon" ]; then
+            codesign --force --sign - --entitlements NotchPulseBatteryDaemon/NotchPulseBatteryDaemon.entitlements dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon
+          fi
           if [ -d "dmg_staging/NotchPulse.app/Contents/Frameworks" ]; then
             find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 -exec codesign --force --sign - {} \;
           fi

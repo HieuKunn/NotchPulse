@@ -218,7 +218,9 @@ struct NotchPulseGuidedEnrollmentView: View {
     @State private var pulseCenter = false
     @State private var statusPrompt = "Look straight at the camera"
     
-    private let embedder: NotchPulseFaceEmbedder = (try? NotchPulseArcFaceEmbedder()) ?? NotchPulseVisionFeaturePrintEmbedder()
+    private var embedder: NotchPulseFaceEmbedder {
+        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
+    }
     
     var body: some View {
         VStack(spacing: 20) {

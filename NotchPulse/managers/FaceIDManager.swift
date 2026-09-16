@@ -91,7 +91,9 @@ struct VerifyResult {
 
 final class NotchPulseEnrollmentService: @unchecked Sendable {
     static let minimumCaptureQuality: Float = 0.35
-    private let embedder: NotchPulseFaceEmbedder = (try? NotchPulseArcFaceEmbedder()) ?? NotchPulseVisionFeaturePrintEmbedder()
+    private var embedder: NotchPulseFaceEmbedder {
+        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
+    }
     
     static func hasEnrolledFace() -> Bool {
         do {

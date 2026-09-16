@@ -2,6 +2,8 @@
 //  SettingsView.swift
 //  NotchPulse
 //
+//  NOTE: Tất cả mọi thứ mọi dòng hiển thị trong setting đều dùng tiếng anh (All labels, descriptions, and UI text in Settings MUST be in English).
+//
 //  Created by Richard Kunkli on 07/08/2024.
 //
 

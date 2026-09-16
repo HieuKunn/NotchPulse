@@ -2,6 +2,8 @@
 //  FaceIDSettingsView.swift
 //  NotchPulse
 //
+//  NOTE: Tất cả mọi thứ mọi dòng hiển thị trong setting đều dùng tiếng anh (All labels, descriptions, and UI text in Settings MUST be in English).
+//
 //  Created for NotchPulse v2.0 - Face ID & Lock Screen Settings
 //  Updated for v3.5: Guided 80-Tick Circular Face ID Enrollment & Live ArcFace Biometric Metrics
 //
@@ -89,6 +91,20 @@ struct FaceIDSettingsView: View {
                 Text("Uses Apple Vision & ArcFace (512D) Deep Neural Network on Apple Neural Engine. Automatically verifies upon screen lock or wake (up to 4.0s) with 0% idle battery drain.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                
+                Divider()
+
+                Defaults.Toggle(key: .enableFaceIDForSystemPrompts) {
+                    Text("Auto-Authenticate System Prompts")
+                        .font(.subheadline)
+                }
+                .disabled(!Defaults[.enableFaceID] || !faceIDManager.isEnrolled || !faceIDManager.hasPasswordSet)
+
+                Text("Automatically presents Face ID when macOS prompts for administrator authorization, Touch ID, or system password (e.g. installing helper tools or changing system settings). Touch ID or manual password entry remains available as a fallback.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
                 
                 Defaults.Toggle(key: .faceIDSound) {
                     Text("Face ID Sound Effect (Chime)")

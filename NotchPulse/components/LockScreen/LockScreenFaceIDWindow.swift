@@ -15,7 +15,22 @@ import SwiftUI
 final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content> {
     var onHoverChanged: ((Bool) -> Void)?
     var onClicked: (() -> Void)?
+    var notchClosedSize: CGSize = CGSize(width: 185, height: 38)
     private var trackingArea: NSTrackingArea?
+
+    private func currentActiveRect() -> NSRect {
+        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
+        let targetHeight: CGFloat = isExpanded ? 220 : notchClosedSize.height
+        let targetWidth: CGFloat = isExpanded ? 290 : notchClosedSize.width
+        // In NSHostingView (isFlipped == true), y = 0 is the top edge (the notch), not bounds.height!
+        let y: CGFloat = isFlipped ? 0 : (bounds.height - targetHeight)
+        return NSRect(
+            x: (bounds.width - targetWidth) / 2,
+            y: y,
+            width: targetWidth,
+            height: targetHeight
+        )
+    }
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -34,34 +49,18 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 180
-        let activeRect = NSRect(
-            x: (bounds.width - targetWidth) / 2,
-            y: bounds.height - targetHeight,
-            width: targetWidth,
-            height: targetHeight
-        )
-        if activeRect.contains(point) {
+        if currentActiveRect().contains(point) {
             return super.hitTest(point)
         }
         return nil
     }
 
     override func mouseMoved(with event: NSEvent) {
-        super.mouseMoved(with: event)
         let point = convert(event.locationInWindow, from: nil)
+        let rect = currentActiveRect()
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 180
-        let activeRect = NSRect(
-            x: (bounds.width - targetWidth) / 2,
-            y: bounds.height - targetHeight,
-            width: targetWidth,
-            height: targetHeight
-        )
-        if activeRect.contains(point) {
+        if rect.contains(point) {
+            super.mouseMoved(with: event)
             onHoverChanged?(true)
         } else if !isExpanded {
             onHoverChanged?(false)
@@ -69,18 +68,9 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
     }
 
     override func mouseEntered(with event: NSEvent) {
-        super.mouseEntered(with: event)
         let point = convert(event.locationInWindow, from: nil)
-        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 180
-        let activeRect = NSRect(
-            x: (bounds.width - targetWidth) / 2,
-            y: bounds.height - targetHeight,
-            width: targetWidth,
-            height: targetHeight
-        )
-        if activeRect.contains(point) {
+        if currentActiveRect().contains(point) {
+            super.mouseEntered(with: event)
             onHoverChanged?(true)
         }
     }
@@ -92,16 +82,7 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 220 : 38
-        let targetWidth: CGFloat = isExpanded ? 290 : 180
-        let activeRect = NSRect(
-            x: (bounds.width - targetWidth) / 2,
-            y: bounds.height - targetHeight,
-            width: targetWidth,
-            height: targetHeight
-        )
-        if activeRect.contains(point) {
+        if currentActiveRect().contains(point) {
             super.mouseDown(with: event)
             onClicked?()
         }
@@ -185,6 +166,7 @@ final class LockScreenFaceIDWindow: NSPanel {
             physicalNotchWidth: closedSize.width,
             notchStyle: notchStyle
         ))
+        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? closedSize.width : 80, height: hasPhysicalNotch ? notchHardwareHeight : 24)
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
@@ -232,6 +214,7 @@ final class LockScreenFaceIDWindow: NSPanel {
             self.animator().alphaValue = 0.0
         }, completionHandler: {
             self.orderOut(nil)
+            self.contentView = nil
             if self.isSkyLightAttached {
                 SkyLightOperator.shared.undelegateWindow(self)
                 self.isSkyLightAttached = false
@@ -345,6 +328,7 @@ struct LockScreenFaceIDPillView: View {
                 )
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .onHover { hovering in
                 withAnimation(.spring(response: 0.45, dampingFraction: hovering ? 0.70 : 1.0)) {
                     self.isHovered = hovering
