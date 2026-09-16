@@ -8,17 +8,76 @@
 
 import Defaults
 import SwiftUI
+import AVFoundation
+import ApplicationServices
 
 struct FaceIDSettingsView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     @State private var passwordInput: String = ""
     @State private var showPasswordSavedAlert: Bool = false
     @State private var showGuidedEnrollmentModal: Bool = false
+    @State private var isAccessibilityGranted: Bool = AXIsProcessTrusted()
+    @State private var isCameraGranted: Bool = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     
     @Default(.faceIDEnterPressCount) var faceIDEnterPressCount
     
     var body: some View {
         Form {
+            // MARK: - Section 0: System Permissions Check
+            if !isAccessibilityGranted || !isCameraGranted {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Yêu cầu cấp quyền hệ thống", systemImage: "exclamationmark.shield.fill")
+                            .font(.headline)
+                            .foregroundStyle(.orange)
+                        
+                        Text("Face ID cần quyền Camera để nhận diện và quyền Trợ năng (Accessibility) để tự động gõ mật khẩu mở khoá màn hình.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
+                        if !isCameraGranted {
+                            HStack {
+                                Image(systemName: "camera.fill")
+                                    .foregroundStyle(.red)
+                                Text("Chưa có quyền Camera")
+                                    .font(.subheadline)
+                                Spacer()
+                                Button("Cấp quyền Camera") {
+                                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        }
+                        
+                        if !isAccessibilityGranted {
+                            HStack {
+                                Image(systemName: "hand.raised.fill")
+                                    .foregroundStyle(.orange)
+                                Text("Chưa có quyền Trợ năng (Accessibility)")
+                                    .font(.subheadline)
+                                Spacer()
+                                Button("Mở Cài đặt Trợ năng") {
+                                    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+                                    _ = AXIsProcessTrustedWithOptions(options)
+                                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.orange)
+                                .controlSize(.small)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Trạng thái quyền hệ thống")
+                }
+            }
+
             // MARK: - Section 1: Face ID Unlock (Zero-Overhead)
             Section {
                 Defaults.Toggle(key: .enableFaceID) {
@@ -282,5 +341,16 @@ struct FaceIDSettingsView: View {
         } message: {
             Text("Your Mac unlock password has been encrypted and securely saved in macOS Keychain.")
         }
+        .onAppear {
+            checkPermissions()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            checkPermissions()
+        }
+    }
+
+    private func checkPermissions() {
+        isAccessibilityGranted = AXIsProcessTrusted()
+        isCameraGranted = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     }
 }

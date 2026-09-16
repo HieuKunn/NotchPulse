@@ -181,12 +181,8 @@ struct MusicControlsView: View {
             .fontWeight(.medium)
             if Defaults[.enableLyrics] {
                 TimelineView(.animation(minimumInterval: 0.25)) { timeline in
-                    let currentElapsed: Double = {
-                        guard musicManager.isPlaying else { return musicManager.elapsedTime }
-                        let delta = timeline.date.timeIntervalSince(musicManager.timestampDate)
-                        let progressed = musicManager.elapsedTime + (delta * musicManager.playbackRate)
-                        return min(max(progressed, 0), musicManager.songDuration)
-                    }()
+                    let currentElapsed: Double = musicManager.estimatedPlaybackPosition(at: timeline.date)
+                    let activeIndex = musicManager.currentLyricIndex(at: currentElapsed)
                     let line: String = {
                         if musicManager.isFetchingLyrics { return "Loading lyrics…" }
                         if !musicManager.syncedLyrics.isEmpty {
@@ -203,13 +199,20 @@ struct MusicControlsView: View {
                         .constant(line),
                         font: .subheadline,
                         nsFont: .subheadline,
-                        textColor: musicManager.isFetchingLyrics ? .gray.opacity(0.7) : .gray,
+                        textColor: musicManager.isFetchingLyrics
+                            ? .gray.opacity(0.7)
+                            : (activeIndex != nil ? .white.opacity(0.95) : .gray),
                         frameWidth: width
                     )
+                    .id(activeIndex != nil ? "lyric-\(activeIndex!)" : "lyric-\(line)")
                     .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
                     .lineLimit(1)
                     .opacity(musicManager.isPlaying ? 1 : 0)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .offset(y: 4)),
+                        removal: .opacity.combined(with: .offset(y: -4))
+                    ))
+                    .animation(.easeInOut(duration: 0.28), value: activeIndex)
                 }
             }
         }

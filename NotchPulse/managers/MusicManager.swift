@@ -487,47 +487,110 @@ class MusicManager: ObservableObject {
     // MARK: - Synced lyrics helpers
     private func parseLRC(_ lrc: String) -> [(time: Double, text: String)] {
         var result: [(Double, String)] = []
+        // Regex matches [mm:ss.xx] or [mm:ss.xxx] or [m:ss]
+        let pattern = #"\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+
         lrc.split(separator: "\n").forEach { lineSub in
-            let line = String(lineSub)
-            // Match [mm:ss.xx] or [m:ss]
-            let pattern = #"\[(\d{1,2}):(\d{2})(?:\.(\d{1,2}))?\]"#
-            guard let regex = try? NSRegularExpression(pattern: pattern) else { return }
+            let line = String(lineSub).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !line.isEmpty else { return }
+            
+            // Skip metadata lines like [ti:...], [ar:...], etc.
+            if line.hasPrefix("[ti:") || line.hasPrefix("[ar:") || line.hasPrefix("[al:") || line.hasPrefix("[by:") || line.hasPrefix("[offset:") {
+                return
+            }
+
             let nsLine = line as NSString
-            if let match = regex.firstMatch(in: line, range: NSRange(location: 0, length: nsLine.length)) {
+            let matches = regex.matches(in: line, range: NSRange(location: 0, length: nsLine.length))
+            guard !matches.isEmpty else { return }
+
+            // Extract the lyric text after stripping all timestamp tags
+            let cleanText = regex.stringByReplacingMatches(in: line, options: [], range: NSRange(location: 0, length: nsLine.length), withTemplate: "")
+                .trimmingCharacters(in: .whitespaces)
+
+            guard !cleanText.isEmpty else { return }
+
+            for match in matches {
                 let minStr = nsLine.substring(with: match.range(at: 1))
                 let secStr = nsLine.substring(with: match.range(at: 2))
                 let csRange = match.range(at: 3)
-                let centiStr = csRange.location != NSNotFound ? nsLine.substring(with: csRange) : "0"
+                
                 let minutes = Double(minStr) ?? 0
                 let seconds = Double(secStr) ?? 0
-                let centis = Double(centiStr) ?? 0
-                let time = minutes * 60 + seconds + centis / 100.0
-                let textStart = match.range.location + match.range.length
-                let text = nsLine.substring(from: textStart).trimmingCharacters(in: .whitespaces)
-                if !text.isEmpty {
-                    result.append((time, text))
+                var fraction: Double = 0
+                
+                if csRange.location != NSNotFound {
+                    let fracStr = nsLine.substring(with: csRange)
+                    if fracStr.count == 3 {
+                        fraction = (Double(fracStr) ?? 0) / 1000.0
+                    } else if fracStr.count == 2 {
+                        fraction = (Double(fracStr) ?? 0) / 100.0
+                    } else if fracStr.count == 1 {
+                        fraction = (Double(fracStr) ?? 0) / 10.0
+                    }
                 }
+                
+                let time = minutes * 60.0 + seconds + fraction
+                result.append((time, cleanText))
             }
         }
         return result.sorted { $0.0 < $1.0 }
     }
 
-    func lyricLine(at elapsed: Double) -> String {
-        guard !syncedLyrics.isEmpty else { return currentLyrics }
-        // Binary search for last line with time <= elapsed
+    /// Returns the currently active lyric line index based on elapsed seconds.
+    /// Returns nil if currently in the intro before the first line or in a long instrumental break.
+    func currentLyricIndex(at elapsed: Double) -> Int? {
+        guard !syncedLyrics.isEmpty else { return nil }
+        
+        // 120ms acoustic anticipation so lyric activates right as vocal onset starts
+        let calibratedElapsed = elapsed + 0.12
+        
+        // If before the first lyric line:
+        if calibratedElapsed < syncedLyrics[0].time {
+            return nil
+        }
+        
+        // Binary search for last line with time <= calibratedElapsed
         var low = 0
         var high = syncedLyrics.count - 1
         var idx = 0
         while low <= high {
             let mid = (low + high) / 2
-            if syncedLyrics[mid].time <= elapsed {
+            if syncedLyrics[mid].time <= calibratedElapsed {
                 idx = mid
                 low = mid + 1
             } else {
                 high = mid - 1
             }
         }
-        return syncedLyrics[idx].text
+        
+        // Check for long instrumental break (> 7s between lines)
+        if idx + 1 < syncedLyrics.count {
+            let currentLineTime = syncedLyrics[idx].time
+            let nextLineTime = syncedLyrics[idx + 1].time
+            let gap = nextLineTime - currentLineTime
+            if gap > 7.0 && calibratedElapsed > (currentLineTime + 5.5) && calibratedElapsed < (nextLineTime - 1.5) {
+                return nil // Instrumental solo
+            }
+        }
+        
+        return idx
+    }
+
+    func lyricLine(at elapsed: Double) -> String {
+        guard !syncedLyrics.isEmpty else { return currentLyrics }
+        
+        if let idx = currentLyricIndex(at: elapsed) {
+            return syncedLyrics[idx].text
+        } else {
+            if elapsed < syncedLyrics[0].time {
+                return "♪  ♫  ♪"
+            }
+            if let last = syncedLyrics.last, elapsed > last.time + 6.0 {
+                return "♪  ♫  ♪"
+            }
+            return "♪  ♫  ♪"
+        }
     }
 
     private func triggerFlipAnimation() {

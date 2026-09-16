@@ -39,14 +39,18 @@ struct LockScreenMediaView: View {
         }
         .onChange(of: windowController.isFullScreen) { _, isFull in
             if isFull {
-                let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: Date()) - 0.7)
-                activeLyricIndex = currentLyricIndex(at: elapsed)
+                let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
+                activeLyricIndex = musicManager.currentLyricIndex(at: elapsed) ?? 0
             }
         }
         .onReceive(lyricsTimer) { date in
             if windowController.isFullScreen {
-                let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: date) - 0.5)
-                activeLyricIndex = currentLyricIndex(at: elapsed)
+                let elapsed = musicManager.estimatedPlaybackPosition(at: date)
+                if let idx = musicManager.currentLyricIndex(at: elapsed) {
+                    if activeLyricIndex != idx {
+                        activeLyricIndex = idx
+                    }
+                }
             }
         }
     }
@@ -106,27 +110,28 @@ struct LockScreenMediaView: View {
             if !musicManager.syncedLyrics.isEmpty {
                 TimelineView(.animation(minimumInterval: 0.25)) { timeline in
                     let elapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
-                    let activeIndex = currentLyricIndex(at: max(0, elapsed - 0.7))
-                    if activeIndex >= 0 && activeIndex < musicManager.syncedLyrics.count {
-                        let text = musicManager.syncedLyrics[activeIndex].text
-                        if !text.isEmpty {
-                            Button {
-                                windowController.setFullScreen(true)
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "quote.bubble.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
-                                    Text(text)
-                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                        .foregroundStyle(.white.opacity(0.92))
-                                        .lineLimit(1)
-                                    Spacer()
-                                }
+                    let activeIndex = musicManager.currentLyricIndex(at: elapsed)
+                    let text = musicManager.lyricLine(at: elapsed)
+                    if !text.isEmpty {
+                        Button {
+                            windowController.setFullScreen(true)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "quote.bubble.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
+                                Text(text)
+                                    .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(text)")
+                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(activeIndex != nil ? .white.opacity(0.95) : .white.opacity(0.6))
+                                    .lineLimit(1)
+                                    .transition(.opacity.combined(with: .offset(y: 2)))
+                                    .animation(.easeInOut(duration: 0.25), value: activeIndex)
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
-                            .help("Nhấp để phóng to toàn màn hình hiển thị lời bài hát (Karaoke)")
                         }
+                        .buttonStyle(.plain)
+                        .help("Nhấp để phóng to toàn màn hình hiển thị lời bài hát (Karaoke)")
                     }
                 }
             } else if !musicManager.currentLyrics.isEmpty {
@@ -542,8 +547,8 @@ struct LockScreenMediaView: View {
     
     private func scrollToActiveLyric(proxy: ScrollViewProxy, forceTop: Bool = false) {
         guard !musicManager.syncedLyrics.isEmpty else { return }
-        let elapsed = max(0, musicManager.estimatedPlaybackPosition(at: Date()) - 0.7)
-        let target = forceTop ? 0 : currentLyricIndex(at: elapsed)
+        let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
+        let target = forceTop ? 0 : (musicManager.currentLyricIndex(at: elapsed) ?? 0)
         activeLyricIndex = target
         let anchor: UnitPoint = (target == 0 || forceTop) ? .top : .center
         proxy.scrollTo(target, anchor: anchor)

@@ -29,6 +29,7 @@ class AppleMusicController: MediaControllerProtocol {
     }
 
     private var notificationTask: Task<Void, Never>?
+    private var periodicSyncTask: Task<Void, Never>?
     
     // MARK: - Initialization
     init() {
@@ -54,6 +55,7 @@ class AppleMusicController: MediaControllerProtocol {
     
     deinit {
         notificationTask?.cancel()
+        periodicSyncTask?.cancel()
     }
     
     // MARK: - Protocol Implementation
@@ -153,6 +155,65 @@ class AppleMusicController: MediaControllerProtocol {
         updatedState.isFavorite = lovedState
         updatedState.lastUpdated = Date()
         self.playbackState = updatedState
+
+        if updatedState.isPlaying {
+            startPeriodicSyncIfNeeded()
+        } else {
+            stopPeriodicSync()
+        }
+    }
+
+    private func startPeriodicSyncIfNeeded() {
+        guard periodicSyncTask == nil else { return }
+        periodicSyncTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2.0))
+                guard let self = self, !Task.isCancelled else { break }
+                guard self.playbackState.isPlaying, self.isActive() else {
+                    self.stopPeriodicSync()
+                    break
+                }
+                await self.resyncPositionOnly()
+            }
+        }
+    }
+
+    private func stopPeriodicSync() {
+        periodicSyncTask?.cancel()
+        periodicSyncTask = nil
+    }
+
+    private func resyncPositionOnly() async {
+        let script = """
+        tell application "Music"
+            if it is running then
+                try
+                    set isPlay to player state is playing
+                    set pos to player position
+                    return {isPlay, pos}
+                on error
+                    return {false, 0}
+                end try
+            else
+                return {false, 0}
+            end if
+        end tell
+        """
+        guard let descriptor = try? await AppleScriptHelper.execute(script), descriptor.numberOfItems >= 2 else { return }
+        let isPlay = descriptor.atIndex(1)?.booleanValue ?? false
+        let pos = descriptor.atIndex(2)?.doubleValue ?? 0
+        
+        await MainActor.run { [weak self] in
+            guard let self = self else { return }
+            var updated = self.playbackState
+            updated.isPlaying = isPlay
+            updated.currentTime = pos
+            updated.lastUpdated = Date()
+            self.playbackState = updated
+            if !isPlay {
+                self.stopPeriodicSync()
+            }
+        }
     }
     
     // MARK: - Private Methods

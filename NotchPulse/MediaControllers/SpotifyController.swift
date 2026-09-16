@@ -36,6 +36,7 @@ class SpotifyController: MediaControllerProtocol {
 
     private var lastArtworkURL: String?
     private var artworkFetchTask: Task<Void, Never>?
+    private var periodicSyncTask: Task<Void, Never>?
     
     init() {
         setupPlaybackStateChangeObserver()
@@ -61,6 +62,7 @@ class SpotifyController: MediaControllerProtocol {
     deinit {
         notificationTask?.cancel()
         artworkFetchTask?.cancel()
+        periodicSyncTask?.cancel()
     }
     
     // MARK: - Protocol Implementation
@@ -131,7 +133,13 @@ class SpotifyController: MediaControllerProtocol {
             state.artwork = existingArtwork
         }
 
-    playbackState = state
+        playbackState = state
+
+        if state.isPlaying {
+            startPeriodicSyncIfNeeded()
+        } else {
+            stopPeriodicSync()
+        }
 
         if !artworkURL.isEmpty, let url = URL(string: artworkURL) {
             guard artworkURL != lastArtworkURL || state.artwork == nil else { return }
@@ -156,6 +164,59 @@ class SpotifyController: MediaControllerProtocol {
                         self?.artworkFetchTask = nil
                     }
                 }
+            }
+        }
+    }
+
+    private func startPeriodicSyncIfNeeded() {
+        guard periodicSyncTask == nil else { return }
+        periodicSyncTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2.0))
+                guard let self = self, !Task.isCancelled else { break }
+                guard self.playbackState.isPlaying, self.isActive() else {
+                    self.stopPeriodicSync()
+                    break
+                }
+                await self.resyncPositionOnly()
+            }
+        }
+    }
+
+    private func stopPeriodicSync() {
+        periodicSyncTask?.cancel()
+        periodicSyncTask = nil
+    }
+
+    private func resyncPositionOnly() async {
+        let script = """
+        tell application "Spotify"
+            if it is running then
+                try
+                    set isPlay to player state is playing
+                    set pos to player position
+                    return {isPlay, pos}
+                on error
+                    return {false, 0}
+                end try
+            else
+                return {false, 0}
+            end if
+        end tell
+        """
+        guard let descriptor = try? await AppleScriptHelper.execute(script), descriptor.numberOfItems >= 2 else { return }
+        let isPlay = descriptor.atIndex(1)?.booleanValue ?? false
+        let pos = descriptor.atIndex(2)?.doubleValue ?? 0
+        
+        await MainActor.run { [weak self] in
+            guard let self = self else { return }
+            var updated = self.playbackState
+            updated.isPlaying = isPlay
+            updated.currentTime = pos
+            updated.lastUpdated = Date()
+            self.playbackState = updated
+            if !isPlay {
+                self.stopPeriodicSync()
             }
         }
     }

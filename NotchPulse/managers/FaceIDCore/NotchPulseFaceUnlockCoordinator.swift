@@ -248,10 +248,23 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             // In NotchPulse we currently fetch the single enrolled face via EnrollmentStore
-            let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            if activeIdentities.isEmpty {
+                NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
+                activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            }
+            if activeIdentities.isEmpty {
+                if let direct = try? NotchPulseSecureFaceStore.load(), !direct.isEmpty {
+                    activeIdentities = direct.filter(\.isEnabled)
+                }
+            }
+            guard !activeIdentities.isEmpty else {
+                return .noResolution
+            }
+
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            // ArcFace 512-D cosine similarity match threshold: 0.38 for instantaneous robust match
-            let matched = pipeline.bestMatch(in: scored, threshold: 0.38)
+            let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.38 : 0.60
+            let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
             if matched != nil {
                 consecutiveWrongFaceFrames = 0

@@ -231,6 +231,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     func resetEnrollment() {
         try? NotchPulseEnrollmentService.deleteEnrolledFace()
+        NotchPulseFaceEnrollmentStore.shared.deleteAll()
         try? NotchPulseVault.deletePassword()
         refreshState()
         statusMessage = "All Face ID data cleared"
@@ -342,6 +343,7 @@ final class FaceIDManager: NSObject, ObservableObject {
             // Save embeddings
             do {
                 try self.enrollmentService.saveEmbeddings(collectedEmbeddings)
+                NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
                 self.refreshState()
                 self.statusMessage = "Enrollment complete! 🎉"
                 if Defaults[.faceIDSound] { NSSound(named: "Ping")?.play() }
