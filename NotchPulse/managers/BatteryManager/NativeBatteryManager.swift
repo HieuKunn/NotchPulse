@@ -197,6 +197,11 @@ final class NativeBatteryManager: ObservableObject {
         UserDefaults.standard.set(mode.rawValue, forKey: "NP_ChargingMode")
         
         guard isHelperInstalled else {
+            installHelper { success in
+                if success {
+                    self.setMode(mode)
+                }
+            }
             return
         }
         
