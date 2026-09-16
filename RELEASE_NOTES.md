@@ -1,30 +1,21 @@
-# 🚀 NotchPulse v3.8.9
+# 🚀 NotchPulse v3.8.10
 
-Welcome to NotchPulse **v3.8.9**! This release brings major fixes to hardware battery charging control, eliminates admin password prompts, refines Face ID recognition sensitivity, and optimizes idle memory and CPU usage.
-
----
-
-### ⚡ Battery & Power Control
-- **Instant Charge Limit Enforcement**: Selecting "To Limit" or adjusting the charging slider now immediately halts battery charging if the current battery percentage is at or above your configured threshold. The Mac runs on direct AC power with 0W battery charge current.
-- **AC Power Mode**: Cleanly pauses battery charging, powering your Mac directly from the power adapter while keeping the battery level stable.
-- **Eliminated Admin Password Loops**: Completely resolved repeated macOS administrator password prompts (*"NotchPulse wants to make changes"*) during routine battery status checks and limit adjustments.
-- **Responsive Telemetry**: Live battery and hardware telemetry polling now refreshes every 1.5 seconds when the tab is open, and instantly halts (0% CPU) when the notch is closed or switched.
+Welcome to NotchPulse **v3.8.10**! This update focuses strictly on Face ID reliability by reverting to Apple's native Vision ML while preserving advanced anti-spoofing security, along with significant UI smoothness improvements.
 
 ---
 
-### 🔒 Face ID & Security Improvements
-- **Multi-Pose Face Recognition Sensitivity**: Upgraded embedding matching to evaluate nearest-neighbor angle vectors, eliminating false rejections caused by multi-angle pose centroid dilution.
-- **Settings Live Verification**: Live Face ID testing in Settings now accurately detects and confirms enrolled faces with smooth confidence scoring.
-- **Permission Flow on Toggle**: Enabling system authorization prompt auto-authentication now proactively prompts for Camera and Accessibility permissions on demand.
-- **Strict Camera Teardown**: Guaranteed immediate camera shutoff and green indicator deactivation whenever enrollment, testing, or screen unlock finishes or cancels.
+### 🔒 Face ID & Security Fixes
+- **Restored Native Vision ML**: Dropped the experimental ArcFace (512D) model and reverted the biometric matching engine back to Apple's native `Vision Feature Print` (2048D). This completely resolves the issue where the camera was "too strict" or failed to recognize enrolled faces, restoring the rock-solid recognition from previous versions.
+- **Maintained Advanced Anti-Spoofing**: Kept the new multi-phase optical liveness verification intact. Your face is easily recognized again, but photos or videos still cannot bypass the lock.
+- **Far-Distance Recognition**: Lowered the minimum prominent face width requirement to 4%, allowing the camera to easily detect and authenticate you even if you sit far back from the screen.
 
 ---
 
-### 🚀 Performance & Memory Optimizations
-- **Media RAM Spike Fix**: Downsampled album artwork during average color calculation to 40×40px, cutting bitmap memory usage by 5,625× and preventing RAM runaway on track changes.
-- **Cached Artwork Processing**: Avoided redundant base64 image decoding during track playback updates.
-- **Idle State Cleanup**: Mounted Lock Screen media views dynamically on-demand, deallocating views and timers to 0MB when dismissed.
+### 🚀 Performance & UI Smoothness
+- **Eliminated Scanning Lag**: Reduced the frame processing delay during enrollment and testing by nearly 4× (from 150ms to 40ms). The camera feed and testing results in Settings now feel buttery smooth (25+ FPS) without stuttering or lag.
 
 ---
+
+*Note: Due to the underlying Face ID engine change, you MUST delete your old face and scan a new one in Settings -> Face ID Unlock.*
 
 Thank you for using **NotchPulse**!

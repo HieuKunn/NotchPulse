@@ -92,7 +92,7 @@ struct VerifyResult {
 final class NotchPulseEnrollmentService: @unchecked Sendable {
     static let minimumCaptureQuality: Float = 0.35
     private var embedder: NotchPulseFaceEmbedder {
-        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
+        NotchPulseVisionFeaturePrintEmbedder()
     }
     
     static func hasEnrolledFace() -> Bool {
@@ -156,8 +156,8 @@ final class NotchPulseEnrollmentService: @unchecked Sendable {
         let centroidSim = identity.template.map { FaceEmbedding.cosineSimilarity(currentEmbedding, $0) } ?? 0
         let bestSimilarity = max(maxSampleSim, centroidSim)
         
-        // ArcFace 512D threshold: 0.36 allows comfortable natural recognition across lighting and distance
-        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.36 : 0.55
+        // ArcFace 512D threshold: 0.20 allows comfortable natural recognition across lighting and distance
+        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.20 : 0.40
         let matched = bestSimilarity >= threshold
         return VerifyResult(matched: matched, similarity: bestSimilarity)
     }
@@ -297,7 +297,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         let startTime = ContinuousClock.now
-        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.36 : 0.55
+        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.20 : 0.40
         var lastProcessedFrameID: UInt64?
         
         while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {
@@ -415,7 +415,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                         }
                     }
                     
-                    try? await Task.sleep(for: .milliseconds(120))
+                    try? await Task.sleep(for: .milliseconds(40))
                 }
                 
                 if Task.isCancelled { return }
@@ -505,7 +505,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                     let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
                     
                     let sim = result.similarity
-                    let confidence = max(0, min(100, Int(((sim - 0.20) / (0.55 - 0.20)) * 100)))
+                    let confidence = max(0, min(100, Int(((sim - 0.10) / (0.50 - 0.10)) * 100)))
                     self.testConfidence = confidence
                     
                     if result.matched {
@@ -519,7 +519,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                     self.testResultText = "Looking for face..."
                     self.testResultColor = .secondary
                 }
-                try? await Task.sleep(for: .milliseconds(150))
+                try? await Task.sleep(for: .milliseconds(40))
             }
         }
     }

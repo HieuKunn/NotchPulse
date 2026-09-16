@@ -88,7 +88,7 @@ struct FaceIDSettingsView: View {
                 }
                 .disabled(!faceIDManager.isEnrolled || !faceIDManager.hasPasswordSet)
                 
-                Text("Uses Apple Vision & ArcFace (512D) Deep Neural Network on Apple Neural Engine. Automatically verifies upon screen lock or wake (up to 4.0s) with 0% idle battery drain.")
+                Text("Uses Apple Vision Native ML for rapid biometric matching. Automatically verifies upon screen lock or wake (up to 4.0s) with 0% idle battery drain.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 

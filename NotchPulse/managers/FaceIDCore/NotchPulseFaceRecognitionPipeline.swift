@@ -37,7 +37,7 @@ enum FaceRecognitionPipelineError: LocalizedError {
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
     nonisolated var embedder: NotchPulseFaceEmbedder {
-        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
+        NotchPulseVisionFeaturePrintEmbedder()
     }
 
     /// Set when ArcFace failed to load and the weaker Vision feature-print embedder is in use instead.
@@ -85,8 +85,8 @@ final class NotchPulseFaceRecognitionPipeline {
         faces.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
     }
 
-    /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — lowered to 0.08 to easily detect faces sitting back from the camera.
-    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.08
+    /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — lowered to 0.04 to easily detect faces sitting far back from the camera.
+    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.04
 
     /// Max normalized-coordinate drift between frames still counted as "the same person".
     nonisolated private static let continuityDistanceTolerance: CGFloat = 0.3

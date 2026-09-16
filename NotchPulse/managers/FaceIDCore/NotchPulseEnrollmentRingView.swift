@@ -219,7 +219,7 @@ struct NotchPulseGuidedEnrollmentView: View {
     @State private var statusPrompt = "Look straight at the camera"
     
     private var embedder: NotchPulseFaceEmbedder {
-        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
+        NotchPulseVisionFeaturePrintEmbedder()
     }
     
     var body: some View {
