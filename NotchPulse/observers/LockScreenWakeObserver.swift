@@ -92,6 +92,14 @@ final class LockScreenWakeObserver: ObservableObject {
                     FaceIDManager.shared.lastUnlockSuccess = false
                     FaceIDManager.shared.statusMessage = "Ready"
                     LockScreenFaceIDWindow.shared.show()
+                    
+                    // Auto-scan after brief grace period if user is looking at Mac after locking
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_200_000_000)
+                        if self.isScreenLocked && Defaults[.enableFaceID] && !FaceIDManager.shared.isScanning {
+                            FaceIDManager.shared.startRecognitionOnWake()
+                        }
+                    }
                 }
             }
         }

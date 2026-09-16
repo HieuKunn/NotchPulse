@@ -202,8 +202,14 @@ final class FaceIDManager: NSObject, ObservableObject {
         isEnrolled = NotchPulseEnrollmentService.hasEnrolledFace()
         if isEnrolled {
             enrolledFaces = [EnrolledFace(name: "My Face")]
+            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         } else {
             enrolledFaces = []
+        }
+        if hasPasswordSet {
+            Task.detached(priority: .background) {
+                _ = try? NotchPulseVault.readPassword()
+            }
         }
     }
     

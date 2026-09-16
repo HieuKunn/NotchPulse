@@ -141,7 +141,11 @@ final class NotchPulseArcFaceEmbedder: NotchPulseFaceEmbedder, @unchecked Sendab
         config.computeUnits = .all
 
         for name in candidates {
-            guard let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc") else {
+            var modelURL = Bundle.main.url(forResource: name, withExtension: "mlmodelc")
+            if modelURL == nil, let packageURL = Bundle.main.url(forResource: name, withExtension: "mlpackage") {
+                modelURL = try? MLModel.compileModel(at: packageURL)
+            }
+            guard let url = modelURL else {
                 continue
             }
             do {

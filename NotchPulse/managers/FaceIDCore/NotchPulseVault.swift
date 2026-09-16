@@ -59,6 +59,7 @@ enum NotchPulseVault {
 
     nonisolated private static let sessionLock = NSLock()
     nonisolated(unsafe) private static var _cachedKey: SymmetricKey? = nil
+    nonisolated(unsafe) private static var _cachedPasswordData: Data? = nil
     nonisolated(unsafe) private static var _lastActivityAt: Date = Date()
 
     nonisolated static var isSessionUnlocked: Bool {
@@ -137,6 +138,9 @@ enum NotchPulseVault {
         } catch {
             throw NotchPulseVaultError.keychainError(error)
         }
+        sessionLock.lock()
+        _cachedPasswordData = passwordBytes
+        sessionLock.unlock()
         markActivity()
     }
 
@@ -172,11 +176,10 @@ enum NotchPulseVault {
         if let cached = loadCachedKey() { return cached }
 
         if hasSessionKey() {
-            if let data = try? NotchPulseKeychainManager.read(account: sessionKeyAccount) {
-                let key = SymmetricKey(data: data)
-                storeCachedKey(key)
-                return key
-            }
+            let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount)
+            let key = SymmetricKey(data: data)
+            storeCachedKey(key)
+            return key
         }
 
         let key = SymmetricKey(size: .bits256)
@@ -199,6 +202,13 @@ enum NotchPulseVault {
     /// Returns raw bytes — the caller MUST zero them via `.resetBytes(in:)` after use.
     /// Blocking; call from a background actor.
     nonisolated static func readPassword() throws -> Data {
+        sessionLock.lock()
+        if let cached = _cachedPasswordData, !cached.isEmpty {
+            sessionLock.unlock()
+            return cached
+        }
+        sessionLock.unlock()
+
         let key = try ensureSessionKey()
 
         let ciphertext: Data
@@ -212,6 +222,9 @@ enum NotchPulseVault {
             let sealed = try AES.GCM.SealedBox(combined: ciphertext)
             let plaintext = try AES.GCM.open(sealed, using: key)
             markActivity()
+            sessionLock.lock()
+            _cachedPasswordData = plaintext
+            sessionLock.unlock()
             return plaintext
         } catch {
             throw NotchPulseVaultError.decryptionFailed
@@ -225,6 +238,9 @@ enum NotchPulseVault {
         for account in accountsToDelete {
             try? NotchPulseKeychainManager.delete(account: account)
         }
+        sessionLock.lock()
+        _cachedPasswordData = nil
+        sessionLock.unlock()
         storeCachedKey(nil)
     }
 

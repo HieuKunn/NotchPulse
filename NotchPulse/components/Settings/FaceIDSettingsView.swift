@@ -282,11 +282,15 @@ struct FaceIDSettingsView: View {
                         Button("Lưu vào Keychain") {
                             if !passwordInput.isEmpty {
                                 if let data = passwordInput.data(using: .utf8) {
-                                    try? NotchPulseVault.savePassword(data)
+                                    do {
+                                        try NotchPulseVault.savePassword(data)
+                                        faceIDManager.refreshState()
+                                        passwordInput = ""
+                                        showPasswordSavedAlert = true
+                                    } catch {
+                                        print("[FaceID] Failed to save password: \(error)")
+                                    }
                                 }
-                                faceIDManager.hasPasswordSet = true
-                                passwordInput = ""
-                                showPasswordSavedAlert = true
                             }
                         }
                         .buttonStyle(.bordered)

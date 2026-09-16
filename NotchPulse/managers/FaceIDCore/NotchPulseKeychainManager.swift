@@ -96,7 +96,7 @@ enum NotchPulseKeychainManager {
         if let accessControl {
             addQuery[kSecAttrAccessControl as String] = accessControl
         } else {
-            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         }
 
         let status = SecItemAdd(addQuery as CFDictionary, nil)

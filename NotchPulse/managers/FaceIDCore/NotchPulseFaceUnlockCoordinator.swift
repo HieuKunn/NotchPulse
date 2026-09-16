@@ -420,6 +420,19 @@ final class NotchPulseFaceUnlockCoordinator {
                     up.post(tap: .cghidEventTap)
                     Thread.sleep(forTimeInterval: 0.010)
                 }
+            } else {
+                let utf16 = Array(String(char).utf16)
+                if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
+                   let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
+                    down.flags = []
+                    up.flags = []
+                    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                    down.post(tap: .cghidEventTap)
+                    Thread.sleep(forTimeInterval: 0.010)
+                    up.post(tap: .cghidEventTap)
+                    Thread.sleep(forTimeInterval: 0.010)
+                }
             }
         }
         
