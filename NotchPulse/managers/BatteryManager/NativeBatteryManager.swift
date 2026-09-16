@@ -23,6 +23,31 @@ final class NativeBatteryManager: ObservableObject {
     @Published var adapterName: String = "AC Power"
     @Published var isDesktopMode: Bool = false // Battery held, running on AC
     
+    // MARK: - 3 Charging Modes (Matching BatteryToolkit)
+    enum ChargingMode: String, CaseIterable, Identifiable {
+        case toLimit = "toLimit"
+        case toFull = "toFull"
+        case inhibit = "inhibit"
+        
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .toLimit: return "Tới giới hạn"
+            case .toFull: return "Sạc đầy 100%"
+            case .inhibit: return "Dùng nguồn AC"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .toLimit: return "battery.75"
+            case .toFull: return "battery.100.bolt"
+            case .inhibit: return "powerplug.fill"
+            }
+        }
+    }
+    
+    @Published var chargingMode: ChargingMode = .toLimit
+
     // Charge Limit Settings
     @Published var chargeLimitEnabled: Bool {
         didSet {
@@ -49,7 +74,9 @@ final class NativeBatteryManager: ObservableObject {
     private let helperPath = "/usr/local/bin/notchpulse-battery"
     
     private init() {
-        self.chargeLimitEnabled = UserDefaults.standard.object(forKey: "NP_ChargeLimitEnabled") as? Bool ?? false
+        let savedMode = UserDefaults.standard.string(forKey: "NP_ChargingMode") ?? ChargingMode.toLimit.rawValue
+        self.chargingMode = ChargingMode(rawValue: savedMode) ?? .toLimit
+        self.chargeLimitEnabled = UserDefaults.standard.object(forKey: "NP_ChargeLimitEnabled") as? Bool ?? true
         self.chargeLimit = UserDefaults.standard.object(forKey: "NP_ChargeLimit") as? Int ?? 80
         
         checkHelperInstalled()
@@ -177,13 +204,37 @@ final class NativeBatteryManager: ObservableObject {
         }
     }
     
+    func setMode(_ mode: ChargingMode) {
+        self.chargingMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: "NP_ChargingMode")
+        switch mode {
+        case .toLimit:
+            forceFullCharge = false
+            chargeLimitEnabled = true
+            allowCharging()
+            checkAndEnforceLimit()
+        case .toFull:
+            requestFullCharge()
+        case .inhibit:
+            forceFullCharge = false
+            chargeLimitEnabled = false
+            inhibitCharging()
+        }
+    }
+    
     func requestFullCharge() {
+        self.chargingMode = .toFull
         forceFullCharge = true
         allowCharging()
     }
     
     func toggleChargeLimit() {
         chargeLimitEnabled.toggle()
+        if chargeLimitEnabled {
+            setMode(.toLimit)
+        } else {
+            setMode(.toFull)
+        }
     }
     
     func setChargeLimit(percent: Int) {

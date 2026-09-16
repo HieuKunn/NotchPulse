@@ -403,6 +403,8 @@ struct ContentView: View {
                         ShelfView()
                     case .stats:
                         StatsView()
+                    case .battery:
+                        NotchBatteryView()
                     }
                 }
                 .transition(

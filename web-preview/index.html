@@ -111,8 +111,12 @@
                 <i class="fa-solid fa-inbox"></i>
               </button>
               <!-- NEW STATS TAB -->
-              <button id="tabBtnStats" class="tab-btn active" data-tab="stats" title="System Monitor">
+              <button id="tabBtnStats" class="tab-btn" data-tab="stats" title="System Monitor">
                 <i class="fa-solid fa-microchip"></i>
+              </button>
+              <!-- NEW BATTERY TAB (3 MODES + HARDWARE TELEMETRY) -->
+              <button id="tabBtnBattery" class="tab-btn active" data-tab="battery" title="Battery & Smart Charging">
+                <i class="fa-solid fa-battery-three-quarters"></i>
               </button>
             </div>
 
@@ -394,6 +398,98 @@
                 </div>
               </div>
 
+            </div>
+          </div>
+
+          <!-- TAB 4: BATTERY PANE (3 CHARGING MODES + HARDWARE TELEMETRY) -->
+          <div id="tabPane-battery" class="tab-pane active">
+            <div class="battery-view">
+              <!-- Left Card: 3 Charging Modes -->
+              <div class="stat-card battery-card">
+                <div class="stat-header">
+                  <div class="stat-title-group">
+                    <div class="stat-icon-badge battery"><i class="fa-solid fa-bolt"></i></div>
+                    <span class="stat-name">Chế độ sạc pin</span>
+                  </div>
+                  <span id="batteryDesktopBadge" class="desktop-mode-badge" style="display: none;">Desktop Mode</span>
+                </div>
+
+                <!-- 3 Charging Mode Pills (Matching BatteryToolkit) -->
+                <div class="charging-mode-pills">
+                  <button id="modeBtnToLimit" class="mode-pill-btn active" data-mode="toLimit" onclick="selectChargingMode('toLimit')">
+                    <i class="fa-solid fa-battery-three-quarters"></i>
+                    <span>Tới giới hạn</span>
+                  </button>
+                  <button id="modeBtnToFull" class="mode-pill-btn" data-mode="toFull" onclick="selectChargingMode('toFull')">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                    <span>Sạc đầy 100%</span>
+                  </button>
+                  <button id="modeBtnInhibit" class="mode-pill-btn" data-mode="inhibit" onclick="selectChargingMode('inhibit')">
+                    <i class="fa-solid fa-plug"></i>
+                    <span>Dùng nguồn AC</span>
+                  </button>
+                </div>
+
+                <!-- Limit Slider Container -->
+                <div id="limitSliderContainer" class="limit-slider-card">
+                  <div class="limit-slider-header">
+                    <span>Dừng sạc ở mức:</span>
+                    <span id="limitPercentDisplay" class="limit-pct-val">80%</span>
+                  </div>
+                  <input type="range" id="chargeLimitRange" min="50" max="95" step="5" value="80" oninput="updateChargeLimit(this.value)">
+                </div>
+
+                <!-- Mode Info Banners -->
+                <div id="inhibitInfoBanner" class="battery-info-banner inhibit" style="display: none;">
+                  <i class="fa-solid fa-shield-halved"></i>
+                  <span>Đang chạy nguồn AC trực tiếp, sạc pin đã tạm ngắt để bảo vệ pin.</span>
+                </div>
+                <div id="toFullInfoBanner" class="battery-info-banner tofull" style="display: none;">
+                  <i class="fa-solid fa-bolt"></i>
+                  <span>Sạc pin tự do đến 100% không giới hạn.</span>
+                </div>
+
+                <!-- Helper Status -->
+                <div class="helper-status-row">
+                  <div class="status-dot green"></div>
+                  <span>Quyền SMC sẵn sàng</span>
+                  <span class="helper-active-tag">Active</span>
+                </div>
+              </div>
+
+              <!-- Right Card: Live Hardware Stats & Telemetry -->
+              <div class="stat-card battery-card">
+                <div class="stat-header">
+                  <div class="stat-title-group">
+                    <span id="liveBatPct" class="live-bat-number">100%</span>
+                    <i id="liveBatIcon" class="fa-solid fa-bolt live-bat-icon green"></i>
+                  </div>
+                  <div class="header-battery-icon-pill large">
+                    <div id="liveBatBar" class="header-battery-level-fill green" style="width: 100%;"></div>
+                  </div>
+                </div>
+
+                <div class="battery-status-subtext" id="liveBatStatusText">Đang cắm sạc • Nguồn điện AC</div>
+
+                <div class="battery-data-grid">
+                  <div class="data-row">
+                    <span class="row-label"><i class="fa-solid fa-heart"></i> Sức khoẻ pin</span>
+                    <span class="row-val" id="valHealth">98.8% • 112 chu kỳ</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="row-label"><i class="fa-solid fa-gauge-high"></i> Công suất</span>
+                    <span class="row-val green" id="valWattage">+42.5 W</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="row-label"><i class="fa-solid fa-temperature-half"></i> Nhiệt độ</span>
+                    <span class="row-val" id="valTemp">29.8 °C</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="row-label"><i class="fa-solid fa-plug-circle-bolt"></i> Củ sạc (Adapter)</span>
+                    <span class="row-val" id="valAdapter">70W Apple USB-C PD</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

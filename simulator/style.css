@@ -1636,3 +1636,222 @@ body.bezel-mode .notch-wrapper {
   font-size: 28px;
   cursor: pointer;
 }
+
+/* ==========================================
+   BATTERY & SMART CHARGING HUD STYLES
+   ========================================== */
+.battery-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 16px;
+  height: 145px;
+  box-sizing: border-box;
+}
+
+.battery-card {
+  padding: 10px 12px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.charging-mode-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.mode-pill-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 4px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-pill-btn i {
+  font-size: 13px;
+}
+
+.mode-pill-btn span {
+  font-size: 9.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mode-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.mode-pill-btn.active {
+  background: rgba(48, 209, 88, 0.25);
+  border-color: rgba(48, 209, 88, 0.8);
+  color: #30d158;
+}
+
+.limit-slider-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 6px 8px;
+  margin-top: 2px;
+}
+
+.limit-slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #8e8e93;
+  margin-bottom: 4px;
+}
+
+.limit-pct-val {
+  color: #30d158;
+  font-weight: 700;
+}
+
+.limit-slider-card input[type="range"] {
+  width: 100%;
+  accent-color: #30d158;
+  height: 4px;
+  cursor: pointer;
+}
+
+.battery-info-banner {
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 9.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  line-height: 1.25;
+}
+
+.battery-info-banner.inhibit {
+  background: rgba(6, 182, 212, 0.12);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+.battery-info-banner.tofull {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.helper-status-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: #8e8e93;
+  margin-top: 4px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-dot.green {
+  background: #30d158;
+  box-shadow: 0 0 6px rgba(48, 209, 88, 0.5);
+}
+
+.helper-active-tag {
+  margin-left: auto;
+  font-size: 8px;
+  font-weight: 700;
+  color: #30d158;
+  background: rgba(48, 209, 88, 0.15);
+  padding: 1px 5px;
+  border-radius: 10px;
+}
+
+.desktop-mode-badge {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.16);
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.live-bat-number {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.live-bat-icon {
+  font-size: 13px;
+  margin-left: 6px;
+}
+
+.live-bat-icon.green {
+  color: #30d158;
+}
+
+.header-battery-icon-pill.large {
+  width: 50px;
+  height: 18px;
+  border-radius: 9px;
+}
+
+.header-battery-level-fill.green {
+  background: linear-gradient(90deg, #22c55e, #30d158);
+}
+
+.battery-status-subtext {
+  font-size: 9px;
+  color: #8e8e93;
+  margin-top: -2px;
+}
+
+.battery-data-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+}
+
+.battery-data-grid .data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+}
+
+.battery-data-grid .row-label {
+  color: #8e8e93;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+}
+
+.battery-data-grid .row-val {
+  color: #fff;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.battery-data-grid .row-val.green {
+  color: #30d158;
+  font-weight: 700;
+}
+

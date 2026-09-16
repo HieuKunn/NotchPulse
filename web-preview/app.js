@@ -1,7 +1,9 @@
 // State Management
 const state = {
-  notchOpen: false,
-  activeTab: 'stats', // default to stats so user sees it right away!
+  notchOpen: true, // open by default so user immediately sees the HUD
+  activeTab: 'battery', // default to battery so user sees it right away!
+  batteryMode: 'toLimit',
+  chargeLimit: 80,
   musicPlaying: true,
   settingsOpen: false,
   activeSettingsTab: 'systemMonitor',
@@ -39,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
   startHardwareSimulation();
   renderSparklines();
   switchTab(state.activeTab);
+  setupLockScreenHover();
+  if (state.notchOpen) {
+    notch.classList.add('open');
+  }
 });
 
 // Toggle Notch Open/Closed
@@ -412,3 +418,97 @@ function toggleLockScreen() {
 
 // Face ID Style (Pure Inline on Mac and external displays)
 let currentFaceIDStyle = 'inline';
+
+// Battery Charging Modes (Matching BatteryToolkit)
+function selectChargingMode(mode) {
+  state.batteryMode = mode;
+  document.querySelectorAll('.mode-pill-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+
+  const sliderContainer = document.getElementById('limitSliderContainer');
+  const inhibitBanner = document.getElementById('inhibitInfoBanner');
+  const toFullBanner = document.getElementById('toFullInfoBanner');
+  const desktopBadge = document.getElementById('batteryDesktopBadge');
+  const wattageVal = document.getElementById('valWattage');
+  const statusText = document.getElementById('liveBatStatusText');
+  const liveIcon = document.getElementById('liveBatIcon');
+
+  if (mode === 'toLimit') {
+    if (sliderContainer) sliderContainer.style.display = 'block';
+    if (inhibitBanner) inhibitBanner.style.display = 'none';
+    if (toFullBanner) toFullBanner.style.display = 'none';
+    if (desktopBadge) desktopBadge.style.display = 'none';
+    if (wattageVal) { wattageVal.textContent = '+38.2 W'; wattageVal.className = 'row-val green'; }
+    if (statusText) statusText.textContent = `Đang sạc đến ${state.chargeLimit}% • Tự động ngắt khi đầy`;
+    if (liveIcon) liveIcon.className = 'fa-solid fa-bolt live-bat-icon green';
+  } else if (mode === 'inhibit') {
+    if (sliderContainer) sliderContainer.style.display = 'none';
+    if (inhibitBanner) inhibitBanner.style.display = 'flex';
+    if (toFullBanner) toFullBanner.style.display = 'none';
+    if (desktopBadge) desktopBadge.style.display = 'inline-block';
+    if (wattageVal) { wattageVal.textContent = '0.0 W (AC Only)'; wattageVal.className = 'row-val'; }
+    if (statusText) statusText.textContent = 'Desktop Mode • Nguồn điện ngoài trực tiếp (Ngắt sạc)';
+    if (liveIcon) liveIcon.className = 'fa-solid fa-plug live-bat-icon';
+  } else if (mode === 'toFull') {
+    if (sliderContainer) sliderContainer.style.display = 'none';
+    if (inhibitBanner) inhibitBanner.style.display = 'none';
+    if (toFullBanner) toFullBanner.style.display = 'flex';
+    if (desktopBadge) desktopBadge.style.display = 'none';
+    if (wattageVal) { wattageVal.textContent = '+58.0 W'; wattageVal.className = 'row-val green'; }
+    if (statusText) statusText.textContent = 'Đang sạc tối đa đến 100% (Không giới hạn)';
+    if (liveIcon) liveIcon.className = 'fa-solid fa-bolt-lightning live-bat-icon green';
+  }
+}
+
+function updateChargeLimit(val) {
+  state.chargeLimit = val;
+  const disp = document.getElementById('limitPercentDisplay');
+  if (disp) disp.textContent = `${val}%`;
+  const statusText = document.getElementById('liveBatStatusText');
+  if (statusText && state.batteryMode === 'toLimit') {
+    statusText.textContent = `Đang sạc đến ${val}% • Tự động ngắt khi đầy`;
+  }
+}
+
+// Setup Hover-to-Wake Face ID on Lock Screen
+function setupLockScreenHover() {
+  const lockNotch = document.getElementById('lockFaceIDNotch');
+  if (!lockNotch) return;
+
+  let isScanning = false;
+  lockNotch.addEventListener('mouseenter', () => {
+    const overlay = document.getElementById('lockScreenOverlay');
+    if (overlay && overlay.classList.contains('active') && !isScanning) {
+      isScanning = true;
+      const statusBadge = lockNotch.querySelector('.lock-faceid-status-badge');
+      const icon = lockNotch.querySelector('.lock-faceid-icon');
+      if (icon) {
+        icon.className = 'fa-solid fa-face-viewfinder lock-faceid-icon fa-spin';
+        icon.style.color = '#007aff';
+      }
+      setTimeout(() => {
+        if (icon) {
+          icon.className = 'fa-solid fa-check lock-faceid-icon';
+          icon.style.color = '#30d158';
+        }
+        if (statusBadge) {
+          statusBadge.className = 'fa-solid fa-lock-open lock-faceid-status-badge';
+          statusBadge.style.color = '#30d158';
+        }
+        setTimeout(() => {
+          overlay.classList.remove('active');
+          isScanning = false;
+          if (icon) {
+            icon.className = 'fa-solid fa-face-smile lock-faceid-icon';
+            icon.style.color = '';
+          }
+          if (statusBadge) {
+            statusBadge.className = 'fa-solid fa-lock-open lock-faceid-status-badge';
+            statusBadge.style.color = '';
+          }
+        }, 900);
+      }, 1100);
+    }
+  });
+}
