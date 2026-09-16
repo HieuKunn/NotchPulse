@@ -504,6 +504,9 @@
 		F57D438B5915DFFC3BB53949 /* BTLegacyHelperInfo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTLegacyHelperInfo.swift; sourceTree = "<group>"; };
 		F7BA2E96233BBC6D8732B733 /* BTDaemonManagement+Legacy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "BTDaemonManagement+Legacy.swift"; sourceTree = "<group>"; };
 		F7BCC45E5355DB816624AF78 /* BTDispatcher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BTDispatcher.swift; sourceTree = "<group>"; };
+		73F6F4EC6B7A6B8C01E793E7 /* NativeBatteryManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeBatteryManager.swift; sourceTree = "<group>"; };
+		AA0000072ED0000300000001 /* NotchBatteryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchBatteryView.swift; sourceTree = "<group>"; };
+		BB0000022ED0000400000002 /* com.notchpulse.NotchPulseBatteryDaemon.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = com.notchpulse.NotchPulseBatteryDaemon.plist; path = NotchPulseBatteryDaemon/com.notchpulse.NotchPulseBatteryDaemon.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
