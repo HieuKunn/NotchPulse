@@ -105,6 +105,21 @@ struct FaceIDSettingsView: View {
                     .foregroundStyle(.secondary)
 
                 Divider()
+
+                Toggle(isOn: Binding(
+                    get: { UserDefaults.standard.bool(forKey: "enableLivenessDetection") },
+                    set: { UserDefaults.standard.set($0, forKey: "enableLivenessDetection") }
+                )) {
+                    Text("Anti-Spoofing (Liveness Detection)")
+                        .font(.subheadline)
+                }
+                .disabled(!Defaults[.enableFaceID] || !faceIDManager.isEnrolled)
+                
+                Text("Uses a CoreML AI model to detect and block presentation attacks (e.g. photos or videos held up to the camera).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
                 
                 Defaults.Toggle(key: .faceIDSound) {
                     Text("Face ID Sound Effect (Chime)")
