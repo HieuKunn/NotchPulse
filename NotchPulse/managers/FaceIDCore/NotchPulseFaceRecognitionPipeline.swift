@@ -124,7 +124,7 @@ struct ScoredIdentity {
 }
 
 extension NotchPulseFaceRecognitionPipeline {
-    /// Sorted by centroid similarity descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
+    /// Sorted by best similarity (nearest sample or centroid) descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
     nonisolated func score(_ embedding: [Float], against identities: [FaceIdentity]) -> [ScoredIdentity] {
         identities.compactMap { identity in
             guard let template = identity.template, !identity.samples.isEmpty else { return nil }
@@ -133,13 +133,16 @@ extension NotchPulseFaceRecognitionPipeline {
                 .map { FaceEmbedding.cosineSimilarity(embedding, $0.embedding) }
                 .max() ?? centroidSim
             return ScoredIdentity(identity: identity, centroidSimilarity: centroidSim, maxSampleSimilarity: maxSim)
-        }.sorted { $0.centroidSimilarity > $1.centroidSimilarity }
+        }.sorted { max($0.centroidSimilarity, $0.maxSampleSimilarity) > max($1.centroidSimilarity, $1.maxSampleSimilarity) }
     }
 
-    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. No runner-up margin check: the same person can be enrolled multiple times under different appearances, so two of their own profiles legitimately score close together — a margin check can't tell that apart from two different people colliding.
+    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent.
+    /// Multi-pose enrollment saves angle samples (left, right, up, down); matching considers the highest agreement
+    /// across either the nearest sample pose or the centroid.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
         guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
-        guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else { return nil }
+        let matchScore = max(first.centroidSimilarity, first.maxSampleSimilarity)
+        guard matchScore >= threshold else { return nil }
         return first
     }
 }

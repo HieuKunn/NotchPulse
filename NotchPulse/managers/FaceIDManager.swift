@@ -110,10 +110,10 @@ final class NotchPulseEnrollmentService: @unchecked Sendable {
     
     func analyzeFrame(_ image: CGImage, includeQuality: Bool = true) throws -> FrameAnalysis {
         let faces = try NotchPulseFaceDetector.detectFaces(in: image)
-        guard let face = faces.first else {
+        guard let face = NotchPulseFaceRecognitionPipeline.selectDominantFace(in: faces) ?? faces.first else {
             throw NotchPulseEnrollmentError.noFaceDetected
         }
-        guard faces.count == 1 else {
+        if includeQuality && faces.count > 1 {
             throw NotchPulseEnrollmentError.multipleFacesDetected
         }
         
@@ -147,15 +147,19 @@ final class NotchPulseEnrollmentService: @unchecked Sendable {
     
     func verify(currentEmbedding: [Float]) throws -> VerifyResult {
         let identities = try NotchPulseSecureFaceStore.load()
-        guard let identity = identities.first(where: { $0.isEnabled && !$0.samples.isEmpty }),
-              let template = identity.template else {
+        guard let identity = identities.first(where: { $0.isEnabled && !$0.samples.isEmpty }) else {
             return VerifyResult(matched: false, similarity: 0)
         }
         
-        let similarity = FaceEmbedding.cosineSimilarity(currentEmbedding, template)
-        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.40 : 0.60
-        let matched = similarity >= threshold
-        return VerifyResult(matched: matched, similarity: similarity)
+        let sampleSimilarities = identity.samples.map { FaceEmbedding.cosineSimilarity(currentEmbedding, $0.embedding) }
+        let maxSampleSim = sampleSimilarities.max() ?? 0
+        let centroidSim = identity.template.map { FaceEmbedding.cosineSimilarity(currentEmbedding, $0) } ?? 0
+        let bestSimilarity = max(maxSampleSim, centroidSim)
+        
+        // ArcFace 512D threshold: 0.36 allows comfortable natural recognition across lighting and distance
+        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.36 : 0.55
+        let matched = bestSimilarity >= threshold
+        return VerifyResult(matched: matched, similarity: bestSimilarity)
     }
 }
 
@@ -181,6 +185,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     // Core engine
     private let camera = NotchPulseCamera()
     private let enrollmentService = NotchPulseEnrollmentService()
+    private let pipeline = NotchPulseFaceRecognitionPipeline()
     
     private var recognitionTask: Task<Void, Never>?
     private var unlockTask: Task<Void, Never>?
@@ -259,6 +264,84 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     func startRecognitionOnWake() {
         NotchPulseFaceUnlockCoordinator.shared.startScanManually()
+    }
+    
+    /// Dedicated face verification for macOS system authorization & Touch ID prompts (SecurityAgent & LocalAuthentication).
+    /// Operates while the desktop is unlocked without invoking lock screen wake mechanisms.
+    func verifyForSystemPrompt(timeoutSeconds: Double = 4.0) async -> Bool {
+        guard isEnrolled, hasPasswordSet else { return false }
+        
+        let unlocked = await ensureSessionUnlocked()
+        guard unlocked else { return false }
+        
+        var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        if activeIdentities.isEmpty {
+            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
+            activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        }
+        if activeIdentities.isEmpty {
+            if let direct = try? NotchPulseSecureFaceStore.load(), !direct.isEmpty {
+                activeIdentities = direct.filter(\.isEnabled)
+            }
+        }
+        guard !activeIdentities.isEmpty else { return false }
+        
+        isScanning = true
+        lastUnlockSuccess = false
+        statusMessage = "Looking for your face…"
+        
+        await camera.requestAccessAndStart()
+        defer {
+            camera.stop()
+            isScanning = false
+        }
+        
+        let startTime = ContinuousClock.now
+        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.36 : 0.55
+        var lastProcessedFrameID: UInt64?
+        
+        while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {
+            guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
+                try? await Task.sleep(nanoseconds: 20_000_000)
+                continue
+            }
+            lastProcessedFrameID = frame.id
+            
+            guard let result = try? pipeline.recognize(in: frame.image) else {
+                try? await Task.sleep(nanoseconds: 20_000_000)
+                continue
+            }
+            
+            let scored = pipeline.score(result.embedding, against: activeIdentities)
+            if let _ = pipeline.bestMatch(in: scored, threshold: threshold) {
+                // CoreML AI Anti-Spoofing Check if enabled
+                if UserDefaults.standard.bool(forKey: "enableLivenessDetection") {
+                    do {
+                        let aiLiveness = try NotchPulseCoreMLAntiSpoofing.shared()
+                        let isLive = try aiLiveness.isLive(faceImage: frame.image, faceBoundingBox: result.face.boundingBox)
+                        if !isLive {
+                            print("[FaceID SystemAuth] Anti-Spoofing: presentation attack detected!")
+                            try? await Task.sleep(nanoseconds: 80_000_000)
+                            continue
+                        }
+                    } catch {
+                        print("[FaceID SystemAuth] Anti-spoofing error: \(error)")
+                    }
+                }
+                
+                lastUnlockSuccess = true
+                statusMessage = "Recognized"
+                if Defaults[.faceIDSound] {
+                    NSSound(named: "Glass")?.play()
+                }
+                return true
+            }
+            
+            try? await Task.sleep(nanoseconds: 30_000_000)
+        }
+        
+        statusMessage = "Face Not Recognized"
+        return false
     }
     
     func startEnrollment(name: String? = nil) {
@@ -422,18 +505,18 @@ final class FaceIDManager: NSObject, ObservableObject {
                     let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
                     
                     let sim = result.similarity
-                    let confidence = max(0, min(100, Int(((sim - 0.4) / (1.0 - 0.4)) * 100)))
+                    let confidence = max(0, min(100, Int(((sim - 0.20) / (0.55 - 0.20)) * 100)))
                     self.testConfidence = confidence
                     
                     if result.matched {
-                        self.testResultText = "✅ Matched: (\(confidence)%)"
+                        self.testResultText = "✅ Matched (\(confidence)%)"
                         self.testResultColor = .green
                     } else {
-                        self.testResultText = "❌ Unrecognized Face (Score: \(confidence)%)"
+                        self.testResultText = "❌ Unrecognized (Score: \(confidence)%)"
                         self.testResultColor = .red
                     }
                 } catch {
-                    self.testResultText = "Searching..."
+                    self.testResultText = "Looking for face..."
                     self.testResultColor = .secondary
                 }
                 try? await Task.sleep(for: .milliseconds(150))

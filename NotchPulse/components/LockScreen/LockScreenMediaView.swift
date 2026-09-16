@@ -44,12 +44,11 @@ struct LockScreenMediaView: View {
             }
         }
         .onReceive(lyricsTimer) { date in
-            if windowController.isFullScreen {
-                let elapsed = musicManager.estimatedPlaybackPosition(at: date)
-                if let idx = musicManager.currentLyricIndex(at: elapsed) {
-                    if activeLyricIndex != idx {
-                        activeLyricIndex = idx
-                    }
+            guard windowController.isWindowVisible && windowController.isFullScreen else { return }
+            let elapsed = musicManager.estimatedPlaybackPosition(at: date)
+            if let idx = musicManager.currentLyricIndex(at: elapsed) {
+                if activeLyricIndex != idx {
+                    activeLyricIndex = idx
                 }
             }
         }

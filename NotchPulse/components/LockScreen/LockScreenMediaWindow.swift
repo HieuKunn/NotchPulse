@@ -48,10 +48,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             .ignoresCycle
         ]
         
-        let hostingView = NSHostingView(rootView: LockScreenMediaView(windowController: self))
-        hostingView.wantsLayer = true
-        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
-        contentView = hostingView
+        // contentView is loaded on-demand in show() and released in hide() to keep idle RAM at 0MB
     }
     
     private func getTargetScreen() -> NSScreen? {
@@ -89,6 +86,13 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         let targetRect = isFullScreen ? screen.frame : targetCompactFrame(for: screen)
         setFrame(targetRect, display: true)
         
+        if contentView == nil {
+            let hostingView = NSHostingView(rootView: LockScreenMediaView(windowController: self))
+            hostingView.wantsLayer = true
+            hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+            contentView = hostingView
+        }
+        
         if !isSkyLightAttached {
             SkyLightOperator.shared.delegateWindow(self)
             isSkyLightAttached = true
@@ -118,6 +122,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             self.animator().alphaValue = 0.0
         }, completionHandler: {
             self.orderOut(nil)
+            self.contentView = nil
             self.isFullScreen = false
             self.isWindowVisible = false
             if self.isSkyLightAttached {

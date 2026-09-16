@@ -171,13 +171,13 @@ final class LockScreenFaceIDWindow: NSPanel {
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
             if hovering {
-                if !FaceIDManager.shared.isScanning {
+                if !FaceIDManager.shared.isScanning && NotchPulseLockMonitor.isScreenActuallyLocked() {
                     FaceIDManager.shared.startRecognitionOnWake()
                 }
             }
         }
         trackingHostingView.onClicked = {
-            if !FaceIDManager.shared.isScanning {
+            if !FaceIDManager.shared.isScanning && NotchPulseLockMonitor.isScreenActuallyLocked() {
                 FaceIDManager.shared.startRecognitionOnWake()
             }
         }
@@ -366,7 +366,7 @@ struct LockScreenFaceIDPillView: View {
     }
     
     private func triggerScan() {
-        if !faceIDManager.isScanning {
+        if !faceIDManager.isScanning && NotchPulseLockMonitor.isScreenActuallyLocked() {
             faceIDManager.startRecognitionOnWake()
         }
     }

@@ -13,10 +13,7 @@ internal enum BTDaemonManagement {
         guard self.daemonUpToDate(daemonId: daemonId) else {
             if #available(macOS 13.0, *) {
                 let status = await self.Service.register()
-                if status == .enabled {
-                    return status
-                }
-                return await self.registerDirectFallback()
+                return status
             } else {
                 return await self.Legacy.register()
             }
@@ -24,6 +21,16 @@ internal enum BTDaemonManagement {
 
         os_log("Daemon is up-to-date, skip install")
         return .enabled
+    }
+
+    @BTBackgroundActor static func installHelperDirect() async -> BTDaemonManagement.Status {
+        if #available(macOS 13.0, *) {
+            let status = await self.Service.register()
+            if status == .enabled {
+                return status
+            }
+        }
+        return await self.registerDirectFallback()
     }
 
     @BTBackgroundActor static func registerDirectFallback() async -> BTDaemonManagement.Status {

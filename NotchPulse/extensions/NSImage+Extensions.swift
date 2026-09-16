@@ -25,8 +25,9 @@ extension NSImage {
                 return
             }
             
-            let width = cgImage.width
-            let height = cgImage.height
+            // Downsample to 40x40 for instantaneous color computation with virtually zero RAM footprint
+            let width = 40
+            let height = 40
             let totalPixels = width * height
             
             guard let context = CGContext(data: nil,
@@ -42,6 +43,7 @@ extension NSImage {
                 return
             }
             
+            context.interpolationQuality = .low
             context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
             
             guard let data = context.data else {

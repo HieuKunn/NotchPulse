@@ -46,11 +46,10 @@ internal enum BTDaemonXPCClient {
     }
 
     static func disablePowerAdapter() async throws {
-        let authData = try await BTAppXPCClient.getManageAuthorization()
         try await withCheckedThrowingContinuation { continuation in
             self.runExecute(
                 continuation: continuation,
-                authData: authData,
+                authData: nil,
                 command: BTDaemonCommCommand.disablePowerAdapter
             )
         }
@@ -87,33 +86,30 @@ internal enum BTDaemonXPCClient {
     }
 
     static func disableCharging() async throws {
-        let authData = try await BTAppXPCClient.getManageAuthorization()
         try await withCheckedThrowingContinuation { continuation in
             self.runExecute(
                 continuation: continuation,
-                authData: authData,
+                authData: nil,
                 command: BTDaemonCommCommand.disableCharging
             )
         }
     }
 
     static func pauseActivity() async throws {
-        let authData = try await BTAppXPCClient.getManageAuthorization()
         try await withCheckedThrowingContinuation { continuation in
             self.runExecute(
                 continuation: continuation,
-                authData: authData,
+                authData: nil,
                 command: BTDaemonCommCommand.pauseActivity
             )
         }
     }
 
     static func resumeActivity() async throws {
-        let authData = try await BTAppXPCClient.getManageAuthorization()
         try await withCheckedThrowingContinuation { continuation in
             self.runExecute(
                 continuation: continuation,
-                authData: authData,
+                authData: nil,
                 command: BTDaemonCommCommand.resumeActivity
             )
         }
@@ -130,9 +126,9 @@ internal enum BTDaemonXPCClient {
     }
 
     static func setSettings(settings: [String: NSObject & Sendable]) async throws {
-        let authData = try await BTAppXPCClient.getManageAuthorization()
+        let authData = (try? await BTAppXPCClient.getAuthorization()) ?? Data()
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-            self.executeDaemonManageRetry(continuation: continuation) { daemon in
+            self.executeDaemonRetry(continuation: continuation) { daemon in
                 daemon.setSettings(
                     authData: authData,
                     settings: settings,

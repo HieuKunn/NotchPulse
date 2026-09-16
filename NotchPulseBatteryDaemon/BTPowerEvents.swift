@@ -340,8 +340,8 @@ internal enum BTPowerEvents {
 
         if percent < limit {
             return BTPowerState.enableCharging(percent: percent)
+        } else {
+            return BTPowerState.disableCharging(percent: percent)
         }
-
-        return true
     }
 }

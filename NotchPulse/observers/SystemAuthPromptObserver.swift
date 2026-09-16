@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import ApplicationServices
 import Combine
 import Defaults
 
@@ -29,12 +30,31 @@ final class SystemAuthPromptObserver: ObservableObject {
         isCurrentlyVerifying = false
     }
     
+    private static func isAuthAgent(_ app: NSRunningApplication) -> Bool {
+        isAuthAgent(bundleId: app.bundleIdentifier)
+    }
+    
+    private static func isAuthAgent(bundleId: String?) -> Bool {
+        guard let bundleId = bundleId else { return false }
+        return bundleId == "com.apple.SecurityAgent"
+            || bundleId == "com.apple.coreservices.uiagent"
+            || bundleId.contains("LocalAuthentication")
+            || bundleId.contains("CoreAuthUI")
+    }
+    
     private func setupObserver() {
         // Event-driven: Only wakes up when an application changes focus
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didActivateApplicationNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 self?.handleApplicationActivated(notification)
+            }
+            .store(in: &cancellables)
+            
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didDeactivateApplicationNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                self?.handleApplicationDeactivated(notification)
             }
             .store(in: &cancellables)
     }
@@ -49,74 +69,80 @@ final class SystemAuthPromptObserver: ObservableObject {
         }
         
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-              let bundleId = app.bundleIdentifier else {
+              Self.isAuthAgent(app) else {
             return
         }
         
-        // SecurityAgent handles system dialogs requesting administrator privileges
-        // LocalAuthentication.UIAgent and coreservices.uiagent handle Touch ID / Passkey prompts
-        let authAgents = ["com.apple.SecurityAgent", "com.apple.coreservices.uiagent"]
+        triggerFaceIDForAuthPrompt(targetApp: app)
+    }
+    
+    private func handleApplicationDeactivated(_ notification: Notification) {
+        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              Self.isAuthAgent(app) else {
+            return
+        }
         
-        if authAgents.contains(bundleId) || bundleId.contains("LocalAuthentication") {
-            triggerFaceIDForSecurityAgent(targetApp: app)
+        // If the authorization prompt was dismissed, cancel Face ID immediately
+        if isCurrentlyVerifying {
+            verificationTask?.cancel()
+            verificationTask = nil
+            FaceIDManager.shared.cancelCurrentSession()
+            LockScreenFaceIDWindow.shared.hide()
+            isCurrentlyVerifying = false
         }
     }
     
-    private func triggerFaceIDForSecurityAgent(targetApp: NSRunningApplication) {
+    private func triggerFaceIDForAuthPrompt(targetApp: NSRunningApplication) {
         guard !isCurrentlyVerifying else { return }
         isCurrentlyVerifying = true
         
         verificationTask?.cancel()
         verificationTask = Task { @MainActor [weak self] in
-            // Allow SecurityAgent window to settle in front
-            try? await Task.sleep(for: .milliseconds(180))
-            guard !Task.isCancelled else { return }
+            // Allow SecurityAgent/LocalAuth window to settle in front
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else {
+                self?.isCurrentlyVerifying = false
+                return
+            }
             
             // Present Face ID UI in the notch area
             LockScreenFaceIDWindow.shared.show()
-            FaceIDManager.shared.startRecognitionOnWake()
             
-            // Wait for scanning completion (timeout: 4.5s)
-            let startTime = ContinuousClock.now
-            var verified = false
+            // Run dedicated system prompt face verification without lock screen requirements
+            let verified = await FaceIDManager.shared.verifyForSystemPrompt(timeoutSeconds: 4.0)
             
-            while ContinuousClock.now - startTime < .seconds(4.5) {
-                if Task.isCancelled { break }
-                
-                if FaceIDManager.shared.lastUnlockSuccess {
-                    verified = true
-                    break
-                }
-                
-                // If scanning finished without success, stop waiting
-                if !FaceIDManager.shared.isScanning && !FaceIDManager.shared.lastUnlockSuccess {
-                    break
-                }
-                
-                try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled else {
+                LockScreenFaceIDWindow.shared.hide()
+                self?.isCurrentlyVerifying = false
+                return
             }
             
             if verified {
-                // Success: Play chime if enabled
-                if Defaults[.faceIDSound] {
-                    NSSound(named: "Glass")?.play()
-                }
-                
-                // Auto-fill password into SecurityAgent prompt
-                if let passwordData = try? NotchPulseVault.readPassword(),
-                   let password = String(data: passwordData, encoding: .utf8),
-                   !password.isEmpty {
+                // Safety check: Verify the auth agent is still frontmost before injecting credentials
+                if let frontApp = NSWorkspace.shared.frontmostApplication,
+                   Self.isAuthAgent(frontApp) {
                     
-                    // Inject keyboard events directly into SecurityAgent
-                    DispatchQueue.global(qos: .userInteractive).async {
-                        Self.injectSecurityAgentPassword(password)
+                    if let passwordData = try? NotchPulseVault.readPassword(),
+                       let password = String(data: passwordData, encoding: .utf8),
+                       !password.isEmpty {
+                        
+                        let isLocalAuth = frontApp.bundleIdentifier?.contains("LocalAuthentication") == true
+                        let targetPid = frontApp.processIdentifier
+                        
+                        // Inject password on background thread
+                        DispatchQueue.global(qos: .userInteractive).async {
+                            if isLocalAuth {
+                                Self.prepareLocalAuthenticationPasswordField(processIdentifier: targetPid)
+                            }
+                            Self.injectSecurityAgentPassword(password)
+                        }
                     }
                 }
                 
                 // Show success animation briefly then dismiss
                 try? await Task.sleep(for: .milliseconds(600))
             } else {
-                // Not recognized or cancelled: Graceful fallback so user can use Touch ID or type manually
+                // Not recognized or timed out: Graceful fallback so user can use Touch ID or type manually
                 try? await Task.sleep(for: .milliseconds(300))
             }
             
@@ -125,7 +151,42 @@ final class SystemAuthPromptObserver: ObservableObject {
         }
     }
     
+    nonisolated private static func prepareLocalAuthenticationPasswordField(processIdentifier: pid_t) {
+        let axApp = AXUIElementCreateApplication(processIdentifier)
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let windows = windowsRef as? [AXUIElement], let win = windows.first else {
+            return
+        }
+        
+        func findPasswordButton(_ el: AXUIElement) -> AXUIElement? {
+            var titleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef)
+            if let title = titleRef as? String, title.contains("Password") {
+                return el
+            }
+            var childrenRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+               let children = childrenRef as? [AXUIElement] {
+                for child in children {
+                    if let found = findPasswordButton(child) { return found }
+                }
+            }
+            return nil
+        }
+        
+        if let btn = findPasswordButton(win) {
+            _ = AXUIElementPerformAction(btn, kAXPressAction as CFString)
+            Thread.sleep(forTimeInterval: 0.15)
+        }
+    }
+    
     nonisolated private static func injectSecurityAgentPassword(_ password: String) {
+        guard AXIsProcessTrusted() else {
+            print("[SystemAuth] Cannot inject password: Accessibility permission not granted")
+            return
+        }
+        
         let source = CGEventSource(stateID: .hidSystemState)
         
         // Ensure prompt field is active
@@ -164,6 +225,20 @@ final class SystemAuthPromptObserver: ObservableObject {
                     up.post(tap: .cghidEventTap)
                     Thread.sleep(forTimeInterval: 0.010)
                 }
+            } else {
+                // Unicode fallback for special or international characters
+                let utf16 = Array(String(char).utf16)
+                if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
+                   let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
+                    down.flags = []
+                    up.flags = []
+                    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                    down.post(tap: .cghidEventTap)
+                    Thread.sleep(forTimeInterval: 0.010)
+                    up.post(tap: .cghidEventTap)
+                    Thread.sleep(forTimeInterval: 0.010)
+                }
             }
         }
         
@@ -174,6 +249,9 @@ final class SystemAuthPromptObserver: ObservableObject {
            let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
             returnDown.flags = []
             returnUp.flags = []
+            let returnUnicode: [UniChar] = [0x000D]
+            returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
+            returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
             returnDown.post(tap: .cghidEventTap)
             Thread.sleep(forTimeInterval: 0.010)
             returnUp.post(tap: .cghidEventTap)

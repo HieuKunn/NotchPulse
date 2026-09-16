@@ -218,6 +218,11 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
 
+        if self.isCameraExpanded || self.webcamManager.isSessionRunning {
+            self.isCameraExpanded = false
+            self.webcamManager.stopSession()
+        }
+
         // If user enabled restoring the last active tab on hover, preserve currentView
         if coordinator.openLastTabByDefault {
             // Keep currentView intact (Stats, Battery, Shelf, Home)

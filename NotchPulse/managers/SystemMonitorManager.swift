@@ -83,8 +83,7 @@ public class SystemMonitorManager: ObservableObject {
             
             if self.timer == nil {
                 self.updateMetrics() // Immediate update
-                // Tăng delay lên 2.5s để giảm tải CPU (trước là 1.5s)
-                self.timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
+                self.timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
                     self?.queue.async {
                         self?.updateMetrics()
                     }

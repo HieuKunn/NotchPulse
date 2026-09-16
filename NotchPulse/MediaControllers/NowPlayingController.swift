@@ -305,12 +305,19 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         }
 
-        if let artworkDataString = payload.artworkData {
-            newPlaybackState.artwork = Data(
-                base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
-            )
+        if let artworkDataString = payload.artworkData, !artworkDataString.isEmpty {
+            let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
+            if trackChanged || self.playbackState.artwork == nil {
+                newPlaybackState.artwork = Data(
+                    base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
+            } else {
+                newPlaybackState.artwork = self.playbackState.artwork
+            }
         } else if !diff {
             newPlaybackState.artwork = nil
+        } else {
+            newPlaybackState.artwork = self.playbackState.artwork
         }
 
         if let dateString = payload.timestamp,
@@ -425,6 +432,10 @@ actor JSONLinesPipeHandler {
                     if !line.isEmpty {
                         await processJSONLine(line, as: type, onLine: onLine)
                     }
+                }
+                
+                if buffer.count > 5_000_000 {
+                    buffer = ""
                 }
             }
         }

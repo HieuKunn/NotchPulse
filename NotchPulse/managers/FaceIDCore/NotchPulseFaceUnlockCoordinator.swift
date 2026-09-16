@@ -262,7 +262,7 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.38 : 0.60
+            let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.36 : 0.55
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
             if matched != nil {

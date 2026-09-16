@@ -94,7 +94,34 @@ struct FaceIDSettingsView: View {
                 
                 Divider()
 
-                Defaults.Toggle(key: .enableFaceIDForSystemPrompts) {
+                Toggle(isOn: Binding(
+                    get: { Defaults[.enableFaceIDForSystemPrompts] },
+                    set: { newValue in
+                        if newValue {
+                            checkPermissions()
+                            if !isCameraGranted {
+                                AVCaptureDevice.requestAccess(for: .video) { granted in
+                                    DispatchQueue.main.async {
+                                        checkPermissions()
+                                        if granted {
+                                            if !isAccessibilityGranted {
+                                                requestAccessibility()
+                                            }
+                                            Defaults[.enableFaceIDForSystemPrompts] = true
+                                        }
+                                    }
+                                }
+                                return
+                            }
+                            if !isAccessibilityGranted {
+                                requestAccessibility()
+                            }
+                            Defaults[.enableFaceIDForSystemPrompts] = true
+                        } else {
+                            Defaults[.enableFaceIDForSystemPrompts] = false
+                        }
+                    }
+                )) {
                     Text("Auto-Authenticate System Prompts")
                         .font(.subheadline)
                 }
@@ -390,5 +417,13 @@ struct FaceIDSettingsView: View {
     private func checkPermissions() {
         isAccessibilityGranted = AXIsProcessTrusted()
         isCameraGranted = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+    }
+    
+    private func requestAccessibility() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }

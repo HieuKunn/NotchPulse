@@ -52,14 +52,18 @@ final class NativeBatteryManager: ObservableObject {
     @Published var chargeLimitEnabled: Bool {
         didSet {
             UserDefaults.standard.set(chargeLimitEnabled, forKey: "NP_ChargeLimitEnabled")
-            checkAndEnforceLimit()
+            if isHelperInstalled {
+                syncSettingsToDaemon()
+            }
         }
     }
     
     @Published var chargeLimit: Int {
         didSet {
             UserDefaults.standard.set(chargeLimit, forKey: "NP_ChargeLimit")
-            checkAndEnforceLimit()
+            if isHelperInstalled {
+                syncSettingsToDaemon()
+            }
         }
     }
     
@@ -83,16 +87,6 @@ final class NativeBatteryManager: ObservableObject {
         updateBatteryStatus()
         setupPowerNotification()
         checkHelperInstalled()
-        
-        Task {
-            let status = await BTActions.startDaemon()
-            if status == .enabled {
-                await MainActor.run {
-                    self.isHelperInstalled = true
-                    self.syncSettingsToDaemon()
-                }
-            }
-        }
     }
     
     deinit {
@@ -108,7 +102,7 @@ final class NativeBatteryManager: ObservableObject {
         isMonitoring = true
         updateBatteryStatus()
         
-        monitoringTimer = Timer.publish(every: 3.0, on: .main, in: .common)
+        monitoringTimer = Timer.publish(every: 1.5, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.updateBatteryStatus()
@@ -181,8 +175,6 @@ final class NativeBatteryManager: ObservableObject {
         self.adapterName = adDesc
         self.timeRemaining = timeRem
         self.isDesktopMode = extConnected && (!charging || isInhibited) && currentCap >= (chargeLimit - 2)
-        
-        checkAndEnforceLimit()
     }
     
     private func setupPowerNotification() {
@@ -200,42 +192,11 @@ final class NativeBatteryManager: ObservableObject {
         }
     }
     
-    // MARK: - Charge Limit Automation
-    private func checkAndEnforceLimit() {
-        guard isPluggedIn else {
-            forceFullCharge = false
-            return
-        }
-        
-        if forceFullCharge {
-            if level >= 100 {
-                forceFullCharge = false
-            } else {
-                return
-            }
-        }
-        
-        guard chargeLimitEnabled else { return }
-        
-        if level >= chargeLimit && isCharging {
-            // Reached limit: pause charging
-            inhibitCharging()
-        } else if level <= (chargeLimit - 3) && !isCharging && isPluggedIn {
-            // Dropped below limit: resume charging
-            allowCharging()
-        }
-    }
-    
     func setMode(_ mode: ChargingMode) {
         self.chargingMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "NP_ChargingMode")
         
         guard isHelperInstalled else {
-            installHelper { [weak self] success in
-                if success {
-                    self?.setMode(mode)
-                }
-            }
             return
         }
         
@@ -245,7 +206,11 @@ final class NativeBatteryManager: ObservableObject {
             chargeLimitEnabled = true
             syncSettingsToDaemon()
             Task {
-                try? await BTActions.chargeToLimit()
+                if self.level >= self.chargeLimit {
+                    try? await BTActions.disableCharging()
+                } else {
+                    try? await BTActions.chargeToLimit()
+                }
                 self.updateBatteryStatus()
             }
         case .toFull:
@@ -284,7 +249,12 @@ final class NativeBatteryManager: ObservableObject {
             syncSettingsToDaemon()
             if chargingMode == .toLimit {
                 Task {
-                    try? await BTActions.chargeToLimit()
+                    if self.level >= self.chargeLimit {
+                        try? await BTActions.disableCharging()
+                    } else {
+                        try? await BTActions.chargeToLimit()
+                    }
+                    self.updateBatteryStatus()
                 }
             }
         }
@@ -306,30 +276,6 @@ final class NativeBatteryManager: ObservableObject {
         }
     }
     
-    func inhibitCharging() {
-        Task {
-            do {
-                try await BTActions.disableCharging()
-            } catch {
-                print("Failed to inhibit charging: \(error)")
-            }
-        }
-    }
-    
-    func allowCharging() {
-        Task {
-            do {
-                if self.chargingMode == .toFull {
-                    try await BTActions.chargeToFull()
-                } else {
-                    try await BTActions.chargeToLimit()
-                }
-            } catch {
-                print("Failed to allow charging: \(error)")
-            }
-        }
-    }
-    
     func syncSettingsToDaemon() {
         let minVal = max(BTSettingsInfo.Bounds.minChargeMin, UInt8(max(20, chargeLimit - 5)))
         let maxVal = min(100, max(BTSettingsInfo.Bounds.maxChargeMin, UInt8(chargeLimit)))
@@ -341,7 +287,11 @@ final class NativeBatteryManager: ObservableObject {
         Task {
             try? await BTActions.setSettings(settings: settings)
             if self.chargingMode == .toLimit {
-                try? await BTActions.chargeToLimit()
+                if self.level >= self.chargeLimit {
+                    try? await BTActions.disableCharging()
+                } else {
+                    try? await BTActions.chargeToLimit()
+                }
             }
         }
     }
@@ -352,7 +302,7 @@ final class NativeBatteryManager: ObservableObject {
         helperStatusMessage = "Activating Battery Control Service..."
         
         Task {
-            let status = await BTActions.startDaemon()
+            let status = await BTDaemonManagement.installHelperDirect()
             let success = (status == .enabled)
             await MainActor.run {
                 self.isBusy = false

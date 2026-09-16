@@ -40,8 +40,8 @@ struct OnboardingView: View {
                 PermissionRequestView(
                     icon: Image(systemName: "camera.fill"),
                     title: "Enable Camera Access",
-                    description: "NotchPulse includes a mirror feature that lets you quickly check your appearance using your camera, right from the notch. Camera access is required only to show this live preview. You can turn the mirror feature on or off at any time in the app.",
-                    privacyNote: "Your camera is never used without your consent, and nothing is recorded or stored.",
+                    description: "Camera access is required for Face ID screen unlock and system authorization prompt verification, as well as the notch camera mirror preview. Facial recognition is processed 100% locally on your Mac using Apple Neural Engine.",
+                    privacyNote: "Your camera is never accessed in the background without user action, and biometric templates are encrypted in Apple Keychain.",
                     onAllow: {
                         Task {
                             await requestCameraPermission()
@@ -106,8 +106,8 @@ struct OnboardingView: View {
                 PermissionRequestView(
                     icon: Image(systemName: "hand.raised.fill"),
                     title: "Enable Accessibility Access",
-                    description: "Accessibility access is required to replace system notifications with the NotchPulse HUD. This allows the app to intercept media and brightness events to display custom HUD overlays.",
-                    privacyNote: "Accessibility access is used only to improve media and brightness notifications. No data is collected or shared.",
+                    description: "Accessibility permission is required for Face ID to auto-fill credentials for Mac unlock and system/Touch ID prompts, and to display custom HUD overlays.",
+                    privacyNote: "Accessibility access is used strictly for credential entry and HUD overlays. No personal data is monitored or shared.",
                     onAllow: {
                         Task {
                             await requestAccessibilityPermission()
