@@ -1,4 +1,4 @@
-# NotchPulse v3.8.7
+# NotchPulse v3.8.8
 
 ## 🐛 Bug Fixes
-- **Settings UI**: Fixed an issue where the Settings window would occasionally open as a blank gray screen due to the UI content being aggressively unloaded to save RAM. The app now properly detects the unloaded state and reliably redraws the settings menu upon reopening.
+- **Settings UI**: Resolved a critical issue where the Settings window would appear as a blank gray screen upon reopening. This was caused by macOS destroying the window's backing layer when the app transitions to a background accessory. The Settings interface is now explicitly re-rendered on every open.

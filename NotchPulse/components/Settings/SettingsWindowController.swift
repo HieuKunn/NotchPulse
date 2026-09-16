@@ -14,7 +14,6 @@ class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
     var updaterController: SPUStandardUpdaterController?
     private var vm: NotchPulseViewModel?
-    private var hasLoadedContentView = false
     
     private init() {
         let window = NSWindow(
@@ -43,7 +42,6 @@ class SettingsWindowController: NSWindowController {
             let settingsView = SettingsView(updaterController: updaterController)
                 .environmentObject(self.vm ?? NotchPulseViewModel())
             window?.contentView = NSHostingView(rootView: settingsView)
-            hasLoadedContentView = true
         }
     }
     
@@ -75,14 +73,11 @@ class SettingsWindowController: NSWindowController {
         // Set app to regular mode first
         NSApp.setActivationPolicy(.regular)
         
-        // Lazy-load the SwiftUI view hierarchy only when opening Settings
-        if !hasLoadedContentView {
-            let settingsView = SettingsView(updaterController: updaterController)
-                .environmentObject(self.vm ?? NotchPulseViewModel())
-            let hostingView = NSHostingView(rootView: settingsView)
-            window?.contentView = hostingView
-            hasLoadedContentView = true
-        }
+        // Always recreate the view hierarchy because macOS destroys window layers when switching to accessory mode
+        let settingsView = SettingsView(updaterController: updaterController)
+            .environmentObject(self.vm ?? NotchPulseViewModel())
+        let hostingView = NSHostingView(rootView: settingsView)
+        window?.contentView = hostingView
         
         // If window is already visible, bring it to front properly
         if window?.isVisible == true {
