@@ -204,7 +204,7 @@ body.bezel-mode .notch-wrapper {
 /* Open State: 640px x 200px (Plenty of room for tabs, camera, and cards) */
 .notch.open {
   width: 640px;
-  height: 200px;
+  height: 206px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.12);
@@ -358,10 +358,10 @@ body.bezel-mode .notch-wrapper {
    ========================================== */
 .notch-open-content {
   width: 640px;
-  height: 200px;
+  height: 100%;
   display: none;
   flex-direction: column;
-  padding: 8px 14px 12px 14px;
+  padding: 6px 16px 14px 16px;
   box-sizing: border-box;
 }
 
@@ -1644,45 +1644,57 @@ body.bezel-mode .notch-wrapper {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  padding: 8px 16px;
-  height: 145px;
+  padding: 0 4px 4px 4px;
+  width: 100%;
+  height: 100%;
   box-sizing: border-box;
+  min-height: 0;
 }
 
 .battery-card {
-  padding: 10px 12px !important;
+  padding: 8px 10px !important;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.battery-card .stat-header {
+  margin-bottom: 2px;
+}
+
+.battery-card .stat-name {
+  font-size: 11px;
 }
 
 .charging-mode-pills {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
-  margin: 6px 0;
+  gap: 5px;
+  margin: 3px 0;
 }
 
 .mode-pill-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 6px 4px;
+  border-radius: 7px;
+  padding: 4px 2px;
   color: rgba(255, 255, 255, 0.7);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2.5px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mode-pill-btn i {
-  font-size: 13px;
+  font-size: 11.5px;
 }
 
 .mode-pill-btn span {
-  font-size: 9.5px;
+  font-size: 8.5px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1700,40 +1712,43 @@ body.bezel-mode .notch-wrapper {
 
 .limit-slider-card {
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  padding: 6px 8px;
-  margin-top: 2px;
+  border-radius: 7px;
+  padding: 4px 7px;
+  margin-top: 1px;
 }
 
 .limit-slider-header {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 9.5px;
   color: #8e8e93;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .limit-pct-val {
   color: #30d158;
   font-weight: 700;
+  font-size: 10px;
 }
 
 .limit-slider-card input[type="range"] {
   width: 100%;
   accent-color: #30d158;
-  height: 4px;
+  height: 3px;
   cursor: pointer;
+  margin: 1px 0;
+  display: block;
 }
 
 .battery-info-banner {
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 9.5px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  font-size: 8.5px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  line-height: 1.25;
+  gap: 5px;
+  margin-top: 2px;
+  line-height: 1.2;
 }
 
 .battery-info-banner.inhibit {
@@ -1751,53 +1766,53 @@ body.bezel-mode .notch-wrapper {
 .helper-status-row {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 9px;
+  gap: 4px;
+  font-size: 8.5px;
   color: #8e8e93;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
 }
 
 .status-dot.green {
   background: #30d158;
-  box-shadow: 0 0 6px rgba(48, 209, 88, 0.5);
+  box-shadow: 0 0 5px rgba(48, 209, 88, 0.5);
 }
 
 .helper-active-tag {
   margin-left: auto;
-  font-size: 8px;
+  font-size: 7.5px;
   font-weight: 700;
   color: #30d158;
   background: rgba(48, 209, 88, 0.15);
-  padding: 1px 5px;
-  border-radius: 10px;
+  padding: 1px 4px;
+  border-radius: 6px;
 }
 
 .desktop-mode-badge {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 700;
   color: #06b6d4;
   background: rgba(6, 182, 212, 0.16);
-  padding: 2px 6px;
-  border-radius: 10px;
+  padding: 1.5px 5px;
+  border-radius: 8px;
   border: 1px solid rgba(6, 182, 212, 0.3);
 }
 
 .live-bat-number {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .live-bat-icon {
-  font-size: 13px;
-  margin-left: 6px;
+  font-size: 11px;
+  margin-left: 4px;
 }
 
 .live-bat-icon.green {
@@ -1805,9 +1820,9 @@ body.bezel-mode .notch-wrapper {
 }
 
 .header-battery-icon-pill.large {
-  width: 50px;
-  height: 18px;
-  border-radius: 9px;
+  width: 44px;
+  height: 15px;
+  border-radius: 8px;
 }
 
 .header-battery-level-fill.green {
@@ -1815,39 +1830,40 @@ body.bezel-mode .notch-wrapper {
 }
 
 .battery-status-subtext {
-  font-size: 9px;
+  font-size: 8.5px;
   color: #8e8e93;
-  margin-top: -2px;
+  margin-top: 0px;
+  margin-bottom: 2px;
 }
 
 .battery-data-grid {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 6px;
+  gap: 3px;
+  margin-top: 3px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 6px;
+  padding-top: 4px;
 }
 
 .battery-data-grid .data-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .battery-data-grid .row-label {
   color: #8e8e93;
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 9.5px;
+  gap: 4px;
+  font-size: 9px;
 }
 
 .battery-data-grid .row-val {
   color: #fff;
   font-weight: 600;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .battery-data-grid .row-val.green {

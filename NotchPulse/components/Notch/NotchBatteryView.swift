@@ -14,30 +14,30 @@ struct NotchBatteryView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // MARK: - Left Card: 3 Charging Modes (BatteryToolkit Style)
-            VStack(alignment: .leading, spacing: 10) {
+            // MARK: - Left Card: 3 Charging Modes (50% Width)
+            VStack(alignment: .leading, spacing: 6) {
                 // Section Title
                 HStack {
                     Image(systemName: "bolt.badge.automatic.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(Color.green)
                     Text("Chế độ sạc pin")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white)
                     Spacer()
                     if battery.isDesktopMode {
                         Text("Desktop Mode")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 8, weight: .bold))
                             .foregroundStyle(.cyan)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
                             .background(Color.cyan.opacity(0.18))
                             .clipShape(Capsule())
                     }
                 }
                 
                 // 3 Mode Segmented Buttons
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     ForEach(NativeBatteryManager.ChargingMode.allCases) { mode in
                         let isSelected = battery.chargingMode == mode
                         Button {
@@ -45,22 +45,22 @@ struct NotchBatteryView: View {
                                 battery.setMode(mode)
                             }
                         } label: {
-                            VStack(spacing: 4) {
+                            VStack(spacing: 3) {
                                 Image(systemName: mode.icon)
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.system(size: 11.5, weight: .medium))
                                 Text(mode.title)
-                                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                                    .font(.system(size: 9, weight: isSelected ? .bold : .medium))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.8)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, 4)
                             .background(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
                                     .fill(isSelected ? Color.green.opacity(0.28) : Color.white.opacity(0.06))
                             )
                             .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
                                     .stroke(isSelected ? Color.green.opacity(0.8) : Color.white.opacity(0.08), lineWidth: 1)
                             )
                             .foregroundStyle(isSelected ? .green : .white.opacity(0.75))
@@ -71,14 +71,14 @@ struct NotchBatteryView: View {
                 
                 // Custom Charge Limit Slider (when in To Limit mode)
                 if battery.chargingMode == .toLimit {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         HStack {
                             Text("Dừng sạc ở mức:")
-                                .font(.system(size: 10))
+                                .font(.system(size: 9))
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Text("\(battery.chargeLimit)%")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
                                 .foregroundStyle(.green)
                         }
                         
@@ -91,37 +91,37 @@ struct NotchBatteryView: View {
                             step: 5
                         )
                         .tint(.green)
-                        .controlSize(.small)
+                        .controlSize(.mini)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
                     .background(Color.white.opacity(0.04))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
                 } else if battery.chargingMode == .inhibit {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: "shield.lefthalf.filled")
-                            .font(.system(size: 11))
+                            .font(.system(size: 10))
                             .foregroundStyle(.cyan)
                         Text("Đang chạy nguồn AC trực tiếp, sạc pin đã tạm ngắt để bảo vệ pin.")
-                            .font(.system(size: 9.5))
+                            .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
-                    .padding(8)
+                    .padding(5)
                     .background(Color.cyan.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
                 } else {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: "bolt.fill")
-                            .font(.system(size: 11))
+                            .font(.system(size: 10))
                             .foregroundStyle(.yellow)
                         Text("Sạc pin tự do đến 100% không giới hạn.")
-                            .font(.system(size: 9.5))
+                            .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                     }
-                    .padding(8)
+                    .padding(5)
                     .background(Color.yellow.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
                 }
                 
                 Spacer(minLength: 0)
@@ -130,15 +130,15 @@ struct NotchBatteryView: View {
                 HStack(spacing: 4) {
                     Circle()
                         .fill(battery.isHelperInstalled ? Color.green : Color.orange)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 5, height: 5)
                     Text(battery.isHelperInstalled ? "Quyền SMC sẵn sàng" : "Chưa cài quyền SMC")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(.secondary)
                     
                     Spacer()
                     
                     if !battery.isHelperInstalled {
-                        Button("Cài đặt quyền") {
+                        Button("Cài đặt") {
                             battery.installHelper { _ in }
                         }
                         .buttonStyle(.borderedProminent)
@@ -147,7 +147,7 @@ struct NotchBatteryView: View {
                     }
                 }
             }
-            .padding(10)
+            .padding(8)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
             .overlay(
@@ -156,29 +156,29 @@ struct NotchBatteryView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
             
-            // MARK: - Right Card: Live Hardware Stats & Telemetry
-            VStack(alignment: .leading, spacing: 8) {
+            // MARK: - Right Card: Live Hardware Stats & Telemetry (50% Width)
+            VStack(alignment: .leading, spacing: 4) {
                 // Top: Battery Level & Live Pill
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 5) {
                             Text("\(battery.level)%")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white)
                             
                             if battery.isCharging {
                                 Image(systemName: "bolt.fill")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 11))
                                     .foregroundStyle(.green)
                             } else if battery.isPluggedIn {
                                 Image(systemName: "powerplug.fill")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 11))
                                     .foregroundStyle(.cyan)
                             }
                         }
                         
                         Text(battery.isCharging ? "Đang sạc..." : (battery.isPluggedIn ? "Nguồn điện ngoài (AC)" : "Đang dùng pin"))
-                            .font(.system(size: 9))
+                            .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                     }
                     
@@ -188,7 +188,7 @@ struct NotchBatteryView: View {
                     ZStack(alignment: .leading) {
                         Capsule()
                             .fill(Color.white.opacity(0.15))
-                            .frame(width: 52, height: 18)
+                            .frame(width: 44, height: 15)
                         
                         Capsule()
                             .fill(
@@ -198,58 +198,59 @@ struct NotchBatteryView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(8, 52 * CGFloat(battery.level) / 100.0), height: 18)
+                            .frame(width: max(6, 44 * CGFloat(battery.level) / 100.0), height: 15)
                     }
                 }
                 
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.white.opacity(0.08))
+                    .padding(.vertical, 1)
                 
                 // Telemetry Data Rows
-                VStack(spacing: 5) {
+                VStack(spacing: 3) {
                     HStack {
                         Label("Sức khoẻ pin", systemImage: "heart.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text(String(format: "%.1f%% • %d chu kỳ", battery.healthPercent, battery.cycleCount))
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
                             .foregroundStyle(.white)
                     }
                     
                     HStack {
                         Label("Công suất", systemImage: "gauge.with.dots.needle.bottom.50percent")
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text(String(format: "%+.1f W", battery.wattage))
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
                             .foregroundStyle(battery.wattage > 0 ? .green : (battery.wattage < 0 ? .orange : .secondary))
                     }
                     
                     HStack {
                         Label("Nhiệt độ", systemImage: "thermometer.medium")
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text(String(format: "%.1f °C", battery.temperature))
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
                             .foregroundStyle(battery.temperature > 38 ? .orange : .white)
                     }
                     
                     HStack {
                         Label("Củ sạc (Adapter)", systemImage: "bolt.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text(battery.adapterWatts > 0 ? "\(battery.adapterWatts)W \(battery.adapterName)" : battery.adapterName)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.white)
                             .lineLimit(1)
                     }
                 }
             }
-            .padding(10)
+            .padding(8)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
             .overlay(
@@ -258,8 +259,9 @@ struct NotchBatteryView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 18)
+        .padding(.top, 2)
+        .padding(.bottom, 14)
         .onAppear {
             battery.updateBatteryStatus()
         }
