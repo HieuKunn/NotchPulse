@@ -45,8 +45,17 @@ struct FaceIDSettingsView: View {
                                     .font(.subheadline)
                                 Spacer()
                                 Button("Grant Camera Permission") {
-                                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
-                                        NSWorkspace.shared.open(url)
+                                    let status = AVCaptureDevice.authorizationStatus(for: .video)
+                                    if status == .notDetermined {
+                                        AVCaptureDevice.requestAccess(for: .video) { granted in
+                                            DispatchQueue.main.async {
+                                                checkPermissions()
+                                            }
+                                        }
+                                    } else {
+                                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
+                                            NSWorkspace.shared.open(url)
+                                        }
                                     }
                                 }
                                 .buttonStyle(.bordered)

@@ -1,4 +1,4 @@
-# NotchPulse v3.8.8
+# NotchPulse v3.8.9
 
 ## 🐛 Bug Fixes
-- **Settings UI**: Resolved a critical issue where the Settings window would appear as a blank gray screen upon reopening. This was caused by macOS destroying the window's backing layer when the app transitions to a background accessory. The Settings interface is now explicitly re-rendered on every open.
+- **Camera Permissions**: Fixed a logic bug where clicking "Grant Camera Permission" in Settings would immediately open System Preferences without first requesting access from macOS. This caused the app to not appear in the Privacy & Security list after a TCC reset, leaving users unable to grant camera access.
