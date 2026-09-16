@@ -409,7 +409,7 @@
                 <div class="stat-header">
                   <div class="stat-title-group">
                     <div class="stat-icon-badge battery"><i class="fa-solid fa-bolt"></i></div>
-                    <span class="stat-name">Chế độ sạc pin</span>
+                    <span class="stat-name">Charging Mode</span>
                   </div>
                   <span id="batteryDesktopBadge" class="desktop-mode-badge" style="display: none;">Desktop Mode</span>
                 </div>
@@ -418,22 +418,22 @@
                 <div class="charging-mode-pills">
                   <button id="modeBtnToLimit" class="mode-pill-btn active" data-mode="toLimit" onclick="selectChargingMode('toLimit')">
                     <i class="fa-solid fa-battery-three-quarters"></i>
-                    <span>Tới giới hạn</span>
+                    <span>To Limit</span>
                   </button>
                   <button id="modeBtnToFull" class="mode-pill-btn" data-mode="toFull" onclick="selectChargingMode('toFull')">
                     <i class="fa-solid fa-bolt-lightning"></i>
-                    <span>Sạc đầy 100%</span>
+                    <span>Charge to 100%</span>
                   </button>
                   <button id="modeBtnInhibit" class="mode-pill-btn" data-mode="inhibit" onclick="selectChargingMode('inhibit')">
                     <i class="fa-solid fa-plug"></i>
-                    <span>Dùng nguồn AC</span>
+                    <span>AC Power</span>
                   </button>
                 </div>
 
                 <!-- Limit Slider Container -->
                 <div id="limitSliderContainer" class="limit-slider-card">
                   <div class="limit-slider-header">
-                    <span>Dừng sạc ở mức:</span>
+                    <span>Stop charging at:</span>
                     <span id="limitPercentDisplay" class="limit-pct-val">80%</span>
                   </div>
                   <input type="range" id="chargeLimitRange" min="50" max="95" step="5" value="80" oninput="updateChargeLimit(this.value)">
@@ -442,17 +442,17 @@
                 <!-- Mode Info Banners -->
                 <div id="inhibitInfoBanner" class="battery-info-banner inhibit" style="display: none;">
                   <i class="fa-solid fa-shield-halved"></i>
-                  <span>Đang chạy nguồn AC trực tiếp, sạc pin đã tạm ngắt để bảo vệ pin.</span>
+                  <span>Running directly on AC power; charging is paused to protect battery.</span>
                 </div>
                 <div id="toFullInfoBanner" class="battery-info-banner tofull" style="display: none;">
                   <i class="fa-solid fa-bolt"></i>
-                  <span>Sạc pin tự do đến 100% không giới hạn.</span>
+                  <span>Unrestricted charging up to 100%.</span>
                 </div>
 
                 <!-- Helper Status -->
                 <div class="helper-status-row">
                   <div class="status-dot green"></div>
-                  <span>Quyền SMC sẵn sàng</span>
+                  <span>SMC Access Ready</span>
                   <span class="helper-active-tag">Active</span>
                 </div>
               </div>
@@ -469,23 +469,23 @@
                   </div>
                 </div>
 
-                <div class="battery-status-subtext" id="liveBatStatusText">Đang cắm sạc • Nguồn điện AC</div>
+                <div class="battery-status-subtext" id="liveBatStatusText">Connected to AC Power</div>
 
                 <div class="battery-data-grid">
                   <div class="data-row">
-                    <span class="row-label"><i class="fa-solid fa-heart"></i> Sức khoẻ pin</span>
-                    <span class="row-val" id="valHealth">98.8% • 112 chu kỳ</span>
+                    <span class="row-label"><i class="fa-solid fa-heart"></i> Battery Health</span>
+                    <span class="row-val" id="valHealth">98.8% • 112 cycles</span>
                   </div>
                   <div class="data-row">
-                    <span class="row-label"><i class="fa-solid fa-gauge-high"></i> Công suất</span>
+                    <span class="row-label"><i class="fa-solid fa-gauge-high"></i> Power</span>
                     <span class="row-val green" id="valWattage">+42.5 W</span>
                   </div>
                   <div class="data-row">
-                    <span class="row-label"><i class="fa-solid fa-temperature-half"></i> Nhiệt độ</span>
+                    <span class="row-label"><i class="fa-solid fa-temperature-half"></i> Temperature</span>
                     <span class="row-val" id="valTemp">29.8 °C</span>
                   </div>
                   <div class="data-row">
-                    <span class="row-label"><i class="fa-solid fa-plug-circle-bolt"></i> Củ sạc (Adapter)</span>
+                    <span class="row-label"><i class="fa-solid fa-plug-circle-bolt"></i> Power Adapter</span>
                     <span class="row-val" id="valAdapter">70W Apple USB-C PD</span>
                   </div>
                 </div>

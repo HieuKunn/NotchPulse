@@ -32,9 +32,9 @@ final class NativeBatteryManager: ObservableObject {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .toLimit: return "Tới giới hạn"
-            case .toFull: return "Sạc đầy 100%"
-            case .inhibit: return "Dùng nguồn AC"
+            case .toLimit: return "To Limit"
+            case .toFull: return "Charge to 100%"
+            case .inhibit: return "AC Power"
             }
         }
         var icon: String {
@@ -289,7 +289,7 @@ final class NativeBatteryManager: ObservableObject {
     // MARK: - 1-Click Helper Installation
     func installHelper(completion: @escaping (Bool) -> Void) {
         isBusy = true
-        helperStatusMessage = "Đang cài đặt quyền điều khiển pin..."
+        helperStatusMessage = "Installing battery control helper..."
         
         DispatchQueue.global(qos: .userInitiated).async {
             // Script to create the lightweight SMC battery helper at /usr/local/bin/notchpulse-battery
@@ -349,7 +349,7 @@ final class NativeBatteryManager: ObservableObject {
             Task { @MainActor in
                 self.isBusy = false
                 self.isHelperInstalled = success
-                self.helperStatusMessage = success ? "Cài đặt thành công!" : "Không thể cài đặt quyền quản trị."
+                self.helperStatusMessage = success ? "Installed successfully!" : "Failed to obtain administrator privileges."
                 completion(success)
             }
         }

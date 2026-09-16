@@ -85,7 +85,7 @@ struct LockScreenMediaView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .help("Nhấp để phóng to toàn màn hình hiển thị lời bài hát")
+                .help("Click to expand to full-screen lyrics")
                 
                 // Tên bài hát & Tên ca sĩ
                 VStack(alignment: .leading, spacing: 2) {
@@ -131,7 +131,7 @@ struct LockScreenMediaView: View {
                             }
                         }
                         .buttonStyle(.plain)
-                        .help("Nhấp để phóng to toàn màn hình hiển thị lời bài hát (Karaoke)")
+                        .help("Click to expand to full-screen lyrics (Karaoke)")
                     }
                 }
             } else if !musicManager.currentLyrics.isEmpty {
@@ -142,7 +142,7 @@ struct LockScreenMediaView: View {
                         Image(systemName: "quote.bubble.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
-                        Text("Xem lời bài hát (Lyrics)")
+                        Text("View Lyrics")
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundStyle(.white.opacity(0.75))
                         Spacer()
@@ -206,7 +206,7 @@ struct LockScreenMediaView: View {
                         .foregroundStyle(hasLyrics ? Color.white.opacity(0.95) : Color.white.opacity(0.45))
                 }
                 .buttonStyle(.plain)
-                .help("Nhấp để phóng to toàn màn hình hiển thị lời bài hát (Karaoke)")
+                .help("Click to expand to full-screen lyrics (Karaoke)")
             }
         }
         .padding(.horizontal, 18)
@@ -318,7 +318,7 @@ struct LockScreenMediaView: View {
                 }
             }
             .buttonStyle(.plain)
-            .help("Nhấp vào ảnh để thu nhỏ")
+            .help("Click artwork to collapse")
             
             // Thông tin bài hát
             VStack(spacing: albumSize * 0.02) {
@@ -470,7 +470,7 @@ struct LockScreenMediaView: View {
                     Image(systemName: "music.note.list")
                         .font(.system(size: 44))
                         .foregroundStyle(.white.opacity(0.3))
-                    Text(musicManager.isPlaying ? "Đang phát nhạc" : "Đang tạm dừng")
+                    Text(musicManager.isPlaying ? "Playing Music" : "Paused")
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.6))
                     Spacer()

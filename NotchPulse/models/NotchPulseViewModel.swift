@@ -218,11 +218,12 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
 
-        // Set the current view to shelf if it contains files and the user enables openShelfByDefault
-        // Otherwise, if the user has not enabled openLastShelfByDefault, set the view to home
-    if !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] {
+        // If user enabled restoring the last active tab on hover, preserve currentView
+        if coordinator.openLastTabByDefault {
+            // Keep currentView intact (Stats, Battery, Shelf, Home)
+        } else if !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] {
             coordinator.currentView = .shelf
-        } else if !coordinator.openLastTabByDefault {
+        } else {
             coordinator.currentView = .home
         }
     }

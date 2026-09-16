@@ -21,7 +21,7 @@ struct NotchBatteryView: View {
                     Image(systemName: "bolt.badge.automatic.fill")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.green)
-                    Text("Chế độ sạc pin")
+                    Text("Charging Mode")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white)
                     Spacer()
@@ -73,7 +73,7 @@ struct NotchBatteryView: View {
                 if battery.chargingMode == .toLimit {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text("Dừng sạc ở mức:")
+                            Text("Stop charging at:")
                                 .font(.system(size: 9))
                                 .foregroundStyle(.secondary)
                             Spacer()
@@ -102,7 +102,7 @@ struct NotchBatteryView: View {
                         Image(systemName: "shield.lefthalf.filled")
                             .font(.system(size: 10))
                             .foregroundStyle(.cyan)
-                        Text("Đang chạy nguồn AC trực tiếp, sạc pin đã tạm ngắt để bảo vệ pin.")
+                        Text("Running on direct AC power; battery charging is paused.")
                             .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -115,7 +115,7 @@ struct NotchBatteryView: View {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.yellow)
-                        Text("Sạc pin tự do đến 100% không giới hạn.")
+                        Text("Unrestricted charging up to 100%.")
                             .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                     }
@@ -131,14 +131,14 @@ struct NotchBatteryView: View {
                     Circle()
                         .fill(battery.isHelperInstalled ? Color.green : Color.orange)
                         .frame(width: 5, height: 5)
-                    Text(battery.isHelperInstalled ? "Quyền SMC sẵn sàng" : "Chưa cài quyền SMC")
+                    Text(battery.isHelperInstalled ? "SMC Access Ready" : "SMC Helper Required")
                         .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(.secondary)
                     
                     Spacer()
                     
                     if !battery.isHelperInstalled {
-                        Button("Cài đặt") {
+                        Button("Install") {
                             battery.installHelper { _ in }
                         }
                         .buttonStyle(.borderedProminent)
@@ -177,7 +177,7 @@ struct NotchBatteryView: View {
                             }
                         }
                         
-                        Text(battery.isCharging ? "Đang sạc..." : (battery.isPluggedIn ? "Nguồn điện ngoài (AC)" : "Đang dùng pin"))
+                        Text(battery.isCharging ? "Charging..." : (battery.isPluggedIn ? "AC Connected (Idle)" : "On Battery"))
                             .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                     }
@@ -209,17 +209,17 @@ struct NotchBatteryView: View {
                 // Telemetry Data Rows
                 VStack(spacing: 3) {
                     HStack {
-                        Label("Sức khoẻ pin", systemImage: "heart.fill")
+                        Label("Battery Health", systemImage: "heart.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text(String(format: "%.1f%% • %d chu kỳ", battery.healthPercent, battery.cycleCount))
+                        Text(String(format: "%.1f%% • %d cycles", battery.healthPercent, battery.cycleCount))
                             .font(.system(size: 9, weight: .medium, design: .rounded))
                             .foregroundStyle(.white)
                     }
                     
                     HStack {
-                        Label("Công suất", systemImage: "gauge.with.dots.needle.bottom.50percent")
+                        Label("Power", systemImage: "gauge.with.dots.needle.bottom.50percent")
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -229,7 +229,7 @@ struct NotchBatteryView: View {
                     }
                     
                     HStack {
-                        Label("Nhiệt độ", systemImage: "thermometer.medium")
+                        Label("Temperature", systemImage: "thermometer.medium")
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -239,7 +239,7 @@ struct NotchBatteryView: View {
                     }
                     
                     HStack {
-                        Label("Củ sạc (Adapter)", systemImage: "bolt.fill")
+                        Label("Power Adapter", systemImage: "bolt.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                         Spacer()

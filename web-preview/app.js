@@ -440,7 +440,7 @@ function selectChargingMode(mode) {
     if (toFullBanner) toFullBanner.style.display = 'none';
     if (desktopBadge) desktopBadge.style.display = 'none';
     if (wattageVal) { wattageVal.textContent = '+38.2 W'; wattageVal.className = 'row-val green'; }
-    if (statusText) statusText.textContent = `Đang sạc đến ${state.chargeLimit}% • Tự động ngắt khi đầy`;
+    if (statusText) statusText.textContent = `Charging to ${state.chargeLimit}% • Auto stop when full`;
     if (liveIcon) liveIcon.className = 'fa-solid fa-bolt live-bat-icon green';
   } else if (mode === 'inhibit') {
     if (sliderContainer) sliderContainer.style.display = 'none';
@@ -448,7 +448,7 @@ function selectChargingMode(mode) {
     if (toFullBanner) toFullBanner.style.display = 'none';
     if (desktopBadge) desktopBadge.style.display = 'inline-block';
     if (wattageVal) { wattageVal.textContent = '0.0 W (AC Only)'; wattageVal.className = 'row-val'; }
-    if (statusText) statusText.textContent = 'Desktop Mode • Nguồn điện ngoài trực tiếp (Ngắt sạc)';
+    if (statusText) statusText.textContent = 'Desktop Mode • Direct AC power (Charging paused)';
     if (liveIcon) liveIcon.className = 'fa-solid fa-plug live-bat-icon';
   } else if (mode === 'toFull') {
     if (sliderContainer) sliderContainer.style.display = 'none';
@@ -456,7 +456,7 @@ function selectChargingMode(mode) {
     if (toFullBanner) toFullBanner.style.display = 'flex';
     if (desktopBadge) desktopBadge.style.display = 'none';
     if (wattageVal) { wattageVal.textContent = '+58.0 W'; wattageVal.className = 'row-val green'; }
-    if (statusText) statusText.textContent = 'Đang sạc tối đa đến 100% (Không giới hạn)';
+    if (statusText) statusText.textContent = 'Unrestricted charging up to 100%';
     if (liveIcon) liveIcon.className = 'fa-solid fa-bolt-lightning live-bat-icon green';
   }
 }
@@ -467,7 +467,7 @@ function updateChargeLimit(val) {
   if (disp) disp.textContent = `${val}%`;
   const statusText = document.getElementById('liveBatStatusText');
   if (statusText && state.batteryMode === 'toLimit') {
-    statusText.textContent = `Đang sạc đến ${val}% • Tự động ngắt khi đầy`;
+    statusText.textContent = `Charging to ${val}% • Auto stop when full`;
   }
 }
 

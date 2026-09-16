@@ -70,11 +70,42 @@ struct ShelfView: View {
                 content
                     .padding()
             }
+            .overlay(alignment: .bottomTrailing) {
+                pinButton
+                    .padding(8)
+            }
             .transaction { transaction in
                 transaction.animation = vm.animation
             }
             .contentShape(Rectangle())
             .onTapGesture { selection.clear() }
+    }
+
+    var pinButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                tvm.isPinned.toggle()
+            }
+            if !tvm.isPinned && !vm.isMouseHovering() {
+                vm.close()
+            }
+        } label: {
+            Image(systemName: tvm.isPinned ? "pin.fill" : "pin")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(tvm.isPinned ? Color.green : Color.white.opacity(0.65))
+                .rotationEffect(.degrees(tvm.isPinned ? 0 : 45))
+                .frame(width: 24, height: 24)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(tvm.isPinned ? Color.green.opacity(0.22) : Color.white.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(tvm.isPinned ? Color.green.opacity(0.7) : Color.white.opacity(0.12), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .help(tvm.isPinned ? "Unpin Shelf (Close on hover exit)" : "Pin Shelf (Keep open when hovering out)")
     }
 
     var content: some View {

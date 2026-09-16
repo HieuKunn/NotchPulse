@@ -156,14 +156,14 @@ struct BatteryMenuView: View {
                         Circle()
                             .fill(Color.green)
                             .frame(width: 8, height: 8)
-                        Text("Desktop Mode (Dừng sạc ở \(batteryManager.chargeLimit)%)")
+                        Text("Desktop Mode (Paused at \(batteryManager.chargeLimit)%)")
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.green)
                     }
                     .padding(.vertical, 2)
                 } else if isCharging && timeToFullCharge > 0 {
-                    Label("Còn \(timeToFullCharge) phút để sạc đầy", systemImage: "clock")
+                    Label("\(timeToFullCharge) min to full charge", systemImage: "clock")
                         .font(.subheadline)
                 }
             }
@@ -174,7 +174,7 @@ struct BatteryMenuView: View {
             // Charge Limit controls
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Giới hạn sạc:")
+                    Text("Charge limit:")
                         .font(.subheadline)
                         .fontWeight(.medium)
                     Spacer()
@@ -189,7 +189,7 @@ struct BatteryMenuView: View {
                     } label: {
                         HStack {
                             Image(systemName: batteryManager.chargeLimitEnabled ? "checkmark.circle.fill" : "circle")
-                            Text(batteryManager.chargeLimitEnabled ? "Đang bật (\(batteryManager.chargeLimit)%)" : "Bật giới hạn")
+                            Text(batteryManager.chargeLimitEnabled ? "Active (\(batteryManager.chargeLimit)%)" : "Enable limit")
                         }
                         .font(.caption)
                         .frame(maxWidth: .infinity)
@@ -205,7 +205,7 @@ struct BatteryMenuView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "battery.100.bolt")
-                                Text("Sạc đầy")
+                                Text("Charge to 100%")
                             }
                             .font(.caption)
                             .frame(maxWidth: .infinity)

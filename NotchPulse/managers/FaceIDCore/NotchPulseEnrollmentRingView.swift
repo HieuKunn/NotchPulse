@@ -42,15 +42,15 @@ enum GuidedEnrollmentPose: Int, CaseIterable, Identifiable {
     
     var instruction: String {
         switch self {
-        case .center: return "Nhìn thẳng vào camera"
-        case .left: return "Nghiêng đầu sang trái"
-        case .topLeft: return "Nghiêng sang góc trên bên trái"
-        case .top: return "Ngước đầu lên trên"
-        case .topRight: return "Nghiêng sang góc trên bên phải"
-        case .right: return "Nghiêng đầu sang phải"
-        case .bottomRight: return "Nghiêng sang góc dưới bên phải"
-        case .bottom: return "Cúi nhẹ đầu xuống"
-        case .bottomLeft: return "Nghiêng sang góc dưới bên trái"
+        case .center: return "Look straight at the camera"
+        case .left: return "Tilt head to the left"
+        case .topLeft: return "Tilt head up and to the left"
+        case .top: return "Tilt head up"
+        case .topRight: return "Tilt head up and to the right"
+        case .right: return "Tilt head to the right"
+        case .bottomRight: return "Tilt head down and to the right"
+        case .bottom: return "Tilt head down"
+        case .bottomLeft: return "Tilt head down and to the left"
         }
     }
     
@@ -216,7 +216,7 @@ struct NotchPulseGuidedEnrollmentView: View {
     @State private var currentTurnIntensity: Double = 0.0
     @State private var isComplete = false
     @State private var pulseCenter = false
-    @State private var statusPrompt = "Nhìn thẳng vào camera"
+    @State private var statusPrompt = "Look straight at the camera"
     
     private let embedder: NotchPulseFaceEmbedder = (try? NotchPulseArcFaceEmbedder()) ?? NotchPulseVisionFeaturePrintEmbedder()
     
@@ -224,7 +224,7 @@ struct NotchPulseGuidedEnrollmentView: View {
         VStack(spacing: 20) {
             // Header
             HStack {
-                Text("Thiết lập Face ID")
+                Text("Set Up Face ID")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                 Spacer()
@@ -281,12 +281,12 @@ struct NotchPulseGuidedEnrollmentView: View {
             
             // Guided Instruction Banner
             VStack(spacing: 6) {
-                Text(isComplete ? "Hoàn tất đăng ký Face ID! 🎉" : statusPrompt)
+                Text(isComplete ? "Face ID Enrollment Complete! 🎉" : statusPrompt)
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                 
-                Text(isComplete ? "Khuôn mặt của bạn đã được mã hoá và bảo vệ an toàn trong Keychain." : "Xoay nhẹ đầu theo vòng tròn để ghi lại đầy đủ các góc cạnh của khuôn mặt.")
+                Text(isComplete ? "Your face has been securely encrypted and stored in Keychain." : "Slowly move your head in a circle to capture all angles.")
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -337,7 +337,7 @@ struct NotchPulseGuidedEnrollmentView: View {
     private func processFrame(_ image: CGImage) async {
         guard let faces = try? NotchPulseFaceDetector.detectFaces(in: image),
               let face = faces.first, faces.count == 1 else {
-            statusPrompt = "Định vị khuôn mặt trong vòng tròn"
+            statusPrompt = "Position your face within the circle"
             currentTurnIntensity = 0
             currentTurnAngle = nil
             return
@@ -389,7 +389,7 @@ struct NotchPulseGuidedEnrollmentView: View {
                         await finishEnrollment()
                     }
                 } else {
-                    statusPrompt = "Giữ nguyên..."
+                    statusPrompt = "Hold still..."
                 }
             }
         } else {

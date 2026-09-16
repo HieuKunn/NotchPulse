@@ -27,11 +27,11 @@ struct FaceIDSettingsView: View {
             if !isAccessibilityGranted || !isCameraGranted {
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
-                        Label("Yêu cầu cấp quyền hệ thống", systemImage: "exclamationmark.shield.fill")
+                        Label("System Permissions Required", systemImage: "exclamationmark.shield.fill")
                             .font(.headline)
                             .foregroundStyle(.orange)
                         
-                        Text("Face ID cần quyền Camera để nhận diện và quyền Trợ năng (Accessibility) để tự động gõ mật khẩu mở khoá màn hình.")
+                        Text("Face ID requires Camera permission for face detection and Accessibility permission to automatically enter your password on unlock.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         
@@ -39,10 +39,10 @@ struct FaceIDSettingsView: View {
                             HStack {
                                 Image(systemName: "camera.fill")
                                     .foregroundStyle(.red)
-                                Text("Chưa có quyền Camera")
+                                Text("Camera Permission Missing")
                                     .font(.subheadline)
                                 Spacer()
-                                Button("Cấp quyền Camera") {
+                                Button("Grant Camera Permission") {
                                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
                                         NSWorkspace.shared.open(url)
                                     }
@@ -56,10 +56,10 @@ struct FaceIDSettingsView: View {
                             HStack {
                                 Image(systemName: "hand.raised.fill")
                                     .foregroundStyle(.orange)
-                                Text("Chưa có quyền Trợ năng (Accessibility)")
+                                Text("Accessibility Permission Missing")
                                     .font(.subheadline)
                                 Spacer()
-                                Button("Mở Cài đặt Trợ năng") {
+                                Button("Open Accessibility Settings") {
                                     let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
                                     _ = AXIsProcessTrustedWithOptions(options)
                                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
@@ -74,7 +74,7 @@ struct FaceIDSettingsView: View {
                     }
                     .padding(.vertical, 4)
                 } header: {
-                    Text("Trạng thái quyền hệ thống")
+                    Text("System Permissions Status")
                 }
             }
 
@@ -95,11 +95,11 @@ struct FaceIDSettingsView: View {
                 }
 
                 HStack {
-                    Text("Số lần ấn phím Enter khi mở khoá")
+                    Text("Enter key presses on unlock")
                     Spacer()
-                    Stepper("\(faceIDEnterPressCount) lần", value: $faceIDEnterPressCount, in: 1...5)
+                    Stepper("\(faceIDEnterPressCount) time(s)", value: $faceIDEnterPressCount, in: 1...5)
                 }
-                Text("Tuỳ chỉnh số lần gửi tín hiệu phím Enter/Return để mở máy sau khi nhận diện thành công (1 - 5 lần).")
+                Text("Number of Enter/Return keystrokes sent to wake and unlock the display upon successful recognition (1 - 5).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
@@ -120,9 +120,9 @@ struct FaceIDSettingsView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Chưa đăng ký Face ID")
+                            Text("No Face ID Enrolled")
                                 .font(.headline)
-                            Text("Quét khuôn mặt 360° theo vòng tròn 8 hướng để tự động mở khoá Mac siêu tốc.")
+                            Text("Scan your face in 8 directions to enable instant Face ID unlock on your Mac.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -132,7 +132,7 @@ struct FaceIDSettingsView: View {
                         Button {
                             showGuidedEnrollmentModal = true
                         } label: {
-                            Label("Thiết lập Face ID", systemImage: "camera.viewfinder")
+                            Label("Set Up Face ID", systemImage: "camera.viewfinder")
                                 .fontWeight(.semibold)
                         }
                         .buttonStyle(.borderedProminent)
@@ -151,7 +151,7 @@ struct FaceIDSettingsView: View {
                             
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack(spacing: 6) {
-                                    Text("Khuôn mặt đã đăng ký")
+                                    Text("Enrolled Face")
                                         .font(.headline)
                                     Image(systemName: "checkmark.seal.fill")
                                         .foregroundStyle(Color(red: 0.188, green: 0.855, blue: 0.376))
@@ -168,7 +168,7 @@ struct FaceIDSettingsView: View {
                             Button {
                                 showGuidedEnrollmentModal = true
                             } label: {
-                                Label("Quét lại khuôn mặt", systemImage: "arrow.triangle.2.circlepath")
+                                Label("Rescan Face", systemImage: "arrow.triangle.2.circlepath")
                             }
                             .buttonStyle(.bordered)
                         }
@@ -180,7 +180,7 @@ struct FaceIDSettingsView: View {
                             Button(role: .destructive) {
                                 faceIDManager.resetEnrollment()
                             } label: {
-                                Label("Xoá dữ liệu Face ID", systemImage: "trash")
+                                Label("Delete Face ID Data", systemImage: "trash")
                                     .foregroundStyle(.red)
                             }
                             .buttonStyle(.plain)
@@ -196,9 +196,9 @@ struct FaceIDSettingsView: View {
                     .padding(.vertical, 4)
                 }
             } header: {
-                Text("Dữ liệu nhận diện sinh trắc học")
+                Text("Biometric Recognition Data")
             } footer: {
-                Text("Quá trình thiết lập Face ID sử dụng vòng xoay 80-tick mô phỏng chính xác iPhone Face ID để bao phủ toàn diện các góc nhìn của khuôn mặt.")
+                Text("Face ID enrollment uses an 80-tick guided rotation modeled after iOS Face ID for comprehensive facial coverage.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -207,13 +207,13 @@ struct FaceIDSettingsView: View {
             if faceIDManager.isEnrolled {
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Kiểm tra trực tiếp độ nhạy và mức độ tương đồng của khuôn mặt trước camera theo thời gian thực.")
+                        Text("Verify camera detection sensitivity and facial similarity score in real time.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         
                         HStack(spacing: 12) {
                             if faceIDManager.isTestingMode {
-                                Button("Dừng kiểm tra") {
+                                Button("Stop Test") {
                                     faceIDManager.stopTestRecognition()
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -222,7 +222,7 @@ struct FaceIDSettingsView: View {
                                 Button {
                                     faceIDManager.startTestRecognition()
                                 } label: {
-                                    Label("Bắt đầu thử nghiệm nhận diện", systemImage: "faceid")
+                                    Label("Start Recognition Test", systemImage: "faceid")
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .disabled(faceIDManager.isScanning)
@@ -249,7 +249,7 @@ struct FaceIDSettingsView: View {
                                         .foregroundStyle(faceIDManager.testResultColor)
                                     
                                     if faceIDManager.testConfidence > 0 {
-                                        Text("Độ tương đồng Cosine: \(faceIDManager.testConfidence)% (Ngưỡng mở: 40%)")
+                                        Text("Cosine Similarity: \(faceIDManager.testConfidence)% (Threshold: 40%)")
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
                                     }
@@ -264,22 +264,22 @@ struct FaceIDSettingsView: View {
                     }
                     .padding(.vertical, 4)
                 } header: {
-                    Label("Thử nghiệm nhận diện thời gian thực (Live Tester)", systemImage: "checkmark.shield")
+                    Label("Live Recognition Tester", systemImage: "checkmark.shield")
                 }
             }
             
             // MARK: - Section 4: Lock Screen Password Setup
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Nhập mật khẩu đăng nhập Mac để Face ID có thể tự động gõ mở khoá màn hình. Mật khẩu được mã hoá bằng khoá phần cứng trong Apple Keychain.")
+                    Text("Enter your Mac password so Face ID can automatically unlock your screen. Stored securely with AES-256 in Apple Keychain.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     
                     HStack {
-                        SecureField(faceIDManager.hasPasswordSet ? "••••••••••••" : "Nhập mật khẩu máy Mac", text: $passwordInput)
+                        SecureField(faceIDManager.hasPasswordSet ? "••••••••••••" : "Enter Mac password", text: $passwordInput)
                             .textFieldStyle(.roundedBorder)
                         
-                        Button("Lưu vào Keychain") {
+                        Button("Save to Keychain") {
                             if !passwordInput.isEmpty {
                                 if let data = passwordInput.data(using: .utf8) {
                                     do {
@@ -301,14 +301,14 @@ struct FaceIDSettingsView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(Color(red: 0.188, green: 0.855, blue: 0.376))
-                            Text("Mật khẩu đã được mã hoá và lưu an toàn trong Keychain")
+                            Text("Password encrypted and securely saved in Keychain")
                                 .font(.caption)
                                 .foregroundStyle(Color(red: 0.188, green: 0.855, blue: 0.376))
                         }
                     }
                 }
             } header: {
-                Text("Thông tin xác thực mở máy")
+                Text("Unlock Credentials")
             }
             
             // MARK: - Section 5: Lock Screen Media Player

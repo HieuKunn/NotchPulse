@@ -216,7 +216,7 @@ struct NotchWidthLivePreview: View {
                     Circle()
                         .fill(Color.green)
                         .frame(width: 6, height: 6)
-                    Text("Đang xem trước trực tiếp trên tai thỏ")
+                    Text("Live preview active on Notch")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -650,7 +650,12 @@ struct GeneralSettings: View {
             Defaults.Toggle(key: .enableHaptics) {
                     Text("Enable haptic feedback")
             }
-            Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("Restore last tab on hover", isOn: $coordinator.openLastTabByDefault)
+                Text("When opening the notch on hover, restore the last selected tab (e.g. CPU/RAM Stats, Battery) instead of resetting to Home.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if openNotchOnHover {
                 Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
                     HStack {
@@ -701,9 +706,9 @@ struct Charge: View {
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Dung lượng pin: \(batteryManager.level)%")
+                        Text("Battery level: \(batteryManager.level)%")
                             .font(.headline)
-                        Text("Sức khỏe pin: \(String(format: "%.1f", batteryManager.healthPercent))% • \(batteryManager.cycleCount) chu kỳ sạc")
+                        Text("Battery health: \(String(format: "%.1f", batteryManager.healthPercent))% • \(batteryManager.cycleCount) cycles")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -718,7 +723,7 @@ struct Charge: View {
                             .foregroundColor(.green)
                             .cornerRadius(6)
                     } else if batteryManager.isCharging {
-                        Text("Đang sạc")
+                        Text("Charging")
                             .font(.caption)
                             .fontWeight(.bold)
                             .padding(.horizontal, 8)
@@ -732,7 +737,7 @@ struct Charge: View {
                 
                 if batteryManager.wattage != 0 {
                     HStack {
-                        Text("Công suất:")
+                        Text("Power:")
                         Spacer()
                         Text("\(batteryManager.wattage > 0 ? "+" : "")\(String(format: "%.1f", batteryManager.wattage))W")
                             .foregroundColor(batteryManager.wattage > 0 ? .green : .orange)
@@ -741,7 +746,7 @@ struct Charge: View {
                 
                 if batteryManager.temperature > 0 {
                     HStack {
-                        Text("Nhiệt độ pin:")
+                        Text("Battery temperature:")
                         Spacer()
                         Text("\(String(format: "%.1f", batteryManager.temperature))°C")
                             .foregroundColor(.secondary)
@@ -750,23 +755,23 @@ struct Charge: View {
                 
                 if batteryManager.adapterWatts > 0 {
                     HStack {
-                        Text("Củ sạc đang cắm:")
+                        Text("Connected adapter:")
                         Spacer()
                         Text("\(batteryManager.adapterWatts)W (\(batteryManager.adapterName))")
                             .foregroundColor(.secondary)
                     }
                 }
             } header: {
-                Text("Tình trạng Pin (Native)")
+                Text("Battery Status (Native)")
             }
             
             Section {
-                Toggle("Bật tự động giới hạn sạc", isOn: $batteryManager.chargeLimitEnabled)
+                Toggle("Enable charge limiter", isOn: $batteryManager.chargeLimitEnabled)
                 
                 if batteryManager.chargeLimitEnabled {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("Dừng sạc ở mức:")
+                            Text("Stop charging at:")
                             Spacer()
                             Text("\(batteryManager.chargeLimit)%")
                                 .fontWeight(.bold)
@@ -776,7 +781,7 @@ struct Charge: View {
                             set: { batteryManager.chargeLimit = Int($0) }
                         ), in: 50...95, step: 1)
                         
-                        Text("Máy sẽ tự động ngắt dòng sạc khi đạt \(batteryManager.chargeLimit)% và chuyển sang chạy điện trực tiếp (AC Power), giúp cắm sạc cả ngày mà không bị chai pin.")
+                        Text("Charging will pause automatically at \(batteryManager.chargeLimit)% and run directly on AC power to preserve battery lifespan.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -788,11 +793,11 @@ struct Charge: View {
                         HStack {
                             Image(systemName: "shield.lefthalf.filled")
                                 .foregroundColor(.orange)
-                            Text("Cần cấp quyền điều khiển sạc phần cứng")
+                            Text("Hardware SMC Permission Required")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
-                        Text("Để NotchPulse có thể ngắt dòng sạc pin khi cắm sạc cả ngày, hệ thống macOS cần cấp quyền điều khiển phần cứng SMC một lần duy nhất.")
+                        Text("To manage hardware charging limits, NotchPulse requires one-time SMC helper authorization.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             
@@ -805,7 +810,7 @@ struct Charge: View {
                                 if batteryManager.isBusy {
                                     ProgressView().controlSize(.small)
                                 }
-                                Text("Kích hoạt quyền điều khiển sạc")
+                                Text("Authorize SMC Access")
                             }
                             .frame(maxWidth: .infinity)
                         }
@@ -821,11 +826,11 @@ struct Charge: View {
                     .padding(.vertical, 4)
                 } else {
                     HStack {
-                        Label("Quyền điều khiển sạc đã sẵn sàng", systemImage: "checkmark.seal.fill")
+                        Label("SMC Access Granted", systemImage: "checkmark.seal.fill")
                             .foregroundColor(.green)
                             .font(.subheadline)
                         Spacer()
-                        Button("Sạc đầy 100%") {
+                        Button("Charge to 100%") {
                             batteryManager.requestFullCharge()
                         }
                         .buttonStyle(.bordered)
@@ -833,9 +838,9 @@ struct Charge: View {
                     }
                 }
             } header: {
-                Text("Bảo vệ Pin khi cắm sạc (Apple Silicon)")
+                Text("Battery Protection (Apple Silicon)")
             } footer: {
-                Text("Tự động ngắt sạc khi đạt ngưỡng để bảo vệ tế bào pin lithium. Phù hợp cho người dùng cắm sạc máy tính cả ngày.")
+                Text("Automatically stops charging at the set threshold to protect battery health during continuous AC power usage.")
             }
         }
         .onAppear {

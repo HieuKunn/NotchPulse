@@ -16,6 +16,7 @@ final class ShelfStateViewModel: ObservableObject {
     }
 
     @Published var isLoading: Bool = false
+    @Published var isPinned: Bool = false
 
     var isEmpty: Bool { items.isEmpty }
 

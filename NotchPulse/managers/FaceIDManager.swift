@@ -31,12 +31,12 @@ enum FacePose: String, CaseIterable, Identifiable {
     
     var prompt: String {
         switch self {
-        case .frontal: return "Nhìn thẳng vào camera"
-        case .lookLeft: return "Nghiêng nhẹ sang trái"
-        case .lookRight: return "Nghiêng nhẹ sang phải"
-        case .lookUp: return "Hơi ngước đầu lên"
-        case .lookDown: return "Hơi cúi đầu xuống"
-        case .smile: return "Mỉm cười một chút"
+        case .frontal: return "Look straight at the camera"
+        case .lookLeft: return "Tilt head slightly to the left"
+        case .lookRight: return "Tilt head slightly to the right"
+        case .lookUp: return "Tilt head slightly up"
+        case .lookDown: return "Tilt head slightly down"
+        case .smile: return "Smile slightly"
         }
     }
     
@@ -66,12 +66,12 @@ enum NotchPulseEnrollmentError: LocalizedError {
     
     var errorDescription: String? {
         switch self {
-        case .noFaceDetected: return "Không tìm thấy khuôn mặt"
-        case .multipleFacesDetected: return "Phát hiện nhiều hơn 1 khuôn mặt"
-        case .alignmentFailed: return "Không thể căn chỉnh khuôn mặt"
-        case .embeddingFailed: return "Trích xuất đặc trưng thất bại"
-        case .qualityTooLow: return "Chất lượng hình ảnh quá thấp"
-        case .sessionLocked: return "Phiên bảo mật đang bị khoá"
+        case .noFaceDetected: return "No face detected"
+        case .multipleFacesDetected: return "More than one face detected"
+        case .alignmentFailed: return "Failed to align face"
+        case .embeddingFailed: return "Failed to extract face features"
+        case .qualityTooLow: return "Image quality too low"
+        case .sessionLocked: return "Security session locked"
         }
     }
 }
@@ -317,7 +317,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                         } else {
                             poseEmbeddings.append(analysis.embedding)
                             poseFramesCaptured += 1
-                            self.statusMessage = "Giữ nguyên... (\(poseFramesCaptured)/\(framesPerPose))"
+                            self.statusMessage = "Hold still... (\(poseFramesCaptured)/\(framesPerPose))"
                         }
                     } catch {
                         if let error = error as? NotchPulseEnrollmentError {
