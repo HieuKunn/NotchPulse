@@ -1,282 +1,0 @@
- 
-
-input*
-
-PPêÄR
-output
-*
-êÄ¢ô
-(Mock MiniFASNet Liveness Detection Model
-NotchPulse"MIT¢:
-+com.github.apple.coremltools.source_dialectTorchScript¢:
-,com.github.apple.coremltools.conversion_date
-2026-09-16¢3
-#com.github.apple.coremltools.sourcetorch==2.2.2¢+
-$com.github.apple.coremltools.version9.0≤‰˜
-mainÓ
-'
-input
-
-
-
-
-P
-PCoreML6π
-CoreML6≠output^
-const
-x_pad_type_0
-*"
-name
-
-"
-x_pad_type_0*
-val
-
-
-"
-customb
-const
-x_pad_0
-
-
-*
-name
-
-"	
-x_pad_0*!
-val
-
-
-
-
-
-h
-const
-x_strides_0
-
-
-*!
-name
-
-"
-x_strides_0*
-val
-
-
-
-
-l
-const
-x_dilations_0
-
-
-*#
-name
-
-"
-x_dilations_0*
-val
-
-
-
-
-U
-const
-
-x_groups_0
-* 
-name
-
-"
-
-x_groups_0*
-val
-
-
-∂
-const5
-conv_weight_to_fp16
-
-
-
-
-
-*)
-name!
-
-"
-conv_weight_to_fp16*K
-valD
-
-
-
-
-
-*"
-@model_path/weights/weight.bin@è
-const!
-conv_bias_to_fp16
-
-
-
-*'
-name
-
-"
-conv_bias_to_fp16*:
-val3
-
-
-
-*#
-@model_path/weights/weight.binÄ≤
-conv!
-weight
-
-conv_weight_to_fp16
-pad
-	
-x_pad_0
-x	
-
-input
-groups
-
-
-x_groups_0
-pad_type
-
-x_pad_type_0
-strides
-
-x_strides_0
-bias
-
-conv_bias_to_fp16
-	dilations
-
-x_dilations_0-
-x_cast_fp16
-
-
-
-
-(
-(*!
-name
-
-"
-x_cast_fp16f
-const
-var_21
-
-
-*
-name
-
-	"
-op_21*(
-val!
-
-
-
-
-ˇˇˇˇˇˇˇˇˇÑ
-reshape
-shape
-
-
-var_21
-x
-
-x_cast_fp16'
-input_cast_fp16
-
-
-
-Ä»*%
-name
-
-"
-input_cast_fp16ü
-const)
-fc_weight_to_fp16
-
-
-
-Ä»*'
-name
-
-"
-fc_weight_to_fp16*B
-val;
-
-
-
-Ä»*#
-@model_path/weights/weight.binÄ	t
-const
-fc_bias_to_fp16
-
-
-
-*%
-name
-
-"
-fc_bias_to_fp16*#
-val
-
-
-
-
-
-:
-§¸úîö®
-linear
-bias
-
-fc_bias_to_fp16
-weight
-
-fc_weight_to_fp16
-x
-
-input_cast_fp16
-output
-
-
-
-*(
-name 
-
-"
-linear_0_cast_fp16"Â
-	buildInfo◊"
-
-
-ƒ"¡
-6
-!
-
-"
-coremltools-version
-	
-"
-9.0
-@
-)
-!
-"
-coremltools-component-torch
-
-	"
-2.2.2
-E
-(
- 
-"
-coremltools-source-dialect
-
-"
-TorchScript
