@@ -379,6 +379,9 @@ struct FaceIDSettingsView: View {
         .onAppear {
             checkPermissions()
         }
+        .onDisappear {
+            faceIDManager.cancelCurrentSession()
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             checkPermissions()
         }

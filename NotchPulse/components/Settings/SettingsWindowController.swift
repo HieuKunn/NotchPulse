@@ -110,6 +110,7 @@ class SettingsWindowController: NSWindowController {
     }
     
     private func relinquishFocus() {
+        FaceIDManager.shared.cancelCurrentSession()
         window?.orderOut(nil)
         
         // Free entire SettingsView SwiftUI hierarchy and render buffers from RAM

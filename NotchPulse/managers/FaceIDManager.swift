@@ -277,6 +277,11 @@ final class FaceIDManager: NSObject, ObservableObject {
             _ = await self.ensureSessionUnlocked()
             
             await self.camera.requestAccessAndStart()
+            defer {
+                self.camera.stop()
+                self.isScanning = false
+                self.isEnrollmentMode = false
+            }
             
             var collectedEmbeddings: [[Float]] = []
             let requiredPoses = FacePose.allCases
@@ -395,6 +400,15 @@ final class FaceIDManager: NSObject, ObservableObject {
             }
             
             await self.camera.requestAccessAndStart()
+            defer {
+                self.camera.stop()
+                self.isScanning = false
+                self.isTestingMode = false
+                if self.testResultText == "Looking for face..." || self.testResultText == "Searching..." {
+                    self.testResultText = "Test complete"
+                    self.testResultColor = .secondary
+                }
+            }
             
             let startTime = Date()
             while !Task.isCancelled && Date().timeIntervalSince(startTime) < 8.0 {
@@ -423,14 +437,6 @@ final class FaceIDManager: NSObject, ObservableObject {
                     self.testResultColor = .secondary
                 }
                 try? await Task.sleep(for: .milliseconds(150))
-            }
-            
-            if !Task.isCancelled {
-                self.camera.stop()
-                self.isScanning = false
-                self.isTestingMode = false
-                self.testResultText = "Test complete"
-                self.testResultColor = .secondary
             }
         }
     }

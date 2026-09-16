@@ -141,12 +141,14 @@ final class NotchPulseFaceUnlockCoordinator {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
         await camera.requestAccessAndStart()
+        defer {
+            camera.stop()
+            faceIDManager.isScanning = false
+        }
         guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
             faceIDManager.statusMessage = error
-            camera.stop()
-            faceIDManager.isScanning = false
             return
         }
 
@@ -156,9 +158,6 @@ final class NotchPulseFaceUnlockCoordinator {
         let outcome = await observeScanWindow(deadline: Date().addingTimeInterval(scanWindowDuration))
 
         guard generation == scanGeneration else { return }
-
-        camera.stop()
-        faceIDManager.isScanning = false
 
         switch outcome {
         case .matched:
@@ -201,9 +200,7 @@ final class NotchPulseFaceUnlockCoordinator {
     private func observeScanWindow(deadline: Date) async -> ScanOutcome {
         let livenessEnabled = true
         let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { 
-            UserDefaults.standard.bool(forKey: "enableLivenessDetection") ? .heavy : .light 
-        } // Heavy mode enforces blink/3D motion checks to defeat photos/phones
+        liveness.modeProvider = { .light } // Light mode rejects specular glare & device bezels without forcing artificial head turns
         
         var consecutiveWrongFaceFrames = 0
         var readyMatch: Bool = false
@@ -284,7 +281,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 if UserDefaults.standard.bool(forKey: "enableLivenessDetection") {
                     do {
                         let aiLiveness = try NotchPulseCoreMLAntiSpoofing.shared()
-                        let isLive = try aiLiveness.isLive(face: result.alignedImage)
+                        let isLive = try aiLiveness.isLive(faceImage: frame.image, faceBoundingBox: result.face.boundingBox)
                         if !isLive {
                             print("CoreML Anti-Spoofing: Spoof detected!")
                             return .spoofSuspected

@@ -93,26 +93,39 @@ final class NotchPulseCoreMLAntiSpoofing: @unchecked Sendable {
     /// - Returns: `true` if the ensemble agrees the face is live.
     nonisolated func isLive(faceImage: CGImage, faceBoundingBox: CGRect) throws -> Bool {
         // Create crops with different scales matching each model's training
-        let crop2_7 = Self.cropFace(from: faceImage, bbox: faceBoundingBox, scale: 2.7)
-        let crop4_0 = Self.cropFace(from: faceImage, bbox: faceBoundingBox, scale: 4.0)
+        let crop2_7 = Self.cropFace(from: faceImage, bbox: faceBoundingBox, scale: 2.7) ?? faceImage
+        let crop4_0 = Self.cropFace(from: faceImage, bbox: faceBoundingBox, scale: 4.0) ?? faceImage
         
-        let v2Live = try predict(model: modelV2, face: crop2_7 ?? faceImage)
-        let v1seLive = try predict(model: modelV1SE, face: crop4_0 ?? faceImage)
+        let pV2 = try predictProbabilities(model: modelV2, face: crop2_7)
+        let pV1SE = try predictProbabilities(model: modelV1SE, face: crop4_0)
         
-        // Ensemble: BOTH must agree it's live
-        return v2Live && v1seLive
+        // Official Minivision ensemble: Average probability across models
+        // Class 1 = Real/Live, Class 0 = Print attack, Class 2 = Replay attack
+        let liveScore = (pV2[1] + pV1SE[1]) / 2.0
+        let printScore = (pV2[0] + pV1SE[0]) / 2.0
+        let replayScore = (pV2[2] + pV1SE[2]) / 2.0
+        
+        // Real face must be the dominant class (highest probability) AND liveScore >= 0.50
+        let isDominantReal = liveScore > printScore && liveScore > replayScore
+        return isDominantReal && liveScore >= 0.50
     }
     
     /// Simplified version for when only a pre-cropped face image is available.
     nonisolated func isLive(face: CGImage) throws -> Bool {
-        let v2Live = try predict(model: modelV2, face: face)
-        let v1seLive = try predict(model: modelV1SE, face: face)
-        return v2Live && v1seLive
+        let pV2 = try predictProbabilities(model: modelV2, face: face)
+        let pV1SE = try predictProbabilities(model: modelV1SE, face: face)
+        
+        let liveScore = (pV2[1] + pV1SE[1]) / 2.0
+        let printScore = (pV2[0] + pV1SE[0]) / 2.0
+        let replayScore = (pV2[2] + pV1SE[2]) / 2.0
+        
+        let isDominantReal = liveScore > printScore && liveScore > replayScore
+        return isDominantReal && liveScore >= 0.50
     }
     
     // MARK: - Prediction
     
-    private nonisolated func predict(model: MLModel, face: CGImage) throws -> Bool {
+    private nonisolated func predictProbabilities(model: MLModel, face: CGImage) throws -> [Float] {
         let input = try makeInputArray(from: face)
         let provider = try MLDictionaryFeatureProvider(dictionary: [
             "input": MLFeatureValue(multiArray: input)
@@ -130,32 +143,18 @@ final class NotchPulseCoreMLAntiSpoofing: @unchecked Sendable {
         }
         
         let count = outputArray.count
-        guard count >= 2 else {
+        guard count >= 3 else {
             throw NotchPulseCoreMLAntiSpoofingError.predictionFailed
         }
         
         let ptr = outputArray.dataPointer.assumingMemoryBound(to: Float32.self)
         let logits = Array(UnsafeBufferPointer(start: ptr, count: count))
         
-        // MiniFASNet output: 3 classes
-        // Class 0: Real/Live (real face)
-        // Class 1: Spoof type 1 (print attack)
-        // Class 2: Spoof type 2 (replay attack)
-        //
-        // The model outputs raw logits, softmax to get probabilities
+        // Softmax to get probabilities
         let maxLogit = logits.max() ?? 0
         let expLogits = logits.map { exp($0 - maxLogit) }
         let sumExp = expLogits.reduce(0, +)
-        let probs = expLogits.map { $0 / sumExp }
-        
-        // Live probability is class index 1 (real face in MiniFASNet convention)
-        // In the Silent-Face-Anti-Spoofing codebase:
-        //   label == 1 means REAL
-        //   label == 0 or label == 2 means SPOOF
-        let liveProb = probs.count > 1 ? probs[1] : 0
-        
-        // Threshold: 0.5 is standard, but we use 0.8 for extra strictness
-        return liveProb > 0.8
+        return expLogits.map { $0 / max(sumExp, 0.00001) }
     }
     
     // MARK: - Face Cropping with Scale
