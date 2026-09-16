@@ -197,12 +197,20 @@ final class LockScreenFaceIDWindow: NSPanel {
         }
         
         if isVisible && alphaValue > 0.95 {
-            orderFront(nil)
+            if isSystemPromptMode {
+                orderFront(nil)
+            } else {
+                orderFrontRegardless()
+            }
             return
         }
         
         alphaValue = 0
-        orderFront(nil)
+        if isSystemPromptMode {
+            orderFront(nil)
+        } else {
+            orderFrontRegardless()
+        }
         
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.28
