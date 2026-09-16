@@ -1,13 +1,12 @@
-# 🚀 NotchPulse v3.8.7
+# 🚀 NotchPulse v3.8.8
 
-Welcome to NotchPulse **v3.8.7**! This release brings a major security upgrade to Face ID with production-grade AI Anti-Spoofing capabilities.
+Welcome to NotchPulse **v3.8.8**! This is a hotfix release to ensure the Auto-Update system recognizes the latest builds.
 
 ---
 
-### 🔒 Face ID Upgrades
-- **Production-Grade AI Anti-Spoofing Ensemble**: Upgraded Liveness Detection from the placeholder model to a dual-model ensemble (MiniFASNetV2 and MiniFASNetV1SE).
-- **Advanced Presentation Attack Detection**: The system now utilizes Fourier Transform texture analysis to detect high-frequency data loss common in screen replays and printed photos.
-- **Hardware Acceleration**: Both anti-spoofing models are fully compiled for CoreML, leveraging the Apple Silicon Neural Engine for near-instant (under 5ms) inference with virtually zero battery impact.
+### 🐛 Bug Fixes
+- **Sparkle Auto-Update Patch**: Fixed an issue where the in-app updater would incorrectly report "You're up to date!" because the internal build version (`CURRENT_PROJECT_VERSION`) was not incremented correctly in the previous release.
+- **Version String Correction**: Updated the hardcoded "Pulse 3.1" string in the About window to properly reflect the 3.8.x series.
 
 ---
 
