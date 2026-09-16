@@ -201,7 +201,9 @@ final class NotchPulseFaceUnlockCoordinator {
     private func observeScanWindow(deadline: Date) async -> ScanOutcome {
         let livenessEnabled = true
         let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { .light } // Fast optical & 3D landmark liveness confirmation
+        liveness.modeProvider = { 
+            UserDefaults.standard.bool(forKey: "enableLivenessDetection") ? .heavy : .light 
+        } // Heavy mode enforces blink/3D motion checks to defeat photos/phones
         
         var consecutiveWrongFaceFrames = 0
         var readyMatch: Bool = false
