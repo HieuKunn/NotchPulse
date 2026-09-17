@@ -126,7 +126,7 @@ struct ScoredIdentity {
 extension NotchPulseFaceRecognitionPipeline {
     /// Sorted by best similarity (nearest sample or centroid) descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
     nonisolated func score(_ embedding: [Float], against identities: [FaceIdentity]) -> [ScoredIdentity] {
-        identities.compactMap { identity in
+        identities.compactMap { (identity: FaceIdentity) -> ScoredIdentity? in
             guard let template = identity.template, !identity.samples.isEmpty else { return nil }
             let centroidSim = FaceEmbedding.cosineSimilarity(embedding, template)
             let maxSim = identity.samples

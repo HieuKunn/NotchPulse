@@ -324,12 +324,15 @@ final class FaceIDManager: NSObject, ObservableObject {
             }
             
             let snapshot = liveness.observe(livenessFrame)
-            if snapshot.decision == .denied {
-                print("[FaceID SystemAuth] Liveness denied: \(snapshot.decision.denialReason ?? "")")
+            switch snapshot.decision {
+            case .denied(by: let cue):
+                print("[FaceID SystemAuth] Liveness denied: \(cue)")
                 try? await Task.sleep(nanoseconds: 80_000_000)
                 continue
-            } else if snapshot.decision == .confirmed {
+            case .confirmed(by: _):
                 livenessConfirmed = true
+            default:
+                break
             }
             
             let scored = pipeline.score(result.embedding, against: activeIdentities)
