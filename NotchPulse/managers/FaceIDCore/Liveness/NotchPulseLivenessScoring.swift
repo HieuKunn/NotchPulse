@@ -125,9 +125,11 @@ enum NotchPulseLivenessScoring {
         let recoveryRadius = 3
         let openBefore = ears[..<minIndex].suffix(recoveryRadius).contains { $0 / baseline > 0.7 }
         let openAfter = ears[(minIndex + 1)...].prefix(recoveryRadius).contains { $0 / baseline > 0.7 }
-        let hasNeighborRecovery = minIndex > 0 && minIndex < ears.count - 1 && openBefore && openAfter
+        // Only require recovery on at least one side — a blink near the window edge
+        // naturally lacks the other side, and shouldn't be penalized.
+        let hasRecovery = (minIndex > 0 && openBefore) || (minIndex < ears.count - 1 && openAfter)
 
-        guard dipRatio < 0.40, hasNeighborRecovery else { return .none }
+        guard dipRatio < 0.55, hasRecovery else { return .none }
         return CueReading(level: 1, confidence: 1)
     }
 

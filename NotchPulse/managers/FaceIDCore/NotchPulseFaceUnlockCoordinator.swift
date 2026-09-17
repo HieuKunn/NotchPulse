@@ -214,7 +214,7 @@ final class NotchPulseFaceUnlockCoordinator {
     private func observeScanWindow(deadline: Date) async -> ScanOutcome {
         let livenessEnabled = true
         let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { .heavy } // Heavy mode requires active 3D geometry, pose depth, or blink to confirm liveness.
+        liveness.modeProvider = { .light } // Light mode: deny cues (gloss/device) still block spoofs, but no proof-of-life required.
         
         var consecutiveWrongFaceFrames = 0
         var readyMatch: Bool = false
@@ -280,8 +280,8 @@ final class NotchPulseFaceUnlockCoordinator {
             let faceArea = result.face.normalizedBoundingBox.width * result.face.normalizedBoundingBox.height
             let isDistantFace = faceArea < 0.15
             let threshold: Float = (pipeline.embedder.embeddingDimension == 512)
-                ? (isDistantFace ? 0.35 : 0.38)
-                : (isDistantFace ? 0.55 : 0.60)
+                ? (isDistantFace ? 0.30 : 0.33)
+                : (isDistantFace ? 0.48 : 0.52)
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
             if matched != nil {
