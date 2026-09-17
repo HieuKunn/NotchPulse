@@ -8,7 +8,11 @@ This document outlines the core rules, architectural guidelines, and release pro
 
 ## 1. Commit Messages & Release Notes Guidelines (MANDATORY)
 - **Descriptive Commit Messages:** When committing code, ALWAYS provide a concise, itemized description of the specific changes and fixes. NEVER use generic messages like "update code" or "fix bug".
-- **English Release Notes (`RELEASE_NOTES.md`):** For every new release, update `RELEASE_NOTES.md` in the repository root ENTIRELY IN ENGLISH. **Only include categories/sections that actually changed in that version** (e.g. `🚀 What's New`, `🔒 Face ID Upgrades`, `🐛 Bug Fixes`, `⚡ Performance Improvements`). Do NOT include boilerplate, empty, or unchanged categories. NEVER let GitHub Releases display raw automated single commits such as `- chore: Update appcast.xml for release`.
+- **English Release Notes (`RELEASE_NOTES.md`):**
+  - **User-Centric, Plain English (REQUIRED):** Write release notes for end-users downloading the app, NOT for developers. Explain changes and features in simple, clear, intuitive language focusing on user benefits and visible improvements.
+  - **NO Developer/Academic Jargon:** DO NOT use internal programming terms, framework names, error codes, or technical constants (e.g. avoid `EX_CONFIG 78`, `SMAppService`, `launchd plists`, `SMCComm`, `512D vector embeddings`, `XPC client protocol`, `SkyLight delegation`, etc.).
+  - **Relevant Sections Only:** Only include categories/sections that actually changed in that version (e.g. `🚀 What's New`, `🔋 Smart Charging`, `🔒 Face ID`, `🎵 Music & Lyrics`, `🐛 Bug Fixes`). Do NOT include boilerplate, empty, or unchanged categories.
+  - **NO Raw Commit Dumps:** NEVER let GitHub Releases display raw automated single commits like `- chore: Update appcast.xml for release`.
 
 ---
 
@@ -17,7 +21,7 @@ This document outlines the core rules, architectural guidelines, and release pro
   - `NotchPulse.xcodeproj/project.pbxproj` (`CURRENT_PROJECT_VERSION` & `MARKETING_VERSION`)
   - `appcast.xml` (Sparkle update feed XML — update `<sparkle:version>` and `<sparkle:shortVersionString>`)
   - GitHub Tag & Release (e.g., `v3.1.5`)
-  - `RELEASE_NOTES.md` (English release description)
+  - `RELEASE_NOTES.md` (User-friendly English release description)
 - **Sparkle Auto-Update & Code Signing for DMG:**
   - `NotchPulse.entitlements` must maintain `com.apple.security.app-sandbox = false` for direct non-Mac App Store distribution so Sparkle's `Autoupdate.app` helper can properly replace the existing app binary in `/Applications`.
   - In `build-dmg.yml`, sign frameworks using the inside-out pattern without passing the parent app entitlements flag `--entitlements` to `--deep`, ensuring `Sparkle.framework` code signature integrity is preserved.

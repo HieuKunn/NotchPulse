@@ -4,9 +4,11 @@
 
 Whenever working on NotchPulse or executing releases, ALWAYS follow these instructions:
 
-## 1. Mandatory English Release Notes Format
-- Every release **MUST** write/update `RELEASE_NOTES.md` at the repository root in **English**.
-- **Only include sections that actually have changes** in that specific release (e.g. `🚀 What's New`, `🔒 Face ID Improvements`, `🐛 Bug Fixes`, `⚡ Performance`, etc.). Do **NOT** list empty or unchanged categories just to fill template headers.
+## 1. Mandatory User-Centric English Release Notes Format
+- Every release **MUST** write/update `RELEASE_NOTES.md` at the repository root in **plain, user-friendly English**.
+- **Focus on User Benefits:** Write descriptions so regular users understand what new features do and what issues were fixed.
+- **NO Developer Jargon:** Avoid internal technical terms, error codes, and implementation details (e.g. no `EX_CONFIG 78`, `SMAppService`, `launchd plists`, `SMCComm`, `512D embeddings`, `XPC client protocol`, etc.).
+- **Only include sections that actually have changes** in that specific release (e.g. `🚀 What's New`, `🔋 Smart Charging`, `🔒 Face ID Improvements`, `🎵 Music & Lyrics`, `🐛 Bug Fixes`). Do **NOT** list empty or unchanged categories just to fill template headers.
 - **NEVER** publish a GitHub Release that displays raw commit logs like `- chore: Update appcast.xml for release`.
 
 ## 2. In-App Auto-Update & Versioning (Sparkle)
