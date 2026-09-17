@@ -29,7 +29,7 @@ final class NotchPulseFaceUnlockCoordinator {
     // Sync state to FaceIDManager for the UI to observe
     private var faceIDManager: FaceIDManager { FaceIDManager.shared }
 
-    private var scanWindowDuration: TimeInterval = 6.0
+    private var scanWindowDuration: TimeInterval = 8.0
     private let wrongFaceStreakThreshold = 30
 
     private(set) var statusMessage = "Idle"
@@ -214,7 +214,17 @@ final class NotchPulseFaceUnlockCoordinator {
     private func observeScanWindow(deadline: Date) async -> ScanOutcome {
         let livenessEnabled = true
         let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { .light } // Light mode: deny cues (gloss/device) still block spoofs, but no proof-of-life required.
+        // Heavy mode: deny cues block spoofs AND requires proof-of-life (blink or 3D geometry).
+        // This blocks photos completely — a photo cannot blink.
+        liveness.modeProvider = { .heavy }
+        // Disable depthPose: it measures correlation (not slope) of nose-offset vs yaw,
+        // which falsely confirms a flat photo being rotated in front of the camera.
+        // Keep blink (primary anti-photo gate) and flatVs3D (geometric depth check).
+        liveness.enabledCuesProvider = {
+            var cues = Set(LivenessCue.allCases)
+            cues.remove(.depthPose)
+            return cues
+        }
         
         var consecutiveWrongFaceFrames = 0
         var readyMatch: Bool = false

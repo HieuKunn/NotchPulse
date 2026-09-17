@@ -1,8 +1,9 @@
-# NotchPulse v3.9
+# NotchPulse v3.9.1
 
-## 🔒 Face ID Improvements & Hybrid Liveness
-- **Instant & Seamless Unlock**: Face ID now unlocks instantly when you look at your Mac, naturally blink, or slightly move your head.
-- **Improved Recognition Reliability**: Re-tuned face matching so enrolled users unlock effortlessly from standard distances without needing strict camera positioning.
-- **Smart Anti-Spoof Protection**: Anti-glare and screen-frame detection run seamlessly in the background to protect against photo or phone screen spoofing.
-- **Smoother Blink Detection**: Eye-aspect tracking is now optimized for 30fps Mac webcams, recognizing natural blinks smoothly without needing to close your eyes tightly.
+## 🔒 Critical Anti-Spoof Security Fix
+- **Photo Bypass Blocked**: Face ID now strictly requires proof of life before unlocking. Holding a printed photo or a phone screen showing your face will no longer be able to bypass the lock.
+- **Blink-Verified Unlock**: A natural blink is now required to confirm you're a real person. Photos and static images cannot replicate this.
+- **Smarter 3D Detection**: Improved head geometry analysis to correctly distinguish a real face from a flat photo being moved or rotated in front of the camera.
+- **Extended Scan Window**: Face ID now waits up to 8 seconds, giving you plenty of time to blink naturally without rushing.
+
 
