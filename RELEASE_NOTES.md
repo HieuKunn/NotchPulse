@@ -1,4 +1,4 @@
-# NotchPulse v3.8.8.3
+# NotchPulse v3.8.8.4
 
 ## 🔒 Ultra-Secure Face ID & Anti-Spoof Protection
 - **Strict Blink Verification**: Upgraded anti-spoofing engine to strictly require a natural blink to confirm liveness. This completely blocks all static printed photos, warped pictures, or phone screens from bypassing Face ID. Head movement alone will no longer unlock the device.
