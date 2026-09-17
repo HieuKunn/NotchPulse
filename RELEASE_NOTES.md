@@ -1,7 +1,7 @@
-# NotchPulse v3.8.8.2
+# NotchPulse v3.8.8.3
 
 ## 🔒 Ultra-Secure Face ID & Anti-Spoof Protection
-- **Strict 3D Depth & Liveness**: Upgraded anti-spoofing engine to strictly require verified 3D facial depth and natural biological movement, preventing static printed photos, warped pictures, or phone screens from bypassing Face ID.
+- **Strict Blink Verification**: Upgraded anti-spoofing engine to strictly require a natural blink to confirm liveness. This completely blocks all static printed photos, warped pictures, or phone screens from bypassing Face ID. Head movement alone will no longer unlock the device.
 - **Accurate & Fast Recognition**: Seamless face unlock experience natively calibrated for Mac webcams with zero false unlocks.
 - **Zero Configuration Needed**: Intelligent spoof protection runs automatically in the background without needing any extra setup.
 
