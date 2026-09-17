@@ -18,7 +18,7 @@ final class NotchPulseLivenessAnalyzer {
     var tuningProvider: () -> LivenessTuning = { .default }
     /// Face Lab can switch individual cues off to isolate one; the unlock
     /// path leaves this at "all enabled."
-    var enabledCuesProvider: () -> Set<LivenessCue> = { [.glossGlare, .deviceDetected, .blink] }
+    var enabledCuesProvider: () -> Set<LivenessCue> = { Set(LivenessCue.allCases) }
 
     private var frames: [LivenessFrame] = []
     private var evaluator = LivenessEvaluator()
