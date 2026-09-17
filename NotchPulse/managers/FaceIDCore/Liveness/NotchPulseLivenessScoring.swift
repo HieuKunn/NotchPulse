@@ -112,7 +112,7 @@ enum NotchPulseLivenessScoring {
     /// often contains no blink at all, which abstains rather than fails.
     static func blinkDynamics(_ window: [LivenessFrame]) -> CueReading {
         let ears = window.compactMap { frame -> CGFloat? in
-            guard let l = frame.leftEyeAspectRatio, let r = frame.rightEyeAspectRatio else { return nil }
+            guard frame.hasReliableLandmarks, let l = frame.leftEyeAspectRatio, let r = frame.rightEyeAspectRatio else { return nil }
             return (l + r) / 2
         }
         guard ears.count >= 4 else { return .none }
@@ -127,7 +127,7 @@ enum NotchPulseLivenessScoring {
         let openAfter = ears[(minIndex + 1)...].prefix(recoveryRadius).contains { $0 / baseline > 0.7 }
         let hasNeighborRecovery = minIndex > 0 && minIndex < ears.count - 1 && openBefore && openAfter
 
-        guard dipRatio < 0.45, hasNeighborRecovery else { return .none }
+        guard dipRatio < 0.65, hasNeighborRecovery else { return .none }
         return CueReading(level: 1, confidence: 1)
     }
 

@@ -12,16 +12,16 @@ import CoreGraphics
 
 struct GeometryTuning {
     /// Excess (`probeResidual / fitResidual`) at which the planar signal starts ramping off 0; ~1 means a plane.
-    var excessFloor: CGFloat = 1.30
+    var excessFloor: CGFloat = 1.15
     /// Excess at which the planar signal saturates at 1.
-    var excessCeiling: CGFloat = 2.5
+    var excessCeiling: CGFloat = 2.0
     /// `|mean residual| / mean(|residual|)` below this reads as landmark noise, not 3D parallax.
-    var coherenceFloor: CGFloat = 0.45
+    var coherenceFloor: CGFloat = 0.35
     /// Minimum mean fit-set displacement (in interocular-distance units) before geometry votes at all.
-    var motionGate: CGFloat = 0.01
+    var motionGate: CGFloat = 0.008
     /// Minimum yaw range (degrees) before geometry votes — closes the "smooth phone wobble" case where
     /// pure translation (no rotation) clears `motionGate` with zero real parallax.
-    var minYawRangeDegrees: CGFloat = 15.0
+    var minYawRangeDegrees: CGFloat = 12.0
 
     nonisolated static let `default` = GeometryTuning()
 }

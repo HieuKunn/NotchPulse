@@ -105,12 +105,12 @@ struct LivenessTuning: Equatable {
 
     /// Not the 0.5 you might expect: real-world Vision jitter alone measures ~0.21-0.46
     /// Planar-residual score needed for the geometry check to count as a vote for life.
-    var flatVs3DLevel: Float = 0.90
+    var flatVs3DLevel: Float = 0.8
     var flatVs3DFrames: Int = 1
 
     /// Deliberately high: this level is a remapped correlation `(r + 1) / 2`, so 0.5 is
     /// zero correlation (evidence of nothing) — 0.8 requires r >= 0.6.
-    var depthPoseLevel: Float = 0.90
+    var depthPoseLevel: Float = 0.8
     var depthPoseFrames: Int = 2
 
     /// A blink is already a discrete dip-and-recover event (see `NotchPulseLivenessScoring.blinkDynamics`),
