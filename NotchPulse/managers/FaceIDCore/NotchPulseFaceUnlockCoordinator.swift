@@ -29,20 +29,21 @@ final class NotchPulseFaceUnlockCoordinator {
     // Sync state to FaceIDManager for the UI to observe
     private var faceIDManager: FaceIDManager { FaceIDManager.shared }
 
-    private var scanWindowDuration: TimeInterval = 4.0
+    private var scanWindowDuration: TimeInterval = 6.0
     private let wrongFaceStreakThreshold = 30
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
 
     private var hasArmedForCurrentLock = false
-    private var hasAutoRetriedForCurrentLock = false
+    private var autoRetryCount = 0
+    private let maxAutoRetries = 3
     private var scanTask: Task<Void, Never>?
     private var scanGeneration = 0
     private var lastArmedAt: ContinuousClock.Instant?
     private let rearmDebounce: Duration = .seconds(2)
     private var autoRetryTask: Task<Void, Never>?
-    private let headlessRetryDelay: Duration = .seconds(1)
+    private let baseRetryDelay: Duration = .seconds(1)
 
     private init() {
         observeLockAndWakeEvents()
@@ -66,7 +67,7 @@ final class NotchPulseFaceUnlockCoordinator {
     private func evaluateTrigger() {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
             hasArmedForCurrentLock = false
-            hasAutoRetriedForCurrentLock = false
+            autoRetryCount = 0
             disarmOverlay()
             return
         }
@@ -74,7 +75,7 @@ final class NotchPulseFaceUnlockCoordinator {
 
         if lockMonitor.lastEvent == .screenLocked {
             hasArmedForCurrentLock = false
-            hasAutoRetriedForCurrentLock = false
+            autoRetryCount = 0
             disarmOverlay()
             return
         }
@@ -164,33 +165,41 @@ final class NotchPulseFaceUnlockCoordinator {
         case .matched:
             faceIDManager.statusMessage = "Recognized — unlocking…"
             faceIDManager.lastUnlockSuccess = true
-            // Call performMacUnlock
+            autoRetryCount = 0
             await performMacUnlock()
         case .consistentlyWrongFace:
+            print("[FaceID] Scan failed: consistently wrong face (attempt \(autoRetryCount + 1)/\(maxAutoRetries))")
             faceIDManager.statusMessage = "Face Not Recognized"
-            // Let the user type their password — stop blocking input
             LockScreenFaceIDWindow.shared.ignoresMouseEvents = true
-            scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
+            let delay: Duration = .seconds(Double(min(autoRetryCount + 1, 3)))
+            scheduleAutoRetryIfEnabled(after: delay)
         case .spoofSuspected:
-            faceIDManager.statusMessage = "Face Not Recognized" // UI checks for this string
+            print("[FaceID] Scan failed: spoof suspected (attempt \(autoRetryCount + 1)/\(maxAutoRetries))")
+            faceIDManager.statusMessage = "Face Not Recognized"
             LockScreenFaceIDWindow.shared.ignoresMouseEvents = true
-            scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
+            let delay: Duration = .seconds(Double(min(autoRetryCount + 1, 3)))
+            scheduleAutoRetryIfEnabled(after: delay)
         case .noResolution:
+            print("[FaceID] Scan failed: no face detected (attempt \(autoRetryCount + 1)/\(maxAutoRetries))")
             faceIDManager.statusMessage = "No face detected."
             LockScreenFaceIDWindow.shared.ignoresMouseEvents = true
-            scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
+            let delay: Duration = .seconds(Double(min(autoRetryCount + 1, 3)))
+            scheduleAutoRetryIfEnabled(after: delay)
         }
     }
 
     private func scheduleAutoRetryIfEnabled(after delay: Duration) {
-        // Just retry once if failed
-        guard !hasAutoRetriedForCurrentLock else { return }
-        hasAutoRetriedForCurrentLock = true
+        guard autoRetryCount < maxAutoRetries else {
+            print("[FaceID] Max retries (\(maxAutoRetries)) exhausted for this lock cycle")
+            return
+        }
+        autoRetryCount += 1
         autoRetryTask?.cancel()
         autoRetryTask = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
             guard NotchPulseLockMonitor.isScreenActuallyLocked(), Defaults[.enableFaceID] else { return }
+            print("[FaceID] Auto-retry \(self.autoRetryCount)/\(self.maxAutoRetries) after \(delay)")
             self.startScanCycle()
         }
     }
@@ -267,7 +276,12 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.38 : 0.60
+            // Adaptive threshold: slightly lower for small/distant faces (bounding box < 15% of frame)
+            let faceArea = result.face.normalizedBoundingBox.width * result.face.normalizedBoundingBox.height
+            let isDistantFace = faceArea < 0.15
+            let threshold: Float = (pipeline.embedder.embeddingDimension == 512)
+                ? (isDistantFace ? 0.35 : 0.38)
+                : (isDistantFace ? 0.55 : 0.60)
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
             if matched != nil {

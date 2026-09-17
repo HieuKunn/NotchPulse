@@ -121,7 +121,7 @@ final class SystemAuthPromptObserver: ObservableObject {
             LockScreenFaceIDWindow.shared.show()
             
             // Run dedicated system prompt face verification without lock screen requirements
-            let verified = await FaceIDManager.shared.verifyForSystemPrompt(timeoutSeconds: 4.0)
+            let verified = await FaceIDManager.shared.verifyForSystemPrompt(timeoutSeconds: 6.0)
             
             guard !Task.isCancelled else {
                 LockScreenFaceIDWindow.shared.isSystemPromptMode = false
@@ -181,9 +181,21 @@ final class SystemAuthPromptObserver: ObservableObject {
     
     nonisolated private static func prepareLocalAuthenticationPasswordField(processIdentifier: pid_t) {
         let axApp = AXUIElementCreateApplication(processIdentifier)
-        var windowsRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-              let windows = windowsRef as? [AXUIElement], let win = windows.first else {
+        
+        // Poll for window to appear (max 2s, 50ms intervals)
+        var win: AXUIElement?
+        let windowPollStart = Date()
+        while Date().timeIntervalSince(windowPollStart) < 2.0 {
+            var windowsRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+               let windows = windowsRef as? [AXUIElement], let firstWin = windows.first {
+                win = firstWin
+                break
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        guard let win else {
+            print("[SystemAuth] No window found for auth agent within 2s")
             return
         }
         
@@ -192,7 +204,7 @@ final class SystemAuthPromptObserver: ObservableObject {
             AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef)
             if let title = titleRef as? String {
                 let lower = title.lowercased()
-                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") {
+                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") || lower.contains("use password") {
                     return el
                 }
             }
@@ -200,7 +212,7 @@ final class SystemAuthPromptObserver: ObservableObject {
             AXUIElementCopyAttributeValue(el, kAXDescriptionAttribute as CFString, &descRef)
             if let desc = descRef as? String {
                 let lower = desc.lowercased()
-                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") {
+                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") || lower.contains("use password") {
                     return el
                 }
             }
@@ -214,9 +226,49 @@ final class SystemAuthPromptObserver: ObservableObject {
             return nil
         }
         
+        func findPasswordField(_ el: AXUIElement) -> Bool {
+            var roleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &roleRef)
+            if let role = roleRef as? String, role == kAXTextFieldRole || role == "AXSecureTextField" {
+                return true
+            }
+            var childrenRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+               let children = childrenRef as? [AXUIElement] {
+                for child in children {
+                    if findPasswordField(child) { return true }
+                }
+            }
+            return false
+        }
+        
         if let btn = findPasswordButton(win) {
-            _ = AXUIElementPerformAction(btn, kAXPressAction as CFString)
-            Thread.sleep(forTimeInterval: 0.25)
+            // Retry button click up to 3 times with 200ms intervals
+            for attempt in 1...3 {
+                _ = AXUIElementPerformAction(btn, kAXPressAction as CFString)
+                
+                // Poll for password field to appear (max 1.5s, 50ms intervals)
+                let pollStart = Date()
+                var fieldFound = false
+                while Date().timeIntervalSince(pollStart) < 1.5 {
+                    if findPasswordField(win) {
+                        fieldFound = true
+                        break
+                    }
+                    Thread.sleep(forTimeInterval: 0.05)
+                }
+                
+                if fieldFound {
+                    print("[SystemAuth] Password field appeared after button click attempt \(attempt)")
+                    return
+                }
+                
+                if attempt < 3 {
+                    print("[SystemAuth] Password field not found after button click attempt \(attempt), retrying...")
+                    Thread.sleep(forTimeInterval: 0.2)
+                }
+            }
+            print("[SystemAuth] Password field did not appear after 3 button click attempts — falling back to keyboard injection")
         }
     }
     
@@ -228,8 +280,29 @@ final class SystemAuthPromptObserver: ObservableObject {
         
         let source = CGEventSource(stateID: .hidSystemState)
         
-        // Ensure prompt field is active
-        Thread.sleep(forTimeInterval: 0.08)
+        // Adaptive wait: poll for keyboard focus readiness (max 500ms, 50ms intervals)
+        let focusPollStart = Date()
+        var focusReady = false
+        while Date().timeIntervalSince(focusPollStart) < 0.5 {
+            // Send a harmless mouse move to wake the event system
+            let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
+            if let moveEvent = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: CGPoint(x: mouseLoc.x, y: mouseLoc.y), mouseButton: .left) {
+                moveEvent.post(tap: .cghidEventTap)
+            }
+            // Check if we can create keyboard events (indicates event system is responsive)
+            if CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true) != nil {
+                focusReady = true
+                break
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        
+        if !focusReady {
+            print("[SystemAuth] Warning: keyboard focus may not be ready, proceeding anyway")
+        }
+        
+        // Small settle delay after focus confirmed
+        Thread.sleep(forTimeInterval: 0.03)
         
         // Clear existing input if any
         for _ in 0..<10 {
@@ -240,11 +313,12 @@ final class SystemAuthPromptObserver: ObservableObject {
                 delDown.post(tap: .cghidEventTap)
                 delUp.post(tap: .cghidEventTap)
             }
-            Thread.sleep(forTimeInterval: 0.005)
+            Thread.sleep(forTimeInterval: 0.008)
         }
         Thread.sleep(forTimeInterval: 0.02)
         
-        // Type the password characters
+        // Type the password characters with adaptive inter-key delay
+        let interKeyDelay: TimeInterval = 0.012
         for char in password {
             if let keyInfo = NotchPulseFaceUnlockCoordinator.keyEventInfo(for: char) {
                 if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
@@ -260,9 +334,9 @@ final class SystemAuthPromptObserver: ObservableObject {
                     down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                     up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                     down.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
+                    Thread.sleep(forTimeInterval: interKeyDelay)
                     up.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
+                    Thread.sleep(forTimeInterval: interKeyDelay)
                 }
             } else {
                 // Unicode fallback for special or international characters
@@ -274,14 +348,15 @@ final class SystemAuthPromptObserver: ObservableObject {
                     down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                     up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
                     down.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
+                    Thread.sleep(forTimeInterval: interKeyDelay)
                     up.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
+                    Thread.sleep(forTimeInterval: interKeyDelay)
                 }
             }
         }
         
-        Thread.sleep(forTimeInterval: 0.05)
+        // Settle before submitting
+        Thread.sleep(forTimeInterval: 0.06)
         
         // Press Return (virtualKey 0x24) to submit
         if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
@@ -292,8 +367,10 @@ final class SystemAuthPromptObserver: ObservableObject {
             returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
             returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
             returnDown.post(tap: .cghidEventTap)
-            Thread.sleep(forTimeInterval: 0.010)
+            Thread.sleep(forTimeInterval: 0.015)
             returnUp.post(tap: .cghidEventTap)
         }
+        
+        print("[SystemAuth] Password injection completed")
     }
 }

@@ -268,7 +268,7 @@ final class FaceIDManager: NSObject, ObservableObject {
     
     /// Dedicated face verification for macOS system authorization & Touch ID prompts (SecurityAgent & LocalAuthentication).
     /// Operates while the desktop is unlocked without invoking lock screen wake mechanisms.
-    func verifyForSystemPrompt(timeoutSeconds: Double = 4.0) async -> Bool {
+    func verifyForSystemPrompt(timeoutSeconds: Double = 6.0) async -> Bool {
         guard isEnrolled, hasPasswordSet else { return false }
         
         let unlocked = await ensureSessionUnlocked()
