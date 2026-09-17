@@ -14,7 +14,7 @@ final class NotchPulseLivenessAnalyzer {
     private let windowDuration: TimeInterval
 
     /// Read fresh on every `observe()`, not captured at init, so a mid-scan Settings change takes effect immediately.
-    var modeProvider: () -> LivenessMode = { .light }
+    var modeProvider: () -> LivenessMode = { .heavy }
     var tuningProvider: () -> LivenessTuning = { .default }
     /// Face Lab can switch individual cues off to isolate one; the unlock
     /// path leaves this at "all enabled."

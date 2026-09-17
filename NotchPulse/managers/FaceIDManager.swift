@@ -301,7 +301,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         var lastProcessedFrameID: UInt64?
         
         let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { .light }
+        liveness.modeProvider = { .heavy }
         var livenessConfirmed = false
         
         while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {

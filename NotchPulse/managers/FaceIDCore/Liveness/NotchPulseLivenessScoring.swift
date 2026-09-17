@@ -127,7 +127,7 @@ enum NotchPulseLivenessScoring {
         let openAfter = ears[(minIndex + 1)...].prefix(recoveryRadius).contains { $0 / baseline > 0.7 }
         let hasNeighborRecovery = minIndex > 0 && minIndex < ears.count - 1 && openBefore && openAfter
 
-        guard dipRatio < 0.65, hasNeighborRecovery else { return .none }
+        guard dipRatio < 0.45, hasNeighborRecovery else { return .none }
         return CueReading(level: 1, confidence: 1)
     }
 

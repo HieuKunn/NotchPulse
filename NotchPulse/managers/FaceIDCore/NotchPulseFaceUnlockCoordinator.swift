@@ -214,7 +214,7 @@ final class NotchPulseFaceUnlockCoordinator {
     private func observeScanWindow(deadline: Date) async -> ScanOutcome {
         let livenessEnabled = true
         let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { .light } // Light mode rejects specular glare & device bezels without forcing artificial head turns
+        liveness.modeProvider = { .heavy } // Heavy mode requires active 3D geometry, pose depth, or blink to confirm liveness.
         
         var consecutiveWrongFaceFrames = 0
         var readyMatch: Bool = false

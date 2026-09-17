@@ -1,11 +1,11 @@
-# NotchPulse v3.8.8
+# NotchPulse v3.8.8.2
 
-## 🔒 Ultra-Fast Face ID & Liveness Security
-- **Instant & Reliable Recognition**: Completely redesigned face unlock engine natively optimized for Mac webcams, providing near-instant recognition without false rejections.
-- **Enhanced Anti-Spoof Protection**: Smart geometric and lighting verification detects dynamic movement and camera glares to block photo or phone screen unlock attempts effortlessly.
-- **Zero Configuration Needed**: Spoof protection now runs seamlessly in the background without requiring manual setting toggles.
+## 🔒 Ultra-Secure Face ID & Anti-Spoof Protection
+- **Strict 3D Depth & Liveness**: Upgraded anti-spoofing engine to strictly require verified 3D facial depth and natural biological movement, preventing static printed photos, warped pictures, or phone screens from bypassing Face ID.
+- **Accurate & Fast Recognition**: Seamless face unlock experience natively calibrated for Mac webcams with zero false unlocks.
+- **Zero Configuration Needed**: Intelligent spoof protection runs automatically in the background without needing any extra setup.
 
 ## ⚡ Performance & App Efficiency
-- **Lightweight App Size**: Reduced total application size by over 20MB by removing unnecessary deep learning models in favor of hardware-accelerated webcam analysis.
-- **Zero CPU Impact**: Optimized background scanning for minimal battery consumption and CPU usage.
+- **Lightweight App Size**: Reduced total application size by over 20MB while improving unlock responsiveness and reliability.
+- **Zero CPU Impact**: Highly optimized scanning with minimal battery and resource consumption.
 
