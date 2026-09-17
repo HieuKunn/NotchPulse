@@ -10,7 +10,7 @@ import SwiftUI
 
 struct NotchPulseHeader: View {
     @EnvironmentObject var vm: NotchPulseViewModel
-    @ObservedObject var batteryModel = BatteryStatusViewModel.shared
+
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @StateObject var tvm = ShelfStateViewModel.shared
     var body: some View {
@@ -77,18 +77,7 @@ struct NotchPulseHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        if Defaults[.showBatteryIndicator] {
-                            NotchPulseBatteryView(
-                                batteryWidth: 30,
-                                isCharging: batteryModel.isCharging,
-                                isInLowPowerMode: batteryModel.isInLowPowerMode,
-                                isPluggedIn: batteryModel.isPluggedIn,
-                                levelBattery: batteryModel.levelBattery,
-                                maxCapacity: batteryModel.maxCapacity,
-                                timeToFullCharge: batteryModel.timeToFullCharge,
-                                isForNotification: false
-                            )
-                        }
+
                     }
                 }
             }

@@ -28,7 +28,6 @@ public enum NotchViews {
     case home
     case shelf
     case stats
-    case battery
 }
 
 enum SettingsEnum {

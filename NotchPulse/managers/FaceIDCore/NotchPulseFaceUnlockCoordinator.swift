@@ -29,7 +29,7 @@ final class NotchPulseFaceUnlockCoordinator {
     // Sync state to FaceIDManager for the UI to observe
     private var faceIDManager: FaceIDManager { FaceIDManager.shared }
 
-    private var scanWindowDuration: TimeInterval = 8.0
+    private var scanWindowDuration: TimeInterval = 2.5
     private let wrongFaceStreakThreshold = 30
 
     private(set) var statusMessage = "Idle"
@@ -98,7 +98,7 @@ final class NotchPulseFaceUnlockCoordinator {
         hasArmedForCurrentLock = true
         lastArmedAt = .now
         Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 200_000_000)
+            try? await Task.sleep(nanoseconds: 500_000_000)
             self?.startScanCycle()
         }
     }
@@ -157,6 +157,16 @@ final class NotchPulseFaceUnlockCoordinator {
         faceIDManager.isScanning = true
         LockScreenFaceIDWindow.shared.ignoresMouseEvents = false
 
+        // Wait for the camera to actually deliver its first frame before starting
+        // the scan timer. After sleep/wake the hardware can take 1-3s to initialize;
+        // without this the scan window burns through while no frames exist.
+        let warmupStart = ContinuousClock.now
+        while camera.currentFrame == nil, ContinuousClock.now - warmupStart < .seconds(3) {
+            guard generation == scanGeneration, !Task.isCancelled else { return }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        guard generation == scanGeneration else { return }
+
         let outcome = await observeScanWindow(deadline: Date().addingTimeInterval(scanWindowDuration))
 
         guard generation == scanGeneration else { return }
@@ -214,12 +224,12 @@ final class NotchPulseFaceUnlockCoordinator {
     private func observeScanWindow(deadline: Date) async -> ScanOutcome {
         let livenessEnabled = true
         let liveness = NotchPulseLivenessAnalyzer()
-        // Heavy mode: deny cues block spoofs AND requires proof-of-life (blink or 3D geometry).
-        // This blocks photos completely — a photo cannot blink.
-        liveness.modeProvider = { .heavy }
+        // Light mode: deny cues still block spoofs (gloss/glare, device detection) but
+        // no positive proof-of-life (blink/3D) is required — auto-confirms after enough
+        // clean frames. This means users no longer need to blink to unlock.
+        liveness.modeProvider = { .light }
         // Disable depthPose: it measures correlation (not slope) of nose-offset vs yaw,
         // which falsely confirms a flat photo being rotated in front of the camera.
-        // Keep blink (primary anti-photo gate) and flatVs3D (geometric depth check).
         liveness.enabledCuesProvider = {
             var cues = Set(LivenessCue.allCases)
             cues.remove(.depthPose)
@@ -287,11 +297,17 @@ final class NotchPulseFaceUnlockCoordinator {
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)
             // Adaptive threshold: slightly lower for small/distant faces (bounding box < 15% of frame)
+            // AND lower for very close faces (bounding box > 25% of frame) due to lens distortion and out-of-focus blur.
             let faceArea = result.face.normalizedBoundingBox.width * result.face.normalizedBoundingBox.height
             let isDistantFace = faceArea < 0.15
-            let threshold: Float = (pipeline.embedder.embeddingDimension == 512)
-                ? (isDistantFace ? 0.30 : 0.33)
-                : (isDistantFace ? 0.48 : 0.52)
+            let isCloseFace = faceArea > 0.25
+            
+            let threshold: Float
+            if pipeline.embedder.embeddingDimension == 512 {
+                threshold = isDistantFace ? 0.30 : (isCloseFace ? 0.28 : 0.33)
+            } else {
+                threshold = isDistantFace ? 0.48 : (isCloseFace ? 0.44 : 0.52)
+            }
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
             if matched != nil {

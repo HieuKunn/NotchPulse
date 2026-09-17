@@ -123,7 +123,7 @@ final class LockScreenWakeObserver: ObservableObject {
             guard let self = self else { return }
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                try? await Task.sleep(for: .milliseconds(120))
+                try? await Task.sleep(for: .milliseconds(800))
                 let locked = self.isScreenLocked || Self.isSessionLocked
                 if locked {
                     self.isScreenLocked = true

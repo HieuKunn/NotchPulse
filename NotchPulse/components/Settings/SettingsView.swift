@@ -47,9 +47,6 @@ struct SettingsView: View {
                 NavigationLink(value: "SystemMonitor") {
                     Label("System Monitor", systemImage: "cpu")
                 }
-                NavigationLink(value: "Battery") {
-                    Label("Battery", systemImage: "battery.100.bolt")
-                }
                 NavigationLink(value: "FaceID") {
                     Label("Face ID & Lock Screen", systemImage: "faceid")
                 }
@@ -91,8 +88,6 @@ struct SettingsView: View {
                     HUD()
                 case "SystemMonitor":
                     SystemMonitorSettingsView()
-                case "Battery":
-                    Charge()
                 case "FaceID":
                     FaceIDSettingsView()
                 case "Shelf":
@@ -678,196 +673,7 @@ struct GeneralSettings: View {
     }
 }
 
-struct Charge: View {
-    @StateObject private var batteryManager = NativeBatteryManager.shared
 
-    var body: some View {
-        Form {
-            Section {
-                Defaults.Toggle(key: .showBatteryIndicator) {
-                    Text("Show battery indicator")
-                }
-                Defaults.Toggle(key: .showPowerStatusNotifications) {
-                    Text("Show power status notifications")
-                }
-            } header: {
-                Text("General")
-            }
-            
-            Section {
-                Defaults.Toggle(key: .showBatteryPercentage) {
-                    Text("Show battery percentage")
-                }
-                Defaults.Toggle(key: .showPowerStatusIcons) {
-                    Text("Show power status icons")
-                }
-            } header: {
-                Text("Battery Information")
-            }
-            
-            Section {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Battery level: \(batteryManager.level)%")
-                            .font(.headline)
-                        Text("Battery health: \(String(format: "%.1f", batteryManager.healthPercent))% • \(batteryManager.cycleCount) cycles")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    if batteryManager.isDesktopMode {
-                        Text("Desktop Mode")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.green.opacity(0.2))
-                            .foregroundColor(.green)
-                            .cornerRadius(6)
-                    } else if batteryManager.isCharging {
-                        Text("Charging")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.2))
-                            .foregroundColor(.blue)
-                            .cornerRadius(6)
-                    }
-                }
-                .padding(.vertical, 2)
-                
-                if batteryManager.wattage != 0 {
-                    HStack {
-                        Text("Power:")
-                        Spacer()
-                        Text("\(batteryManager.wattage > 0 ? "+" : "")\(String(format: "%.1f", batteryManager.wattage))W")
-                            .foregroundColor(batteryManager.wattage > 0 ? .green : .orange)
-                    }
-                }
-                
-                if batteryManager.temperature > 0 {
-                    HStack {
-                        Text("Battery temperature:")
-                        Spacer()
-                        Text("\(String(format: "%.1f", batteryManager.temperature))°C")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                if batteryManager.adapterWatts > 0 {
-                    HStack {
-                        Text("Connected adapter:")
-                        Spacer()
-                        Text("\(batteryManager.adapterWatts)W (\(batteryManager.adapterName))")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            } header: {
-                Text("Battery Status (Native)")
-            }
-            
-            Section {
-                Picker("Mode", selection: Binding(
-                    get: { batteryManager.chargingMode },
-                    set: { batteryManager.setMode($0) }
-                )) {
-                    ForEach(NativeBatteryManager.ChargingMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                
-                Text(batteryManager.chargingMode.subtitle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                if batteryManager.chargingMode == .toLimit {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Stop charging at:")
-                            Spacer()
-                            Text("\(batteryManager.chargeLimit)%")
-                                .fontWeight(.bold)
-                        }
-                        Slider(value: Binding(
-                            get: { Double(batteryManager.chargeLimit) },
-                            set: { batteryManager.setChargeLimit(percent: Int($0)) }
-                        ), in: 50...95, step: 1)
-                        
-                        Text("Charging will pause automatically at \(batteryManager.chargeLimit)% and run directly on AC power to preserve battery lifespan.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-                
-                if !batteryManager.isHelperInstalled {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "shield.lefthalf.filled")
-                                .foregroundColor(.orange)
-                            Text("Hardware SMC Permission Required")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                        Text("To manage hardware charging limits, NotchPulse requires one-time SMC helper authorization.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            
-                        Button {
-                            batteryManager.installHelper { success in
-                                print("Helper install result: \(success)")
-                            }
-                        } label: {
-                            HStack {
-                                if batteryManager.isBusy {
-                                    ProgressView().controlSize(.small)
-                                }
-                                Text("Authorize SMC Access")
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(batteryManager.isBusy)
-                        
-                        if !batteryManager.helperStatusMessage.isEmpty {
-                            Text(batteryManager.helperStatusMessage)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                } else {
-                    HStack {
-                        Label("SMC Access Granted", systemImage: "checkmark.seal.fill")
-                            .foregroundColor(.green)
-                            .font(.subheadline)
-                        Spacer()
-                        Button("Charge to 100%") {
-                            batteryManager.requestFullCharge()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                }
-            } header: {
-                Text("Battery Protection (Apple Silicon)")
-            } footer: {
-                Text("Automatically stops charging at the set threshold to protect battery health during continuous AC power usage.")
-            }
-        }
-        .onAppear {
-            Task { @MainActor in
-                await XPCHelperClient.shared.isAccessibilityAuthorized()
-                batteryManager.updateBatteryStatus()
-                batteryManager.checkHelperInstalled()
-            }
-        }
-        .accentColor(.effectiveAccent)
-        .navigationTitle("Battery")
-    }
-}
 
 //struct Downloads: View {
 //    @Default(.selectedDownloadIndicatorStyle) var selectedDownloadIndicatorStyle
