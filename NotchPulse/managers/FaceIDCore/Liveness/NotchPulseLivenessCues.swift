@@ -105,12 +105,13 @@ struct LivenessTuning: Equatable {
 
     /// Not the 0.5 you might expect: real-world Vision jitter alone measures ~0.21-0.46
     /// Planar-residual score needed for the geometry check to count as a vote for life.
-    var flatVs3DLevel: Float = 0.8
+    /// Lowered to 0.5 so subtle natural head sway passes quickly.
+    var flatVs3DLevel: Float = 0.5
     var flatVs3DFrames: Int = 1
 
     /// Deliberately high: this level is a remapped correlation `(r + 1) / 2`, so 0.5 is
-    /// zero correlation (evidence of nothing) — 0.8 requires r >= 0.6.
-    var depthPoseLevel: Float = 0.8
+    /// zero correlation (evidence of nothing) — 0.6 requires r >= 0.2.
+    var depthPoseLevel: Float = 0.6
     var depthPoseFrames: Int = 2
 
     /// A blink is already a discrete dip-and-recover event (see `NotchPulseLivenessScoring.blinkDynamics`),
@@ -119,7 +120,8 @@ struct LivenessTuning: Equatable {
 
     /// Frames Light mode waits before auto-confirming, so deny cues get a fair chance to
     /// fire first — otherwise a first-frame match could unlock before glare/device ever ran.
-    var lightModeMinimumFrames: Int = 3
+    /// Set to 10 (~0.33s at 30fps) to give gloss/device deny cues enough frames to detect spoofs.
+    var lightModeMinimumFrames: Int = 10
 
     nonisolated static let `default` = LivenessTuning()
 
@@ -244,19 +246,27 @@ struct LivenessEvaluator {
     }
 
     /// Deny is evaluated first and is unconditional — it overrides any confirmation already reached.
+    /// In light mode, confirm cues provide an early shortcut — if any fires, unlock immediately
+    /// without waiting for the full minimum-frame window. This rewards natural movement/blinks
+    /// with instant unlock while still giving deny cues their full observation window for spoofs.
     private func currentDecision() -> LivenessDecision {
+        // 1. Deny cues always override everything.
         for cue in LivenessCue.allCases
         where cue.role == .deny && enabledCues.contains(cue) && (states[cue]?.hasFired ?? false) {
             return .denied(by: cue)
         }
 
-        if mode == .light {
-            return framesObserved >= tuning.lightModeMinimumFrames ? .confirmed(by: nil) : .pending
-        }
-
+        // 2. Confirm cues — checked in BOTH modes. In light mode they provide
+        //    an early exit; in heavy mode they are the only path to confirmation.
         for cue in LivenessCue.allCases
         where cue.role == .confirm && enabledCues.contains(cue) && (states[cue]?.hasFired ?? false) {
             return .confirmed(by: cue)
+        }
+
+        // 3. Light mode fallback: auto-confirm after enough frames even without
+        //    a confirm cue, so a still-sitting user isn't locked out.
+        if mode == .light {
+            return framesObserved >= tuning.lightModeMinimumFrames ? .confirmed(by: nil) : .pending
         }
 
         return .pending
