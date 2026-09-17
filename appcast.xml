@@ -6,6 +6,14 @@
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
         <item>
+            <title>3.8.8</title>
+            <pubDate>Thu, 17 Sep 2026 09:36:22 +0000</pubDate>
+            <sparkle:version>38</sparkle:version>
+            <sparkle:shortVersionString>3.8.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/v3.8.8/NotchPulse.app.zip" length="0" type="application/octet-stream" sparkle:edSignature=""/>
+        </item>
+        <item>
             <title>3.8.7</title>
             <pubDate>Wed, 16 Sep 2026 18:22:02 +0000</pubDate>
             <sparkle:version>37</sparkle:version>

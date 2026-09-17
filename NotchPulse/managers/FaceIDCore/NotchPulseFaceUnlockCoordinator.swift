@@ -296,22 +296,6 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             if readyMatch && livenessConfirmed {
-                // CoreML AI Anti-Spoofing Check (Lazy Evaluation)
-                if UserDefaults.standard.bool(forKey: "enableLivenessDetection") {
-                    do {
-                        let aiLiveness = try NotchPulseCoreMLAntiSpoofing.shared()
-                        let isLive = try aiLiveness.isLive(faceImage: frame.image, faceBoundingBox: result.face.boundingBox)
-                        if !isLive {
-                            print("CoreML Anti-Spoofing: Spoof detected!")
-                            return .spoofSuspected
-                        }
-                    } catch {
-                        print("CoreML Anti-Spoofing error: \(error)")
-                        // Fail open or closed? For now, fail open if model is missing, fail closed if prediction succeeds but is spoof.
-                        // Actually, if prediction fails, let's just proceed to .matched.
-                    }
-                }
-                
                 return .matched
             }
 

@@ -196,13 +196,6 @@ final class FaceIDManager: NSObject, ObservableObject {
         super.init()
         refreshState()
         
-        // Pre-load CoreML Anti-Spoofing model asynchronously so it doesn't block later when secure prompts are active
-        if UserDefaults.standard.bool(forKey: "enableLivenessDetection") {
-            Task.detached(priority: .background) {
-                _ = try? NotchPulseCoreMLAntiSpoofing.shared()
-            }
-        }
-        
         // Setup observer for camera frames
         _ = withObservationTracking {
             self.camera.isRunning
@@ -307,6 +300,10 @@ final class FaceIDManager: NSObject, ObservableObject {
         let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.38 : 0.60
         var lastProcessedFrameID: UInt64?
         
+        let liveness = NotchPulseLivenessAnalyzer()
+        liveness.modeProvider = { .light }
+        var livenessConfirmed = false
+        
         while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
                 try? await Task.sleep(nanoseconds: 20_000_000)
@@ -314,26 +311,32 @@ final class FaceIDManager: NSObject, ObservableObject {
             }
             lastProcessedFrameID = frame.id
             
-            guard let result = try? pipeline.recognize(in: frame.image) else {
+            let pipeline = self.pipeline
+            let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
+                guard let result = try? pipeline.recognize(in: frame.image) else { return nil }
+                let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
+                return (result, NotchPulseLivenessFeatureExtractor.extract(from: result, frame: frame.image, faceCrop: faceCrop))
+            }.value
+            
+            guard let (result, livenessFrame) = outcome else {
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
             
+            let snapshot = liveness.observe(livenessFrame)
+            if snapshot.decision == .denied {
+                print("[FaceID SystemAuth] Liveness denied: \(snapshot.decision.denialReason ?? "")")
+                try? await Task.sleep(nanoseconds: 80_000_000)
+                continue
+            } else if snapshot.decision == .confirmed {
+                livenessConfirmed = true
+            }
+            
             let scored = pipeline.score(result.embedding, against: activeIdentities)
             if let _ = pipeline.bestMatch(in: scored, threshold: threshold) {
-                // CoreML AI Anti-Spoofing Check if enabled
-                if UserDefaults.standard.bool(forKey: "enableLivenessDetection") {
-                    do {
-                        let aiLiveness = try NotchPulseCoreMLAntiSpoofing.shared()
-                        let isLive = try aiLiveness.isLive(faceImage: frame.image, faceBoundingBox: result.face.boundingBox)
-                        if !isLive {
-                            print("[FaceID SystemAuth] Anti-Spoofing: presentation attack detected!")
-                            try? await Task.sleep(nanoseconds: 80_000_000)
-                            continue
-                        }
-                    } catch {
-                        print("[FaceID SystemAuth] Anti-spoofing error: \(error)")
-                    }
+                if !livenessConfirmed {
+                    try? await Task.sleep(nanoseconds: 30_000_000)
+                    continue
                 }
                 
                 lastUnlockSuccess = true
