@@ -196,6 +196,13 @@ final class FaceIDManager: NSObject, ObservableObject {
         super.init()
         refreshState()
         
+        // Pre-load CoreML Anti-Spoofing model asynchronously so it doesn't block later when secure prompts are active
+        if UserDefaults.standard.bool(forKey: "enableLivenessDetection") {
+            Task.detached(priority: .background) {
+                _ = try? NotchPulseCoreMLAntiSpoofing.shared()
+            }
+        }
+        
         // Setup observer for camera frames
         _ = withObservationTracking {
             self.camera.isRunning

@@ -54,7 +54,9 @@ final class NotchPulseCoreMLAntiSpoofing: @unchecked Sendable {
     
     init() throws {
         let config = MLModelConfiguration()
-        config.computeUnits = .cpuAndNeuralEngine
+        // Lock screen / Secure Input mode blocks XPC to the Neural Engine.
+        // We must use .cpuOnly to evaluate the model entirely in-process without deadlocks.
+        config.computeUnits = .cpuOnly
 
         // Load MiniFASNetV2
         guard let v2 = Self.loadModel(named: "MiniFASNetV2", config: config) else {
