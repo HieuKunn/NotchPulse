@@ -163,6 +163,7 @@
 		B1F747F92EC7E94000F841DB /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F747F82EC7E94000F841DB /* LottieView.swift */; };
 		B1FEB4992C7686630066EBBC /* PanGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1FEB4982C7686630066EBBC /* PanGesture.swift */; };
 		B82B11503D7144C73627E2A1 /* NotchPulseKeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75330633067C257030A788F6 /* NotchPulseKeychainManager.swift */; };
+		D7E5E67CBAB6901165F70AB1 /* AppUpdaterDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */; };
 		D92DC5E3F6AA7443C5C54311 /* NotchPulseFaceAligner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32ECD629E60EE829983330CE /* NotchPulseFaceAligner.swift */; };
 		F1D200032ED0000100000001 /* FaceIDManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200042ED0000100000001 /* FaceIDManager.swift */; };
 		F1D200052ED0000100000001 /* LockScreenWakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */; };
@@ -385,6 +386,7 @@
 		BEDB47BA7318AA56B1F3BBCD /* NotchPulseGeometryLiveness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseGeometryLiveness.swift; sourceTree = "<group>"; };
 		C0D73F8B27569898B3C4D2DB /* NotchPulseEnrollmentRingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseEnrollmentRingView.swift; sourceTree = "<group>"; };
 		C8D15FF202F3BFE51BAC1447 /* NotchPulseFaceEnrollmentStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceEnrollmentStore.swift; sourceTree = "<group>"; };
+		DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppUpdaterDelegate.swift; sourceTree = "<group>"; };
 		E01D3A636300D547621DBC6C /* NotchPulseDeviceBezelDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseDeviceBezelDetector.swift; sourceTree = "<group>"; };
 		E337E26DE7B6044D535EF392 /* NotchPulseVault.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseVault.swift; sourceTree = "<group>"; };
 		ECC7DF92B8FE14000CC68008 /* NotchPulseLivenessCues.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessCues.swift; sourceTree = "<group>"; };
@@ -639,6 +641,7 @@
 				59D8C23B2E589FAA00147B33 /* VolumeManager.swift */,
 				AA0000012ED0000100000001 /* SystemMonitorManager.swift */,
 				EA3A0859B1FA539A5464FF90 /* FaceIDCore */,
+				DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */,
 			);
 			path = managers;
 			sourceTree = "<group>";
@@ -1238,6 +1241,7 @@
 				6DE97347A4ED6DF8617B2BE8 /* NotchPulseLivenessCues.swift in Sources */,
 				FE88CFB56DD9672462E35E80 /* NotchPulseLivenessFeatures.swift in Sources */,
 				2E74A97DE6DD82121026817E /* NotchPulseLivenessScoring.swift in Sources */,
+				D7E5E67CBAB6901165F70AB1 /* AppUpdaterDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1260,7 +1264,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
@@ -1285,7 +1289,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
@@ -1439,7 +1443,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1493,7 +1497,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";

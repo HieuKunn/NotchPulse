@@ -7,14 +7,15 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-
-	<key>UTImportedTypeDeclarations</key>
-	<array>
-		<dict/>
-	</array>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/HieuKunn/NotchPulse/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict/>
+	</array>
 </dict>
 </plist>

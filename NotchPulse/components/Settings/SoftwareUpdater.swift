@@ -46,6 +46,8 @@ struct UpdaterSettingsView: View {
         self.automaticallyDownloadsUpdates = updater.automaticallyDownloadsUpdates
     }
     
+    @ObservedObject private var updateDelegate = AppUpdaterDelegate.shared
+    
     var body: some View {
         Section {
             Toggle("Automatically check for updates", isOn: $automaticallyChecksForUpdates)
@@ -61,9 +63,17 @@ struct UpdaterSettingsView: View {
 
             Divider()
 
-            HStack {
-                Spacer()
-                CheckForUpdatesView(updater: updater)
+            VStack(alignment: .trailing, spacing: 6) {
+                HStack {
+                    Spacer()
+                    CheckForUpdatesView(updater: updater)
+                }
+                
+                if updateDelegate.isUpdateAvailable {
+                    Text("New update available: \(updateDelegate.latestVersionString)")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
             }
         } header: {
             HStack {
