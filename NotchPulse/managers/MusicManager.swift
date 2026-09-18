@@ -542,8 +542,8 @@ class MusicManager: ObservableObject {
     func currentLyricIndex(at elapsed: Double) -> Int? {
         guard !syncedLyrics.isEmpty else { return nil }
         
-        // 120ms acoustic anticipation so lyric activates right as vocal onset starts
-        let calibratedElapsed = elapsed + 0.12
+        // 120ms acoustic anticipation was too early. Delayed by 0.8s as requested.
+        let calibratedElapsed = elapsed - 0.68
         
         // If before the first lyric line:
         if calibratedElapsed < syncedLyrics[0].time {
