@@ -120,8 +120,8 @@ struct LivenessTuning: Equatable {
 
     /// Frames Light mode waits before auto-confirming, so deny cues get a fair chance to
     /// fire first — otherwise a first-frame match could unlock before glare/device ever ran.
-    /// Reduced from 10 to 5 (~0.16s at 30fps) for much snappier unlock.
-    var lightModeMinimumFrames: Int = 5
+    /// Reduced from 5 to 3 for near-instant unlock (just enough for the 3-frame deny cues).
+    var lightModeMinimumFrames: Int = 3
 
     nonisolated static let `default` = LivenessTuning()
 
