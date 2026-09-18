@@ -297,7 +297,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         let startTime = ContinuousClock.now
-        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.33 : 0.52
+        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.28 : 0.46
         var lastProcessedFrameID: UInt64?
         
         let liveness = NotchPulseLivenessAnalyzer()
