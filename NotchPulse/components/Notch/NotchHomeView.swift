@@ -474,7 +474,6 @@ struct VolumeControlView: View {
 struct NotchHomeView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var webcamManager = WebcamManager.shared
-    @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @Default(.notchOpenWidth) private var notchOpenWidth
     let albumArtNamespace: Namespace.ID
