@@ -17,6 +17,7 @@ enum SneakContentType {
     case music
     case mic
     case download
+    case battery
 }
 
 struct sneakPeek {
