@@ -304,9 +304,9 @@ final class NotchPulseFaceUnlockCoordinator {
             
             let threshold: Float
             if pipeline.embedder.embeddingDimension == 512 {
-                threshold = isDistantFace ? 0.26 : (isCloseFace ? 0.24 : 0.28)
+                threshold = isDistantFace ? 0.30 : (isCloseFace ? 0.28 : 0.33)
             } else {
-                threshold = isDistantFace ? 0.42 : (isCloseFace ? 0.40 : 0.46)
+                threshold = isDistantFace ? 0.48 : (isCloseFace ? 0.44 : 0.52)
             }
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 

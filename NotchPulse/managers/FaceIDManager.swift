@@ -156,8 +156,8 @@ final class NotchPulseEnrollmentService: @unchecked Sendable {
         let centroidSim = identity.template.map { FaceEmbedding.cosineSimilarity(currentEmbedding, $0) } ?? 0
         let bestSimilarity = max(maxSampleSim, centroidSim)
         
-        // ArcFace 512D threshold: 0.20 allows comfortable natural recognition across lighting and distance
-        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.20 : 0.40
+        // ArcFace 512D threshold: 0.33 allows secure recognition without compromising security
+        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.33 : 0.52
         let matched = bestSimilarity >= threshold
         return VerifyResult(matched: matched, similarity: bestSimilarity)
     }
@@ -297,7 +297,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         let startTime = ContinuousClock.now
-        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.28 : 0.46
+        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.33 : 0.52
         var lastProcessedFrameID: UInt64?
         
         let liveness = NotchPulseLivenessAnalyzer()
@@ -518,7 +518,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                     let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
                     
                     let sim = result.similarity
-                    let threshold: Float = (self.pipeline.embedder.embeddingDimension == 512) ? 0.28 : 0.46
+                    let threshold: Float = (self.pipeline.embedder.embeddingDimension == 512) ? 0.33 : 0.52
                     let confidenceVal: Int
                     if sim >= threshold {
                         confidenceVal = 70 + Int(((sim - threshold) / max(0.01, 1.0 - threshold)) * 30)
