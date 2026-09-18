@@ -92,7 +92,7 @@ struct VerifyResult {
 final class NotchPulseEnrollmentService: @unchecked Sendable {
     static let minimumCaptureQuality: Float = 0.35
     private var embedder: NotchPulseFaceEmbedder {
-        NotchPulseVisionFeaturePrintEmbedder()
+        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
     }
     
     static func hasEnrolledFace() -> Bool {
@@ -156,9 +156,8 @@ final class NotchPulseEnrollmentService: @unchecked Sendable {
         let centroidSim = identity.template.map { FaceEmbedding.cosineSimilarity(currentEmbedding, $0) } ?? 0
         let bestSimilarity = max(maxSampleSim, centroidSim)
         
-        // ArcFace 512D threshold: 0.20 allows comfortable natural recognition across lighting and distance
-        let threshold: Float = (embedder.embeddingDimension == 512) ? 0.20 : 0.40
-        let matched = bestSimilarity >= threshold
+        let threshold: Float = 0.63
+        let matched = (centroidSim >= threshold && maxSampleSim >= threshold)
         return VerifyResult(matched: matched, similarity: bestSimilarity)
     }
 }
@@ -297,7 +296,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         let startTime = ContinuousClock.now
-        let threshold: Float = (pipeline.embedder.embeddingDimension == 512) ? 0.28 : 0.46
+        let threshold: Float = 0.63
         var lastProcessedFrameID: UInt64?
         
         let liveness = NotchPulseLivenessAnalyzer()
@@ -518,21 +517,15 @@ final class FaceIDManager: NSObject, ObservableObject {
                     let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
                     
                     let sim = result.similarity
-                    let threshold: Float = (self.pipeline.embedder.embeddingDimension == 512) ? 0.28 : 0.46
-                    let confidenceVal: Int
-                    if sim >= threshold {
-                        confidenceVal = 70 + Int(((sim - threshold) / max(0.01, 1.0 - threshold)) * 30)
-                    } else {
-                        confidenceVal = Int(max(0, (sim / threshold) * 69))
-                    }
-                    let confidence = max(0, min(100, confidenceVal))
+                    let threshold: Float = 0.63
+                    let confidence = Int(max(0, min(100, sim * 100)))
                     self.testConfidence = confidence
                     
                     if result.matched {
-                        self.testResultText = "✅ Matched (\(confidence)%)"
+                        self.testResultText = "✅ Matched (\(confidence)% ≥ 63%)"
                         self.testResultColor = .green
                     } else {
-                        self.testResultText = "❌ Unrecognized (Score: \(confidence)%)"
+                        self.testResultText = "❌ Unrecognized (Score: \(confidence)% < 63%)"
                         self.testResultColor = .red
                     }
                 } catch {

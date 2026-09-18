@@ -4,7 +4,7 @@
 //
 //  Planar-vs-3D liveness (the `flatVs3D` cue). No `import Vision`.
 //  Higher `planarResidualScore` = more like a live face.
-//  Ported from Glance's GeometryLiveness.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation

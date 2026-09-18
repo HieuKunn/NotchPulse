@@ -4,7 +4,7 @@
 //
 //  Turns a native-resolution face crop into a `GlareSample`. One decode-and-scan
 //  pass, no frequency-domain work — cheap enough to run on every liveness frame.
-//  Ported from Glance's GlareCueExtractor.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import CoreGraphics

@@ -1097,10 +1097,16 @@ struct Media: View {
                         customBadge(text: "Beta")
                     }
                 }
+                Button {
+                    MediaAutomationPermissionHelper.requestAllPermissions()
+                } label: {
+                    Label("Sync Music Permissions (Spotify & Apple Music)", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .buttonStyle(.bordered)
             } header: {
                 Text("Media controls")
             }  footer: {
-                Text("Customize which controls appear in the music player. Volume expands when active.")
+                Text("Customize which controls appear in the music player. Grant automation access for Spotify and Apple Music to keep playback and lyrics precisely in sync.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

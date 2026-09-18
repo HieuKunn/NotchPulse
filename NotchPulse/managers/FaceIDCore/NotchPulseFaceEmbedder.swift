@@ -3,11 +3,8 @@
 //  NotchPulse
 //
 //  Protocol-based face embedder system with two implementations:
-//  - NotchPulseArcFaceEmbedder: ArcFace with TTA + CLAHE + Gamma correction (primary, highest accuracy)
-//  - NotchPulseVisionFeaturePrintEmbedder: Apple Vision fallback (lower accuracy, no alignment needed)
-//
-//  The protocol pattern is ported from Glance; the TTA/CLAHE/Gamma preprocessing is NotchPulse's
-//  original contribution that Glance does not have.
+//  - NotchPulseArcFaceEmbedder: ArcFace Deep Metric Model (primary, high-accuracy 512D embeddings)
+//  - NotchPulseVisionFeaturePrintEmbedder: Apple Vision fallback
 //
 
 import Foundation
@@ -22,8 +19,7 @@ import CoreVideo
 protocol NotchPulseFaceEmbedder: Sendable {
     /// Name shown in the debug UI so it's obvious which embedder produced a given saved sample.
     nonisolated var name: String { get }
-    /// Persisted alongside every sample; used to refuse comparing across different embedders
-    /// (which wouldn't error, just produce confident nonsense).
+    /// Persisted alongside every sample; used to refuse comparing across different embedders.
     nonisolated var modelIdentifier: String { get }
     /// Declared output length, for cross-model mismatch detection without running an embedding first.
     nonisolated var embeddingDimension: Int { get }
@@ -42,7 +38,7 @@ enum FaceEmbedding {
         return vector.map { $0 / norm }
     }
 
-    /// Cosine similarity, range -1...1. The raw value ArcFace thresholds are quoted in (typical cutoffs ~0.28-0.40).
+    /// Cosine similarity, range -1...1.
     static func cosineSimilarity(_ a: [Float], _ b: [Float]) -> Float {
         guard a.count == b.count, !a.isEmpty else { return 0 }
         var dot: Float = 0
@@ -57,14 +53,13 @@ enum FaceEmbedding {
         return dot / (normA.squareRoot() * normB.squareRoot())
     }
 
-    /// For the legacy Vision-feature-print UI only. Don't use to tune ArcFace thresholds — use `cosineSimilarity` directly.
+    /// For UI display: converts cosine similarity to intuitive percentage.
     static func similarityPercent(_ a: [Float], _ b: [Float]) -> Double {
         let similarity = cosineSimilarity(a, b)
         return Double((similarity + 1) / 2) * 100
     }
 
-    /// Normalize each sample, average, then renormalize — a plain element-wise mean would let a larger-magnitude
-    /// sample silently dominate.
+    /// Normalize each sample, average, then renormalize.
     static func average(_ vectors: [[Float]]) -> [Float]? {
         guard let first = vectors.first, !first.isEmpty else { return nil }
         let count = Float(vectors.count)
@@ -82,9 +77,7 @@ enum FaceEmbedding {
 
 enum NotchPulseFaceEmbedderError: LocalizedError {
     case modelNotFound
-    case preprocessingFailed
-    case predictionFailed
-    case modelLoadFailed(underlying: Error)
+    case modelLoadFailed(String)
     case pixelBufferCreationFailed
     case unexpectedInputSize(got: (Int, Int), expected: Int)
     case unexpectedOutput(String)
@@ -95,12 +88,8 @@ enum NotchPulseFaceEmbedderError: LocalizedError {
         switch self {
         case .modelNotFound:
             return "ArcFace.mlpackage/mlmodelc not found in the app bundle."
-        case .preprocessingFailed:
-            return "Couldn't preprocess the face image for the model."
-        case .predictionFailed:
-            return "Face embedding prediction failed."
-        case .modelLoadFailed(let error):
-            return "Couldn't load FaceEmbedding model: \(error.localizedDescription)"
+        case .modelLoadFailed(let detail):
+            return "Failed to load the ArcFace Core ML model: \(detail)"
         case .pixelBufferCreationFailed:
             return "Couldn't prepare the aligned face image for Core ML."
         case .unexpectedInputSize(let got, let expected):
@@ -115,24 +104,21 @@ enum NotchPulseFaceEmbedderError: LocalizedError {
     }
 }
 
-// MARK: - ArcFace Embedder (Primary — with TTA + CLAHE + Gamma)
+// MARK: - ArcFace Embedder (Primary — Clean Core ML Inference)
 
-/// NotchPulse's enhanced ArcFace embedder — keeps all the preprocessing that makes it
-/// significantly more accurate than Glance's raw-pixel approach:
-/// - Global gamma correction (target mean luminance = 127)
-/// - CLAHE 8×8 tiles (local contrast equalization)
-/// - Test-Time Augmentation (original + horizontal flip → average)
 final class NotchPulseArcFaceEmbedder: NotchPulseFaceEmbedder, @unchecked Sendable {
-    nonisolated let name = "ArcFace (w600k_mbf) + TTA"
-    nonisolated let modelIdentifier = "arcface-notchpulse-tta-v1"
+    nonisolated let name = "ArcFace (w600k_mbf)"
+    nonisolated let modelIdentifier = "arcface-w600k_mbf-v1"
     nonisolated let embeddingDimension = 512
     nonisolated let requiresAlignment = true
 
     private static let inputSize = NotchPulseFaceAligner.outputSize
+    private static let inputName = "input_image"
+    private static let outputName = "embedding"
+
     private let model: MLModel
-    private let inputName: String
-    private let outputName: String
-    let modelName: String
+    private let pixelBufferPool: CVPixelBufferPool
+
     private static let lock = NSLock()
     private static var _sharedInstance: NotchPulseArcFaceEmbedder?
 
@@ -154,269 +140,101 @@ final class NotchPulseArcFaceEmbedder: NotchPulseFaceEmbedder, @unchecked Sendab
     }
 
     init() throws {
-        let candidates = ["ArcFace", "FaceEmbedding", "FaceNet"]
-        var loaded: (MLModel, String)? = nil
-        let config = MLModelConfiguration()
-        config.computeUnits = .all
-
-        for name in candidates {
-            var modelURL = Bundle.main.url(forResource: name, withExtension: "mlmodelc")
-            if modelURL == nil, let packageURL = Bundle.main.url(forResource: name, withExtension: "mlpackage") {
-                modelURL = try? MLModel.compileModel(at: packageURL)
-            }
-            guard let url = modelURL else {
-                continue
-            }
-            do {
-                let m = try MLModel(contentsOf: url, configuration: config)
-                loaded = (m, name)
-                break
-            } catch {
-                continue
-            }
-        }
-
-        guard let (model, name) = loaded else {
+        guard let modelURL = Self.locateModel() else {
             throw NotchPulseFaceEmbedderError.modelNotFound
         }
 
-        self.model = model
-        self.modelName = name
+        let configuration = MLModelConfiguration()
+        configuration.computeUnits = .all
 
-        let description = model.modelDescription
-        guard let firstInput = description.inputDescriptionsByName.keys.first else {
-            throw NotchPulseFaceEmbedderError.predictionFailed
+        do {
+            model = try MLModel(contentsOf: modelURL, configuration: configuration)
+        } catch {
+            throw NotchPulseFaceEmbedderError.modelLoadFailed(error.localizedDescription)
         }
-        self.inputName = firstInput
 
-        let outputs = description.outputDescriptionsByName
-        if outputs["embedding"] != nil {
-            self.outputName = "embedding"
-        } else if let firstOutput = outputs.keys.first {
-            self.outputName = firstOutput
-        } else {
-            throw NotchPulseFaceEmbedderError.predictionFailed
+        guard let pool = Self.makePixelBufferPool(size: Self.inputSize) else {
+            throw NotchPulseFaceEmbedderError.pixelBufferCreationFailed
         }
+        pixelBufferPool = pool
+    }
+
+    private static func locateModel() -> URL? {
+        for name in ["ArcFace", "w600k_mbf", "FaceEmbedding"] {
+            if let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc") {
+                return url
+            }
+            if let packageURL = Bundle.main.url(forResource: name, withExtension: "mlpackage") {
+                if let compiled = try? MLModel.compileModel(at: packageURL) {
+                    return compiled
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func makePixelBufferPool(size: Int) -> CVPixelBufferPool? {
+        let attributes: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferWidthKey as String: size,
+            kCVPixelBufferHeightKey as String: size,
+            kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any],
+        ]
+        var pool: CVPixelBufferPool?
+        CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, attributes as CFDictionary, &pool)
+        return pool
     }
 
     nonisolated func embedding(for face: CGImage) throws -> [Float] {
-        // Step 1: render the aligned face to a 112×112 RGBA byte buffer, then apply
-        // CLAHE to normalize lighting. Both TTA passes below share this buffer.
-        let normalizedPixels = try renderAndNormalizePixels(from: face)
-
-        // Step 2: Test-Time Augmentation — original + horizontal mirror.
-        let embOriginal = try predictEmbedding(from: normalizedPixels, flipped: false)
-        let embFlipped  = try predictEmbedding(from: normalizedPixels, flipped: true)
-
-        guard embOriginal.count == embFlipped.count else {
-            return embOriginal
-        }
-        var mean = [Float](repeating: 0, count: embOriginal.count)
-        for i in 0..<embOriginal.count {
-            mean[i] = (embOriginal[i] + embFlipped[i]) * 0.5
-        }
-        return FaceEmbedding.l2Normalized(mean)
-    }
-
-    private func renderAndNormalizePixels(from cgImage: CGImage) throws -> [UInt8] {
-        let size = Self.inputSize
-        var pixels = [UInt8](repeating: 0, count: size * size * 4)
-        guard let context = CGContext(
-            data: &pixels,
-            width: size,
-            height: size,
-            bitsPerComponent: 8,
-            bytesPerRow: size * 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            throw NotchPulseFaceEmbedderError.preprocessingFailed
-        }
-        context.interpolationQuality = .high
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
-
-        Self.normalizeGlobalExposure(pixels: &pixels, size: size)
-        Self.applyCLAHE(pixels: &pixels, size: size)
-        return pixels
-    }
-
-    // MARK: - Global exposure normalization
-
-    private static func normalizeGlobalExposure(pixels: inout [UInt8], size: Int) {
-        var totalLuma: Int = 0
-        let pixelCount = size * size
-        for p in 0..<pixelCount {
-            let base = p * 4
-            totalLuma += (299 * Int(pixels[base])
-                        + 587 * Int(pixels[base + 1])
-                        + 114 * Int(pixels[base + 2])
-                        + 500) / 1000
-        }
-        let mean = Float(totalLuma) / Float(pixelCount)
-        let target: Float = 127.0
-
-        guard mean > 5, abs(mean - target) > 8 else { return }
-
-        let gamma = log(target / 255.0) / log(mean / 255.0)
-
-        var lut = [UInt8](repeating: 0, count: 256)
-        for i in 0..<256 {
-            let corrected = powf(Float(i) / 255.0, gamma) * 255.0
-            lut[i] = UInt8(min(255, max(0, Int(corrected + 0.5))))
+        guard face.width == Self.inputSize, face.height == Self.inputSize else {
+            throw NotchPulseFaceEmbedderError.unexpectedInputSize(got: (face.width, face.height), expected: Self.inputSize)
         }
 
-        for p in 0..<pixelCount {
-            let base = p * 4
-            pixels[base]     = lut[Int(pixels[base])]
-            pixels[base + 1] = lut[Int(pixels[base + 1])]
-            pixels[base + 2] = lut[Int(pixels[base + 2])]
+        var pixelBufferOut: CVPixelBuffer?
+        let status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pixelBufferPool, &pixelBufferOut)
+        guard status == kCVReturnSuccess, let pixelBuffer = pixelBufferOut else {
+            throw NotchPulseFaceEmbedderError.pixelBufferCreationFailed
         }
-    }
+        try Self.render(face, into: pixelBuffer)
 
-    private func predictEmbedding(from pixels: [UInt8], flipped: Bool) throws -> [Float] {
-        let input = try makeInputArray(from: pixels, flipped: flipped)
-        let provider = try MLDictionaryFeatureProvider(dictionary: [
-            inputName: MLFeatureValue(multiArray: input)
-        ])
-        let output: MLFeatureProvider
-        do {
-            output = try model.prediction(from: provider)
-        } catch {
-            throw NotchPulseFaceEmbedderError.predictionFailed
+        let input = try MLDictionaryFeatureProvider(dictionary: [Self.inputName: MLFeatureValue(pixelBuffer: pixelBuffer)])
+        let output = try model.prediction(from: input)
+
+        guard let multiArray = output.featureValue(for: Self.outputName)?.multiArrayValue ?? output.featureValue(for: "var_1054")?.multiArrayValue else {
+            throw NotchPulseFaceEmbedderError.unexpectedOutput("no '\(Self.outputName)' output found")
         }
-        guard let multiArray = output.featureValue(for: outputName)?.multiArrayValue else {
-            throw NotchPulseFaceEmbedderError.predictionFailed
+        guard multiArray.count == embeddingDimension else {
+            throw NotchPulseFaceEmbedderError.unexpectedOutput("expected \(embeddingDimension) floats, got \(multiArray.count)")
         }
-        let raw = Self.float32Array(from: multiArray)
+
+        let raw = Self.floatVector(from: multiArray)
         return FaceEmbedding.l2Normalized(raw)
     }
 
-    private func makeInputArray(from pixels: [UInt8], flipped: Bool) throws -> MLMultiArray {
-        let size = Self.inputSize
-        let array: MLMultiArray
-        do {
-            array = try MLMultiArray(
-                shape: [1, 3, NSNumber(value: size), NSNumber(value: size)],
-                dataType: .float32
-            )
-        } catch {
-            throw NotchPulseFaceEmbedderError.preprocessingFailed
+    private static func render(_ image: CGImage, into pixelBuffer: CVPixelBuffer) throws {
+        CVPixelBufferLockBaseAddress(pixelBuffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, []) }
+
+        guard let context = CGContext(
+            data: CVPixelBufferGetBaseAddress(pixelBuffer),
+            width: CVPixelBufferGetWidth(pixelBuffer),
+            height: CVPixelBufferGetHeight(pixelBuffer),
+            bitsPerComponent: 8,
+            bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        ) else {
+            throw NotchPulseFaceEmbedderError.pixelBufferCreationFailed
         }
-        let ptr = array.dataPointer.assumingMemoryBound(to: Float32.self)
-        let plane = size * size
-        for y in 0..<size {
-            for x in 0..<size {
-                let srcX = flipped ? (size - 1 - x) : x
-                let i = (y * size + srcX) * 4
-                let r = (Float(pixels[i])     - 127.5) / 127.5
-                let g = (Float(pixels[i + 1]) - 127.5) / 127.5
-                let b = (Float(pixels[i + 2]) - 127.5) / 127.5
-                let pixelIdx = y * size + x
-                ptr[0 * plane + pixelIdx] = r
-                ptr[1 * plane + pixelIdx] = g
-                ptr[2 * plane + pixelIdx] = b
-            }
-        }
-        return array
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
     }
 
-    // MARK: - CLAHE
-
-    private static func applyCLAHE(pixels: inout [UInt8], size: Int) {
-        let numTiles = 8
-        let tileSize = size / numTiles
-        let pixelsPerTile = tileSize * tileSize
-        let clipLimit = max(2, (4 * pixelsPerTile) / 256)
-
-        var luma = [UInt8](repeating: 0, count: size * size)
-        for p in 0..<(size * size) {
-            let base = p * 4
-            let y = (299 * Int(pixels[base])
-                   + 587 * Int(pixels[base + 1])
-                   + 114 * Int(pixels[base + 2])
-                   + 500) / 1000
-            luma[p] = UInt8(min(255, max(0, y)))
+    private static func floatVector(from array: MLMultiArray) -> [Float] {
+        var result = [Float](repeating: 0, count: array.count)
+        for i in 0..<array.count {
+            result[i] = array[i].floatValue
         }
-
-        var luts = [UInt8](repeating: 0, count: numTiles * numTiles * 256)
-        for ty in 0..<numTiles {
-            for tx in 0..<numTiles {
-                var hist = [Int](repeating: 0, count: 256)
-                let y0 = ty * tileSize
-                let x0 = tx * tileSize
-                for yy in y0..<(y0 + tileSize) {
-                    let rowBase = yy * size
-                    for xx in x0..<(x0 + tileSize) {
-                        hist[Int(luma[rowBase + xx])] += 1
-                    }
-                }
-                var excess = 0
-                for i in 0..<256 {
-                    if hist[i] > clipLimit {
-                        excess += hist[i] - clipLimit
-                        hist[i] = clipLimit
-                    }
-                }
-                let addPerBin = excess / 256
-                let leftover = excess % 256
-                for i in 0..<256 {
-                    hist[i] += addPerBin + (i < leftover ? 1 : 0)
-                }
-                let lutBase = (ty * numTiles + tx) * 256
-                var cum = 0
-                for i in 0..<256 {
-                    cum += hist[i]
-                    luts[lutBase + i] = UInt8(min(255, (cum * 255) / pixelsPerTile))
-                }
-            }
-        }
-
-        let tsF = Float(tileSize)
-        let halfTile = tsF * 0.5
-        let lastTile = numTiles - 1
-        for y in 0..<size {
-            let tyF = (Float(y) - halfTile) / tsF
-            var ty0 = Int(floor(tyF))
-            let dy = tyF - Float(ty0)
-            var ty1 = ty0 + 1
-            if ty0 < 0 { ty0 = 0 } else if ty0 > lastTile { ty0 = lastTile }
-            if ty1 < 0 { ty1 = 0 } else if ty1 > lastTile { ty1 = lastTile }
-
-            let rowBase = y * size
-            for x in 0..<size {
-                let txF = (Float(x) - halfTile) / tsF
-                var tx0 = Int(floor(txF))
-                let dx = txF - Float(tx0)
-                var tx1 = tx0 + 1
-                if tx0 < 0 { tx0 = 0 } else if tx0 > lastTile { tx0 = lastTile }
-                if tx1 < 0 { tx1 = 0 } else if tx1 > lastTile { tx1 = lastTile }
-
-                let yValue = Int(luma[rowBase + x])
-                let v00 = Float(luts[(ty0 * numTiles + tx0) * 256 + yValue])
-                let v01 = Float(luts[(ty0 * numTiles + tx1) * 256 + yValue])
-                let v10 = Float(luts[(ty1 * numTiles + tx0) * 256 + yValue])
-                let v11 = Float(luts[(ty1 * numTiles + tx1) * 256 + yValue])
-                let a = v00 * (1 - dx) + v01 * dx
-                let b = v10 * (1 - dx) + v11 * dx
-                let newY = a * (1 - dy) + b * dy
-
-                let oldY = Float(yValue)
-                let gain: Float = oldY > 1 ? newY / oldY : 1
-                let pi = (rowBase + x) * 4
-                let r  = min(255, max(0, Float(pixels[pi])     * gain))
-                let g  = min(255, max(0, Float(pixels[pi + 1]) * gain))
-                let bc = min(255, max(0, Float(pixels[pi + 2]) * gain))
-                pixels[pi]     = UInt8(r + 0.5)
-                pixels[pi + 1] = UInt8(g + 0.5)
-                pixels[pi + 2] = UInt8(bc + 0.5)
-            }
-        }
-    }
-
-    private static func float32Array(from array: MLMultiArray) -> [Float] {
-        let count = array.count
-        let ptr = array.dataPointer.assumingMemoryBound(to: Float32.self)
-        return Array(UnsafeBufferPointer(start: ptr, count: count))
+        return result
     }
 }
 

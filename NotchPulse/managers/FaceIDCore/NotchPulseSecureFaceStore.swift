@@ -4,7 +4,7 @@
 //
 //  Serializes, encrypts via NotchPulseVault, and persists enrolled faces to disk.
 //  Meaningless without the Touch-ID-gated session key from the Keychain.
-//  Ported from Glance's SecureFaceStore.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation

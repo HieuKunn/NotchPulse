@@ -4,7 +4,7 @@
 //
 //  Owns the AVCaptureSession and publishes the newest camera frame as a CGImage. Runs entirely on-device.
 //  Includes native-resolution crop support for liveness detection (glare/spoof cues).
-//  Ported from Glance's CameraManager.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 @preconcurrency import AVFoundation

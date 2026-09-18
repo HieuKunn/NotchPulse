@@ -126,8 +126,10 @@ class MusicManager: ObservableObject {
                 return nil
             }
         case .appleMusic:
+            MediaAutomationPermissionHelper.requestPermission(for: "com.apple.Music")
             newController = AppleMusicController()
         case .spotify:
+            MediaAutomationPermissionHelper.requestPermission(for: "com.spotify.client")
             newController = SpotifyController()
         case .youtubeMusic:
             newController = YouTubeMusicController()
@@ -542,8 +544,8 @@ class MusicManager: ObservableObject {
     func currentLyricIndex(at elapsed: Double) -> Int? {
         guard !syncedLyrics.isEmpty else { return nil }
         
-        // 120ms acoustic anticipation was too early. Delayed by 0.8s as requested.
-        let calibratedElapsed = elapsed - 0.68
+        // Calibrated lyric transition delay reduced to 0.3s as requested
+        let calibratedElapsed = elapsed - 0.30
         
         // If before the first lyric line:
         if calibratedElapsed < syncedLyrics[0].time {

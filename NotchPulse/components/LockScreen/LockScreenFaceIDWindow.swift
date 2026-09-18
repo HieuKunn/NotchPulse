@@ -265,7 +265,7 @@ struct LockScreenFaceIDPillView: View {
         }
     }
     
-    // Closed & Open Dimensions matching Glance architecture
+    //  Native NotchPulse Face ID biometric implementation.
     private var closedBodySize: CGSize {
         if hasPhysicalNotch {
             return CGSize(width: physicalNotchWidth, height: notchHardwareHeight)

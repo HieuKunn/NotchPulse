@@ -3,7 +3,7 @@
 //  NotchPulse
 //
 //  Detects macOS lock/unlock state for the CGEvent injection POC.
-//  Ported from Glance's LockMonitor.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation

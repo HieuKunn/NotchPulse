@@ -13,6 +13,10 @@
 	<string>4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=</string>
 	<key>SUScheduledCheckInterval</key>
 	<integer>3600</integer>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>NotchPulse needs permission to control Spotify and Apple Music to display synchronized track info and real-time lyrics.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>NotchPulse uses the camera for secure Face ID unlock and guided face enrollment.</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict/>

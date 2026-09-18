@@ -2,9 +2,8 @@
 //  NotchPulseFaceDetector.swift
 //  NotchPulse
 //
-//  Converts Vision's normalized (0...1), bottom-left-origin face boxes into pixel-space, top-left-origin CGRects.
-//  Runs face-rectangle, capture-quality, and landmarks detection via chained requests for 1:1 correspondence.
-//  Ported from Glance's FaceDetector.swift with NotchPulse naming.
+//  Converts Vision's normalized (0...1), bottom-left-origin face boxes into pixel-space CGRects.
+//  Runs face-rectangle, capture-quality, and landmarks detection via chained requests.
 //
 
 import Vision

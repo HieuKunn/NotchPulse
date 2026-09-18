@@ -2,9 +2,8 @@
 //  NotchPulseFaceRecognitionPipeline.swift
 //  NotchPulse
 //
-//  Central coordinator for detect -> align -> embed.
-//  Only place that should construct a NotchPulseFaceEmbedder — keeps all consumers in sync.
-//  Ported from Glance's FaceRecognitionPipeline.swift with NotchPulse naming.
+//  Central coordinator for face detect -> align -> embed.
+//  Uses NotchPulseArcFaceEmbedder as primary with fallback to Vision.
 //
 
 import Foundation
@@ -13,7 +12,7 @@ import Observation
 
 struct FaceRecognitionResult {
     let embedding: [Float]
-    /// What was actually fed to the embedder, for debug UIs to inspect.
+    /// What was actually fed to the embedder, for debug/status views.
     let alignedImage: CGImage
     let alignmentTier: AlignmentTier
     let quality: Float?
@@ -32,24 +31,29 @@ enum FaceRecognitionPipelineError: LocalizedError {
     }
 }
 
-/// `@Observable` so the debug UI can surface which embedder is active.
+/// `@Observable` so consumers can surface which embedder is active.
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
-    nonisolated var embedder: NotchPulseFaceEmbedder {
-        NotchPulseVisionFeaturePrintEmbedder()
-    }
+    nonisolated let embedder: NotchPulseFaceEmbedder
 
-    /// Set when ArcFace failed to load and the weaker Vision feature-print embedder is in use instead.
-    private(set) var usingFallbackEmbedder: Bool = false
-    private(set) var fallbackReason: String? = nil
+    /// Set when ArcFace failed to load and the Vision fallback is active.
+    private(set) var usingFallbackEmbedder: Bool
+    private(set) var fallbackReason: String?
 
     init() {
-        // CoreML model is lazy-loaded via shared() on first recognition request
+        if let arcFace = try? NotchPulseArcFaceEmbedder.shared() {
+            embedder = arcFace
+            usingFallbackEmbedder = false
+            fallbackReason = nil
+        } else {
+            embedder = NotchPulseVisionFeaturePrintEmbedder()
+            usingFallbackEmbedder = true
+            fallbackReason = "ArcFace model not loaded, using Vision fallback"
+        }
     }
 
-    /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
-    /// - Parameter previousBoundingBox: previous frame's selected box, if any — lets a continuous scanner keep selection "stuck" to the same person instead of re-picking every frame.
+    /// `nonisolated` so callers can run detect/align/embed from a background task without blocking the main actor.
     nonisolated func recognize(in frame: CGImage, preferNear previousBoundingBox: CGRect? = nil) throws -> FaceRecognitionResult {
         let faces = try NotchPulseFaceDetector.detectFaces(in: frame)
         guard let face = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) else {
@@ -58,7 +62,7 @@ final class NotchPulseFaceRecognitionPipeline {
         return try recognize(face, in: frame)
     }
 
-    /// Aligns and embeds an already-chosen face; enrollment uses this to bypass the prominence filter so a too-small face reads as "move closer" rather than "nobody there".
+    /// Aligns and embeds an already-chosen face; enrollment uses this to bypass prominence filters.
     nonisolated func recognize(_ face: DetectedFace, in frame: CGImage) throws -> FaceRecognitionResult {
         let inputImage: CGImage
         let tier: AlignmentTier
@@ -80,18 +84,18 @@ final class NotchPulseFaceRecognitionPipeline {
         return FaceRecognitionResult(embedding: embedding, alignedImage: inputImage, alignmentTier: tier, quality: face.quality, face: face)
     }
 
-    /// Largest face by area with no prominence cutoff — unlike `selectDominantFace`, so enrollment can tell "too far" apart from "no face".
+    /// Largest face by area with no prominence cutoff.
     nonisolated static func largestFace(in faces: [DetectedFace]) -> DetectedFace? {
         faces.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
     }
 
-    /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — lowered to 0.04 to easily detect faces sitting far back from the camera.
-    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.04
+    /// Below this fraction of frame width, a face is treated as a bystander rather than the primary user.
+    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.18
 
-    /// Max normalized-coordinate drift between frames still counted as "the same person".
+    /// Max normalized-coordinate drift between frames still counted as the same person.
     nonisolated private static let continuityDistanceTolerance: CGFloat = 0.3
 
-    /// Picks the person actually at the camera, not a bystander: filters out faces below `minimumProminentFaceWidth`, then prefers continuity with `previousBoundingBox` over raw largest-by-area so two similarly-sized faces can't flip-flop the selection frame to frame and starve the liveness/wrong-face streaks of agreement.
+    /// Selects the primary face at the camera: filters out bystanders, then prefers continuity with previous position.
     nonisolated static func selectDominantFace(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> DetectedFace? {
         let candidates = faces.filter { $0.normalizedBoundingBox.width >= CGFloat(minimumProminentFaceWidth) }
         guard !candidates.isEmpty else { return nil }
@@ -117,14 +121,12 @@ struct ScoredIdentity {
     let identity: FaceIdentity
     /// Similarity against the identity's averaged template.
     let centroidSimilarity: Float
-    /// Similarity against the single closest individual sample — catches
-    /// cases where averaging blurred together poses that shouldn't be
-    /// blended.
+    /// Similarity against the single closest individual sample.
     let maxSampleSimilarity: Float
 }
 
 extension NotchPulseFaceRecognitionPipeline {
-    /// Sorted by best similarity (nearest sample or centroid) descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
+    /// Sorted by centroid similarity descending; excludes stale identities (different embedder).
     nonisolated func score(_ embedding: [Float], against identities: [FaceIdentity]) -> [ScoredIdentity] {
         identities.compactMap { (identity: FaceIdentity) -> ScoredIdentity? in
             guard let template = identity.template, !identity.samples.isEmpty else { return nil }
@@ -133,16 +135,14 @@ extension NotchPulseFaceRecognitionPipeline {
                 .map { FaceEmbedding.cosineSimilarity(embedding, $0.embedding) }
                 .max() ?? centroidSim
             return ScoredIdentity(identity: identity, centroidSimilarity: centroidSim, maxSampleSimilarity: maxSim)
-        }.sorted { max($0.centroidSimilarity, $0.maxSampleSimilarity) > max($1.centroidSimilarity, $1.maxSampleSimilarity) }
+        }.sorted { $0.centroidSimilarity > $1.centroidSimilarity }
     }
 
-    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent.
-    /// Multi-pose enrollment saves angle samples (left, right, up, down); matching considers the highest agreement
-    /// across either the nearest sample pose or the centroid.
+    /// Best match requiring BOTH centroid and nearest sample to satisfy threshold.
+    /// This prevents false positives from strangers whose average face geometry might collide with a loose single vector.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
         guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
-        let matchScore = max(first.centroidSimilarity, first.maxSampleSimilarity)
-        guard matchScore >= threshold else { return nil }
+        guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else { return nil }
         return first
     }
 }

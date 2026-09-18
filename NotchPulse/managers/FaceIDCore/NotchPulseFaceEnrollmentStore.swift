@@ -5,7 +5,7 @@
 //  Persisted encrypted under the same Touch-ID-gated session key as the stored Mac password
 //  (see NotchPulseSecureFaceStore); `isLocked`/`reloadIfUnlocked()` let the UI distinguish
 //  "locked" from "nothing enrolled."
-//  Ported from Glance's FaceEnrollmentStore.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation

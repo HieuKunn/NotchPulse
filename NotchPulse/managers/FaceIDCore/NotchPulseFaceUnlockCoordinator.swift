@@ -3,7 +3,7 @@
 //  NotchPulse
 //
 //  Connects face recognition to the actual unlock path. Handles lock states and liveness checks.
-//  Ported from Glance's FaceUnlockCoordinator.swift with NotchPulse naming and integration.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation
@@ -296,18 +296,7 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            // Adaptive threshold: slightly lower for small/distant faces (bounding box < 15% of frame)
-            // AND lower for very close faces (bounding box > 25% of frame) due to lens distortion and out-of-focus blur.
-            let faceArea = result.face.normalizedBoundingBox.width * result.face.normalizedBoundingBox.height
-            let isDistantFace = faceArea < 0.15
-            let isCloseFace = faceArea > 0.25
-            
-            let threshold: Float
-            if pipeline.embedder.embeddingDimension == 512 {
-                threshold = isDistantFace ? 0.26 : (isCloseFace ? 0.24 : 0.28)
-            } else {
-                threshold = isDistantFace ? 0.42 : (isCloseFace ? 0.40 : 0.46)
-            }
+            let threshold: Float = Float(Defaults[.faceIDMatchThreshold])
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
             if matched != nil {
@@ -389,8 +378,7 @@ final class NotchPulseFaceUnlockCoordinator {
     // Lock and state are file-private to avoid MainActor isolation
     
     private func performMacUnlock() async {
-        guard let passwordData = try? NotchPulseVault.readPassword(),
-              let password = String(data: passwordData, encoding: .utf8), !password.isEmpty else {
+        guard let passwordData = try? NotchPulseVault.readPassword(), !passwordData.isEmpty else {
             return
         }
         
@@ -398,10 +386,12 @@ final class NotchPulseFaceUnlockCoordinator {
             NSSound(named: "Glass")?.play()
         }
         
-        let pressCount = max(1, min(5, Defaults[.faceIDEnterPressCount]))
-        
-        DispatchQueue.global(qos: .userInteractive).async {
-            Self.injectUnlockEvents(password: password, pressCount: pressCount)
+        Task.detached(priority: .userInitiated) {
+            do {
+                try KeystrokeInjector.typeAndReturn(passwordData)
+            } catch {
+                print("[FaceID] Keystroke injection error: \(error)")
+            }
         }
     }
     

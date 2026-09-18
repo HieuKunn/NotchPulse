@@ -5,7 +5,7 @@
 //  Pixel-domain half of the gloss/glare cue (see `NotchPulseLivenessCues.glossGlare`);
 //  no Vision/CoreImage import.
 //  Populated by `NotchPulseGlareCueExtractor.extract(faceCrop:)`.
-//  Ported from Glance's GlareCue.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import CoreGraphics

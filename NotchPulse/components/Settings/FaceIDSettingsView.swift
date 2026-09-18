@@ -22,6 +22,7 @@ struct FaceIDSettingsView: View {
     @State private var isCameraGranted: Bool = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     
     @Default(.faceIDEnterPressCount) var faceIDEnterPressCount
+    @Default(.faceIDMatchThreshold) var faceIDMatchThreshold
     
     var body: some View {
         Form {
@@ -154,6 +155,15 @@ struct FaceIDSettingsView: View {
                 Text("Number of Enter/Return keystrokes sent to wake and unlock the display upon successful recognition (1 - 5).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Divider()
+
+                Picker("Match Sensitivity", selection: $faceIDMatchThreshold) {
+                    Text("Standard (Recommended - 63%)").tag(0.63)
+                    Text("High Security (Strict - 68%)").tag(0.68)
+                    Text("Relaxed (58%)").tag(0.58)
+                }
+                .disabled(!Defaults[.enableFaceID] || !faceIDManager.isEnrolled)
             } header: {
                 Label("Face ID Unlock (ArcFace CoreML)", systemImage: "faceid")
             }
@@ -210,7 +220,7 @@ struct FaceIDSettingsView: View {
                                         .font(.system(size: 14))
                                 }
                                 
-                                Text("ArcFace 512D + TTA Preprocessing • 9 Guided Poses Enrolled")
+                                Text("High-Accuracy ArcFace 512D • 9 Guided Poses Enrolled")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -301,7 +311,7 @@ struct FaceIDSettingsView: View {
                                         .foregroundStyle(faceIDManager.testResultColor)
                                     
                                     if faceIDManager.testConfidence > 0 {
-                                        Text("Cosine Similarity: \(faceIDManager.testConfidence)% (Threshold: 40%)")
+                                        Text("Cosine Similarity: \(faceIDManager.testConfidence)% (Threshold: \(Int(faceIDMatchThreshold * 100))%)")
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
                                     }
@@ -377,13 +387,20 @@ struct FaceIDSettingsView: View {
                 Defaults.Toggle(key: .lockScreenPlayerShowLyrics) {
                     Text("Show Real-time Synced Lyrics (Karaoke)")
                 }
+
+                Button {
+                    MediaAutomationPermissionHelper.requestAllPermissions()
+                } label: {
+                    Label("Sync Music Permissions (Spotify & Apple Music)", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .buttonStyle(.bordered)
             } header: {
                 Label("Lock Screen Media Player", systemImage: "music.note.tv")
             }
         }
         .formStyle(.grouped)
         .sheet(isPresented: $showGuidedEnrollmentModal) {
-            NotchPulseGuidedEnrollmentView(
+            FaceIDGuidedSetupModalView(
                 onFinished: {
                     showGuidedEnrollmentModal = false
                 },

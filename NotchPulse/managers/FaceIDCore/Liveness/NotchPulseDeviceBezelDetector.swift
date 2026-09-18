@@ -5,7 +5,7 @@
 //  Looks for a device bezel (phone/tablet) around the face via
 //  VNDetectRectanglesRequest; only ever produces positive evidence of
 //  spoofing, never positive evidence of liveness.
-//  Ported from Glance's DeviceBezelDetector.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Vision

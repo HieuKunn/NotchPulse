@@ -4,7 +4,7 @@
 //
 //  Rolling-window driver for the liveness cues. Takes `LivenessFrame`, not
 //  `FaceRecognitionResult`, keeping this file's dependency graph shallow enough.
-//  Ported from Glance's LivenessAnalyzer.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation

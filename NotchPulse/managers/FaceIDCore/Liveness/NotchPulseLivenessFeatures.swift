@@ -4,7 +4,7 @@
 //
 //  Vision-facing half of liveness: turns a `FaceRecognitionResult` into a plain,
 //  Vision-free `LivenessFrame` — keeps the decision logic compilable standalone.
-//  Ported from Glance's LivenessFeatures.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Vision

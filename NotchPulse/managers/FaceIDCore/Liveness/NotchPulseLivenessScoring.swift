@@ -4,7 +4,7 @@
 //
 //  `LivenessFrame` plus the two cross-frame confirm cues that read it directly:
 //  `poseDepthConsistency` and `blinkDynamics`. No `import Vision`/AppKit.
-//  Ported from Glance's LivenessScoring.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation

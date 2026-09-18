@@ -4,7 +4,7 @@
 //
 //  Thin, password-agnostic wrapper around Keychain Services — save/read/delete/exists by account,
 //  plus a Touch-ID access control helper.
-//  Ported from Glance's KeychainManager.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation

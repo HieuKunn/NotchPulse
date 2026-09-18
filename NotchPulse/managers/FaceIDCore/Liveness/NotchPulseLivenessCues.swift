@@ -4,7 +4,7 @@
 //
 //  Liveness decision model: five independent cues, no combined score. DENY
 //  cues override CONFIRM cues unconditionally; a confirm cue's absence is never a failure.
-//  Ported from Glance's LivenessCues.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import CoreGraphics

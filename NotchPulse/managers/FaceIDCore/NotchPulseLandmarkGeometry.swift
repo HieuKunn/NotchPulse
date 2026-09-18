@@ -4,7 +4,7 @@
 //
 //  Shared landmark math used by `NotchPulseFaceAligner` and the liveness analyzer —
 //  moved out so the two call sites can't drift apart.
-//  Ported from Glance's LandmarkGeometry.swift with NotchPulse naming.
+//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Vision
