@@ -518,7 +518,14 @@ final class FaceIDManager: NSObject, ObservableObject {
                     let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
                     
                     let sim = result.similarity
-                    let confidence = max(0, min(100, Int(((sim - 0.10) / (0.50 - 0.10)) * 100)))
+                    let threshold: Float = (self.pipeline.embedder.embeddingDimension == 512) ? 0.28 : 0.46
+                    let confidenceVal: Int
+                    if sim >= threshold {
+                        confidenceVal = 70 + Int(((sim - threshold) / max(0.01, 1.0 - threshold)) * 30)
+                    } else {
+                        confidenceVal = Int(max(0, (sim / threshold) * 69))
+                    }
+                    let confidence = max(0, min(100, confidenceVal))
                     self.testConfidence = confidence
                     
                     if result.matched {
