@@ -9,7 +9,7 @@ import Foundation
 import CoreGraphics
 import Observation
 
-nonisolated struct FaceRecognitionResult {
+struct FaceRecognitionResult {
     let embedding: [Float]
     /// What was actually fed to the embedder, for debug UIs to inspect.
     let alignedImage: CGImage
@@ -34,7 +34,7 @@ enum NotchPulseFaceRecognitionPipelineError: LocalizedError {
 @Observable
 @MainActor
 final class FaceRecognitionPipeline {
-    nonisolated let embedder: FaceEmbedder
+    nonisolated let embedder: NotchPulseFaceEmbedder
 
     /// Set when ArcFace failed to load (see tools/convert_arcface.py) and the weaker Vision feature-print embedder is in use instead.
     private(set) var usingFallbackEmbedder: Bool
@@ -117,7 +117,7 @@ final class FaceRecognitionPipeline {
     }
 }
 
-nonisolated struct ScoredIdentity {
+struct ScoredIdentity {
     let identity: FaceIdentity
     /// Similarity against the identity's averaged template.
     let centroidSimilarity: Float

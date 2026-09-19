@@ -113,7 +113,7 @@ struct LivenessTuning: Equatable {
     var depthPoseLevel: Float = 0.8
     var depthPoseFrames: Int = 2
 
-    /// A blink is already a discrete dip-and-recover event (see `LivenessScoring.blinkDynamics`),
+    /// A blink is already a discrete dip-and-recover event (see `NotchPulseLivenessScoring.blinkDynamics`),
     /// not a ramping level, so one firing frame is the event itself.
     var blinkFrames: Int = 1
 
@@ -276,8 +276,8 @@ enum NotchPulseLivenessCues {
             .glossGlare: glossGlare(window.last),
             .deviceDetected: deviceDetected(window.last),
             .flatVs3D: geometry.planarReading,
-            .depthPose: LivenessScoring.poseDepthConsistency(window),
-            .blink: LivenessScoring.blinkDynamics(window),
+            .depthPose: NotchPulseLivenessScoring.poseDepthConsistency(window),
+            .blink: NotchPulseLivenessScoring.blinkDynamics(window),
         ]
     }
 

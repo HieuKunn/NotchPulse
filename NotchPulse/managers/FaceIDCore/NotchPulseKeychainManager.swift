@@ -33,7 +33,7 @@ enum KeychainError: LocalizedError {
     }
 }
 
-enum KeychainManager {
+enum NotchPulseKeychainManager {
     nonisolated static let service = "com.jonathan.glance"
 
     /// Attributes-only existence check — never prompts, even for access-controlled items.

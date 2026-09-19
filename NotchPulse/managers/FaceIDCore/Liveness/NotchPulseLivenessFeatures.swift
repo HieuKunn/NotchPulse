@@ -18,8 +18,8 @@ enum NotchPulseLivenessFeatureExtractor {
         from result: FaceRecognitionResult, frame: CGImage, faceCrop: CGImage? = nil, timestamp: Date = Date()
     ) -> LivenessFrame {
         let face = result.face
-        let deviceOverlap = DeviceBezelDetector.detect(in: frame, faceBoundingBox: face.boundingBox).faceOverlapFraction
-        let glare = faceCrop.flatMap { GlareCueExtractor.extract(faceCrop: $0) }
+        let deviceOverlap = NotchPulseDeviceBezelDetector.detect(in: frame, faceBoundingBox: face.boundingBox).faceOverlapFraction
+        let glare = faceCrop.flatMap { NotchPulseGlareCueExtractor.extract(faceCrop: $0) }
 
         guard let landmarks = face.landmarks else {
             return LivenessFrame(
