@@ -1,4 +1,4 @@
-# NotchPulse v3.9.7
+# NotchPulse v3.9.5
 
 ## 🐛 Bug Fixes
 - **Keychain Password Save**: Fixed an issue where saving the lock screen password to Keychain failed silently on non-App Store builds due to a strict Touch ID access control policy (`.userPresence`). The vault now gracefully falls back to a standard device-unlocked Keychain item, ensuring your AES-256 encrypted password is saved securely.
