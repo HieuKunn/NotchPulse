@@ -116,8 +116,10 @@ final class FaceIDEnrollmentController {
     private let requiredMatchStreak = 3
     private let poseHoldDuration: Duration = .milliseconds(500)
     private let qualityFloor: Float = 0.2
+    private let initialCaptureDelay: Duration = .seconds(1.5)
     
     private var poseStartedAt: ContinuousClock.Instant = .now
+    private var captureReadyAt: ContinuousClock.Instant = .now
     private var poseHoldStartedAt: ContinuousClock.Instant?
 
     // MARK: - Enrollment pose matching thresholds (aligned with glance)
@@ -181,6 +183,7 @@ final class FaceIDEnrollmentController {
 
     func start() {
         reset()
+        captureReadyAt = .now + initialCaptureDelay
         Task { @MainActor in
             await camera.requestAccessAndStart()
             updateDirectionSweep()
@@ -215,80 +218,129 @@ final class FaceIDEnrollmentController {
         }
     }
 
+    
+    private enum EnrollFrameOutcome: Sendable {
+        case noFace
+        case tooFar
+        case ready(FaceRecognitionResult)
+    }
+
     private func processCurrentFrame() {
         guard !enrollmentComplete, !isProcessingFrame,
-              let frame = camera.currentFrame else { return }
+              let cameraFrame = camera.currentFrame, let pose = currentPose else { return }
 
         isProcessingFrame = true
-        let image = frame.image
-
-        Task.detached(priority: .userInitiated) { [weak self] in
-            guard let faces = try? NotchPulseFaceDetector.detectFaces(in: image),
-                  let face = NotchPulseFaceRecognitionPipeline.selectDominantFace(in: faces) ?? faces.first else {
-                await MainActor.run {
-                    guard let self = self else { return }
-                    self.isProcessingFrame = false
-                    self.faceDetected = false
-                    self.currentYaw = nil
-                    self.currentPitch = nil
-                    self.poseHoldStartedAt = nil
+        defer { isProcessingFrame = false }
+        
+        let pipeline = self.pipeline
+        let image = cameraFrame.image
+        
+        let outcome = Task.detached(priority: .userInitiated) {
+            do {
+                let faces = try NotchPulseFaceDetector.detectFaces(in: image)
+                guard let face = NotchPulseFaceRecognitionPipeline.selectDominantFace(in: faces) else {
+                    return EnrollFrameOutcome.noFace
                 }
-                return
+                let faceWidth = Float(face.normalizedBoundingBox.width)
+                if faceWidth < max(NotchPulseFaceRecognitionPipeline.minimumProminentFaceWidth, 0.20) {
+                    return EnrollFrameOutcome.tooFar
+                }
+                return EnrollFrameOutcome.ready(try pipeline.recognize(face, in: image))
+            } catch {
+                return EnrollFrameOutcome.noFace
             }
-
+        }
+        
+        Task {
+            let result = await outcome.value
             await MainActor.run {
-                guard let self = self, !self.enrollmentComplete else { return }
-                defer { self.isProcessingFrame = false }
-
-                guard let yaw = face.yaw, let pitch = face.pitch else {
-                    self.faceDetected = true
+                switch result {
+                case .noFace:
+                    self.faceDetected = false
                     self.currentYaw = nil
                     self.currentPitch = nil
                     self.matchStreak = 0
                     self.poseHoldStartedAt = nil
                     self.isTooFar = false
                     return
-                }
-
-                self.faceDetected = true
-                self.currentYaw = yaw
-                self.currentPitch = pitch
-
-                // Check distance / prominence — enrollment needs closer proximity than unlock
-                // so the template samples have enough pixel detail. Mirrors glance's `enrollmentMinimumFaceWidth`.
-                let faceWidth = Float(face.normalizedBoundingBox.width)
-                if faceWidth < max(NotchPulseFaceRecognitionPipeline.minimumProminentFaceWidth, 0.20) {
-                    self.isTooFar = true
-                    self.poseHoldStartedAt = nil
-                    return
-                }
-                self.isTooFar = false
-
-                guard let targetPose = self.currentPose else { return }
-
-                let widened = ContinuousClock.now - self.poseStartedAt > self.stallTimeout
-                let poseOK = self.poseMatches(yaw: yaw, pitch: pitch, pose: targetPose, widened: widened)
-                
-                let qualityOK = (face.quality ?? 1.0) >= self.qualityFloor
-                // We assume alignmentOK is checked inside capturePose or handled by the pipeline in NotchPulse.
-
-                guard qualityOK, !self.isTooFar, poseOK else {
+                case .tooFar:
+                    self.faceDetected = true
+                    self.currentYaw = nil
+                    self.currentPitch = nil
                     self.matchStreak = 0
                     self.poseHoldStartedAt = nil
+                    self.isTooFar = true
                     return
+                case .ready(let recogResult):
+                    guard let yaw = recogResult.face.yaw, let pitch = recogResult.face.pitch else {
+                        self.faceDetected = true
+                        self.currentYaw = nil
+                        self.currentPitch = nil
+                        self.matchStreak = 0
+                        self.poseHoldStartedAt = nil
+                        self.isTooFar = false
+                        return
+                    }
+                    self.faceDetected = true
+                    self.currentYaw = yaw
+                    self.currentPitch = pitch
+                    self.isTooFar = false
+                    self.processMatchedEnrollFrame(recogResult, yaw: yaw, pitch: pitch, pose: pose)
                 }
-
-                if self.poseHoldStartedAt == nil {
-                    self.poseHoldStartedAt = .now
-                }
-                guard ContinuousClock.now - self.poseHoldStartedAt! >= self.poseHoldDuration else { return }
-
-                self.matchStreak += 1
-                guard self.matchStreak >= self.requiredMatchStreak else { return }
-                self.matchStreak = 0
-
-                self.capturePose(targetPose, face: face, frame: image)
             }
+        }
+    }
+
+    private func processMatchedEnrollFrame(
+        _ result: FaceRecognitionResult,
+        yaw: Float,
+        pitch: Float,
+        pose: FaceIDEnrollmentPose
+    ) {
+        guard ContinuousClock.now >= captureReadyAt else {
+            matchStreak = 0
+            poseHoldStartedAt = nil
+            return
+        }
+
+        let qualityOK = result.quality.map { $0 >= qualityFloor } ?? true
+        let alignmentOK = result.alignmentTier == .fivePoint
+        let widened = ContinuousClock.now - poseStartedAt > stallTimeout
+        let poseOK = poseMatches(yaw: yaw, pitch: pitch, pose: pose, widened: widened)
+        
+        guard qualityOK, alignmentOK, !isTooFar, poseOK else {
+            matchStreak = 0
+            poseHoldStartedAt = nil
+            return
+        }
+
+        if poseHoldStartedAt == nil {
+            poseHoldStartedAt = .now
+        }
+        guard ContinuousClock.now - poseHoldStartedAt! >= poseHoldDuration else { return }
+
+        matchStreak += 1
+        guard matchStreak >= requiredMatchStreak else { return }
+        matchStreak = 0
+
+        let sample = FaceSample(
+            embedding: result.embedding,
+            pose: pose.name,
+            capturedAt: Date(),
+            quality: result.quality ?? 0.95
+        )
+        collectedSamples.append(sample)
+        capturedForCurrentPose += 1
+
+        if capturedForCurrentPose >= samplesPerPose {
+            capturedPoses.insert(pose)
+            capturedForCurrentPose = 0
+            poseStartedAt = .now
+            poseHoldStartedAt = nil
+            matchStreak = 0
+            if pose == .center { triggerCenterPulse() }
+            currentPoseIndex += 1
+            if currentPoseIndex >= FaceIDEnrollmentPose.allCases.count { finishEnrollment() } else { updateDirectionSweep() }
         }
     }
 
@@ -314,35 +366,7 @@ final class FaceIDEnrollmentController {
         }
     }
 
-    private func capturePose(_ pose: FaceIDEnrollmentPose, face: DetectedFace, frame: CGImage) {
-        do {
-            let result = try pipeline.recognize(face, in: frame)
-            self.debugError = nil
-            
-            let sample = FaceSample(
-                embedding: result.embedding,
-                pose: pose.name,
-                capturedAt: Date(),
-                quality: face.quality ?? 0.95
-            )
-            collectedSamples.append(sample)
-            capturedForCurrentPose += 1
-            
-            if capturedForCurrentPose >= samplesPerPose {
-                capturedPoses.insert(pose)
-                capturedForCurrentPose = 0
-                self.poseStartedAt = .now
-                self.poseHoldStartedAt = nil
-                self.matchStreak = 0
-                if pose == .center { triggerCenterPulse() }
-                currentPoseIndex += 1
-                if currentPoseIndex >= FaceIDEnrollmentPose.allCases.count { finishEnrollment() } else { updateDirectionSweep() }
-            }
-        } catch {
-            self.debugError = "\(error)"
-            print("[FaceID] Pipeline recognize error: \(error)")
-        }
-    }
+
 
     private func triggerCenterPulse() {
         centerPulseTick = true
