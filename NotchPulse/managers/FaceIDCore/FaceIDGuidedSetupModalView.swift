@@ -97,6 +97,12 @@ struct FaceIDGuidedSetupModalView: View {
                             }
                         }
                         .padding(.top, 4)
+
+                        if let err = ctrl.debugError {
+                            Text("Error: \(err)")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        }
                     }
                 }
                 .padding(.bottom, 32)

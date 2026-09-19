@@ -105,6 +105,7 @@ final class FaceIDEnrollmentController {
     var currentYaw: Float?
     var currentPitch: Float?
     var debugError: String?
+    var matchStreak: Int = 0
 
     var onFinished: (() -> Void)?
     var onCancelled: (() -> Void)?
@@ -200,6 +201,7 @@ final class FaceIDEnrollmentController {
         enrollmentComplete = false
         centerPulseTick = false
         poseHoldStartedAt = nil
+        matchStreak = 0
     }
 
     private func observeCameraFrames() {
@@ -255,15 +257,19 @@ final class FaceIDEnrollmentController {
                 guard let targetPose = self.currentPose else { return }
 
                 if self.matches(pose: targetPose, yaw: face.yaw ?? 0, pitch: face.pitch ?? face.roll ?? 0) {
-                    if let started = self.poseHoldStartedAt {
-                        if ContinuousClock.now - started >= self.poseHoldDuration {
+                    if self.poseHoldStartedAt == nil {
+                        self.poseHoldStartedAt = .now
+                    }
+                    if let started = self.poseHoldStartedAt, ContinuousClock.now - started >= self.poseHoldDuration {
+                        self.matchStreak += 1
+                        if self.matchStreak >= 3 {
+                            self.matchStreak = 0
                             self.capturePose(targetPose, face: face, frame: image)
                         }
-                    } else {
-                        self.poseHoldStartedAt = .now
                     }
                 } else {
                     self.poseHoldStartedAt = nil
+                    self.matchStreak = 0
                 }
             }
         }
@@ -288,8 +294,6 @@ final class FaceIDEnrollmentController {
     }
 
     private func capturePose(_ pose: FaceIDEnrollmentPose, face: DetectedFace, frame: CGImage) {
-        poseHoldStartedAt = nil
-
         do {
             let result = try pipeline.recognize(face, in: frame)
             self.debugError = nil
@@ -306,6 +310,8 @@ final class FaceIDEnrollmentController {
             if capturedForCurrentPose >= samplesPerPose {
                 capturedPoses.insert(pose)
                 capturedForCurrentPose = 0
+                self.poseHoldStartedAt = nil // Reset so the next pose requires a new 1-second hold
+                self.matchStreak = 0
                 if pose == .center { triggerCenterPulse() }
                 currentPoseIndex += 1
                 if currentPoseIndex >= FaceIDEnrollmentPose.allCases.count { finishEnrollment() } else { updateDirectionSweep() }

@@ -1,7 +1,8 @@
-# NotchPulse v3.9.4
+# NotchPulse v3.9.5
 
 ## 🐛 Bug Fixes
-- **Software Updates**: Fixed an issue where the "Check for Updates" screen would incorrectly display the internal build number instead of the actual version name.
+- **Face ID Setup**: Fixed a major issue in the Face ID setup flow where users were required to hold perfectly still for 8 seconds per angle. The setup process is now fluid and captures samples rapidly once your head is correctly aligned.
+- **App Icon**: Updated the application icon to feature a pristine full-bleed design, resolving the system-imposed gray background box on macOS Sequoia.
 
 ## 🔒 Face ID Re-Engineered
 - **Guided Multi-Angle Face Setup**: Completely redesigned face enrollment with a smooth 80-tick circular indicator and guided head turns in all directions. Capturing your face from multiple angles ensures reliable recognition from any posture.
