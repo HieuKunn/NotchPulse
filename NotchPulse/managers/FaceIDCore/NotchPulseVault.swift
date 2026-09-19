@@ -190,8 +190,13 @@ enum NotchPulseVault {
         }
 
         let key = SymmetricKey(size: .bits256)
-        let access = try NotchPulseKeychainManager.makeUserPresenceAccessControl()
-        try saveSessionKey(key, accessControl: access)
+        do {
+            let access = try NotchPulseKeychainManager.makeUserPresenceAccessControl()
+            try saveSessionKey(key, accessControl: access)
+        } catch {
+            print("[Vault] Failed to save session key with user presence, falling back to standard access: \(error)")
+            try saveSessionKey(key, accessControl: nil)
+        }
         storeCachedKey(key)
         return key
     }

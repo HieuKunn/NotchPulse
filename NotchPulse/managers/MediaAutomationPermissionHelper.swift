@@ -19,25 +19,19 @@ enum MediaAutomationPermissionHelper {
     }
 
     @discardableResult
-    static func requestPermission(for bundleIdentifier: String) -> OSStatus {
-        guard let bundleIdData = bundleIdentifier.data(using: .utf8) else { return -1 }
-        var targetDesc = AEAddressDesc()
-        let createStatus: OSErr = bundleIdData.withUnsafeBytes { ptr in
-            AECreateDesc(
-                DescType(typeApplicationBundleID),
-                ptr.baseAddress,
-                bundleIdData.count,
-                &targetDesc
-            )
+    static func requestPermission(for bundleIdentifier: String) -> Bool {
+        // Executing a dummy AppleScript targeted at the bundle ID is the most reliable way 
+        // to force macOS to display the Automation permission prompt to the user.
+        let scriptSource = "tell application id \"\(bundleIdentifier)\" to return"
+        guard let script = NSAppleScript(source: scriptSource) else { return false }
+        
+        var errorInfo: NSDictionary?
+        script.executeAndReturnError(&errorInfo)
+        
+        if let error = errorInfo {
+            print("[AutomationPermission] Request for \(bundleIdentifier) failed/denied: \(error)")
+            return false
         }
-        guard createStatus == noErr else { return OSStatus(createStatus) }
-        defer { AEDisposeDesc(&targetDesc) }
-
-        return AEDeterminePermissionToAutomateTarget(
-            &targetDesc,
-            typeWildCard,
-            typeWildCard,
-            true
-        )
+        return true
     }
 }

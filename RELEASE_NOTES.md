@@ -1,8 +1,8 @@
-# NotchPulse v3.9.6
+# NotchPulse v3.9.7
 
 ## 🐛 Bug Fixes
-- **Face ID Setup Logic (Strict)**: Reverted Face ID setup logic to explicitly use the exact parameters and threshold implementation from the source engine to guarantee flawless alignment accuracy and timing without any UI modification.
-- **App Icon**: Updated the application icon to feature a pristine full-bleed design, resolving the system-imposed gray background box on macOS Sequoia.
+- **Keychain Password Save**: Fixed an issue where saving the lock screen password to Keychain failed silently on non-App Store builds due to a strict Touch ID access control policy (`.userPresence`). The vault now gracefully falls back to a standard device-unlocked Keychain item, ensuring your AES-256 encrypted password is saved securely.
+- **AppleScript Automation Prompts**: Fixed an issue where the "Sync Music Permissions" button failed to prompt the macOS permission dialog for Spotify and Apple Music. The system will now correctly ask for Automation permissions, allowing precise playback and lyrics sync.
 
 ## 🔒 Face ID Re-Engineered
 - **Guided Multi-Angle Face Setup**: Completely redesigned face enrollment with a smooth 80-tick circular indicator and guided head turns in all directions. Capturing your face from multiple angles ensures reliable recognition from any posture.
