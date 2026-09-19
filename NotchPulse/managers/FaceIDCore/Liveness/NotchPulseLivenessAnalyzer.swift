@@ -1,5 +1,5 @@
 //
-//  LivenessAnalyzer.swift
+//  NotchPulseLivenessAnalyzer.swift
 //  NotchPulse
 //
 //  Rolling-window driver for the liveness cues. Takes `LivenessFrame`, not
@@ -25,7 +25,7 @@ final class NotchPulseLivenessAnalyzer {
     private(set) var lastSnapshot = LivenessSnapshot.empty
     /// Kept for Face Lab's diagnostics panel (excess ratio, coherence, pair
     /// counts, yaw range) — the numbers behind the flat-vs-3D cue's level.
-    private(set) var lastGeometry = GeometryLivenessResult.empty
+    private(set) var lastGeometry = NotchPulseGeometryLivenessResult.empty
 
     init(windowDuration: TimeInterval = 2.0) {
         self.windowDuration = windowDuration

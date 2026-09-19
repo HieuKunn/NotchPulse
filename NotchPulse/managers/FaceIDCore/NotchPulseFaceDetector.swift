@@ -23,7 +23,7 @@ struct DetectedFace {
     let roll: Float?
     let pitch: Float?
     /// Facial landmarks (eyes, nose, mouth, etc.), when available. Feeds
-    /// `FaceAligner` for canonical 112x112 alignment ahead of ArcFace.
+    /// `NotchPulseFaceAligner` for canonical 112x112 alignment ahead of ArcFace.
     nonisolated let landmarks: VNFaceLandmarks2D?
     /// Needed by `landmarks.pointsInImage(_:)` to convert normalized landmark points into `boundingBox`'s pixel space.
     let imageSize: CGSize
@@ -31,7 +31,7 @@ struct DetectedFace {
 
 /// Pure, synchronous, CPU-bound work — `nonisolated` so it can run on a
 /// background task despite the project's default main-actor isolation.
-enum NotchPulseFaceDetector {
+nonisolated enum NotchPulseFaceDetector {
     /// Runs face-rectangle, capture-quality, and landmarks detection on a single frame.
     static func detectFaces(in image: CGImage) throws -> [DetectedFace] {
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
@@ -54,16 +54,15 @@ enum NotchPulseFaceDetector {
         let imageSize = CGSize(width: image.width, height: image.height)
 
         return faceObservations.enumerated().map { index, observation in
-            let landmarkObs = landmarkResults.indices.contains(index) ? landmarkResults[index] : observation
             let pixelRect = convertToImageSpace(observation.boundingBox, imageSize: imageSize)
             return DetectedFace(
                 boundingBox: pixelRect,
                 normalizedBoundingBox: observation.boundingBox,
                 quality: qualityResults.indices.contains(index) ? qualityResults[index].faceCaptureQuality : nil,
-                yaw: landmarkObs.yaw?.floatValue ?? observation.yaw?.floatValue,
-                roll: landmarkObs.roll?.floatValue ?? observation.roll?.floatValue,
-                pitch: landmarkObs.pitch?.floatValue ?? observation.pitch?.floatValue,
-                landmarks: landmarkObs.landmarks,
+                yaw: observation.yaw?.floatValue,
+                roll: observation.roll?.floatValue,
+                pitch: observation.pitch?.floatValue,
+                landmarks: landmarkResults.indices.contains(index) ? landmarkResults[index].landmarks : nil,
                 imageSize: imageSize
             )
         }

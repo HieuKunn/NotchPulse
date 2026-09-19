@@ -1,5 +1,5 @@
 //
-//  LivenessCues.swift
+//  NotchPulseLivenessCues.swift
 //  NotchPulse
 //
 //  Liveness decision model: five independent cues, no combined score. DENY
@@ -197,7 +197,7 @@ struct LivenessSnapshot: Equatable {
 }
 
 /// The stateful decision core, kept as a plain `struct` rather than folded
-/// into `LivenessAnalyzer` so `tools/liveness_selftest.swift` can drive the
+/// into `NotchPulseLivenessAnalyzer` so `tools/liveness_selftest.swift` can drive the
 /// real firing/latching logic frame by frame with no actor or camera.
 struct LivenessEvaluator {
     var mode: LivenessMode
@@ -268,9 +268,9 @@ struct LivenessEvaluator {
 
 /// Turns a rolling window into this frame's reading for every cue. Deny cues read only
 /// the latest frame (per-frame appearance); confirm cues read the whole window (cross-frame motion).
-enum NotchPulseLivenessCues {
+nonisolated enum NotchPulseLivenessCues {
     nonisolated static func readings(
-        window: [LivenessFrame], geometry: GeometryLivenessResult
+        window: [LivenessFrame], geometry: NotchPulseGeometryLivenessResult
     ) -> [LivenessCue: CueReading] {
         [
             .glossGlare: glossGlare(window.last),
@@ -295,7 +295,7 @@ enum NotchPulseLivenessCues {
         return CueReading(level: level, confidence: confidence)
     }
 
-    /// Raw overlap fraction from `DeviceBezelDetector`, used directly rather than re-scaled.
+    /// Raw overlap fraction from `NotchPulseDeviceBezelDetector`, used directly rather than re-scaled.
     nonisolated static func deviceDetected(_ frame: LivenessFrame?) -> CueReading {
         guard let overlap = frame?.deviceOverlapFraction else { return .none }
         return CueReading(level: Float(min(max(overlap, 0), 1)), confidence: 1)

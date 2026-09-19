@@ -1,5 +1,5 @@
 //
-//  FaceRecognitionPipeline.swift
+//  NotchPulseFaceRecognitionPipeline.swift
 //  NotchPulse
 //
 //  Only place that should construct a FaceEmbedder — keeps all consumers in sync.
@@ -9,7 +9,7 @@ import Foundation
 import CoreGraphics
 import Observation
 
-struct FaceRecognitionResult {
+nonisolated struct FaceRecognitionResult {
     let embedding: [Float]
     /// What was actually fed to the embedder, for debug UIs to inspect.
     let alignedImage: CGImage
@@ -18,7 +18,7 @@ struct FaceRecognitionResult {
     let face: DetectedFace
 }
 
-enum NotchPulseFaceRecognitionPipelineError: LocalizedError {
+nonisolated enum NotchPulseNotchPulseFaceRecognitionPipelineError: LocalizedError {
     case noFaceDetected
     case alignmentFailed
 
@@ -34,21 +34,21 @@ enum NotchPulseFaceRecognitionPipelineError: LocalizedError {
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
-    nonisolated let embedder: NotchPulseFaceEmbedder
+    nonisolated let embedder: FaceEmbedder
 
     /// Set when ArcFace failed to load (see tools/convert_arcface.py) and the weaker Vision feature-print embedder is in use instead.
     private(set) var usingFallbackEmbedder: Bool
     private(set) var fallbackReason: String?
 
     init() {
-        if let arcFace = try? NotchPulseArcFaceEmbedder.shared() {
-            embedder = arcFace
+        do {
+            embedder = try ArcFaceEmbedder()
             usingFallbackEmbedder = false
             fallbackReason = nil
-        } else {
-            embedder = NotchPulseVisionFeaturePrintEmbedder()
+        } catch {
+            embedder = VisionFeaturePrintEmbedder()
             usingFallbackEmbedder = true
-            fallbackReason = "ArcFace model not loaded, using Vision fallback"
+            fallbackReason = error.localizedDescription
         }
     }
 
@@ -57,7 +57,7 @@ final class NotchPulseFaceRecognitionPipeline {
     nonisolated func recognize(in frame: CGImage, preferNear previousBoundingBox: CGRect? = nil) throws -> FaceRecognitionResult {
         let faces = try NotchPulseFaceDetector.detectFaces(in: frame)
         guard let face = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) else {
-            throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
+            throw NotchPulseNotchPulseFaceRecognitionPipelineError.noFaceDetected
         }
         return try recognize(face, in: frame)
     }
@@ -68,13 +68,13 @@ final class NotchPulseFaceRecognitionPipeline {
         let tier: AlignmentTier
         if embedder.requiresAlignment {
             guard let aligned = NotchPulseFaceAligner.align(face, from: frame) else {
-                throw NotchPulseFaceRecognitionPipelineError.alignmentFailed
+                throw NotchPulseNotchPulseFaceRecognitionPipelineError.alignmentFailed
             }
             inputImage = aligned.image
             tier = aligned.tier
         } else {
             guard let cropped = NotchPulseFaceDetector.crop(face, from: frame) else {
-                throw NotchPulseFaceRecognitionPipelineError.alignmentFailed
+                throw NotchPulseNotchPulseFaceRecognitionPipelineError.alignmentFailed
             }
             inputImage = cropped
             tier = .paddedCrop
@@ -89,8 +89,8 @@ final class NotchPulseFaceRecognitionPipeline {
         faces.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
     }
 
-    /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — shared with onboarding's "move closer" prompt. `nonisolated(unsafe)` because it's read from a background-task static func that can't touch the MainActor-isolated storage.
-    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.14
+    /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — shared with onboarding's "move closer" prompt. `nonisolated(unsafe)` because it's read from a background-task static func that can't touch NotchPulseFaceIDSettings' MainActor-isolated storage.
+    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.18
 
     /// Max normalized-coordinate drift between frames still counted as "the same person".
     nonisolated private static let continuityDistanceTolerance: CGFloat = 0.3
@@ -117,7 +117,7 @@ final class NotchPulseFaceRecognitionPipeline {
     }
 }
 
-struct ScoredIdentity {
+nonisolated struct ScoredIdentity {
     let identity: FaceIdentity
     /// Similarity against the identity's averaged template.
     let centroidSimilarity: Float
@@ -140,7 +140,7 @@ extension NotchPulseFaceRecognitionPipeline {
         }.sorted { $0.centroidSimilarity > $1.centroidSimilarity }
     }
 
-    /// Shared by Face Lab and FaceUnlockCoordinator so tuning stays consistent. No runner-up margin check: the same person can be enrolled multiple times under different appearances, so two of their own profiles legitimately score close together — a margin check can't tell that apart from two different people colliding.
+    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. No runner-up margin check: the same person can be enrolled multiple times under different appearances, so two of their own profiles legitimately score close together — a margin check can't tell that apart from two different people colliding.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
         guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
         guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else { return nil }

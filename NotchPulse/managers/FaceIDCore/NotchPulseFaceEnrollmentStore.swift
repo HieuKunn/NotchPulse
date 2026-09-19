@@ -2,10 +2,8 @@
 //  NotchPulseFaceEnrollmentStore.swift
 //  NotchPulse
 //
-//  Persisted encrypted under the same Touch-ID-gated session key as the stored Mac password
-//  (see NotchPulseSecureFaceStore); `isLocked`/`reloadIfUnlocked()` let the UI distinguish
-//  "locked" from "nothing enrolled."
-//  Native NotchPulse Face ID biometric implementation.
+//  Persisted encrypted under the same Touch-ID-gated session key as the stored Mac password (see NotchPulseSecureFaceStore);
+//  `isLocked`/`reloadIfUnlocked()` let the UI distinguish "locked" from "nothing enrolled."
 //
 
 import Foundation
@@ -42,7 +40,7 @@ struct FaceIdentity: Codable, Identifiable, Equatable {
     let id: UUID
     var name: String
     var samples: [FaceSample]
-    /// Which `NotchPulseFaceEmbedder.modelIdentifier` produced these samples — different models' embeddings live in unrelated
+    /// Which `FaceEmbedder.modelIdentifier` produced these samples — different models' embeddings live in unrelated
     /// vector spaces. See `isStale(comparedTo:)`.
     var modelIdentifier: String
     var embeddingDimension: Int
@@ -87,7 +85,7 @@ struct FaceIdentity: Codable, Identifiable, Equatable {
     }
 
     /// True if samples came from a different embedder than the one currently active — should prompt re-enrollment.
-    nonisolated func isStale(comparedTo embedder: NotchPulseFaceEmbedder) -> Bool {
+    nonisolated func isStale(comparedTo embedder: FaceEmbedder) -> Bool {
         modelIdentifier != embedder.modelIdentifier
     }
 }
@@ -130,7 +128,7 @@ final class NotchPulseFaceEnrollmentStore {
         // Reload whenever the session key changes, regardless of call site, so this store can't go stale
         // relative to whichever UI changed the session.
         NotificationCenter.default.addObserver(
-            forName: .notchPulseSessionDidChange,
+            forName: .secureCredentialSessionDidChange,
             object: nil,
             queue: nil
         ) { [weak self] _ in
@@ -163,7 +161,7 @@ final class NotchPulseFaceEnrollmentStore {
     /// Adds one captured sample to `name`'s identity (creating it if new). Existing samples from a different embedder
     /// are discarded first, since mixing them would corrupt the template.
     @discardableResult
-    func addSample(name: String, embedding: [Float], embedder: NotchPulseFaceEmbedder, pose: String? = nil, quality: Float? = nil) throws -> Bool {
+    func addSample(name: String, embedding: [Float], embedder: FaceEmbedder, pose: String? = nil, quality: Float? = nil) throws -> Bool {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
 
@@ -198,7 +196,7 @@ final class NotchPulseFaceEnrollmentStore {
         replacing existingID: UUID?,
         name: String,
         samples: [FaceSample],
-        embedder: NotchPulseFaceEmbedder
+        embedder: FaceEmbedder
     ) throws -> FaceIdentity? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !samples.isEmpty else { return nil }

@@ -1,5 +1,5 @@
 //
-//  GeometryLiveness.swift
+//  NotchPulseGeometryLiveness.swift
 //  NotchPulse
 //
 //  Planar-vs-3D liveness (the `flatVs3D` cue). No `import Vision`, so this
@@ -25,7 +25,7 @@ struct GeometryTuning {
     nonisolated static let `default` = GeometryTuning()
 }
 
-struct GeometryLivenessResult: Equatable {
+struct NotchPulseGeometryLivenessResult: Equatable {
     let planarResidualScore: Float
     let planarConfidence: Float
 
@@ -40,7 +40,7 @@ struct GeometryLivenessResult: Equatable {
     /// Normalized distance ratios for Face Lab — diagnostic only, do not vote.
     let diagnosticRatios: [String: CGFloat]
 
-    static let empty = GeometryLivenessResult(
+    static let empty = NotchPulseGeometryLivenessResult(
         planarResidualScore: 0, planarConfidence: 0,
         validLandmarkCount: 0, pairsAnalyzed: 0, rejectedPairCount: 0,
         medianFitResidual: nil, medianProbeResidual: nil,
@@ -48,7 +48,7 @@ struct GeometryLivenessResult: Equatable {
         diagnosticRatios: [:]
     )
 
-    /// Adapter into the shared cue vocabulary — see `LivenessCues.readings`.
+    /// Adapter into the shared cue vocabulary — see `NotchPulseLivenessCues.readings`.
     nonisolated var planarReading: CueReading {
         CueReading(level: planarResidualScore, confidence: planarConfidence)
     }
@@ -66,13 +66,13 @@ nonisolated private let geometryProbeRegions: Set<LandmarkRegion> = [
     .nose, .noseCrest, .medianLine,
 ]
 
-enum NotchPulseGeometryLiveness {
-    static func evaluate(_ window: [LivenessFrame], tuning: GeometryTuning = .default) -> GeometryLivenessResult {
+nonisolated enum NotchPulseGeometryLiveness {
+    static func evaluate(_ window: [LivenessFrame], tuning: GeometryTuning = .default) -> NotchPulseGeometryLivenessResult {
         let lastLandmarks = window.last?.landmarks.count ?? 0
         var diagnostics = diagnosticRatios(from: window.last)
 
         guard window.count >= 3 else {
-            return GeometryLivenessResult(
+            return NotchPulseGeometryLivenessResult(
                 planarResidualScore: 0, planarConfidence: 0,
                 validLandmarkCount: lastLandmarks, pairsAnalyzed: 0, rejectedPairCount: 0,
                 medianFitResidual: nil, medianProbeResidual: nil,
@@ -137,7 +137,7 @@ enum NotchPulseGeometryLiveness {
             planarConf = 0
         }
 
-        return GeometryLivenessResult(
+        return NotchPulseGeometryLivenessResult(
             planarResidualScore: planarScore,
             planarConfidence: planarConf,
             validLandmarkCount: lastLandmarks,

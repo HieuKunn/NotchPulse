@@ -8,7 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		00F5A59EDEF40C44ACAA05B8 /* NotchPulseFaceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */; };
+		06E0CC5B63D38C4AC96E9439 /* FaceIDOnboardingControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */; };
+		07091DD5105732B2E5354ED8 /* FaceIDYourFaceSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85C12921DFB812E651BDC87 /* FaceIDYourFaceSettingsPage.swift */; };
 		0C94BCA027DEF4F9F37E4A25 /* NotchPulseFaceRecognitionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB5A294BFCE01F186B68418 /* NotchPulseFaceRecognitionPipeline.swift */; };
+		0E4AA52CC3D94BB3B61F60A6 /* FaceIDGeneralSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6878C58DE81FD426B23DD0C3 /* FaceIDGeneralSettingsPage.swift */; };
 		104AA9195A9EB6F7C414B790 /* FaceIDEnrollmentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20128484C8C50A15D5D7AD7 /* FaceIDEnrollmentController.swift */; };
 		1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */; };
 		110029272E84FD4C00035A57 /* TemporaryFileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */; };
@@ -112,26 +115,40 @@
 		14E9FEAE2C7325770062E83F /* Button+Bouncing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FEAD2C7325770062E83F /* Button+Bouncing.swift */; };
 		14FC6E502C7DED5600C7BEA5 /* DataTypes+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FC6E4F2C7DED5600C7BEA5 /* DataTypes+Extensions.swift */; };
 		17BB86BF4CF8AED364A3F042 /* NotchPulseGlareCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5BB72A0F985602D6A8E514 /* NotchPulseGlareCue.swift */; };
+		181C4A3ACB1F0E3E4603E3BA /* NotchPulseCameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3FECCD1F2AA1B8FA937450A /* NotchPulseCameraPreviewView.swift */; };
+		1A72FDCA4B3A24546A1C5C3B /* FaceIDOnboardingStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523C6C0F6EAC452DE1EE0F48 /* FaceIDOnboardingStepViews.swift */; };
 		24BBBB221A1E37F5E403E404 /* NotchPulseDeviceBezelDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01D3A636300D547621DBC6C /* NotchPulseDeviceBezelDetector.swift */; };
 		2E74A97DE6DD82121026817E /* NotchPulseLivenessScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */; };
+		2F750F0D97E6A53588BEB7A0 /* FaceIDSettingsSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5670D992D012E18747264037 /* FaceIDSettingsSidebar.swift */; };
 		3942A45DCBD0DD8CB3BC1C06 /* NotchPulseFaceUnlockCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B5FEFA534C2DFF5BD32667 /* NotchPulseFaceUnlockCoordinator.swift */; };
 		3945421C14D60D0B09B52EE4 /* NotchPulseVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = E337E26DE7B6044D535EF392 /* NotchPulseVault.swift */; };
 		3D5885E520C83BFE88742C9E /* FaceIDGuidedSetupModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30D0209214A428C12CD00066 /* FaceIDGuidedSetupModalView.swift */; };
+		3E7E6AA58351E696B44D4F0D /* NotchPulsePOCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4543B173B40F16A7D04EBC21 /* NotchPulsePOCController.swift */; };
+		45EB229E4D79181E47A9E62E /* FaceIDSettingsWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88C9CD2EE65F74E821D40AB /* FaceIDSettingsWindowView.swift */; };
+		468E0EBFAA211E5F5C17920C /* FaceIDSettingsControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */; };
+		46C5D3D0635DEF5BE92F4EE0 /* NotchPulseSessionAutoLocker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76D526E1B8B086A3BAD57FD /* NotchPulseSessionAutoLocker.swift */; };
+		48B2E819BBA27128BC802182 /* FaceIDCameraSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88E3E2AA578BB909CA78E62 /* FaceIDCameraSettingsPage.swift */; };
 		507266DB2C908E2E00A2D00D /* HoverButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 507266DA2C908E2E00A2D00D /* HoverButton.swift */; };
 		51E4B7F83753A545F4E787DB /* NotchPulseLivenessAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9989B26181AD9E955C883822 /* NotchPulseLivenessAnalyzer.swift */; };
 		5917FD112E57891600E87F1C /* MediaKeyInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */; };
 		5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */; };
+		59B93ABF99A7E6D888BEFAA6 /* FaceIDLoopingVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622FB763131AE79F7065BECA /* FaceIDLoopingVideoView.swift */; };
 		59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D8C23B2E589FAA00147B33 /* VolumeManager.swift */; };
+		5BC711EB163AD4873045F4FE /* NotchPulseCameraDeviceCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC55C6A1A692A11F637F5B1 /* NotchPulseCameraDeviceCatalog.swift */; };
 		6D9F605AB51AE66345804BBD /* FaceIDTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F170AC01D2F3E72A025E250 /* FaceIDTheme.swift */; };
 		6DE97347A4ED6DF8617B2BE8 /* NotchPulseLivenessCues.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC7DF92B8FE14000CC68008 /* NotchPulseLivenessCues.swift */; };
+		6F4EEDA4436C789BB7C13C9B /* FaceIDOnboardingNotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C5E1BA8CD7722EC4555CE34 /* FaceIDOnboardingNotchView.swift */; };
 		7397CB03BFEC35DD261B8898 /* MediaAutomationPermissionHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78728B0E6CE22080DF969DBF /* MediaAutomationPermissionHelper.swift */; };
+		7501C53D9A45D8C00225AEEA /* FaceIDSettingsMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BDED7E8A637E89DD68E5BD7 /* FaceIDSettingsMetrics.swift */; };
 		792EF5ADEF63A31C6B9E4989 /* NotchPulseSecureFaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0BEB776444AD9ACD223EBF /* NotchPulseSecureFaceStore.swift */; };
 		7EC2C41184BEA958CB2643D8 /* ArcFace.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 2CD0F0887BA35865B4D689B1 /* ArcFace.mlpackage */; };
 		827A0914C5D0D3D84F0D2C7E /* KeystrokeInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89FD9375E2297E494D5EBFE5 /* KeystrokeInjector.swift */; };
 		82C6143C8D0584358E971AE1 /* FaceIDMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3678D1E0B7A5228B396D80A8 /* FaceIDMetrics.swift */; };
+		87B56C3C7BDE4D0CE8F93382 /* ArcFaceEmbedder.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA7FAFE25C97DD0C5D36CDB4 /* ArcFaceEmbedder.swift */; };
 		8884F3A1F9098CC0083444A3 /* NotchPulseFaceEnrollmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D15FF202F3BFE51BAC1447 /* NotchPulseFaceEnrollmentStore.swift */; };
 		8CC6CC915020769F43473897 /* FaceIDDirectionSweep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CAFBCECA2C9A1F97AE0843 /* FaceIDDirectionSweep.swift */; };
 		989D9CB908B47CBD90D90528 /* NotchPulseFaceEmbedder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31340710F1936CFA9DA14C18 /* NotchPulseFaceEmbedder.swift */; };
+		9945DE801CC1F3E5E633CE31 /* FaceIDPasswordSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703319DE8277F2A8924CD076 /* FaceIDPasswordSettingsPage.swift */; };
 		9A0887322C7A693000C160EA /* TabButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887312C7A693000C160EA /* TabButton.swift */; };
 		9A0887352C7AFF8E00C160EA /* TabSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */; };
 		9A987A0D2C73CA66005CA465 /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A987A032C73CA66005CA465 /* ShelfView.swift */; };
@@ -141,6 +158,8 @@
 		A070C3E4CF18C704D5401B96 /* FaceIDEnrollmentRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD5F0661D5BE5084469747C /* FaceIDEnrollmentRingView.swift */; };
 		AA0000022ED0000100000002 /* SystemMonitorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000012ED0000100000001 /* SystemMonitorManager.swift */; };
 		AA0000042ED0000200000004 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000032ED0000200000003 /* StatsView.swift */; };
+		ABA2A7AE47F39E6F8606A677 /* FaceIDSettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */; };
+		AEC91CAB43968E85ACCEEC60 /* FaceIDAnimatedCheckmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0DAA5C994C088A7532D1A9 /* FaceIDAnimatedCheckmark.swift */; };
 		AF5A2653ECC64C3F17EB1019 /* NotchPulseCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E3F44E629EE5B4762E12F7 /* NotchPulseCamera.swift */; };
 		B10348D92C74E56000475897 /* ConditionalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10348D82C74E56000475897 /* ConditionalModifier.swift */; };
 		B10F84A32C6C9596009F3026 /* TestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10F84A22C6C9596009F3026 /* TestView.swift */; };
@@ -172,6 +191,8 @@
 		B82B11503D7144C73627E2A1 /* NotchPulseKeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75330633067C257030A788F6 /* NotchPulseKeychainManager.swift */; };
 		D7E5E67CBAB6901165F70AB1 /* AppUpdaterDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */; };
 		D92DC5E3F6AA7443C5C54311 /* NotchPulseFaceAligner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32ECD629E60EE829983330CE /* NotchPulseFaceAligner.swift */; };
+		DC1A554ACD810786D90E03C7 /* NotchPulseFaceIDSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA2304CD1B5A0463A4CC8DF /* NotchPulseFaceIDSettings.swift */; };
+		DCACCD684E9749C3DA8A7229 /* NotchPulseSpaceKeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA39B15AD9E14C3C5413C53B /* NotchPulseSpaceKeyMonitor.swift */; };
 		F1D200032ED0000100000001 /* FaceIDManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200042ED0000100000001 /* FaceIDManager.swift */; };
 		F1D200052ED0000100000001 /* LockScreenWakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */; };
 		F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200082ED0000100000001 /* FaceIDSettingsView.swift */; };
@@ -179,6 +200,7 @@
 		F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */; };
 		F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */; };
 		F1D200152ED0000100000001 /* SystemAuthPromptObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */; };
+		F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */; };
 		F8B6F341EE966B181E3F127C /* NotchPulseLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9438603647C24A08005A7C /* NotchPulseLockMonitor.swift */; };
 		FE88CFB56DD9672462E35E80 /* NotchPulseLivenessFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB7D99F64FAC342249CE13 /* NotchPulseLivenessFeatures.swift */; };
 		FFFBD53A7B41E7AB251C4696 /* NotchPulseGlareCueExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901F6D1CE84EE584DD2CB954 /* NotchPulseGlareCueExtractor.swift */; };
@@ -240,6 +262,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingControls.swift; sourceTree = "<group>"; };
+		0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsControls.swift; sourceTree = "<group>"; };
 		1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSItemProvider+LoadHelpers.swift"; sourceTree = "<group>"; };
 		110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryFileStorageService.swift; sourceTree = "<group>"; };
 		110029292E8691B400035A57 /* FileShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShareView.swift; sourceTree = "<group>"; };
@@ -347,26 +371,37 @@
 		31340710F1936CFA9DA14C18 /* NotchPulseFaceEmbedder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceEmbedder.swift; sourceTree = "<group>"; };
 		32ECD629E60EE829983330CE /* NotchPulseFaceAligner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceAligner.swift; sourceTree = "<group>"; };
 		3678D1E0B7A5228B396D80A8 /* FaceIDMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDMetrics.swift; sourceTree = "<group>"; };
+		3BDED7E8A637E89DD68E5BD7 /* FaceIDSettingsMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsMetrics.swift; sourceTree = "<group>"; };
 		3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceDetector.swift; sourceTree = "<group>"; };
+		4543B173B40F16A7D04EBC21 /* NotchPulsePOCController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulsePOCController.swift; sourceTree = "<group>"; };
 		507266DA2C908E2E00A2D00D /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
 		50B5FEFA534C2DFF5BD32667 /* NotchPulseFaceUnlockCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceUnlockCoordinator.swift; sourceTree = "<group>"; };
+		523C6C0F6EAC452DE1EE0F48 /* FaceIDOnboardingStepViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingStepViews.swift; sourceTree = "<group>"; };
+		5670D992D012E18747264037 /* FaceIDSettingsSidebar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsSidebar.swift; sourceTree = "<group>"; };
 		5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyInterceptor.swift; sourceTree = "<group>"; };
 		5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationRelauncher.swift; sourceTree = "<group>"; };
 		59D8C23B2E589FAA00147B33 /* VolumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeManager.swift; sourceTree = "<group>"; };
 		5A1FEFD6CEDA3049FF64861E /* NotchPulseLandmarkGeometry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLandmarkGeometry.swift; sourceTree = "<group>"; };
 		5F5BB72A0F985602D6A8E514 /* NotchPulseGlareCue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseGlareCue.swift; sourceTree = "<group>"; };
+		622FB763131AE79F7065BECA /* FaceIDLoopingVideoView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDLoopingVideoView.swift; sourceTree = "<group>"; };
+		6878C58DE81FD426B23DD0C3 /* FaceIDGeneralSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDGeneralSettingsPage.swift; sourceTree = "<group>"; };
+		703319DE8277F2A8924CD076 /* FaceIDPasswordSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDPasswordSettingsPage.swift; sourceTree = "<group>"; };
 		75330633067C257030A788F6 /* NotchPulseKeychainManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseKeychainManager.swift; sourceTree = "<group>"; };
 		78728B0E6CE22080DF969DBF /* MediaAutomationPermissionHelper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MediaAutomationPermissionHelper.swift; sourceTree = "<group>"; };
 		79EB7D99F64FAC342249CE13 /* NotchPulseLivenessFeatures.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessFeatures.swift; sourceTree = "<group>"; };
 		87CAFBCECA2C9A1F97AE0843 /* FaceIDDirectionSweep.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDDirectionSweep.swift; sourceTree = "<group>"; };
 		89FD9375E2297E494D5EBFE5 /* KeystrokeInjector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeystrokeInjector.swift; sourceTree = "<group>"; };
+		8C5E1BA8CD7722EC4555CE34 /* FaceIDOnboardingNotchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingNotchView.swift; sourceTree = "<group>"; };
 		901F6D1CE84EE584DD2CB954 /* NotchPulseGlareCueExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseGlareCueExtractor.swift; sourceTree = "<group>"; };
 		9989B26181AD9E955C883822 /* NotchPulseLivenessAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessAnalyzer.swift; sourceTree = "<group>"; };
 		9A0887312C7A693000C160EA /* TabButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabButton.swift; sourceTree = "<group>"; };
 		9A0887342C7AFF8E00C160EA /* TabSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSelectionView.swift; sourceTree = "<group>"; };
 		9A0BEB776444AD9ACD223EBF /* NotchPulseSecureFaceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseSecureFaceStore.swift; sourceTree = "<group>"; };
 		9A987A032C73CA66005CA465 /* ShelfView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShelfView.swift; sourceTree = "<group>"; };
+		9AA2304CD1B5A0463A4CC8DF /* NotchPulseFaceIDSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceIDSettings.swift; sourceTree = "<group>"; };
 		9AB0C6BB2C73C9CB00F7CD30 /* NotchHomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NotchHomeView.swift; sourceTree = "<group>"; };
+		A3FECCD1F2AA1B8FA937450A /* NotchPulseCameraPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseCameraPreviewView.swift; sourceTree = "<group>"; };
+		A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsTab.swift; sourceTree = "<group>"; };
 		AA0000012ED0000100000001 /* SystemMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorManager.swift; sourceTree = "<group>"; };
 		AA0000032ED0000200000003 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessScoring.swift; sourceTree = "<group>"; };
@@ -398,12 +433,20 @@
 		BA9438603647C24A08005A7C /* NotchPulseLockMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLockMonitor.swift; sourceTree = "<group>"; };
 		BAD5F0661D5BE5084469747C /* FaceIDEnrollmentRingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDEnrollmentRingView.swift; sourceTree = "<group>"; };
 		BEDB47BA7318AA56B1F3BBCD /* NotchPulseGeometryLiveness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseGeometryLiveness.swift; sourceTree = "<group>"; };
+		C85C12921DFB812E651BDC87 /* FaceIDYourFaceSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDYourFaceSettingsPage.swift; sourceTree = "<group>"; };
 		C8D15FF202F3BFE51BAC1447 /* NotchPulseFaceEnrollmentStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceEnrollmentStore.swift; sourceTree = "<group>"; };
+		CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDRecognitionSettingsPage.swift; sourceTree = "<group>"; };
+		CE0DAA5C994C088A7532D1A9 /* FaceIDAnimatedCheckmark.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDAnimatedCheckmark.swift; sourceTree = "<group>"; };
 		D20128484C8C50A15D5D7AD7 /* FaceIDEnrollmentController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDEnrollmentController.swift; sourceTree = "<group>"; };
+		D76D526E1B8B086A3BAD57FD /* NotchPulseSessionAutoLocker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseSessionAutoLocker.swift; sourceTree = "<group>"; };
+		D88E3E2AA578BB909CA78E62 /* FaceIDCameraSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDCameraSettingsPage.swift; sourceTree = "<group>"; };
 		DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppUpdaterDelegate.swift; sourceTree = "<group>"; };
 		E01D3A636300D547621DBC6C /* NotchPulseDeviceBezelDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseDeviceBezelDetector.swift; sourceTree = "<group>"; };
 		E337E26DE7B6044D535EF392 /* NotchPulseVault.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseVault.swift; sourceTree = "<group>"; };
+		EA39B15AD9E14C3C5413C53B /* NotchPulseSpaceKeyMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseSpaceKeyMonitor.swift; sourceTree = "<group>"; };
+		EA7FAFE25C97DD0C5D36CDB4 /* ArcFaceEmbedder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ArcFaceEmbedder.swift; sourceTree = "<group>"; };
 		ECC7DF92B8FE14000CC68008 /* NotchPulseLivenessCues.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessCues.swift; sourceTree = "<group>"; };
+		EFC55C6A1A692A11F637F5B1 /* NotchPulseCameraDeviceCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseCameraDeviceCatalog.swift; sourceTree = "<group>"; };
 		F1D200042ED0000100000001 /* FaceIDManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDManager.swift; sourceTree = "<group>"; };
 		F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWakeObserver.swift; sourceTree = "<group>"; };
 		F1D200082ED0000100000001 /* FaceIDSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsView.swift; sourceTree = "<group>"; };
@@ -411,6 +454,7 @@
 		F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaWindow.swift; sourceTree = "<group>"; };
 		F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenFaceIDWindow.swift; sourceTree = "<group>"; };
 		F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAuthPromptObserver.swift; sourceTree = "<group>"; };
+		F88C9CD2EE65F74E821D40AB /* FaceIDSettingsWindowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsWindowView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -888,6 +932,16 @@
 				B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */,
 				B1B112902C6A572100093D8F /* EditPanelView.swift */,
 				B1C448972C972CC4001F0858 /* ListItemPopover.swift */,
+				D88E3E2AA578BB909CA78E62 /* FaceIDCameraSettingsPage.swift */,
+				6878C58DE81FD426B23DD0C3 /* FaceIDGeneralSettingsPage.swift */,
+				703319DE8277F2A8924CD076 /* FaceIDPasswordSettingsPage.swift */,
+				CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */,
+				0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */,
+				3BDED7E8A637E89DD68E5BD7 /* FaceIDSettingsMetrics.swift */,
+				5670D992D012E18747264037 /* FaceIDSettingsSidebar.swift */,
+				A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */,
+				F88C9CD2EE65F74E821D40AB /* FaceIDSettingsWindowView.swift */,
+				C85C12921DFB812E651BDC87 /* FaceIDYourFaceSettingsPage.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -953,6 +1007,18 @@
 				BAD5F0661D5BE5084469747C /* FaceIDEnrollmentRingView.swift */,
 				D20128484C8C50A15D5D7AD7 /* FaceIDEnrollmentController.swift */,
 				30D0209214A428C12CD00066 /* FaceIDGuidedSetupModalView.swift */,
+				EA7FAFE25C97DD0C5D36CDB4 /* ArcFaceEmbedder.swift */,
+				CE0DAA5C994C088A7532D1A9 /* FaceIDAnimatedCheckmark.swift */,
+				622FB763131AE79F7065BECA /* FaceIDLoopingVideoView.swift */,
+				01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */,
+				8C5E1BA8CD7722EC4555CE34 /* FaceIDOnboardingNotchView.swift */,
+				523C6C0F6EAC452DE1EE0F48 /* FaceIDOnboardingStepViews.swift */,
+				EFC55C6A1A692A11F637F5B1 /* NotchPulseCameraDeviceCatalog.swift */,
+				A3FECCD1F2AA1B8FA937450A /* NotchPulseCameraPreviewView.swift */,
+				9AA2304CD1B5A0463A4CC8DF /* NotchPulseFaceIDSettings.swift */,
+				4543B173B40F16A7D04EBC21 /* NotchPulsePOCController.swift */,
+				D76D526E1B8B086A3BAD57FD /* NotchPulseSessionAutoLocker.swift */,
+				EA39B15AD9E14C3C5413C53B /* NotchPulseSpaceKeyMonitor.swift */,
 			);
 			name = FaceIDCore;
 			path = FaceIDCore;
@@ -1270,6 +1336,28 @@
 				A070C3E4CF18C704D5401B96 /* FaceIDEnrollmentRingView.swift in Sources */,
 				104AA9195A9EB6F7C414B790 /* FaceIDEnrollmentController.swift in Sources */,
 				3D5885E520C83BFE88742C9E /* FaceIDGuidedSetupModalView.swift in Sources */,
+				48B2E819BBA27128BC802182 /* FaceIDCameraSettingsPage.swift in Sources */,
+				0E4AA52CC3D94BB3B61F60A6 /* FaceIDGeneralSettingsPage.swift in Sources */,
+				9945DE801CC1F3E5E633CE31 /* FaceIDPasswordSettingsPage.swift in Sources */,
+				F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */,
+				468E0EBFAA211E5F5C17920C /* FaceIDSettingsControls.swift in Sources */,
+				7501C53D9A45D8C00225AEEA /* FaceIDSettingsMetrics.swift in Sources */,
+				2F750F0D97E6A53588BEB7A0 /* FaceIDSettingsSidebar.swift in Sources */,
+				ABA2A7AE47F39E6F8606A677 /* FaceIDSettingsTab.swift in Sources */,
+				45EB229E4D79181E47A9E62E /* FaceIDSettingsWindowView.swift in Sources */,
+				07091DD5105732B2E5354ED8 /* FaceIDYourFaceSettingsPage.swift in Sources */,
+				87B56C3C7BDE4D0CE8F93382 /* ArcFaceEmbedder.swift in Sources */,
+				AEC91CAB43968E85ACCEEC60 /* FaceIDAnimatedCheckmark.swift in Sources */,
+				59B93ABF99A7E6D888BEFAA6 /* FaceIDLoopingVideoView.swift in Sources */,
+				06E0CC5B63D38C4AC96E9439 /* FaceIDOnboardingControls.swift in Sources */,
+				6F4EEDA4436C789BB7C13C9B /* FaceIDOnboardingNotchView.swift in Sources */,
+				1A72FDCA4B3A24546A1C5C3B /* FaceIDOnboardingStepViews.swift in Sources */,
+				5BC711EB163AD4873045F4FE /* NotchPulseCameraDeviceCatalog.swift in Sources */,
+				181C4A3ACB1F0E3E4603E3BA /* NotchPulseCameraPreviewView.swift in Sources */,
+				DC1A554ACD810786D90E03C7 /* NotchPulseFaceIDSettings.swift in Sources */,
+				3E7E6AA58351E696B44D4F0D /* NotchPulsePOCController.swift in Sources */,
+				46C5D3D0635DEF5BE92F4EE0 /* NotchPulseSessionAutoLocker.swift in Sources */,
+				DCACCD684E9749C3DA8A7229 /* NotchPulseSpaceKeyMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

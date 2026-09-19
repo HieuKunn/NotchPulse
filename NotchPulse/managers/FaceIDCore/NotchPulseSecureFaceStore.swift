@@ -2,9 +2,8 @@
 //  NotchPulseSecureFaceStore.swift
 //  NotchPulse
 //
-//  Serializes, encrypts via NotchPulseVault, and persists enrolled faces to disk.
-//  Meaningless without the Touch-ID-gated session key from the Keychain.
-//  Native NotchPulse Face ID biometric implementation.
+//  Low-level encrypted persistence for enrolled face identities — AES-GCM under the same session key NotchPulseVault
+//  uses for the Mac password, rather than a second key. `NotchPulseFaceEnrollmentStore` delegates its load/save here; no plaintext fallback.
 //
 
 import Foundation
@@ -20,51 +19,35 @@ enum NotchPulseSecureFaceStoreError: LocalizedError {
     }
 }
 
-enum NotchPulseSecureFaceStore {
-    private static let fileName = "face-identities.enc"
-
-    /// The App Support directory.
-    private static var storageDirectory: URL {
+nonisolated enum NotchPulseSecureFaceStore {
+    /// Distinct filename/extension so plaintext can never be mistaken for ciphertext.
+    private static let fileURL: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.notchpulse.app"
-        return appSupport.appendingPathComponent(bundleID)
-    }
+        let directory = appSupport.appendingPathComponent("NotchPulse", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("face-identities.enc")
+    }()
 
-    private static var fileURL: URL {
-        storageDirectory.appendingPathComponent(fileName)
-    }
-
-    /// Exists even if the session is locked. Used to detect whether the user has set anything up yet.
+    /// True if a store exists on disk, regardless of whether the session is currently unlocked enough to read it.
     static var exists: Bool {
         FileManager.default.fileExists(atPath: fileURL.path)
     }
 
-    /// Reads, decrypts, and decodes. Throws if the file is missing, unreadable, or fails decryption.
+    /// Throws `.sessionLocked` rather than returning an empty array, so callers can distinguish "nothing enrolled" from "enrolled, but locked".
     static func load() throws -> [FaceIdentity] {
-        guard NotchPulseVault.isSessionUnlocked else {
-            throw NotchPulseSecureFaceStoreError.sessionLocked
-        }
-        guard exists else { return [] }
-
-        let ciphertext = try Data(contentsOf: fileURL)
-        let plaintext = try NotchPulseVault.decryptWithSessionKey(ciphertext)
-
+        guard NotchPulseVault.isSessionUnlocked else { throw NotchPulseSecureFaceStoreError.sessionLocked }
+        guard let ciphertext = try? Data(contentsOf: fileURL) else { return [] }
+        let plaintext = try NotchPulseVault.decrypt(ciphertext)
         return try JSONDecoder().decode([FaceIdentity].self, from: plaintext)
     }
 
-    /// Encodes, encrypts, and writes to disk atomically.
     static func save(_ identities: [FaceIdentity]) throws {
-        guard NotchPulseVault.isSessionUnlocked else {
-            throw NotchPulseSecureFaceStoreError.sessionLocked
-        }
+        guard NotchPulseVault.isSessionUnlocked else { throw NotchPulseSecureFaceStoreError.sessionLocked }
         let plaintext = try JSONEncoder().encode(identities)
-        let ciphertext = try NotchPulseVault.encryptWithSessionKey(plaintext)
-
-        try FileManager.default.createDirectory(at: storageDirectory, withIntermediateDirectories: true, attributes: nil)
+        let ciphertext = try NotchPulseVault.encrypt(plaintext)
         try ciphertext.write(to: fileURL, options: .atomic)
     }
 
-    /// Unconditionally removes the file. Used during a full teardown.
     static func deleteAll() {
         try? FileManager.default.removeItem(at: fileURL)
     }

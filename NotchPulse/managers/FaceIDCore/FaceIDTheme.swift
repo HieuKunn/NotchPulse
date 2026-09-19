@@ -2,7 +2,8 @@
 //  FaceIDTheme.swift
 //  NotchPulse
 //
-//  Color and design tokens for Face ID enrollment and indicators.
+//  Color and type tokens, kept here so FaceIDOnboardingStepViews/OnboardingControls don't
+//  repeat the same hex literals everywhere.
 //
 
 import SwiftUI
@@ -20,8 +21,8 @@ enum FaceIDTheme {
             blue: 1 + (accentRGB.b - 1) * t
         )
     }
-
-    /// Accent-derived shades for the enrollment directional sweep.
+    /// Accent-derived shades for the enrollment sweep, shifted so layered streaks read
+    /// as one body of light rather than several flat shapes.
     static let accentPale   = Color(red: 0xCF / 255, green: 0xE7 / 255, blue: 0xFF / 255)
     static let accentBright = Color(red: 0x7F / 255, green: 0xC2 / 255, blue: 0xFF / 255)
     static let accentDeep   = Color(red: 0x1F / 255, green: 0x6B / 255, blue: 0xD1 / 255)
@@ -35,14 +36,27 @@ enum FaceIDTheme {
     static let statusGranted = Color(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255)
     static let statusDenied = Color(red: 0xFF / 255, green: 0x45 / 255, blue: 0x3A / 255)
 
+    //Badge colors
+    static let badgeGeneral = [Color(red: 0x9C / 255, green: 0x9C / 255, blue: 0xA1 / 255), // top: light grey
+                                Color(red: 0x6E / 255, green: 0x6E / 255, blue: 0x73 / 255)] // bottom: grey
+    static let badgeYourFace = [Color(red: 0x71 / 255, green: 0xD0 / 255, blue: 0xFF / 255), // top: light blue
+                                Color(red: 0x25 / 255, green: 0x72 / 255, blue: 0xD0 / 255)]// bottom: blue
+    static let badgePassword = [ Color(red: 0x40 / 255, green: 0x4C / 255, blue: 0x52 / 255), // top: dark grey
+                                Color(red: 0x12 / 255, green: 0x19 / 255, blue: 0x20 / 255)] // bottom: grey
+    static let badgeCamera = [ Color(red: 0x60 / 255, green: 0xE8 / 255, blue: 0x8B / 255), // top: light green
+                                Color(red: 0x15 / 255, green: 0xAB / 255, blue: 0x71 / 255)] // bottom: green
+    static let badgeRecognition = [Color(red: 0x83 / 255, green: 0x74 / 255, blue: 0xE6 / 255), // top: light purple
+                                    Color(red: 0x55 / 255, green: 0x3F / 255, blue: 0xB5 / 255)] // bottom: purple
+
     enum Font {
-        static let title = SwiftUI.Font.system(size: 24, weight: .bold, design: .rounded)
+        /// Scaled up so content reads clearly at the wider `FaceIDMetrics.panelWidth`.
+        static let title = SwiftUI.Font.system(size: 26, weight: .bold)
         static let button = SwiftUI.Font.system(size: 13, weight: .medium)
         static let rowTitle = SwiftUI.Font.system(size: 13, weight: .medium)
         static let grantLabel = SwiftUI.Font.system(size: 12, weight: .semibold)
         static let rowDetail = SwiftUI.Font.system(size: 11, weight: .regular)
         static let passwordCaption = SwiftUI.Font.system(size: 12, weight: .medium)
         static let passwordPlaceholder = SwiftUI.Font.system(size: 12, weight: .regular)
-        static let instruction = SwiftUI.Font.system(size: 15, weight: .medium, design: .rounded)
+        static let instruction = SwiftUI.Font.system(size: 15, weight: .medium)
     }
 }

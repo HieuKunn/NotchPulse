@@ -20,7 +20,7 @@ enum AlignmentTier: String {
     case paddedCrop = "padded crop (no alignment)"
 }
 
-enum NotchPulseFaceAligner {
+nonisolated enum NotchPulseFaceAligner {
     static let outputSize = 112
 
     /// Standard ArcFace 112x112 template: left eye, right eye, nose, left mouth, right mouth. "Left"/"right" are
@@ -57,7 +57,7 @@ enum NotchPulseFaceAligner {
 
     // MARK: - Landmark extraction
     //
-    // Point/centroid/eye-center/transform math lives in `LandmarkGeometry`, shared with the liveness analyzer.
+    // Point/centroid/eye-center/transform math lives in `NotchPulseLandmarkGeometry`, shared with the liveness analyzer.
 
     private static func fivePoints(from landmarks: VNFaceLandmarks2D, imageSize: CGSize) -> [CGPoint]? {
         guard let eyeA = NotchPulseLandmarkGeometry.eyeCenter(pupil: landmarks.leftPupil, eye: landmarks.leftEye, imageSize: imageSize),

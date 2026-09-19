@@ -2,15 +2,17 @@
 //  FaceIDDirectionSweep.swift
 //  NotchPulse
 //
-//  Layered blurred light ribbons that sweep toward the instructed head turn direction.
+//  Layered blurred ribbons that sweep toward an enrollment direction; intentionally
+//  not an arrow — the motion itself is the cue.
 //
 
 import SwiftUI
-import AppKit
 
-enum FaceIDSweepDirection: CaseIterable, Hashable {
+enum EnrollmentSweepDirection: CaseIterable, Hashable {
     case left, right, up, down, topLeft, topRight, bottomLeft, bottomRight
 
+    /// Unit travel vector in screen space (x right, y down); sweep originates on the
+    /// opposite side, e.g. `.left` travels right → left.
     var travel: CGVector {
         let d = CGFloat(1 / sqrt(2.0))
         switch self {
@@ -25,7 +27,7 @@ enum FaceIDSweepDirection: CaseIterable, Hashable {
         }
     }
 
-    init?(pose: FaceIDEnrollmentPose) {
+    init?(pose: FaceIDFaceIDEnrollmentPose) {
         switch pose {
         case .center:      return nil
         case .left:        self = .left
@@ -38,10 +40,23 @@ enum FaceIDSweepDirection: CaseIterable, Hashable {
         case .bottomRight: self = .bottomRight
         }
     }
+
+    var previewLabel: String {
+        switch self {
+        case .left:        return "Left"
+        case .right:       return "Right"
+        case .up:          return "Up"
+        case .down:        return "Down"
+        case .topLeft:     return "Top left"
+        case .topRight:    return "Top right"
+        case .bottomLeft:  return "Bottom left"
+        case .bottomRight: return "Bottom right"
+        }
+    }
 }
 
-struct FaceIDDirectionSweepView: View {
-    let direction: FaceIDSweepDirection
+struct FaceIDDirectionSweep: View {
+    let direction: EnrollmentSweepDirection
 
     var body: some View {
         GeometryReader { geo in
@@ -62,6 +77,8 @@ struct FaceIDDirectionSweepView: View {
     }
 }
 
+// MARK: - Streak specs
+
 private struct StreakSpec: Identifiable {
     let id: Int
     let thickness: CGFloat
@@ -70,138 +87,499 @@ private struct StreakSpec: Identifiable {
     let peakOpacity: Double
     let duration: Double
     let delay: Double
+    /// Perpendicular offset (fraction of the shorter canvas edge); signed so streaks fan out.
     let lateral: CGFloat
+    /// Bézier curvature (fraction of the shorter canvas edge); opposite signs arc opposite ways.
     let bow: CGFloat
+    /// Progress at which opacity reaches zero; below 1 dies mid-screen, 1.0 runs off the far edge.
     let fadeOutAt: Double
     let hasHighlight: Bool
     let isVivid: Bool
 }
 
-extension FaceIDDirectionSweepView {
-    private static let specs: [StreakSpec] = [
-        StreakSpec(id: 0, thickness: 56, lengthFactor: 0.90, blurScale: 1.0, peakOpacity: 0.85, duration: 1.15, delay: 0.00, lateral:  0.00, bow:  0.00, fadeOutAt: 0.95, hasHighlight: true,  isVivid: true),
-        StreakSpec(id: 1, thickness: 36, lengthFactor: 0.70, blurScale: 0.8, peakOpacity: 0.65, duration: 1.05, delay: 0.04, lateral: -0.06, bow: -0.04, fadeOutAt: 0.85, hasHighlight: false, isVivid: true),
-        StreakSpec(id: 2, thickness: 40, lengthFactor: 0.75, blurScale: 0.8, peakOpacity: 0.65, duration: 1.10, delay: 0.06, lateral:  0.07, bow:  0.05, fadeOutAt: 0.88, hasHighlight: false, isVivid: true),
-        StreakSpec(id: 3, thickness: 80, lengthFactor: 1.10, blurScale: 1.3, peakOpacity: 0.40, duration: 1.30, delay: 0.02, lateral:  0.02, bow: -0.02, fadeOutAt: 1.00, hasHighlight: false, isVivid: false),
-    ]
+extension FaceIDDirectionSweep {
+    /// 42 ribbons fanned across a fixed perpendicular span — denser packing, not a wider field.
+    fileprivate static let specs: [StreakSpec] = makeSpecs()
+
+    private static func makeSpecs() -> [StreakSpec] {
+        let count = 42
+        let laterals = (0..<count).map { index -> CGFloat in
+            let t = CGFloat(index) / CGFloat(count - 1)
+            return -0.86 + t * 1.72
+        }
+        return laterals.enumerated().map { index, lateral in
+            let lane = index % 7
+            let edgeFade = 1 - abs(Double(lateral)) * 0.22
+            let isVivid = index % 6 == 1 || index % 6 == 4
+            let heavyBlur = index % 4 != 0
+            let blurScale: CGFloat = [1.35, 1.16, 0.96, 1.22, 0.82, 1.32, 1.02][lane]
+                * (heavyBlur ? 2.6 : 1.1)
+            let peakBase: Double = [0.58, 0.72, 0.80, 0.52, 0.66, 0.42, 0.48][lane]
+            return StreakSpec(
+                id: index,
+                thickness: [310, 190, 105, 155, 72, 230, 88][lane],
+                lengthFactor: [1.16, 0.94, 0.72, 0.86, 0.54, 1.04, 0.62][lane],
+                blurScale: blurScale,
+                peakOpacity: peakBase * edgeFade * (isVivid ? 1.4 : 1),
+                duration: [1.22, 1.08, 0.98, 1.16, 0.94, 1.28, 1.04][lane],
+                delay: [0.00, 0.03, 0.06, 0.015, 0.08, 0.04, 0.065][lane]
+                    + Double(index % 4) * 0.008,
+                lateral: lateral,
+                bow: [0.18, -0.14, 0.10, -0.22, 0.26, 0.08, -0.12][lane],
+                fadeOutAt: 1,
+                hasHighlight: isVivid || lane == 2 || lane == 4,
+                isVivid: isVivid
+            )
+        }
+    }
 }
+
+// MARK: - Geometry
+
+private struct SweepGeometry {
+    let start: CGPoint
+    let end: CGPoint
+    let control: CGPoint
+    let canvasSize: CGSize
+    let length: CGFloat
+    let rotationDrift: Double
+
+    init(spec: StreakSpec, direction: EnrollmentSweepDirection, canvasSize: CGSize) {
+        self.canvasSize = canvasSize
+        let travel = direction.travel
+        let perp = CGVector(dx: -travel.dy, dy: travel.dx)
+        let shortEdge = min(canvasSize.width, canvasSize.height)
+        // Far end stops short of a full off-screen exit so the ease-out is still on-camera.
+        let diagonal = hypot(canvasSize.width, canvasSize.height)
+        let startSpan = diagonal * 0.58
+        let endSpan = diagonal * 0.50
+        length = max(shortEdge * spec.lengthFactor * 0.55, 180)
+        let cx = canvasSize.width / 2
+        let cy = canvasSize.height / 2
+        // Spread along the true perpendicular screen axis so ribbons fan across the display.
+        let perpExtent = abs(perp.dx) * canvasSize.width + abs(perp.dy) * canvasSize.height
+        let lateral = spec.lateral * perpExtent * 0.46
+        start = CGPoint(
+            x: cx - travel.dx * startSpan + perp.dx * lateral,
+            y: cy - travel.dy * startSpan + perp.dy * lateral
+        )
+        end = CGPoint(
+            x: cx + travel.dx * endSpan + perp.dx * lateral,
+            y: cy + travel.dy * endSpan + perp.dy * lateral
+        )
+        let mid = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
+        let bow = spec.bow * shortEdge * 0.20
+        control = CGPoint(x: mid.x + perp.dx * bow, y: mid.y + perp.dy * bow)
+        rotationDrift = Double(spec.bow.sign == .minus ? -0.05 : 0.05)
+    }
+
+    func point(at t: Double) -> CGPoint {
+        let u = 1 - t
+        return CGPoint(
+            x: u * u * start.x + 2 * u * t * control.x + t * t * end.x,
+            y: u * u * start.y + 2 * u * t * control.y + t * t * end.y
+        )
+    }
+
+    /// Tangent heading of the Bézier at `t`, in radians.
+    func heading(at t: Double) -> Double {
+        let dx = 2 * (1 - t) * (control.x - start.x) + 2 * t * (end.x - control.x)
+        let dy = 2 * (1 - t) * (control.y - start.y) + 2 * t * (end.y - control.y)
+        return atan2(dy, dx)
+    }
+
+    func opacity(at t: Double, peak: Double, fadeOutAt: Double) -> Double {
+        let fadeInEnd = 0.07
+        // Dissolve during the ease-out so the slowdown is still visible.
+        let fadeOutStart = 0.7
+        if t <= 0 || t >= fadeOutAt { return 0 }
+        if t < fadeInEnd {
+            let u = t / fadeInEnd
+            return peak * (u * u * (3 - 2 * u))
+        }
+        if t > fadeOutStart {
+            let span = max(fadeOutAt - fadeOutStart, 0.001)
+            let u = (t - fadeOutStart) / span
+            let s = u * u * (3 - 2 * u)
+            return peak * (1 - s)
+        }
+        return peak
+    }
+}
+
+// MARK: - Motion
+
+/// A `View` (not a `ViewModifier`) so SwiftUI interpolates `animatableData` on the view
+/// itself — the reliable path for evaluating a Bézier each frame instead of sliding between endpoints.
+private struct SweepMovingContainer<Content: View>: View, Animatable {
+    var progress: Double
+    let geometry: SweepGeometry
+    let peakOpacity: Double
+    let fadeOutAt: Double
+    let content: Content
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View {
+        let t = min(max(progress, 0), 1)
+        let point = geometry.point(at: t)
+        let cx = geometry.canvasSize.width / 2
+        let cy = geometry.canvasSize.height / 2
+        // Rotate first, then translate — rotating after offset would spin the translation
+        // around the screen center and send most directions the wrong way.
+        content
+            .rotationEffect(.radians(geometry.heading(at: t) + geometry.rotationDrift * t))
+            .offset(x: point.x - cx, y: point.y - cy)
+            .opacity(geometry.opacity(at: t, peak: peakOpacity, fadeOutAt: fadeOutAt))
+    }
+}
+
+// MARK: - Streak view
 
 private struct SweepStreak: View {
     let spec: StreakSpec
-    let direction: FaceIDSweepDirection
+    let direction: EnrollmentSweepDirection
     let canvasSize: CGSize
 
-    @State private var progress: CGFloat = 0
+    @State private var progress: Double = 0
 
     var body: some View {
-        let path = streakPath(at: progress)
-        let strokeColor = spec.isVivid ? FaceIDTheme.accentBright : FaceIDTheme.accent
+        let geometry = SweepGeometry(spec: spec, direction: direction, canvasSize: canvasSize)
+        SweepMovingContainer(
+            progress: progress,
+            geometry: geometry,
+            peakOpacity: spec.peakOpacity,
+            fadeOutAt: spec.fadeOutAt,
+            content: layers(length: geometry.length)
+        )
+        .onAppear { runSweep() }
+    }
+
+    private func layers(length: CGFloat) -> some View {
         ZStack {
-            path
-                .stroke(
-                    strokeColor.opacity(streakOpacity),
-                    style: StrokeStyle(lineWidth: spec.thickness, lineCap: .round)
-                )
-                .blur(radius: spec.thickness * 0.4 * spec.blurScale)
-
+            streakLayer(
+                length: length,
+                thickness: spec.thickness * 2.35,
+                blur: 78 * spec.blurScale,
+                opacity: spec.isVivid ? 0.28 : 0.16,
+                colors: [FaceIDTheme.accent, FaceIDTheme.accentBright]
+            )
+            streakLayer(
+                length: length,
+                thickness: spec.thickness,
+                blur: 34 * spec.blurScale,
+                opacity: spec.isVivid ? 0.48 : 0.30,
+                colors: spec.isVivid
+                    ? [FaceIDTheme.accentBright, FaceIDTheme.accentPale]
+                    : [FaceIDTheme.accent, FaceIDTheme.accentBright]
+            )
+            streakLayer(
+                length: length,
+                thickness: spec.thickness * 0.42,
+                blur: 14 * spec.blurScale,
+                opacity: spec.isVivid ? 0.62 : 0.38,
+                colors: [FaceIDTheme.accentBright, FaceIDTheme.accentPale]
+            )
             if spec.hasHighlight {
-                path
-                    .stroke(
-                        FaceIDTheme.accentPale.opacity(streakOpacity * 0.9),
-                        style: StrokeStyle(lineWidth: spec.thickness * 0.35, lineCap: .round)
-                    )
-                    .blur(radius: spec.thickness * 0.15)
+                streakLayer(
+                    length: length * 0.72,
+                    thickness: spec.thickness * 0.12,
+                    blur: 6,
+                    opacity: spec.isVivid ? 0.36 : 0.20,
+                    colors: [FaceIDTheme.accentPale, Color.white]
+                )
             }
         }
-        .onAppear {
+        .compositingGroup()
+    }
+
+    private func streakLayer(
+        length: CGFloat,
+        thickness: CGFloat,
+        blur: CGFloat,
+        opacity: Double,
+        colors: [Color]
+    ) -> some View {
+        Capsule()
+            .fill(
+                LinearGradient(
+                    stops: [
+                        .init(color: colors[0].opacity(0), location: 0),
+                        .init(color: colors[0].opacity(0.6), location: 0.18),
+                        .init(color: colors[1], location: 0.55),
+                        .init(color: colors[1].opacity(0.85), location: 0.82),
+                        .init(color: colors[1].opacity(0), location: 1),
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(width: length, height: thickness)
+            .blur(radius: blur)
+            .opacity(opacity)
+    }
+
+    private func runSweep() {
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) { progress = 0 }
+        // Hop a turn so the reset isn't coalesced into the forward animation.
+        Task { @MainActor in
             withAnimation(
-                .easeInOut(duration: spec.duration)
+                .timingCurve(0.68, 0.0, 0.32, 1.0, duration: spec.duration)
                 .delay(spec.delay)
-                .repeatForever(autoreverses: false)
             ) {
-                progress = 1.0
+                progress = 1
             }
         }
-    }
-
-    private var streakOpacity: Double {
-        if progress < 0.25 {
-            return spec.peakOpacity * Double(progress / 0.25)
-        } else if progress > CGFloat(spec.fadeOutAt) {
-            let remain = 1.0 - progress
-            let span = 1.0 - CGFloat(spec.fadeOutAt)
-            return spec.peakOpacity * Double(max(0, remain / span))
-        }
-        return spec.peakOpacity
-    }
-
-    private func streakPath(at t: CGFloat) -> Path {
-        let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-        let travel = direction.travel
-        let maxDist = max(canvasSize.width, canvasSize.height) * 0.85
-        let start = CGPoint(x: center.x - travel.dx * maxDist * 0.5, y: center.y - travel.dy * maxDist * 0.5)
-        let end   = CGPoint(x: center.x + travel.dx * maxDist * 0.5, y: center.y + travel.dy * maxDist * 0.5)
-
-        let currStart = CGPoint(
-            x: start.x + (end.x - start.x) * t,
-            y: start.y + (end.y - start.y) * t
-        )
-        let length = maxDist * spec.lengthFactor * 0.35
-        let currEnd = CGPoint(
-            x: currStart.x + travel.dx * length,
-            y: currStart.y + travel.dy * length
-        )
-
-        var p = Path()
-        p.move(to: currStart)
-        p.addLine(to: currEnd)
-        return p
     }
 }
 
-// MARK: - Fullscreen Direction Sweep Window Controller
+// MARK: - Previews
+
+#Preview("All directions") {
+    let columns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8),
+    ]
+    LazyVGrid(columns: columns, spacing: 8) {
+        ForEach(EnrollmentSweepDirection.allCases, id: \.self) { direction in
+            ZStack(alignment: .topLeading) {
+                Color.black
+                FaceIDDirectionSweep(direction: direction)
+                Text(direction.previewLabel)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(8)
+            }
+            .frame(height: 160)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+    .padding(12)
+    .frame(width: 920, height: 360)
+    .background(Color.black)
+}
+
+#Preview("Cycling") {
+    struct CyclingSweepPreview: View {
+        @State private var index = 0
+        private let directions = EnrollmentSweepDirection.allCases
+
+        var body: some View {
+            ZStack(alignment: .topLeading) {
+                Color.black
+                FaceIDDirectionSweep(direction: directions[index])
+                    .id(directions[index])
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: FaceIDMetrics.sweepDirectionCrossfade), value: index)
+                Text(directions[index].previewLabel)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.75))
+                    .padding(16)
+            }
+            .frame(width: 900, height: 560)
+            .task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(4.2))
+                    index = (index + 1) % directions.count
+                }
+            }
+        }
+    }
+
+    return CyclingSweepPreview()
+}
+//
+//  FaceIDDirectionSweepWindowController.swift
+//  NotchPulse
+//
+//  Owns the full-screen, click-through sweep overlay shown during guided enrollment;
+//  kept separate from NotchOverlay so the notch panel always composites on top of it.
+//
+
+import AppKit
+import SwiftUI
 
 @MainActor
 final class FaceIDDirectionSweepWindowController {
-    static let shared = FaceIDDirectionSweepWindowController()
+    @Observable
+    final class Host {
+        var isPresented = false
+        let controller: FaceIDEnrollmentController
+
+        init(controller: FaceIDEnrollmentController) {
+            self.controller = controller
+        }
+    }
 
     private var window: NSPanel?
-    private var currentDirection: FaceIDSweepDirection?
+    private var host: Host?
+    private var dismissTask: Task<Void, Never>?
 
-    func present(direction: FaceIDSweepDirection) {
-        guard currentDirection != direction else { return }
-        currentDirection = direction
+    func present(for controller: FaceIDEnrollmentController) {
+        dismissTask?.cancel()
+        dismissTask = nil
+        tearDownWindow()
 
-        guard let screen = NSScreen.main else { return }
-        dismiss()
+        guard let screen = NotchGeometry.preferredScreen() else { return }
 
-        let hostingView = NSHostingView(rootView: FaceIDDirectionSweepView(direction: direction))
+        let host = Host(controller: controller)
+        host.isPresented = true
+
+        let hostingView = NSHostingView(rootView: EnrollmentSweepOverlay(host: host))
         hostingView.sizingOptions = []
         hostingView.frame = NSRect(origin: .zero, size: screen.frame.size)
 
-        let panel = NSPanel(
+        let window = makePanel(on: screen, contentView: hostingView)
+        window.orderFrontRegardless()
+
+        self.host = host
+        self.window = window
+    }
+
+    /// One-shot variant for the intro's single flourish: shows exactly one direction once,
+    /// then tears itself down on a timer — no external `dismiss()` needed.
+    func presentOnce(direction: EnrollmentSweepDirection) {
+        dismissTask?.cancel()
+        dismissTask = nil
+        tearDownWindow()
+
+        guard let screen = NotchGeometry.preferredScreen() else { return }
+
+        let hostingView = NSHostingView(rootView: FaceIDDirectionSweep(direction: direction))
+        hostingView.sizingOptions = []
+        hostingView.frame = NSRect(origin: .zero, size: screen.frame.size)
+
+        let window = makePanel(on: screen, contentView: hostingView)
+        window.orderFrontRegardless()
+        self.window = window
+
+        dismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(FaceIDMetrics.introSweepAutoDismissDelay))
+            guard let self, !Task.isCancelled else { return }
+            self.tearDownWindow()
+            self.dismissTask = nil
+        }
+    }
+
+    /// Shared panel setup; callers must set `sizingOptions = []` and an explicit `frame`
+    /// on the hosting view first — near-empty SwiftUI roots report zero intrinsic size,
+    /// which collapses the window if left to size to it.
+    private func makePanel(on screen: NSScreen, contentView: NSView) -> NSPanel {
+        let window = NSPanel(
             contentRect: screen.frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = false
-        panel.isMovable = false
-        panel.ignoresMouseEvents = true
-        panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        panel.contentView = hostingView
-        panel.setFrame(screen.frame, display: true)
-        panel.orderFrontRegardless()
-
-        self.window = panel
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.isMovable = false
+        window.isReleasedWhenClosed = false
+        window.hidesOnDeactivate = false
+        window.ignoresMouseEvents = true
+        // One below NotchWindow's `.mainMenu + 3` so the notch panel reads on top.
+        window.level = .mainMenu + 2
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+        window.contentView = contentView
+        window.setFrame(screen.frame, display: true)
+        return window
     }
 
     func dismiss() {
+        dismissTask?.cancel()
+        guard window != nil, let host else {
+            tearDownWindow()
+            return
+        }
+        host.isPresented = false
+        dismissTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(FaceIDMetrics.sweepFadeOut))
+            guard !Task.isCancelled else { return }
+            tearDownWindow()
+            dismissTask = nil
+        }
+    }
+
+    private func tearDownWindow() {
         window?.orderOut(nil)
         window = nil
-        currentDirection = nil
+        host = nil
+    }
+}
+
+// MARK: - Overlay root
+
+private struct EnrollmentSweepOverlay: View {
+    @Bindable var host: FaceIDDirectionSweepWindowController.Host
+    @State private var playingDirection: EnrollmentSweepDirection?
+    @State private var playTask: Task<Void, Never>?
+
+    var body: some View {
+        // Read observable fields in `body` so the hosting view actually subscribes to changes.
+        let pose = host.controller.currentPose
+        let presented = host.isPresented
+        let guiding = host.controller.guideVisible
+        let tooFar = host.controller.isTooFar
+        let checkmark = host.controller.showCheckmark
+        let direction = pose.flatMap(EnrollmentSweepDirection.init(pose:))
+        let canPlay = presented && guiding && !tooFar && !checkmark
+        let isVisible = canPlay && playingDirection != nil
+
+        ZStack {
+            // Gives the hosting view a real expanding child even while the center pose has no sweep.
+            Color.clear
+            if isVisible, let playingDirection {
+                FaceIDDirectionSweep(direction: playingDirection)
+                    .id(playingDirection)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: direction, initial: true) { _, newDirection in
+            scheduleSweep(newDirection, canPlay: canPlay)
+        }
+        .onChange(of: canPlay) { _, playable in
+            if !playable {
+                playTask?.cancel()
+                playingDirection = nil
+            } else {
+                scheduleSweep(direction, canPlay: true)
+            }
+        }
+        .animation(
+            .easeInOut(duration: FaceIDMetrics.sweepDirectionCrossfade),
+            value: playingDirection
+        )
+        .animation(
+            .easeInOut(
+                duration: isVisible
+                    ? FaceIDMetrics.sweepFadeIn
+                    : FaceIDMetrics.sweepFadeOut
+            ),
+            value: isVisible
+        )
+        .allowsHitTesting(false)
+    }
+
+    private func scheduleSweep(_ newDirection: EnrollmentSweepDirection?, canPlay: Bool) {
+        playTask?.cancel()
+        guard canPlay, let newDirection else {
+            playingDirection = nil
+            return
+        }
+        playingDirection = nil
+        playTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(FaceIDMetrics.sweepPoseDelay))
+            guard !Task.isCancelled else { return }
+            playingDirection = newDirection
+        }
     }
 }

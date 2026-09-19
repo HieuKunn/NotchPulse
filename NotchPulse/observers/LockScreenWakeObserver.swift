@@ -33,9 +33,6 @@ final class LockScreenWakeObserver: ObservableObject {
         if Self.isSessionLocked {
             self.isScreenLocked = true
             startLockSessionSupervisor()
-            if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
-                LockScreenFaceIDWindow.shared.show()
-            }
         }
         setupObservers()
     }
@@ -58,16 +55,10 @@ final class LockScreenWakeObserver: ObservableObject {
                 guard let self = self, self.isScreenLocked else { break }
                 
                 if Self.isSessionLocked {
-                    if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
-                        if !LockScreenFaceIDWindow.shared.isVisible {
-                            LockScreenFaceIDWindow.shared.show()
-                        }
-                    }
+                    // LockSessionSupervisor handles session lock
                 } else {
                     // Session was unlocked (notification may have been delayed or missed)
                     self.isScreenLocked = false
-                    FaceIDManager.shared.cancelCurrentSession()
-                    LockScreenFaceIDWindow.shared.hide()
                     self.updateLockScreenMediaWindowVisibility()
                     break
                 }
@@ -87,15 +78,6 @@ final class LockScreenWakeObserver: ObservableObject {
                 self.isScreenLocked = true
                 self.startLockSessionSupervisor()
                 self.updateLockScreenMediaWindowVisibility()
-                
-                if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
-                    FaceIDManager.shared.lastUnlockSuccess = false
-                    FaceIDManager.shared.statusMessage = "Ready"
-                    LockScreenFaceIDWindow.shared.show()
-                    // When returning to lock screen during active session: Face ID stays in Ready standby
-                    // and activates only when the user hovers over the notch (or clicks on it).
-                    // Auto-scan without hover is reserved for display/system wake (e.g. opening lid).
-                }
             }
         }
         distributedTokens.append(lockToken)
@@ -111,8 +93,6 @@ final class LockScreenWakeObserver: ObservableObject {
                 self.isScreenLocked = false
                 self.lockSessionTimer?.cancel()
                 self.lockSessionTimer = nil
-                FaceIDManager.shared.cancelCurrentSession()
-                LockScreenFaceIDWindow.shared.hide()
                 self.updateLockScreenMediaWindowVisibility()
             }
         }
@@ -128,10 +108,6 @@ final class LockScreenWakeObserver: ObservableObject {
                 if locked {
                     self.isScreenLocked = true
                     self.startLockSessionSupervisor()
-                    if Defaults[.enableFaceID] && FaceIDManager.shared.isEnrolled {
-                        LockScreenFaceIDWindow.shared.show()
-                        FaceIDManager.shared.startRecognitionOnWake()
-                    }
                     self.updateLockScreenMediaWindowVisibility()
                 }
             }
@@ -148,11 +124,10 @@ final class LockScreenWakeObserver: ObservableObject {
             .store(in: &cancellables)
             
         // 4. Listen for screen sleep (lid closed, screensaver sleep, display sleep)
-        // Keep LockScreenFaceIDWindow attached so it is ready immediately upon display power-on
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidSleepNotification)
             .receive(on: DispatchQueue.main)
             .sink { _ in
-                FaceIDManager.shared.cancelCurrentSession()
+                // Handled natively by NotchPulseFaceUnlockCoordinator
             }
             .store(in: &cancellables)
 
@@ -160,7 +135,7 @@ final class LockScreenWakeObserver: ObservableObject {
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.willSleepNotification)
             .receive(on: DispatchQueue.main)
             .sink { _ in
-                FaceIDManager.shared.cancelCurrentSession()
+                // Handled natively by NotchPulseFaceUnlockCoordinator
             }
             .store(in: &cancellables)
             

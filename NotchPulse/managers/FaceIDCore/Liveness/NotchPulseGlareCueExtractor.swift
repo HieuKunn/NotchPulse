@@ -1,5 +1,5 @@
 //
-//  GlareCueExtractor.swift
+//  NotchPulseNotchPulseGlareCueExtractor.swift
 //  NotchPulse
 //
 //  Turns a native-resolution face crop into a `GlareSample`. One decode-and-scan
@@ -8,7 +8,7 @@
 
 import CoreGraphics
 
-enum NotchPulseGlareCueExtractor {
+nonisolated enum NotchPulseNotchPulseGlareCueExtractor {
     /// Near-white, near-gray pixel — signature of a direct specular highlight vs. a bright colored surface.
     private static let specularLumaFloor: Float = 235
     private static let specularChromaTolerance: Float = 10

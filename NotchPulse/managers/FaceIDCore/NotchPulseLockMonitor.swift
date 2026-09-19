@@ -3,7 +3,6 @@
 //  NotchPulse
 //
 //  Detects macOS lock/unlock state for the CGEvent injection POC.
-//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Foundation
@@ -128,9 +127,6 @@ final class NotchPulseLockMonitor {
         guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
             return false
         }
-        if let val = dict["CGSSessionScreenIsLocked"] {
-            return (val as? Bool) ?? ((val as? NSNumber)?.boolValue ?? false)
-        }
-        return false
+        return (dict["CGSSessionScreenIsLocked"] as? Bool) ?? false
     }
 }

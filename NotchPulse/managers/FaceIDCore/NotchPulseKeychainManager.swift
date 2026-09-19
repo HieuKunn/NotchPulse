@@ -1,5 +1,5 @@
 //
-//  KeychainManager.swift
+//  NotchPulseKeychainManager.swift
 //  NotchPulse
 //
 //  Thin, password-agnostic wrapper around Keychain Services — save/read/delete/exists by account, plus a Touch-ID access control helper.
@@ -34,7 +34,7 @@ enum KeychainError: LocalizedError {
 }
 
 enum NotchPulseKeychainManager {
-    nonisolated static let service = "com.jonathan.glance"
+    nonisolated static let service = "com.hieukunn.notchpulse"
 
     /// Attributes-only existence check — never prompts, even for access-controlled items.
     nonisolated static func exists(account: String) -> Bool {

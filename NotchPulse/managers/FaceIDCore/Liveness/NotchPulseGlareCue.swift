@@ -1,10 +1,10 @@
 //
-//  GlareCue.swift
+//  NotchPulseGlareCue.swift
 //  NotchPulse
 //
-//  Pixel-domain half of the gloss/glare cue (see `LivenessCues.glossGlare`);
+//  Pixel-domain half of the gloss/glare cue (see `NotchPulseLivenessCues.glossGlare`);
 //  no Vision/CoreImage import, so it stays usable from `tools/liveness_selftest.swift`.
-//  Populated by `GlareCueExtractor.extract(faceCrop:)`.
+//  Populated by `NotchPulseNotchPulseGlareCueExtractor.extract(faceCrop:)`.
 //
 
 import CoreGraphics

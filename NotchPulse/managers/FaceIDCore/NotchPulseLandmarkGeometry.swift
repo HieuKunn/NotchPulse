@@ -3,8 +3,7 @@
 //  NotchPulse
 //
 //  Shared landmark math used by `NotchPulseFaceAligner` and the liveness analyzer —
-//  moved out so the two call sites can't drift apart.
-//  Native NotchPulse Face ID biometric implementation.
+//  moved out of `NotchPulseFaceAligner` so the two call sites can't drift apart.
 //
 
 import Vision
@@ -30,7 +29,7 @@ struct LandmarkPoint {
 
 /// Pure geometry — `nonisolated` so it's callable from the same background
 /// tasks `NotchPulseFaceAligner`/`NotchPulseFaceDetector` already run on.
-enum NotchPulseLandmarkGeometry {
+nonisolated enum NotchPulseLandmarkGeometry {
     /// Vision returns points in bottom-left-origin, y-up; flipped here to top-left/y-down
     /// to match `DetectedFace.boundingBox`.
     static func imagePoints(of region: VNFaceLandmarkRegion2D, imageSize: CGSize) -> [CGPoint] {
@@ -147,6 +146,9 @@ enum NotchPulseLandmarkGeometry {
             let w = (weights?[i] ?? 1).squareRoot()
             guard w > 0 else { continue }
             let x = src.x, y = src.y, u = dst.x, v = dst.y
+            // Two DLT rows, h33 fixed at 1:
+            // [x y 1 0 0 0 -u x -u y] · h = u
+            // [0 0 0 x y 1 -v x -v y] · h = v
             let row0: [CGFloat] = [x * w, y * w, w, 0, 0, 0, -u * x * w, -u * y * w]
             let row1: [CGFloat] = [0, 0, 0, x * w, y * w, w, -v * x * w, -v * y * w]
             let b0 = u * w
@@ -165,7 +167,8 @@ enum NotchPulseLandmarkGeometry {
     }
 
     /// Two-pass IRLS around `solveHomography`, Tukey biweight, so one wildly jittered
-    /// landmark can't pull the plane around.
+    /// landmark can't pull the plane around. Cutoff uses the full-set median so a smiling
+    /// mouth stays in the fit rather than letting an underconstrained homography absorb parallax.
     static func solveRobustHomography(from sourcePoints: [CGPoint], to destinationPoints: [CGPoint]) -> Homography? {
         guard var current = solveHomography(from: sourcePoints, to: destinationPoints) else { return nil }
         for _ in 0..<2 {
@@ -214,9 +217,12 @@ enum NotchPulseLandmarkGeometry {
     private static func denormalizeHomography(_ h: Homography, source: SimilarityNorm, destination: SimilarityNorm) -> Homography {
         let s1 = source.scale, cx1 = source.centerX, cy1 = source.centerY
         let s2 = destination.scale, cx2 = destination.centerX, cy2 = destination.centerY
+        // Tsrc
         let ts = (s1, CGFloat(0), -s1 * cx1, CGFloat(0), s1, -s1 * cy1, CGFloat(0), CGFloat(0), CGFloat(1))
+        // Hn · Tsrc
         let hn = (h.h11, h.h12, h.h13, h.h21, h.h22, h.h23, h.h31, h.h32, h.h33)
         let m = multiply3x3(hn, ts)
+        // Tdst⁻¹
         let ti = (1 / s2, CGFloat(0), cx2, CGFloat(0), 1 / s2, cy2, CGFloat(0), CGFloat(0), CGFloat(1))
         let r = multiply3x3(ti, m)
         return Homography(h11: r.0, h12: r.1, h13: r.2, h21: r.3, h22: r.4, h23: r.5, h31: r.6, h32: r.7, h33: r.8)
@@ -309,7 +315,8 @@ enum NotchPulseLandmarkGeometry {
     // MARK: - Similarity transform
 
     /// Closed-form least-squares similarity transform (rotation + uniform scale + translation),
-    /// via 2D Procrustes in complex-number form — no SVD needed.
+    /// via 2D Procrustes in complex-number form — no SVD needed. This is exactly the model a flat
+    /// presentation is limited to; motion it can't explain is the non-rigid residual `NotchPulseLivenessScoring` measures.
     static func solveSimilarityTransform(from sourcePoints: [CGPoint], to destinationPoints: [CGPoint]) -> CGAffineTransform? {
         guard sourcePoints.count == destinationPoints.count, sourcePoints.count >= 2 else { return nil }
 
@@ -325,15 +332,19 @@ enum NotchPulseLandmarkGeometry {
         for i in 0..<sourcePoints.count {
             let p = CGPoint(x: sourcePoints[i].x - srcMean.x, y: sourcePoints[i].y - srcMean.y)
             let q = CGPoint(x: destinationPoints[i].x - dstMean.x, y: destinationPoints[i].y - dstMean.y)
+            // q * conj(p) = (qx + i*qy)(px - i*py) = (qx*px + qy*py) + i(qy*px - qx*py)
             numeratorReal += q.x * p.x + q.y * p.y
             numeratorImag += q.y * p.x - q.x * p.y
             denominator += p.x * p.x + p.y * p.y
         }
         guard denominator > 0 else { return nil }
 
+        // scale*cos(theta), scale*sin(theta)
         let sc = numeratorReal / denominator
         let ss = numeratorImag / denominator
 
+        // dst = R * scale * (src - srcMean) + dstMean, expanded into
+        // CGAffineTransform's convention: x' = a*x + c*y + tx, y' = b*x + d*y + ty
         let a = sc, b = ss, c = -ss, d = sc
         let tx = dstMean.x - (a * srcMean.x + c * srcMean.y)
         let ty = dstMean.y - (b * srcMean.x + d * srcMean.y)

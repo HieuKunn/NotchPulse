@@ -1,5 +1,5 @@
 //
-//  LivenessFeatures.swift
+//  NotchPulseLivenessFeatures.swift
 //  NotchPulse
 //
 //  Vision-facing half of liveness: turns a `FaceRecognitionResult` into a plain,
@@ -9,17 +9,17 @@
 import Vision
 import CoreGraphics
 
-enum NotchPulseLivenessFeatureExtractor {
+nonisolated enum NotchPulseNotchPulseLivenessFeatures {
     /// Never fails — a face with no landmarks still yields a frame; cues that need landmarks abstain.
     ///
     /// - Parameter frame: the full camera frame, not `result.alignedImage` (a tightly-cropped
-    ///   112x112 warp with no room around the face for `DeviceBezelDetector` to see a device edge).
+    ///   112x112 warp with no room around the face for `NotchPulseDeviceBezelDetector` to see a device edge).
     static func extract(
         from result: FaceRecognitionResult, frame: CGImage, faceCrop: CGImage? = nil, timestamp: Date = Date()
     ) -> LivenessFrame {
         let face = result.face
         let deviceOverlap = NotchPulseDeviceBezelDetector.detect(in: frame, faceBoundingBox: face.boundingBox).faceOverlapFraction
-        let glare = faceCrop.flatMap { NotchPulseGlareCueExtractor.extract(faceCrop: $0) }
+        let glare = faceCrop.flatMap { NotchPulseNotchPulseGlareCueExtractor.extract(faceCrop: $0) }
 
         guard let landmarks = face.landmarks else {
             return LivenessFrame(

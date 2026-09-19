@@ -3,15 +3,13 @@
 //  NotchPulse
 //
 //  Owns the AVCaptureSession and publishes the newest camera frame as a CGImage. Runs entirely on-device.
-//  Includes native-resolution crop support for liveness detection (glare/spoof cues).
-//  Native NotchPulse Face ID biometric implementation.
 //
 
 @preconcurrency import AVFoundation
 import CoreImage
 import Observation
 
-enum NotchPulseCameraPermission {
+enum CameraPermission {
     case notDetermined
     case granted
     case denied
@@ -28,15 +26,15 @@ struct CameraFrame {
 @Observable
 @MainActor
 final class NotchPulseCamera: NSObject {
-    private(set) var permission: NotchPulseCameraPermission = .notDetermined
+    private(set) var permission: CameraPermission = .notDetermined
     private(set) var isRunning: Bool = false
     private(set) var currentFrame: CameraFrame?
     private(set) var errorMessage: String?
 
-    /// Exposed read-only so previews can attach to the same session.
+    /// Exposed read-only so `CameraPreviewView` can attach a preview layer to the same session.
     let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
-    private let sessionQueue = DispatchQueue(label: "com.notchpulse.camera.session")
+    private let sessionQueue = DispatchQueue(label: "com.hieukunn.notchpulse.camera.session")
 
     /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
     private let framePublisher = FramePublisher()
@@ -46,7 +44,7 @@ final class NotchPulseCamera: NSObject {
         framePublisher.owner = self
     }
 
-    func requestAccessAndStart() async {
+    func start() async {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         switch status {
         case .authorized:
@@ -59,7 +57,10 @@ final class NotchPulseCamera: NSObject {
         }
 
         guard permission == .granted else {
-            errorMessage = "Camera access not granted. Check System Settings > Privacy & Security > Camera."
+            errorMessage = "Camera access not granted (status: \(describe(status))). " +
+                (status == .restricted
+                    ? "macOS reports this as *restricted* — not a simple user denial. This usually means Screen Time content restrictions or an MDM/profile policy is blocking camera access for this app; toggling it in System Settings > Privacy & Security > Camera won't help until that restriction is lifted."
+                    : "Enable it in System Settings > Privacy & Security > Camera. If NotchPulse isn't listed there, quit the app, run `tccutil reset Camera com.hieukunn.notchpulse` in Terminal, then relaunch so macOS asks again.")
             return
         }
 
@@ -75,22 +76,6 @@ final class NotchPulseCamera: NSObject {
         isRunning = true
     }
 
-    func start() async {
-        if permission == .notDetermined {
-            await requestAccessAndStart()
-        } else if permission == .granted {
-            errorMessage = nil
-            configureSessionIfNeeded()
-            reconcileDeviceIfNeeded()
-            sessionQueue.async { [session] in
-                if !session.isRunning {
-                    session.startRunning()
-                }
-            }
-            isRunning = true
-        }
-    }
-
     func stop() {
         sessionQueue.async { [session] in
             if session.isRunning {
@@ -101,6 +86,16 @@ final class NotchPulseCamera: NSObject {
         currentFrame = nil
     }
 
+    private func describe(_ status: AVAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "notDetermined"
+        case .restricted: return "restricted"
+        case .denied: return "denied"
+        case .authorized: return "authorized"
+        @unknown default: return "unknown(\(status.rawValue))"
+        }
+    }
+
     private var isConfigured = false
     private var currentInput: AVCaptureDeviceInput?
 
@@ -109,9 +104,11 @@ final class NotchPulseCamera: NSObject {
         isConfigured = true
 
         session.beginConfiguration()
+        // `.high` doesn't guarantee the sensor's max resolution; macOS (unlike iOS) doesn't fight an explicitly-set
+        // `activeFormat`, so leaving this at `.high` and locking the format separately below is sufficient.
         session.sessionPreset = .high
 
-        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
         videoOutput.alwaysDiscardsLateVideoFrames = true
         videoOutput.setSampleBufferDelegate(framePublisher, queue: sessionQueue)
         if session.canAddOutput(videoOutput) {
@@ -121,9 +118,9 @@ final class NotchPulseCamera: NSObject {
         session.commitConfiguration()
     }
 
-    /// Called on every start() so a camera change takes effect without app restart.
+    /// Called on every `start()` so a camera preference change in Settings takes effect without an app restart.
     private func reconcileDeviceIfNeeded() {
-        guard let device = AVCaptureDevice.default(for: .video) else {
+        guard let device = NotchPulseCameraDeviceCatalog.resolvedDevice() else {
             errorMessage = "No camera device found."
             return
         }
@@ -135,10 +132,10 @@ final class NotchPulseCamera: NSObject {
         }
         if let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) {
             session.addInput(input)
-            self.currentInput = input
+            currentInput = input
             selectHighestResolutionFormat(for: device)
         } else {
-            self.currentInput = nil
+            currentInput = nil
             errorMessage = "No camera device found."
         }
         session.commitConfiguration()
@@ -178,7 +175,7 @@ final class NotchPulseCamera: NSObject {
         // Expand ~1.3x so device edges/bezels are captured for texture/moiré cues.
         let expanded = imageRect.insetBy(dx: -imageRect.width * 0.15, dy: -imageRect.height * 0.15)
 
-        // Flip from `imageRect`'s top-left/y-down space to Core Image's bottom-left/y-up
+        // Flip from `imageRect`'s top-left/y-down space to Core Image's bottom-left/y-up (reverse of NotchPulseFaceDetector.convertToImageSpace).
         let nativeX = expanded.origin.x * scaleX
         let nativeWidth = expanded.width * scaleX
         let nativeHeight = expanded.height * scaleY
@@ -200,10 +197,11 @@ final class NotchPulseCamera: NSObject {
         return cropRenderContext.createCGImage(cropped, from: cropped.extent)
     }
 
-    /// `CIContext` is expensive to create and safe to reuse concurrently.
+    /// `CIContext` is expensive to create and safe to reuse concurrently. Explicitly `nonisolated` since a `static let`
+    /// on this `@MainActor` class would otherwise be main-actor-isolated, which the `nonisolated renderCrop` can't touch.
     private nonisolated static let cropRenderContext = CIContext()
 
-    /// Sample-buffer callbacks arrive on `sessionQueue`, off the main actor.
+    /// Sample-buffer callbacks arrive on `sessionQueue`, off the main actor; this delegate converts there, then hops back.
     private final class FramePublisher: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         weak var owner: NotchPulseCamera?
         private let ciContext = CIContext()

@@ -1,5 +1,5 @@
 //
-//  LivenessScoring.swift
+//  NotchPulseLivenessScoring.swift
 //  NotchPulse
 //
 //  `LivenessFrame` plus the two cross-frame confirm cues that read it directly:
@@ -11,7 +11,7 @@ import Foundation
 import CoreGraphics
 
 /// One frame's worth of liveness-relevant measurements — already normalized, no Vision needed.
-/// Populated by `LivenessFeatureExtractor.extract(from:)` from a real camera frame, or built
+/// Populated by `NotchPulseNotchPulseLivenessFeatures.extract(from:)` from a real camera frame, or built
 /// directly from synthetic data by `tools/liveness_selftest.swift`.
 struct LivenessFrame {
     let timestamp: Date
@@ -62,7 +62,7 @@ struct LivenessFrame {
     }
 }
 
-enum NotchPulseLivenessScoring {
+nonisolated enum NotchPulseLivenessScoring {
     // MARK: - Depth/pose consistency (confirm cue)
 
     /// Correlates nose-offset-from-eye-midline against tan(yaw): tracks yaw on a real face,

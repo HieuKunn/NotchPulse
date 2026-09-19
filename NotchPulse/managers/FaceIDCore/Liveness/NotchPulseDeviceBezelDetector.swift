@@ -1,5 +1,5 @@
 //
-//  DeviceBezelDetector.swift
+//  NotchPulseDeviceBezelDetector.swift
 //  NotchPulse
 //
 //  Looks for a device bezel (phone/tablet) around the face via
@@ -19,7 +19,7 @@ struct DeviceBezelObservation {
     nonisolated static let none = DeviceBezelObservation(rectangle: nil, faceOverlapFraction: nil)
 }
 
-enum NotchPulseDeviceBezelDetector {
+nonisolated enum NotchPulseDeviceBezelDetector {
     /// First-pass estimates, not validated against real footage — tune here if false positives/negatives show up.
     private static func makeRequest() -> VNDetectRectanglesRequest {
         let request = VNDetectRectanglesRequest()
