@@ -52,7 +52,7 @@ struct SettingsWindowView: View {
 
     private var settingsContent: some View {
         ZStack {
-            VisualEffectView()
+            FaceIDVisualEffectView()
             SettingsMetrics.sidebarBackgroundColor
 
             HStack(spacing: 0) {

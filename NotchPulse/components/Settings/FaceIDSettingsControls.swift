@@ -764,7 +764,7 @@ struct UnlockTriggerPicker: View {
 /// this element (Finder/Mail/Xcode sidebars), reading as a properly light,
 /// neutral glass panel on its own. Both materials still desaturate heavily
 /// against real wallpaper, though, which is what `saturationFilter` restores.
-struct VisualEffectView: NSViewRepresentable {
+struct FaceIDVisualEffectView: NSViewRepresentable {
     var material: NSVisualEffectView.Material = .sidebar
     var blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
 
@@ -785,8 +785,8 @@ struct VisualEffectView: NSViewRepresentable {
         return filter
     }()
 
-    func makeNSView(context: Context) -> AppearanceAdaptiveVisualEffectView {
-        let view = AppearanceAdaptiveVisualEffectView()
+    func makeNSView(context: Context) -> AppearanceAdaptiveFaceIDVisualEffectView {
+        let view = AppearanceAdaptiveFaceIDVisualEffectView()
         view.material = material
         view.blendingMode = blendingMode
         // `.followsWindowActiveState`, not `.active` — `.active` pins the
@@ -800,15 +800,15 @@ struct VisualEffectView: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: AppearanceAdaptiveVisualEffectView, context: Context) {
+    func updateNSView(_ nsView: AppearanceAdaptiveFaceIDVisualEffectView, context: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode
     }
 }
 
-/// Swaps between `VisualEffectView`'s light/dark saturation filters live,
+/// Swaps between `FaceIDVisualEffectView`'s light/dark saturation filters live,
 /// reacting to the user toggling System Settings' appearance while open.
-final class AppearanceAdaptiveVisualEffectView: NSVisualEffectView {
+final class AppearanceAdaptiveFaceIDVisualEffectView: NSVisualEffectView {
     var lightFilter: CIFilter?
     var darkFilter: CIFilter?
 
@@ -888,7 +888,7 @@ final class WindowConfiguringView: NSView {
         // that pairing stops AppKit from masking to the window's own native
         // rounded frame. Left at defaults, the system mask applies and the
         // corner is the real thing. Translucency still works since the
-        // `NSVisualEffectView` behind the content blends on its own.
+        // `NSFaceIDVisualEffectView` behind the content blends on its own.
 
         let target = SettingsMetrics.windowSize
         var frame = window.frame

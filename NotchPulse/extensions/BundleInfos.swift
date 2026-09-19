@@ -21,8 +21,12 @@ extension Bundle {
     var releaseNameString: String {
         let version = releaseVersionNumber ?? "1.0"
         let components = version.split(separator: ".")
-        let displayVersion = components.count >= 2 ? "\(components[0]).\(components[1])" : version
-        return "Pulse \(displayVersion) 🚀"
+        if components.count >= 3 && components[2] != "0" {
+            return "Pulse \(version) 🚀"
+        } else if components.count >= 2 {
+            return "Pulse \(components[0]).\(components[1]) 🚀"
+        }
+        return "Pulse \(version) 🚀"
     }
     
     var iconFileName: String? {
