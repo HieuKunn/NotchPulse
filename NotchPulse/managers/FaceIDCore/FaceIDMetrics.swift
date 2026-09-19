@@ -81,7 +81,7 @@ enum FaceIDMetrics {
     /// `NotchGeometry.windowSize(for:)`.
     static let maxPanelWidth: CGFloat = max(panelWidth, enrollPanelWidth)
 
-    static func maxPanelHeight(for style: NotchPanelStyle) -> CGFloat {
+    static func maxPanelHeight(for style: FaceIDOverlayPanelStyle) -> CGFloat {
         switch style {
         case .notch:
             return [

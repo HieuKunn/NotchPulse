@@ -330,7 +330,9 @@ struct FaceIDOverlayView: View {
         // own bounds — see `FaceIDOverlayWindowController.updateMousePassthrough()`.
         .coordinateSpace(name: Self.interactiveCoordinateSpace)
         .onPreferenceChange(InteractivePanelFramePreferenceKey.self) { rect in
-            controller.updateInteractiveContentRect(rect)
+            Task { @MainActor in
+                controller.updateInteractiveContentRect(rect)
+            }
         }
     }
 

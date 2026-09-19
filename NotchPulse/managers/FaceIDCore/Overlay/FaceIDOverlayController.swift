@@ -38,7 +38,7 @@ final class FaceIDOverlayController {
 
     /// Kept as one enum (rather than two independent optionals) so exactly one is ever active.
     enum Content: Equatable {
-        case scan(ScanMedia)
+        case scan(FaceIDScanMedia)
         case onboarding(FaceIDEnrollmentController)
 
         static func == (lhs: Content, rhs: Content) -> Bool {
@@ -54,7 +54,7 @@ final class FaceIDOverlayController {
     private(set) var content: Content = .scan(.idle)
     /// Read-only convenience for the scan-mode view/callers — `.idle` while
     /// onboarding owns the panel.
-    var media: ScanMedia {
+    var media: FaceIDScanMedia {
         if case .scan(let media) = content { return media }
         return .idle
     }
@@ -196,7 +196,7 @@ final class FaceIDOverlayController {
     /// On the very first show, `present()`/`presentOnboarding()` would otherwise render
     /// already-expanded with no prior "closed" frame for SwiftUI to animate away from.
     /// This runs one real closed-state show+render pass first, only on that first call.
-    private func primeWindowIfNeeded(_ completion: @escaping () -> Void) {
+    private func primeWindowIfNeeded(_ completion: @escaping @Sendable () -> Void) {
         guard !hasPrimedWindow else {
             completion()
             return

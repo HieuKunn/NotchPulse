@@ -13,7 +13,7 @@ import AppKit
 /// Which media the overlay is showing. `.idle` is a still image (the first
 /// frame of the success video) so the transition into a playing video is
 /// seamless.
-enum ScanMedia: Equatable {
+enum FaceIDFaceIDScanMedia: Equatable {
     case idle
     case success
     case failure
@@ -28,7 +28,7 @@ enum ScanMedia: Equatable {
 }
 
 struct FaceIDScanAnimationView: NSViewRepresentable {
-    let media: ScanMedia
+    let media: FaceIDScanMedia
 
     func makeNSView(context: Context) -> ScanAnimationHostView {
         let view = ScanAnimationHostView()
@@ -45,7 +45,7 @@ final class ScanAnimationHostView: NSView {
     private var player: AVPlayer?
     private let playerLayer = AVPlayerLayer()
     private let stillImageLayer = CALayer()
-    private var currentMedia: ScanMedia?
+    private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
     private var fallbackRevealWorkItem: DispatchWorkItem?
 
@@ -78,7 +78,7 @@ final class ScanAnimationHostView: NSView {
         CATransaction.commit()
     }
 
-    func apply(media: ScanMedia) {
+    func apply(media: FaceIDScanMedia) {
         guard media != currentMedia else { return }
         currentMedia = media
         readyObservation = nil
