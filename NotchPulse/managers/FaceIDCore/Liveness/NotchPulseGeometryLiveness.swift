@@ -66,7 +66,7 @@ nonisolated private let geometryProbeRegions: Set<LandmarkRegion> = [
     .nose, .noseCrest, .medianLine,
 ]
 
-nonisolated enum GeometryLiveness {
+enum NotchPulseGeometryLiveness {
     static func evaluate(_ window: [LivenessFrame], tuning: GeometryTuning = .default) -> GeometryLivenessResult {
         let lastLandmarks = window.last?.landmarks.count ?? 0
         var diagnostics = diagnosticRatios(from: window.last)
@@ -112,8 +112,8 @@ nonisolated enum GeometryLiveness {
         }
 
         let pairsAnalyzed = excesses.count
-        let medianFit = fitResiduals.isEmpty ? nil : LandmarkGeometry.medianValue(fitResiduals)
-        let medianProbe = probeResiduals.isEmpty ? nil : LandmarkGeometry.medianValue(probeResiduals)
+        let medianFit = fitResiduals.isEmpty ? nil : NotchPulseLandmarkGeometry.medianValue(fitResiduals)
+        let medianProbe = probeResiduals.isEmpty ? nil : NotchPulseLandmarkGeometry.medianValue(probeResiduals)
         let excess = weightedMedian(excesses, weights: weights)
         let coherence = weightedMedian(coherences, weights: weights)
         let motion = motions.isEmpty ? nil : (motions.reduce(0, +) / CGFloat(motions.count))
@@ -177,7 +177,7 @@ nonisolated enum GeometryLiveness {
         let (probeSrc, probeDst) = flatten(matched, in: geometryProbeRegions)
         let (eyeSrc, eyeDst) = flatten(matched, in: [.leftEye, .rightEye])
         guard fitSrc.count >= 6, probeSrc.count >= 2 else { return nil }
-        guard let homography = LandmarkGeometry.solveRobustHomography(from: fitSrc, to: fitDst) else { return nil }
+        guard let homography = NotchPulseLandmarkGeometry.solveRobustHomography(from: fitSrc, to: fitDst) else { return nil }
 
         let eyeMags = zip(eyeSrc, eyeDst).map { hypot($1.x - homography.apply($0).x, $1.y - homography.apply($0).y) / iod }
         let probeVecs: [(CGFloat, CGFloat)] = zip(probeSrc, probeDst).map { src, dst in
@@ -192,8 +192,8 @@ nonisolated enum GeometryLiveness {
         } else {
             noiseMags = zip(fitSrc, fitDst).map { hypot($1.x - homography.apply($0).x, $1.y - homography.apply($0).y) / iod }
         }
-        let fitResidual = LandmarkGeometry.medianValue(noiseMags)
-        let probeResidual = LandmarkGeometry.medianValue(probeMags)
+        let fitResidual = NotchPulseLandmarkGeometry.medianValue(noiseMags)
+        let probeResidual = NotchPulseLandmarkGeometry.medianValue(probeMags)
         let noiseFloor: CGFloat = 0.002
         let excess = probeResidual / max(fitResidual, noiseFloor)
 
@@ -312,7 +312,7 @@ nonisolated enum GeometryLiveness {
         guard !values.isEmpty, values.count == weights.count else { return nil }
         let sorted = zip(values, weights).sorted { $0.0 < $1.0 }
         let total = sorted.reduce(CGFloat(0)) { $0 + $1.1 }
-        guard total > 0 else { return LandmarkGeometry.medianValue(values) }
+        guard total > 0 else { return NotchPulseLandmarkGeometry.medianValue(values) }
         var acc: CGFloat = 0
         for (value, weight) in sorted {
             acc += weight

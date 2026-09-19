@@ -9,7 +9,7 @@
 import Vision
 import CoreGraphics
 
-nonisolated enum LivenessFeatureExtractor {
+enum NotchPulseLivenessFeatureExtractor {
     /// Never fails — a face with no landmarks still yields a frame; cues that need landmarks abstain.
     ///
     /// - Parameter frame: the full camera frame, not `result.alignedImage` (a tightly-cropped
@@ -34,17 +34,17 @@ nonisolated enum LivenessFeatureExtractor {
         }
 
         let imageSize = face.imageSize
-        let points = LandmarkGeometry.allPoints(from: landmarks, imageSize: imageSize)
-        let interocular = LandmarkGeometry.interocularDistance(from: landmarks, imageSize: imageSize)
-        let leftEAR = landmarks.leftEye.flatMap { LandmarkGeometry.eyeAspectRatio(of: $0, imageSize: imageSize) }
-        let rightEAR = landmarks.rightEye.flatMap { LandmarkGeometry.eyeAspectRatio(of: $0, imageSize: imageSize) }
+        let points = NotchPulseLandmarkGeometry.allPoints(from: landmarks, imageSize: imageSize)
+        let interocular = NotchPulseLandmarkGeometry.interocularDistance(from: landmarks, imageSize: imageSize)
+        let leftEAR = landmarks.leftEye.flatMap { NotchPulseLandmarkGeometry.eyeAspectRatio(of: $0, imageSize: imageSize) }
+        let rightEAR = landmarks.rightEye.flatMap { NotchPulseLandmarkGeometry.eyeAspectRatio(of: $0, imageSize: imageSize) }
 
-        let eyeLeft = LandmarkGeometry.eyeCenter(pupil: landmarks.leftPupil, eye: landmarks.leftEye, imageSize: imageSize)
-        let eyeRight = LandmarkGeometry.eyeCenter(pupil: landmarks.rightPupil, eye: landmarks.rightEye, imageSize: imageSize)
+        let eyeLeft = NotchPulseLandmarkGeometry.eyeCenter(pupil: landmarks.leftPupil, eye: landmarks.leftEye, imageSize: imageSize)
+        let eyeRight = NotchPulseLandmarkGeometry.eyeCenter(pupil: landmarks.rightPupil, eye: landmarks.rightEye, imageSize: imageSize)
 
         var noseOffsetRatio: CGFloat?
         if let interocular, interocular > 0, let eyeLeft, let eyeRight,
-           let nose = landmarks.nose, let noseCenter = LandmarkGeometry.centroid(of: nose, imageSize: imageSize) {
+           let nose = landmarks.nose, let noseCenter = NotchPulseLandmarkGeometry.centroid(of: nose, imageSize: imageSize) {
             let eyeMidX = (eyeLeft.x + eyeRight.x) / 2
             noseOffsetRatio = (noseCenter.x - eyeMidX) / interocular
         }

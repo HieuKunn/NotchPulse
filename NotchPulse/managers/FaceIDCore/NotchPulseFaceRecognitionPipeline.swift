@@ -18,7 +18,7 @@ nonisolated struct FaceRecognitionResult {
     let face: DetectedFace
 }
 
-nonisolated enum FaceRecognitionPipelineError: LocalizedError {
+enum NotchPulseFaceRecognitionPipelineError: LocalizedError {
     case noFaceDetected
     case alignmentFailed
 
@@ -55,9 +55,9 @@ final class FaceRecognitionPipeline {
     /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
     /// - Parameter previousBoundingBox: previous frame's selected box, if any — lets a continuous scanner keep selection "stuck" to the same person instead of re-picking every frame.
     nonisolated func recognize(in frame: CGImage, preferNear previousBoundingBox: CGRect? = nil) throws -> FaceRecognitionResult {
-        let faces = try FaceDetector.detectFaces(in: frame)
+        let faces = try NotchPulseFaceDetector.detectFaces(in: frame)
         guard let face = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) else {
-            throw FaceRecognitionPipelineError.noFaceDetected
+            throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
         }
         return try recognize(face, in: frame)
     }
@@ -67,14 +67,14 @@ final class FaceRecognitionPipeline {
         let inputImage: CGImage
         let tier: AlignmentTier
         if embedder.requiresAlignment {
-            guard let aligned = FaceAligner.align(face, from: frame) else {
-                throw FaceRecognitionPipelineError.alignmentFailed
+            guard let aligned = NotchPulseFaceAligner.align(face, from: frame) else {
+                throw NotchPulseFaceRecognitionPipelineError.alignmentFailed
             }
             inputImage = aligned.image
             tier = aligned.tier
         } else {
-            guard let cropped = FaceDetector.crop(face, from: frame) else {
-                throw FaceRecognitionPipelineError.alignmentFailed
+            guard let cropped = NotchPulseFaceDetector.crop(face, from: frame) else {
+                throw NotchPulseFaceRecognitionPipelineError.alignmentFailed
             }
             inputImage = cropped
             tier = .paddedCrop

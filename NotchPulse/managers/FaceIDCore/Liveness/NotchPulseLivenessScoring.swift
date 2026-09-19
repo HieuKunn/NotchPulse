@@ -15,7 +15,7 @@ import CoreGraphics
 /// directly from synthetic data by `tools/liveness_selftest.swift`.
 struct LivenessFrame {
     let timestamp: Date
-    /// Every landmark point Vision found this frame, tagged by region — see `LandmarkGeometry.allPoints`.
+    /// Every landmark point Vision found this frame, tagged by region — see `NotchPulseLandmarkGeometry.allPoints`.
     let landmarks: [LandmarkPoint]
     /// Distance between the two eye centers — the normalization scale for every ratio below.
     let interocularDistance: CGFloat?
@@ -62,7 +62,7 @@ struct LivenessFrame {
     }
 }
 
-nonisolated enum LivenessScoring {
+enum NotchPulseLivenessScoring {
     // MARK: - Depth/pose consistency (confirm cue)
 
     /// Correlates nose-offset-from-eye-midline against tan(yaw): tracks yaw on a real face,

@@ -1,5 +1,5 @@
 //
-//  FaceAligner.swift
+//  NotchPulseFaceAligner.swift
 //  NotchPulse
 //
 //  ArcFace requires faces warped into a canonical pose (eyes level, fixed positions) — a loose crop tanks its accuracy.
@@ -20,7 +20,7 @@ enum AlignmentTier: String {
     case paddedCrop = "padded crop (no alignment)"
 }
 
-nonisolated enum FaceAligner {
+enum NotchPulseFaceAligner {
     static let outputSize = 112
 
     /// Standard ArcFace 112x112 template: left eye, right eye, nose, left mouth, right mouth. "Left"/"right" are
@@ -50,7 +50,7 @@ nonisolated enum FaceAligner {
             return AlignedFace(image: warped, tier: .twoPoint)
         }
 
-        guard let cropped = FaceDetector.crop(face, from: image),
+        guard let cropped = NotchPulseFaceDetector.crop(face, from: image),
               let resized = resize(cropped, to: outputSize) else { return nil }
         return AlignedFace(image: resized, tier: .paddedCrop)
     }
@@ -60,16 +60,16 @@ nonisolated enum FaceAligner {
     // Point/centroid/eye-center/transform math lives in `LandmarkGeometry`, shared with the liveness analyzer.
 
     private static func fivePoints(from landmarks: VNFaceLandmarks2D, imageSize: CGSize) -> [CGPoint]? {
-        guard let eyeA = LandmarkGeometry.eyeCenter(pupil: landmarks.leftPupil, eye: landmarks.leftEye, imageSize: imageSize),
-              let eyeB = LandmarkGeometry.eyeCenter(pupil: landmarks.rightPupil, eye: landmarks.rightEye, imageSize: imageSize),
-              let nose = landmarks.nose, let noseCenter = LandmarkGeometry.centroid(of: nose, imageSize: imageSize),
+        guard let eyeA = NotchPulseLandmarkGeometry.eyeCenter(pupil: landmarks.leftPupil, eye: landmarks.leftEye, imageSize: imageSize),
+              let eyeB = NotchPulseLandmarkGeometry.eyeCenter(pupil: landmarks.rightPupil, eye: landmarks.rightEye, imageSize: imageSize),
+              let nose = landmarks.nose, let noseCenter = NotchPulseLandmarkGeometry.centroid(of: nose, imageSize: imageSize),
               let outerLips = landmarks.outerLips else { return nil }
 
         // Vision's leftEye/rightEye are anatomical, not on-screen — sort by x instead of trusting either label.
         let imageLeftEye = eyeA.x <= eyeB.x ? eyeA : eyeB
         let imageRightEye = eyeA.x <= eyeB.x ? eyeB : eyeA
 
-        let lipPoints = LandmarkGeometry.imagePoints(of: outerLips, imageSize: imageSize)
+        let lipPoints = NotchPulseLandmarkGeometry.imagePoints(of: outerLips, imageSize: imageSize)
         guard let imageLeftMouth = lipPoints.min(by: { $0.x < $1.x }),
               let imageRightMouth = lipPoints.max(by: { $0.x < $1.x }) else { return nil }
 
@@ -77,8 +77,8 @@ nonisolated enum FaceAligner {
     }
 
     private static func twoPoints(from landmarks: VNFaceLandmarks2D, imageSize: CGSize) -> [CGPoint]? {
-        guard let eyeA = LandmarkGeometry.eyeCenter(pupil: landmarks.leftPupil, eye: landmarks.leftEye, imageSize: imageSize),
-              let eyeB = LandmarkGeometry.eyeCenter(pupil: landmarks.rightPupil, eye: landmarks.rightEye, imageSize: imageSize) else { return nil }
+        guard let eyeA = NotchPulseLandmarkGeometry.eyeCenter(pupil: landmarks.leftPupil, eye: landmarks.leftEye, imageSize: imageSize),
+              let eyeB = NotchPulseLandmarkGeometry.eyeCenter(pupil: landmarks.rightPupil, eye: landmarks.rightEye, imageSize: imageSize) else { return nil }
         return eyeA.x <= eyeB.x ? [eyeA, eyeB] : [eyeB, eyeA]
     }
 
@@ -91,7 +91,7 @@ nonisolated enum FaceAligner {
         let sourceFlipped = sourcePoints.map { CGPoint(x: $0.x, y: imageHeight - $0.y) }
         let destinationFlipped = destinationPoints.map { CGPoint(x: $0.x, y: CGFloat(outputSize) - $0.y) }
 
-        guard let transform = LandmarkGeometry.solveSimilarityTransform(from: sourceFlipped, to: destinationFlipped) else { return nil }
+        guard let transform = NotchPulseLandmarkGeometry.solveSimilarityTransform(from: sourceFlipped, to: destinationFlipped) else { return nil }
 
         let colorSpace = image.colorSpace ?? CGColorSpaceCreateDeviceRGB()
         guard let context = CGContext(
