@@ -872,6 +872,7 @@
 				5C416320A68E66012C56039F /* FaceIDOverlayView.swift */,
 			);
 			name = Overlay;
+			path = Overlay;
 			sourceTree = "<group>";
 		};
 		9A0887332C7AFF7E00C160EA /* Tabs */ = {
