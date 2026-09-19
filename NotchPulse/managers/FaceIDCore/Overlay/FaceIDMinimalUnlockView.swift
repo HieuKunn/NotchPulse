@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct FaceIDMinimalUnlockView: View {
-    let media: ScanMedia
+    let media: FaceIDScanMedia
     /// Owned by the caller (not derived from `media`) so the glyph and video can be offset from each other.
     let isUnlocked: Bool
     /// Inset from the silhouette's left/right edges. The caller adds the

@@ -30,18 +30,18 @@ enum FaceIDScanMedia: Equatable {
 struct FaceIDScanAnimationView: NSViewRepresentable {
     let media: FaceIDScanMedia
 
-    func makeNSView(context: Context) -> ScanAnimationHostView {
-        let view = ScanAnimationHostView()
+    func makeNSView(context: Context) -> FaceIDScanAnimationHostView {
+        let view = FaceIDScanAnimationHostView()
         view.apply(media: media)
         return view
     }
 
-    func updateNSView(_ nsView: ScanAnimationHostView, context: Context) {
+    func updateNSView(_ nsView: FaceIDScanAnimationHostView, context: Context) {
         nsView.apply(media: media)
     }
 }
 
-final class ScanAnimationHostView: NSView {
+final class FaceIDScanAnimationHostView: NSView {
     private var player: AVPlayer?
     private let playerLayer = AVPlayerLayer()
     private let stillImageLayer = CALayer()

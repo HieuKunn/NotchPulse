@@ -55,7 +55,7 @@ final class FaceIDOverlayWindowController {
         reposition(window)
         window.orderFrontRegardless()
 
-        if LockMonitor.isScreenActuallyLocked(), let skyLight = FaceIDOverlaySkyLight.shared {
+        if NotchPulseLockMonitor.isScreenActuallyLocked(), let skyLight = FaceIDOverlaySkyLight.shared {
             skyLight.delegate(window)
             isSkyLightDelegated = true
         }

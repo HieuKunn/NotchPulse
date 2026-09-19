@@ -34,6 +34,7 @@ enum NotchPulseCameraDeviceCatalog {
     }
 
     /// Display-specific override, then flat default, then the system default camera.
+    @MainActor
     static func resolvedDevice() -> AVCaptureDevice? {
         let settings = NotchPulseFaceIDSettings.shared
         let preferredID = isUsingBuiltInDisplay()
