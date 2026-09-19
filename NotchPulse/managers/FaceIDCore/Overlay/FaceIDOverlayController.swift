@@ -196,7 +196,7 @@ final class FaceIDOverlayController {
     /// On the very first show, `present()`/`presentOnboarding()` would otherwise render
     /// already-expanded with no prior "closed" frame for SwiftUI to animate away from.
     /// This runs one real closed-state show+render pass first, only on that first call.
-    private func primeWindowIfNeeded(_ completion: @escaping @Sendable () -> Void) {
+    private func primeWindowIfNeeded(_ completion: @escaping @MainActor @Sendable () -> Void) {
         guard !hasPrimedWindow else {
             completion()
             return
@@ -206,7 +206,9 @@ final class FaceIDOverlayController {
         phase = .closed
         windowController.show()
         windowController.displaySynchronously()
-        DispatchQueue.main.async(execute: completion)
+        DispatchQueue.main.async {
+            completion()
+        }
     }
 
     // MARK: - One-shot mode (onboarding, Face Lab preview)

@@ -13,7 +13,7 @@ import AppKit
 /// Which media the overlay is showing. `.idle` is a still image (the first
 /// frame of the success video) so the transition into a playing video is
 /// seamless.
-enum FaceIDFaceIDScanMedia: Equatable {
+enum FaceIDScanMedia: Equatable {
     case idle
     case success
     case failure
