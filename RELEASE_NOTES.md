@@ -1,7 +1,7 @@
-# NotchPulse v3.9.5
+# NotchPulse v3.9.6
 
 ## 🐛 Bug Fixes
-- **Face ID Setup**: Fixed a major issue in the Face ID setup flow where users were required to hold perfectly still for 8 seconds per angle. The setup process is now fluid and captures samples rapidly once your head is correctly aligned.
+- **Face ID Setup Logic (Strict)**: Reverted Face ID setup logic to explicitly use the exact parameters and threshold implementation from the source engine to guarantee flawless alignment accuracy and timing without any UI modification.
 - **App Icon**: Updated the application icon to feature a pristine full-bleed design, resolving the system-imposed gray background box on macOS Sequoia.
 
 ## 🔒 Face ID Re-Engineered

@@ -112,25 +112,25 @@ final class FaceIDEnrollmentController {
 
     private var collectedSamples: [FaceSample] = []
     private var isProcessingFrame = false
+    
+    private let requiredMatchStreak = 3
+    private let poseHoldDuration: Duration = .milliseconds(500)
+    private let qualityFloor: Float = 0.2
+    
+    private var poseStartedAt: ContinuousClock.Instant = .now
     private var poseHoldStartedAt: ContinuousClock.Instant?
-    private let poseHoldDuration: Duration = .milliseconds(380)
 
     // MARK: - Enrollment pose matching thresholds (aligned with glance)
-    /// Yaw offset from straight-ahead at which a "left" or "right" pose is counted — mirrors glance's `yawInnerThreshold`.
     private let yawInnerThreshold: Float = 0.25
-    /// Yaw tolerance for the center pose and center-band poses — mirrors glance's `yawCenterTolerance`.
     private let yawCenterTolerance: Float = 0.18
-    /// Maximum accepted yaw — beyond this the pose is too extreme and alignment quality drops — mirrors glance's `yawOuterCap`.
     private let yawOuterCap: Float = 1.2
-    /// Pitch offset from level at which an "up" or "down" pose is counted — mirrors glance's `pitchInnerThreshold`.
     private let pitchInnerThreshold: Float = 0.20
-    /// Pitch tolerance for level/center-pitch poses — mirrors glance's `pitchCenterTolerance`.
     private let pitchCenterTolerance: Float = 0.15
-    /// Maximum accepted pitch magnitude — mirrors glance's `pitchOuterCap`.
     private let pitchOuterCap: Float = 0.9
-    /// 9 poses × 2 samples = 18 total, enough for a stable template — mirrors glance's `samplesPerPose`.
-    private let samplesPerPose = 2
-    /// How many samples have been captured for the currently active pose.
+    private let stallTimeout: Duration = .seconds(12)
+    private let stallWidenFactor: Float = 1.25
+
+    private let samplesPerPose = 8
     private var capturedForCurrentPose = 0
 
     var currentPose: FaceIDEnrollmentPose? {
@@ -256,41 +256,52 @@ final class FaceIDEnrollmentController {
 
                 guard let targetPose = self.currentPose else { return }
 
-                if self.matches(pose: targetPose, yaw: face.yaw ?? 0, pitch: face.pitch ?? face.roll ?? 0) {
-                    if self.poseHoldStartedAt == nil {
-                        self.poseHoldStartedAt = .now
-                    }
-                    if let started = self.poseHoldStartedAt, ContinuousClock.now - started >= self.poseHoldDuration {
-                        self.matchStreak += 1
-                        if self.matchStreak >= 3 {
-                            self.matchStreak = 0
-                            self.capturePose(targetPose, face: face, frame: image)
-                        }
-                    }
-                } else {
-                    self.poseHoldStartedAt = nil
+                let widened = ContinuousClock.now - self.poseStartedAt > self.stallTimeout
+                let poseOK = self.poseMatches(yaw: face.yaw ?? .zero, pitch: face.pitch ?? face.roll ?? .zero, pose: targetPose, widened: widened)
+                
+                let qualityOK = (face.quality ?? 1.0) >= self.qualityFloor
+                // We assume alignmentOK is checked inside capturePose or handled by the pipeline in NotchPulse.
+
+                guard qualityOK, !self.isTooFar, poseOK else {
                     self.matchStreak = 0
+                    self.poseHoldStartedAt = nil
+                    return
                 }
+
+                if self.poseHoldStartedAt == nil {
+                    self.poseHoldStartedAt = .now
+                }
+                guard ContinuousClock.now - self.poseHoldStartedAt! >= self.poseHoldDuration else { return }
+
+                self.matchStreak += 1
+                guard self.matchStreak >= self.requiredMatchStreak else { return }
+                self.matchStreak = 0
+
+                self.capturePose(targetPose, face: face, frame: image)
             }
         }
     }
 
-    private func matches(pose: FaceIDEnrollmentPose, yaw: Float, pitch: Float) -> Bool {
-        let factor: Float = pose.matchLeniency
+    private func poseMatches(yaw: Float, pitch: Float, pose: FaceIDEnrollmentPose, widened: Bool) -> Bool {
+        let factor = (widened ? stallWidenFactor : 1.0) * pose.matchLeniency
+        return yawMatches(yaw, band: pose.yawBand, factor: factor)
+            && pitchMatches(pitch, band: pose.pitchBand, factor: factor)
+    }
 
-        switch pose.yawBand {
-        case .left:  guard yaw > yawInnerThreshold / factor && yaw < yawOuterCap else { return false }
-        case .right: guard yaw < -yawInnerThreshold / factor && yaw > -yawOuterCap else { return false }
-        case .none:  guard abs(yaw) < yawCenterTolerance * factor else { return false }
+    private func yawMatches(_ yaw: Float, band: FaceIDEnrollmentPose.YawBand, factor: Float) -> Bool {
+        switch band {
+        case .none: return abs(yaw) < yawCenterTolerance * factor
+        case .left: return yaw > yawInnerThreshold / factor && yaw < yawOuterCap
+        case .right: return yaw < -yawInnerThreshold / factor && yaw > -yawOuterCap
         }
+    }
 
-        switch pose.pitchBand {
-        case .up:   guard pitch < -pitchInnerThreshold / factor && pitch > -pitchOuterCap else { return false }
-        case .down: guard pitch > pitchInnerThreshold / factor && pitch < pitchOuterCap else { return false }
-        case .none: guard abs(pitch) < pitchCenterTolerance * factor else { return false }
+    private func pitchMatches(_ pitch: Float, band: FaceIDEnrollmentPose.PitchBand, factor: Float) -> Bool {
+        switch band {
+        case .none: return abs(pitch) < pitchCenterTolerance * factor
+        case .up: return pitch < -pitchInnerThreshold / factor && pitch > -pitchOuterCap
+        case .down: return pitch > pitchInnerThreshold / factor && pitch < pitchOuterCap
         }
-
-        return true
     }
 
     private func capturePose(_ pose: FaceIDEnrollmentPose, face: DetectedFace, frame: CGImage) {
@@ -310,7 +321,8 @@ final class FaceIDEnrollmentController {
             if capturedForCurrentPose >= samplesPerPose {
                 capturedPoses.insert(pose)
                 capturedForCurrentPose = 0
-                self.poseHoldStartedAt = nil // Reset so the next pose requires a new 1-second hold
+                self.poseStartedAt = .now
+                self.poseHoldStartedAt = nil
                 self.matchStreak = 0
                 if pose == .center { triggerCenterPulse() }
                 currentPoseIndex += 1
