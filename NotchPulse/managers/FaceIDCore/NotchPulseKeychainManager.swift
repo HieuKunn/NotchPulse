@@ -1,17 +1,15 @@
 //
-//  NotchPulseKeychainManager.swift
+//  KeychainManager.swift
 //  NotchPulse
 //
-//  Thin, password-agnostic wrapper around Keychain Services — save/read/delete/exists by account,
-//  plus a Touch-ID access control helper.
-//  Native NotchPulse Face ID biometric implementation.
+//  Thin, password-agnostic wrapper around Keychain Services — save/read/delete/exists by account, plus a Touch-ID access control helper.
 //
 
 import Foundation
 import Security
 import LocalAuthentication
 
-enum NotchPulseKeychainError: LocalizedError {
+enum KeychainError: LocalizedError {
     case itemNotFound
     case unexpectedData
     case accessControlFailed(String)
@@ -35,8 +33,8 @@ enum NotchPulseKeychainError: LocalizedError {
     }
 }
 
-enum NotchPulseKeychainManager {
-    nonisolated static let service = "com.notchpulse.FaceID"
+enum KeychainManager {
+    nonisolated static let service = "com.jonathan.glance"
 
     /// Attributes-only existence check — never prompts, even for access-controlled items.
     nonisolated static func exists(account: String) -> Bool {
@@ -67,14 +65,14 @@ enum NotchPulseKeychainManager {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         switch status {
         case errSecSuccess:
-            guard let data = item as? Data else { throw NotchPulseKeychainError.unexpectedData }
+            guard let data = item as? Data else { throw KeychainError.unexpectedData }
             return data
         case errSecItemNotFound:
-            throw NotchPulseKeychainError.itemNotFound
+            throw KeychainError.itemNotFound
         case errSecUserCanceled, errSecAuthFailed:
-            throw NotchPulseKeychainError.authenticationFailed
+            throw KeychainError.authenticationFailed
         default:
-            throw NotchPulseKeychainError.osStatus(status)
+            throw KeychainError.osStatus(status)
         }
     }
 
@@ -96,11 +94,11 @@ enum NotchPulseKeychainManager {
         if let accessControl {
             addQuery[kSecAttrAccessControl as String] = accessControl
         } else {
-            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         }
 
         let status = SecItemAdd(addQuery as CFDictionary, nil)
-        guard status == errSecSuccess else { throw NotchPulseKeychainError.osStatus(status) }
+        guard status == errSecSuccess else { throw KeychainError.osStatus(status) }
     }
 
     nonisolated static func delete(account: String) throws {
@@ -111,7 +109,7 @@ enum NotchPulseKeychainManager {
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw NotchPulseKeychainError.osStatus(status)
+            throw KeychainError.osStatus(status)
         }
     }
 
@@ -125,7 +123,7 @@ enum NotchPulseKeychainManager {
             &accessError
         ) else {
             let msg = (accessError?.takeRetainedValue() as Error?)?.localizedDescription ?? "unknown"
-            throw NotchPulseKeychainError.accessControlFailed(msg)
+            throw KeychainError.accessControlFailed(msg)
         }
         return access
     }

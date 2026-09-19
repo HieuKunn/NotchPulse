@@ -12,8 +12,7 @@ import Observation
 import Defaults
 import AppKit
 
-fileprivate let injectionLock = NSLock()
-fileprivate var isCurrentlyInjecting = false
+import AppKit
 
 @Observable
 @MainActor
@@ -29,8 +28,8 @@ final class NotchPulseFaceUnlockCoordinator {
     // Sync state to FaceIDManager for the UI to observe
     private var faceIDManager: FaceIDManager { FaceIDManager.shared }
 
-    private var scanWindowDuration: TimeInterval = 2.5
-    private let wrongFaceStreakThreshold = 30
+    private var scanWindowDuration: TimeInterval = 6.0
+    private let wrongFaceStreakThreshold = 6
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -73,20 +72,13 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         guard !lockMonitor.isSleeping else { return }
 
-        if lockMonitor.lastEvent == .screenLocked {
-            hasArmedForCurrentLock = false
-            autoRetryCount = 0
-            disarmOverlay()
-            return
-        }
-
         if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
             hasArmedForCurrentLock = false
         }
 
         // Only auto-trigger scan on display/system wake (e.g. lid open or wake from sleep).
         // For screen lock during active work session, camera remains off until user hovers/clicks the notch.
-        let validTriggers: [LockEventKind] = [.wake]
+        let validTriggers: [LockEventKind] = [.wake, .screenLocked]
         guard let event = lockMonitor.lastEvent, validTriggers.contains(event) else { return }
 
         // Ensure password exists
@@ -228,13 +220,6 @@ final class NotchPulseFaceUnlockCoordinator {
         // no positive proof-of-life (blink/3D) is required — auto-confirms after enough
         // clean frames. This means users no longer need to blink to unlock.
         liveness.modeProvider = { .light }
-        // Disable depthPose: it measures correlation (not slope) of nose-offset vs yaw,
-        // which falsely confirms a flat photo being rotated in front of the camera.
-        liveness.enabledCuesProvider = {
-            var cues = Set(LivenessCue.allCases)
-            cues.remove(.depthPose)
-            return cues
-        }
         
         var consecutiveWrongFaceFrames = 0
         var readyMatch: Bool = false
@@ -280,17 +265,8 @@ final class NotchPulseFaceUnlockCoordinator {
                 }
             }
 
-            // In NotchPulse we currently fetch the single enrolled face via EnrollmentStore
-            var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-            if activeIdentities.isEmpty {
-                NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
-                activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-            }
-            if activeIdentities.isEmpty {
-                if let direct = try? NotchPulseSecureFaceStore.load(), !direct.isEmpty {
-                    activeIdentities = direct.filter(\.isEnabled)
-                }
-            }
+            // `activeIdentities`, not `identities`: someone switched off on the Your Face page stays enrolled but must not unlock.
+            let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
             guard !activeIdentities.isEmpty else {
                 return .noResolution
             }
@@ -320,61 +296,6 @@ final class NotchPulseFaceUnlockCoordinator {
     }
     
     // MARK: - Mac Unlock Execution (From FaceIDManager)
-    
-    nonisolated static func keyEventInfo(for char: Character) -> (keyCode: CGKeyCode, shift: Bool)? {
-        switch char {
-        case "a": return (0x00, false); case "A": return (0x00, true)
-        case "b": return (0x0B, false); case "B": return (0x0B, true)
-        case "c": return (0x08, false); case "C": return (0x08, true)
-        case "d": return (0x02, false); case "D": return (0x02, true)
-        case "e": return (0x0E, false); case "E": return (0x0E, true)
-        case "f": return (0x03, false); case "F": return (0x03, true)
-        case "g": return (0x05, false); case "G": return (0x05, true)
-        case "h": return (0x04, false); case "H": return (0x04, true)
-        case "i": return (0x22, false); case "I": return (0x22, true)
-        case "j": return (0x26, false); case "J": return (0x26, true)
-        case "k": return (0x28, false); case "K": return (0x28, true)
-        case "l": return (0x25, false); case "L": return (0x25, true)
-        case "m": return (0x2E, false); case "M": return (0x2E, true)
-        case "n": return (0x2D, false); case "N": return (0x2D, true)
-        case "o": return (0x1F, false); case "O": return (0x1F, true)
-        case "p": return (0x23, false); case "P": return (0x23, true)
-        case "q": return (0x0C, false); case "Q": return (0x0C, true)
-        case "r": return (0x0F, false); case "R": return (0x0F, true)
-        case "s": return (0x01, false); case "S": return (0x01, true)
-        case "t": return (0x11, false); case "T": return (0x11, true)
-        case "u": return (0x20, false); case "U": return (0x20, true)
-        case "v": return (0x09, false); case "V": return (0x09, true)
-        case "w": return (0x0D, false); case "W": return (0x0D, true)
-        case "x": return (0x07, false); case "X": return (0x07, true)
-        case "y": return (0x10, false); case "Y": return (0x10, true)
-        case "z": return (0x06, false); case "Z": return (0x06, true)
-        case "1": return (0x12, false); case "!": return (0x12, true)
-        case "2": return (0x13, false); case "@": return (0x13, true)
-        case "3": return (0x14, false); case "#": return (0x14, true)
-        case "4": return (0x15, false); case "$": return (0x15, true)
-        case "5": return (0x17, false); case "%": return (0x17, true)
-        case "6": return (0x16, false); case "^": return (0x16, true)
-        case "7": return (0x1A, false); case "&": return (0x1A, true)
-        case "8": return (0x1C, false); case "*": return (0x1C, true)
-        case "9": return (0x19, false); case "(": return (0x19, true)
-        case "0": return (0x1D, false); case ")": return (0x1D, true)
-        case " ": return (0x31, false); case "-": return (0x1B, false)
-        case "_": return (0x1B, true); case "=": return (0x18, false)
-        case "+": return (0x18, true); case "[": return (0x21, false)
-        case "{": return (0x21, true); case "]": return (0x1E, false)
-        case "}": return (0x1E, true); case "\\": return (0x2A, false)
-        case "|": return (0x2A, true); case ";": return (0x29, false)
-        case ":": return (0x29, true); case "'": return (0x27, false)
-        case "\"": return (0x27, true); case ",": return (0x2B, false)
-        case "<": return (0x2B, true); case ".": return (0x2F, false)
-        case ">": return (0x2F, true); case "/": return (0x2C, false)
-        case "?": return (0x2C, true); case "`": return (0x32, false)
-        case "~": return (0x32, true)
-        default: return nil
-        }
-    }
-    
     // Lock and state are file-private to avoid MainActor isolation
     
     private func performMacUnlock() async {
@@ -394,112 +315,4 @@ final class NotchPulseFaceUnlockCoordinator {
             }
         }
     }
-    
-    nonisolated private static func injectUnlockEvents(password: String, pressCount: Int) {
-        injectionLock.lock()
-        if isCurrentlyInjecting {
-            injectionLock.unlock()
-            return
-        }
-        isCurrentlyInjecting = true
-        injectionLock.unlock()
-
-        defer {
-            injectionLock.lock()
-            isCurrentlyInjecting = false
-            injectionLock.unlock()
-        }
-
-        let source = CGEventSource(stateID: .hidSystemState)
-        
-        let mouseLoc = CGEvent(source: nil)?.location ?? CGPoint(x: 500, y: 500)
-        if let moveEvent = CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: CGPoint(x: mouseLoc.x + 1, y: mouseLoc.y), mouseButton: .left) {
-            moveEvent.post(tap: .cghidEventTap)
-        }
-        Thread.sleep(forTimeInterval: 0.05)
-        if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-        
-        for _ in 0..<15 {
-            if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
-               let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
-                delDown.flags = []
-                delUp.flags = []
-                delDown.post(tap: .cghidEventTap)
-                delUp.post(tap: .cghidEventTap)
-            }
-            Thread.sleep(forTimeInterval: 0.005)
-        }
-        Thread.sleep(forTimeInterval: 0.03)
-        if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-        
-        for char in password {
-            if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            if let keyInfo = Self.keyEventInfo(for: char) {
-                if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
-                   let up = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: false) {
-                    if keyInfo.shift {
-                        down.flags = .maskShift
-                        up.flags = .maskShift
-                    } else {
-                        down.flags = []
-                        up.flags = []
-                    }
-                    let utf16 = Array(String(char).utf16)
-                    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    
-                    down.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
-                    up.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
-                }
-            } else {
-                let utf16 = Array(String(char).utf16)
-                if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
-                   let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
-                    down.flags = []
-                    up.flags = []
-                    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    down.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
-                    up.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: 0.010)
-                }
-            }
-        }
-        
-        Thread.sleep(forTimeInterval: 0.08)
-        if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-        
-        func sendReturn() {
-            if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
-               let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
-                returnDown.flags = []
-                returnUp.flags = []
-                let returnUnicode: [UniChar] = [0x000D]
-                returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-                returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-                returnDown.post(tap: .cghidEventTap)
-                Thread.sleep(forTimeInterval: 0.03)
-                returnUp.post(tap: .cghidEventTap)
-            }
-        }
-        
-        for i in 0..<pressCount {
-            if !NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-            if i > 0 { Thread.sleep(forTimeInterval: 0.1) }
-            sendReturn()
-        }
-
-        Thread.sleep(forTimeInterval: 1.5)
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-            DispatchQueue.main.async {
-                FaceIDManager.shared.lastUnlockSuccess = false
-                FaceIDManager.shared.statusMessage = "Ready"
-            }
-        }
-    }
 }
-

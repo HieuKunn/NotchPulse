@@ -1,4 +1,7 @@
-# NotchPulse v3.9.3
+# NotchPulse v3.9.4
+
+## 🐛 Bug Fixes
+- **Software Updates**: Fixed an issue where the "Check for Updates" screen would incorrectly display the internal build number instead of the actual version name.
 
 ## 🔒 Face ID Re-Engineered
 - **Guided Multi-Angle Face Setup**: Completely redesigned face enrollment with a smooth 80-tick circular indicator and guided head turns in all directions. Capturing your face from multiple angles ensures reliable recognition from any posture.

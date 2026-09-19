@@ -1,20 +1,21 @@
 //
-//  NotchPulseLivenessScoring.swift
+//  LivenessScoring.swift
 //  NotchPulse
 //
 //  `LivenessFrame` plus the two cross-frame confirm cues that read it directly:
-//  `poseDepthConsistency` and `blinkDynamics`. No `import Vision`/AppKit.
-//  Native NotchPulse Face ID biometric implementation.
+//  `poseDepthConsistency` and `blinkDynamics`. No `import Vision`/AppKit, so it
+//  compiles standalone for `tools/liveness_selftest.swift`.
 //
 
 import Foundation
 import CoreGraphics
 
 /// One frame's worth of liveness-relevant measurements — already normalized, no Vision needed.
-/// Populated by `NotchPulseLivenessFeatureExtractor.extract(from:)` from a real camera frame.
+/// Populated by `LivenessFeatureExtractor.extract(from:)` from a real camera frame, or built
+/// directly from synthetic data by `tools/liveness_selftest.swift`.
 struct LivenessFrame {
     let timestamp: Date
-    /// Every landmark point Vision found this frame, tagged by region — see `NotchPulseLandmarkGeometry.allPoints`.
+    /// Every landmark point Vision found this frame, tagged by region — see `LandmarkGeometry.allPoints`.
     let landmarks: [LandmarkPoint]
     /// Distance between the two eye centers — the normalization scale for every ratio below.
     let interocularDistance: CGFloat?
@@ -61,7 +62,7 @@ struct LivenessFrame {
     }
 }
 
-enum NotchPulseLivenessScoring {
+nonisolated enum LivenessScoring {
     // MARK: - Depth/pose consistency (confirm cue)
 
     /// Correlates nose-offset-from-eye-midline against tan(yaw): tracks yaw on a real face,
@@ -109,7 +110,9 @@ enum NotchPulseLivenessScoring {
     // MARK: - Blink dynamics (confirm cue)
 
     /// Looks for a dip-and-recovery in eye-aspect-ratio. Never mandatory — a short window
-    /// often contains no blink at all, which abstains rather than fails.
+    /// often contains no blink at all, which abstains rather than fails. Thresholds are loose
+    /// because Vision's landmark model doesn't fully collapse the eyelid contour during a real
+    /// blink; recovery is checked within a radius since a blink can span several frames at ~20fps.
     static func blinkDynamics(_ window: [LivenessFrame]) -> CueReading {
         let ears = window.compactMap { frame -> CGFloat? in
             guard let l = frame.leftEyeAspectRatio, let r = frame.rightEyeAspectRatio else { return nil }
@@ -125,11 +128,9 @@ enum NotchPulseLivenessScoring {
         let recoveryRadius = 3
         let openBefore = ears[..<minIndex].suffix(recoveryRadius).contains { $0 / baseline > 0.7 }
         let openAfter = ears[(minIndex + 1)...].prefix(recoveryRadius).contains { $0 / baseline > 0.7 }
-        // Only require recovery on at least one side — a blink near the window edge
-        // naturally lacks the other side, and shouldn't be penalized.
-        let hasRecovery = (minIndex > 0 && openBefore) || (minIndex < ears.count - 1 && openAfter)
+        let hasNeighborRecovery = minIndex > 0 && minIndex < ears.count - 1 && openBefore && openAfter
 
-        guard dipRatio < 0.55, hasRecovery else { return .none }
+        guard dipRatio < 0.65, hasNeighborRecovery else { return .none }
         return CueReading(level: 1, confidence: 1)
     }
 

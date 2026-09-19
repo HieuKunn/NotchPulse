@@ -1,11 +1,10 @@
 //
-//  NotchPulseDeviceBezelDetector.swift
+//  DeviceBezelDetector.swift
 //  NotchPulse
 //
 //  Looks for a device bezel (phone/tablet) around the face via
 //  VNDetectRectanglesRequest; only ever produces positive evidence of
 //  spoofing, never positive evidence of liveness.
-//  Native NotchPulse Face ID biometric implementation.
 //
 
 import Vision
@@ -20,7 +19,7 @@ struct DeviceBezelObservation {
     nonisolated static let none = DeviceBezelObservation(rectangle: nil, faceOverlapFraction: nil)
 }
 
-enum NotchPulseDeviceBezelDetector {
+nonisolated enum DeviceBezelDetector {
     /// First-pass estimates, not validated against real footage — tune here if false positives/negatives show up.
     private static func makeRequest() -> VNDetectRectanglesRequest {
         let request = VNDetectRectanglesRequest()
@@ -37,7 +36,7 @@ enum NotchPulseDeviceBezelDetector {
         return request
     }
 
-    /// Synchronous and CPU-bound — call from a background task, same as `NotchPulseFaceDetector.detectFaces`.
+    /// Synchronous and CPU-bound — call from a background task, same as `FaceDetector.detectFaces`.
     static func detect(in image: CGImage, faceBoundingBox: CGRect) -> DeviceBezelObservation {
         let request = makeRequest()
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
@@ -46,7 +45,7 @@ enum NotchPulseDeviceBezelDetector {
         else { return .none }
 
         let imageSize = CGSize(width: image.width, height: image.height)
-        let candidates = results.map { NotchPulseFaceDetector.convertToImageSpace($0.boundingBox, imageSize: imageSize) }
+        let candidates = results.map { FaceDetector.convertToImageSpace($0.boundingBox, imageSize: imageSize) }
         // Largest candidate is assumed to be the device itself, not a smaller qualifying detail.
         guard let largest = candidates.max(by: { $0.width * $0.height < $1.width * $1.height }) else {
             return .none

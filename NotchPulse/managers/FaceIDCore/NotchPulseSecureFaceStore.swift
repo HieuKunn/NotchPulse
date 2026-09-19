@@ -9,6 +9,17 @@
 
 import Foundation
 
+enum NotchPulseSecureFaceStoreError: LocalizedError {
+    case sessionLocked
+
+    var errorDescription: String? {
+        switch self {
+        case .sessionLocked:
+            return "Session is locked. Authenticate with Touch ID to access enrolled faces."
+        }
+    }
+}
+
 enum NotchPulseSecureFaceStore {
     private static let fileName = "face-identities.enc"
 
@@ -30,22 +41,23 @@ enum NotchPulseSecureFaceStore {
 
     /// Reads, decrypts, and decodes. Throws if the file is missing, unreadable, or fails decryption.
     static func load() throws -> [FaceIdentity] {
+        guard NotchPulseVault.isSessionUnlocked else {
+            throw NotchPulseSecureFaceStoreError.sessionLocked
+        }
         guard exists else { return [] }
 
         let ciphertext = try Data(contentsOf: fileURL)
         let plaintext = try NotchPulseVault.decryptWithSessionKey(ciphertext)
 
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([FaceIdentity].self, from: plaintext)
+        return try JSONDecoder().decode([FaceIdentity].self, from: plaintext)
     }
 
     /// Encodes, encrypts, and writes to disk atomically.
     static func save(_ identities: [FaceIdentity]) throws {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        
-        let plaintext = try encoder.encode(identities)
+        guard NotchPulseVault.isSessionUnlocked else {
+            throw NotchPulseSecureFaceStoreError.sessionLocked
+        }
+        let plaintext = try JSONEncoder().encode(identities)
         let ciphertext = try NotchPulseVault.encryptWithSessionKey(plaintext)
 
         try FileManager.default.createDirectory(at: storageDirectory, withIntermediateDirectories: true, attributes: nil)

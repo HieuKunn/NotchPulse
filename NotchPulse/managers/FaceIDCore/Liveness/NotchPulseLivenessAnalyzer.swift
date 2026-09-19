@@ -1,10 +1,10 @@
 //
-//  NotchPulseLivenessAnalyzer.swift
+//  LivenessAnalyzer.swift
 //  NotchPulse
 //
 //  Rolling-window driver for the liveness cues. Takes `LivenessFrame`, not
-//  `FaceRecognitionResult`, keeping this file's dependency graph shallow enough.
-//  Native NotchPulse Face ID biometric implementation.
+//  `FaceRecognitionResult`, keeping this file's dependency graph shallow enough
+//  to compile standalone in `tools/liveness_selftest.swift`.
 //
 
 import Foundation
@@ -14,7 +14,7 @@ final class NotchPulseLivenessAnalyzer {
     private let windowDuration: TimeInterval
 
     /// Read fresh on every `observe()`, not captured at init, so a mid-scan Settings change takes effect immediately.
-    var modeProvider: () -> LivenessMode = { .heavy }
+    var modeProvider: () -> LivenessMode = { .light }
     var tuningProvider: () -> LivenessTuning = { .default }
     /// Face Lab can switch individual cues off to isolate one; the unlock
     /// path leaves this at "all enabled."

@@ -1,10 +1,9 @@
 //
-//  NotchPulseLivenessCues.swift
+//  LivenessCues.swift
 //  NotchPulse
 //
 //  Liveness decision model: five independent cues, no combined score. DENY
 //  cues override CONFIRM cues unconditionally; a confirm cue's absence is never a failure.
-//  Native NotchPulse Face ID biometric implementation.
 //
 
 import CoreGraphics
@@ -53,11 +52,11 @@ enum LivenessCue: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
-    /// One-line explanation of what firing actually means.
+    /// One-line explanation of what firing actually means, for Face Lab.
     nonisolated var explanation: String {
         switch self {
         case .glossGlare: return "Large flat specular highlight — glass/screen glare rather than skin's small scattered shine."
-        case .deviceDetected: return "A device-shaped rectangle was detected around the face — this looks like a photo or screen."
+        case .deviceDetected: return "A device-shaped rectangle overlaps the face — a phone or tablet held up."
         case .flatVs3D: return "Held-out nose points miss the plane fit — the face has real depth."
         case .depthPose: return "Nose offset tracks head yaw — the nose sits off the eye plane, so this isn't flat."
         case .blink: return "Eye aspect ratio dipped and recovered — a photo cannot blink."
@@ -94,6 +93,7 @@ enum LivenessMode: String, CaseIterable, Identifiable, Sendable {
 
 /// Fire thresholds per cue: a cue counts a frame when its reading is confident and
 /// at/above `level`, and fires once it has counted `frames` of them within the scan.
+/// Seeded from real-device observation; retune from Face Lab.
 struct LivenessTuning: Equatable {
     var glossLevel: Float = 0.04
     var glossFrames: Int = 3
@@ -104,23 +104,21 @@ struct LivenessTuning: Equatable {
     var deviceFrames: Int = 3
 
     /// Not the 0.5 you might expect: real-world Vision jitter alone measures ~0.21-0.46
-    /// Planar-residual score needed for the geometry check to count as a vote for life.
-    /// Lowered to 0.5 so subtle natural head sway passes quickly.
-    var flatVs3DLevel: Float = 0.5
-    var flatVs3DFrames: Int = 1
+    /// in the self-test, so 0.5 would mean this cue essentially never fires.
+    var flatVs3DLevel: Float = 0.25
+    var flatVs3DFrames: Int = 2
 
     /// Deliberately high: this level is a remapped correlation `(r + 1) / 2`, so 0.5 is
-    /// zero correlation (evidence of nothing) — 0.6 requires r >= 0.2.
-    var depthPoseLevel: Float = 0.6
+    /// zero correlation (evidence of nothing) — 0.8 requires r >= 0.6.
+    var depthPoseLevel: Float = 0.8
     var depthPoseFrames: Int = 2
 
-    /// A blink is already a discrete dip-and-recover event (see `NotchPulseLivenessScoring.blinkDynamics`),
+    /// A blink is already a discrete dip-and-recover event (see `LivenessScoring.blinkDynamics`),
     /// not a ramping level, so one firing frame is the event itself.
     var blinkFrames: Int = 1
 
     /// Frames Light mode waits before auto-confirming, so deny cues get a fair chance to
     /// fire first — otherwise a first-frame match could unlock before glare/device ever ran.
-    /// Reduced from 5 to 3 for near-instant unlock (just enough for the 3-frame deny cues).
     var lightModeMinimumFrames: Int = 3
 
     nonisolated static let `default` = LivenessTuning()
@@ -176,7 +174,7 @@ struct LivenessCueState: Equatable {
     var framesCounted: Int = 0
     var hasFired: Bool = false
 
-    /// 0...1 progress toward firing, for UI progress bars.
+    /// 0...1 progress toward firing, for Face Lab's progress bars.
     func progress(threshold: Int) -> Float {
         guard threshold > 0 else { return hasFired ? 1 : 0 }
         return min(1, Float(framesCounted) / Float(threshold))
@@ -199,10 +197,13 @@ struct LivenessSnapshot: Equatable {
 }
 
 /// The stateful decision core, kept as a plain `struct` rather than folded
-/// into `NotchPulseLivenessAnalyzer` so it can be driven standalone.
+/// into `LivenessAnalyzer` so `tools/liveness_selftest.swift` can drive the
+/// real firing/latching logic frame by frame with no actor or camera.
 struct LivenessEvaluator {
     var mode: LivenessMode
     var tuning: LivenessTuning
+    /// Face Lab can switch individual cues off to isolate one; the unlock
+    /// path leaves this at "all enabled."
     var enabledCues: Set<LivenessCue>
 
     private(set) var states: [LivenessCue: LivenessCueState] = [:]
@@ -246,27 +247,19 @@ struct LivenessEvaluator {
     }
 
     /// Deny is evaluated first and is unconditional — it overrides any confirmation already reached.
-    /// In light mode, confirm cues provide an early shortcut — if any fires, unlock immediately
-    /// without waiting for the full minimum-frame window. This rewards natural movement/blinks
-    /// with instant unlock while still giving deny cues their full observation window for spoofs.
     private func currentDecision() -> LivenessDecision {
-        // 1. Deny cues always override everything.
         for cue in LivenessCue.allCases
         where cue.role == .deny && enabledCues.contains(cue) && (states[cue]?.hasFired ?? false) {
             return .denied(by: cue)
         }
 
-        // 2. Confirm cues — checked in BOTH modes. In light mode they provide
-        //    an early exit; in heavy mode they are the only path to confirmation.
+        if mode == .light {
+            return framesObserved >= tuning.lightModeMinimumFrames ? .confirmed(by: nil) : .pending
+        }
+
         for cue in LivenessCue.allCases
         where cue.role == .confirm && enabledCues.contains(cue) && (states[cue]?.hasFired ?? false) {
             return .confirmed(by: cue)
-        }
-
-        // 3. Light mode fallback: auto-confirm after enough frames even without
-        //    a confirm cue, so a still-sitting user isn't locked out.
-        if mode == .light {
-            return framesObserved >= tuning.lightModeMinimumFrames ? .confirmed(by: nil) : .pending
         }
 
         return .pending
@@ -275,7 +268,7 @@ struct LivenessEvaluator {
 
 /// Turns a rolling window into this frame's reading for every cue. Deny cues read only
 /// the latest frame (per-frame appearance); confirm cues read the whole window (cross-frame motion).
-enum NotchPulseLivenessCues {
+nonisolated enum NotchPulseLivenessCues {
     nonisolated static func readings(
         window: [LivenessFrame], geometry: GeometryLivenessResult
     ) -> [LivenessCue: CueReading] {
@@ -283,8 +276,8 @@ enum NotchPulseLivenessCues {
             .glossGlare: glossGlare(window.last),
             .deviceDetected: deviceDetected(window.last),
             .flatVs3D: geometry.planarReading,
-            .depthPose: NotchPulseLivenessScoring.poseDepthConsistency(window),
-            .blink: NotchPulseLivenessScoring.blinkDynamics(window),
+            .depthPose: LivenessScoring.poseDepthConsistency(window),
+            .blink: LivenessScoring.blinkDynamics(window),
         ]
     }
 
@@ -302,7 +295,7 @@ enum NotchPulseLivenessCues {
         return CueReading(level: level, confidence: confidence)
     }
 
-    /// Raw overlap fraction from `NotchPulseDeviceBezelDetector`, used directly rather than re-scaled.
+    /// Raw overlap fraction from `DeviceBezelDetector`, used directly rather than re-scaled.
     nonisolated static func deviceDetected(_ frame: LivenessFrame?) -> CueReading {
         guard let overlap = frame?.deviceOverlapFraction else { return .none }
         return CueReading(level: Float(min(max(overlap, 0), 1)), confidence: 1)

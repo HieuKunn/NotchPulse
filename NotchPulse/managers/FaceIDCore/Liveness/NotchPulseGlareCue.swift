@@ -1,11 +1,10 @@
 //
-//  NotchPulseGlareCue.swift
+//  GlareCue.swift
 //  NotchPulse
 //
-//  Pixel-domain half of the gloss/glare cue (see `NotchPulseLivenessCues.glossGlare`);
-//  no Vision/CoreImage import.
-//  Populated by `NotchPulseGlareCueExtractor.extract(faceCrop:)`.
-//  Native NotchPulse Face ID biometric implementation.
+//  Pixel-domain half of the gloss/glare cue (see `LivenessCues.glossGlare`);
+//  no Vision/CoreImage import, so it stays usable from `tools/liveness_selftest.swift`.
+//  Populated by `GlareCueExtractor.extract(faceCrop:)`.
 //
 
 import CoreGraphics

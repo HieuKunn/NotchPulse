@@ -11,7 +11,7 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, ObservableObject {
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         DispatchQueue.main.async {
             self.isUpdateAvailable = true
-            self.latestVersionString = item.versionString
+            self.latestVersionString = item.displayVersionString
         }
     }
 }

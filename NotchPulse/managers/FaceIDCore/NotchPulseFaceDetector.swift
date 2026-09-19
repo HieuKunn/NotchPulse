@@ -1,9 +1,8 @@
 //
-//  NotchPulseFaceDetector.swift
+//  FaceDetector.swift
 //  NotchPulse
 //
-//  Converts Vision's normalized (0...1), bottom-left-origin face boxes into pixel-space CGRects.
-//  Runs face-rectangle, capture-quality, and landmarks detection via chained requests.
+//  Converts Vision's normalized (0...1), bottom-left-origin face boxes into pixel-space, top-left-origin `CGRect`s.
 //
 
 import Vision
@@ -24,7 +23,7 @@ struct DetectedFace {
     let roll: Float?
     let pitch: Float?
     /// Facial landmarks (eyes, nose, mouth, etc.), when available. Feeds
-    /// `NotchPulseFaceAligner` for canonical 112x112 alignment ahead of ArcFace.
+    /// `FaceAligner` for canonical 112x112 alignment ahead of ArcFace.
     nonisolated let landmarks: VNFaceLandmarks2D?
     /// Needed by `landmarks.pointsInImage(_:)` to convert normalized landmark points into `boundingBox`'s pixel space.
     let imageSize: CGSize
@@ -32,7 +31,7 @@ struct DetectedFace {
 
 /// Pure, synchronous, CPU-bound work — `nonisolated` so it can run on a
 /// background task despite the project's default main-actor isolation.
-enum NotchPulseFaceDetector {
+nonisolated enum FaceDetector {
     /// Runs face-rectangle, capture-quality, and landmarks detection on a single frame.
     static func detectFaces(in image: CGImage) throws -> [DetectedFace] {
         let handler = VNImageRequestHandler(cgImage: image, options: [:])

@@ -16,7 +16,7 @@ enum KeystrokeError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .accessibilityNotGranted:
-            return "Accessibility permission required. Open System Settings → Privacy & Security → Accessibility and enable NotchPulse."
+            return "Accessibility permission required. Open System Settings → Privacy & Security → Accessibility and enable glance."
         case .eventCreationFailed:
             return "Couldn't create CGEvent for keystroke."
         }
@@ -24,12 +24,12 @@ enum KeystrokeError: LocalizedError {
 }
 
 enum KeystrokeInjector {
-    /// Returns true if the app has Accessibility permission.
+    /// Returns true if the app has Accessibility permission (no prompt).
     nonisolated static func isAccessibilityTrusted() -> Bool {
         return AXIsProcessTrusted()
     }
 
-    /// Triggers the system prompt to grant Accessibility.
+    /// Triggers the system prompt to grant Accessibility (deep links to System Settings).
     @discardableResult
     nonisolated static func promptForAccessibility() -> Bool {
         let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue()
@@ -37,7 +37,8 @@ enum KeystrokeInjector {
         return AXIsProcessTrustedWithOptions(options)
     }
 
-    /// Types the UTF-8 bytes into whatever has keyboard focus, then presses Return.
+    /// Types the UTF-8 bytes into whatever has keyboard focus, then presses Return. Takes `Data` rather than `String` so the
+    /// caller can hold the plaintext as a zero-able buffer; the brief internal `String` decode is scoped to this call. Blocking.
     nonisolated static func typeAndReturn(_ passwordBytes: Data) throws {
         guard isAccessibilityTrusted() else {
             throw KeystrokeError.accessibilityNotGranted
@@ -55,7 +56,8 @@ enum KeystrokeInjector {
 
     /// Wipes anything already typed into the focused field (e.g. a stray keypress
     /// on the lock screen) so it isn't prepended to the password: ⌘→ to the end,
-    /// then ⌘⌫ to delete back to the start.
+    /// then ⌘⌫ to delete back to the start. Both are positional keys, so this
+    /// behaves the same on every keyboard layout — unlike ⌘A, whose "A" moves.
     private nonisolated static func clearFocusedField(source: CGEventSource?) throws {
         let rightArrow: CGKeyCode = 0x7C
         let delete: CGKeyCode = 0x33
@@ -63,7 +65,8 @@ enum KeystrokeInjector {
         try postKey(delete, flags: .maskCommand, source: source)
     }
 
-    /// Posts a virtual key down/up, wrapped in a real ⌘ down/up when `flags` includes `.maskCommand`.
+    /// Posts a virtual key down/up, wrapped in a real ⌘ down/up when `flags`
+    /// includes `.maskCommand` — some text fields ignore a bare flag without it.
     private nonisolated static func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags = [], source: CGEventSource?) throws {
         let command: CGKeyCode = 0x37
         let usesCommand = flags.contains(.maskCommand)
@@ -124,6 +127,5 @@ enum KeystrokeInjector {
         keyDown.post(tap: .cghidEventTap)
         Thread.sleep(forTimeInterval: 0.012)
         keyUp.post(tap: .cghidEventTap)
-        Thread.sleep(forTimeInterval: 0.012)
     }
 }

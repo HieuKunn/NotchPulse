@@ -113,8 +113,23 @@ final class FaceIDEnrollmentController {
     private var poseHoldStartedAt: ContinuousClock.Instant?
     private let poseHoldDuration: Duration = .milliseconds(380)
 
-    private let yawInnerThreshold: Float = 0.15
-    private let pitchInnerThreshold: Float = 0.13
+    // MARK: - Enrollment pose matching thresholds (aligned with glance)
+    /// Yaw offset from straight-ahead at which a "left" or "right" pose is counted — mirrors glance's `yawInnerThreshold`.
+    private let yawInnerThreshold: Float = 0.25
+    /// Yaw tolerance for the center pose and center-band poses — mirrors glance's `yawCenterTolerance`.
+    private let yawCenterTolerance: Float = 0.18
+    /// Maximum accepted yaw — beyond this the pose is too extreme and alignment quality drops — mirrors glance's `yawOuterCap`.
+    private let yawOuterCap: Float = 1.2
+    /// Pitch offset from level at which an "up" or "down" pose is counted — mirrors glance's `pitchInnerThreshold`.
+    private let pitchInnerThreshold: Float = 0.20
+    /// Pitch tolerance for level/center-pitch poses — mirrors glance's `pitchCenterTolerance`.
+    private let pitchCenterTolerance: Float = 0.15
+    /// Maximum accepted pitch magnitude — mirrors glance's `pitchOuterCap`.
+    private let pitchOuterCap: Float = 0.9
+    /// 9 poses × 2 samples = 18 total, enough for a stable template — mirrors glance's `samplesPerPose`.
+    private let samplesPerPose = 2
+    /// How many samples have been captured for the currently active pose.
+    private var capturedForCurrentPose = 0
 
     var currentPose: FaceIDEnrollmentPose? {
         let poses = FaceIDEnrollmentPose.allCases
@@ -180,6 +195,7 @@ final class FaceIDEnrollmentController {
         currentPoseIndex = 0
         capturedPoses.removeAll()
         collectedSamples.removeAll()
+        capturedForCurrentPose = 0
         enrollmentComplete = false
         centerPulseTick = false
         poseHoldStartedAt = nil
@@ -225,9 +241,10 @@ final class FaceIDEnrollmentController {
                 self.currentYaw = face.yaw
                 self.currentPitch = face.pitch ?? face.roll
 
-                // Check distance / prominence
+                // Check distance / prominence — enrollment needs closer proximity than unlock
+                // so the template samples have enough pixel detail. Mirrors glance's `enrollmentMinimumFaceWidth`.
                 let faceWidth = Float(face.normalizedBoundingBox.width)
-                if faceWidth < 0.16 {
+                if faceWidth < max(NotchPulseFaceRecognitionPipeline.minimumProminentFaceWidth, 0.20) {
                     self.isTooFar = true
                     self.poseHoldStartedAt = nil
                     return
@@ -252,20 +269,18 @@ final class FaceIDEnrollmentController {
     }
 
     private func matches(pose: FaceIDEnrollmentPose, yaw: Float, pitch: Float) -> Bool {
-        let leniency: Float = pose.matchLeniency
-        let yawThresh: Float = yawInnerThreshold / leniency
-        let pitchThresh: Float = pitchInnerThreshold / leniency
+        let factor: Float = pose.matchLeniency
 
         switch pose.yawBand {
-        case .left:  guard yaw > yawThresh else { return false }
-        case .right: guard yaw < (-1.0 * yawThresh) else { return false }
-        case .none:  guard abs(yaw) < (yawThresh * 1.5) else { return false }
+        case .left:  guard yaw > yawInnerThreshold / factor && yaw < yawOuterCap else { return false }
+        case .right: guard yaw < -yawInnerThreshold / factor && yaw > -yawOuterCap else { return false }
+        case .none:  guard abs(yaw) < yawCenterTolerance * factor else { return false }
         }
 
         switch pose.pitchBand {
-        case .up:   guard pitch < (-1.0 * pitchThresh) else { return false }
-        case .down: guard pitch > pitchThresh else { return false }
-        case .none: guard abs(pitch) < (pitchThresh * 1.5) else { return false }
+        case .up:   guard pitch < -pitchInnerThreshold / factor && pitch > -pitchOuterCap else { return false }
+        case .down: guard pitch > pitchInnerThreshold / factor && pitch < pitchOuterCap else { return false }
+        case .none: guard abs(pitch) < pitchCenterTolerance * factor else { return false }
         }
 
         return true
@@ -283,19 +298,25 @@ final class FaceIDEnrollmentController {
             quality: face.quality ?? 0.95
         )
         collectedSamples.append(sample)
-        capturedPoses.insert(pose)
+        capturedForCurrentPose += 1
 
-        if pose == .center {
-            triggerCenterPulse()
-        }
+        if capturedForCurrentPose >= samplesPerPose {
+            // Finished all samples for this pose — advance to the next.
+            capturedPoses.insert(pose)
+            capturedForCurrentPose = 0
 
-        currentPoseIndex += 1
-        let allPoses = FaceIDEnrollmentPose.allCases
+            if pose == .center {
+                triggerCenterPulse()
+            }
 
-        if currentPoseIndex >= allPoses.count {
-            finishEnrollment()
-        } else {
-            updateDirectionSweep()
+            currentPoseIndex += 1
+            let allPoses = FaceIDEnrollmentPose.allCases
+
+            if currentPoseIndex >= allPoses.count {
+                finishEnrollment()
+            } else {
+                updateDirectionSweep()
+            }
         }
     }
 
@@ -320,19 +341,18 @@ final class FaceIDEnrollmentController {
         enrollmentComplete = true
 
         let embedder = pipeline.embedder
-        let identity = FaceIdentity(
-            id: UUID(),
-            name: "My Face",
-            samples: collectedSamples,
-            modelIdentifier: embedder.modelIdentifier,
-            embeddingDimension: embedder.embeddingDimension,
-            createdAt: Date(),
-            isEnabled: true
-        )
 
         // Save to secure face store and reload
-        try? NotchPulseSecureFaceStore.save([identity])
-        store.reloadIfUnlocked()
+        do {
+            try store.commitEnrollment(
+                replacing: nil,
+                name: "My Face",
+                samples: collectedSamples,
+                embedder: embedder
+            )
+        } catch {
+            print("[FaceID] Enrollment save failed: \(error)")
+        }
         FaceIDManager.shared.refreshState()
 
         NSSound(named: "Ping")?.play()

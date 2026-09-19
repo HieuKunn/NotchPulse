@@ -1,10 +1,9 @@
 //
-//  NotchPulseGeometryLiveness.swift
+//  GeometryLiveness.swift
 //  NotchPulse
 //
-//  Planar-vs-3D liveness (the `flatVs3D` cue). No `import Vision`.
-//  Higher `planarResidualScore` = more like a live face.
-//  Native NotchPulse Face ID biometric implementation.
+//  Planar-vs-3D liveness (the `flatVs3D` cue). No `import Vision`, so this
+//  compiles into `tools/liveness_selftest.swift`. Higher `planarResidualScore` = more like a live face.
 //
 
 import Foundation
@@ -21,7 +20,7 @@ struct GeometryTuning {
     var motionGate: CGFloat = 0.008
     /// Minimum yaw range (degrees) before geometry votes — closes the "smooth phone wobble" case where
     /// pure translation (no rotation) clears `motionGate` with zero real parallax.
-    var minYawRangeDegrees: CGFloat = 8.0
+    var minYawRangeDegrees: CGFloat = 12
 
     nonisolated static let `default` = GeometryTuning()
 }
@@ -49,7 +48,7 @@ struct GeometryLivenessResult: Equatable {
         diagnosticRatios: [:]
     )
 
-    /// Adapter into the shared cue vocabulary — see `NotchPulseLivenessCues.readings`.
+    /// Adapter into the shared cue vocabulary — see `LivenessCues.readings`.
     nonisolated var planarReading: CueReading {
         CueReading(level: planarResidualScore, confidence: planarConfidence)
     }
@@ -67,7 +66,7 @@ nonisolated private let geometryProbeRegions: Set<LandmarkRegion> = [
     .nose, .noseCrest, .medianLine,
 ]
 
-enum NotchPulseGeometryLiveness {
+nonisolated enum GeometryLiveness {
     static func evaluate(_ window: [LivenessFrame], tuning: GeometryTuning = .default) -> GeometryLivenessResult {
         let lastLandmarks = window.last?.landmarks.count ?? 0
         var diagnostics = diagnosticRatios(from: window.last)
@@ -113,8 +112,8 @@ enum NotchPulseGeometryLiveness {
         }
 
         let pairsAnalyzed = excesses.count
-        let medianFit = fitResiduals.isEmpty ? nil : NotchPulseLandmarkGeometry.medianValue(fitResiduals)
-        let medianProbe = probeResiduals.isEmpty ? nil : NotchPulseLandmarkGeometry.medianValue(probeResiduals)
+        let medianFit = fitResiduals.isEmpty ? nil : LandmarkGeometry.medianValue(fitResiduals)
+        let medianProbe = probeResiduals.isEmpty ? nil : LandmarkGeometry.medianValue(probeResiduals)
         let excess = weightedMedian(excesses, weights: weights)
         let coherence = weightedMedian(coherences, weights: weights)
         let motion = motions.isEmpty ? nil : (motions.reduce(0, +) / CGFloat(motions.count))
@@ -178,7 +177,7 @@ enum NotchPulseGeometryLiveness {
         let (probeSrc, probeDst) = flatten(matched, in: geometryProbeRegions)
         let (eyeSrc, eyeDst) = flatten(matched, in: [.leftEye, .rightEye])
         guard fitSrc.count >= 6, probeSrc.count >= 2 else { return nil }
-        guard let homography = NotchPulseLandmarkGeometry.solveRobustHomography(from: fitSrc, to: fitDst) else { return nil }
+        guard let homography = LandmarkGeometry.solveRobustHomography(from: fitSrc, to: fitDst) else { return nil }
 
         let eyeMags = zip(eyeSrc, eyeDst).map { hypot($1.x - homography.apply($0).x, $1.y - homography.apply($0).y) / iod }
         let probeVecs: [(CGFloat, CGFloat)] = zip(probeSrc, probeDst).map { src, dst in
@@ -193,8 +192,8 @@ enum NotchPulseGeometryLiveness {
         } else {
             noiseMags = zip(fitSrc, fitDst).map { hypot($1.x - homography.apply($0).x, $1.y - homography.apply($0).y) / iod }
         }
-        let fitResidual = NotchPulseLandmarkGeometry.medianValue(noiseMags)
-        let probeResidual = NotchPulseLandmarkGeometry.medianValue(probeMags)
+        let fitResidual = LandmarkGeometry.medianValue(noiseMags)
+        let probeResidual = LandmarkGeometry.medianValue(probeMags)
         let noiseFloor: CGFloat = 0.002
         let excess = probeResidual / max(fitResidual, noiseFloor)
 
@@ -313,7 +312,7 @@ enum NotchPulseGeometryLiveness {
         guard !values.isEmpty, values.count == weights.count else { return nil }
         let sorted = zip(values, weights).sorted { $0.0 < $1.0 }
         let total = sorted.reduce(CGFloat(0)) { $0 + $1.1 }
-        guard total > 0 else { return NotchPulseLandmarkGeometry.medianValue(values) }
+        guard total > 0 else { return LandmarkGeometry.medianValue(values) }
         var acc: CGFloat = 0
         for (value, weight) in sorted {
             acc += weight

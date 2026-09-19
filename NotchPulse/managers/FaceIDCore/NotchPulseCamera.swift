@@ -65,6 +65,7 @@ final class NotchPulseCamera: NSObject {
 
         errorMessage = nil
         configureSessionIfNeeded()
+        reconcileDeviceIfNeeded()
 
         sessionQueue.async { [session] in
             if !session.isRunning {
@@ -80,6 +81,7 @@ final class NotchPulseCamera: NSObject {
         } else if permission == .granted {
             errorMessage = nil
             configureSessionIfNeeded()
+            reconcileDeviceIfNeeded()
             sessionQueue.async { [session] in
                 if !session.isRunning {
                     session.startRunning()
@@ -109,14 +111,6 @@ final class NotchPulseCamera: NSObject {
         session.beginConfiguration()
         session.sessionPreset = .high
 
-        if let device = AVCaptureDevice.default(for: .video),
-           let input = try? AVCaptureDeviceInput(device: device),
-           session.canAddInput(input) {
-            session.addInput(input)
-            currentInput = input
-            selectHighestResolutionFormat(for: device)
-        }
-
         videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
         videoOutput.alwaysDiscardsLateVideoFrames = true
         videoOutput.setSampleBufferDelegate(framePublisher, queue: sessionQueue)
@@ -124,6 +118,29 @@ final class NotchPulseCamera: NSObject {
             session.addOutput(videoOutput)
         }
 
+        session.commitConfiguration()
+    }
+
+    /// Called on every start() so a camera change takes effect without app restart.
+    private func reconcileDeviceIfNeeded() {
+        guard let device = AVCaptureDevice.default(for: .video) else {
+            errorMessage = "No camera device found."
+            return
+        }
+        guard device.uniqueID != currentInput?.device.uniqueID else { return }
+
+        session.beginConfiguration()
+        if let currentInput {
+            session.removeInput(currentInput)
+        }
+        if let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) {
+            session.addInput(input)
+            self.currentInput = input
+            selectHighestResolutionFormat(for: device)
+        } else {
+            self.currentInput = nil
+            errorMessage = "No camera device found."
+        }
         session.commitConfiguration()
     }
 

@@ -63,7 +63,8 @@ enum NotchPulseVault {
     nonisolated(unsafe) private static var _lastActivityAt: Date = Date()
 
     nonisolated static var isSessionUnlocked: Bool {
-        return hasStoredPassword()
+        sessionLock.lock(); defer { sessionLock.unlock() }
+        return _cachedKey != nil
     }
     
     nonisolated static var lastActivityAt: Date {
@@ -176,21 +177,49 @@ enum NotchPulseVault {
         if let cached = loadCachedKey() { return cached }
 
         if hasSessionKey() {
-            let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount)
+            let context = LAContext()
+            context.localizedReason = "Authenticate to access Face ID data"
+            let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: context)
             let key = SymmetricKey(data: data)
             storeCachedKey(key)
             return key
         }
 
+        guard !hasSessionEncryptedData() else {
+            throw NotchPulseVaultError.sessionLocked
+        }
+
         let key = SymmetricKey(size: .bits256)
-        try saveSessionKey(key)
+        let access = try NotchPulseKeychainManager.makeUserPresenceAccessControl()
+        try saveSessionKey(key, accessControl: access)
         storeCachedKey(key)
         return key
     }
 
     /// Unwraps the session key into memory.
     nonisolated static func unlockSession(reason: String) throws {
-        _ = try ensureSessionKey()
+        if loadCachedKey() != nil { return }
+
+        if hasSessionKey() {
+            let context = LAContext()
+            context.localizedReason = reason
+            let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: context)
+            storeCachedKey(SymmetricKey(data: data))
+            return
+        }
+
+        guard !hasSessionEncryptedData() else {
+            throw NotchPulseVaultError.sessionLocked
+        }
+
+        let key = SymmetricKey(size: .bits256)
+        let access = try NotchPulseKeychainManager.makeUserPresenceAccessControl()
+        try saveSessionKey(key, accessControl: access)
+
+        let readBackContext = LAContext()
+        readBackContext.localizedReason = reason
+        let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: readBackContext)
+        storeCachedKey(SymmetricKey(data: data))
     }
 
     /// Explicitly clear the cached session key.
@@ -246,8 +275,8 @@ enum NotchPulseVault {
 
     // MARK: - Internal Keychain helpers
 
-    nonisolated private static func saveSessionKey(_ key: SymmetricKey) throws {
+    nonisolated private static func saveSessionKey(_ key: SymmetricKey, accessControl: SecAccessControl? = nil) throws {
         let keyData = key.withUnsafeBytes { Data($0) }
-        try NotchPulseKeychainManager.save(account: sessionKeyAccount, data: keyData, accessControl: nil)
+        try NotchPulseKeychainManager.save(account: sessionKeyAccount, data: keyData, accessControl: accessControl)
     }
 }
