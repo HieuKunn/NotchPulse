@@ -16,7 +16,9 @@ struct FaceIDGuidedSetupModalView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.92)
+            FaceIDVisualEffectView(material: .popover, blendingMode: .behindWindow)
+                .ignoresSafeArea()
+            Color.black.opacity(0.4) // Subtle dark tint over the glass
                 .ignoresSafeArea()
 
             VStack(spacing: 24) {
