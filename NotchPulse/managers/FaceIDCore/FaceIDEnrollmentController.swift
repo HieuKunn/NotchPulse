@@ -104,6 +104,7 @@ final class FaceIDEnrollmentController {
     var faceDetected: Bool = false
     var currentYaw: Float?
     var currentPitch: Float?
+    var debugError: String?
 
     var onFinished: (() -> Void)?
     var onCancelled: (() -> Void)?
@@ -289,34 +290,29 @@ final class FaceIDEnrollmentController {
     private func capturePose(_ pose: FaceIDEnrollmentPose, face: DetectedFace, frame: CGImage) {
         poseHoldStartedAt = nil
 
-        guard let result = try? pipeline.recognize(face, in: frame) else { return }
-
-        let sample = FaceSample(
-            embedding: result.embedding,
-            pose: pose.name,
-            capturedAt: Date(),
-            quality: face.quality ?? 0.95
-        )
-        collectedSamples.append(sample)
-        capturedForCurrentPose += 1
-
-        if capturedForCurrentPose >= samplesPerPose {
-            // Finished all samples for this pose — advance to the next.
-            capturedPoses.insert(pose)
-            capturedForCurrentPose = 0
-
-            if pose == .center {
-                triggerCenterPulse()
+        do {
+            let result = try pipeline.recognize(face, in: frame)
+            self.debugError = nil
+            
+            let sample = FaceSample(
+                embedding: result.embedding,
+                pose: pose.name,
+                capturedAt: Date(),
+                quality: face.quality ?? 0.95
+            )
+            collectedSamples.append(sample)
+            capturedForCurrentPose += 1
+            
+            if capturedForCurrentPose >= samplesPerPose {
+                capturedPoses.insert(pose)
+                capturedForCurrentPose = 0
+                if pose == .center { triggerCenterPulse() }
+                currentPoseIndex += 1
+                if currentPoseIndex >= FaceIDEnrollmentPose.allCases.count { finishEnrollment() } else { updateDirectionSweep() }
             }
-
-            currentPoseIndex += 1
-            let allPoses = FaceIDEnrollmentPose.allCases
-
-            if currentPoseIndex >= allPoses.count {
-                finishEnrollment()
-            } else {
-                updateDirectionSweep()
-            }
+        } catch {
+            self.debugError = "\(error)"
+            print("[FaceID] Pipeline recognize error: \(error)")
         }
     }
 
