@@ -19,6 +19,7 @@ This document outlines the core rules, architectural guidelines, and release pro
 ## 2. Release Workflow, Version Synchronization & In-App Auto-Update
 - **Strict Version Synchronization (REQUIRED for Sparkle Auto-Update):** Before publishing any release, verify and synchronize the exact version number across all required configuration files:
   - `NotchPulse.xcodeproj/project.pbxproj` (`CURRENT_PROJECT_VERSION` & `MARKETING_VERSION`)
+  - **Internal/Iterative Builds:** If pushing a hotfix or internal build without changing the marketing version (e.g. keeping it at 3.9.5), you MUST increment the `CURRENT_PROJECT_VERSION` (build number) in the `.pbxproj` file. Otherwise, the Sparkle in-app updater will not detect the update for users who already installed the previous build of that version.
   - `appcast.xml` (Sparkle update feed XML — update `<sparkle:version>` and `<sparkle:shortVersionString>`)
   - GitHub Tag & Release (e.g., `v3.1.5`)
   - `RELEASE_NOTES.md` (User-friendly English release description)
