@@ -124,8 +124,12 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .frame(width: 700)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background {
+            FaceIDVisualEffectView(material: .sidebar, blendingMode: .behindWindow)
+                .ignoresSafeArea()
+        }
         .tint(.effectiveAccent)
         .id(accentColorUpdateTrigger)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
