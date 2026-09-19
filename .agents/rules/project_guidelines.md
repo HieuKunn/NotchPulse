@@ -26,6 +26,8 @@ This document outlines the core rules, architectural guidelines, and release pro
 - **Sparkle Auto-Update & Code Signing for DMG:**
   - `NotchPulse.entitlements` must maintain `com.apple.security.app-sandbox = false` for direct non-Mac App Store distribution so Sparkle's `Autoupdate.app` helper can properly replace the existing app binary in `/Applications`.
   - In `build-dmg.yml`, sign frameworks using the inside-out pattern without passing the parent app entitlements flag `--entitlements` to `--deep`, ensuring `Sparkle.framework` code signature integrity is preserved.
+- **Dynamic Release Name (Settings UI):**
+  - Do NOT hardcode the "Release name" in `Constants.swift` or `UserDefaults`. It is now computed dynamically from the app version via `Bundle.main.releaseNameString` in `BundleInfos.swift` (e.g., automatically generating "Pulse 4.0 🚀" from version 4.0.0). Always rely on this dynamic property.
 
 ---
 

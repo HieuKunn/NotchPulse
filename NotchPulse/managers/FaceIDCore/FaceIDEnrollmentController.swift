@@ -230,7 +230,6 @@ final class FaceIDEnrollmentController {
               let cameraFrame = camera.currentFrame, let pose = currentPose else { return }
 
         isProcessingFrame = true
-        defer { isProcessingFrame = false }
         
         let pipeline = self.pipeline
         let image = cameraFrame.image
@@ -254,6 +253,7 @@ final class FaceIDEnrollmentController {
         Task {
             let result = await outcome.value
             await MainActor.run {
+                defer { self.isProcessingFrame = false }
                 switch result {
                 case .noFace:
                     self.faceDetected = false

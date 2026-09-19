@@ -1261,7 +1261,7 @@ struct About: View {
                     HStack {
                         Text("Release name")
                         Spacer()
-                        Text(Defaults[.releaseName])
+                        Text(Bundle.main.releaseNameString)
                             .foregroundStyle(.secondary)
                     }
                     HStack {

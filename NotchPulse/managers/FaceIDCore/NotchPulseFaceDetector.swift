@@ -54,15 +54,16 @@ enum NotchPulseFaceDetector {
         let imageSize = CGSize(width: image.width, height: image.height)
 
         return faceObservations.enumerated().map { index, observation in
+            let landmarkObs = landmarkResults.indices.contains(index) ? landmarkResults[index] : observation
             let pixelRect = convertToImageSpace(observation.boundingBox, imageSize: imageSize)
             return DetectedFace(
                 boundingBox: pixelRect,
                 normalizedBoundingBox: observation.boundingBox,
                 quality: qualityResults.indices.contains(index) ? qualityResults[index].faceCaptureQuality : nil,
-                yaw: observation.yaw?.floatValue,
-                roll: observation.roll?.floatValue,
-                pitch: observation.pitch?.floatValue,
-                landmarks: landmarkResults.indices.contains(index) ? landmarkResults[index].landmarks : nil,
+                yaw: landmarkObs.yaw?.floatValue ?? observation.yaw?.floatValue,
+                roll: landmarkObs.roll?.floatValue ?? observation.roll?.floatValue,
+                pitch: landmarkObs.pitch?.floatValue ?? observation.pitch?.floatValue,
+                landmarks: landmarkObs.landmarks,
                 imageSize: imageSize
             )
         }

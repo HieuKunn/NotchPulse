@@ -18,6 +18,13 @@ extension Bundle {
         return "v\(releaseVersionNumber ?? "1.0.0")"
     }
     
+    var releaseNameString: String {
+        let version = releaseVersionNumber ?? "1.0"
+        let components = version.split(separator: ".")
+        let displayVersion = components.count >= 2 ? "\(components[0]).\(components[1])" : version
+        return "Pulse \(displayVersion) 🚀"
+    }
+    
     var iconFileName: String? {
         guard let icons = infoDictionary?["CFBundleIcons"] as? [String: Any],
               let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any],
