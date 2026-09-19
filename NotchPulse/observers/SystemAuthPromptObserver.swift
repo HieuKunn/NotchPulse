@@ -304,71 +304,8 @@ final class SystemAuthPromptObserver: ObservableObject {
         // Small settle delay after focus confirmed
         Thread.sleep(forTimeInterval: 0.03)
         
-        // Clear existing input if any
-        for _ in 0..<10 {
-            if let delDown = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true),
-               let delUp = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false) {
-                delDown.flags = []
-                delUp.flags = []
-                delDown.post(tap: .cghidEventTap)
-                delUp.post(tap: .cghidEventTap)
-            }
-            Thread.sleep(forTimeInterval: 0.008)
-        }
-        Thread.sleep(forTimeInterval: 0.02)
-        
-        // Type the password characters with adaptive inter-key delay
-        let interKeyDelay: TimeInterval = 0.012
-        for char in password {
-            if let keyInfo = NotchPulseFaceUnlockCoordinator.keyEventInfo(for: char) {
-                if let down = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: true),
-                   let up = CGEvent(keyboardEventSource: source, virtualKey: keyInfo.keyCode, keyDown: false) {
-                    if keyInfo.shift {
-                        down.flags = .maskShift
-                        up.flags = .maskShift
-                    } else {
-                        down.flags = []
-                        up.flags = []
-                    }
-                    let utf16 = Array(String(char).utf16)
-                    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    down.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: interKeyDelay)
-                    up.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: interKeyDelay)
-                }
-            } else {
-                // Unicode fallback for special or international characters
-                let utf16 = Array(String(char).utf16)
-                if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
-                   let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
-                    down.flags = []
-                    up.flags = []
-                    down.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    up.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                    down.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: interKeyDelay)
-                    up.post(tap: .cghidEventTap)
-                    Thread.sleep(forTimeInterval: interKeyDelay)
-                }
-            }
-        }
-        
-        // Settle before submitting
-        Thread.sleep(forTimeInterval: 0.06)
-        
-        // Press Return (virtualKey 0x24) to submit
-        if let returnDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
-           let returnUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) {
-            returnDown.flags = []
-            returnUp.flags = []
-            let returnUnicode: [UniChar] = [0x000D]
-            returnDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-            returnUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: returnUnicode)
-            returnDown.post(tap: .cghidEventTap)
-            Thread.sleep(forTimeInterval: 0.015)
-            returnUp.post(tap: .cghidEventTap)
+        if let passwordData = password.data(using: .utf8) {
+            try? KeystrokeInjector.typeAndReturn(passwordData)
         }
         
         print("[SystemAuth] Password injection completed")

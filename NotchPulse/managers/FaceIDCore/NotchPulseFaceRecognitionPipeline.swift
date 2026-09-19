@@ -33,7 +33,7 @@ enum NotchPulseFaceRecognitionPipelineError: LocalizedError {
 /// `@Observable` so the debug UI can surface which embedder is active.
 @Observable
 @MainActor
-final class FaceRecognitionPipeline {
+final class NotchPulseFaceRecognitionPipeline {
     nonisolated let embedder: NotchPulseFaceEmbedder
 
     /// Set when ArcFace failed to load (see tools/convert_arcface.py) and the weaker Vision feature-print embedder is in use instead.
@@ -127,7 +127,7 @@ struct ScoredIdentity {
     let maxSampleSimilarity: Float
 }
 
-extension FaceRecognitionPipeline {
+extension NotchPulseFaceRecognitionPipeline {
     /// Sorted by centroid similarity descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
     nonisolated func score(_ embedding: [Float], against identities: [FaceIdentity]) -> [ScoredIdentity] {
         identities.compactMap { identity in
