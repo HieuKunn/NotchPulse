@@ -49,15 +49,9 @@ class SettingsWindowController: NSWindowController {
         guard let window = window else { return }
         
         window.title = "NotchPulse Settings"
-        if #available(macOS 15.0, *) {
-            window.titlebarAppearsTransparent = true
-            window.isOpaque = false
-            window.backgroundColor = .clear
-        } else {
-            window.titlebarAppearsTransparent = false
-            window.isOpaque = true
-            window.backgroundColor = NSColor.windowBackgroundColor
-        }
+        window.titlebarAppearsTransparent = true
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.titleVisibility = .visible
         window.toolbarStyle = .unified
         window.isMovableByWindowBackground = true

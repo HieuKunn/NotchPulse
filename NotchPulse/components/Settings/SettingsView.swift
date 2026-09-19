@@ -125,7 +125,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 700)
-        .applyGlassEffectOnModernMacOS()
+        .applyGlassEffect()
         .tint(.effectiveAccent)
         .id(accentColorUpdateTrigger)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
@@ -2217,17 +2217,12 @@ func warningBadge(_ text: String, _ description: String) -> some View {
 
 extension View {
     @ViewBuilder
-    func applyGlassEffectOnModernMacOS() -> some View {
-        if #available(macOS 15.0, *) {
-            self
-                .scrollContentBackground(.hidden)
-                .background {
-                    FaceIDVisualEffectView(material: .sidebar, blendingMode: .behindWindow)
-                        .ignoresSafeArea()
-                }
-        } else {
-            self
-                .background(Color(NSColor.windowBackgroundColor))
-        }
+    func applyGlassEffect() -> some View {
+        self
+            .scrollContentBackground(.hidden)
+            .background {
+                FaceIDVisualEffectView(material: .sidebar, blendingMode: .behindWindow)
+                    .ignoresSafeArea()
+            }
     }
 }
