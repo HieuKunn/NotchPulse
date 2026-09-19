@@ -70,7 +70,7 @@ struct UpdaterSettingsView: View {
                 }
                 
                 if updateDelegate.isUpdateAvailable {
-                    Text("New update available: \(updateDelegate.latestVersionString)")
+                    Text("NotchPulse v\(updateDelegate.latestVersionString) (Latest Release)")
                         .font(.caption)
                         .foregroundColor(.green)
                 }
