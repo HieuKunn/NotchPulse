@@ -242,7 +242,7 @@ final class FaceIDEnrollmentController {
 
                 self.faceDetected = true
                 self.currentYaw = face.yaw
-                self.currentPitch = face.pitch ?? face.roll
+                self.currentPitch = face.pitch
 
                 // Check distance / prominence — enrollment needs closer proximity than unlock
                 // so the template samples have enough pixel detail. Mirrors glance's `enrollmentMinimumFaceWidth`.
@@ -257,7 +257,7 @@ final class FaceIDEnrollmentController {
                 guard let targetPose = self.currentPose else { return }
 
                 let widened = ContinuousClock.now - self.poseStartedAt > self.stallTimeout
-                let poseOK = self.poseMatches(yaw: face.yaw ?? .zero, pitch: face.pitch ?? face.roll ?? .zero, pose: targetPose, widened: widened)
+                let poseOK = self.poseMatches(yaw: face.yaw ?? .zero, pitch: face.pitch ?? .zero, pose: targetPose, widened: widened)
                 
                 let qualityOK = (face.quality ?? 1.0) >= self.qualityFloor
                 // We assume alignmentOK is checked inside capturePose or handled by the pipeline in NotchPulse.
