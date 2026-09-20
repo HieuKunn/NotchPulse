@@ -205,7 +205,7 @@ public class SystemMonitorManager: ObservableObject {
         let totalBytes = ProcessInfo.processInfo.physicalMemory
         let totalGB = Double(totalBytes) / (1024 * 1024 * 1024)
         guard result == KERN_SUCCESS else {
-            return (0.0, totalGB, 0.0, 0.0, 0.0, 0.0, totalGB, "Normal")
+            return (0.0, totalGB, 0.0, 0.0, 0.0, 0.0, totalGB, "Normal", 0.0)
         }
 
         let pageSize = Double(vm_kernel_page_size)
