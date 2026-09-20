@@ -8,6 +8,7 @@
 //
 
 import AppKit
+import SkyLightWindow
 
 @MainActor
 final class FaceIDOverlayWindowController {
@@ -55,8 +56,9 @@ final class FaceIDOverlayWindowController {
         reposition(window)
         window.orderFrontRegardless()
 
-        if NotchPulseLockMonitor.isScreenActuallyLocked(), let skyLight = FaceIDOverlaySkyLight.shared {
-            skyLight.delegate(window)
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            SkyLightOperator.shared.delegateWindow(window)
+            FaceIDOverlaySkyLight.shared?.delegate(window)
             isSkyLightDelegated = true
         }
         updateCursorPolling()
@@ -72,8 +74,9 @@ final class FaceIDOverlayWindowController {
 
     func hide() {
         guard let window else { return }
-        if isSkyLightDelegated, let skyLight = FaceIDOverlaySkyLight.shared {
-            skyLight.undelegate(window)
+        if isSkyLightDelegated {
+            SkyLightOperator.shared.undelegateWindow(window)
+            FaceIDOverlaySkyLight.shared?.undelegate(window)
             isSkyLightDelegated = false
         }
         window.orderOut(nil)

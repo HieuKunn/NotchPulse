@@ -74,45 +74,54 @@ struct SettingsView: View {
             .toolbar(removing: .sidebarToggle)
             .navigationSplitViewColumnWidth(200)
         } detail: {
-            Group {
-                switch selectedTab {
-                case "General":
-                    GeneralSettings()
-                case "Appearance":
-                    Appearance()
-                case "Media":
-                    Media()
-                case "Calendar":
-                    CalendarSettings()
-                case "HUD":
-                    HUD()
-                case "SystemMonitor":
-                    SystemMonitorSettingsView()
-                case "FaceID":
-                    FaceIDSettingsView()
-                case "Shelf":
-                    Shelf()
-                case "Shortcuts":
-                    Shortcuts()
-                case "Extensions":
-                    GeneralSettings()
-                case "Advanced":
-                    Advanced()
-                case "About":
-                    if let controller = updaterController {
-                        About(updaterController: controller)
-                    } else {
-                        // Fallback with a default controller
-                        About(
-                            updaterController: SPUStandardUpdaterController(
-                                startingUpdater: false, updaterDelegate: nil,
-                                userDriverDelegate: nil))
+            VStack(spacing: 0) {
+                SettingsDetailHeaderBar(
+                    title: tabTitle(for: selectedTab),
+                    showQuitButton: selectedTab == "General"
+                )
+
+                Group {
+                    switch selectedTab {
+                    case "General":
+                        GeneralSettings()
+                    case "Appearance":
+                        Appearance()
+                    case "Media":
+                        Media()
+                    case "Calendar":
+                        CalendarSettings()
+                    case "HUD":
+                        HUD()
+                    case "SystemMonitor":
+                        SystemMonitorSettingsView()
+                    case "FaceID":
+                        FaceIDSettingsView()
+                    case "Shelf":
+                        Shelf()
+                    case "Shortcuts":
+                        Shortcuts()
+                    case "Extensions":
+                        GeneralSettings()
+                    case "Advanced":
+                        Advanced()
+                    case "About":
+                        if let controller = updaterController {
+                            About(updaterController: controller)
+                        } else {
+                            // Fallback with a default controller
+                            About(
+                                updaterController: SPUStandardUpdaterController(
+                                    startingUpdater: false, updaterDelegate: nil,
+                                    userDriverDelegate: nil))
+                        }
+                    default:
+                        GeneralSettings()
                     }
-                default:
-                    GeneralSettings()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(.all, edges: .top)
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
@@ -130,6 +139,37 @@ struct SettingsView: View {
         .id(accentColorUpdateTrigger)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
+        }
+    }
+
+    private func tabTitle(for tab: String) -> String {
+        switch tab {
+        case "General":
+            return "General"
+        case "Appearance":
+            return "Appearance"
+        case "Media":
+            return "Media"
+        case "Calendar":
+            return "Calendar"
+        case "HUD":
+            return "HUDs"
+        case "SystemMonitor":
+            return "System Monitor"
+        case "FaceID":
+            return "Face ID & Lock Screen"
+        case "Shelf":
+            return "Shelf"
+        case "Shortcuts":
+            return "Shortcuts"
+        case "Extensions":
+            return "Extensions"
+        case "Advanced":
+            return "Advanced"
+        case "About":
+            return "About"
+        default:
+            return "General"
         }
     }
 }
@@ -583,14 +623,7 @@ struct GeneralSettings: View {
             NotchBehaviour()
             gestureControls()
         }
-        .toolbar {
-            Button("Quit app") {
-                NSApp.terminate(self)
-            }
-            .controlSize(.extraLarge)
-        }
         .accentColor(.effectiveAccent)
-        .navigationTitle("General")
         .onChange(of: openNotchOnHover) {
             if !openNotchOnHover {
                 enableGestures = true
@@ -866,7 +899,6 @@ struct HUD: View {
             .disabled(!Defaults[.hudReplacement])
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("HUDs")
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
         }
@@ -993,7 +1025,6 @@ struct SystemMonitorSettingsView: View {
             .disabled(!enableSystemMonitor)
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("System Monitor")
         .onAppear {
             monitor.startMonitoring()
         }
@@ -1112,7 +1143,6 @@ struct Media: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Media")
     }
 
     // Only show controller options that are available on this macOS version
@@ -1223,7 +1253,6 @@ struct CalendarSettings: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Calendar")
         .onAppear {
             Task {
                 await calendarManager.checkCalendarAuthorization()
@@ -1316,13 +1345,6 @@ struct About: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .toolbar {
-            //            Button("Welcome window") {
-            //                openWindow(id: "onboarding")
-            //            }
-            //            .controlSize(.extraLarge)
-        }
-        .navigationTitle("About")
     }
 }
 
@@ -1431,7 +1453,6 @@ struct Shelf: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Shelf")
     }
 }
 
@@ -1814,7 +1835,6 @@ struct Appearance: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Appearance")
     }
 
     func checkVideoInput() -> Bool {
@@ -2047,7 +2067,6 @@ struct Advanced: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Advanced")
         .onAppear {
             loadCustomColor()
         }
@@ -2159,7 +2178,6 @@ struct Shortcuts: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Shortcuts")
     }
 }
 
@@ -2224,5 +2242,47 @@ extension View {
                 FaceIDVisualEffectView(material: .sidebar, blendingMode: .behindWindow)
                     .ignoresSafeArea()
             }
+    }
+}
+
+/// Dedicated top header bar displayed across all settings tabs in the detail column.
+/// Provides an Apple-standard frosted glass backdrop and divider so scrolling content
+/// disappears cleanly behind it rather than colliding with title text.
+struct SettingsDetailHeaderBar: View {
+    let title: String
+    var showQuitButton: Bool = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Color.primary)
+                .lineLimit(1)
+
+            Spacer()
+
+            if showQuitButton {
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Text("Quit app")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+            }
+        }
+        .padding(.horizontal, 24)
+        .frame(height: 52)
+        .background {
+            FaceIDVisualEffectView(material: .headerView, blendingMode: .withinWindow)
+                .overlay {
+                    Color(nsColor: .windowBackgroundColor).opacity(0.85)
+                }
+        }
+        .overlay(alignment: .bottom) {
+            Divider()
+                .opacity(0.4)
+        }
     }
 }

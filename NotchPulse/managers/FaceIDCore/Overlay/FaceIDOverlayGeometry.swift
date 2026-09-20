@@ -7,6 +7,7 @@
 
 import AppKit
 import CoreGraphics
+import Defaults
 
 struct FaceIDOverlayGeometry {
     /// Physical notch's own dimensions, or `pillClosedSize`.
@@ -14,18 +15,19 @@ struct FaceIDOverlayGeometry {
     /// True if this screen has a real physical notch (vs. the pill fallback).
     let isPhysicalNotch: Bool
 
-    var style: FaceIDOverlayPanelStyle { isPhysicalNotch ? .notch : .pill }
+    /// Synchronized with NotchPulse's active style preference.
+    var style: FaceIDOverlayPanelStyle {
+        Defaults[.notchStyle] == .dynamicIsland ? .pill : .notch
+    }
 
-    /// Fixed footprint of expanded scan-mode content in notch style. Sized for the
-    /// square (432x432) scan animation plus breathing room. Pill has its own `pillOpenSize`.
-    static let notchOpenSize = CGSize(width: 220, height: 200)
+    /// Shortened drop-down footprint for notch style, sized to comfortably fit the 80%-scaled animation.
+    static let notchOpenSize = CGSize(width: 175, height: 138)
 
-    /// Corner radii for the notch silhouette. The top radius doubles as the
-    /// width of the outward flare on each side (see FaceIDOverlayShape).
-    static let closedTopRadius: CGFloat = 8
-    static let closedBottomRadius: CGFloat = 12
-    static let openTopRadius: CGFloat = 16
-    static let openBottomRadius: CGFloat = 60
+    /// Corner radii matching NotchPulse's native cornerRadiusInsets.
+    static let closedTopRadius: CGFloat = 6
+    static let closedBottomRadius: CGFloat = 14
+    static let openTopRadius: CGFloat = 19
+    static let openBottomRadius: CGFloat = 24
 
     /// A shape drawn in a rect of width `w` has a visible body of `w - 2 * topRadius`;
     /// zero in pill style, which has no flare.
@@ -33,23 +35,19 @@ struct FaceIDOverlayGeometry {
         style == .notch ? topRadius * 2 : 0
     }
 
-    // MARK: - Pill style (non-notched displays) — EDIT HERE
-    //
-    // The dynamic-island fallback. Collapsed it's a capsule; expanded it's a
-    // floating rounded rectangle sized by `pillOpenSize` in scan mode, or
-    // whatever step onboarding is on.
+    // MARK: - Pill style (Dynamic Island)
 
     /// Deliberately narrower than every expanded footprint so growth reads as visible.
     static let pillClosedSize = CGSize(width: 80, height: 24)
 
-    /// Independent of `notchOpenSize`; larger by default since the pill has no camera housing.
-    static let pillOpenSize = CGSize(width: 180, height: 180)
+    /// Shortened drop-down footprint for dynamic island, sized to comfortably fit the 80%-scaled animation.
+    static let pillOpenSize = CGSize(width: 155, height: 135)
 
-    /// Never zero — the whole point of the pill is that it's detached from the edge.
-    static let pillTopGap: CGFloat = 3
+    /// Pinned to NotchPulse's active dynamic island top offset.
+    static var pillTopGap: CGFloat { Defaults[.dynamicIslandTopOffset] }
 
-    /// Uniform on all four corners (unlike the notch); matches `openBottomRadius`.
-    static let pillOpenCornerRadius: CGFloat = 48
+    /// Continuous corner radius matching NotchPulse's open island (26pt).
+    static let pillOpenCornerRadius: CGFloat = 26
 
     /// Blur applied to the whole panel while off-screen, resolving to zero as it slides into place.
     static let pillEnterBlur: CGFloat = 0
@@ -59,10 +57,10 @@ struct FaceIDOverlayGeometry {
     static let pillOffscreenSlack: CGFloat = 20
 
     /// Pill's equivalent of `notchContentPadding*` below, independent so it can be tuned separately.
-    static let pillContentPaddingTop: CGFloat = 32
-    static let pillContentPaddingLeading: CGFloat = 32
-    static let pillContentPaddingTrailing: CGFloat = 32
-    static let pillContentPaddingBottom: CGFloat = 32
+    static let pillContentPaddingTop: CGFloat = 14
+    static let pillContentPaddingLeading: CGFloat = 14
+    static let pillContentPaddingTrailing: CGFloat = 14
+    static let pillContentPaddingBottom: CGFloat = 14
 
     // MARK: - Panel open/close springs — EDIT HERE
     //
@@ -91,37 +89,34 @@ struct FaceIDOverlayGeometry {
 
     /// Total notch body width is `geometry.closedSize.width + 2 * this`. Window is
     /// ~434pt wide (see `windowSize(for:)`), so much past 100 will start to clip.
-    static let minimalNotchFlankWidth: CGFloat = 42
+    static let minimalNotchFlankWidth: CGFloat = 34
 
     /// Taller than `pillClosedSize.height` for legibility; radius stays `height / 2`
     /// so it remains a true capsule while stretching.
-    static let minimalPillOpenWidth: CGFloat = 150
-    static let minimalPillOpenHeight: CGFloat = 40
+    static let minimalPillOpenWidth: CGFloat = 160
+    static let minimalPillOpenHeight: CGFloat = 32
 
-    /// Extra height added only in notch style — the physical notch's height can't
-    /// change, so this appears as real, visible black below it.
-    static let minimalNotchHeightBump: CGFloat = 12
+    /// Zero chin bump — follows NotchPulse's inline notch height without protruding below it.
+    static let minimalNotchHeightBump: CGFloat = 0
 
-    /// More rounded than the resting silhouette's radii (8/12), same ratio the
-    /// full-expand style uses (16/60).
-    static let minimalNotchTopRadius: CGFloat = 12
-    static let minimalNotchBottomRadius: CGFloat = 22
+    /// Radii matching NotchPulse closed notch (6/14).
+    static let minimalNotchTopRadius: CGFloat = 6
+    static let minimalNotchBottomRadius: CGFloat = 14
 
     /// In notch style the flare already occupies `topRadius` of this margin.
     static let minimalContentEdgeInset: CGFloat = 4
 
     /// Point size of the lock glyph, pill style (and the shared fallback).
-    static let minimalLockIconSize: CGFloat = 14
-    /// The video is square and aspect-fit, so its rendered size is really
-    /// `min(this, panelHeight - 2 * minimalMediaVerticalInset)`.
-    static let minimalMediaWidth: CGFloat = 34
-    /// Without this the square aspect-fits to the full panel height and touches both edges.
-    static let minimalMediaVerticalInset: CGFloat = 8
+    static let minimalLockIconSize: CGFloat = 13
+    /// The video is square and aspect-fit.
+    static let minimalMediaWidth: CGFloat = 28
+    /// Vertical inset so the video aligns nicely with the lock icon.
+    static let minimalMediaVerticalInset: CGFloat = 4
 
-    /// Notch-style counterparts of the three above, bumped up to match `minimalNotchHeightBump`.
-    static let minimalNotchLockIconSize: CGFloat = 16
-    static let minimalNotchMediaWidth: CGFloat = 40
-    static let minimalNotchMediaVerticalInset: CGFloat = 11
+    /// Notch-style counterparts matching inline notch height.
+    static let minimalNotchLockIconSize: CGFloat = 13
+    static let minimalNotchMediaWidth: CGFloat = 28
+    static let minimalNotchMediaVerticalInset: CGFloat = 4
 
     /// So the lock glyph can be nudged to land with the video's own resolve beat.
     static let minimalLockUnlockDelay: Double = 0
@@ -149,11 +144,11 @@ struct FaceIDOverlayGeometry {
     /// finished expanding. Hand-tuned approximation — springs have no hard end time.
     static let scanPulseStartDelay: Double = 0.6
 
-    /// Notch-style padding around scan-mode content. Pill has its own independent set below.
-    static let notchContentPaddingTop: CGFloat = 26
-    static let notchContentPaddingLeading: CGFloat = 40
-    static let notchContentPaddingTrailing: CGFloat = 40
-    static let notchContentPaddingBottom: CGFloat = 30
+    /// Notch-style padding around scan-mode content, fitted for the shortened drop-down.
+    static let notchContentPaddingTop: CGFloat = 16
+    static let notchContentPaddingLeading: CGFloat = 16
+    static let notchContentPaddingTrailing: CGFloat = 16
+    static let notchContentPaddingBottom: CGFloat = 16
 
     /// Cosmetic size bump applied on hover in FaceIDOverlayView. Included here so the
     /// fixed window has margin for it instead of clipping.
@@ -193,26 +188,25 @@ struct FaceIDOverlayGeometry {
     /// below can come up implausibly small on odd display configurations.
     private static let minimumNotchWidth: CGFloat = 200
 
+    @MainActor
     static func forMainScreen() -> FaceIDOverlayGeometry {
-        guard let screen = NSScreen.main else {
+        guard let screen = preferredScreen() ?? NSScreen.main else {
             return FaceIDOverlayGeometry(closedSize: pillClosedSize, isPhysicalNotch: false)
         }
         return forScreen(screen)
     }
 
+    @MainActor
     static func forScreen(_ screen: NSScreen) -> FaceIDOverlayGeometry {
-        guard screen.safeAreaInsets.top > 0 else {
-            return FaceIDOverlayGeometry(closedSize: pillClosedSize, isPhysicalNotch: false)
-        }
+        let isNotchStyle = Defaults[.notchStyle] == .notch
+        let screenUUID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? String
+        let closedSize = getClosedNotchSize(screenUUID: screenUUID)
+        let isPhysical = screen.safeAreaInsets.top > 0
 
-        // Width derived from the menu-bar areas flanking the notch — nil/empty on
-        // displays without one, hence the safeAreaInsets check above.
-        let leftPadding = screen.auxiliaryTopLeftArea?.width ?? 0
-        let rightPadding = screen.auxiliaryTopRightArea?.width ?? 0
-        let width = max(screen.frame.width - leftPadding - rightPadding, minimumNotchWidth)
-        let height = screen.safeAreaInsets.top
-
-        return FaceIDOverlayGeometry(closedSize: CGSize(width: width, height: height), isPhysicalNotch: true)
+        return FaceIDOverlayGeometry(
+            closedSize: closedSize,
+            isPhysicalNotch: isNotchStyle && isPhysical
+        )
     }
 
     /// Picks the screen the overlay should show on. Follows NotchPulse's active display

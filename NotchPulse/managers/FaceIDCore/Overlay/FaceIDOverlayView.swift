@@ -241,7 +241,7 @@ struct FaceIDOverlayView: View {
                 .padding(.trailing, scanContentPaddingTrailing)
                 .padding(.top, scanContentPaddingTop)
                 .padding(.bottom, scanContentPaddingBottom)
-                .scaleEffect(scanPulseScale)
+                .scaleEffect(0.80 * scanPulseScale)
                 .opacity(scanPulseOpacity)
         }
     }
@@ -267,6 +267,20 @@ struct FaceIDOverlayView: View {
         .frame(width: currentSize.width, height: currentSize.height)
         .background(Color.black)
         .clipShape(FaceIDOverlayShape(topRadius: topRadius, bottomRadius: bottomRadius, style: style))
+        .overlay {
+            if style == .pill {
+                RoundedRectangle(cornerRadius: bottomRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.8)
+            }
+        }
+        .overlay(alignment: .top) {
+            if style == .notch {
+                Rectangle()
+                    .fill(.black)
+                    .frame(height: 1)
+                    .padding(.horizontal, topRadius)
+            }
+        }
         // Reports this panel's own current frame, relative to the fixed
         // window's full bounds (`Self.interactiveCoordinateSpace`, declared
         // below on the outermost frame) — restricts the window's click
@@ -280,10 +294,13 @@ struct FaceIDOverlayView: View {
                 )
             }
         )
-        // Shadow only while expanded — otherwise it left a faint dim halo around the
-        // real notch even while "closed" in armed mode. Radius is fixed rather than
-        // growing on hover since a larger radius needs more window margin than is reserved.
-        .shadow(color: .black.opacity(visualIsExpanded ? (isHovering ? 0.55 : 0.3) : 0), radius: 9)
+        // Shadow only while expanded — matching NotchPulse's shadow profile.
+        .shadow(
+            color: .black.opacity(visualIsExpanded ? (isHovering ? 0.65 : 0.5) : 0),
+            radius: style == .pill ? (visualIsExpanded ? 14 : 8) : 6,
+            x: 0,
+            y: style == .pill ? 4 : 0
+        )
         // Drives the per-step resize while onboarding is active — `visualIsExpanded`
         // alone only fires on entering/leaving the expanded state.
         .animation(expansionAnimation(entering: true), value: onboardingController?.panelSize)
@@ -294,10 +311,14 @@ struct FaceIDOverlayView: View {
         .contentShape(FaceIDOverlayShape(topRadius: topRadius, bottomRadius: bottomRadius, style: style))
         .onHover { hovering in
             isHovering = hovering
+            controller.setHovering(hovering)
             if hovering {
                 performHapticFeedback(.generic)
                 controller.activate()
             }
+        }
+        .onTapGesture {
+            controller.activate()
         }
         .onAppear {
             // Sync without animating — nothing to animate from on first appearance.

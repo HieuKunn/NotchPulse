@@ -6,28 +6,12 @@
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
         <item>
-            <title>4.2.0</title>
-            <pubDate>Sun, 20 Sep 2026 15:55:00 +0800</pubDate>
-            <sparkle:version>66</sparkle:version>
-            <sparkle:shortVersionString>4.2.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/v4.2.0/NotchPulse.app.zip" length="23500000" type="application/octet-stream"/>
-        </item>
-        <item>
-            <title>4.1.0</title>
-            <pubDate>Sun, 20 Sep 2026 14:15:00 +0800</pubDate>
-            <sparkle:version>65</sparkle:version>
-            <sparkle:shortVersionString>4.1.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/v4.1.0/NotchPulse.app.zip" length="23240667" type="application/octet-stream" sparkle:edSignature="GpVAsE6qSQ/9FrQnXpMmB34XTef5cxAoW2/dk1ZWOUp/qrQJtbqOtSNPrpHz6YaHcdYxO+je6+oRR671WcP4Dw=="/>
-        </item>
-        <item>
             <title>4.0.0</title>
-            <pubDate>Sat, 19 Sep 2026 16:53:56 +0000</pubDate>
-            <sparkle:version>61</sparkle:version>
+            <pubDate>Sun, 20 Sep 2026 17:00:00 +0800</pubDate>
+            <sparkle:version>67</sparkle:version>
             <sparkle:shortVersionString>4.0.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/v4.0.0/NotchPulse.app.zip" length="23362985" type="application/octet-stream" sparkle:edSignature="bAMwLD8bLHhuShfZ7GHAWBb74BYCg90RdZlQH0MYroOzAWilD7/5dDmf6Jwj7Y6Rul1tQ0gRbNMht9u6jhdzCA=="/>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse/releases/download/v4.0.0/NotchPulse.app.zip" length="23500000" type="application/octet-stream"/>
         </item>
         <item>
             <title>3.9.5</title>

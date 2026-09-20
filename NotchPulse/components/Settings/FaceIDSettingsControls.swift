@@ -10,6 +10,7 @@
 import SwiftUI
 import AppKit
 import CoreImage
+import Defaults
 
 
 /// What a tab's icon actually is — a built-in SF Symbol, or a template
@@ -597,6 +598,7 @@ struct SettingsOptionTile<Preview: View>: View {
 struct UnlockAnimationPicker: View {
     @Binding var selection: UnlockAnimationStyle
     var isEnabled: Bool = true
+    @Default(.notchStyle) private var notchStyle
 
     /// How long the live preview holds on the success animation before collapsing.
     private static let previewHoldDuration: Duration = .seconds(1.5)
@@ -630,40 +632,110 @@ struct UnlockAnimationPicker: View {
         }
     }
 
-    /// A black pill (minimal) or rounded panel (original), each showing the
-    /// real unlock animation's still frame, matching the real notch/pill
-    /// shapes closely enough to read as a preview rather than an abstract swatch.
+    /// Renders NotchPulse's actual inline notch/island (minimal) or drop-down block (original),
+    /// strictly matching NotchPulse's active style preference and scaled unlock animation.
     @ViewBuilder
     private func preview(for style: UnlockAnimationStyle, isSelected: Bool) -> some View {
+        let isNotch = notchStyle == .notch
         switch style {
         case .minimal:
-            // Inset on both sides so the margin implies "small detached
-            // capsule" in the absence of the real notch's surrounding chrome.
-            HStack(spacing: 10) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-                Spacer(minLength: 8)
-                UnlockStillThumbnail()
-                    .frame(width: 24, height: 24)
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 38)
-            .background(Color.black, in: Capsule(style: .continuous))
-            .padding(.horizontal, 16)
-        case .original:
-            // Fills the tile edge-to-edge, no inset — matches how the real
-            // style expands to fill the whole panel.
-            VStack {
-            UnlockStillThumbnail()
-                .padding(14)
+            if isNotch {
+                VStack(spacing: 0) {
+                    HStack(spacing: 0) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20)
+
+                        Spacer(minLength: 40)
+
+                        UnlockStillThumbnail()
+                            .frame(width: 17, height: 17)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(width: 136, height: 24)
+                    .background(Color.black)
+                    .clipShape(NotchShape(topCornerRadius: 4, bottomCornerRadius: 8))
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(.black)
+                            .frame(height: 1)
+                            .padding(.horizontal, 4)
+                    }
+
+                    Spacer()
+                }
+                .padding(.top, 6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 0) {
+                    HStack(spacing: 0) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20)
+
+                        Spacer(minLength: 32)
+
+                        UnlockStillThumbnail()
+                            .frame(width: 17, height: 17)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(width: 126, height: 24)
+                    .background(Color.black, in: Capsule(style: .continuous))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.8)
+                    }
+
+                    Spacer()
+                }
+                .padding(.top, 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            // .padding(4)
-            .background(Color.black, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .frame(width: 85, height: 85)
+        case .original:
+            if isNotch {
+                VStack(spacing: 0) {
+                    ZStack {
+                        Color.black
+                        UnlockStillThumbnail()
+                            .frame(width: 32, height: 32)
+                            .scaleEffect(0.80)
+                    }
+                    .frame(width: 74, height: 60)
+                    .clipShape(NotchShape(topCornerRadius: 6, bottomCornerRadius: 12))
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(.black)
+                            .frame(height: 1)
+                            .padding(.horizontal, 6)
+                    }
+
+                    Spacer()
+                }
+                .padding(.top, 6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 0) {
+                    ZStack {
+                        Color.black
+                        UnlockStillThumbnail()
+                            .frame(width: 32, height: 32)
+                            .scaleEffect(0.80)
+                    }
+                    .frame(width: 66, height: 58)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.8)
+                    }
+
+                    Spacer()
+                }
+                .padding(.top, 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         case .none:
-            // Not offered as a tile — `showUnlockAnimation` covers it.
             EmptyView()
         }
     }

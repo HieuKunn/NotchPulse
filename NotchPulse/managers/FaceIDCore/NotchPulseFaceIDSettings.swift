@@ -105,8 +105,6 @@ final class NotchPulseFaceIDSettings {
         static let faceDetectionSeconds = "NotchPulseFaceIDSettings.faceDetectionSeconds"
         static let autoRetryOnce = "NotchPulseFaceIDSettings.autoRetryOnce"
         static let hapticFeedbackEnabled = "NotchPulseFaceIDSettings.hapticFeedbackEnabled"
-        static let preferredDisplayID = "NotchPulseFaceIDSettings.preferredDisplayID"
-        static let preferredDisplayName = "NotchPulseFaceIDSettings.preferredDisplayName"
         static let autoLockIntervalDays = "NotchPulseFaceIDSettings.autoLockIntervalDays"
         static let defaultCameraID = "NotchPulseFaceIDSettings.defaultCameraID"
         static let builtInDisplayCameraID = "NotchPulseFaceIDSettings.builtInDisplayCameraID"
@@ -205,17 +203,6 @@ final class NotchPulseFaceIDSettings {
 
     static let faceDetectionRange = 3...10
 
-    /// Which display Face Unlock shows on. `nil` means `NotchGeometry.preferredScreen()`'s
-    /// default, re-evaluated live; a pinned display has deliberately no
-    /// fallback if disconnected (see `NotchPulseFaceUnlockCoordinator.evaluateTrigger()`).
-    var preferredDisplayID: String? {
-        didSet { defaults.set(preferredDisplayID, forKey: Key.preferredDisplayID) }
-    }
-    /// The chosen display's name at pick time — cosmetic only, so the row can
-    /// show something recognizable when that display is disconnected.
-    var preferredDisplayName: String? {
-        didSet { defaults.set(preferredDisplayName, forKey: Key.preferredDisplayName) }
-    }
     /// Enforced by `NotchPulseSessionAutoLocker`, not here — this is only the stored
     /// preference.
     var autoLockInterval: AutoLockInterval {
@@ -317,8 +304,6 @@ final class NotchPulseFaceIDSettings {
             ?? 5
         autoRetryOnce = defaults.object(forKey: Key.autoRetryOnce) as? Bool ?? false
         hapticFeedbackEnabled = defaults.object(forKey: Key.hapticFeedbackEnabled) as? Bool ?? true
-        preferredDisplayID = defaults.string(forKey: Key.preferredDisplayID)
-        preferredDisplayName = defaults.string(forKey: Key.preferredDisplayName)
 
         // Defaults to 7 days — long enough not to nag daily users, short
         // enough not to leave an abandoned session live indefinitely.

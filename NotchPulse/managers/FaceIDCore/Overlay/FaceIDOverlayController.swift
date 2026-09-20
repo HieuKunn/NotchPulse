@@ -301,16 +301,46 @@ final class FaceIDOverlayController {
         }
     }
 
+    private(set) var isHovering: Bool = false
+    private var pendingHoverActivationTask: Task<Void, Never>?
+
+    func setHovering(_ hovering: Bool) {
+        isHovering = hovering
+        if !hovering {
+            pendingHoverActivationTask?.cancel()
+            pendingHoverActivationTask = nil
+        }
+    }
+
     /// Hover-driven activation: wakes from a closed/armed state, or retries from a held
     /// failure frame. No-op during scanning/success/collapsing.
     func activate() {
         // Gated here rather than in `updateInteractivity()` so the cosmetic hover bump
         // stays unaffected — only the retry itself is removed.
         guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
-        // Prevent accidental hover activation while the window is showing up or the pill is sliding into place
-        if let armedAt, ContinuousClock.now - armedAt < .milliseconds(800) {
-            return
+
+        // If within the initial arming settle window, don't drop the trigger:
+        // schedule activation to fire as soon as the settle window ends if still hovering!
+        if let armedAt {
+            let elapsed = ContinuousClock.now - armedAt
+            if elapsed < .milliseconds(400) {
+                pendingHoverActivationTask?.cancel()
+                pendingHoverActivationTask = Task { [weak self] in
+                    let remaining = Duration.milliseconds(400) - elapsed
+                    try? await Task.sleep(for: remaining)
+                    guard let self, !Task.isCancelled, self.isHovering, self.phase == .closed || self.phase == .failure else { return }
+                    self.performActivation()
+                }
+                return
+            }
         }
+        performActivation()
+    }
+
+    private func performActivation() {
+        pendingHoverActivationTask?.cancel()
+        pendingHoverActivationTask = nil
+
         switch phase {
         case .closed, .failure:
             guard let onActivate else {

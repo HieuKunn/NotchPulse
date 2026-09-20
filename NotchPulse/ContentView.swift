@@ -161,6 +161,10 @@ struct ContentView: View {
                         handleHover(hovering)
                     }
                     .onTapGesture {
+                        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            FaceIDOverlayController.shared.activate()
+                            return
+                        }
                         doOpen()
                     }
                     .conditionalModifier(Defaults[.enableGestures]) { view in
@@ -543,6 +547,11 @@ struct ContentView: View {
         hoverTask?.cancel()
         
         if hovering {
+            if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                FaceIDOverlayController.shared.activate()
+                return
+            }
+
             withAnimation(animationSpring) {
                 isHovering = true
             }
@@ -560,7 +569,8 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
-                    guard self.vm.notchState == .closed,
+                    guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
+                          self.vm.notchState == .closed,
                           self.isHovering,
                           !self.coordinator.sneakPeek.show else { return }
                     
@@ -588,6 +598,7 @@ struct ContentView: View {
     // MARK: - Gesture Handling
 
     private func handleDownGesture(translation: CGFloat, phase: NSEvent.Phase) {
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
         guard vm.notchState == .closed else { return }
 
         if phase == .ended {

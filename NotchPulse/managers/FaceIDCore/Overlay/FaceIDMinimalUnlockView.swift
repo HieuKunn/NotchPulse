@@ -51,7 +51,7 @@ struct FaceIDMinimalUnlockView: View {
 
             FaceIDScanAnimationView(media: media)
                 .padding(.vertical, mediaVerticalInset)
-                .frame(width: mediaWidth)
+                .frame(width: mediaWidth, height: mediaWidth)
                 // Scoped to the video alone — the lock icon on the left
                 // must stay steady while this breathes.
                 .scaleEffect(pulseScale)
