@@ -463,7 +463,7 @@ struct LockScreenMediaView: View {
                 }
             } else if !musicManager.currentLyrics.isEmpty {
                 ScrollView(.vertical, showsIndicators: false) {
-                    Text(musicManager.currentLyrics)
+                    Text(MusicManager.stripLRCTimestamps(from: musicManager.currentLyrics))
                         .font(.system(size: max(columnWidth * 0.04, 18), weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.8))
                         .lineSpacing(10)
