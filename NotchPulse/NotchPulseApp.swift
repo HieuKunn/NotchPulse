@@ -456,6 +456,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        KeyboardShortcuts.onKeyDown(for: .faceIDQuickAuth) {
+            NotchPulseSystemAuthCoordinator.shared.triggerQuickAuth()
+        }
+
         if !Defaults[.showOnAllDisplays] {
             if let screen = NSScreen.main ?? NSScreen.screens.first {
                 let viewModel = self.vm

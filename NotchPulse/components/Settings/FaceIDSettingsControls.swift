@@ -152,7 +152,8 @@ struct SettingsRowContent<Trailing: View>: View {
             trailing()
         }
         .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
-        .frame(height: SettingsMetrics.rowHeight)
+        .padding(.vertical, subtitle != nil ? 6 : 0)
+        .frame(minHeight: SettingsMetrics.rowHeight)
     }
 }
 

@@ -8,6 +8,7 @@
 
 import Foundation
 import Observation
+import Defaults
 
 /// How long the Touch-ID-unlocked session may sit idle before it re-locks.
 enum AutoLockInterval: Int, CaseIterable, Identifiable {
@@ -113,6 +114,9 @@ final class NotchPulseFaceIDSettings {
         static let hasCompletedOnboarding = "NotchPulseFaceIDSettings.hasCompletedOnboarding"
         static let onboardingResumeStep = "NotchPulseFaceIDSettings.onboardingResumeStep"
         static let hasAcknowledgedSecurityNotice = "NotchPulseFaceIDSettings.hasAcknowledgedSecurityNotice"
+        static let isSystemAuthFaceIDEnabled = "NotchPulseFaceIDSettings.isSystemAuthFaceIDEnabled"
+        static let isTerminalQuickAuthEnabled = "NotchPulseFaceIDSettings.isTerminalQuickAuthEnabled"
+        static let useAppleAuthFallback = "NotchPulseFaceIDSettings.useAppleAuthFallback"
     }
 
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -251,6 +255,18 @@ final class NotchPulseFaceIDSettings {
     var hasAcknowledgedSecurityNotice: Bool {
         didSet { defaults.set(hasAcknowledgedSecurityNotice, forKey: Key.hasAcknowledgedSecurityNotice) }
     }
+    var isSystemAuthFaceIDEnabled: Bool {
+        didSet {
+            defaults.set(isSystemAuthFaceIDEnabled, forKey: Key.isSystemAuthFaceIDEnabled)
+            Defaults[.enableFaceIDForSystemPrompts] = isSystemAuthFaceIDEnabled
+        }
+    }
+    var isTerminalQuickAuthEnabled: Bool {
+        didSet { defaults.set(isTerminalQuickAuthEnabled, forKey: Key.isTerminalQuickAuthEnabled) }
+    }
+    var useAppleAuthFallback: Bool {
+        didSet { defaults.set(useAppleAuthFallback, forKey: Key.useAppleAuthFallback) }
+    }
 
     private init() {
         // Enabled by default — onboarding already enrolled a face and set a
@@ -316,6 +332,10 @@ final class NotchPulseFaceIDSettings {
         onboardingResumeStep = defaults.string(forKey: Key.onboardingResumeStep)
             .flatMap(FaceIDOnboardingStep.init(rawValue:))
         hasAcknowledgedSecurityNotice = defaults.object(forKey: Key.hasAcknowledgedSecurityNotice) as? Bool ?? false
+        isSystemAuthFaceIDEnabled = defaults.object(forKey: Key.isSystemAuthFaceIDEnabled) as? Bool
+            ?? Defaults[.enableFaceIDForSystemPrompts]
+        isTerminalQuickAuthEnabled = defaults.object(forKey: Key.isTerminalQuickAuthEnabled) as? Bool ?? true
+        useAppleAuthFallback = defaults.object(forKey: Key.useAppleAuthFallback) as? Bool ?? true
 
         // Push into the nonisolated mirror immediately, or NotchPulseFaceRecognitionPipeline
         // would keep its own default until the slider is first touched.

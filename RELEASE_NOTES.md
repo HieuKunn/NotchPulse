@@ -1,10 +1,15 @@
-# NotchPulse v4.1.0
+# NotchPulse v4.2.0
 
-## 🔒 Face ID & Effortless Setup
-- **Instant Enrollment**: You can now start setting up Face ID immediately with a single click. There is no longer any password barrier required before initiating camera enrollment.
-- **Always-Ready Face Unlock**: Removed session lock timeouts. Once Face ID is set up, it stays continuously active and ready to seamlessly authenticate on wake or screen lock.
-- **Unified Settings Page**: Brought all Face ID controls together into one clean, continuous scrollable page. You can easily adjust recognition sensitivity, manage your saved face, and configure your preferred camera in one place.
+## 🔒 System & Terminal Authorization with Face ID
+- **Authorize System Prompts**: Face ID can now automatically confirm installer packages, system preferences, and administrative approval dialogs right from the Notch.
+- **Terminal & Quick-Auth**: Use Face ID to instantly fill passwords in Terminal, iTerm, and command prompts using the global shortcut (`⌘⌥F`).
+- **Apple Biometrics & Authority Fallback**: Seamlessly verifies with Apple Touch ID, Apple Watch, or system credentials if Face ID is unavailable.
+- **Terminal Touch ID for Sudo**: One-click setup in Face ID settings to enable Apple's native Touch ID authentication for `sudo` commands in Terminal.
 
-## 🐛 Fixes & Improvements
-- **Reliable Enrollment Saving**: Fixed an issue where saving your face profile could stall during setup, ensuring enrollment finishes immediately upon completing the circular camera scan.
-- **Enhanced Settings Navigation**: Polished the left-hand navigation sidebar for smooth switching between settings categories.
+## 📊 Native Activity Monitor System Stats
+- **Apple-Style Performance Graphs**: Hardware graphs in the Stats notch now feature clean reference gridlines, stacked system and user CPU utilization, and smooth memory pressure meters inspired by macOS Activity Monitor.
+- **Optimized Monitor Proportions**: Balanced card widths across CPU, RAM, and GPU to give memory and graphics activity optimal screen space.
+
+## ✨ Interface Polish & Fixes
+- **Streamlined Face ID Settings**: Focused settings organization for Face Unlock, enrolled profiles, and security preferences.
+- **Responsive Dialogs**: Polished security notices and notification popups to ensure buttons and captions are never cut off.
