@@ -13,5 +13,6 @@
 - **Camera Configuration Streamlined**: Removed unnecessary preview box from the Face ID camera menu to keep settings fast and focused.
 
 ## 🎵 Real-Time Music & Lyrics Synchronization
-- **Earlier Lyric Transition**: Synced karaoke lyric lines now display and advance 0.3s faster, delivering seamless anticipation and readability before vocals start.
+- **Earlier Lyric Transition**: Synced karaoke lyric lines now display and advance 0.15s faster, delivering seamless anticipation and readability right as vocals start.
+- **Lock Screen Media Retention**: The lock screen media player now stays active and accessible when music is paused, only disappearing when your music player is closed or the queue ends.
 - **Visual Confirmation**: The Spotify and Apple Music automation sync button now provides instant visual feedback, turning green with a confirmed checkmark once access is verified by macOS.

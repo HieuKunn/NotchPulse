@@ -140,25 +140,32 @@ final class LockScreenWakeObserver: ObservableObject {
             .store(in: &cancellables)
             
         // 5. Listen for music state changes to show/hide lock screen media player dynamically
-        MusicManager.shared.$isPlaying
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateLockScreenMediaWindowVisibility()
-            }
-            .store(in: &cancellables)
-            
-        Defaults.publisher(.enableLockScreenPlayer)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateLockScreenMediaWindowVisibility()
-            }
-            .store(in: &cancellables)
+        Publishers.Merge4(
+            MusicManager.shared.$isPlaying.map { _ in () },
+            MusicManager.shared.$songTitle.map { _ in () },
+            MusicManager.shared.$bundleIdentifier.map { _ in () },
+            Defaults.publisher(.enableLockScreenPlayer).map { _ in () }
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in
+            self?.updateLockScreenMediaWindowVisibility()
+        }
+        .store(in: &cancellables)
     }
     
     func updateLockScreenMediaWindowVisibility() {
+        let hasActiveTrack: Bool = {
+            let title = MusicManager.shared.songTitle
+            guard !title.isEmpty && title != "I'm Handsome" else { return false }
+            if let bundleId = MusicManager.shared.bundleIdentifier {
+                return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
+            }
+            return MusicManager.shared.isPlaying
+        }()
+
         let shouldShow = isScreenLocked
             && Defaults[.enableLockScreenPlayer]
-            && (MusicManager.shared.isPlaying || !MusicManager.shared.isPlayerIdle)
+            && hasActiveTrack
         
         if shouldShow {
             LockScreenMediaWindow.shared.show()
