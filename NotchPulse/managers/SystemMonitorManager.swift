@@ -43,7 +43,7 @@ public class SystemMonitorManager: ObservableObject {
     @Published public var ramCompressedGB: Double = 0.0
     @Published public var ramFreeGB: Double = 0.0
     @Published public var ramPressure: String = "Normal"
-    @Published public var ramHistory: [Double] = Array(repeating: 50.0, count: 24)
+    @Published public var ramHistory: [Double] = Array(repeating: 28.0, count: 24)
     @Published public var swapUsedMB: Double = 0.0
     @Published public var swapTotalMB: Double = 0.0
 
@@ -104,7 +104,7 @@ public class SystemMonitorManager: ObservableObject {
     // MARK: - Metrics Fetching
     private func updateMetrics() {
         let (totalCPU, userCPU, sysCPU, idleCPU) = fetchCPUUsage()
-        let (usedRAM, totalRAM, percentRAM, appRAM, wiredRAM, compRAM, freeRAM, pressure) = fetchRAMUsage()
+        let (usedRAM, totalRAM, percentRAM, appRAM, wiredRAM, compRAM, freeRAM, pressure, pressurePercent) = fetchRAMUsage()
         let (usedSwap, totalSwap) = fetchSwapUsage()
         let gpu = fetchGPUUsage()
         let (topCpu, topRam) = fetchTopProcesses()
@@ -137,7 +137,7 @@ public class SystemMonitorManager: ObservableObject {
             self.ramPressure = pressure
             self.swapUsedMB = usedSwap
             self.swapTotalMB = totalSwap
-            self.ramHistory.append(percentRAM)
+            self.ramHistory.append(pressurePercent)
             if self.ramHistory.count > 24 {
                 self.ramHistory.removeFirst()
             }
@@ -223,13 +223,42 @@ public class SystemMonitorManager: ObservableObject {
         let percent = min(100.0, max(0.0, (usedBytes / Double(totalBytes)) * 100.0))
 
         var pressure = "Normal"
-        if percent > 85.0 || compGB > 3.0 {
-            pressure = "Critical"
-        } else if percent > 70.0 || compGB > 1.0 {
-            pressure = "Warning"
+        var pressureLevel: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        if sysctlbyname("kern.memorystatus_vm_pressure_level", &pressureLevel, &size, nil, 0) == 0 {
+            switch pressureLevel {
+            case 1:
+                pressure = "Normal"
+            case 2:
+                pressure = "Warning"
+            case 4:
+                pressure = "Critical"
+            default:
+                pressure = "Normal"
+            }
+        } else {
+            if percent > 90.0 {
+                pressure = "Critical"
+            } else if percent > 75.0 {
+                pressure = "Warning"
+            } else {
+                pressure = "Normal"
+            }
         }
 
-        return (usedGB, totalGB, percent, appGB, wiredGB, compGB, freeGB, pressure)
+        // True Memory Pressure percentage modeled after macOS Activity Monitor
+        let pressurePercent: Double
+        switch pressure {
+        case "Critical":
+            pressurePercent = min(100.0, 80.0 + (percent / 100.0) * 20.0)
+        case "Warning":
+            pressurePercent = min(75.0, 55.0 + (percent / 100.0) * 20.0)
+        default: // Normal (Tốt)
+            let baseRatio = (wiredBytes + compBytes) / Double(totalBytes)
+            pressurePercent = min(45.0, max(18.0, baseRatio * 100.0 + 10.0))
+        }
+
+        return (usedGB, totalGB, percent, appGB, wiredGB, compGB, freeGB, pressure, pressurePercent)
     }
 
     // MARK: - Swap Fetch

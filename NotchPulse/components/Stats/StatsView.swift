@@ -14,6 +14,9 @@ struct AppleActivityGraphView: View {
     let color: Color
     var secondaryColor: Color = .orange
     var maxVal: Double = 100.0
+    var referenceFraction: Double = 0.5
+    var showCeilingGuide: Bool = true
+    var isSolidFill: Bool = false
 
     var body: some View {
         GeometryReader { geo in
@@ -25,20 +28,23 @@ struct AppleActivityGraphView: View {
             ZStack {
                 // macOS Activity Monitor dark container background
                 RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.black.opacity(0.36))
+                    .fill(Color.black.opacity(0.40))
 
-                // Apple-style horizontal reference grid lines (50% and top guide)
+                // Apple-style horizontal reference grid line (at referenceFraction, e.g. 50% for CPU/GPU or 75% for Memory threshold)
                 Path { path in
-                    path.move(to: CGPoint(x: 0, y: h * 0.5))
-                    path.addLine(to: CGPoint(x: w, y: h * 0.5))
+                    let yRef = h * CGFloat(1.0 - referenceFraction)
+                    path.move(to: CGPoint(x: 0, y: yRef))
+                    path.addLine(to: CGPoint(x: w, y: yRef))
                 }
-                .stroke(Color.white.opacity(0.09), lineWidth: 0.75)
+                .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
 
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: 1.5))
-                    path.addLine(to: CGPoint(x: w, y: 1.5))
+                if showCeilingGuide {
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: 1.5))
+                        path.addLine(to: CGPoint(x: w, y: 1.5))
+                    }
+                    .stroke(Color.white.opacity(0.14), lineWidth: 0.8)
                 }
-                .stroke(Color.white.opacity(0.07), lineWidth: 0.75)
 
                 // If secondaryData is provided (e.g. System CPU load) -> Stacked chart like Activity Monitor
                 if let sec = secondaryData, sec.count == data.count {
@@ -122,11 +128,9 @@ struct AppleActivityGraphView: View {
                         path.closeSubpath()
                     }
                     .fill(
-                        LinearGradient(
-                            colors: [color.opacity(0.58), color.opacity(0.32)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        isSolidFill
+                            ? LinearGradient(colors: [color.opacity(0.85), color.opacity(0.70)], startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [color.opacity(0.58), color.opacity(0.32)], startPoint: .top, endPoint: .bottom)
                     )
 
                     // Line stroke
@@ -145,7 +149,7 @@ struct AppleActivityGraphView: View {
             .clipShape(RoundedRectangle(cornerRadius: 5))
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.14), lineWidth: 1)
             )
         }
     }
@@ -310,14 +314,22 @@ struct StatsView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white)
 
-                // Pressure Pill
+                // Pressure Pill (Synchronized with native macOS memory pressure)
+                let pressureColor: Color = {
+                    switch monitor.ramPressure {
+                    case "Critical": return .red
+                    case "Warning": return .yellow
+                    default: return Color(red: 0.20, green: 0.72, blue: 0.28)
+                    }
+                }()
+
                 HStack(spacing: 3) {
                     Circle()
-                        .fill(monitor.ramPressure == "Normal" ? Color.green : (monitor.ramPressure == "Warning" ? Color.yellow : Color.red))
+                        .fill(pressureColor)
                         .frame(width: 4, height: 4)
                     Text(monitor.ramPressure)
                         .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(pressureColor)
                 }
                 .padding(.horizontal, 4)
                 .padding(.vertical, 1.5)
@@ -328,14 +340,16 @@ struct StatsView: View {
 
                 Text(String(format: "%.1f GB", monitor.ramUsedGB))
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(pressureColor)
             }
 
-            // Apple Activity Monitor Memory Pressure Graph
+            // Apple Activity Monitor Memory Pressure Graph (Threshold line at 75%, solid fill)
             AppleActivityGraphView(
                 data: monitor.ramHistory,
-                color: monitor.ramPressure == "Normal" ? .green : (monitor.ramPressure == "Warning" ? .yellow : .red),
-                maxVal: 100.0
+                color: pressureColor,
+                maxVal: 100.0,
+                referenceFraction: 0.75,
+                isSolidFill: true
             )
             .frame(height: 28)
 
