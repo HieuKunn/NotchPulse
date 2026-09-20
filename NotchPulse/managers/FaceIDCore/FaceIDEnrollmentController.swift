@@ -239,7 +239,6 @@ final class FaceIDEnrollmentController {
                 controller.startPermissionsPolling()
             }
         }
-        controller.camera.reconcileDeviceIfNeeded()
         FaceIDOverlayController.shared.presentOnboarding(controller)
     }
 
@@ -284,7 +283,6 @@ final class FaceIDEnrollmentController {
     private static func present(target: EnrollmentTarget, prefillName: String) {
         let controller = FaceIDEnrollmentController(isEnrollmentOnly: true, enrollmentTarget: target)
         controller.pendingName = prefillName
-        controller.camera.reconcileDeviceIfNeeded()
         FaceIDOverlayController.shared.presentOnboarding(controller)
     }
 
