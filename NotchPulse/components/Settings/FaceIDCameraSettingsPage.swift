@@ -137,5 +137,6 @@ struct CameraSettingsPage: View {
         guard let id, let device = devices.first(where: { $0.id == id }) else {
             return "System default"
         }
+        return device.name
     }
 }

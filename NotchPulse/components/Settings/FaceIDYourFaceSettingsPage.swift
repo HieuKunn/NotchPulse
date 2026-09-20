@@ -76,6 +76,27 @@ struct YourFaceSettingsPage: View {
         }
     }
 
+    // MARK: - Unreadable
+
+    /// Session open but the encrypted store didn't decrypt. Deliberately
+    /// offers no enroll or delete action, since a write here would replace
+    /// faces still on disk.
+    private var unreadableState: some View {
+        VStack(spacing: SettingsMetrics.emptyStateSpacing) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: SettingsMetrics.emptyStateIconSize, weight: .regular))
+                .foregroundStyle(SettingsMetrics.qualityFairColor)
+
+            Text("Enrolled faces couldn't be read")
+                .font(SettingsMetrics.rowFont)
+                .foregroundStyle(SettingsMetrics.textSecondary)
+
+            SettingsCaption(text: store.loadFailure ?? "The stored data couldn't be decrypted.")
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, minHeight: SettingsMetrics.emptyStateMinHeight)
+    }
+
     // MARK: - Not enrolled
 
     private var notEnrolledState: some View {
