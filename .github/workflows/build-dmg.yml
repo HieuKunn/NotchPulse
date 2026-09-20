@@ -90,9 +90,18 @@ jobs:
             
             security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed -e 's/^[ \t]*//' | tr -d '"')
             
-            echo "SIGN_IDENTITY=NotchPulse Code Sign" >> $GITHUB_ENV
-            echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
-            echo "Đã nạp chứng chỉ 'NotchPulse Code Sign' thành công!"
+            echo "=== Danh sách identities trong Keychain ==="
+            security find-identity -p codesigning "$KEYCHAIN_PATH" || true
+            
+            MATCHING_IDENTITY=$(security find-identity -p codesigning "$KEYCHAIN_PATH" | grep -m 1 "NotchPulse Code Sign" | sed -E 's/.*"([^"]+)".*/\1/')
+            if [ -n "$MATCHING_IDENTITY" ]; then
+              echo "SIGN_IDENTITY=$MATCHING_IDENTITY" >> $GITHUB_ENV
+              echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+              echo "Đã kích hoạt chứng chỉ '$MATCHING_IDENTITY' thành công!"
+            else
+              echo "::warning::Không tìm thấy identity 'NotchPulse Code Sign' trong Keychain, chuyển sang ký ad-hoc (-)"
+              echo "SIGN_IDENTITY=-" >> $GITHUB_ENV
+            fi
           else
             echo "Không tìm thấy CERTIFICATE_P12_BASE64, sẽ dùng ad-hoc signing (-)"
             echo "SIGN_IDENTITY=-" >> $GITHUB_ENV
@@ -107,7 +116,7 @@ jobs:
           cp -R build/Build/Products/Release/NotchPulse.app dmg_staging/NotchPulse.app
 
           KEYCHAIN_ARG=""
-          if [ -n "$KEYCHAIN_PATH" ]; then
+          if [ -n "$KEYCHAIN_PATH" ] && [ "$SIGN_IDENTITY" != "-" ]; then
             KEYCHAIN_ARG="--keychain $KEYCHAIN_PATH"
           fi
 
