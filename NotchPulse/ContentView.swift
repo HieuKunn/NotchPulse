@@ -46,22 +46,94 @@ struct ContentView: View {
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
 
+    private var faceIDOverlay: FaceIDOverlayController {
+        FaceIDOverlayController.shared
+    }
+
+    private var isFaceIDActive: Bool {
+        switch faceIDOverlay.phase {
+        case .scanning, .success, .failure, .onboarding:
+            return true
+        case .collapsing, .closed:
+            return false
+        }
+    }
+
+    private var isMinimalScan: Bool {
+        if case .onboarding = faceIDOverlay.content { return false }
+        return faceIDOverlay.activeUnlockStyle == .minimal
+    }
+
+    private var targetFaceIDSize: CGSize {
+        let isDynamicIsland = notchStyle == .dynamicIsland
+        let controller = faceIDOverlay
+
+        if case .onboarding(let enrollmentController) = controller.content {
+            return enrollmentController.panelSize
+        }
+
+        if isMinimalScan {
+            if isDynamicIsland {
+                return CGSize(
+                    width: FaceIDOverlayGeometry.minimalPillOpenWidth,
+                    height: FaceIDOverlayGeometry.minimalPillOpenHeight
+                )
+            } else {
+                return CGSize(
+                    width: vm.closedNotchSize.width + FaceIDOverlayGeometry.minimalNotchFlankWidth * 2,
+                    height: max(vm.effectiveClosedNotchHeight, FaceIDOverlayGeometry.minimalPillOpenHeight) + FaceIDOverlayGeometry.minimalNotchHeightBump
+                )
+            }
+        }
+
+        if isDynamicIsland {
+            return FaceIDOverlayGeometry.pillOpenSize
+        } else {
+            return CGSize(
+                width: max(vm.closedNotchSize.width, FaceIDOverlayGeometry.notchOpenSize.width + FaceIDOverlayGeometry.openTopRadius * 2),
+                height: FaceIDOverlayGeometry.notchOpenSize.height
+            )
+        }
+    }
+
     private var topCornerRadius: CGFloat {
-       ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
-                ? cornerRadiusInsets.opened.top
-                : cornerRadiusInsets.closed.top
+        if isFaceIDActive {
+            if isMinimalScan {
+                return FaceIDOverlayGeometry.minimalNotchTopRadius
+            }
+            return FaceIDOverlayGeometry.openTopRadius
+        }
+        return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
+                 ? cornerRadiusInsets.opened.top
+                 : cornerRadiusInsets.closed.top
+    }
+
+    private var bottomCornerRadius: CGFloat {
+        if isFaceIDActive {
+            if isMinimalScan {
+                return FaceIDOverlayGeometry.minimalNotchBottomRadius
+            }
+            if case .onboarding(let controller) = faceIDOverlay.content {
+                return controller.panelBottomRadius
+            }
+            return FaceIDOverlayGeometry.openBottomRadius
+        }
+        return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
+            ? cornerRadiusInsets.opened.bottom
+            : cornerRadiusInsets.closed.bottom
     }
 
     private var currentNotchShape: NotchShape {
         NotchShape(
             topCornerRadius: topCornerRadius,
-            bottomCornerRadius: ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
-                ? cornerRadiusInsets.opened.bottom
-                : cornerRadiusInsets.closed.bottom
+            bottomCornerRadius: bottomCornerRadius
         )
     }
 
     private var computedChinWidth: CGFloat {
+        if isFaceIDActive {
+            return targetFaceIDSize.width
+        }
         var chinWidth: CGFloat = vm.closedNotchSize.width
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
@@ -94,20 +166,28 @@ struct ContentView: View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
                 let isDynamicIsland = notchStyle == .dynamicIsland
-                let islandRadius: CGFloat = vm.notchState == .open ? 26 : max(14, vm.effectiveClosedNotchHeight / 2)
+                let islandRadius: CGFloat = {
+                    if isFaceIDActive {
+                        if isMinimalScan {
+                            return FaceIDOverlayGeometry.minimalPillOpenHeight / 2
+                        }
+                        return FaceIDOverlayGeometry.pillOpenCornerRadius
+                    }
+                    return vm.notchState == .open ? 26 : max(14, vm.effectiveClosedNotchHeight / 2)
+                }()
 
                 let mainLayout = NotchLayout()
                     .frame(alignment: .top)
                     .padding(
                         .horizontal,
                         isDynamicIsland
-                        ? (vm.notchState == .open ? 10 : 12)
+                        ? (vm.notchState == .open ? 10 : (isFaceIDActive ? 0 : 12))
                         : (vm.notchState == .open
                             ? Defaults[.cornerRadiusScaling]
                             ? (cornerRadiusInsets.opened.top) : (cornerRadiusInsets.opened.bottom)
-                            : cornerRadiusInsets.closed.bottom)
+                            : (isFaceIDActive ? 0 : cornerRadiusInsets.closed.bottom))
                     )
-                    .padding([.horizontal, .bottom], vm.notchState == .open ? 4 : 0)
+                    .padding([.horizontal, .bottom], (vm.notchState == .open) ? 4 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view
@@ -130,9 +210,9 @@ struct ContentView: View {
                     .shadow(
                         color: isDynamicIsland
                             ? .black.opacity(0.65)
-                            : (((vm.notchState == .open || isHovering) && Defaults[.enableShadow])
+                            : (((vm.notchState == .open || isHovering || isFaceIDActive) && Defaults[.enableShadow])
                                 ? .black.opacity(0.7) : .clear),
-                        radius: isDynamicIsland ? (vm.notchState == .open ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
+                        radius: isDynamicIsland ? (vm.notchState == .open || isFaceIDActive ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
                         x: 0,
                         y: isDynamicIsland ? 4 : 0
                     )
@@ -144,8 +224,8 @@ struct ContentView: View {
                 
                 mainLayout
                     .frame(
-                        width: vm.notchState == .open ? notchOpenWidth : nil,
-                        height: vm.notchState == .open ? vm.notchSize.height : nil,
+                        width: vm.notchState == .open ? notchOpenWidth : (isFaceIDActive ? targetFaceIDSize.width : nil),
+                        height: vm.notchState == .open ? vm.notchSize.height : (isFaceIDActive ? targetFaceIDSize.height : nil),
                         alignment: .top
                     )
                     .conditionalModifier(true) { view in
@@ -154,14 +234,21 @@ struct ContentView: View {
                         
                         return view
                             .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
+                            .animation(.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0), value: isFaceIDActive)
                             .animation(.smooth, value: gestureProgress)
                     }
                     .contentShape(currentNotchShape)
                     .onHover { hovering in
                         handleHover(hovering)
+                        if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            FaceIDOverlayController.shared.setHovering(hovering)
+                            if hovering {
+                                FaceIDOverlayController.shared.activate()
+                            }
+                        }
                     }
                     .onTapGesture {
-                        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                        if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
                             FaceIDOverlayController.shared.activate()
                             return
                         }
@@ -312,6 +399,14 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
+                } else if isFaceIDActive && vm.notchState == .closed {
+                    FaceIDContentView()
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.88, anchor: .top)),
+                            removal: .opacity.combined(with: .scale(scale: 0.88, anchor: .top))
+                        ))
+                } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
+                    Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                 } else {
                       if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                           InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
@@ -393,6 +488,35 @@ struct ContentView: View {
             }
         }
         .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
+    }
+
+    @ViewBuilder
+    private func FaceIDContentView() -> some View {
+        let controller = faceIDOverlay
+        Group {
+            if case .onboarding(let enrollmentController) = controller.content {
+                FaceIDOnboardingNotchView(controller: enrollmentController)
+            } else if isMinimalScan {
+                FaceIDMinimalUnlockView(
+                    media: controller.media,
+                    isUnlocked: controller.phase == .success,
+                    edgeInset: FaceIDOverlayGeometry.minimalContentEdgeInset + (notchStyle == .dynamicIsland ? 0 : topCornerRadius),
+                    lockIconSize: notchStyle == .dynamicIsland ? FaceIDOverlayGeometry.minimalLockIconSize : FaceIDOverlayGeometry.minimalNotchLockIconSize,
+                    mediaWidth: notchStyle == .dynamicIsland ? FaceIDOverlayGeometry.minimalMediaWidth : FaceIDOverlayGeometry.minimalNotchMediaWidth,
+                    mediaVerticalInset: notchStyle == .dynamicIsland ? FaceIDOverlayGeometry.minimalMediaVerticalInset : FaceIDOverlayGeometry.minimalNotchMediaVerticalInset,
+                    pulseScale: 1.0,
+                    pulseOpacity: 1.0
+                )
+            } else {
+                FaceIDScanAnimationView(media: controller.media)
+                    .padding(.leading, notchStyle == .dynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingLeading : FaceIDOverlayGeometry.notchContentPaddingLeading)
+                    .padding(.trailing, notchStyle == .dynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
+                    .padding(.top, notchStyle == .dynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
+                    .padding(.bottom, notchStyle == .dynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
+                    .scaleEffect(0.80)
+            }
+        }
+        .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)
     }
 
     @ViewBuilder

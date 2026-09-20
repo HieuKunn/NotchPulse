@@ -107,7 +107,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenLocked(_ notification: Notification) {
         isScreenLocked = true
-        if !Defaults[.showOnLockScreen] {
+        let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
+        if !shouldKeepWindow {
             cleanupWindows()
         } else {
             enableSkyLightOnAllWindows()
@@ -117,7 +118,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenUnlocked(_ notification: Notification) {
         isScreenLocked = false
-        if !Defaults[.showOnLockScreen] {
+        let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
+        if !shouldKeepWindow {
             adjustWindowPosition(changeAlpha: true)
         } else {
             disableSkyLightOnAllWindows()

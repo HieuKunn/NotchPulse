@@ -36,24 +36,28 @@ typealias NotchPulseNotchPulseFaceRecognitionPipelineError = NotchPulseFaceRecog
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
-    nonisolated let embedder: FaceEmbedder
+    nonisolated static let sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) = {
+        if let arcFace = ArcFaceEmbedder.shared {
+            return (arcFace, false, nil)
+        } else {
+            NSLog("[FaceIDPipeline] ArcFaceEmbedder failed to load. Using VisionFeaturePrint fallback.")
+            return (VisionFeaturePrintEmbedder(), true, "ArcFace model not available")
+        }
+    }()
+
+    nonisolated var embedder: FaceEmbedder {
+        Self.sharedEmbedderResult.embedder
+    }
 
     /// Set when ArcFace failed to load (see tools/convert_arcface.py) and the weaker Vision feature-print embedder is in use instead.
-    private(set) var usingFallbackEmbedder: Bool
-    private(set) var fallbackReason: String?
-
-    init() {
-        do {
-            embedder = try ArcFaceEmbedder()
-            usingFallbackEmbedder = false
-            fallbackReason = nil
-        } catch {
-            NSLog("[FaceIDPipeline] ArcFaceEmbedder failed to load: %@. Using VisionFeaturePrint fallback.", error.localizedDescription)
-            embedder = VisionFeaturePrintEmbedder()
-            usingFallbackEmbedder = true
-            fallbackReason = error.localizedDescription
-        }
+    var usingFallbackEmbedder: Bool {
+        Self.sharedEmbedderResult.isFallback
     }
+    var fallbackReason: String? {
+        Self.sharedEmbedderResult.reason
+    }
+
+    init() {}
 
     /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
     /// - Parameter previousBoundingBox: previous frame's selected box, if any — lets a continuous scanner keep selection "stuck" to the same person instead of re-picking every frame.

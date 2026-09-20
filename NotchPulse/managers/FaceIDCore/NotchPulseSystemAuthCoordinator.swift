@@ -47,6 +47,36 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
     // MARK: - Workspace Observers (SecurityAgent & System Prompts)
 
+    private var cachedHasPasswordTimestamp: Date = .distantPast
+    private var cachedHasPassword: Bool = false
+    
+    private func hasStoredPasswordCached() -> Bool {
+        if Date().timeIntervalSince(cachedHasPasswordTimestamp) > 5.0 {
+            cachedHasPassword = NotchPulseVault.hasStoredPassword()
+            cachedHasPasswordTimestamp = Date()
+        }
+        return cachedHasPassword
+    }
+
+    func updatePromptTimerState() {
+        let shouldPoll = settings.isSystemAuthFaceIDEnabled
+            && NotchPulseFaceEnrollmentStore.shared.hasEnrolledFace
+            && hasStoredPasswordCached()
+            
+        if shouldPoll {
+            if promptDetectionTimer == nil {
+                promptDetectionTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        self?.checkOnScreenAuthPrompts()
+                    }
+                }
+            }
+        } else {
+            promptDetectionTimer?.invalidate()
+            promptDetectionTimer = nil
+        }
+    }
+
     func startObserving() {
         stopObserving()
 
@@ -84,13 +114,8 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
         workspaceObservers = [activated, launched, deactivated]
 
-        // Active prompt polling: CoreAuthUI (Touch ID dialogs) & SecurityAgent
-        // are system daemons/agents that rarely trigger didActivateApplicationNotification.
-        promptDetectionTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.checkOnScreenAuthPrompts()
-            }
-        }
+        // Active prompt polling: CoreAuthUI & SecurityAgent only polled when feature is active
+        updatePromptTimerState()
     }
 
     func stopObserving() {
@@ -119,17 +144,16 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     static func isAuthAgent(_ app: NSRunningApplication?) -> Bool {
         guard let app else { return false }
         if let bundleId = app.bundleIdentifier?.lowercased() {
-            if bundleId.contains("securityagent")
+            return bundleId.contains("securityagent")
                 || bundleId.contains("coreauthui")
                 || bundleId.contains("localauthentication")
                 || bundleId.contains("authenticationservices")
                 || bundleId.contains("credential")
                 || bundleId.contains("coreservices.uiagent")
-                || bundleId == "com.apple.cryptotokenkit.pkitoken" {
-                return true
-            }
+                || bundleId == "com.apple.cryptotokenkit.pkitoken"
         }
-        if let localizedName = app.localizedName {
+        // Avoid calling app.localizedName if bundleIdentifier exists (prevents LaunchServices XPC storms)
+        if app.bundleIdentifier == nil, let localizedName = app.localizedName {
             if isAuthAgentName(localizedName) {
                 return true
             }
@@ -155,8 +179,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     private func checkOnScreenAuthPrompts() {
         guard settings.isSystemAuthFaceIDEnabled,
               NotchPulseFaceEnrollmentStore.shared.hasEnrolledFace,
-              NotchPulseVault.hasStoredPassword(),
+              hasStoredPasswordCached(),
               !isCurrentlyVerifying else {
+            updatePromptTimerState()
             return
         }
 
@@ -186,19 +211,14 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             }
         }
 
-        // Also check running applications
-        let runningAuthApps = NSWorkspace.shared.runningApplications.filter { app in
-            Self.isAuthAgent(app)
-        }
-        for app in runningAuthApps {
-            if app.isActive {
-                let pid = app.processIdentifier
-                if pid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
-                    lastPromptPid = pid
-                    lastPromptTimestamp = Date()
-                    authenticateForSystemPrompt(targetApp: app)
-                    return
-                }
+        // Check frontmost application directly in O(1) without iterating all running applications
+        if let frontApp = NSWorkspace.shared.frontmostApplication, Self.isAuthAgent(frontApp) {
+            let pid = frontApp.processIdentifier
+            if pid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
+                lastPromptPid = pid
+                lastPromptTimestamp = Date()
+                authenticateForSystemPrompt(targetApp: frontApp)
+                return
             }
         }
     }
@@ -208,7 +228,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     private func handleAppNotification(_ notification: Notification) {
         guard settings.isSystemAuthFaceIDEnabled,
               NotchPulseFaceEnrollmentStore.shared.hasEnrolledFace,
-              NotchPulseVault.hasStoredPassword() else {
+              hasStoredPasswordCached() else {
             return
         }
 

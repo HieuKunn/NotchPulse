@@ -96,10 +96,19 @@ class AudioSpectrum: NSView {
     
     func setPlaying(_ playing: Bool) {
         isPlaying = playing
-        if isPlaying {
+        if isPlaying && window != nil {
             startAnimating()
         } else {
             stopAnimating()
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil {
+            stopAnimating()
+        } else if isPlaying {
+            startAnimating()
         }
     }
 }
@@ -115,6 +124,10 @@ struct AudioSpectrumView: NSViewRepresentable {
     
     func updateNSView(_ nsView: AudioSpectrum, context: Context) {
         nsView.setPlaying(isPlaying)
+    }
+
+    static func dismantleNSView(_ nsView: AudioSpectrum, coordinator: ()) {
+        nsView.setPlaying(false)
     }
 }
 

@@ -42,6 +42,8 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let inputName = "input_image"
     private static let outputName = "embedding"
 
+    static let shared: ArcFaceEmbedder? = try? ArcFaceEmbedder()
+
     // Loaded once and reused — model load dominates a single inference.
     private let model: MLModel
     private let pixelBufferPool: CVPixelBufferPool

@@ -117,10 +117,11 @@ struct YourFaceSettingsPage: View {
             identitiesHeader
             .padding(.bottom, -8)
 
+            let activeEmbedder = NotchPulseFaceRecognitionPipeline.sharedEmbedderResult.embedder
             ForEach(store.identities) { identity in
                 IdentityCard(
                     identity: identity,
-                    isStale: identity.isStale(comparedTo: NotchPulseFaceRecognitionPipeline().embedder),
+                    isStale: identity.isStale(comparedTo: activeEmbedder),
                     canStartFlow: !enrollmentFlowIsRunning,
                     isEnabled: enabledBinding(for: identity),
                     recapture: { FaceIDEnrollmentController.startRecapture(of: identity) },

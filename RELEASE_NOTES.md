@@ -1,19 +1,13 @@
-# NotchPulse v4.1.0
+# NotchPulse v4.2.0
 
-## 🎛️ Flush Header & Seamless Settings Scroll
-- **Flush Edge Alignment**: Settings header now sits completely flush against the top of the window frame, eliminating unwanted gaps above the title bar.
-- **Seamless Scroll Boundary**: Removed the bottom border divider from the header bar and refined top scroll fading so settings content transitions invisibly underneath without harsh dividing lines.
+## Seamless Unified Face ID Morphing
+- **Unified Hardware Morphing**: Face ID is now built directly into the MacBook Notch and Dynamic Island instead of opening in a separate floating window. The cutout or pill naturally expands downward with continuous corner curves to show the scanning animation and smoothly retracts back into place upon verification.
+- **Fluid Desktop Transition**: Face ID seamlessly carries your session from lock screen wake directly into your active desktop. The notch smoothly shrinks to its resting shape right as your desktop appears, providing an uninterrupted, native macOS experience.
+- **Smart Media & HUD Tucking**: Active music playback, album artwork, and volume/brightness HUD indicators temporarily tuck inside whenever Face ID begins scanning, eliminating overlapping elements and keeping the visual silhouette clean.
+- **Pure Lock Screen Presentation**: When waking on the lock screen, the notch maintains a clean, unified resting state without leaking media controls or text, expanding only when active face recognition takes place.
 
-## 🔒 Instant Face ID System Authorization
-- **Unified Notch & Island Dropdown**: Face ID now expands directly downwards from the MacBook Notch or Dynamic Island silhouette, smoothly dropping its height to show the scanning animation and seamlessly retracting back into the notch when unlock finishes.
-- **Active Prompt Interception**: Face ID now reliably intercepts macOS administrator approval and Touch ID dialogs as soon as they appear on screen, scanning immediately to authorize actions.
-- **Enhanced CoreAuthUI Detection**: Upgraded system prompt detection with continuous on-screen window tracking for native macOS security agents and Touch ID sheets.
-
-## 👤 Refined Face ID Settings
-- **Eliminated Phantom Layout Spacing**: Cleaned up excess space in the Face ID menu by streamlining enrollment states into dynamic single-state cards.
-- **Camera Configuration Streamlined**: Removed unnecessary preview box from the Face ID camera menu to keep settings fast and focused.
-
-## 🎵 Real-Time Music & Lyrics Synchronization
-- **Earlier Lyric Transition**: Synced karaoke lyric lines now display and advance 0.15s faster, delivering seamless anticipation and readability right as vocals start.
-- **Lock Screen Media Retention**: The lock screen media player now stays active and accessible when music is paused, only disappearing when your music player is closed or the queue ends.
-- **Visual Confirmation**: The Spotify and Apple Music automation sync button now provides instant visual feedback, turning green with a confirmed checkmark once access is verified by macOS.
+## Comprehensive Background Resource Optimization
+- **On-Demand Memory Allocation**: The facial recognition pipeline now loads into system memory on-demand rather than upon application launch, saving over 100 MB of continuous background memory.
+- **Eliminated Idle Background Wakeups**: System security authorization tracking now uses intelligent conditional scheduling, eliminating redundant background checks and freeing up CPU cycles when Face ID authentication is idle.
+- **Smart Animation & GPU Throttling**: Audio waveform spectrums and playback animations now immediately pause rendering whenever music is paused or when the notch is closed, removing unnecessary GPU drawing in the background.
+- **Timer Lifecycle Management**: Background facial animation and glance timers are now properly invalidated upon view exit, preventing background timer accumulation.

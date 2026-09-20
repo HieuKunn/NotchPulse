@@ -246,6 +246,9 @@ final class NotchPulseFaceIDSettings {
         didSet {
             defaults.set(isSystemAuthFaceIDEnabled, forKey: Key.isSystemAuthFaceIDEnabled)
             Defaults[.enableFaceIDForSystemPrompts] = isSystemAuthFaceIDEnabled
+            Task { @MainActor in
+                NotchPulseSystemAuthCoordinator.shared.updatePromptTimerState()
+            }
         }
     }
     var isTerminalQuickAuthEnabled: Bool {
