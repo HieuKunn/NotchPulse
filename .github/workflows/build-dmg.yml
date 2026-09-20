@@ -70,6 +70,34 @@ jobs:
           fi
           echo "Build thành công NotchPulse.app!"
 
+      - name: Setup Code Signing Identity
+        env:
+          CERT_P12_BASE64: ${{ secrets.CERTIFICATE_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -n "$CERT_P12_BASE64" ]; then
+            echo "Tìm thấy chứng chỉ tự ký trong Secrets, đang thiết lập Keychain..."
+            KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+            KEYCHAIN_PASSWORD="temp_build_keychain_pwd"
+            
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            
+            echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+            security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -T /usr/bin/codesign -A
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            
+            security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed -e 's/^[ \t]*//' | tr -d '"')
+            
+            echo "SIGN_IDENTITY=NotchPulse Code Sign" >> $GITHUB_ENV
+            echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+            echo "Đã nạp chứng chỉ 'NotchPulse Code Sign' thành công!"
+          else
+            echo "Không tìm thấy CERTIFICATE_P12_BASE64, sẽ dùng ad-hoc signing (-)"
+            echo "SIGN_IDENTITY=-" >> $GITHUB_ENV
+          fi
+
       - name: Create DMG & ZIP Packages
         run: |
           mkdir -p release_out
@@ -78,17 +106,22 @@ jobs:
           # Copy .app vào thư mục staging và đặt tên là NotchPulse.app
           cp -R build/Build/Products/Release/NotchPulse.app dmg_staging/NotchPulse.app
 
-          # Ký chuẩn inside-out (từ trong ra ngoài) để không làm hỏng chữ ký của Sparkle.framework và Autoupdate.app
+          KEYCHAIN_ARG=""
+          if [ -n "$KEYCHAIN_PATH" ]; then
+            KEYCHAIN_ARG="--keychain $KEYCHAIN_PATH"
+          fi
+
+          # Ký chuẩn inside-out (từ trong ra ngoài) với danh tính cố định để macOS TCC không reset quyền
           if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc" ]; then
-            codesign --force --sign - --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
+            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
           fi
           if [ -f "dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon" ]; then
-            codesign --force --sign - --entitlements NotchPulseBatteryDaemon/NotchPulseBatteryDaemon.entitlements dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon
+            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulseBatteryDaemon/NotchPulseBatteryDaemon.entitlements dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon
           fi
           if [ -d "dmg_staging/NotchPulse.app/Contents/Frameworks" ]; then
-            find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 -exec codesign --force --sign - {} \;
+            find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 -exec codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG {} \;
           fi
-          codesign --force --sign - --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
+          codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
 
           # Xác minh cấu trúc chữ ký hợp lệ
           codesign --verify --deep --strict --verbose=4 dmg_staging/NotchPulse.app
