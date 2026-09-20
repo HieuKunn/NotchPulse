@@ -10,31 +10,11 @@ struct RecognitionSettingsPage: View {
     @Bindable private var pocController = NotchPulsePOCController.shared
     @Bindable private var settings = NotchPulseFaceIDSettings.shared
 
-    @State private var isUnlocking = false
-    @State private var sessionError: String?
-
-    /// Read from `NotchPulsePOCController`, not a local copy — same reasoning as
-    /// `PasswordSettingsPage`.
-    private var isSessionUnlocked: Bool { pocController.isSessionUnlocked }
-
     var body: some View {
         unlockedState
     }
 
-    // MARK: - Locked
-
-    private var lockedState: some View {
-        SettingsEmptyStateView(
-            icon: "lock.fill",
-            message: "Session locked",
-            buttonTitle: isUnlocking ? "Authenticating…" : "Unlock session",
-            isButtonEnabled: !isUnlocking,
-            caption: sessionError,
-            action: unlock
-        )
-    }
-
-    // MARK: - Unlocked
+    // MARK: - Content
 
     private var unlockedState: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -103,16 +83,6 @@ struct RecognitionSettingsPage: View {
         )
     }
 
-    // MARK: - Actions
-
-    private func unlock() {
-        isUnlocking = true
-        sessionError = nil
-        Task {
-            await pocController.unlockSession()
-            sessionError = pocController.sessionError
-            isUnlocking = false
-        }
     }
 }
 

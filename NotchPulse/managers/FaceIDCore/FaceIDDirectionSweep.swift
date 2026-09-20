@@ -340,6 +340,7 @@ private struct SweepStreak: View {
 
 // MARK: - Previews
 
+#if canImport(PreviewsMacros)
 #Preview("All directions") {
     let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -395,6 +396,7 @@ private struct SweepStreak: View {
 
     return CyclingSweepPreview()
 }
+#endif
 //
 //  FaceIDDirectionSweepWindowController.swift
 //  NotchPulse

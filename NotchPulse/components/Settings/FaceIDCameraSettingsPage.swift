@@ -12,11 +12,6 @@ struct CameraSettingsPage: View {
     @State private var previewCamera = NotchPulseCamera()
     @State private var isPreviewShown = false
 
-    @State private var isUnlocking = false
-    @State private var sessionError: String?
-
-    private var isSessionUnlocked: Bool { pocController.isSessionUnlocked }
-
     var body: some View {
         unlockedState
             .onAppear {
@@ -25,20 +20,7 @@ struct CameraSettingsPage: View {
             .onDisappear { hidePreview() }
     }
 
-    // MARK: - Locked
-
-    private var lockedState: some View {
-        SettingsEmptyStateView(
-            icon: "lock.fill",
-            message: "Session locked",
-            buttonTitle: isUnlocking ? "Authenticating…" : "Unlock session",
-            isButtonEnabled: !isUnlocking,
-            caption: sessionError,
-            action: unlock
-        )
-    }
-
-    // MARK: - Unlocked
+    // MARK: - Content
 
     private var unlockedState: some View {
         VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
@@ -154,19 +136,6 @@ struct CameraSettingsPage: View {
     private func cameraLabel(for id: String?) -> String {
         guard let id, let device = devices.first(where: { $0.id == id }) else {
             return "System default"
-        }
-        return device.name
-    }
-
-    // MARK: - Actions
-
-    private func unlock() {
-        isUnlocking = true
-        sessionError = nil
-        Task {
-            await pocController.unlockSession()
-            sessionError = pocController.sessionError
-            isUnlocking = false
         }
     }
 }

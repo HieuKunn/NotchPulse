@@ -70,18 +70,6 @@ struct PasswordSettingsPage: View {
 
                 SettingsGroupDivider()
 
-                SettingsSteppedSliderRowContent(
-                    title: "Auto lock session",
-                    valueLabel: settings.autoLockInterval.title,
-                    index: Binding(
-                        get: { settings.autoLockInterval.sliderIndex },
-                        set: { settings.autoLockInterval = .from(sliderIndex: $0) }
-                    ),
-                    stopCount: AutoLockInterval.allCases.count
-                )
-
-                SettingsGroupDivider()
-
                 SettingsRowContent(title: "Change password") {
                     SettingsPrimaryButton(title: "Change", compact: true) {
                         FaceIDEnrollmentController.startPasswordOnly()

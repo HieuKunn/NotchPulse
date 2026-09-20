@@ -41,16 +41,7 @@ final class NotchPulseSessionAutoLocker {
         timer?.invalidate()
     }
 
-    /// Routed through `NotchPulsePOCController.lockSession()` rather than `NotchPulseVault` directly, so the Settings UI's
-    /// `isSessionUnlocked` flag doesn't go stale.
     func evaluate() {
-        guard NotchPulseVault.isSessionUnlocked,
-              let lastActivityAt = NotchPulseVault.lastActivityAt
-        else { return }
-
-        let idleLimit = NotchPulseFaceIDSettings.shared.autoLockInterval.duration
-        guard Date().timeIntervalSince(lastActivityAt) >= idleLimit else { return }
-
-        pocController.lockSession()
+        // No-op: Face ID remains persistent and never auto-locks
     }
 }
