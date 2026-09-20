@@ -23,9 +23,9 @@ struct FaceIDSettingsView: View {
                     permissionsWarning
                 }
 
-                // 1. General Settings
-                SettingsSectionTitle(text: "General")
-                GeneralSettingsPage()
+                // 1. Face Unlock
+                SettingsSectionTitle(text: "Face Unlock")
+                FaceIDUnlockOptionsPage()
 
                 // 2. Enrolled Faces
                 SettingsSectionTitle(text: "Enrolled Faces")

@@ -103,9 +103,9 @@ struct SecurityNoticeStepView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: "exclamationmark.circle.fill")
-                .font(.system(size: 40, weight: .semibold))
+                .font(.system(size: 38, weight: .semibold))
                 .foregroundStyle(FaceIDTheme.textPrimary)
-                .padding(.top, 25)
+                .padding(.top, 6)
                 .padding(.leading, 4)
 
             Text("NotchPulse is not as secure as Apple's FaceID or TouchID.")
@@ -119,7 +119,8 @@ struct SecurityNoticeStepView: View {
                 .foregroundStyle(FaceIDTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 4)
-                .padding(.bottom, 10)
+
+            Spacer(minLength: 8)
 
             HStack(spacing: 10) {
                 if controller.isPostUpdateNotice {
