@@ -36,21 +36,15 @@ struct YourFaceSettingsPage: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            unreadableState
-                .opacity(stateKind == .unreadable ? 1 : 0)
-                .allowsHitTesting(stateKind == .unreadable)
-                .accessibilityHidden(stateKind != .unreadable)
-
-            notEnrolledState
-                .opacity(stateKind == .notEnrolled ? 1 : 0)
-                .allowsHitTesting(stateKind == .notEnrolled)
-                .accessibilityHidden(stateKind != .notEnrolled)
-
-            enrolledState
-                .opacity(stateKind == .enrolled ? 1 : 0)
-                .allowsHitTesting(stateKind == .enrolled)
-                .accessibilityHidden(stateKind != .enrolled)
+        Group {
+            switch stateKind {
+            case .unreadable:
+                unreadableState
+            case .notEnrolled:
+                notEnrolledState
+            case .enrolled:
+                enrolledState
+            }
         }
         .animation(SettingsMetrics.stateTransitionAnimation, value: stateKind)
         .onAppear { store.reloadIfUnlocked() }

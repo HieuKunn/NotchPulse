@@ -18,6 +18,43 @@ enum MediaAutomationPermissionHelper {
         }
     }
 
+    static func requestAndVerify() async -> Bool {
+        await Task.detached(priority: .userInitiated) {
+            let sp = requestPermission(for: "com.spotify.client")
+            let am = requestPermission(for: "com.apple.Music")
+            let confirmed = sp || am
+            if confirmed {
+                UserDefaults.standard.set(true, forKey: "MediaSyncConfirmed")
+            }
+            return confirmed
+        }.value
+    }
+
+    static func isSyncConfirmed() -> Bool {
+        if UserDefaults.standard.bool(forKey: "MediaSyncConfirmed") {
+            return true
+        }
+        let scriptSource = "tell application id \"com.apple.Music\" to return"
+        if let script = NSAppleScript(source: scriptSource) {
+            var err: NSDictionary?
+            script.executeAndReturnError(&err)
+            if err == nil {
+                UserDefaults.standard.set(true, forKey: "MediaSyncConfirmed")
+                return true
+            }
+        }
+        let spScript = "tell application id \"com.spotify.client\" to return"
+        if let script = NSAppleScript(source: spScript) {
+            var err: NSDictionary?
+            script.executeAndReturnError(&err)
+            if err == nil {
+                UserDefaults.standard.set(true, forKey: "MediaSyncConfirmed")
+                return true
+            }
+        }
+        return false
+    }
+
     @discardableResult
     static func requestPermission(for bundleIdentifier: String) -> Bool {
         // Executing a dummy AppleScript targeted at the bundle ID is the most reliable way 

@@ -16,9 +16,12 @@ struct FaceIDSettingsView: View {
     
     @State private var isAccessibilityGranted: Bool = AXIsProcessTrusted()
     @State private var isCameraGranted: Bool = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+    @State private var isMusicSyncConfirmed: Bool = MediaAutomationPermissionHelper.isSyncConfirmed()
+    @State private var isSyncing: Bool = false
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 14) {
                 if !isAccessibilityGranted || !isCameraGranted {
                     permissionsWarning
                 }
@@ -54,11 +57,13 @@ struct FaceIDSettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             checkPermissions()
+            isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
             pocController.refreshCredentialStatus()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             checkPermissions()
+            isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
             pocController.refreshCredentialStatus()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
@@ -80,11 +85,29 @@ struct FaceIDSettingsView: View {
             SettingsGroupDivider()
             HStack {
                 Button {
-                    MediaAutomationPermissionHelper.requestAllPermissions()
+                    Task {
+                        isSyncing = true
+                        isMusicSyncConfirmed = await MediaAutomationPermissionHelper.requestAndVerify()
+                        isSyncing = false
+                    }
                 } label: {
-                    Text("Sync Music Permissions (Spotify & Apple Music)")
+                    HStack(spacing: 6) {
+                        if isSyncing {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else if isMusicSyncConfirmed {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("Music Sync Confirmed (Spotify & Apple Music)")
+                                .foregroundStyle(.green)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text("Sync Music Permissions (Spotify & Apple Music)")
+                        }
+                    }
                 }
                 .buttonStyle(.bordered)
+                .tint(isMusicSyncConfirmed ? .green : nil)
                 Spacer()
             }
             .padding(.horizontal, SettingsMetrics.rowHorizontalInset)

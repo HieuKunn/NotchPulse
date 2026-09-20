@@ -125,37 +125,23 @@ struct SettingsView: View {
                             LinearGradient(
                                 stops: [
                                     .init(color: .clear, location: 0.0),
-                                    .init(color: .black.opacity(0.15), location: 0.2),
-                                    .init(color: .black.opacity(0.65), location: 0.6),
                                     .init(color: .black, location: 1.0)
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
-                            .frame(height: 36)
+                            .frame(height: 20)
 
                             Rectangle()
                                 .fill(Color.black)
                         }
                     }
                     .clipped()
-
-                    // Atmospheric Progressive Gradient Tint at top of scroll viewport
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color(nsColor: .windowBackgroundColor).opacity(0.7), location: 0.0),
-                            .init(color: Color(nsColor: .windowBackgroundColor).opacity(0.3), location: 0.45),
-                            .init(color: Color(nsColor: .windowBackgroundColor).opacity(0.0), location: 1.0)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 32)
-                    .allowsHitTesting(false)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(edges: .top)
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
@@ -2307,16 +2293,11 @@ struct SettingsDetailHeaderBar: View {
             }
         }
         .padding(.horizontal, 24)
-        .frame(height: 52)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .frame(minHeight: 52)
         .background {
-            FaceIDVisualEffectView(material: .headerView, blendingMode: .withinWindow)
-                .overlay {
-                    Color(nsColor: .windowBackgroundColor).opacity(0.9)
-                }
-        }
-        .overlay(alignment: .bottom) {
-            Divider()
-                .opacity(0.35)
+            Color(nsColor: .windowBackgroundColor)
         }
     }
 }

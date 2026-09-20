@@ -29,6 +29,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     @ObservationIgnored private let pipeline = NotchPulseFaceRecognitionPipeline()
     @ObservationIgnored private var verificationTask: Task<Void, Never>?
     @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var promptDetectionTimer: Timer?
+    @ObservationIgnored private var lastPromptPid: pid_t = 0
+    @ObservationIgnored private var lastPromptTimestamp: Date = .distantPast
 
     override private init() {
         super.init()
@@ -36,6 +39,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     }
 
     deinit {
+        promptDetectionTimer?.invalidate()
         for observer in workspaceObservers {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
@@ -79,9 +83,19 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         }
 
         workspaceObservers = [activated, launched, deactivated]
+
+        // Active prompt polling: CoreAuthUI (Touch ID dialogs) & SecurityAgent
+        // are system daemons/agents that rarely trigger didActivateApplicationNotification.
+        promptDetectionTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkOnScreenAuthPrompts()
+            }
+        }
     }
 
     func stopObserving() {
+        promptDetectionTimer?.invalidate()
+        promptDetectionTimer = nil
         verificationTask?.cancel()
         verificationTask = nil
         for observer in workspaceObservers {
@@ -93,15 +107,34 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
     // MARK: - Identification Helpers
 
+    static func isAuthAgentName(_ name: String) -> Bool {
+        let lower = name.lowercased()
+        return lower.contains("securityagent")
+            || lower.contains("coreauthui")
+            || lower.contains("localauthentication")
+            || lower.contains("authorization")
+            || lower.contains("coreservices.uiagent")
+    }
+
     static func isAuthAgent(_ app: NSRunningApplication?) -> Bool {
-        guard let bundleId = app?.bundleIdentifier else { return false }
-        return bundleId == "com.apple.SecurityAgent"
-            || bundleId == "com.apple.coreservices.uiagent"
-            || bundleId.contains("LocalAuthentication")
-            || bundleId.contains("CoreAuthUI")
-            || bundleId.contains("AuthenticationServices")
-            || bundleId.contains("Credential")
-            || bundleId == "com.apple.CryptoTokenKit.pkitoken"
+        guard let app else { return false }
+        if let bundleId = app.bundleIdentifier?.lowercased() {
+            if bundleId.contains("securityagent")
+                || bundleId.contains("coreauthui")
+                || bundleId.contains("localauthentication")
+                || bundleId.contains("authenticationservices")
+                || bundleId.contains("credential")
+                || bundleId.contains("coreservices.uiagent")
+                || bundleId == "com.apple.cryptotokenkit.pkitoken" {
+                return true
+            }
+        }
+        if let localizedName = app.localizedName {
+            if isAuthAgentName(localizedName) {
+                return true
+            }
+        }
+        return false
     }
 
     static func isTerminalApp(_ app: NSRunningApplication?) -> Bool {
@@ -115,6 +148,59 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             || id.contains("ghostty")
             || id.contains("vscode")
             || id.contains("cursor")
+    }
+
+    // MARK: - Active Window Polling
+
+    private func checkOnScreenAuthPrompts() {
+        guard settings.isSystemAuthFaceIDEnabled,
+              NotchPulseFaceEnrollmentStore.shared.hasEnrolledFace,
+              NotchPulseVault.hasStoredPassword(),
+              !isCurrentlyVerifying else {
+            return
+        }
+
+        // Check on-screen window list for SecurityAgent or CoreAuthUI
+        if let windowInfoList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
+            for win in windowInfoList {
+                guard let ownerName = win[kCGWindowOwnerName as String] as? String,
+                      let ownerPid = win[kCGWindowOwnerPID as String] as? pid_t else {
+                    continue
+                }
+
+                if Self.isAuthAgentName(ownerName) {
+                    if let boundsDict = win[kCGWindowBounds as String] as? [String: Any],
+                       let w = boundsDict["Width"] as? CGFloat,
+                       let h = boundsDict["Height"] as? CGFloat,
+                       w > 50, h > 50 {
+                        if ownerPid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
+                            lastPromptPid = ownerPid
+                            lastPromptTimestamp = Date()
+                            if let runningApp = NSRunningApplication(processIdentifier: ownerPid) {
+                                authenticateForSystemPrompt(targetApp: runningApp)
+                            }
+                            return
+                        }
+                    }
+                }
+            }
+        }
+
+        // Also check running applications
+        let runningAuthApps = NSWorkspace.shared.runningApplications.filter { app in
+            Self.isAuthAgent(app)
+        }
+        for app in runningAuthApps {
+            if app.isActive {
+                let pid = app.processIdentifier
+                if pid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
+                    lastPromptPid = pid
+                    lastPromptTimestamp = Date()
+                    authenticateForSystemPrompt(targetApp: app)
+                    return
+                }
+            }
+        }
     }
 
     // MARK: - Notification Handlers
