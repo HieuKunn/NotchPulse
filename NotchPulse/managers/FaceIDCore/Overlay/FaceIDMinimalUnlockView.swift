@@ -23,17 +23,29 @@ struct FaceIDMinimalUnlockView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Image(systemName: isUnlocked ? "lock.open.fill" : "lock.fill")
-                .font(.system(size: lockIconSize, weight: .semibold))
-                .foregroundStyle(FaceIDTheme.textPrimary)
-                // The explicit `.animation` below is required: the phase change that flips
-                // `isUnlocked` isn't itself wrapped in an animation transaction.
-                .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
-                .animation(
-                    .smooth(duration: FaceIDOverlayGeometry.minimalLockAnimationDuration),
-                    value: isUnlocked
-                )
-                .frame(width: mediaWidth)
+            if #available(macOS 15.0, *) {
+                Image(systemName: isUnlocked ? "lock.open.fill" : "lock.fill")
+                    .font(.system(size: lockIconSize, weight: .semibold))
+                    .foregroundStyle(FaceIDTheme.textPrimary)
+                    // The explicit `.animation` below is required: the phase change that flips
+                    // `isUnlocked` isn't itself wrapped in an animation transaction.
+                    .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
+                    .animation(
+                        .smooth(duration: FaceIDOverlayGeometry.minimalLockAnimationDuration),
+                        value: isUnlocked
+                    )
+                    .frame(width: mediaWidth)
+            } else {
+                Image(systemName: isUnlocked ? "lock.open.fill" : "lock.fill")
+                    .font(.system(size: lockIconSize, weight: .semibold))
+                    .foregroundStyle(FaceIDTheme.textPrimary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .animation(
+                        .smooth(duration: FaceIDOverlayGeometry.minimalLockAnimationDuration),
+                        value: isUnlocked
+                    )
+                    .frame(width: mediaWidth)
+            }
 
             Spacer(minLength: 0)
 

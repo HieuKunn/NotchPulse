@@ -18,3 +18,5 @@ enum FaceIDOverlayPanelStyle {
 extension EnvironmentValues {
     @Entry var notchPanelStyle: FaceIDOverlayPanelStyle = .notch
 }
+
+typealias NotchPanelStyle = FaceIDOverlayPanelStyle

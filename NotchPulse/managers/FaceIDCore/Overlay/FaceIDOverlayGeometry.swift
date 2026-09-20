@@ -246,3 +246,5 @@ extension NSScreen {
         return CGDisplayIsBuiltin(number) != 0
     }
 }
+
+typealias NotchGeometry = FaceIDOverlayGeometry

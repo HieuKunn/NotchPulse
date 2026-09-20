@@ -639,6 +639,11 @@ final class FaceIDEnrollmentController {
         sweepWindow.dismiss()
     }
 
+    func cancel() {
+        teardown()
+        FaceIDOverlayController.shared.dismissOnboarding()
+    }
+
     // MARK: - Permissions
 
     private func startPermissionsPolling() {

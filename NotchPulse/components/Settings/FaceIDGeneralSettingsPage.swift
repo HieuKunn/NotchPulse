@@ -3,6 +3,7 @@
 //  NotchPulse
 //
 
+import LaunchAtLogin
 import OSLog
 import SwiftUI
 
