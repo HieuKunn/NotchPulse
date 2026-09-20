@@ -24,7 +24,8 @@ var openNotchWidth: CGFloat {
 var openNotchSize: CGSize {
     .init(width: openNotchWidth, height: 190)
 }
-let windowSize: CGSize = .init(width: maxNotchWidth + 60, height: 190 + shadowPadding)
+let maxNotchWindowHeight: CGFloat = 460
+let windowSize: CGSize = .init(width: maxNotchWidth + 60, height: maxNotchWindowHeight + shadowPadding)
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 19, bottom: 24), closed: (top: 6, bottom: 14))
 
 enum MusicPlayerImageSizes {
