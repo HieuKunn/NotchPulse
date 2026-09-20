@@ -80,46 +80,80 @@ struct SettingsView: View {
                     showQuitButton: selectedTab == "General"
                 )
 
-                Group {
-                    switch selectedTab {
-                    case "General":
-                        GeneralSettings()
-                    case "Appearance":
-                        Appearance()
-                    case "Media":
-                        Media()
-                    case "Calendar":
-                        CalendarSettings()
-                    case "HUD":
-                        HUD()
-                    case "SystemMonitor":
-                        SystemMonitorSettingsView()
-                    case "FaceID":
-                        FaceIDSettingsView()
-                    case "Shelf":
-                        Shelf()
-                    case "Shortcuts":
-                        Shortcuts()
-                    case "Extensions":
-                        GeneralSettings()
-                    case "Advanced":
-                        Advanced()
-                    case "About":
-                        if let controller = updaterController {
-                            About(updaterController: controller)
-                        } else {
-                            // Fallback with a default controller
-                            About(
-                                updaterController: SPUStandardUpdaterController(
-                                    startingUpdater: false, updaterDelegate: nil,
-                                    userDriverDelegate: nil))
+                ZStack(alignment: .top) {
+                    Group {
+                        switch selectedTab {
+                        case "General":
+                            GeneralSettings()
+                        case "Appearance":
+                            Appearance()
+                        case "Media":
+                            Media()
+                        case "Calendar":
+                            CalendarSettings()
+                        case "HUD":
+                            HUD()
+                        case "SystemMonitor":
+                            SystemMonitorSettingsView()
+                        case "FaceID":
+                            FaceIDSettingsView()
+                        case "Shelf":
+                            Shelf()
+                        case "Shortcuts":
+                            Shortcuts()
+                        case "Extensions":
+                            GeneralSettings()
+                        case "Advanced":
+                            Advanced()
+                        case "About":
+                            if let controller = updaterController {
+                                About(updaterController: controller)
+                            } else {
+                                // Fallback with a default controller
+                                About(
+                                    updaterController: SPUStandardUpdaterController(
+                                        startingUpdater: false, updaterDelegate: nil,
+                                        userDriverDelegate: nil))
+                            }
+                        default:
+                            GeneralSettings()
                         }
-                    default:
-                        GeneralSettings()
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .mask {
+                        VStack(spacing: 0) {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0.0),
+                                    .init(color: .black.opacity(0.15), location: 0.2),
+                                    .init(color: .black.opacity(0.65), location: 0.6),
+                                    .init(color: .black, location: 1.0)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 36)
+
+                            Rectangle()
+                                .fill(Color.black)
+                        }
+                    }
+                    .clipped()
+
+                    // Atmospheric Progressive Gradient Tint at top of scroll viewport
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(nsColor: .windowBackgroundColor).opacity(0.7), location: 0.0),
+                            .init(color: Color(nsColor: .windowBackgroundColor).opacity(0.3), location: 0.45),
+                            .init(color: Color(nsColor: .windowBackgroundColor).opacity(0.0), location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 32)
+                    .allowsHitTesting(false)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -2274,9 +2308,15 @@ struct SettingsDetailHeaderBar: View {
         }
         .padding(.horizontal, 24)
         .frame(height: 52)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background {
+            FaceIDVisualEffectView(material: .headerView, blendingMode: .withinWindow)
+                .overlay {
+                    Color(nsColor: .windowBackgroundColor).opacity(0.9)
+                }
+        }
         .overlay(alignment: .bottom) {
             Divider()
+                .opacity(0.35)
         }
     }
 }
