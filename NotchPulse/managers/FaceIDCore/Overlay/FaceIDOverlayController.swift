@@ -246,6 +246,8 @@ final class FaceIDOverlayController {
 
     // MARK: - Onboarding mode (FaceIDEnrollmentController)
 
+    private var previousScreenUUIDBeforeOnboarding: String?
+
     /// Hands the panel to the onboarding flow — this object only owns visibility and
     /// interactivity while `.onboarding` is active; sizing/content is driven by `controller`.
     func presentOnboarding(_ controller: FaceIDEnrollmentController) {
@@ -253,6 +255,18 @@ final class FaceIDOverlayController {
         onActivate = nil
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
+
+        // Move Notch to the screen containing the camera used for Face ID setup
+        let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+        if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+           let targetUUID = targetScreen.displayUUID {
+            if previousScreenUUIDBeforeOnboarding == nil {
+                previousScreenUUIDBeforeOnboarding = NotchPulseViewCoordinator.shared.selectedScreenUUID
+            }
+            NotchPulseViewCoordinator.shared.selectedScreenUUID = targetUUID
+            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
+        }
+
         geometry = windowController.currentGeometry
         content = .onboarding(controller)
         phase = .closed
@@ -275,6 +289,14 @@ final class FaceIDOverlayController {
         // Settings this same turn, and a still-key overlay would leave it inactive.
         phase = .collapsing
         updateInteractivity()
+
+        // Restore previous screen if it was switched for onboarding
+        if let prevUUID = previousScreenUUIDBeforeOnboarding {
+            previousScreenUUIDBeforeOnboarding = nil
+            NotchPulseViewCoordinator.shared.selectedScreenUUID = prevUUID
+            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
+        }
+
         Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(for: self.collapseAnimationDuration)

@@ -48,4 +48,41 @@ enum NotchPulseCameraDeviceCatalog {
         return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
             ?? AVCaptureDevice.default(for: .video)
     }
+
+    /// Finds which screen physically corresponds to the camera being used for Face ID
+    @MainActor
+    static func targetScreen(for device: AVCaptureDevice?) -> NSScreen? {
+        guard let device else {
+            return NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }) ?? NSScreen.main
+        }
+        
+        // 1. Built-in camera (MacBook webcam) -> Built-in screen
+        if device.deviceType == .builtInWideAngleCamera
+            || device.localizedName.localizedCaseInsensitiveContains("built-in")
+            || device.localizedName.localizedCaseInsensitiveContains("MacBook")
+            || device.localizedName.localizedCaseInsensitiveContains("FaceTime") {
+            if let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }) {
+                return builtInScreen
+            }
+        }
+        
+        // 2. Camera whose name matches an external monitor name (e.g., Studio Display)
+        for screen in NSScreen.screens where !screen.isBuiltIn {
+            let screenName = screen.localizedName.lowercased()
+            let devName = device.localizedName.lowercased()
+            if devName.contains(screenName) || screenName.contains(devName) {
+                return screen
+            }
+        }
+        
+        // 3. External camera (webcam on external monitor) -> First non-builtin screen
+        if device.deviceType == .external || device.deviceType == .continuityCamera {
+            if let externalScreen = NSScreen.screens.first(where: { !$0.isBuiltIn && $0.safeAreaInsets.top == 0 }) {
+                return externalScreen
+            }
+        }
+        
+        // Default fallback
+        return NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }) ?? NSScreen.main
+    }
 }

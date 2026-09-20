@@ -545,6 +545,12 @@ final class FaceIDEnrollmentController {
         NSApp.terminate(nil)
     }
 
+    /// Immediately tears down and closes the onboarding overlay.
+    func dismiss() {
+        teardown()
+        FaceIDOverlayController.shared.dismissOnboarding()
+    }
+
     /// Steps backward. The enroll close control also lands here: a retreat to pre-setup
     /// in the full setup flow, a cancel in add/recapture.
     func back() {

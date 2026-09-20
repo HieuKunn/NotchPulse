@@ -52,7 +52,16 @@ struct ContentView: View {
 
     private var isFaceIDActive: Bool {
         switch faceIDOverlay.phase {
-        case .scanning, .success, .failure, .onboarding:
+        case .scanning, .success, .failure:
+            return true
+        case .onboarding:
+            if Defaults[.showOnAllDisplays] {
+                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+                   let targetUUID = targetScreen.displayUUID {
+                    return vm.screenUUID == targetUUID
+                }
+            }
             return true
         case .collapsing, .closed:
             return false
@@ -224,8 +233,8 @@ struct ContentView: View {
                 
                 mainLayout
                     .frame(
-                        width: vm.notchState == .open ? notchOpenWidth : (isFaceIDActive ? targetFaceIDSize.width : nil),
-                        height: vm.notchState == .open ? vm.notchSize.height : (isFaceIDActive ? targetFaceIDSize.height : nil),
+                        width: isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : nil),
+                        height: isFaceIDActive ? targetFaceIDSize.height : (vm.notchState == .open ? vm.notchSize.height : nil),
                         alignment: .top
                     )
                     .conditionalModifier(true) { view in
@@ -254,13 +263,13 @@ struct ContentView: View {
                         }
                         doOpen()
                     }
-                    .conditionalModifier(Defaults[.enableGestures]) { view in
+                    .conditionalModifier(Defaults[.enableGestures] && !isFaceIDActive) { view in
                         view
                             .panGesture(direction: .down) { translation, phase in
                                 handleDownGesture(translation: translation, phase: phase)
                             }
                     }
-                    .conditionalModifier(Defaults[.closeGestureEnabled] && Defaults[.enableGestures]) { view in
+                    .conditionalModifier(Defaults[.closeGestureEnabled] && Defaults[.enableGestures] && !isFaceIDActive) { view in
                         view
                             .panGesture(direction: .up) { translation, phase in
                                 handleUpGesture(translation: translation, phase: phase)
@@ -399,7 +408,7 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
-                } else if isFaceIDActive && vm.notchState == .closed {
+                } else if isFaceIDActive {
                     FaceIDContentView()
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .scale(scale: 0.88, anchor: .top)),
@@ -466,7 +475,7 @@ struct ContentView: View {
                       .fixedSize()
               }
               .zIndex(2)
-            if vm.notchState == .open {
+            if vm.notchState == .open && !isFaceIDActive {
                 VStack {
                     switch coordinator.currentView {
                     case .home:
@@ -667,7 +676,7 @@ struct ContentView: View {
     // MARK: - Hover Management
 
     private func handleHover(_ hovering: Bool) {
-        if coordinator.firstLaunch { return }
+        if coordinator.firstLaunch || isFaceIDActive { return }
         hoverTask?.cancel()
         
         if hovering {

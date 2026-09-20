@@ -211,7 +211,7 @@ struct EnrollStepView: View {
         .overlay(alignment: .topTrailing) {
             if showsCloseButton {
                 EnrollmentCloseButton {
-                    controller.back()
+                    controller.dismiss()
                 }
                 .padding(FaceIDMetrics.enrollCloseButtonEdgePadding)
             }
