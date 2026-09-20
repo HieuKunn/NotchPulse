@@ -76,6 +76,10 @@ final class NotchPulseCamera: NSObject {
         isRunning = true
     }
 
+    func requestAccessAndStart() async {
+        await start()
+    }
+
     func stop() {
         sessionQueue.async { [session] in
             if session.isRunning {

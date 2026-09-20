@@ -96,7 +96,7 @@ struct CameraSettingsPage: View {
     @ViewBuilder
     private var previewArea: some View {
         if isPreviewShown {
-            CameraPreviewView(session: previewCamera.session, faces: [])
+            FaceIDCameraPreviewView(session: previewCamera.session, faces: [])
         } else {
             ZStack {
                 SettingsMetrics.rowColor

@@ -314,7 +314,7 @@ final class FaceIDManager: NSObject, ObservableObject {
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(in: frame.image) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
-                return (result, NotchPulseLivenessFeatureExtractor.extract(from: result, frame: frame.image, faceCrop: faceCrop))
+                return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
             
             guard let (result, livenessFrame) = outcome else {

@@ -8,7 +8,7 @@ import SwiftUI
 import AVFoundation
 import AppKit
 
-struct CameraPreviewView: NSViewRepresentable {
+struct FaceIDCameraPreviewView: NSViewRepresentable {
     let session: AVCaptureSession
     var faces: [DetectedFace] = []
 

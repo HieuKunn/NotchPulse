@@ -232,7 +232,7 @@ struct EnrollStepView: View {
         ZStack {
             FaceIDEnrollmentRingView(controller: controller)
 
-            CameraPreviewView(session: controller.camera.session, faces: [])
+            FaceIDCameraPreviewView(session: controller.camera.session, faces: [])
                 .frame(
                     width: FaceIDMetrics.cameraCircleDiameter,
                     height: FaceIDMetrics.cameraCircleDiameter

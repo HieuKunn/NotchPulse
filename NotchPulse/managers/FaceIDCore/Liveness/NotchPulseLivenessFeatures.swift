@@ -9,7 +9,10 @@
 import Vision
 import CoreGraphics
 
+typealias NotchPulseLivenessFeatureExtractor = NotchPulseLivenessFeatures
+
 enum NotchPulseLivenessFeatures {
+    typealias Extractor = NotchPulseLivenessFeatures
     /// Never fails — a face with no landmarks still yields a frame; cues that need landmarks abstain.
     ///
     /// - Parameter frame: the full camera frame, not `result.alignedImage` (a tightly-cropped
