@@ -12,5 +12,6 @@
 - **Eliminated Phantom Layout Spacing**: Cleaned up excess space in the Face ID menu by streamlining enrollment states into dynamic single-state cards.
 - **Camera Configuration Streamlined**: Removed unnecessary preview box from the Face ID camera menu to keep settings fast and focused.
 
-## 🎵 Real-Time Music Permission Verification
+## 🎵 Real-Time Music & Lyrics Synchronization
+- **Earlier Lyric Transition**: Synced karaoke lyric lines now display and advance 0.3s faster, delivering seamless anticipation and readability before vocals start.
 - **Visual Confirmation**: The Spotify and Apple Music automation sync button now provides instant visual feedback, turning green with a confirmed checkmark once access is verified by macOS.

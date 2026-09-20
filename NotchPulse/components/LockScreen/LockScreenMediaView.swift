@@ -538,9 +538,10 @@ struct LockScreenMediaView: View {
     private func currentLyricIndex(at time: Double) -> Int {
         let lyrics = musicManager.syncedLyrics
         guard !lyrics.isEmpty else { return 0 }
+        let calibratedTime = time + 0.30
         var result = 0
         for (i, item) in lyrics.enumerated() {
-            if item.time <= time {
+            if item.time <= calibratedTime {
                 result = i
             } else {
                 break

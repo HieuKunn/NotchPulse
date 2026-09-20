@@ -544,8 +544,8 @@ class MusicManager: ObservableObject {
     func currentLyricIndex(at elapsed: Double) -> Int? {
         guard !syncedLyrics.isEmpty else { return nil }
         
-        // Calibrated lyric transition delay reduced to 0.3s as requested
-        let calibratedElapsed = elapsed - 0.30
+        // Calibrated lyric transition advance: 0.30s faster display for upcoming line
+        let calibratedElapsed = elapsed + 0.30
         
         // If before the first lyric line:
         if calibratedElapsed < syncedLyrics[0].time {
