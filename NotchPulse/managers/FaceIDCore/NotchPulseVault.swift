@@ -121,22 +121,32 @@ enum NotchPulseVault {
         NotchPulseKeychainManager.exists(account: sessionKeyAccount)
     }
 
-    /// Prompts Touch ID and unwraps the session key, creating it Touch-ID-gated on first run. Caches only after a real gated
-    /// read-back succeeds — `SecItemAdd` alone returns success even if the user hit Cancel on the auth UI, and bridging
-    /// `LAContext.evaluatePolicy` synchronously via a semaphore deadlocks the thread pool and crashes the process.
-    /// Must succeed before `savePassword`/`readPassword`. Blocking; call from a background task.
-    nonisolated static func unlockSession(reason: String) throws {
+    /// Prompts Touch ID or password via LocalAuthentication and unwraps the session key, creating it on first run.
+    /// Must succeed before `savePassword`/`readPassword`.
+    nonisolated static func unlockSession(reason: String) async throws {
         if cachedKey() != nil { return }
 
-        // The existence check, not the read, decides whether a key gets created (load-bearing): a cancelled Touch ID prompt on
-        // a user-presence item reports `errSecItemNotFound`, indistinguishable from no key — deciding on the read's error would
-        // mint a fresh key (destroying the one that decrypts existing data) on every mis-tap.
+        // Prompt biometric or device owner authentication via LocalAuthentication
+        let context = LAContext()
+        var authError: NSError?
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &authError) {
+            let success = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
+            guard success else { throw KeychainError.authenticationFailed }
+        }
+
+        // The existence check decides whether a key gets created:
         if NotchPulseKeychainManager.exists(account: sessionKeyAccount) {
-            let context = LAContext()
-            context.localizedReason = reason
-            let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: context)
-            setCachedKey(SymmetricKey(data: data))
-            return
+            do {
+                let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount)
+                setCachedKey(SymmetricKey(data: data))
+                return
+            } catch KeychainError.osStatus(let status) where status == errSecMissingEntitlement {
+                if !hasSessionEncryptedData {
+                    try? NotchPulseKeychainManager.delete(account: sessionKeyAccount)
+                } else {
+                    throw KeychainError.osStatus(status)
+                }
+            }
         }
 
         // No key at all, but minting one is still destructive if data is already encrypted under a previous key (e.g. a
@@ -146,18 +156,14 @@ enum NotchPulseVault {
         }
 
         let key = SymmetricKey(size: .bits256)
-        let access = try NotchPulseKeychainManager.makeUserPresenceAccessControl()
+        let access = NotchPulseKeychainManager.makeUserPresenceAccessControl()
         try NotchPulseKeychainManager.save(
             account: sessionKeyAccount,
             data: key.withUnsafeBytes { Data($0) },
             accessControl: access
         )
 
-        // Read back through the gated path rather than trusting the write — only a real read proves authentication happened.
-        let readBackContext = LAContext()
-        readBackContext.localizedReason = reason
-        let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: readBackContext)
-        setCachedKey(SymmetricKey(data: data))
+        setCachedKey(key)
     }
 
     /// Checked without needing the key itself, so this stays answerable precisely when the key can't be read.

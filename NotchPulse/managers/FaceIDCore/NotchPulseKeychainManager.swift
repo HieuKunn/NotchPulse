@@ -62,7 +62,11 @@ enum NotchPulseKeychainManager {
             query[kSecUseAuthenticationContext as String] = context
         }
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        var status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecMissingEntitlement && context != nil {
+            query.removeValue(forKey: kSecUseAuthenticationContext as String)
+            status = SecItemCopyMatching(query as CFDictionary, &item)
+        }
         switch status {
         case errSecSuccess:
             guard let data = item as? Data else { throw KeychainError.unexpectedData }
@@ -97,7 +101,14 @@ enum NotchPulseKeychainManager {
             addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         }
 
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        var status = SecItemAdd(addQuery as CFDictionary, nil)
+        if status == errSecMissingEntitlement && accessControl != nil {
+            // Missing entitlement (e.g. ad-hoc signed local build).
+            // Fall back to device-only unlock without SecAccessControl.
+            addQuery.removeValue(forKey: kSecAttrAccessControl as String)
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            status = SecItemAdd(addQuery as CFDictionary, nil)
+        }
         guard status == errSecSuccess else { throw KeychainError.osStatus(status) }
     }
 
@@ -114,7 +125,7 @@ enum NotchPulseKeychainManager {
     }
 
     /// `.userPresence` requires Touch ID or device password, with no separate no-hardware handling needed.
-    nonisolated static func makeUserPresenceAccessControl() throws -> SecAccessControl {
+    nonisolated static func makeUserPresenceAccessControl() -> SecAccessControl? {
         var accessError: Unmanaged<CFError>?
         guard let access = SecAccessControlCreateWithFlags(
             kCFAllocatorDefault,
@@ -122,8 +133,7 @@ enum NotchPulseKeychainManager {
             .userPresence,
             &accessError
         ) else {
-            let msg = (accessError?.takeRetainedValue() as Error?)?.localizedDescription ?? "unknown"
-            throw KeychainError.accessControlFailed(msg)
+            return nil
         }
         return access
     }

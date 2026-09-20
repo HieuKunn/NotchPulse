@@ -223,9 +223,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         if NotchPulseVault.isSessionUnlocked { return true }
         if NotchPulseVault.hasSessionKey() {
             do {
-                try await Task.detached(priority: .userInitiated) { () -> Void in
-                    try NotchPulseVault.unlockSession(reason: "Unlock Face ID Security")
-                }.value
+                try await NotchPulseVault.unlockSession(reason: "Unlock Face ID Security")
                 return true
             } catch {
                 self.statusMessage = "Biometric authentication required"

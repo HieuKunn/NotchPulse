@@ -18,25 +18,7 @@ struct RecognitionSettingsPage: View {
     private var isSessionUnlocked: Bool { pocController.isSessionUnlocked }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            lockedState
-                .opacity(isSessionUnlocked ? 0 : 1)
-                .allowsHitTesting(!isSessionUnlocked)
-                .accessibilityHidden(isSessionUnlocked)
-
-            unlockedState
-                .opacity(isSessionUnlocked ? 1 : 0)
-                .allowsHitTesting(isSessionUnlocked)
-                .accessibilityHidden(!isSessionUnlocked)
-        }
-        .animation(SettingsMetrics.stateTransitionAnimation, value: isSessionUnlocked)
-        .onAppear { pocController.refreshCredentialStatus() }
-        // Password/name/enrollment flows run in the notch, outside this
-        // window, so nothing else prompts a re-check once one closes.
-        .onChange(of: FaceIDOverlayController.shared.phase) { _, newPhase in
-            guard newPhase == .closed else { return }
-            pocController.refreshCredentialStatus()
-        }
+        unlockedState
     }
 
     // MARK: - Locked

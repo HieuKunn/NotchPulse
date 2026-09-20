@@ -285,9 +285,7 @@ final class FaceIDEnrollmentController {
     private static func unlockForEnrollment(reason: String) async -> Bool {
         guard !NotchPulseVault.isSessionUnlocked else { return true }
         do {
-            try await Task.detached(priority: .userInitiated) {
-                try NotchPulseVault.unlockSession(reason: reason)
-            }.value
+            try await NotchPulseVault.unlockSession(reason: reason)
             return true
         } catch {
             return false
@@ -954,9 +952,7 @@ final class FaceIDEnrollmentController {
         defer { isSavingPassword = false }
 
         do {
-            try await Task.detached(priority: .userInitiated) {
-                try NotchPulseVault.unlockSession(reason: "Set up NotchPulse Face ID")
-            }.value
+            try await NotchPulseVault.unlockSession(reason: "Set up NotchPulse Face ID")
 
             // Only now that the session key exists can samples be encrypted and saved.
             // Empty in the password-only flow, which shares this method.

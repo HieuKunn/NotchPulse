@@ -46,9 +46,7 @@ final class NotchPulsePOCController {
     func unlockSession() async {
         sessionError = nil
         do {
-            try await Task.detached(priority: .userInitiated) {
-                try NotchPulseVault.unlockSession(reason: "Authenticate to set up or use NotchPulse")
-            }.value
+            try await NotchPulseVault.unlockSession(reason: "Authenticate to set up or use NotchPulse")
             isSessionUnlocked = true
         } catch {
             isSessionUnlocked = false
