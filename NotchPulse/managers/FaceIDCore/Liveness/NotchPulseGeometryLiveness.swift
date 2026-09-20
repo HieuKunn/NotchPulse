@@ -66,7 +66,7 @@ nonisolated private let geometryProbeRegions: Set<LandmarkRegion> = [
     .nose, .noseCrest, .medianLine,
 ]
 
-nonisolated enum NotchPulseGeometryLiveness {
+enum NotchPulseGeometryLiveness {
     static func evaluate(_ window: [LivenessFrame], tuning: GeometryTuning = .default) -> NotchPulseGeometryLivenessResult {
         let lastLandmarks = window.last?.landmarks.count ?? 0
         var diagnostics = diagnosticRatios(from: window.last)

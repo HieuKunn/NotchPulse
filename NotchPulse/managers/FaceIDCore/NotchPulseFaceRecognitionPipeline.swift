@@ -9,7 +9,7 @@ import Foundation
 import CoreGraphics
 import Observation
 
-nonisolated struct FaceRecognitionResult {
+struct FaceRecognitionResult {
     let embedding: [Float]
     /// What was actually fed to the embedder, for debug UIs to inspect.
     let alignedImage: CGImage
@@ -18,7 +18,7 @@ nonisolated struct FaceRecognitionResult {
     let face: DetectedFace
 }
 
-nonisolated enum NotchPulseNotchPulseFaceRecognitionPipelineError: LocalizedError {
+enum NotchPulseFaceRecognitionPipelineError: LocalizedError {
     case noFaceDetected
     case alignmentFailed
 
@@ -29,6 +29,8 @@ nonisolated enum NotchPulseNotchPulseFaceRecognitionPipelineError: LocalizedErro
         }
     }
 }
+
+typealias NotchPulseNotchPulseFaceRecognitionPipelineError = NotchPulseFaceRecognitionPipelineError
 
 /// `@Observable` so the debug UI can surface which embedder is active.
 @Observable
@@ -57,7 +59,7 @@ final class NotchPulseFaceRecognitionPipeline {
     nonisolated func recognize(in frame: CGImage, preferNear previousBoundingBox: CGRect? = nil) throws -> FaceRecognitionResult {
         let faces = try NotchPulseFaceDetector.detectFaces(in: frame)
         guard let face = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) else {
-            throw NotchPulseNotchPulseFaceRecognitionPipelineError.noFaceDetected
+            throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
         }
         return try recognize(face, in: frame)
     }
@@ -68,13 +70,13 @@ final class NotchPulseFaceRecognitionPipeline {
         let tier: AlignmentTier
         if embedder.requiresAlignment {
             guard let aligned = NotchPulseFaceAligner.align(face, from: frame) else {
-                throw NotchPulseNotchPulseFaceRecognitionPipelineError.alignmentFailed
+                throw NotchPulseFaceRecognitionPipelineError.alignmentFailed
             }
             inputImage = aligned.image
             tier = aligned.tier
         } else {
             guard let cropped = NotchPulseFaceDetector.crop(face, from: frame) else {
-                throw NotchPulseNotchPulseFaceRecognitionPipelineError.alignmentFailed
+                throw NotchPulseFaceRecognitionPipelineError.alignmentFailed
             }
             inputImage = cropped
             tier = .paddedCrop
@@ -117,7 +119,7 @@ final class NotchPulseFaceRecognitionPipeline {
     }
 }
 
-nonisolated struct ScoredIdentity {
+struct ScoredIdentity {
     let identity: FaceIdentity
     /// Similarity against the identity's averaged template.
     let centroidSimilarity: Float

@@ -79,7 +79,7 @@ struct VisionFeaturePrintEmbedder: FaceEmbedder {
     }
 }
 
-nonisolated enum FaceEmbedding {
+enum FaceEmbedding {
     /// Scales `vector` to unit length; matters once vectors are combined (see `average` below).
     static func l2Normalized(_ vector: [Float]) -> [Float] {
         let norm = sqrt(vector.reduce(Float(0)) { $0 + $1 * $1 })

@@ -30,13 +30,10 @@ struct CameraSettingsPage: View {
                 .accessibilityHidden(!isSessionUnlocked)
         }
         .animation(SettingsMetrics.stateTransitionAnimation, value: isSessionUnlocked)
-        // Gated on isSessionUnlocked so the header's refresh icon doesn't
-        // show while this page is displaying the locked prompt.
-        .preference(
-            key: HeaderTrailingActionKey.self,
-            value: isSessionUnlocked ? HeaderAction(perform: refreshDevices) : nil
-        )
-        .onAppear { pocController.refreshCredentialStatus() }
+        .onAppear {
+            pocController.refreshCredentialStatus()
+            refreshDevices()
+        }
         .onChange(of: isSessionUnlocked) { _, unlocked in
             guard !unlocked else { return }
             hidePreview()
@@ -171,7 +168,7 @@ struct CameraSettingsPage: View {
         }
     }
 
-    /// Fired by the header's refresh icon (see `HeaderTrailingActionKey`).
+    /// Refreshes the list of available camera devices.
     private func refreshDevices() {
         devices = NotchPulseCameraDeviceCatalog.availableDevices()
     }

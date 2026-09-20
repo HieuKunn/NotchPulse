@@ -19,7 +19,7 @@ enum NotchPulseSecureFaceStoreError: LocalizedError {
     }
 }
 
-nonisolated enum NotchPulseSecureFaceStore {
+enum NotchPulseSecureFaceStore {
     /// Distinct filename/extension so plaintext can never be mistaken for ciphertext.
     private static let fileURL: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

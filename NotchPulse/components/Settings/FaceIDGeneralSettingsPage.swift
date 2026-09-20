@@ -35,16 +35,10 @@ struct GeneralSettingsPage: View {
         SettingsGroup {
             SettingsRowContent(title: "Launch at login") {
                 NotchPulseToggle(isOn: Binding(
-                    get: { launchAtLoginEnabled },
+                    get: { LaunchAtLogin.isEnabled },
                     set: { newValue in
+                        LaunchAtLogin.isEnabled = newValue
                         launchAtLoginEnabled = newValue
-                        do {
-                            try LaunchAtLogin.setEnabled(newValue)
-                            launchAtLoginError = nil
-                        } catch {
-                            launchAtLoginEnabled = !newValue
-                            launchAtLoginError = error.localizedDescription
-                        }
                     }
                 ))
             }

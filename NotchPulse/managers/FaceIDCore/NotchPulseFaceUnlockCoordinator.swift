@@ -359,7 +359,7 @@ final class NotchPulseFaceUnlockCoordinator {
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(in: frame.image, preferNear: previousBoundingBox) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
-                return (result, NotchPulseNotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
+                return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
 
             guard let (result, livenessFrame) = outcome else {

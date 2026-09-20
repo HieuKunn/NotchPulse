@@ -9,7 +9,7 @@
 import Vision
 import CoreGraphics
 
-nonisolated enum NotchPulseNotchPulseLivenessFeatures {
+enum NotchPulseLivenessFeatures {
     /// Never fails — a face with no landmarks still yields a frame; cues that need landmarks abstain.
     ///
     /// - Parameter frame: the full camera frame, not `result.alignedImage` (a tightly-cropped
@@ -19,7 +19,7 @@ nonisolated enum NotchPulseNotchPulseLivenessFeatures {
     ) -> LivenessFrame {
         let face = result.face
         let deviceOverlap = NotchPulseDeviceBezelDetector.detect(in: frame, faceBoundingBox: face.boundingBox).faceOverlapFraction
-        let glare = faceCrop.flatMap { NotchPulseNotchPulseGlareCueExtractor.extract(faceCrop: $0) }
+        let glare = faceCrop.flatMap { NotchPulseGlareCueExtractor.extract(faceCrop: $0) }
 
         guard let landmarks = face.landmarks else {
             return LivenessFrame(
@@ -62,3 +62,5 @@ nonisolated enum NotchPulseNotchPulseLivenessFeatures {
         )
     }
 }
+
+typealias NotchPulseNotchPulseLivenessFeatures = NotchPulseLivenessFeatures

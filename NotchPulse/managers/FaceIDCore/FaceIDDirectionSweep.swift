@@ -27,7 +27,7 @@ enum EnrollmentSweepDirection: CaseIterable, Hashable {
         }
     }
 
-    init?(pose: FaceIDFaceIDEnrollmentPose) {
+    init?(pose: FaceIDEnrollmentPose) {
         switch pose {
         case .center:      return nil
         case .left:        self = .left

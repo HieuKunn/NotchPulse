@@ -62,7 +62,7 @@ struct LivenessFrame {
     }
 }
 
-nonisolated enum NotchPulseLivenessScoring {
+enum NotchPulseLivenessScoring {
     // MARK: - Depth/pose consistency (confirm cue)
 
     /// Correlates nose-offset-from-eye-midline against tan(yaw): tracks yaw on a real face,
