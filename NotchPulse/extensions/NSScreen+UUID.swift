@@ -58,13 +58,11 @@ final class NSScreenUUIDCache {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task {
-                await self?.rebuildCache()
-            }
+            self?.rebuildCache()
         }
     }
     
-    private func rebuildCache() {
+    func rebuildCache() {
         var newCache: [String: NSScreen] = [:]
         
         for screen in NSScreen.screens {
@@ -77,10 +75,19 @@ final class NSScreenUUIDCache {
     }
     
     func screen(forUUID uuid: String) -> NSScreen? {
-        return cache[uuid]
+        guard !uuid.isEmpty else { return nil }
+        if let cached = cache[uuid], NSScreen.screens.contains(cached) {
+            return cached
+        }
+        rebuildCache()
+        if let cached = cache[uuid], NSScreen.screens.contains(cached) {
+            return cached
+        }
+        return NSScreen.screens.first(where: { $0.displayUUID == uuid })
     }
     
     var allScreens: [String: NSScreen] {
+        rebuildCache()
         return cache
     }
 }

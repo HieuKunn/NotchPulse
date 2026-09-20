@@ -330,9 +330,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             forName: Notification.Name.automaticallySwitchDisplayChanged, object: nil, queue: nil
         ) { [weak self] _ in
-            guard let self = self, let window = self.window else { return }
             Task { @MainActor in
-                window.alphaValue = self.coordinator.selectedScreenUUID == self.coordinator.preferredScreenUUID ? 1 : 0
+                self?.adjustWindowPosition(changeAlpha: true)
+                self?.setupDragDetectors()
             }
         }
 
@@ -514,6 +514,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func screenConfigurationDidChange() {
+        NSScreenUUIDCache.shared.rebuildCache()
         let currentScreens = NSScreen.screens
 
         let screensChanged =
@@ -527,7 +528,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if screensChanged {
             DispatchQueue.main.async { [weak self] in
                 self?.cleanupWindows()
-                self?.adjustWindowPosition()
+                self?.adjustWindowPosition(changeAlpha: true)
                 self?.setupDragDetectors()
             }
         }
@@ -568,16 +569,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         } else {
-            let selectedScreen: NSScreen
+            let targetScreen: NSScreen?
 
-            if let preferredScreen = NSScreen.screen(withUUID: coordinator.preferredScreenUUID ?? "") {
-                coordinator.selectedScreenUUID = coordinator.preferredScreenUUID ?? ""
-                selectedScreen = preferredScreen
-            } else if Defaults[.automaticallySwitchDisplay], let mainScreen = NSScreen.main,
-                      let mainUUID = mainScreen.displayUUID {
-                coordinator.selectedScreenUUID = mainUUID
-                selectedScreen = mainScreen
+            if let preferredUUID = coordinator.preferredScreenUUID,
+               let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
+                coordinator.selectedScreenUUID = preferredUUID
+                targetScreen = preferredScreen
             } else {
+                // The preferred display was disconnected or not found.
+                // Fall back gracefully so the notch never disappears!
+                // Prioritize:
+                // 1. Built-in MacBook display with physical notch (safeAreaInsets.top > 0)
+                // 2. NSScreen.main (active screen)
+                // 3. NSScreen.screens.first (primary display with menu bar)
+                let fallback = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+                    ?? NSScreen.main
+                    ?? NSScreen.screens.first
+
+                if let fallback, let fallbackUUID = fallback.displayUUID {
+                    coordinator.selectedScreenUUID = fallbackUUID
+                    targetScreen = fallback
+                } else {
+                    targetScreen = nil
+                }
+            }
+
+            guard let selectedScreen = targetScreen else {
                 if let window = window {
                     window.alphaValue = 0
                 }

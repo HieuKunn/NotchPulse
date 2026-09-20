@@ -9,6 +9,7 @@
 ## 🎵 Crystal-Clear Lock Screen Lyrics
 - **Clean Syllable Display**: Enhanced the synchronized lyrics engine to automatically strip syllable-level timestamp tags from extended LRC sources, presenting beautiful, distraction-free lyrics across both the compact player and the full-screen lock screen display.
 
-## ⚡ Unified Hardware Morphing & Performance
+## ⚡ Unified Hardware Morphing & Multi-Display Support
+- **Seamless Display Unplug Fallback**: Unplugging an external monitor now instantly and smoothly transitions the notch back to your MacBook's built-in notch display (or the remaining active display), ensuring the notch never disappears when disconnecting displays.
 - **Unified Notch & Pill Morphing**: Face ID is integrated directly into the MacBook Notch and Dynamic Island, smoothly expanding downward during verification and retracting back into place upon completion.
 - **Background Efficiency**: Facial recognition resources now load on-demand, reducing idle memory footprint and preventing unnecessary background CPU and GPU usage.
