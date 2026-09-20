@@ -119,22 +119,6 @@ struct SettingsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .mask {
-                    VStack(spacing: 0) {
-                        LinearGradient(
-                            stops: [
-                                .init(color: .clear, location: 0.0),
-                                .init(color: .black, location: 1.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 24)
-
-                        Rectangle()
-                            .fill(Color.black)
-                    }
-                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea(.all, edges: .top)
