@@ -215,13 +215,18 @@ struct FaceIDOverlayGeometry {
         return FaceIDOverlayGeometry(closedSize: CGSize(width: width, height: height), isPhysicalNotch: true)
     }
 
-    /// Picks the screen the overlay should show on. If a display is pinned
-    /// (`NotchPulseFaceIDSettings.preferredDisplayID`), it's used only if still connected — no
-    /// fallback. Otherwise: the physical notch if any display has one, else the primary screen.
+    /// Picks the screen the overlay should show on. Follows NotchPulse's active display
+    /// (`NotchPulseViewCoordinator.shared.selectedScreenUUID` / `preferredScreenUUID`),
+    /// falling back to the physical notch display if available, else primary.
     @MainActor
     static func preferredScreen() -> NSScreen? {
-        if let targetID = NotchPulseFaceIDSettings.shared.preferredDisplayID {
-            return NSScreen.screens.first { $0.stableDisplayID == targetID }
+        let selectedUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
+        if !selectedUUID.isEmpty, let screen = NSScreen.screen(withUUID: selectedUUID) {
+            return screen
+        }
+        if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
+           let screen = NSScreen.screen(withUUID: prefUUID) {
+            return screen
         }
         return NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
     }

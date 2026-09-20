@@ -117,9 +117,7 @@ final class FaceIDOverlayWindowController {
             window.ignoresMouseEvents = true
             return
         }
-        // Lock screen keeps the original whole-window behaviour: nothing there sits
-        // under the notch to click, and hover-to-retry must not regress.
-        guard !isSkyLightDelegated, let rect = interactiveContentRect, let hostView = window.contentView else {
+        guard let rect = interactiveContentRect, let hostView = window.contentView else {
             window.ignoresMouseEvents = false
             return
         }

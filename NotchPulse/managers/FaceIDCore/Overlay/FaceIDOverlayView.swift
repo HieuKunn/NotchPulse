@@ -291,6 +291,7 @@ struct FaceIDOverlayView: View {
         // Applied after the shadow so both travel together, before `.onHover`.
         .offset(y: verticalOffset)
         .animation(.easeOut(duration: 0.18), value: isHovering)
+        .contentShape(FaceIDOverlayShape(topRadius: topRadius, bottomRadius: bottomRadius, style: style))
         .onHover { hovering in
             isHovering = hovering
             if hovering {

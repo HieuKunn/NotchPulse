@@ -107,10 +107,14 @@ final class FaceIDOverlayController {
 
     // MARK: - Armed mode (FaceUnlockCoordinator)
 
+    /// Timestamp when arm() was called, used to ignore accidental hover triggers while the window/pill is animating in.
+    private var armedAt: ContinuousClock.Instant?
+
     /// Arms the overlay for the lock-screen flow: shows the window and keeps it
     /// up until `disarm()`. `onActivate` restarts scanning on hover.
     func arm(onActivate: @escaping () -> Void) {
         isArmed = true
+        armedAt = .now
         self.onActivate = onActivate
         geometry = windowController.currentGeometry
         phase = .closed
@@ -142,6 +146,7 @@ final class FaceIDOverlayController {
     /// `collapse()` checks `isArmed` once its hold expires and hides for real then.
     func disarm() {
         isArmed = false
+        armedAt = nil
         onActivate = nil
         // Undocked before the guard: if a success collapse is already in flight, this
         // turns it into a full slide-off-screen exit rather than a shrink to a resting pill.
@@ -302,6 +307,10 @@ final class FaceIDOverlayController {
         // Gated here rather than in `updateInteractivity()` so the cosmetic hover bump
         // stays unaffected — only the retry itself is removed.
         guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
+        // Prevent accidental hover activation while the window is showing up or the pill is sliding into place
+        if let armedAt, ContinuousClock.now - armedAt < .milliseconds(800) {
+            return
+        }
         switch phase {
         case .closed, .failure:
             guard let onActivate else {
