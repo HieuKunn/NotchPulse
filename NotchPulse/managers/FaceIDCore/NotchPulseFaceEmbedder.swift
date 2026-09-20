@@ -23,6 +23,8 @@ protocol FaceEmbedder: Sendable {
     nonisolated func embedding(for face: CGImage) throws -> [Float]
 }
 
+typealias NotchPulseFaceEmbedder = FaceEmbedder
+
 enum FaceEmbedderError: LocalizedError {
     case noObservation
     case unsupportedElementType

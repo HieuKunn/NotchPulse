@@ -91,8 +91,8 @@ struct VerifyResult {
 
 final class NotchPulseEnrollmentService: @unchecked Sendable {
     static let minimumCaptureQuality: Float = 0.35
-    private var embedder: NotchPulseFaceEmbedder {
-        (try? NotchPulseArcFaceEmbedder.shared()) ?? NotchPulseVisionFeaturePrintEmbedder()
+    private var embedder: FaceEmbedder {
+        (try? ArcFaceEmbedder()) ?? VisionFeaturePrintEmbedder()
     }
     
     static func hasEnrolledFace() -> Bool {
@@ -517,7 +517,6 @@ final class FaceIDManager: NSObject, ObservableObject {
                     let result = try self.enrollmentService.verify(currentEmbedding: analysis.embedding)
                     
                     let sim = result.similarity
-                    let threshold: Float = 0.63
                     let confidence = Int(max(0, min(100, sim * 100)))
                     self.testConfidence = confidence
                     

@@ -117,6 +117,10 @@ enum NotchPulseVault {
         NotchPulseKeychainManager.exists(account: passwordBlobAccount)
     }
 
+    nonisolated static func hasSessionKey() -> Bool {
+        NotchPulseKeychainManager.exists(account: sessionKeyAccount)
+    }
+
     /// Prompts Touch ID and unwraps the session key, creating it Touch-ID-gated on first run. Caches only after a real gated
     /// read-back succeeds — `SecItemAdd` alone returns success even if the user hit Cancel on the auth UI, and bridging
     /// `LAContext.evaluatePolicy` synchronously via a semaphore deadlocks the thread pool and crashes the process.

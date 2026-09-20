@@ -222,6 +222,10 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     /// Called on arm, and again whenever the overlay hover-activates.
+    func startScanManually() {
+        startScanCycle()
+    }
+
     private func startScanCycle() {
         scanTask?.cancel()
         scanGeneration &+= 1
