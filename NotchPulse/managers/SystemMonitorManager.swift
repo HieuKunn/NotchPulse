@@ -32,6 +32,7 @@ public class SystemMonitorManager: ObservableObject {
     @Published public var cpuSystem: Double = 0.0
     @Published public var cpuIdle: Double = 100.0
     @Published public var cpuHistory: [Double] = Array(repeating: 5.0, count: 24)
+    @Published public var cpuSystemHistory: [Double] = Array(repeating: 2.0, count: 24)
 
     // MARK: - RAM Properties
     @Published public var ramUsedGB: Double = 0.0
@@ -119,6 +120,10 @@ public class SystemMonitorManager: ObservableObject {
             self.cpuHistory.append(totalCPU)
             if self.cpuHistory.count > 24 {
                 self.cpuHistory.removeFirst()
+            }
+            self.cpuSystemHistory.append(sysCPU)
+            if self.cpuSystemHistory.count > 24 {
+                self.cpuSystemHistory.removeFirst()
             }
 
             // Update RAM
