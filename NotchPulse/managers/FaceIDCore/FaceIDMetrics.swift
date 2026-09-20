@@ -35,8 +35,8 @@ enum FaceIDMetrics {
     static let pillSecurityNoticeHeight: CGFloat = 320
     static let notchPreSetupHeight: CGFloat = 220
     static let pillPreSetupHeight: CGFloat = 220
-    static let notchEnrollHeight: CGFloat = 344
-    static let pillEnrollHeight: CGFloat = 350
+    static let notchEnrollHeight: CGFloat = 380
+    static let pillEnrollHeight: CGFloat = 365
     static let notchNameHeight: CGFloat = 230
     static let pillNameHeight: CGFloat = 230
     static let notchPasswordHeight: CGFloat = 260
@@ -198,8 +198,8 @@ enum FaceIDMetrics {
 
     static let enrollInstructionBottomPadding: CGFloat = 30
     static let enrollInstructionHorizontalPadding: CGFloat = 20
-    static let enrollCameraTopPaddingNotch: CGFloat = 40
-    static let enrollCameraTopPaddingPill: CGFloat = 30
+    static let enrollCameraTopPaddingNotch: CGFloat = 68
+    static let enrollCameraTopPaddingPill: CGFloat = 48
 
     static let enrollCloseButtonSize: CGFloat = 28
     /// Inset from the panel's top and trailing edges — independent of

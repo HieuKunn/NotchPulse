@@ -17,7 +17,7 @@ struct RecognitionSettingsPage: View {
     // MARK: - Content
 
     private var unlockedState: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
             SettingsGroup {
                 SettingsSteppedSliderRowContent(
                     title: "Match confidence",

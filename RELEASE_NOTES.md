@@ -1,13 +1,14 @@
-# NotchPulse v4.2.0
+# NotchPulse v4.2.0 — IMPORTANT RELEASE
 
-## Seamless Unified Face ID Morphing
-- **Unified Hardware Morphing**: Face ID is now built directly into the MacBook Notch and Dynamic Island instead of opening in a separate floating window. The cutout or pill naturally expands downward with continuous corner curves to show the scanning animation and smoothly retracts back into place upon verification.
-- **Fluid Desktop Transition**: Face ID seamlessly carries your session from lock screen wake directly into your active desktop. The notch smoothly shrinks to its resting shape right as your desktop appears, providing an uninterrupted, native macOS experience.
-- **Smart Media & HUD Tucking**: Active music playback, album artwork, and volume/brightness HUD indicators temporarily tuck inside whenever Face ID begins scanning, eliminating overlapping elements and keeping the visual silhouette clean.
-- **Pure Lock Screen Presentation**: When waking on the lock screen, the notch maintains a clean, unified resting state without leaking media controls or text, expanding only when active face recognition takes place.
+## 🔒 Reliable Face ID & System Authorization
+- **Seamless System Unlocking**: Fixed system administrator authorization so Face ID smoothly unlocks system prompts and automatically types your stored password. Eliminated duplicate Touch ID popups and conflicting authentication requests.
+- **Improved Prompt Response**: Enhanced the transition timing when entering passwords into security dialogs, ensuring keyboard focus is always ready and keystrokes are received without delay.
+- **Full-Scale Setup View**: Restored the Face ID enrollment experience to full 100% scale with comfortable margins below the MacBook notch, ensuring camera framing circles and facial guidance ticks are clearly visible without being cut off.
+- **Compact Settings Interface**: Eliminated excess empty spacing across the Face ID settings pages, providing a clean, balanced, and unified control panel.
 
-## Comprehensive Background Resource Optimization
-- **On-Demand Memory Allocation**: The facial recognition pipeline now loads into system memory on-demand rather than upon application launch, saving over 100 MB of continuous background memory.
-- **Eliminated Idle Background Wakeups**: System security authorization tracking now uses intelligent conditional scheduling, eliminating redundant background checks and freeing up CPU cycles when Face ID authentication is idle.
-- **Smart Animation & GPU Throttling**: Audio waveform spectrums and playback animations now immediately pause rendering whenever music is paused or when the notch is closed, removing unnecessary GPU drawing in the background.
-- **Timer Lifecycle Management**: Background facial animation and glance timers are now properly invalidated upon view exit, preventing background timer accumulation.
+## 🎵 Crystal-Clear Lock Screen Lyrics
+- **Clean Syllable Display**: Enhanced the synchronized lyrics engine to automatically strip syllable-level timestamp tags from extended LRC sources, presenting beautiful, distraction-free lyrics across both the compact player and the full-screen lock screen display.
+
+## ⚡ Unified Hardware Morphing & Performance
+- **Unified Notch & Pill Morphing**: Face ID is integrated directly into the MacBook Notch and Dynamic Island, smoothly expanding downward during verification and retracting back into place upon completion.
+- **Background Efficiency**: Facial recognition resources now load on-demand, reducing idle memory footprint and preventing unnecessary background CPU and GPU usage.

@@ -464,7 +464,7 @@ class MusicManager: ObservableObject {
                    let first = jsonArray.first {
                     let plain = (first["plainLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     let synced = (first["syncedLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                    let resolved = plain.isEmpty ? synced : plain
+                    let resolved = plain.isEmpty ? Self.stripLRCTimestamps(from: synced) : plain
                     if !resolved.isEmpty {
                         self.currentLyrics = resolved
                         self.isFetchingLyrics = false
@@ -487,6 +487,14 @@ class MusicManager: ObservableObject {
     }
 
     // MARK: - Synced lyrics helpers
+    static func stripLRCTimestamps(from string: String) -> String {
+        let lineTagPattern = #"\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]"#
+        let wordTagPattern = #"<\d{1,2}:\d{2}(?:\.\d{1,3})?>"#
+        var clean = string.replacingOccurrences(of: lineTagPattern, with: "", options: .regularExpression)
+        clean = clean.replacingOccurrences(of: wordTagPattern, with: "", options: .regularExpression)
+        return clean.trimmingCharacters(in: .whitespaces)
+    }
+
     private func parseLRC(_ lrc: String) -> [(time: Double, text: String)] {
         var result: [(Double, String)] = []
         // Regex matches [mm:ss.xx] or [mm:ss.xxx] or [m:ss]
@@ -506,9 +514,9 @@ class MusicManager: ObservableObject {
             let matches = regex.matches(in: line, range: NSRange(location: 0, length: nsLine.length))
             guard !matches.isEmpty else { return }
 
-            // Extract the lyric text after stripping all timestamp tags
-            let cleanText = regex.stringByReplacingMatches(in: line, options: [], range: NSRange(location: 0, length: nsLine.length), withTemplate: "")
-                .trimmingCharacters(in: .whitespaces)
+            // Extract the lyric text after stripping all line and word-by-word timestamp tags
+            let cleanWithoutLine = regex.stringByReplacingMatches(in: line, options: [], range: NSRange(location: 0, length: nsLine.length), withTemplate: "")
+            let cleanText = Self.stripLRCTimestamps(from: cleanWithoutLine)
 
             guard !cleanText.isEmpty else { return }
 

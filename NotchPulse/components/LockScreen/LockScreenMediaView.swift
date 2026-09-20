@@ -111,7 +111,8 @@ struct LockScreenMediaView: View {
                     let elapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
                     let activeIndex = musicManager.currentLyricIndex(at: elapsed)
                     let text = musicManager.lyricLine(at: elapsed)
-                    let displayText = text.isEmpty ? "♪  ♫  ♪" : text
+                    let cleanText = MusicManager.stripLRCTimestamps(from: text)
+                    let displayText = cleanText.isEmpty ? "♪  ♫  ♪" : cleanText
                     
                     Button {
                         windowController.setFullScreen(true)
@@ -134,7 +135,7 @@ struct LockScreenMediaView: View {
                     .help("Click to expand to full-screen lyrics (Karaoke)")
                 }
             } else if !musicManager.currentLyrics.isEmpty {
-                let firstLine = musicManager.currentLyrics
+                let firstLine = MusicManager.stripLRCTimestamps(from: musicManager.currentLyrics)
                     .components(separatedBy: .newlines)
                     .first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? "View Lyrics"
                 Button {
@@ -422,7 +423,7 @@ struct LockScreenMediaView: View {
                                 Button {
                                     musicManager.seek(to: item.time)
                                 } label: {
-                                    Text(item.text)
+                                    Text(MusicManager.stripLRCTimestamps(from: item.text))
                                         .font(.system(size: isCurrent ? activeFontSize : inactiveFontSize, weight: isCurrent ? .bold : .medium, design: .rounded))
                                         .foregroundStyle(
                                             isCurrent

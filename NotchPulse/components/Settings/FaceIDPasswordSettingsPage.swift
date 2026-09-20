@@ -21,16 +21,13 @@ struct PasswordSettingsPage: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            noPasswordState
-                .opacity(pageState == .noPassword ? 1 : 0)
-                .allowsHitTesting(pageState == .noPassword)
-                .accessibilityHidden(pageState != .noPassword)
-
-            unlockedState
-                .opacity(pageState == .unlocked ? 1 : 0)
-                .allowsHitTesting(pageState == .unlocked)
-                .accessibilityHidden(pageState != .unlocked)
+        Group {
+            switch pageState {
+            case .noPassword:
+                noPasswordState
+            case .unlocked:
+                unlockedState
+            }
         }
         .animation(SettingsMetrics.stateTransitionAnimation, value: pageState)
         .onAppear { pocController.refreshCredentialStatus() }

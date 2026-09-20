@@ -21,7 +21,7 @@ struct FaceIDSettingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
                 if !isAccessibilityGranted || !isCameraGranted {
                     permissionsWarning
                 }

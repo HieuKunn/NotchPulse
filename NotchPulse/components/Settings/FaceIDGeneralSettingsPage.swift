@@ -18,7 +18,7 @@ struct FaceIDUnlockOptionsPage: View {
             }
         }
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             SettingsSectionTitle(text: "Behaviour")
             SettingsGroup {
                 SettingsRowContent(title: "Retry again on Hover") {
@@ -45,7 +45,7 @@ struct FaceIDUnlockOptionsPage: View {
             }
         }
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             SettingsSectionTitle(text: "Animation")
             SettingsGroup {
                 SettingsRowContent(title: "Show animation") {
@@ -59,7 +59,7 @@ struct FaceIDUnlockOptionsPage: View {
             }
         }
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             SettingsSectionTitle(text: "System & Terminal Authorization")
             SettingsGroup {
                 SettingsRowContent(

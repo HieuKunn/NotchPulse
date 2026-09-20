@@ -120,7 +120,7 @@ enum SettingsMetrics {
     /// Centered empty/locked-state block (icon, caption, action button).
     static let emptyStateIconSize: CGFloat = 34
     static let emptyStateSpacing: CGFloat = 12
-    static let emptyStateMinHeight: CGFloat = 340
+    static let emptyStateMinHeight: CGFloat = 110
     /// Crossfade between the locked and unlocked states of the Password page.
     static let stateTransitionAnimation = Animation.easeInOut(duration: 0.28)
 
@@ -161,7 +161,7 @@ enum SettingsMetrics {
     static let optionPreviewBorderWidth: CGFloat = 1
     static let sectionTitleFont = Font.system(size: 13, weight: .medium)
     static let sectionTitleHorizontalInset: CGFloat = 10
-    static let sectionTitleVerticalPadding: CGFloat = 8
+    static let sectionTitleVerticalPadding: CGFloat = 2
 
     static let contentHorizontalPadding: CGFloat = 16
 

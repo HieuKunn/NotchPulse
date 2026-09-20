@@ -435,7 +435,14 @@ struct SettingsEmptyStateView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: SettingsMetrics.emptyStateMinHeight)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity)
+        .background(SettingsMetrics.rowColor)
+        .overlay(
+            RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
+                .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius))
     }
 }
 

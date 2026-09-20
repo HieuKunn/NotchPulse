@@ -286,18 +286,12 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
             if verified {
                 self.statusMessage = "Authorized"
+                FaceIDOverlayController.shared.finish(success: true)
+                try? await Task.sleep(for: .milliseconds(150))
                 await self.injectStoredPassword(into: targetApp)
-            } else if self.settings.useAppleAuthFallback {
-                self.statusMessage = "Face ID unconfirmed — Apple Biometrics fallback…"
-                let appleVerified = await self.authenticateWithAppleBiometrics(reason: "Authorize System Configuration")
-                if appleVerified {
-                    self.statusMessage = "Authorized via Apple Biometrics"
-                    await self.injectStoredPassword(into: targetApp)
-                } else {
-                    self.statusMessage = "Authorization cancelled"
-                }
             } else {
                 self.statusMessage = "Face ID not recognized"
+                FaceIDOverlayController.shared.finish(success: false)
             }
 
             self.isCurrentlyVerifying = false
@@ -393,15 +387,12 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
             if settings.livenessChecksEnabled {
                 let snapshot = liveness.observe(livenessFrame)
-                switch snapshot.decision {
-                case .denied(by: let cue):
+                if case .denied(let cue) = snapshot.decision {
                     print("[SystemAuth] Liveness rejected: \(cue)")
                     try? await Task.sleep(for: .milliseconds(80))
                     continue
-                case .confirmed:
+                } else if snapshot.decision.isConfirmed {
                     livenessConfirmed = true
-                case .pending:
-                    break
                 }
             }
 
@@ -479,20 +470,23 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         }
 
         if let app = targetApp {
-            app.activate()
+            app.activate(options: [.activateIgnoringOtherApps])
             let bundle = app.bundleIdentifier ?? ""
-            let requiresPasswordButton = bundle.contains("LocalAuthentication")
-                || bundle.contains("CoreAuthUI")
-                || bundle.contains("AuthenticationServices")
-                || bundle.contains("coreservices.uiagent")
+            let requiresPasswordButton = bundle.localizedCaseInsensitiveContains("LocalAuthentication")
+                || bundle.localizedCaseInsensitiveContains("CoreAuthUI")
+                || bundle.localizedCaseInsensitiveContains("AuthenticationServices")
+                || bundle.localizedCaseInsensitiveContains("coreservices.uiagent")
             if requiresPasswordButton {
                 let targetPid = app.processIdentifier
                 prepareLocalAuthenticationPasswordField(processIdentifier: targetPid)
+                try? await Task.sleep(for: .milliseconds(350))
+            } else {
+                try? await Task.sleep(for: .milliseconds(120))
             }
+        } else {
+            try? await Task.sleep(for: .milliseconds(80))
         }
 
-        // Brief delay to allow target application to claim keyboard focus
-        try? await Task.sleep(for: .milliseconds(70))
         try? KeystrokeInjector.typeAndReturn(passwordData)
     }
 
@@ -516,7 +510,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef)
             if let title = titleRef as? String {
                 let lower = title.lowercased()
-                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") || lower.contains("use password") {
+                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") || lower.contains("use password") || lower.contains("sử dụng mật khẩu") {
                     return el
                 }
             }
@@ -524,7 +518,15 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             AXUIElementCopyAttributeValue(el, kAXDescriptionAttribute as CFString, &descRef)
             if let desc = descRef as? String {
                 let lower = desc.lowercased()
-                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") || lower.contains("use password") {
+                if lower.contains("password") || lower.contains("passcode") || lower.contains("mật khẩu") || lower.contains("use password") || lower.contains("sử dụng mật khẩu") {
+                    return el
+                }
+            }
+            var idRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXIdentifierAttribute as CFString, &idRef)
+            if let ident = idRef as? String {
+                let lower = ident.lowercased()
+                if lower.contains("password") || lower.contains("usepassword") {
                     return el
                 }
             }
