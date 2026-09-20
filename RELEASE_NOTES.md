@@ -1,12 +1,10 @@
-# NotchPulse v4.0.0
+# NotchPulse v4.1.0
 
-## 🔒 Face ID & Guided Setup
-- **Interactive Camera Setup Overlay**: Restored the guided Face ID camera setup with a dynamic circular progress ring, real-time head pose guidance, and instant visual feedback around the camera notch.
-- **Improved Straight-On Face Detection**: Fine-tuned face alignment and responsiveness, making initial head capture and subsequent unlocking smooth, reliable, and instantaneous.
-
-## ✨ Glass Design & macOS Support
-- **Adaptive Glass Aesthetics**: Refined the Settings and Face ID Setup windows with a modern, native translucent glass styling. This beautiful `NSVisualEffectView` seamlessly adapts to all supported macOS versions without constraints.
+## 🔒 Face ID & Effortless Setup
+- **Instant Enrollment**: You can now start setting up Face ID immediately with a single click. There is no longer any password barrier required before initiating camera enrollment.
+- **Always-Ready Face Unlock**: Removed session lock timeouts. Once Face ID is set up, it stays continuously active and ready to seamlessly authenticate on wake or screen lock.
+- **Unified Settings Page**: Brought all Face ID controls together into one clean, continuous scrollable page. You can easily adjust recognition sensitivity, manage your saved face, and configure your preferred camera in one place.
 
 ## 🐛 Fixes & Improvements
-- **Refined Release Display**: The Settings version tag dynamically tracks updates and patch releases seamlessly.
-- **Stability Polish**: Smoother transitions when switching between Face ID settings and system preferences.
+- **Reliable Enrollment Saving**: Fixed an issue where saving your face profile could stall during setup, ensuring enrollment finishes immediately upon completing the circular camera scan.
+- **Enhanced Settings Navigation**: Polished the left-hand navigation sidebar for smooth switching between settings categories.

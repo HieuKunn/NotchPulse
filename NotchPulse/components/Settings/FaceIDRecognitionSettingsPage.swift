@@ -82,8 +82,6 @@ struct RecognitionSettingsPage: View {
             set: { settings.minimumFaceWidth = DetectionDistanceLevel.from(sliderIndex: $0).minimumFaceWidth }
         )
     }
-
-    }
 }
 
 /// The three selectable points on the "Match confidence" slider — named
