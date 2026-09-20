@@ -123,6 +123,11 @@ final class NotchPulseFaceEnrollmentStore {
         identities.filter(\.isEnabled)
     }
 
+    /// True if there is at least one active enrolled face identity.
+    var hasEnrolledFace: Bool {
+        !activeIdentities.isEmpty
+    }
+
     private init() {
         reloadIfUnlocked()
         // Reload whenever the session key changes, regardless of call site, so this store can't go stale

@@ -193,7 +193,7 @@ public class SystemMonitorManager: ObservableObject {
     }
 
     // MARK: - RAM Fetch
-    private func fetchRAMUsage() -> (used: Double, total: Double, percent: Double, app: Double, wired: Double, comp: Double, free: Double, pressure: String) {
+    private func fetchRAMUsage() -> (used: Double, total: Double, percent: Double, app: Double, wired: Double, comp: Double, free: Double, pressure: String, pressurePercent: Double) {
         var vmStats = vm_statistics64()
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
         let result = withUnsafeMutablePointer(to: &vmStats) {

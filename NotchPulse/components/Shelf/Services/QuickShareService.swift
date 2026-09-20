@@ -16,6 +16,7 @@ struct QuickShareProvider: Identifiable, Hashable, Sendable {
     var supportsRawText: Bool
 }
 
+@MainActor
 class QuickShareService: ObservableObject {
     static let shared = QuickShareService()
     

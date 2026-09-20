@@ -53,7 +53,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            self?.handleAppNotification(note)
+            Task { @MainActor [weak self] in
+                self?.handleAppNotification(note)
+            }
         }
 
         let launched = nc.addObserver(
@@ -61,7 +63,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            self?.handleAppNotification(note)
+            Task { @MainActor [weak self] in
+                self?.handleAppNotification(note)
+            }
         }
 
         let deactivated = nc.addObserver(
@@ -69,7 +73,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            self?.handleDeactivation(note)
+            Task { @MainActor [weak self] in
+                self?.handleDeactivation(note)
+            }
         }
 
         workspaceObservers = [activated, launched, deactivated]
@@ -367,7 +373,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         }
 
         if let app = targetApp {
-            app.activate(options: [.activateIgnoringOtherApps])
+            app.activate()
             let bundle = app.bundleIdentifier ?? ""
             let requiresPasswordButton = bundle.contains("LocalAuthentication")
                 || bundle.contains("CoreAuthUI")

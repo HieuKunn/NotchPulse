@@ -300,7 +300,15 @@ struct StatsView: View {
 
     // MARK: - RAM Card
     private var ramCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let pressureColor: Color = {
+            switch monitor.ramPressure {
+            case "Critical": return .red
+            case "Warning": return .yellow
+            default: return Color(red: 0.20, green: 0.72, blue: 0.28)
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: 6) {
             // Header
             HStack(alignment: .center, spacing: 6) {
                 Image(systemName: "memorychip")
@@ -315,14 +323,6 @@ struct StatsView: View {
                     .foregroundStyle(.white)
 
                 // Pressure Pill (Synchronized with native macOS memory pressure)
-                let pressureColor: Color = {
-                    switch monitor.ramPressure {
-                    case "Critical": return .red
-                    case "Warning": return .yellow
-                    default: return Color(red: 0.20, green: 0.72, blue: 0.28)
-                    }
-                }()
-
                 HStack(spacing: 3) {
                     Circle()
                         .fill(pressureColor)
