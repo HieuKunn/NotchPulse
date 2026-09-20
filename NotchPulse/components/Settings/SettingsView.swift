@@ -119,9 +119,9 @@ struct SettingsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(.all, edges: .top)
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
@@ -2274,15 +2274,9 @@ struct SettingsDetailHeaderBar: View {
         }
         .padding(.horizontal, 24)
         .frame(height: 52)
-        .background {
-            FaceIDVisualEffectView(material: .headerView, blendingMode: .withinWindow)
-                .overlay {
-                    Color(nsColor: .windowBackgroundColor)
-                }
-        }
+        .background(Color(nsColor: .windowBackgroundColor))
         .overlay(alignment: .bottom) {
             Divider()
-                .opacity(0.4)
         }
     }
 }
