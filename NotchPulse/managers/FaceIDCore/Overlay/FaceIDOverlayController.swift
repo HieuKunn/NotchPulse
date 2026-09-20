@@ -230,12 +230,17 @@ final class FaceIDOverlayController {
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         geometry = windowController.currentGeometry
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-        primeWindowIfNeeded { [weak self] in
+        
+        content = .scan(.idle)
+        phase = .closed
+        isPillDocked = true
+        windowController.show()
+        windowController.displaySynchronously()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
             guard let self else { return }
-            content = .scan(.idle)
-            phase = .scanning
-            windowController.show()
-            updateInteractivity()
+            self.phase = .scanning
+            self.updateInteractivity()
         }
     }
 
@@ -249,12 +254,16 @@ final class FaceIDOverlayController {
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         geometry = windowController.currentGeometry
-        primeWindowIfNeeded { [weak self] in
+        content = .onboarding(controller)
+        phase = .closed
+        isPillDocked = true
+        windowController.show()
+        windowController.displaySynchronously()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
             guard let self else { return }
-            content = .onboarding(controller)
-            phase = .onboarding
-            windowController.show()
-            updateInteractivity()
+            self.phase = .onboarding
+            self.updateInteractivity()
         }
     }
 

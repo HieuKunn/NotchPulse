@@ -5,6 +5,7 @@
 - **Seamless Scroll Boundary**: Removed the bottom border divider from the header bar and refined top scroll fading so settings content transitions invisibly underneath without harsh dividing lines.
 
 ## 🔒 Instant Face ID System Authorization
+- **Unified Notch & Island Dropdown**: Face ID now expands directly downwards from the MacBook Notch or Dynamic Island silhouette, smoothly dropping its height to show the scanning animation and seamlessly retracting back into the notch when unlock finishes.
 - **Active Prompt Interception**: Face ID now reliably intercepts macOS administrator approval and Touch ID dialogs as soon as they appear on screen, scanning immediately to authorize actions.
 - **Enhanced CoreAuthUI Detection**: Upgraded system prompt detection with continuous on-screen window tracking for native macOS security agents and Touch ID sheets.
 

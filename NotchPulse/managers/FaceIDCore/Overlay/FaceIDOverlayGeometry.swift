@@ -37,8 +37,8 @@ struct FaceIDOverlayGeometry {
 
     // MARK: - Pill style (Dynamic Island)
 
-    /// Deliberately narrower than every expanded footprint so growth reads as visible.
-    static let pillClosedSize = CGSize(width: 80, height: 24)
+    /// Resting capsule size matching NotchPulse's Dynamic Island
+    static let pillClosedSize = CGSize(width: 120, height: 28)
 
     /// Shortened drop-down footprint for dynamic island, sized to comfortably fit the 80%-scaled animation.
     static let pillOpenSize = CGSize(width: 155, height: 135)
@@ -200,7 +200,7 @@ struct FaceIDOverlayGeometry {
     static func forScreen(_ screen: NSScreen) -> FaceIDOverlayGeometry {
         let isNotchStyle = Defaults[.notchStyle] == .notch
         let screenUUID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? String
-        let closedSize = getClosedNotchSize(screenUUID: screenUUID)
+        let closedSize = isNotchStyle ? getClosedNotchSize(screenUUID: screenUUID) : pillClosedSize
         let isPhysical = screen.safeAreaInsets.top > 0
 
         return FaceIDOverlayGeometry(
