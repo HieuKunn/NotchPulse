@@ -366,10 +366,10 @@ final class FaceIDEnrollmentController {
     // Pose-matching bands, in radians. Yaw: left turn is positive, matching the mirrored
     // preview. Pitch's sign is the opposite of the initial guess — see `pitchMatches` below.
     private let yawInnerThreshold: Float = 0.25
-    private let yawCenterTolerance: Float = 0.18
+    private let yawCenterTolerance: Float = 0.22
     private let yawOuterCap: Float = 1.2
     private let pitchInnerThreshold: Float = 0.20
-    private let pitchCenterTolerance: Float = 0.15
+    private let pitchCenterTolerance: Float = 0.20
     private let pitchOuterCap: Float = 0.9
     /// If a pose takes longer than this, matching bands widen by `stallWidenFactor` so an
     /// unusual camera angle can't permanently strand the user.
@@ -724,6 +724,7 @@ final class FaceIDEnrollmentController {
                 }
                 return EnrollFrameOutcome.ready(try pipeline.recognize(face, in: image))
             } catch {
+                NSLog("[FaceIDEnrollment] Recognition pipeline error: %@", error.localizedDescription)
                 return EnrollFrameOutcome.noFace
             }
         }.value
@@ -746,9 +747,19 @@ final class FaceIDEnrollmentController {
             isTooFar = true
             return
         case .ready(let result):
-            guard let yaw = result.face.yaw, let pitch = result.face.pitch else {
+            guard let yaw = result.face.yaw else {
                 faceDetected = true
                 currentYaw = nil
+                currentPitch = nil
+                matchStreak = 0
+                poseHoldStartedAt = nil
+                isTooFar = false
+                return
+            }
+            let pitch = result.face.pitch ?? (pose == .center ? 0 : nil)
+            guard let pitch else {
+                faceDetected = true
+                currentYaw = yaw
                 currentPitch = nil
                 matchStreak = 0
                 poseHoldStartedAt = nil
@@ -779,8 +790,8 @@ final class FaceIDEnrollmentController {
 
         let qualityOK = result.quality.map { $0 >= qualityFloor } ?? true
         // Only a 5-point alignment is reliably canonical; a 2-point/padded-crop fallback
-        // isn't accepted toward enrollment.
-        let alignmentOK = result.alignmentTier == .fivePoint
+        // isn't accepted toward enrollment unless using fallback embedder.
+        let alignmentOK = result.alignmentTier == .fivePoint || pipeline.usingFallbackEmbedder
         let widened = ContinuousClock.now - poseStartedAt > stallTimeout
         let poseOK = poseMatches(yaw: yaw, pitch: pitch, pose: pose, widened: widened)
         guard qualityOK, alignmentOK, !isTooFar, poseOK else {

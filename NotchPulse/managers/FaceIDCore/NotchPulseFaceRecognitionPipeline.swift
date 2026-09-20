@@ -48,6 +48,7 @@ final class NotchPulseFaceRecognitionPipeline {
             usingFallbackEmbedder = false
             fallbackReason = nil
         } catch {
+            NSLog("[FaceIDPipeline] ArcFaceEmbedder failed to load: %@. Using VisionFeaturePrint fallback.", error.localizedDescription)
             embedder = VisionFeaturePrintEmbedder()
             usingFallbackEmbedder = true
             fallbackReason = error.localizedDescription

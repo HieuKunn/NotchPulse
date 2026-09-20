@@ -68,10 +68,32 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     }
 
     /// Both names are checked in case the file was added under a different name.
+    /// Supports precompiled .mlmodelc, raw .mlpackage (compiled on demand), and bundle subdirectories.
     private static func locateModel() -> URL? {
         for name in ["ArcFace", "w600k_mbf"] {
             if let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc") {
                 return url
+            }
+            if let url = Bundle.main.url(forResource: name, withExtension: "mlpackage") {
+                if let compiled = try? MLModel.compileModel(at: url) {
+                    return compiled
+                }
+            }
+            if let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc", subdirectory: "Models") {
+                return url
+            }
+            if let url = Bundle.main.url(forResource: name, withExtension: "mlpackage", subdirectory: "Models") {
+                if let compiled = try? MLModel.compileModel(at: url) {
+                    return compiled
+                }
+            }
+            if let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc", subdirectory: "FaceIDCore") {
+                return url
+            }
+            if let url = Bundle.main.url(forResource: name, withExtension: "mlpackage", subdirectory: "FaceIDCore") {
+                if let compiled = try? MLModel.compileModel(at: url) {
+                    return compiled
+                }
             }
         }
         return nil
