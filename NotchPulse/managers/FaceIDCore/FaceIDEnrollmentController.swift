@@ -249,7 +249,7 @@ final class FaceIDEnrollmentController {
     /// `identities.first`: "redo" replaces it in place, or enrolls someone new.
     static func startEnrollmentOnly() {
         Task { @MainActor in
-            guard await unlockForEnrollment(reason: "Authenticate to re-enroll your face") else { return }
+            _ = NotchPulseVault.ensureSessionKey()
             let store = NotchPulseFaceEnrollmentStore.shared
             store.reloadIfUnlocked()
             let existing = store.identities.first
@@ -264,7 +264,7 @@ final class FaceIDEnrollmentController {
     /// alongside whoever is already enrolled; name starts empty rather than `defaultName`.
     static func startAddIdentity() {
         Task { @MainActor in
-            guard await unlockForEnrollment(reason: "Authenticate to enroll another face") else { return }
+            _ = NotchPulseVault.ensureSessionKey()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
             present(target: .newIdentity, prefillName: "")
         }
@@ -274,21 +274,9 @@ final class FaceIDEnrollmentController {
     /// samples wholesale, keeping its id and enrollment date.
     static func startRecapture(of identity: FaceIdentity) {
         Task { @MainActor in
-            guard await unlockForEnrollment(reason: "Authenticate to re-enroll this face") else { return }
+            _ = NotchPulseVault.ensureSessionKey()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
             present(target: .replacing(identity.id), prefillName: identity.name)
-        }
-    }
-
-    /// Enrollment-only flows persist as soon as naming is confirmed, so Touch ID has to
-    /// happen up front — there's no later password step to unlock the session.
-    private static func unlockForEnrollment(reason: String) async -> Bool {
-        guard !NotchPulseVault.isSessionUnlocked else { return true }
-        do {
-            try await NotchPulseVault.unlockSession(reason: reason)
-            return true
-        } catch {
-            return false
         }
     }
 

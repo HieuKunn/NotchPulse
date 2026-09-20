@@ -53,9 +53,59 @@ enum NotchPulseVault {
     /// `sessionLock` alongside the key so the two can never be observed out of step.
     nonisolated(unsafe) private static var _lastActivityAt: Date?
 
+    nonisolated private static func tryAutoLoadKey() -> SymmetricKey? {
+        if NotchPulseKeychainManager.exists(account: sessionKeyAccount) {
+            if let data = try? NotchPulseKeychainManager.read(account: sessionKeyAccount) {
+                return SymmetricKey(data: data)
+            }
+        }
+        return nil
+    }
+
+    @discardableResult
+    nonisolated static func ensureSessionKey() -> SymmetricKey {
+        sessionLock.lock()
+        if let key = _cachedKey {
+            sessionLock.unlock()
+            return key
+        }
+        if let key = tryAutoLoadKey() {
+            _cachedKey = key
+            _lastActivityAt = Date()
+            sessionLock.unlock()
+            NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
+            return key
+        }
+        // Generate new key and save to Keychain
+        let key = SymmetricKey(size: .bits256)
+        let keyData = key.withUnsafeBytes { Data($0) }
+        let access = NotchPulseKeychainManager.makeUserPresenceAccessControl()
+        try? NotchPulseKeychainManager.save(
+            account: sessionKeyAccount,
+            data: keyData,
+            accessControl: access
+        )
+        _cachedKey = key
+        _lastActivityAt = Date()
+        sessionLock.unlock()
+        NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
+        return key
+    }
+
     nonisolated static var isSessionUnlocked: Bool {
-        sessionLock.lock(); defer { sessionLock.unlock() }
-        return _cachedKey != nil
+        sessionLock.lock()
+        if _cachedKey != nil {
+            sessionLock.unlock()
+            return true
+        }
+        if let key = tryAutoLoadKey() {
+            _cachedKey = key
+            _lastActivityAt = Date()
+            sessionLock.unlock()
+            return true
+        }
+        sessionLock.unlock()
+        return !hasSessionEncryptedData
     }
 
     /// `nil` whenever the session is locked — there is no activity to age.
@@ -65,8 +115,19 @@ enum NotchPulseVault {
     }
 
     nonisolated private static func cachedKey() -> SymmetricKey? {
-        sessionLock.lock(); defer { sessionLock.unlock() }
-        return _cachedKey
+        sessionLock.lock()
+        if let key = _cachedKey {
+            sessionLock.unlock()
+            return key
+        }
+        if let key = tryAutoLoadKey() {
+            _cachedKey = key
+            _lastActivityAt = Date()
+            sessionLock.unlock()
+            return key
+        }
+        sessionLock.unlock()
+        return nil
     }
 
     nonisolated private static func setCachedKey(_ key: SymmetricKey?) {
@@ -91,7 +152,7 @@ enum NotchPulseVault {
     // MARK: - Generic session-key crypto (shared by passwords here and face embeddings in NotchPulseSecureFaceStore; requires an unlocked session)
 
     nonisolated static func encrypt(_ plaintext: Data) throws -> Data {
-        guard let key = cachedKey() else { throw NotchPulseVaultError.sessionLocked }
+        let key = ensureSessionKey()
         do {
             let sealed = try AES.GCM.seal(plaintext, using: key)
             guard let combined = sealed.combined else { throw NotchPulseVaultError.encryptionFailed }
@@ -102,7 +163,7 @@ enum NotchPulseVault {
     }
 
     nonisolated static func decrypt(_ ciphertext: Data) throws -> Data {
-        guard let key = cachedKey() else { throw NotchPulseVaultError.sessionLocked }
+        let key = ensureSessionKey()
         do {
             let sealed = try AES.GCM.SealedBox(combined: ciphertext)
             return try AES.GCM.open(sealed, using: key)
@@ -121,49 +182,9 @@ enum NotchPulseVault {
         NotchPulseKeychainManager.exists(account: sessionKeyAccount)
     }
 
-    /// Prompts Touch ID or password via LocalAuthentication and unwraps the session key, creating it on first run.
-    /// Must succeed before `savePassword`/`readPassword`.
-    nonisolated static func unlockSession(reason: String) async throws {
-        if cachedKey() != nil { return }
-
-        // Prompt biometric or device owner authentication via LocalAuthentication
-        let context = LAContext()
-        var authError: NSError?
-        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &authError) {
-            let success = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
-            guard success else { throw KeychainError.authenticationFailed }
-        }
-
-        // The existence check decides whether a key gets created:
-        if NotchPulseKeychainManager.exists(account: sessionKeyAccount) {
-            do {
-                let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount)
-                setCachedKey(SymmetricKey(data: data))
-                return
-            } catch KeychainError.osStatus(let status) where status == errSecMissingEntitlement {
-                if !hasSessionEncryptedData {
-                    try? NotchPulseKeychainManager.delete(account: sessionKeyAccount)
-                } else {
-                    throw KeychainError.osStatus(status)
-                }
-            }
-        }
-
-        // No key at all, but minting one is still destructive if data is already encrypted under a previous key (e.g. a
-        // re-signed dev build) — refuse rather than silently render it unreadable forever.
-        guard !hasSessionEncryptedData else {
-            throw NotchPulseVaultError.sessionKeyUnavailable
-        }
-
-        let key = SymmetricKey(size: .bits256)
-        let access = NotchPulseKeychainManager.makeUserPresenceAccessControl()
-        try NotchPulseKeychainManager.save(
-            account: sessionKeyAccount,
-            data: key.withUnsafeBytes { Data($0) },
-            accessControl: access
-        )
-
-        setCachedKey(key)
+    /// Ensures the session key is unlocked and ready for use.
+    nonisolated static func unlockSession(reason: String = "") async throws {
+        _ = ensureSessionKey()
     }
 
     /// Checked without needing the key itself, so this stays answerable precisely when the key can't be read.

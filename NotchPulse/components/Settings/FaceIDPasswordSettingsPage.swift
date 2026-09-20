@@ -9,40 +9,23 @@ struct PasswordSettingsPage: View {
     @Bindable private var pocController = NotchPulsePOCController.shared
     @Bindable private var settings = NotchPulseFaceIDSettings.shared
 
-    @State private var isUnlocking = false
-    @State private var sessionError: String?
     @State private var statusMessage: String?
 
-    /// Read from `NotchPulsePOCController`, not a local copy — `NotchPulseSessionAutoLocker` can
-    /// lock the session from outside this view.
-    private var isSessionUnlocked: Bool { pocController.isSessionUnlocked }
-
-    /// "No password stored" takes priority over lock state entirely, so
-    /// removal doesn't fall back to an "unlock session" prompt for a
-    /// session that no longer protects anything.
     private enum PageState: Equatable {
         case noPassword
-        case locked
         case unlocked
     }
 
     private var pageState: PageState {
-        guard pocController.hasStoredPassword else { return .noPassword }
-        return isSessionUnlocked ? .unlocked : .locked
+        pocController.hasStoredPassword ? .unlocked : .noPassword
     }
 
     var body: some View {
         ZStack(alignment: .top) {
             noPasswordState
                 .opacity(pageState == .noPassword ? 1 : 0)
-                // Hidden from hit-testing and accessibility while faded out.
                 .allowsHitTesting(pageState == .noPassword)
                 .accessibilityHidden(pageState != .noPassword)
-
-            lockedState
-                .opacity(pageState == .locked ? 1 : 0)
-                .allowsHitTesting(pageState == .locked)
-                .accessibilityHidden(pageState != .locked)
 
             unlockedState
                 .opacity(pageState == .unlocked ? 1 : 0)
@@ -72,18 +55,7 @@ struct PasswordSettingsPage: View {
         )
     }
 
-    // MARK: - Locked
 
-    private var lockedState: some View {
-        SettingsEmptyStateView(
-            icon: "lock.fill",
-            message: "Session locked",
-            buttonTitle: isUnlocking ? "Authenticating…" : "Unlock session",
-            isButtonEnabled: !isUnlocking,
-            caption: sessionError,
-            action: unlock
-        )
-    }
 
     // MARK: - Unlocked
 
@@ -130,19 +102,6 @@ struct PasswordSettingsPage: View {
     }
 
     // MARK: - Actions
-
-    private func unlock() {
-        isUnlocking = true
-        sessionError = nil
-        Task {
-            await pocController.unlockSession()
-            sessionError = pocController.sessionError
-            // Face store is encrypted under the same session key, so reload
-            // it now rather than leaving Your Face stuck showing "locked".
-            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
-            isUnlocking = false
-        }
-    }
 
     /// Face samples must be deleted before the password/session key —
     /// `deletePassword()` clears the cached session key, and deleting the

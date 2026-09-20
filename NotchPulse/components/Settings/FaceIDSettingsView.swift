@@ -16,17 +16,12 @@ struct FaceIDSettingsView: View {
     
     @State private var isAccessibilityGranted: Bool = AXIsProcessTrusted()
     @State private var isCameraGranted: Bool = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
-    @State private var isUnlocking: Bool = false
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if !isAccessibilityGranted || !isCameraGranted {
                     permissionsWarning
                 }
-
-                // Session Status Card
-                sessionStatusCard
 
                 // 1. General Settings
                 SettingsSectionTitle(text: "General")
@@ -60,66 +55,12 @@ struct FaceIDSettingsView: View {
         .onAppear {
             checkPermissions()
             pocController.refreshCredentialStatus()
+            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             checkPermissions()
             pocController.refreshCredentialStatus()
-        }
-    }
-    
-    private var sessionStatusCard: some View {
-        SettingsGroup {
-            HStack(spacing: 12) {
-                Image(systemName: pocController.isSessionUnlocked ? "lock.open.fill" : "lock.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(pocController.isSessionUnlocked ? .green : .orange)
-                    .frame(width: 24, height: 24)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(pocController.isSessionUnlocked ? "Face ID Session Unlocked" : "Face ID Session Locked")
-                        .font(SettingsMetrics.rowFont)
-                        .foregroundStyle(SettingsMetrics.textPrimary)
-
-                    Text(pocController.isSessionUnlocked
-                        ? "Enrolled faces and credentials can be viewed or updated."
-                        : "Authenticate with Touch ID or system password to manage faces and password.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(SettingsMetrics.textTertiary)
-
-                    if let error = pocController.sessionError {
-                        Text(error)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.red)
-                    }
-                }
-
-                Spacer()
-
-                if pocController.isSessionUnlocked {
-                    Button("Lock Session") {
-                        pocController.lockSession()
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                } else {
-                    Button(isUnlocking ? "Authenticating…" : "Unlock Session") {
-                        unlockSession()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .disabled(isUnlocking)
-                }
-            }
-            .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
-            .padding(.vertical, 12)
-        }
-    }
-
-    private func unlockSession() {
-        isUnlocking = true
-        Task {
-            await pocController.unlockSession()
-            isUnlocking = false
+            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
     }
 

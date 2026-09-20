@@ -12,28 +12,19 @@ import SwiftUI
 struct YourFaceSettingsPage: View {
     @Bindable private var store = NotchPulseFaceEnrollmentStore.shared
 
-    @State private var sessionError: String?
-    @State private var isUnlocking = false
     @State private var identityPendingDeletion: FaceIdentity?
     /// Surfaced when an encrypted write fails (realistically: the session
     /// lapsed between rendering and tapping). The store rolls back on
     /// failure, so the control snaps back on its own — this explains why.
     @State private var writeError: String?
 
-    /// Locked takes priority over enrollment status: `FaceIdentity` data is
-    /// encrypted under the session key, so whether anyone is enrolled is
-    /// unknown until the session is unlocked.
     private enum PageStateKind: Equatable {
-        case locked
         case unreadable
         case notEnrolled
         case enrolled
     }
 
     private var stateKind: PageStateKind {
-        if store.isLocked { return .locked }
-        // Ahead of `.notEnrolled` — a failed decrypt looks like an empty
-        // store, and offering "Set up Face Unlock" there would destroy the data.
         if store.loadFailure != nil { return .unreadable }
         return store.identities.isEmpty ? .notEnrolled : .enrolled
     }
@@ -46,11 +37,6 @@ struct YourFaceSettingsPage: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            lockedState
-                .opacity(stateKind == .locked ? 1 : 0)
-                .allowsHitTesting(stateKind == .locked)
-                .accessibilityHidden(stateKind != .locked)
-
             unreadableState
                 .opacity(stateKind == .unreadable ? 1 : 0)
                 .allowsHitTesting(stateKind == .unreadable)
@@ -90,43 +76,6 @@ struct YourFaceSettingsPage: View {
         }
     }
 
-    // MARK: - Locked
-
-    private var lockedState: some View {
-        SettingsEmptyStateView(
-            icon: "lock.fill",
-            message: "Session locked",
-            buttonTitle: isUnlocking ? "Authenticating…" : "Unlock session",
-            isButtonEnabled: !isUnlocking,
-            caption: sessionError,
-            action: unlock
-        )
-    }
-
-    // MARK: - Unreadable
-
-    /// Session open but the encrypted store didn't decrypt. Deliberately
-    /// offers no enroll or delete action, since a write here would replace
-    /// faces still on disk.
-    private var unreadableState: some View {
-        VStack(spacing: SettingsMetrics.emptyStateSpacing) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: SettingsMetrics.emptyStateIconSize, weight: .regular))
-                .foregroundStyle(SettingsMetrics.qualityFairColor)
-
-            Text("Enrolled faces couldn't be read")
-                .font(SettingsMetrics.rowFont)
-                .foregroundStyle(SettingsMetrics.textSecondary)
-
-            SettingsCaption(text: store.loadFailure ?? "The stored data couldn't be decrypted with this session key.")
-                .multilineTextAlignment(.center)
-
-            SettingsCaption(text: "Nothing has been deleted, and NotchPulse will not overwrite it — enrolling is blocked until this resolves. Quit and reopen NotchPulse to retry. If it keeps failing, the session key no longer matches this data: remove the stored password on the Password tab to clear both, then set up again.")
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, minHeight: SettingsMetrics.emptyStateMinHeight)
-    }
-
     // MARK: - Not enrolled
 
     private var notEnrolledState: some View {
@@ -135,7 +84,13 @@ struct YourFaceSettingsPage: View {
             message: "Face enrollment",
             buttonTitle: "Set up Face Unlock",
             isButtonEnabled: !enrollmentFlowIsRunning,
-            action: { FaceIDEnrollmentController.startEnrollmentOnly() }
+            action: {
+                if NotchPulsePOCController.shared.hasStoredPassword {
+                    FaceIDEnrollmentController.startEnrollmentOnly()
+                } else {
+                    FaceIDEnrollmentController.startFlow()
+                }
+            }
         )
     }
 
@@ -243,20 +198,6 @@ struct YourFaceSettingsPage: View {
             writeError = error.localizedDescription
         }
         identityPendingDeletion = nil
-    }
-
-    private func unlock() {
-        isUnlocking = true
-        sessionError = nil
-        Task {
-            do {
-                try await NotchPulseVault.unlockSession(reason: "Authenticate to view your enrolled face")
-                store.reloadIfUnlocked()
-            } catch {
-                sessionError = error.localizedDescription
-            }
-            isUnlocking = false
-        }
     }
 }
 
