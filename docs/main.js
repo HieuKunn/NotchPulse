@@ -856,6 +856,7 @@ document.documentElement.setAttribute("data-theme", "dark");
 
 document.addEventListener("DOMContentLoaded", () => {
   document.documentElement.setAttribute("data-theme", "dark");
+  initNavbarScroll();
   initLanguage();
   initScrollFadeIn();
   initParallaxAndTilt();
@@ -863,6 +864,36 @@ document.addEventListener("DOMContentLoaded", () => {
   initReviewsFilter();
   initCopyActions();
 });
+
+// =============================================================================
+// Navbar Scroll Transition (Transparent at Top, Frosted Coffee on Scroll)
+// =============================================================================
+
+function initNavbarScroll() {
+  const navbar = document.getElementById("navbar");
+  if (!navbar) return;
+
+  let ticking = false;
+
+  function updateNavbar() {
+    if (window.scrollY > 15) {
+      navbar.classList.add("scrolled");
+    } else {
+      navbar.classList.remove("scrolled");
+    }
+    ticking = false;
+  }
+
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateNavbar);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // Initial state check
+  updateNavbar();
+}
 
 // =============================================================================
 // 1. Scroll-Driven Fade-In Animations (IntersectionObserver)
