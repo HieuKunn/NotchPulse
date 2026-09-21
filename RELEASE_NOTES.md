@@ -1,4 +1,4 @@
-# NotchPulse v4.6.1
+# NotchPulse v4.6
 
 ## 🪟 Fluid Pop-Down Face ID Experience
 - **Organic Notch Pop-Down**: Face ID scanning now smoothly and beautifully springs open directly from inside the physical MacBook notch (or Dynamic Island pill), perfectly matching NotchPulse's signature fluid spring physics.

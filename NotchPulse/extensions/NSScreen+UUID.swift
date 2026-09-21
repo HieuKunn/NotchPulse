@@ -58,7 +58,9 @@ final class NSScreenUUIDCache {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.rebuildCache()
+            MainActor.assumeIsolated {
+                self?.rebuildCache()
+            }
         }
     }
     
