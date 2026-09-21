@@ -1152,10 +1152,10 @@ a {
   to { transform: rotate(360deg); }
 }
 
-/* Shelf Drop Preview (Minimalist Apple Frosted Glass Tags) */
+/* Shelf Drop Preview (Refined Apple Frosted Cards) */
 .shelf-items-preview {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   max-width: 100%;
   justify-content: center;
@@ -1163,32 +1163,55 @@ a {
   box-sizing: border-box;
 }
 
-.shelf-tag {
+.shelf-file-chip {
   flex: 1;
   min-width: 0;
-  padding: 11px 12px;
-  border-radius: 980px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 235, 220, 0.12);
+  padding: 16px 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 235, 220, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.shelf-file-chip:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 235, 220, 0.24);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.shelf-chip-ext {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #FFFFFF;
-  font-size: 0.8rem;
+  background: rgba(255, 235, 220, 0.14);
+  padding: 3px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.shelf-chip-size {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   font-weight: 500;
-  letter-spacing: -0.01em;
-  text-align: center;
+  color: #C8BAAF;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease;
-  cursor: pointer;
-  user-select: none;
-}
-
-.shelf-tag:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 235, 220, 0.28);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  line-height: 1;
 }
 
 /* DDC Sliders (Minimalist Apple Monochromatic Design) */
@@ -1926,10 +1949,9 @@ a {
   border-color: rgba(255, 235, 220, 0.08);
 }
 
-[data-theme="dark"] .shelf-tag {
-  background: rgba(255, 235, 220, 0.08);
-  border-color: rgba(255, 235, 220, 0.12);
-  color: var(--text-primary);
+[data-theme="dark"] .shelf-file-chip {
+  background: rgba(255, 235, 220, 0.05);
+  border-color: rgba(255, 235, 220, 0.1);
 }
 
 [data-theme="dark"] .telemetry-pill {
