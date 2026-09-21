@@ -65,29 +65,44 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fixed Wallpaper Background: Stays anchored across the entire page */
-body::before {
-  content: "";
+/* High-Performance Fixed Wallpaper Background: GPU-isolated, zero layout recalculation */
+.site-bg {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
+  width: 100vw;
   height: 100vh;
   z-index: 0;
-  background-image: 
-    linear-gradient(to bottom, 
-      rgba(18, 10, 7, 0.42) 0%, 
-      rgba(18, 10, 7, 0.65) 40%, 
-      rgba(18, 10, 7, 0.88) 100%
-    ),
-    url("assets/cozy_bg.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   pointer-events: none;
-  will-change: transform;
+  overflow: hidden;
+  contain: strict;
+  transform: translateZ(0);
+  background-color: #120A07;
+}
+
+.site-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border: none;
+  display: block;
+}
+
+.site-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, 
+    rgba(18, 10, 7, 0.42) 0%, 
+    rgba(18, 10, 7, 0.65) 40%, 
+    rgba(18, 10, 7, 0.88) 100%
+  );
 }
 
 body {
@@ -154,9 +169,8 @@ a {
 /* Scroll-Driven Smooth Reveal Animations */
 .fade-in-section {
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fade-in-section.is-visible {

@@ -15,12 +15,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Preload Critical Above-The-Fold Images -->
-  <link rel="preload" as="image" href="assets/cozy_bg.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/cozy_bg.webp" type="image/webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/app_icon.png">
   
-  <link rel="stylesheet" href="style.css?v=33">
+  <link rel="stylesheet" href="style.css?v=34">
 </head>
 <body>
+
+  <!-- High-Performance Fixed Background Layer (Zero-Latency Rendering, GPU Isolated) -->
+  <div class="site-bg" aria-hidden="true">
+    <picture>
+      <source srcset="assets/cozy_bg.webp" type="image/webp">
+      <img src="assets/cozy_bg.jpg" alt="" class="site-bg-img" fetchpriority="high" decoding="sync" width="1376" height="768">
+    </picture>
+    <div class="site-bg-overlay"></div>
+  </div>
 
   <!-- Navigation Bar -->
   <nav class="navbar" id="navbar">
@@ -94,8 +103,8 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <header class="hero fade-in-section">
+  <!-- Hero Section (Instantly visible above the fold) -->
+  <header class="hero">
     <div class="container">
       <div class="hero-tag-badge">
         <span>✨</span>
