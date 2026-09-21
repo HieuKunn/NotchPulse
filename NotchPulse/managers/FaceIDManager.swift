@@ -156,7 +156,7 @@ final class NotchPulseEnrollmentService: @unchecked Sendable {
         let centroidSim = identity.template.map { FaceEmbedding.cosineSimilarity(currentEmbedding, $0) } ?? 0
         let bestSimilarity = max(maxSampleSim, centroidSim)
         
-        let threshold = NotchPulseFaceIDSettings.shared.matchThreshold
+        let threshold = NotchPulseFaceIDSettings.currentMatchThreshold
         let matched = (centroidSim >= threshold || (maxSampleSim >= threshold && centroidSim >= (threshold - 0.06)))
         return VerifyResult(matched: matched, similarity: bestSimilarity)
     }
