@@ -64,7 +64,7 @@ const i18nData = {
 
     // Bento Features Section
     "features.tag": "Engineered for macOS",
-    "features.title": "Next-Level Bento Architecture",
+    "features.title": "Supercharge Your MacBook Notch",
     "features.subtitle": "Built natively in Swift with 0% CPU overhead at idle. Experience smooth 120Hz ProMotion animations, biometric conveniences, and smart desktop tools.",
     
     "feat1.title": "Biometric Face ID Recognition",
@@ -179,7 +179,7 @@ const i18nData = {
 
     // Bento Features Section
     "features.tag": "Tối Ưu Riêng Cho macOS",
-    "features.title": "Kiến Trúc Bento Đẳng Cấp",
+    "features.title": "Đánh Thức Sức Mạnh Tai Thỏ",
     "features.subtitle": "Viết bằng Swift thuần túy, 0% CPU khi chạy nền. Tận hưởng hoạt ảnh 120Hz ProMotion, bảo mật sinh trắc học và công cụ làm việc thông minh.",
     
     "feat1.title": "Mở Khoá Face ID Sinh Trắc Học",
@@ -294,7 +294,7 @@ const i18nData = {
 
     // Bento Features Section
     "features.tag": "Entwickelt für macOS",
-    "features.title": "Bento-Architektur der nächsten Generation",
+    "features.title": "Volle Kontrolle über Ihre MacBook Notch",
     "features.subtitle": "Nativ in Swift entwickelt mit 0% CPU-Last im Leerlauf. Erlebe butterweiche 120Hz ProMotion Animationen und smarte Desktop-Werkzeuge.",
     
     "feat1.title": "Biometrische Face ID Erkennung",
@@ -409,7 +409,7 @@ const i18nData = {
 
     // Bento Features Section
     "features.tag": "macOS 専用設計",
-    "features.title": "先進の Bento アーキテクチャ",
+    "features.title": "MacBook ノッチを究極に進化",
     "features.subtitle": "Swiftネイティブ開発、アイドル時CPU消費0%。120Hzの超滑らかなProMotionアニメーションと洗練された機能群。",
     
     "feat1.title": "生体認証 Face ID 顔認識",
@@ -524,7 +524,7 @@ const i18nData = {
 
     // Bento Features Section
     "features.tag": "為 macOS 精密打造",
-    "features.title": "全新 Bento 模組化架構",
+    "features.title": "全面釋放 MacBook 瀏海潛能",
     "features.subtitle": "以 Swift 原生開發，待機 0% CPU 負荷。享受流暢 120Hz ProMotion 動效、生物特徵辨識與智慧桌面工具。",
     
     "feat1.title": "生物特徵 Face ID 臉部辨識",
@@ -639,7 +639,7 @@ const i18nData = {
 
     // Bento Features Section
     "features.tag": "专为 macOS 原生打造",
-    "features.title": "全新 Bento 模块化架构",
+    "features.title": "全面释放 MacBook 刘海潜能",
     "features.subtitle": "采用 Swift 纯原生编写，待机状态 0% CPU 占用。尽享 120Hz ProMotion 动画、生物识别与高能桌面工具。",
     
     "feat1.title": "生物识别 Face ID 人脸解锁",
@@ -754,7 +754,7 @@ const i18nData = {
 
     // Bento Features Section
     "features.tag": "Diseñado para macOS",
-    "features.title": "Arquitectura Bento de Nueva Generación",
+    "features.title": "Maximiza el Potencial del Notch en tu Mac",
     "features.subtitle": "Creado nativamente en Swift con 0% de uso de CPU en reposo. Animaciones fluidas ProMotion a 120Hz, seguridad biométrica y herramientas inteligentes.",
     
     "feat1.title": "Reconocimiento Facial Face ID",
@@ -906,10 +906,11 @@ function initScrollFadeIn() {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
         entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
       }
     });
   }, {
-    threshold: 0.1,
+    threshold: 0.08,
     rootMargin: "0px 0px -40px 0px"
   });
 
