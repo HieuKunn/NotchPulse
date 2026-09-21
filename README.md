@@ -6,6 +6,7 @@
   <br/><br/>
 
   <!-- Clean Badges -->
+  <a href="https://hieukunn.github.io/NotchPulse/"><img src="https://img.shields.io/badge/website-NotchPulse%20Live-brightgreen?style=flat-square&logo=safari" alt="Website" /></a>
   <a href="https://github.com/HieuKunn/NotchPulse/releases"><img src="https://img.shields.io/github/v/release/HieuKunn/NotchPulse?color=007AFF&logo=apple&style=flat-square" alt="Release" /></a>
   <a href="https://github.com/HieuKunn/NotchPulse"><img src="https://img.shields.io/badge/platform-macOS%2014.0%2B-blue?style=flat-square&logo=apple" alt="Platform" /></a>
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.0%20%2F%206.0-F05138?style=flat-square&logo=swift" alt="Swift" /></a>
