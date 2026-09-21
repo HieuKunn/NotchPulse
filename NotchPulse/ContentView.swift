@@ -233,17 +233,19 @@ struct ContentView: View {
                 
                 mainLayout
                     .frame(
-                        width: isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : nil),
-                        height: isFaceIDActive ? targetFaceIDSize.height : (vm.notchState == .open ? vm.notchSize.height : nil),
+                        width: isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth),
+                        height: isFaceIDActive ? targetFaceIDSize.height : (vm.notchState == .open ? vm.notchSize.height : max(vm.effectiveClosedNotchHeight, 0)),
                         alignment: .top
                     )
                     .conditionalModifier(true) { view in
                         let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
                         let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+                        let faceIDSpring = Animation.spring(response: 0.44, dampingFraction: 0.82, blendDuration: 0.15)
                         
                         return view
                             .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
-                            .animation(.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0), value: isFaceIDActive)
+                            .animation(faceIDSpring, value: isFaceIDActive)
+                            .animation(faceIDSpring, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
                     }
                     .contentShape(currentNotchShape)
@@ -411,8 +413,8 @@ struct ContentView: View {
                 } else if isFaceIDActive {
                     FaceIDContentView()
                         .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.88, anchor: .top)),
-                            removal: .opacity.combined(with: .scale(scale: 0.88, anchor: .top))
+                            insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                            removal: .opacity
                         ))
                 } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
                     Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
@@ -526,6 +528,7 @@ struct ContentView: View {
             }
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)
+        .clipped()
     }
 
     @ViewBuilder

@@ -571,8 +571,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            if let preferredUUID = coordinator.preferredScreenUUID,
-               let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
+            if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
+                targetScreen = activeScreen
+            } else if let preferredUUID = coordinator.preferredScreenUUID,
+                      let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
                 coordinator.selectedScreenUUID = preferredUUID
                 targetScreen = preferredScreen
             } else {
