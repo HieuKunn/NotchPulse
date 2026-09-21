@@ -297,22 +297,37 @@ struct ContentView: View {
                             .animation(animationSpring, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
                     }
-                    .contentShape(currentNotchShape)
                     .onHover { hovering in
                         handleHover(hovering)
                         if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
                             FaceIDOverlayController.shared.setHovering(hovering)
-                            if hovering {
+                            if hovering && faceIDOverlay.phase != .onboarding {
                                 FaceIDOverlayController.shared.activate()
                             }
                         }
                     }
-                    .onTapGesture {
-                        if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
-                            FaceIDOverlayController.shared.activate()
-                            return
+                    .conditionalModifier(!isFaceIDContentActive) { view in
+                        view
+                            .contentShape(currentNotchShape)
+                            .onTapGesture {
+                                if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
+                                    FaceIDOverlayController.shared.activate()
+                                    return
+                                }
+                                doOpen()
+                            }
+                    }
+                    .onChange(of: faceIDOverlay.phase) { _, newPhase in
+                        if newPhase == .onboarding {
+                            DispatchQueue.main.async {
+                                NSApp.activate(ignoringOtherApps: true)
+                                for window in NSApp.windows {
+                                    if window is NotchPulseSkyLightWindow {
+                                        window.makeKeyAndOrderFront(nil)
+                                    }
+                                }
+                            }
                         }
-                        doOpen()
                     }
                     .conditionalModifier(Defaults[.enableGestures] && !isFaceIDActive) { view in
                         view

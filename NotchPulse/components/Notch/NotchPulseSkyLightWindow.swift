@@ -107,8 +107,10 @@ class NotchPulseSkyLightWindow: NSPanel {
         }
     }
     
-    private var observers: Set<AnyCancellable> = []
-    
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
+    override var canBecomeKey: Bool {
+        FaceIDOverlayController.shared.phase == .onboarding
+    }
+    override var canBecomeMain: Bool {
+        FaceIDOverlayController.shared.phase == .onboarding
+    }
 }
