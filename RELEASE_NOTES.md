@@ -1,13 +1,14 @@
-# NotchPulse v4.5.0
+# NotchPulse v4.6.0
 
-## ⚡ Silky-Smooth Animations & Unified Morphing
-- **Fluid Notch Expansion & Collapse**: The Dynamic Island now flows down and retracts seamlessly from the physical camera notch as a single, cohesive animation at 120Hz ProMotion without frame drops or visual jumps.
-- **Flawless Transition Effects**: Smoothly fades and scales biometric views during recognition and unlocking for an authentic, Apple-grade Dynamic Island experience.
+## ⚡ Instant Glance Face Unlock
+- **Effortless Look-and-Unlock**: Glancing at your MacBook now authenticates instantly without hesitation or premature scan cancellations.
+- **Natural Angle Recognition**: Unlock reliably even when sitting back comfortably or viewing your screen at natural everyday angles.
+- **Smooth Interaction Latch**: Biometric verification and live human detection now synchronize seamlessly to give you a responsive, frictionless lock screen experience.
 
-## 🔒 Effortless Face Recognition Setup
-- **Interactive Enrollment**: Naming and saving new faces is now completely fluid and responsive, allowing you to easily label your profile and customize settings.
-- **Smart Camera Display Detection**: Biometric setup automatically aligns directly beneath whichever screen houses your active camera, making enrollment feel completely natural.
+## 🛡️ Enterprise-Grade Anti-Spoofing
+- **Active Screen & Device Rejection**: Instantly denies phone displays and simulated video replays in a fraction of a second.
+- **3D Depth Integrity**: Multi-layered real-time spatial analysis ensures printed photos or static images can never bypass your Mac security.
 
-## 🎨 Refreshed Settings & Streamlined Navigation
-- **Refined Sidebar Symbols**: Upgraded Appearance and Media icons for a modern, unified aesthetic across Settings.
-- **Intuitive Menu Layout**: Clearly highlights Face Recognition and system authorization options for quick, hassle-free configuration.
+## 🎨 Refined Landing Page Experience
+- **Ultra-Fast Asset Loading**: Above-the-fold artwork and app badges now preload instantly from cache without page pop-in.
+- **High-Contrast Navbar**: Dynamic pure white navigation labels ensure perfect clarity against rich wallpaper backgrounds.
