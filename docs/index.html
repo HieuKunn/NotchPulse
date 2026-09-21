@@ -1,64 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi" data-theme="dark" translate="no" class="notranslate">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NotchPulse — The Ultimate Dynamic Island & Notch Companion for macOS</title>
-  <meta name="description" content="Transform your MacBook notch and desktop into an intelligent 120Hz interactive Dynamic Island. Created by HieuKunn. Features Face ID recognition, real-time synced lyrics, notch shelf, and DDC controls.">
-  <meta name="keywords" content="NotchPulse, notchpulse hieukunn, hieukunn notchpulse, github notchpulse, notch pulse, macos dynamic island, macbook notch app, dynamic island mac, HieuKunn">
+  <meta name="google" content="notranslate">
+  <title>NotchPulse — The Ultimate Dynamic Island &amp; Notch Companion for macOS</title>
+  <meta name="description" content="NotchPulse transforms your MacBook notch into a fluid, 120Hz ProMotion interactive Dynamic Island with Face ID, live lyrics, hardware HUD, and system telemetry.">
+  <meta name="keywords" content="NotchPulse, notchpulse hieukunn, macos dynamic island, macbook notch app, HieuKunn">
   <meta name="author" content="HieuKunn (Kun Nguyen)">
   <link rel="canonical" href="https://notchpulse-app.web.app/">
-  
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/logo_clean.png">
-  <link rel="apple-touch-icon" href="assets/logo_clean.png">
   
-  <!-- Open Graph / Meta -->
-  <meta property="og:title" content="NotchPulse — The Ultimate Dynamic Island for macOS">
-  <meta property="og:description" content="Transform your MacBook notch into an intelligent 120Hz interactive Dynamic Island by HieuKunn.">
-  <meta property="og:image" content="assets/banner.svg">
-  <meta property="og:url" content="https://notchpulse-app.web.app/">
-  <meta property="og:type" content="website">
-
-  <!-- Twitter Meta -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="NotchPulse — Dynamic Island for macOS">
-  <meta name="twitter:description" content="Transform your MacBook notch into an intelligent 120Hz interactive Dynamic Island. By HieuKunn.">
-  <meta name="twitter:image" content="assets/banner.svg">
-
-  <!-- JSON-LD Structured Data for Google Indexing -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "NotchPulse",
-    "operatingSystem": "macOS",
-    "applicationCategory": "UtilitiesApplication",
-    "description": "Transform your MacBook notch into an intelligent 120Hz interactive Dynamic Island with Face ID, synced lyrics, and gesture controls.",
-    "url": "https://notchpulse-app.web.app/",
-    "author": {
-      "@type": "Person",
-      "name": "HieuKunn",
-      "url": "https://github.com/HieuKunn"
-    },
-    "sameAs": [
-      "https://github.com/HieuKunn/NotchPulse"
-    ]
-  }
-  </script>
-
-  <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=10">
+  <!-- Fonts: Space Mono, Pixelify Sans, Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
-  <!-- Ambient background glow for parallax -->
-  <div class="ambient-glow" id="ambientGlow"></div>
 
   <!-- Navigation Bar -->
   <nav class="navbar" id="navbar">
     <div class="container nav-container">
       <a href="#" class="nav-brand">
-        <img src="assets/logo_clean.png" alt="NotchPulse Logo" class="nav-logo">
+        <img src="assets/logo_clean.png" alt="NotchPulse Logo" class="nav-logo" width="32" height="32">
         <span>NotchPulse</span>
       </a>
 
@@ -71,11 +37,51 @@
       </ul>
 
       <div class="nav-actions">
-        <!-- Compact Language Switcher -->
-        <button class="btn-pill" id="langToggle" aria-label="Toggle language" title="Switch English / Tiếng Việt">
-          <span class="lang-flag" id="langFlag">🌐</span>
-          <span id="langLabel">EN</span>
-        </button>
+        <!-- Apple-style Language Switcher Popover -->
+        <div class="lang-dropdown-wrapper" id="langDropdownWrapper">
+          <button class="btn-pill lang-toggle-btn" id="langToggle" aria-label="Select language" aria-haspopup="true" aria-expanded="false">
+            <span class="lang-flag" id="langFlag">🇻🇳</span>
+            <span class="lang-label" id="langLabel">VI</span>
+            <svg class="lang-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="lang-dropdown-menu" id="langMenu" role="menu">
+            <button class="lang-menu-item" data-lang="vi" role="menuitem">
+              <span class="lang-menu-flag">🇻🇳</span>
+              <span class="lang-menu-name">Tiếng Việt</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="en" role="menuitem">
+              <span class="lang-menu-flag">🇺🇸</span>
+              <span class="lang-menu-name">English</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="de" role="menuitem">
+              <span class="lang-menu-flag">🇩🇪</span>
+              <span class="lang-menu-name">Deutsch</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="ja" role="menuitem">
+              <span class="lang-menu-flag">🇯🇵</span>
+              <span class="lang-menu-name">日本語</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="zh-TW" role="menuitem">
+              <span class="lang-menu-flag">🇹🇼</span>
+              <span class="lang-menu-name">繁體中文</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="zh-CN" role="menuitem">
+              <span class="lang-menu-flag">🇨🇳</span>
+              <span class="lang-menu-name">简体中文</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="es" role="menuitem">
+              <span class="lang-menu-flag">🇪🇸</span>
+              <span class="lang-menu-name">Español</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+          </div>
+        </div>
 
         <!-- Download CTA in Nav -->
         <a href="https://github.com/HieuKunn/NotchPulse/releases/latest/download/NotchPulse.dmg" class="btn-pill btn-download-sm" target="_blank" rel="noopener">
@@ -103,10 +109,11 @@
         Transform your MacBook camera notch into a fluid, 120Hz ProMotion interactive Dynamic Island. Native Apple Silicon performance with Biometric Face ID, real-time lyrics, and smart hardware HUDs.
       </p>
 
+      <!-- Action Buttons Centered -->
       <div class="hero-cta-group">
         <a href="https://github.com/HieuKunn/NotchPulse/releases/latest/download/NotchPulse.dmg" class="btn-primary" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span data-i18n="hero.downloadBtn">Download NotchPulse.dmg (v4.5)</span>
+          <span data-i18n="hero.downloadBtn">Download NotchPulse.dmg (v4.5) &rarr;</span>
         </a>
 
         <!-- Copyable Homebrew command -->
@@ -116,85 +123,69 @@
         </div>
       </div>
 
-      <!-- 3D Parallax Device Showcase with Live Interactive Notch -->
-      <div class="demo-showcase" id="interactive-demo">
-
-        <!-- 4 Compact Floating Capsule Nodes (Positioned cleanly OUTSIDE device frame) -->
-        <div class="parallax-chip chip-tl" id="chipFaceId">
-          <span class="chip-icon">👤</span>
-          <span class="chip-label" data-i18n="chip.faceidTitle">Face ID Ready</span>
-        </div>
-
-        <div class="parallax-chip chip-bl" id="chipShelf">
-          <span class="chip-icon">📁</span>
-          <span class="chip-label" data-i18n="chip.shelfTitle">Notch Shelf</span>
-        </div>
-
-        <div class="parallax-chip chip-tr" id="chipBattery">
-          <span class="chip-icon">⚡️</span>
-          <span class="chip-label" data-i18n="chip.batteryTitle">98W MagSafe</span>
-        </div>
-
-        <div class="parallax-chip chip-br" id="chipLyrics">
-          <span class="chip-icon">🎵</span>
-          <span class="chip-label" data-i18n="chip.lyricsTitle">Live Synced Lyrics</span>
-        </div>
-
-        <div class="demo-device-frame" id="deviceFrame">
-
-          <!-- Controls inside showcase -->
-          <div class="demo-controls-bar">
-            <!-- Mode switch: MacBook Notch vs External Monitor Dynamic Island -->
-            <div class="demo-mode-toggle">
-              <button class="mode-btn active" id="btnModeNotch" data-i18n="demo.modeNotch">MacBook Notch</button>
-              <button class="mode-btn" id="btnModeIsland" data-i18n="demo.modeIsland">Dynamic Island</button>
+      <!-- Organic Floating Nodes & Dynamic Notch Stage -->
+      <div id="interactive-demo" style="position: relative; top: -70px;"></div>
+      <div class="floating-stage" id="floatingStage">
+        
+        <!-- Center Floating Dynamic Notch -->
+        <div class="stage-notch-wrapper">
+          <div class="stage-notch">
+            <div class="stage-notch-left">
+              <span class="pulse-dot"></span>
+              <span class="notch-song" data-i18n="hero.notchSong">Midnight Pulse — Lofi Waves</span>
             </div>
-
-            <!-- Action simulators -->
-            <div class="demo-action-pills">
-              <button class="action-pill active" id="pillFaceID" data-i18n="demo.pillFaceID">Face ID</button>
-              <button class="action-pill" id="pillMusic" data-i18n="demo.pillMusic">Music & Lyrics</button>
-              <button class="action-pill" id="pillBattery" data-i18n="demo.pillBattery">98W MagSafe</button>
-              <button class="action-pill" id="pillShelf" data-i18n="demo.pillShelf">Notch Shelf</button>
+            <div class="stage-notch-center">
+              <div class="lens-cutout"></div>
+            </div>
+            <div class="stage-notch-right">
+              <div class="mini-eq">
+                <span></span><span></span><span></span><span></span>
+              </div>
             </div>
           </div>
-
-          <!-- Simulated Screen with Physical interactive Notch -->
-          <div class="demo-screen-canvas" id="screenCanvas">
-            
-            <!-- The Notch / Island Element -->
-            <div class="interactive-notch" id="notchElement" title="Click to expand/collapse Notch">
-              
-              <!-- Idle / Compact View -->
-              <div class="notch-closed-content" id="notchClosedContent">
-                <span id="compactIcon">⚡️</span>
-                <span id="compactText" data-i18n="notch.idle">NotchPulse Active</span>
-              </div>
-
-              <!-- Expanded HUD View -->
-              <div class="notch-expanded-content" id="notchExpandedContent">
-                <div class="faceid-scanner-anim">
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3m0-8V5a2 2 0 0 0-2-2h-3"/>
-                    <circle cx="9" cy="9" r="1.2" fill="currentColor"/>
-                    <circle cx="15" cy="9" r="1.2" fill="currentColor"/>
-                    <path d="M12 11v2"/>
-                    <path d="M8.5 15.5c1.8 1.8 5.2 1.8 7 0"/>
-                  </svg>
-                </div>
-                <div style="font-weight: 700; font-size: 1rem; color: #fff;" id="expandedTitle" data-i18n="notch.faceIdScanned">Face ID Verified</div>
-                <div style="font-size: 0.8rem; color: #d9cbbe; margin-top: 4px;" id="expandedDesc" data-i18n="notch.faceIdPrompt">Mac unlocked seamlessly via front camera</div>
-              </div>
-
-            </div>
-
-            <div class="demo-hint-box" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; user-select: none;">
-              <p>💡 <span data-i18n="demo.hint">Click or hover over the notch above to trigger 120Hz fluid expansion!</span></p>
-            </div>
-
-          </div>
-
         </div>
+
+        <!-- Scattered Floating Interactive Nodes -->
+        <div class="float-node node-faceid" style="--delay: 0s;">
+          <span class="node-icon">👤</span>
+          <div class="node-text">
+            <strong data-i18n="chip.faceidTitle">Face ID Verified</strong>
+            <span data-i18n="chip.faceidSub">On-Device Neural Engine</span>
+          </div>
+        </div>
+
+        <div class="float-node node-ddc" style="--delay: 1.2s;">
+          <span class="node-icon">☀️</span>
+          <div class="node-text">
+            <strong data-i18n="chip.ddcTitle">DDC Display Control</strong>
+            <span data-i18n="chip.ddcSub">Dell UltraSharp 4K • 82%</span>
+          </div>
+        </div>
+
+        <div class="float-node node-battery" style="--delay: 2.1s;">
+          <span class="node-icon">⚡️</span>
+          <div class="node-text">
+            <strong data-i18n="chip.batteryTitle">98W MagSafe Active</strong>
+            <span data-i18n="chip.batterySub">Smart 80% Limit Protected</span>
+          </div>
+        </div>
+
+        <div class="float-node node-shelf" style="--delay: 0.8s;">
+          <span class="node-icon">📁</span>
+          <div class="node-text">
+            <strong data-i18n="chip.shelfTitle">Notch Shelf Ready</strong>
+            <span data-i18n="chip.shelfSub">Drag &amp; Drop to Hold Files</span>
+          </div>
+        </div>
+
+        <div class="float-node node-fps" style="--delay: 1.6s;">
+          <span class="node-icon">✨</span>
+          <div class="node-text">
+            <strong data-i18n="chip.fpsTitle">120Hz ProMotion</strong>
+            <span data-i18n="chip.fpsSub">0% CPU Idle Overhead</span>
+          </div>
+        </div>
+
       </div>
     </div>
   </header>
@@ -226,9 +217,9 @@
           </div>
 
           <div class="bento-preview-box">
-            <div style="display: flex; align-items: center; gap: 24px;">
+            <div style="display: flex; align-items: center; gap: 20px;">
               <div class="faceid-scanner-anim" style="margin-bottom: 0;">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3m0-8V5a2 2 0 0 0-2-2h-3"/>
                   <circle cx="9" cy="9" r="1.2" fill="currentColor"/>
                   <circle cx="15" cy="9" r="1.2" fill="currentColor"/>
@@ -237,9 +228,9 @@
                 </svg>
               </div>
               <div>
-                <div style="font-weight: 700; color: #fff; font-size: 1.05rem;" data-i18n="bento.faceidVerified">Neural Face Mesh Active</div>
-                <div style="font-size: 0.82rem; color: var(--accent-caramel); margin-top: 4px;">512D Vector Embedding • On-Device Apple Neural Engine</div>
-                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Lock Screen to Active Desktop Zero-Lag Handshake</div>
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 1rem; letter-spacing: -0.01em;" data-i18n="bento.faceidVerified">Neural Face Mesh Active</div>
+                <div style="font-size: 0.82rem; color: var(--accent-bronze); margin-top: 3px; font-weight: 500;" data-i18n="bento.faceidSub">512D Vector Embedding • On-Device Apple Vision</div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;" data-i18n="bento.faceidHandshake">Lock Screen to Active Desktop Zero-Lag Handshake</div>
               </div>
             </div>
           </div>
@@ -259,8 +250,8 @@
 
           <div class="bento-preview-box">
             <div style="text-align: center;">
-              <div style="display: inline-block; padding: 4px 14px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 9999px; font-weight: 700; font-size: 0.85rem; color: #38bdf8; margin-bottom: 8px;">120 FPS Native</div>
-              <div style="font-size: 0.8rem; color: #94a3b8;">Spring Physics (response: 0.38s)</div>
+              <div style="display: inline-block; padding: 5px 16px; background: rgba(141, 84, 40, 0.1); border: 1px solid rgba(141, 84, 40, 0.2); border-radius: 980px; font-weight: 600; font-size: 0.84rem; color: var(--accent-caramel); margin-bottom: 6px;">120 FPS ProMotion</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);" data-i18n="bento.springPhysics">Spring Physics (response: 0.38s)</div>
             </div>
           </div>
         </div>
@@ -302,8 +293,8 @@
             <div style="display: flex; align-items: center; gap: 16px;">
               <div class="vinyl-disc">💿</div>
               <div>
-                <div style="font-weight: 700; color: #fff; font-size: 1rem;">Die With A Smile</div>
-                <div style="font-size: 0.8rem; color: #94a3b8;">Lady Gaga & Bruno Mars</div>
+                <div style="font-weight: 700; color: #fff; font-size: 1rem;">Echoes of Calm</div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">Pulse Audio &amp; Friends</div>
               </div>
             </div>
 
@@ -316,8 +307,8 @@
               <div class="eq-bar"></div>
             </div>
 
-            <div style="width: 100%; margin-top: 10px; font-size: 0.88rem; font-weight: 600; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 8px 16px; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.25);">
-              🎤 "If the world was ending, I'd wanna be next to you..."
+            <div class="lyrics-quote-pill" data-i18n="bento.songLyrics">
+              "Drifting through the calm, soundscapes in the night..."
             </div>
           </div>
         </div>
@@ -336,39 +327,84 @@
 
           <div class="bento-preview-box">
             <div class="ddc-slider-row">
-              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8;">
-                <span>☀️ Dell UltraSharp 4K Brightness</span>
-                <span style="color: #38bdf8; font-weight: 700;">82%</span>
+              <div class="ddc-info-row">
+                <span class="ddc-label">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+                  <span data-i18n="bento.ddcBrightness">Dell UltraSharp 4K Brightness</span>
+                </span>
+                <span class="ddc-pct">82%</span>
               </div>
               <div class="ddc-slider-bar"><div class="ddc-fill-brightness"></div></div>
 
-              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">
-                <span>🔊 Built-in Audio Volume</span>
-                <span style="color: #ec4899; font-weight: 700;">65%</span>
+              <div class="ddc-info-row" style="margin-top: 6px;">
+                <span class="ddc-label">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  <span data-i18n="bento.ddcVolume">Built-in Audio Volume</span>
+                </span>
+                <span class="ddc-pct">65%</span>
               </div>
               <div class="ddc-slider-bar"><div class="ddc-fill-volume"></div></div>
             </div>
           </div>
         </div>
 
-        <!-- Bento 6 (6-col): Smart MagSafe & Power HUD -->
+        <!-- Bento 6 (6-col): Live CPU, RAM & GPU System Monitor -->
         <div class="bento-card bento-col-6 fade-in-section delay-1">
           <div class="bento-header">
             <div class="bento-icon-badge">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2" ry="2"/><line x1="23" y1="13" x2="23" y2="11"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
             </div>
-            <h3 class="bento-title" data-i18n="feat6.title">Smart Power & 140W MagSafe HUD</h3>
+            <h3 class="bento-title" data-i18n="feat6.title">Live CPU, RAM & GPU System Monitor</h3>
             <p class="bento-desc" data-i18n="feat6.desc">
-              Plugging in MagSafe or USB-C reveals live charging wattage, estimated time to 100%, and battery health cycle telemetry.
+              Real-time hardware telemetry directly inside the notch. Track Apple Silicon unified memory pressure, CPU core clusters, and GPU load with 0% idle overhead.
             </p>
           </div>
 
           <div class="bento-preview-box">
-            <div class="watt-gauge">
-              <div class="watt-number">98W</div>
-              <div style="font-size: 0.85rem;">
-                <div style="color: #22c55e; font-weight: 700;">⚡️ Fast Charging Active</div>
-                <div style="color: #94a3b8; font-size: 0.78rem;">Full in 18m • 100% Battery Health (52 Cycles)</div>
+            <div class="telemetry-grid-preview">
+              <!-- CPU Telemetry -->
+              <div class="telemetry-pill">
+                <div class="telemetry-pill-head">
+                  <span class="telemetry-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                    <span>CPU</span>
+                  </span>
+                  <span class="telemetry-pct">14.5%</span>
+                </div>
+                <div class="telemetry-track">
+                  <div class="telemetry-bar" style="width: 14.5%;"></div>
+                </div>
+                <div class="telemetry-sub" data-i18n="bento.cpuCores">8 Cores Active</div>
+              </div>
+
+              <!-- RAM Telemetry -->
+              <div class="telemetry-pill">
+                <div class="telemetry-pill-head">
+                  <span class="telemetry-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="10" y1="18" x2="10" y2="21"/><line x1="14" y1="18" x2="14" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
+                    <span>RAM</span>
+                  </span>
+                  <span class="telemetry-pct">64%</span>
+                </div>
+                <div class="telemetry-track">
+                  <div class="telemetry-bar" style="width: 64%;"></div>
+                </div>
+                <div class="telemetry-sub" data-i18n="bento.ramUsage">10.3 / 16 GB Active</div>
+              </div>
+
+              <!-- GPU Telemetry -->
+              <div class="telemetry-pill">
+                <div class="telemetry-pill-head">
+                  <span class="telemetry-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    <span>GPU</span>
+                  </span>
+                  <span class="telemetry-pct">8.2%</span>
+                </div>
+                <div class="telemetry-track">
+                  <div class="telemetry-bar" style="width: 8.2%;"></div>
+                </div>
+                <div class="telemetry-sub" data-i18n="bento.gpuFps">120 FPS Metal Pro</div>
               </div>
             </div>
           </div>
@@ -395,7 +431,7 @@
         <button class="filter-btn" data-filter="5" data-i18n="reviews.five">5 Stars</button>
         <button class="filter-btn" data-filter="4.5" data-i18n="reviews.fourPointFive">4.5 Stars</button>
         <button class="filter-btn" data-filter="4" data-i18n="reviews.four">4 Stars</button>
-        <button class="filter-btn" data-filter="3.5">3.5 Stars</button>
+        <button class="filter-btn" data-filter="3.5" data-i18n="reviews.threePointFive">3.5 Stars</button>
       </div>
 
       <!-- Testimonials Grid -->
@@ -564,6 +600,26 @@
           </div>
         </div>
       </div>
+
+      <!-- Partner / Friend Showcase: Hani Learning (Hugo) -->
+      <div class="hugo-showcase-container fade-in-section delay-1">
+        <div class="hugo-card-image-wrap">
+          <a href="https://hanilearning.site/" target="_blank" rel="noopener" title="Ghé thăm website Hani Learning của Đỗ Mạnh Hùng (Hugo)">
+            <img src="assets/hugo_hani.png" alt="Đỗ Mạnh Hùng (Hugo) — Hani Learning" class="hugo-card-img">
+          </a>
+        </div>
+        <div class="hugo-action-bar">
+          <div class="hugo-action-text">
+            <span class="hugo-badge" data-i18n="hugo.tag">Dự Án Bạn Bè • Học Tiếng Trung Hani</span>
+            <span class="hugo-sub" data-i18n="hugo.sub">Website học tiếng Trung hiện đại do Đỗ Mạnh Hùng (Hugo) sáng lập</span>
+          </div>
+          <a href="https://hanilearning.site/" target="_blank" rel="noopener" class="btn-primary btn-hani-cta" id="btnHaniPromo">
+            <span class="btn-hani-icon">🎁</span>
+            <span data-i18n="hugo.btn">Đăng ký nhận 2000 xu Hani</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -574,7 +630,7 @@
         <span class="section-tag" data-i18n="install.tag">Ready to Elevate Your Mac?</span>
         <h2 class="section-title" data-i18n="install.title">Get NotchPulse Today</h2>
         <p class="section-subtitle" data-i18n="install.subtitle">
-          Compatible with macOS 14.0+ Sonoma and macOS 15 Sequoia. Optimized for Apple Silicon M1/M2/M3/M4 & Intel Macs.
+          Compatible with macOS 14.0+ Sonoma and macOS 15 Sequoia. Optimized for all Mac devices (Apple Silicon & Intel Macs).
         </p>
       </div>
 
@@ -597,13 +653,13 @@
     <div class="container footer-content">
       <div style="display: flex; align-items: center; gap: 10px;">
         <img src="assets/logo_clean.png" alt="NotchPulse" style="width: 24px; height: 24px; border-radius: 6px;">
-        <span>© 2026 NotchPulse by Kun Nguyen (HieuKun). All rights reserved.</span>
+        <span data-i18n="footer.rights">© 2026 NotchPulse by Kun Nguyen (HieuKun). All rights reserved.</span>
       </div>
 
       <ul class="footer-links">
         <li><a href="https://github.com/HieuKunn/NotchPulse" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="https://github.com/HieuKunn/NotchPulse/releases" target="_blank" rel="noopener">Releases</a></li>
-        <li><a href="https://github.com/HieuKunn/NotchPulse/issues" target="_blank" rel="noopener">Support</a></li>
+        <li><a href="https://github.com/HieuKunn/NotchPulse/releases" target="_blank" rel="noopener" data-i18n="footer.releases">Releases</a></li>
+        <li><a href="https://github.com/HieuKunn/NotchPulse/issues" target="_blank" rel="noopener" data-i18n="footer.support">Support</a></li>
       </ul>
     </div>
   </footer>
@@ -615,6 +671,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="main.js?v=10"></script>
+  <script src="main.js?v=22"></script>
 </body>
 </html>
