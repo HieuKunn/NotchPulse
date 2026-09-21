@@ -33,10 +33,10 @@ struct SettingsView: View {
                     Label("General", systemImage: "gear")
                 }
                 NavigationLink(value: "Appearance") {
-                    Label("Appearance", systemImage: "eye")
+                    Label("Appearance", systemImage: "eye.fill")
                 }
                 NavigationLink(value: "Media") {
-                    Label("Media", systemImage: "play.laptopcomputer")
+                    Label("Media", systemImage: "music.note")
                 }
                 NavigationLink(value: "Calendar") {
                     Label("Calendar", systemImage: "calendar")
@@ -48,7 +48,7 @@ struct SettingsView: View {
                     Label("System Monitor", systemImage: "cpu")
                 }
                 NavigationLink(value: "FaceID") {
-                    Label("Face ID & Lock Screen", systemImage: "faceid")
+                    Label("Face Recognition", systemImage: "faceid")
                 }
 //                NavigationLink(value: "Downloads") {
 //                    Label("Downloads", systemImage: "square.and.arrow.down")
@@ -177,7 +177,7 @@ struct SettingsView: View {
         case "SystemMonitor":
             return "System Monitor"
         case "FaceID":
-            return "Face ID & Lock Screen"
+            return "Face Recognition"
         case "Shelf":
             return "Shelf"
         case "Shortcuts":
