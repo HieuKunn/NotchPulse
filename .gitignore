@@ -54,3 +54,4 @@ build/
 glance-main/
 
 *.pth
+.firebase/
