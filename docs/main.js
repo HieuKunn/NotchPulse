@@ -33,6 +33,10 @@ const i18nData = {
     // Chips
     "chip.faceidTitle": "Face ID Ready",
     "chip.faceidSub": "Instant biometric unlock",
+    "chip.shelfTitle": "Notch Shelf",
+    "chip.shelfSub": "Quick file staging dock",
+    "chip.batteryTitle": "98W MagSafe",
+    "chip.batterySub": "Real-time charge telemetry",
     "chip.lyricsTitle": "Live Synced Lyrics",
     "chip.lyricsSub": "Spotify & Apple Music",
 
@@ -40,7 +44,7 @@ const i18nData = {
     "demo.modeNotch": "MacBook Notch",
     "demo.modeIsland": "Dynamic Island",
     "demo.pillFaceID": "Face ID",
-    "demo.pillMusic": "Music & Lyrics",
+    "demo.pillMusic": "Synced Lyrics",
     "demo.pillBattery": "98W MagSafe",
     "demo.pillShelf": "Notch Shelf",
     "demo.hint": "Click or hover over the notch above to trigger 120Hz fluid expansion!",
@@ -113,16 +117,20 @@ const i18nData = {
     // Chips
     "chip.faceidTitle": "Face ID Sẵn Sàng",
     "chip.faceidSub": "Mở khóa khuôn mặt tức thì",
+    "chip.shelfTitle": "Notch Shelf",
+    "chip.shelfSub": "Kéo thả tệp nhanh",
+    "chip.batteryTitle": "Sạc MagSafe 98W",
+    "chip.batterySub": "Báo công suất thời gian thực",
     "chip.lyricsTitle": "Lời Nhạc Trực Tiếp",
     "chip.lyricsSub": "Spotify & Apple Music",
 
-    // Demo Controls & Notch
-    "demo.modeNotch": "Tai Thỏ MacBook",
-    "demo.modeIsland": "Đảo Động Island",
+    // Demo Controls & Notch (Compact labels to prevent line wrapping)
+    "demo.modeNotch": "Tai Thỏ",
+    "demo.modeIsland": "Dynamic Island",
     "demo.pillFaceID": "Face ID",
-    "demo.pillMusic": "Nhạc & Lời Bài Hát",
-    "demo.pillBattery": "Sạc MagSafe 98W",
-    "demo.pillShelf": "Ngăn Chứa Notch",
+    "demo.pillMusic": "Lời Nhạc",
+    "demo.pillBattery": "Sạc 98W",
+    "demo.pillShelf": "Notch Shelf",
     "demo.hint": "Nhấp chuột hoặc rê vào tai thỏ phía trên để trải nghiệm mở rộng 120Hz siêu mượt!",
     "notch.idle": "NotchPulse Đang Hoạt Động",
     "notch.faceIdScanned": "Đã Xác Thực Face ID",
@@ -257,8 +265,7 @@ function applyLanguage(lang) {
 
 function initParallaxAndTilt() {
   const deviceFrame = document.getElementById("deviceFrame");
-  const chipFaceId = document.getElementById("chipFaceId");
-  const chipLyrics = document.getElementById("chipLyrics");
+  const chips = document.querySelectorAll(".parallax-chip");
   const ambientGlow = document.getElementById("ambientGlow");
 
   if (!deviceFrame) return;
@@ -271,29 +278,30 @@ function initParallaxAndTilt() {
     const deltaX = (e.clientX - frameCenterX) / (window.innerWidth / 2);
     const deltaY = (e.clientY - frameCenterY) / (window.innerHeight / 2);
 
-    const rotX = Math.max(-10, Math.min(10, -deltaY * 12));
-    const rotY = Math.max(-10, Math.min(10, deltaX * 12));
+    // Subtle, calm micro-tilt (-3.2deg to 3.2deg) to prevent excessive movement
+    const rotX = Math.max(-3.2, Math.min(3.2, -deltaY * 3.6));
+    const rotY = Math.max(-3.2, Math.min(3.2, deltaX * 3.6));
 
-    deviceFrame.style.transform = `perspective(1200px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    deviceFrame.style.transform = `perspective(1400px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
 
-    if (chipFaceId) {
-      chipFaceId.style.transform = `translate3d(${-rotY * 2.5}px, ${-rotX * 2.5}px, 40px)`;
-    }
-    if (chipLyrics) {
-      chipLyrics.style.transform = `translate3d(${rotY * 2.5}px, ${rotX * 2.5}px, 40px)`;
-    }
+    // Gentle micro-shift on floating outer chips
+    chips.forEach((chip, idx) => {
+      const dir = idx % 2 === 0 ? -1 : 1;
+      chip.style.transform = `translate3d(${rotY * dir * 1.5}px, ${rotX * dir * 1.5}px, 25px)`;
+    });
   });
 
   window.addEventListener("mouseleave", () => {
-    deviceFrame.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)";
-    if (chipFaceId) chipFaceId.style.transform = "translate3d(0, 0, 0)";
-    if (chipLyrics) chipLyrics.style.transform = "translate3d(0, 0, 0)";
+    deviceFrame.style.transform = "perspective(1400px) rotateX(0deg) rotateY(0deg)";
+    chips.forEach((chip) => {
+      chip.style.transform = "translate3d(0, 0, 0)";
+    });
   });
 
   window.addEventListener("scroll", () => {
     const scrollY = window.scrollY;
     if (ambientGlow) {
-      ambientGlow.style.transform = `translateY(${scrollY * 0.25}px)`;
+      ambientGlow.style.transform = `translateY(${scrollY * 0.15}px)`;
     }
   });
 }

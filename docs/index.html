@@ -89,8 +89,8 @@
       <div class="demo-showcase" id="interactive-demo">
         <div class="demo-device-frame" id="deviceFrame">
           
-          <!-- Floating Parallax Chips -->
-          <div class="parallax-chip chip-faceid" id="chipFaceId">
+          <!-- 4 Floating Parallax Chips (Positioned comfortably outside device frame) -->
+          <div class="parallax-chip chip-tl" id="chipFaceId">
             <span style="font-size: 1.2rem;">👤</span>
             <div>
               <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.faceidTitle">Face ID Ready</div>
@@ -98,7 +98,23 @@
             </div>
           </div>
 
-          <div class="parallax-chip chip-lyrics" id="chipLyrics">
+          <div class="parallax-chip chip-bl" id="chipShelf">
+            <span style="font-size: 1.2rem;">📁</span>
+            <div>
+              <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.shelfTitle">Notch Shelf</div>
+              <div style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="chip.shelfSub">Quick file staging dock</div>
+            </div>
+          </div>
+
+          <div class="parallax-chip chip-tr" id="chipBattery">
+            <span style="font-size: 1.2rem;">⚡️</span>
+            <div>
+              <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.batteryTitle">98W MagSafe</div>
+              <div style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="chip.batterySub">Real-time charge telemetry</div>
+            </div>
+          </div>
+
+          <div class="parallax-chip chip-br" id="chipLyrics">
             <span style="font-size: 1.2rem;">🎵</span>
             <div>
               <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.lyricsTitle">Live Synced Lyrics</div>
@@ -152,7 +168,7 @@
 
             </div>
 
-            <div style="margin-top: 80px; text-align: center; color: var(--text-muted); font-size: 0.85rem; user-select: none;">
+            <div class="demo-hint-box" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; user-select: none;">
               <p>💡 <span data-i18n="demo.hint">Click or hover over the notch above to trigger 120Hz fluid expansion!</span></p>
             </div>
 
