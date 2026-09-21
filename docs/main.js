@@ -83,6 +83,7 @@ const i18nData = {
 
     "feat4.title": "Notch Shelf & Quick Drop",
     "feat4.desc": "Drag files, links, or screenshots directly into the notch bezel to hold them temporarily across workspaces and apps.",
+    "shelf.dropText": "Drop files here",
 
     "feat5.title": "Hardware DDC External Display HUD",
     "feat5.desc": "Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with native Apple keyboard shortcuts.",
@@ -197,10 +198,11 @@ const i18nData = {
 
     "feat4.title": "Ngăn Kéo Notch Shelf & Thả Nhanh",
     "feat4.desc": "Biến phần khuyết tai thỏ thành nơi lưu tạm tài liệu thông minh. Kéo thả file, ảnh, đường link hoặc đoạn mã lên đỉnh màn hình để chuyển đổi nhanh giữa các app.",
+    "shelf.dropText": "Thả tệp vào đây",
 
     "feat5.title": "Điều Khiển Màn Hình Ngoài DDC HUD",
     "feat5.desc": "Can thiệp phần cứng DDC/CI trực tiếp cho màn hình rời. Tăng giảm độ sáng thật, độ tương phản và âm lượng bằng phím tắt bàn phím tiện lợi.",
-    "bento.ddcBrightness": "☀️ Độ sáng màn hình Dell UltraSharp 4K",
+    "bento.ddcBrightness": "Độ sáng màn hình Dell UltraSharp 4K",
     "bento.ddcVolume": "Âm lượng loa tích hợp",
 
     "feat6.title": "Giám Sát Phần Cứng CPU, RAM & GPU",
@@ -310,7 +312,8 @@ const i18nData = {
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "Notch Shelf & Schnelles Ablegen",
-    "feat4.desc": "Dateien, Bilder oder Links direkt in die Notch ziehen, um sie zwischen Apps und Schreibtischen zwischenzuspeichern.",
+    "feat4.desc": "Dateien, Links oder Bildschirmfotos direkt in die Notch ziehen, um sie zwischen Schreibtischen und Apps bereitzuhalten.",
+    "shelf.dropText": "Dateien hier ablegen",
 
     "feat5.title": "Hardware DDC Display-Steuerung",
     "feat5.desc": "Echte Hardware-Helligkeit und Lautstärke externer Monitore über DDC/CI mit Apple-Tastaturkurzbefehlen steuern.",
@@ -423,8 +426,9 @@ const i18nData = {
     "feat3.desc": "SpotifyやApple Musicとリアルタイムに同期し、ノッチ上に歌詞を一語ずつ表示。トラック操作も手軽に。",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
-    "feat4.title": "ノッチシェルフ＆クイックドロップ",
-    "feat4.desc": "ノッチにファイルやリンク、画像をドラッグして一時保持。アプリ間の作業を効率化。",
+    "feat4.title": "ノッチシェルフ & クイックドロップ",
+    "feat4.desc": "ファイル、リンク、スクリーンショットをノッチに直接ドラッグして、アプリやワークスペース間で一時保存。",
+    "shelf.dropText": "ここにファイルをドロップ",
 
     "feat5.title": "外部モニター DDC ハードウェア制御",
     "feat5.desc": "DDC/CIプロトコル経由で外部モニター本来の輝度や音量をApple標準ショートカットで直接調整。",
@@ -539,11 +543,12 @@ const i18nData = {
 
     "feat4.title": "瀏海暫存區 Notch Shelf",
     "feat4.desc": "將檔案、截圖或連結拖曳至螢幕邊緣暫存，輕鬆穿梭跨桌面與各項工作流程。",
+    "shelf.dropText": "將檔案拖曳至此",
 
     "feat5.title": "硬體級 DDC 外接螢幕控制",
     "feat5.desc": "透過 DDC/CI 協定直接調整第三方螢幕的真實亮度與硬體音量，相容 Apple 原生快捷鍵。",
-    "bento.ddcBrightness": "☀️ Dell UltraSharp 4K 亮度",
-    "bento.ddcVolume": "🔊 內建喇叭音量",
+    "bento.ddcBrightness": "Dell UltraSharp 4K 亮度",
+    "bento.ddcVolume": "內建喇叭音量",
 
     "feat6.title": "即時 CPU、RAM 與 GPU 系統監控",
     "feat6.desc": "於瀏海即時掌握硬體資訊：Apple Silicon 統一記憶體壓力、CPU 核心頻率與 GPU 負載，零待機損耗。",
@@ -653,10 +658,11 @@ const i18nData = {
 
     "feat4.title": "刘海暂存架 Notch Shelf",
     "feat4.desc": "将文件、链接或截图直接拖拽至刘海边缘暂存，在各工作区与多任务间便捷流转。",
+    "shelf.dropText": "拖拽文件到这里",
 
     "feat5.title": "DDC 协议外接显示器硬件控制",
     "feat5.desc": "通过 DDC/CI 协议直接调节外接显示器的原生硬件亮度与音量，完美适配 Apple 键盘快捷键。",
-    "bento.ddcBrightness": "☀️ Dell UltraSharp 4K 亮度",
+    "bento.ddcBrightness": "Dell UltraSharp 4K 亮度",
     "bento.ddcVolume": "内置扬声器音量",
 
     "feat6.title": "实时 CPU、RAM 与 GPU 监控",
@@ -766,7 +772,8 @@ const i18nData = {
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "Notch Shelf y Arrastre Rápido",
-    "feat4.desc": "Arrastra archivos, enlaces o capturas al notch para guardarlos temporalmente entre escritorios y aplicaciones.",
+    "feat4.desc": "Arrastra archivos, enlaces o capturas directamente a la muesca del notch para guardarlos temporalmente entre espacios.",
+    "shelf.dropText": "Suelta los archivos aquí",
 
     "feat5.title": "Control de Monitores Externos DDC",
     "feat5.desc": "Controla el brillo real y volumen por hardware de monitores de terceros mediante DDC/CI con los atajos de teclado de Apple.",
@@ -1150,12 +1157,19 @@ function renderNotchContent(force = false) {
     if (compactText) compactText.textContent = dict["notch.shelfItems"] || "Shelf: 3 Items";
 
     content.innerHTML = `
-      <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-        <div style="padding: 8px 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 235, 220, 0.1); border-radius: 10px; font-size: 0.8rem; font-weight: 500; color: #fff;">Proposal.pdf</div>
-        <div style="padding: 8px 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 235, 220, 0.1); border-radius: 10px; font-size: 0.8rem; font-weight: 500; color: #fff;">Mockup.png</div>
-        <div style="padding: 8px 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 235, 220, 0.1); border-radius: 10px; font-size: 0.8rem; font-weight: 500; color: #fff;">figma.com</div>
+      <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 6px;">
+        <div style="width: 74px; height: 64px; border-radius: 12px; border: 1.5px dashed rgba(255, 235, 220, 0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: rgba(255, 255, 255, 0.03);">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          </div>
+          <span style="font-size: 0.65rem; font-weight: 600; color: #fff;">AirDrop</span>
+        </div>
+        <div style="flex: 1; height: 64px; border-radius: 12px; border: 1.5px dashed rgba(255, 235, 220, 0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: rgba(255, 255, 255, 0.03); position: relative;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+          <span style="font-size: 0.72rem; font-weight: 500; color: #C8BAAF;">${dict["shelf.dropText"] || "Drop files here"}</span>
+        </div>
       </div>
-      <div style="font-size: 0.78rem; color: #94a3b8;">
+      <div style="font-size: 0.76rem; color: #94a3b8;">
         ${dict["notch.shelfPrompt"] || "Drop files into notch to stash temporarily"}
       </div>
     `;

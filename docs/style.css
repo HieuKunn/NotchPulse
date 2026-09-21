@@ -1152,66 +1152,184 @@ a {
   to { transform: rotate(360deg); }
 }
 
-/* Shelf Drop Preview (Refined Apple Frosted Cards) */
-.shelf-items-preview {
+/* Notch Shelf UI (Exact macOS Notch Interface Replica) */
+.shelf-notch-preview-box {
+  padding: 12px 14px;
+}
+
+.notch-shelf-ui {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 235, 220, 0.09);
+  border-radius: 16px;
+  padding: 10px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.notch-shelf-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 2px;
+}
+
+.notch-shelf-tabs,
+.notch-shelf-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notch-tab-btn,
+.notch-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: #8C7D73;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.notch-tab-btn:hover,
+.notch-tool-btn:hover {
+  color: #FFFFFF;
+}
+
+.notch-tab-btn.active {
+  background: rgba(255, 235, 220, 0.16);
+  color: #FFFFFF;
+  border-radius: 980px;
+  width: 32px;
+  height: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.notch-shelf-zones {
   display: flex;
   gap: 10px;
   width: 100%;
-  max-width: 100%;
-  justify-content: center;
-  align-items: center;
+  height: 94px;
   box-sizing: border-box;
 }
 
-.shelf-file-chip {
-  flex: 1;
-  min-width: 0;
-  padding: 16px 8px;
+.notch-shelf-zone {
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px dashed rgba(255, 235, 220, 0.18);
+  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.notch-shelf-zone:hover {
+  border-color: rgba(255, 235, 220, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.notch-shelf-zone.airdrop-zone {
+  width: 88px;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.airdrop-circle-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 235, 220, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
-  user-select: none;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.shelf-file-chip:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 235, 220, 0.24);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-}
-
-.shelf-chip-ext {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: #FFFFFF;
-  background: rgba(255, 235, 220, 0.14);
-  padding: 3px 6px;
-  border-radius: 6px;
-  flex-shrink: 0;
-  line-height: 1;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.shelf-chip-size {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
+.notch-shelf-zone.airdrop-zone:hover .airdrop-circle-btn {
+  transform: scale(1.06);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.airdrop-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+
+.notch-shelf-zone.drop-target-zone {
+  flex: 1;
+  min-width: 0;
+}
+
+.drop-target-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #C8BAAF;
+  text-align: center;
+  padding: 0 8px;
+}
+
+.drop-target-icon {
+  color: #FFFFFF;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.notch-shelf-zone.drop-target-zone:hover .drop-target-icon {
+  transform: translateY(2px);
+}
+
+.drop-target-label {
+  font-size: 0.82rem;
   font-weight: 500;
   color: #C8BAAF;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  max-width: 100%;
+}
+
+.shelf-pin-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 235, 220, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8C7D73;
+  transition: color 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.shelf-pin-badge:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* DDC Sliders (Minimalist Apple Monochromatic Design) */
@@ -1949,9 +2067,9 @@ a {
   border-color: rgba(255, 235, 220, 0.08);
 }
 
-[data-theme="dark"] .shelf-file-chip {
-  background: rgba(255, 235, 220, 0.05);
-  border-color: rgba(255, 235, 220, 0.1);
+[data-theme="dark"] .notch-shelf-ui {
+  background: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 235, 220, 0.08);
 }
 
 [data-theme="dark"] .telemetry-pill {
