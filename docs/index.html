@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="style.css?v=26">
+  <link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
 
@@ -147,7 +147,18 @@
 
         <!-- Scattered Floating Interactive Nodes -->
         <div class="float-node node-faceid" style="--delay: 0s;">
-          <span class="node-icon">👤</span>
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 8V6a2 2 0 0 1 2-2h2"/>
+              <path d="M4 16v2a2 2 0 0 0 2 2h2"/>
+              <path d="M16 4h2a2 2 0 0 1 2 2v2"/>
+              <path d="M16 20h2a2 2 0 0 0 2-2v-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+              <path d="M12 11v3"/>
+              <path d="M9 16a4 4 0 0 0 6 0"/>
+            </svg>
+          </span>
           <div class="node-text">
             <strong data-i18n="chip.faceidTitle">Face ID Verified</strong>
             <span data-i18n="chip.faceidSub">On-Device Neural Engine</span>
@@ -155,7 +166,19 @@
         </div>
 
         <div class="float-node node-ddc" style="--delay: 1.2s;">
-          <span class="node-icon">☀️</span>
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2"/>
+              <path d="M12 20v2"/>
+              <path d="M4.93 4.93l1.41 1.41"/>
+              <path d="M17.66 17.66l1.41 1.41"/>
+              <path d="M2 12h2"/>
+              <path d="M20 12h2"/>
+              <path d="M6.34 17.66l-1.41 1.41"/>
+              <path d="M19.07 4.93l-1.41 1.41"/>
+            </svg>
+          </span>
           <div class="node-text">
             <strong data-i18n="chip.ddcTitle">DDC Display Control</strong>
             <span data-i18n="chip.ddcSub">Dell UltraSharp 4K • 82%</span>
@@ -163,7 +186,11 @@
         </div>
 
         <div class="float-node node-battery" style="--delay: 2.1s;">
-          <span class="node-icon">⚡️</span>
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </span>
           <div class="node-text">
             <strong data-i18n="chip.batteryTitle">98W MagSafe Active</strong>
             <span data-i18n="chip.batterySub">Smart 80% Limit Protected</span>
@@ -171,7 +198,13 @@
         </div>
 
         <div class="float-node node-shelf" style="--delay: 0.8s;">
-          <span class="node-icon">📁</span>
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            </svg>
+          </span>
           <div class="node-text">
             <strong data-i18n="chip.shelfTitle">Notch Shelf Ready</strong>
             <span data-i18n="chip.shelfSub">Drag &amp; Drop to Hold Files</span>
@@ -179,7 +212,11 @@
         </div>
 
         <div class="float-node node-fps" style="--delay: 1.6s;">
-          <span class="node-icon">✨</span>
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l1.912 5.885a2 2 0 0 0 1.203 1.203L21 12l-5.885 1.912a2 2 0 0 0-1.203 1.203L12 21l-1.912-5.885a2 2 0 0 0-1.203-1.203L3 12l5.885-1.912a2 2 0 0 0 1.203-1.203L12 3z"/>
+            </svg>
+          </span>
           <div class="node-text">
             <strong data-i18n="chip.fpsTitle">120Hz ProMotion</strong>
             <span data-i18n="chip.fpsSub">0% CPU Idle Overhead</span>
@@ -345,7 +382,14 @@
 
           <div class="bento-preview-box" style="justify-content: space-between; flex-wrap: wrap; gap: 16px;">
             <div style="display: flex; align-items: center; gap: 16px;">
-              <div class="vinyl-disc">💿</div>
+              <div class="vinyl-disc">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
+                  <circle cx="12" cy="12" r="7" stroke="rgba(255,235,220,0.3)" stroke-width="1"/>
+                  <circle cx="12" cy="12" r="4" stroke="rgba(255,235,220,0.35)" stroke-width="1"/>
+                  <circle cx="12" cy="12" r="2" fill="#D4C7BA"/>
+                </svg>
+              </div>
               <div>
                 <div style="font-weight: 700; color: #fff; font-size: 1rem;">Echoes of Calm</div>
                 <div style="font-size: 0.8rem; color: #94a3b8;">Pulse Audio &amp; Friends</div>
