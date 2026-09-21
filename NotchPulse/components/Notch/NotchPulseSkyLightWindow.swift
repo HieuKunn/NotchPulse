@@ -33,6 +33,7 @@ extension SkyLightOperator {
 
 class NotchPulseSkyLightWindow: NSPanel {
     private var isSkyLightEnabled: Bool = false
+    private var observers: Set<AnyCancellable> = []
     
     override init(
         contentRect: NSRect,
