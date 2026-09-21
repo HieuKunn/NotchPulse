@@ -96,7 +96,7 @@ struct ContentView: View {
         // When closed or collapsing, target the closed notch size so the notch itself pulls up or rests seamlessly!
         if controller.phase == .closed || controller.phase == .collapsing {
             return CGSize(
-                width: isDynamicIsland ? computedChinWidth : vm.closedNotchSize.width,
+                width: vm.closedNotchSize.width,
                 height: max(vm.effectiveClosedNotchHeight, 0)
             )
         }
@@ -420,8 +420,10 @@ struct ContentView: View {
             anyDropDebounceTask?.cancel()
 
             if isTargeted {
-                if vm.notchState == .closed {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     coordinator.currentView = .shelf
+                }
+                if vm.notchState == .closed {
                     doOpen()
                 }
                 return
@@ -437,7 +439,7 @@ struct ContentView: View {
                 }
 
                 vm.dropEvent = false
-                if !SharingStateManager.shared.preventNotchClose {
+                if !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned {
                     vm.close()
                 }
             }
@@ -868,6 +870,11 @@ struct GeneralDropTargetDelegate: DropDelegate {
 
     func dropEntered(info: DropInfo) {
         isTargeted = true
+        Task { @MainActor in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                NotchPulseViewCoordinator.shared.currentView = .shelf
+            }
+        }
     }
 
     func dropExited(info: DropInfo) {
@@ -879,6 +886,12 @@ struct GeneralDropTargetDelegate: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
+        isTargeted = false
+        let providers = info.itemProviders(for: [.fileURL, .url, .utf8PlainText, .plainText, .data])
+        if !providers.isEmpty {
+            ShelfStateViewModel.shared.load(providers)
+            return true
+        }
         return true
     }
 }

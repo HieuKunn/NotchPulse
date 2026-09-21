@@ -41,30 +41,29 @@ struct FileShareView: View {
 
     private var dropArea: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 14)
                 .fill(
                     LinearGradient(colors: [Color.black.opacity(0.35), Color.black.opacity(0.20)], startPoint: .topLeading, endPoint: .bottomTrailing)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 14)
                         .stroke(
                             vm.dropZoneTargeting
                                 ? Color.accentColor.opacity(0.9)
-                                : Color.white.opacity(0.1),
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [10])
+                                : Color.white.opacity(0.12),
+                            style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [8, 6])
                         )
                 )
                 .shadow(color: Color.black.opacity(0.6), radius: 6, x: 0, y: 2)
 
             // Content
-            VStack(spacing: 5) {
+            VStack(spacing: 6) {
                 ZStack {
                     Circle()
                         .fill(Color.white.opacity(
-                            vm.dropZoneTargeting ? 0.11 : 0.09
+                            vm.dropZoneTargeting ? 0.12 : 0.08
                         ))
-                        .frame(width: 55, height: 55)
-                    Image(systemName: "square.and.arrow.up")
+                        .frame(width: 50, height: 50)
                     Group {
                         if let imgData = selectedProvider.imageData, let nsImg = NSImage(data: imgData) {
                             Image(nsImage: nsImg)
@@ -72,29 +71,30 @@ struct FileShareView: View {
                                 .aspectRatio(contentMode: .fit)
                         } else {
                             Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 20))
                         }
                     }
-                    .frame(width: 34, height: 34)
-                        .foregroundStyle(
-                            vm.dropZoneTargeting ? Color.accentColor : Color.gray
-                        )
-                        .scaleEffect(
-                            vm.dropZoneTargeting ? 1.06 : 1.0
-                        )
-                        .animation(.spring(response: 0.36, dampingFraction: 0.7), value: vm.dropZoneTargeting)
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(
+                        vm.dropZoneTargeting ? Color.accentColor : Color.white.opacity(0.85)
+                    )
+                    .scaleEffect(
+                        vm.dropZoneTargeting ? 1.06 : 1.0
+                    )
+                    .animation(.spring(response: 0.36, dampingFraction: 0.7), value: vm.dropZoneTargeting)
                 }
 
                 Text(selectedProvider.id)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.85))
 
             }
-            .padding(18)
+            .padding(12)
             
             // Loading overlay
             if isProcessing || quickShare.isPickerOpen {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.black.opacity(0.3))
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.black.opacity(0.4))
                     .overlay(
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -102,7 +102,7 @@ struct FileShareView: View {
                     )
             }
         }
-        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .contentShape(RoundedRectangle(cornerRadius: 14))
     }
 
     // MARK: - Actions

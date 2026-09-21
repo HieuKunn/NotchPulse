@@ -49,8 +49,20 @@ class QuickShareService: ObservableObject {
 
         var providers: [QuickShareProvider] = []
 
+        // Register native AirDrop as the primary sharing provider
+        if let airDropService = NSSharingService(named: .sendViaAirDrop) {
+            let imgData = airDropService.image.tiffRepresentation
+            let adProvider = QuickShareProvider(id: "AirDrop", imageData: imgData, supportsRawText: false)
+            providers.append(adProvider)
+            cachedServices["AirDrop"] = airDropService
+            cachedServices[NSSharingService.Name.sendViaAirDrop.rawValue] = airDropService
+        }
+
+        let services = await finder.findApplicableServices(for: testItems)
+
         for svc in services {
             let title = svc.title
+            if title == "AirDrop" { continue }
             let imgData = svc.image.tiffRepresentation
             let supportsRawText = svc.canPerform(withItems: ["Test Text"])
             let provider = QuickShareProvider(id: title, imageData: imgData, supportsRawText: supportsRawText)
@@ -58,11 +70,6 @@ class QuickShareService: ObservableObject {
                 providers.append(provider)
                 cachedServices[title] = svc
             }
-        }
-        
-        if let idx = providers.firstIndex(where: { $0.id == "AirDrop" }) {
-            let ad = providers.remove(at: idx)
-            providers.insert(ad, at: 0)
         }
 
         if !providers.contains(where: { $0.id == "System Share Menu" }) {
@@ -123,6 +130,16 @@ class QuickShareService: ObservableObject {
             self?.stopSharingAccessingURLs()
         }
         lifecycleDelegate = delegate
+
+        // If sharing via AirDrop, execute native AirDrop service directly
+        if provider.id == "AirDrop" || provider.id == NSSharingService.Name.sendViaAirDrop.rawValue {
+            if let airdropSvc = cachedServices["AirDrop"] ?? NSSharingService(named: .sendViaAirDrop) {
+                delegate.markServiceBegan()
+                airdropSvc.delegate = delegate
+                airdropSvc.perform(withItems: items)
+                return
+            }
+        }
 
         if let svc = cachedServices[provider.id], svc.canPerform(withItems: items) {
             // For direct service path, explicitly mark service interaction start

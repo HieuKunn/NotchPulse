@@ -25,6 +25,8 @@ struct ShelfView: View {
                     handleDrop(providers: providers)
                 }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
         // Bind Quick Look to shelf selection
         .onChange(of: selection.selectedIDs) {
             updateQuickLookSelection()
@@ -59,12 +61,16 @@ struct ShelfView: View {
     }
 
     var panel: some View {
-        RoundedRectangle(cornerRadius: 16)
-            .stroke(
-                vm.dragDetectorTargeting
-                    ? Color.accentColor.opacity(0.9)
-                    : Color.white.opacity(0.1),
-                style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [10])
+        RoundedRectangle(cornerRadius: 14)
+            .fill(Color.black.opacity(0.35))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        vm.dragDetectorTargeting
+                            ? Color.accentColor.opacity(0.9)
+                            : Color.white.opacity(0.12),
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [8, 6])
+                    )
             )
             .overlay {
                 content
