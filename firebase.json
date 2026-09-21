@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "notchpulse-app",
     "public": "docs",
     "ignore": [
       "firebase.json",
