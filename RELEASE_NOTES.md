@@ -1,16 +1,13 @@
 # NotchPulse v4.5.0
 
-## ⚡ Silky-Smooth Animations & Morphing
-- **Fluid Notch Expansion & Collapse**: Re-engineered the transition curves and layout calculations to eliminate frame stuttering. Expanding and shrinking the notch now glides smoothly at 120Hz ProMotion.
-- **Graceful Content Transitions**: Seamlessly dissolves and scales biometric views during setup and unlocking for a cohesive, Apple-grade Dynamic Island feel.
+## ⚡ Silky-Smooth Animations & Unified Morphing
+- **Fluid Notch Expansion & Collapse**: The Dynamic Island now flows down and retracts seamlessly from the physical camera notch as a single, cohesive animation at 120Hz ProMotion without frame drops or visual jumps.
+- **Flawless Transition Effects**: Smoothly fades and scales biometric views during recognition and unlocking for an authentic, Apple-grade Dynamic Island experience.
 
-## 🖥️ Smart Camera Display Detection
-- **Adaptive Multi-Monitor Routing**: Setting up Face ID now automatically detects which physical display houses your active camera (such as your MacBook's built-in FaceTime HD camera) and positions the enrollment interface directly beneath it, so you can naturally look straight into the camera.
-- **Automatic Display Restoration**: The notch effortlessly returns to your preferred external display as soon as setup is complete.
+## 🔒 Effortless Face Recognition Setup
+- **Interactive Enrollment**: Naming and saving new faces is now completely fluid and responsive, allowing you to easily label your profile and customize settings.
+- **Smart Camera Display Detection**: Biometric setup automatically aligns directly beneath whichever screen houses your active camera, making enrollment feel completely natural.
 
-## 🎨 Refreshed Settings & Polished Icons
-- **Refined Sidebar Symbols**: Upgraded the Appearance icon to a modern filled glyph and refreshed Media with a clean musical note icon, delivering a sleeker aesthetic across Settings.
-- **Streamlined Face Recognition**: Simplified the navigation menu to clearly highlight "Face Recognition", making all biometric unlocking and system authorization controls easy to find.
-
-## 🔒 Automated System Authorization
-- **Hands-Free Face Verification**: Fully automated biometric approval for macOS system prompts, app installations, and settings changes without requiring manual hotkeys.
+## 🎨 Refreshed Settings & Streamlined Navigation
+- **Refined Sidebar Symbols**: Upgraded Appearance and Media icons for a modern, unified aesthetic across Settings.
+- **Intuitive Menu Layout**: Clearly highlights Face Recognition and system authorization options for quick, hassle-free configuration.
