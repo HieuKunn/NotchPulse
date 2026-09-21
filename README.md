@@ -1,11 +1,11 @@
 <div align="center">
 
-  <!-- Sleek Dark Mode Header Banner -->
-  <img src="docs/assets/header.svg" width="100%" alt="NotchPulse Banner" />
+  <!-- Sleek Dark Mode Header Banner (Comic Sans / Caveat Font, No Flowers, No Overlaps) -->
+  <img src="docs/assets/banner.svg" width="100%" alt="NotchPulse Banner" />
 
   <br/><br/>
 
-  <!-- Badges -->
+  <!-- Clean Verified Flat Badges -->
   <a href="https://github.com/HieuKunn/NotchPulse/releases"><img src="https://img.shields.io/github/v/release/HieuKunn/NotchPulse?color=007AFF&logo=apple&style=flat-square" alt="Release" /></a>
   <a href="https://github.com/HieuKunn/NotchPulse"><img src="https://img.shields.io/badge/platform-macOS%2014.0%2B-blue?style=flat-square&logo=apple" alt="Platform" /></a>
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.0%20%2F%206.0-F05138?style=flat-square&logo=swift" alt="Swift" /></a>
@@ -15,15 +15,17 @@
 
 <br/>
 
+<font face="Comic Sans MS, Caveat, cursive">
+
 ---
 
-### 𝒪𝓋ℯ𝓇𝓋𝒾ℯ𝓌
+### 𝖮𝗏𝖾𝗋𝗏𝗂𝖾𝗐
 
 **NotchPulse** transforms your MacBook camera cutout and external displays into a dynamic, responsive, and powerful workspace center. Engineered natively with Swift and SwiftUI, it integrates on-device biometric Face ID recognition, synced karaoke lyrics, interactive media widgets, drag-and-drop file shelf, and battery status right in your menu bar.
 
 ---
 
-### 𝒞ℴ𝓇ℯ ℱℯ𝒶𝓉𝓊𝓇ℯ𝓈
+### 𝖢𝗈𝗋𝖾 𝖥𝖾𝖺𝗍𝗎𝗋𝖾𝗌
 
 #### 1. Seamless Face ID & Unified Morphing
 - **Native Hardware Morphing**: Face ID expands directly out of the physical MacBook Notch or floating Dynamic Island, dynamically adapting corner radii and silhouettes without separate floating windows.
@@ -61,7 +63,7 @@
 
 ---
 
-### 𝒮𝓎𝓈𝓉ℯ𝓂 ℛℯ𝓆𝓊𝒾𝓇ℯ𝓂ℯ𝓃𝓉𝓈
+### 𝖲𝗒𝗌𝗍𝖾𝗆 𝖱𝖾𝗊𝗎𝗂𝗋𝖾𝗆𝖾𝗇𝗍𝗌
 
 - **Operating System**: macOS 14.0 (Sonoma) or newer (including macOS 15 Sequoia)
 - **Hardware**: Apple Silicon Mac (M1/M2/M3/M4) or Intel-based Mac
@@ -69,7 +71,7 @@
 
 ---
 
-### ℐ𝓃𝓈𝓉𝒶𝓁𝓁𝒶𝓉𝒾ℴ𝓃
+### 𝖨𝗇𝗌𝗍𝖺𝗅𝗅𝖺𝗍𝗂𝗈𝗇
 
 #### Option 1: Via Homebrew (Recommended)
 
@@ -105,7 +107,7 @@ brew upgrade --cask notchpulse
 
 ---
 
-### ℬ𝓊𝒾𝓁𝓉 𝒲𝒾𝓉𝒽
+### 𝖡𝗎𝗂𝗅𝗍 𝖶𝗂𝗍𝗁
 
 - **Swift & SwiftUI** - Fluid declarative interfaces and 120Hz micro-animations
 - **CoreML & Vision** - On-device facial detection and neural feature embeddings
@@ -115,6 +117,8 @@ brew upgrade --cask notchpulse
 
 ---
 
-### ℒ𝒾𝒸ℯ𝓃𝓈ℯ
+### 𝖫𝗂𝖼𝖾𝗇𝗌𝖾
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+
+</font>
