@@ -62,6 +62,11 @@ final class FaceIDOverlayController {
     /// Read by the view for the hover-driven size/shadow bump — irrelevant
     /// to the phase state machine itself.
     private(set) var isArmed = false
+    private(set) var isPresenting = false
+
+    var isSessionActive: Bool {
+        isArmed || isPresenting || phase != .closed
+    }
 
     /// Pill style only: whether the pill is parked on screen at rest vs. off-screen.
     /// Deliberately separate from `isArmed` — it lags it by a frame on the way in
@@ -227,6 +232,7 @@ final class FaceIDOverlayController {
     ///   preference, for the Animation section's live preview.
     func present(styleOverride: UnlockAnimationStyle? = nil, onRetry: (() -> Void)? = nil) {
         isArmed = false
+        isPresenting = true
         onActivate = onRetry
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
@@ -239,7 +245,7 @@ final class FaceIDOverlayController {
         windowController.show()
         windowController.displaySynchronously()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 self.phase = .scanning
@@ -256,6 +262,7 @@ final class FaceIDOverlayController {
     /// interactivity while `.onboarding` is active; sizing/content is driven by `controller`.
     func presentOnboarding(_ controller: FaceIDEnrollmentController) {
         isArmed = false
+        isPresenting = true
         onActivate = nil
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
@@ -278,7 +285,7 @@ final class FaceIDOverlayController {
         windowController.show()
         windowController.displaySynchronously()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 self.phase = .onboarding
@@ -306,6 +313,7 @@ final class FaceIDOverlayController {
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 self.phase = .closed
             }
+            self.isPresenting = false
             self.windowController.hide()
 
             // Restore previous screen AFTER collapse animation fully finishes
@@ -427,6 +435,7 @@ final class FaceIDOverlayController {
             withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
                 phase = .closed
             }
+            isPresenting = false
             windowController.hide()
         }
 
@@ -448,6 +457,7 @@ final class FaceIDOverlayController {
         phase = .closed
         content = .scan(.idle)
         isPillDocked = false
+        isPresenting = false
         windowController.setInteractive(false)
         windowController.hide()
     }

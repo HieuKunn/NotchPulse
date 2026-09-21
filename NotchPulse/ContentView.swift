@@ -51,8 +51,8 @@ struct ContentView: View {
     }
 
     private var isFaceIDActive: Bool {
-        switch faceIDOverlay.phase {
-        case .scanning, .success, .failure, .collapsing:
+        let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked())
+        if isSessionActive || faceIDOverlay.phase != .closed {
             if Defaults[.showOnAllDisplays] {
                 let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
                 if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
@@ -61,41 +61,19 @@ struct ContentView: View {
                 }
             }
             return true
-        case .onboarding:
-            if Defaults[.showOnAllDisplays] {
-                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-                   let targetUUID = targetScreen.displayUUID {
-                    return vm.screenUUID == targetUUID
-                }
-            }
-            return true
-        case .closed:
-            return false
         }
+        return false
     }
 
     private var isFaceIDContentActive: Bool {
+        isFaceIDActive
+    }
+
+    private var isFaceIDContentVisible: Bool {
         switch faceIDOverlay.phase {
-        case .scanning, .success, .failure, .collapsing:
-            if Defaults[.showOnAllDisplays] {
-                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-                   let targetUUID = targetScreen.displayUUID {
-                    return vm.screenUUID == targetUUID
-                }
-            }
+        case .scanning, .success, .failure, .onboarding:
             return true
-        case .onboarding:
-            if Defaults[.showOnAllDisplays] {
-                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-                   let targetUUID = targetScreen.displayUUID {
-                    return vm.screenUUID == targetUUID
-                }
-            }
-            return true
-        case .closed:
+        case .closed, .collapsing:
             return false
         }
     }
@@ -109,8 +87,8 @@ struct ContentView: View {
         let isDynamicIsland = notchStyle == .dynamicIsland
         let controller = faceIDOverlay
 
-        // When collapsing, target the closed notch size so the notch itself pulls up seamlessly!
-        if controller.phase == .collapsing {
+        // When closed or collapsing, target the closed notch size so the notch itself pulls up or rests seamlessly!
+        if controller.phase == .closed || controller.phase == .collapsing {
             return CGSize(
                 width: isDynamicIsland ? computedChinWidth : vm.closedNotchSize.width,
                 height: max(vm.effectiveClosedNotchHeight, 0)
@@ -147,7 +125,7 @@ struct ContentView: View {
 
     private var topCornerRadius: CGFloat {
         if isFaceIDActive {
-            if faceIDOverlay.phase == .collapsing {
+            if faceIDOverlay.phase == .collapsing || faceIDOverlay.phase == .closed {
                 return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
                          ? cornerRadiusInsets.opened.top
                          : cornerRadiusInsets.closed.top
@@ -164,7 +142,7 @@ struct ContentView: View {
 
     private var bottomCornerRadius: CGFloat {
         if isFaceIDActive {
-            if faceIDOverlay.phase == .collapsing {
+            if faceIDOverlay.phase == .collapsing || faceIDOverlay.phase == .closed {
                 return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
                     ? cornerRadiusInsets.opened.bottom
                     : cornerRadiusInsets.closed.bottom
@@ -226,7 +204,7 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 let isDynamicIsland = notchStyle == .dynamicIsland
                 let islandRadius: CGFloat = {
-                    if isFaceIDActive {
+                    if isFaceIDActive && isFaceIDContentVisible {
                         if isMinimalScan {
                             return FaceIDOverlayGeometry.minimalPillOpenHeight / 2
                         }
@@ -253,11 +231,11 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         isDynamicIsland
-                        ? (vm.notchState == .open ? 10 : (isFaceIDActive ? 0 : 12))
+                        ? (vm.notchState == .open ? 10 : (isFaceIDContentVisible ? 0 : 12))
                         : (vm.notchState == .open
                             ? Defaults[.cornerRadiusScaling]
                             ? (cornerRadiusInsets.opened.top) : (cornerRadiusInsets.opened.bottom)
-                            : (isFaceIDActive ? 0 : cornerRadiusInsets.closed.bottom))
+                            : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
                     )
                     .padding([.horizontal, .bottom], (vm.notchState == .open) ? 4 : 0)
                     .background(.black)
@@ -282,9 +260,9 @@ struct ContentView: View {
                     .shadow(
                         color: isDynamicIsland
                             ? .black.opacity(0.65)
-                            : (((vm.notchState == .open || isHovering || isFaceIDActive) && Defaults[.enableShadow])
+                            : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
                                 ? .black.opacity(0.7) : .clear),
-                        radius: isDynamicIsland ? (vm.notchState == .open || isFaceIDActive ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
+                        radius: isDynamicIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
                         x: 0,
                         y: isDynamicIsland ? 4 : 0
                     )
@@ -481,14 +459,10 @@ struct ContentView: View {
                     Spacer()
                 } else if isFaceIDContentActive {
                     FaceIDContentView()
-                        .opacity(faceIDOverlay.phase == .collapsing ? 0 : 1)
-                        .animation(.easeInOut(duration: 0.28), value: faceIDOverlay.phase == .collapsing)
-                        .transition(
-                            .asymmetric(
-                                insertion: .scale(scale: 0.78, anchor: .top).combined(with: .opacity),
-                                removal: .opacity
-                            )
-                        )
+                        .opacity(isFaceIDContentVisible ? 1 : 0)
+                        .scaleEffect(isFaceIDContentVisible ? 1.0 : 0.85, anchor: .top)
+                        .animation(.easeInOut(duration: 0.28), value: isFaceIDContentVisible)
+                        .transition(.opacity)
                 } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
                     Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                 } else {
@@ -606,6 +580,11 @@ struct ContentView: View {
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)
         .clipped()
+        .animation(faceIDAnimation, value: targetFaceIDSize)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            FaceIDOverlayController.shared.activate()
+        }
     }
 
     @ViewBuilder
