@@ -52,7 +52,7 @@ struct ContentView: View {
 
     private var isFaceIDActive: Bool {
         switch faceIDOverlay.phase {
-        case .scanning, .success, .failure:
+        case .scanning, .success, .failure, .collapsing:
             if Defaults[.showOnAllDisplays] {
                 let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
                 if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
@@ -70,7 +70,7 @@ struct ContentView: View {
                 }
             }
             return true
-        case .collapsing, .closed:
+        case .closed:
             return false
         }
     }
@@ -109,6 +109,14 @@ struct ContentView: View {
         let isDynamicIsland = notchStyle == .dynamicIsland
         let controller = faceIDOverlay
 
+        // When collapsing, target the closed notch size so the notch itself pulls up seamlessly!
+        if controller.phase == .collapsing {
+            return CGSize(
+                width: isDynamicIsland ? computedChinWidth : vm.closedNotchSize.width,
+                height: max(vm.effectiveClosedNotchHeight, 0)
+            )
+        }
+
         if case .onboarding(let enrollmentController) = controller.content {
             return enrollmentController.panelSize
         }
@@ -139,6 +147,11 @@ struct ContentView: View {
 
     private var topCornerRadius: CGFloat {
         if isFaceIDActive {
+            if faceIDOverlay.phase == .collapsing {
+                return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
+                         ? cornerRadiusInsets.opened.top
+                         : cornerRadiusInsets.closed.top
+            }
             if isMinimalScan {
                 return FaceIDOverlayGeometry.minimalNotchTopRadius
             }
@@ -151,6 +164,11 @@ struct ContentView: View {
 
     private var bottomCornerRadius: CGFloat {
         if isFaceIDActive {
+            if faceIDOverlay.phase == .collapsing {
+                return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
+                    ? cornerRadiusInsets.opened.bottom
+                    : cornerRadiusInsets.closed.bottom
+            }
             if isMinimalScan {
                 return FaceIDOverlayGeometry.minimalNotchBottomRadius
             }
@@ -444,11 +462,8 @@ struct ContentView: View {
                 } else if isFaceIDContentActive {
                     FaceIDContentView()
                         .opacity(faceIDOverlay.phase == .collapsing ? 0 : 1)
-                        .animation(.easeInOut(duration: 0.25), value: faceIDOverlay.phase == .collapsing)
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-                            removal: .opacity
-                        ))
+                        .animation(.easeInOut(duration: 0.28), value: faceIDOverlay.phase == .collapsing)
+                        .transition(.opacity)
                 } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
                     Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                 } else {
