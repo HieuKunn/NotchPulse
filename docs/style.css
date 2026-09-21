@@ -480,18 +480,26 @@ a {
   width: 58px;
   height: 58px;
   border-radius: 16px;
-  border: 2px dashed var(--accent-caramel);
+  background: rgba(224, 159, 91, 0.12);
+  border: 1.5px solid var(--accent-caramel);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  color: var(--accent-caramel);
   margin-bottom: 12px;
-  animation: scanRotate 8s linear infinite;
+  box-shadow: 0 0 16px rgba(224, 159, 91, 0.22);
+  animation: faceidPulse 2.8s ease-in-out infinite;
 }
 
-@keyframes scanRotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes faceidPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 14px rgba(224, 159, 91, 0.18);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 24px rgba(224, 159, 91, 0.42);
+  }
 }
 
 .parallax-chip {

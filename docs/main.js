@@ -368,11 +368,19 @@ function renderNotchContent() {
     if (compactText) compactText.textContent = isVi ? "Đã quét Face ID" : "Face ID Verified";
 
     content.innerHTML = `
-      <div class="faceid-scanner-anim">🎯</div>
+      <div class="faceid-scanner-anim">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3m0-8V5a2 2 0 0 0-2-2h-3"/>
+          <circle cx="9" cy="9" r="1.2" fill="currentColor"/>
+          <circle cx="15" cy="9" r="1.2" fill="currentColor"/>
+          <path d="M12 11v2"/>
+          <path d="M8.5 15.5c1.8 1.8 5.2 1.8 7 0"/>
+        </svg>
+      </div>
       <div style="font-weight: 700; font-size: 1.05rem; color: #fff;">
         ${isVi ? "Xác Thực Face ID Thành Công" : "Face ID Verified"}
       </div>
-      <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">
+      <div style="font-size: 0.8rem; color: #d9cbbe; margin-top: 4px;">
         ${isVi ? "Mở khóa an toàn với Apple Vision" : "Apple Vision on-device biometric check"}
       </div>
     `;
