@@ -156,8 +156,8 @@ final class NotchPulseEnrollmentService: @unchecked Sendable {
         let centroidSim = identity.template.map { FaceEmbedding.cosineSimilarity(currentEmbedding, $0) } ?? 0
         let bestSimilarity = max(maxSampleSim, centroidSim)
         
-        let threshold: Float = 0.63
-        let matched = (centroidSim >= threshold && maxSampleSim >= threshold)
+        let threshold = NotchPulseFaceIDSettings.shared.matchThreshold
+        let matched = (centroidSim >= threshold || (maxSampleSim >= threshold && centroidSim >= (threshold - 0.06)))
         return VerifyResult(matched: matched, similarity: bestSimilarity)
     }
 }
@@ -294,7 +294,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         }
         
         let startTime = ContinuousClock.now
-        let threshold: Float = 0.63
+        let threshold = NotchPulseFaceIDSettings.shared.matchThreshold
         var lastProcessedFrameID: UInt64?
         
         let liveness = NotchPulseLivenessAnalyzer()

@@ -37,8 +37,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
-    /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
-    private let wrongFaceStreakThreshold = 6
+    /// Requires enough consecutive below-threshold frames (~1.2s at ~30fps) so momentary glance angles or lighting settle don't fail prematurely.
+    private let wrongFaceStreakThreshold = 35
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -341,8 +341,9 @@ final class NotchPulseFaceUnlockCoordinator {
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
 
-        /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
-        var readyMatch: ScoredIdentity?
+        /// Short-window latch (up to 400ms) so momentary blinks, head turns, or camera re-exposure don't miss the liveness confirmation window.
+        var latchedMatch: ScoredIdentity?
+        var lastMatchedAt: ContinuousClock.Instant?
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
         /// Last frame's selected face, passed back so `selectDominantFace` stays on the same person instead of flip-flopping.
@@ -400,21 +401,25 @@ final class NotchPulseFaceUnlockCoordinator {
 
             if let matched {
                 consecutiveWrongFaceFrames = 0
-                readyMatch = matched
+                latchedMatch = matched
+                lastMatchedAt = ContinuousClock.now
             } else {
-                readyMatch = nil
+                if let last = lastMatchedAt, ContinuousClock.now - last > .milliseconds(400) {
+                    latchedMatch = nil
+                }
                 consecutiveWrongFaceFrames += 1
                 if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
                     return .consistentlyWrongFace
                 }
             }
 
-            if let readyMatch, livenessConfirmed {
+            let candidateMatch = matched ?? latchedMatch
+            if let candidateMatch, livenessConfirmed {
                 statusMessage = "Recognized — unlocking…"
                 let livenessNote = livenessEnabled
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")
                     : "liveness off"
-                lastOutcome = "Matched \(readyMatch.identity.name) at \(String(format: "%.3f", readyMatch.centroidSimilarity)), \(livenessNote)."
+                lastOutcome = "Matched \(candidateMatch.identity.name) at \(String(format: "%.3f", candidateMatch.centroidSimilarity)), \(livenessNote)."
                 await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                 return .matched
             }

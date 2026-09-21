@@ -97,7 +97,7 @@ final class NotchPulseFaceRecognitionPipeline {
     }
 
     /// Below this fraction of frame width, a face is treated as a bystander, not a candidate — shared with onboarding's "move closer" prompt. `nonisolated(unsafe)` because it's read from a background-task static func that can't touch NotchPulseFaceIDSettings' MainActor-isolated storage.
-    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.18
+    nonisolated(unsafe) static var minimumProminentFaceWidth: Float = 0.16
 
     /// Max normalized-coordinate drift between frames still counted as "the same person".
     nonisolated private static let continuityDistanceTolerance: CGFloat = 0.3
@@ -150,7 +150,11 @@ extension NotchPulseFaceRecognitionPipeline {
     /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. No runner-up margin check: the same person can be enrolled multiple times under different appearances, so two of their own profiles legitimately score close together — a margin check can't tell that apart from two different people colliding.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
         guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
-        guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else { return nil }
+        // Glance-friendly matching: Allow a match if the centroid meets threshold,
+        // OR an enrolled pose sample strongly matches (>= threshold) while centroid is in a safe near-range (>= threshold - 0.06).
+        let passedCentroid = first.centroidSimilarity >= threshold
+        let passedSample = first.maxSampleSimilarity >= threshold && first.centroidSimilarity >= (threshold - 0.06)
+        guard passedCentroid || passedSample else { return nil }
         return first
     }
 }
