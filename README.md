@@ -20,7 +20,7 @@
 
 ## Overview
 
-**NotchPulse** transforms your MacBook camera cutout and external displays into a dynamic, responsive, and powerful workspace center. Engineered natively with Swift and SwiftUI, it integrates on-device biometric Face ID recognition, synced karaoke lyrics, interactive media widgets, drag-and-drop file shelf, and battery status right in your menu bar.
+**NotchPulse** transforms your MacBook camera cutout and external displays into a dynamic, responsive, and powerful workspace center. Engineered natively with Swift and SwiftUI, it integrates on-device biometric Face ID recognition, live synced lyrics, interactive media widgets, drag-and-drop file shelf, and battery status right in your menu bar.
 
 ---
 
@@ -38,7 +38,7 @@
 - **Fluid Spring Physics**: Every transition is driven by custom interactive springs tuned for Apple ProMotion 120Hz displays (`response: 0.38`, `dampingFraction: 0.8`).
 
 ### 3. Lock Screen Media & Synced Lyrics
-- **Live Karaoke Lyrics**: Real-time synchronized lyric stream with active line tracking, smooth autoscroll, and expanded full-screen reading mode.
+- **Live Synced Lyrics**: Real-time synchronized lyric stream with active line tracking, smooth autoscroll, and expanded full-screen reading mode.
 - **Adaptive Lock Screen Widget**: Dedicated glassmorphic player accessible during playback from Spotify, Apple Music, and web browsers.
 - **Smart Queue Retention**: The media card remains accessible while paused and automatically tucks away when audio sessions conclude.
 

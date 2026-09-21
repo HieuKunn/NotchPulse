@@ -77,7 +77,7 @@ struct FaceIDSettingsView: View {
                 }
             }
             SettingsGroupDivider()
-            SettingsRowContent(title: "Show Real-time Synced Lyrics (Karaoke)") {
+            SettingsRowContent(title: "Show Real-time Synced Lyrics") {
                 Defaults.Toggle(key: .lockScreenPlayerShowLyrics) {
                     Text("")
                 }

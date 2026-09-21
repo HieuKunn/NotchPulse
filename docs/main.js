@@ -60,7 +60,7 @@ const i18nData = {
     "feat2.title": "120Hz ProMotion Dual Mode",
     "feat2.desc": "Fluidly morphs between native MacBook Notch profile and a centered floating Dynamic Island on external Studio Displays.",
 
-    "feat3.title": "Live Synced Karaoke Lyrics",
+    "feat3.title": "Live Synced Lyrics",
     "feat3.desc": "Live word-by-word streaming lyrics for Spotify and Apple Music directly over the notch. Scrub tracks, seek timestamps, or expand into fullscreen lyric mode with vibrant album artwork.",
 
     "feat4.title": "Notch Shelf & Quick Drop",
@@ -107,7 +107,7 @@ const i18nData = {
     // Hero
     "hero.badge": "Đã ra mắt NotchPulse v4.5",
     "hero.title": "Tai Thỏ MacBook, Tái Định Nghĩa.",
-    "hero.subtitle": "Biến phần khuyết camera trên MacBook thành Dynamic Island tương tác mượt mà 120Hz ProMotion. Tối ưu hoàn hảo cho chip Apple Silicon với nhận diện Face ID, lời bài hát karaoke thời gian thực và bảng điều khiển HUD thông minh.",
+    "hero.subtitle": "Biến phần khuyết camera trên MacBook thành Dynamic Island tương tác mượt mà 120Hz ProMotion. Tối ưu hoàn hảo cho chip Apple Silicon với nhận diện Face ID, lời bài hát đồng bộ thời gian thực và bảng điều khiển HUD thông minh.",
     "hero.downloadBtn": "Tải file DMG (v4.5)",
 
     // Chips
@@ -140,8 +140,8 @@ const i18nData = {
     "feat2.title": "Chế Độ Kép 120Hz Notch & Island",
     "feat2.desc": "Tự động chuyển đổi linh hoạt giữa màn hình tai thỏ MacBook Pro và màn hình ngoài Studio Display ở tần số 120Hz ProMotion.",
 
-    "feat3.title": "Lời Nhạc Đồng Bộ Karaoke Trực Tiếp",
-    "feat3.desc": "Hiển thị lời bài hát karaoke chạy từng chữ theo thời gian thực trên tai thỏ cho Spotify và Apple Music. Rê chuột để tua nhạc, tạm dừng hoặc xem ảnh bìa album siêu nét.",
+    "feat3.title": "Lời Bài Hát Đồng Bộ Trực Tiếp",
+    "feat3.desc": "Hiển thị lời bài hát đồng bộ chạy từng chữ theo thời gian thực trên tai thỏ cho Spotify và Apple Music. Rê chuột để tua nhạc, tạm dừng hoặc xem ảnh bìa album siêu nét.",
 
     "feat4.title": "Ngăn Kéo Notch Shelf & Thả Nhanh",
     "feat4.desc": "Biến phần khuyết tai thỏ thành nơi lưu tạm tài liệu thông minh. Kéo thả file, ảnh, đường link hoặc đoạn mã lên đỉnh màn hình để chuyển đổi nhanh giữa các app.",

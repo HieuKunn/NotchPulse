@@ -105,7 +105,7 @@ struct LockScreenMediaView: View {
                 soundWaveform
             }
             
-            // Hàng 1.5: Câu hát Karaoke thời gian thực (nếu bài có lời)
+            // Hàng 1.5: Câu hát thời gian thực (nếu bài có lời)
             if !musicManager.syncedLyrics.isEmpty {
                 TimelineView(.animation(minimumInterval: 0.25)) { timeline in
                     let elapsed = musicManager.estimatedPlaybackPosition(at: timeline.date)
@@ -132,7 +132,7 @@ struct LockScreenMediaView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .help("Click to expand to full-screen lyrics (Karaoke)")
+                    .help("Click to expand to full-screen lyrics")
                 }
             } else if !musicManager.currentLyrics.isEmpty {
                 let firstLine = MusicManager.stripLRCTimestamps(from: musicManager.currentLyrics)
@@ -202,7 +202,7 @@ struct LockScreenMediaView: View {
                 
                 Spacer()
                 
-                // Icon Lời bài hát (Karaoke) góc phải
+                // Icon Lời bài hát góc phải
                 Button {
                     windowController.setFullScreen(true)
                 } label: {
@@ -211,7 +211,7 @@ struct LockScreenMediaView: View {
                         .foregroundStyle(hasLyrics ? Color.white.opacity(0.95) : Color.white.opacity(0.45))
                 }
                 .buttonStyle(.plain)
-                .help("Click to expand to full-screen lyrics (Karaoke)")
+                .help("Click to expand to full-screen lyrics")
             }
         }
         .padding(.horizontal, 18)
@@ -230,7 +230,7 @@ struct LockScreenMediaView: View {
     }
     
     // =========================================================================
-    // MARK: - 2. Full-Screen Immersive Player View (Ảnh bìa to + Lời Karaoke)
+    // MARK: - 2. Full-Screen Immersive Player View (Ảnh bìa to + Lời bài hát)
     // =========================================================================
     private var fullScreenPlayerView: some View {
         ZStack {
@@ -395,7 +395,7 @@ struct LockScreenMediaView: View {
         }
     }
     
-    // Cột phải Full Screen: Lời bài hát Karaoke toàn màn hình
+    // Cột phải Full Screen: Lời bài hát đồng bộ toàn màn hình
     @ViewBuilder
     private func fullScreenLyricsColumn(columnWidth: CGFloat, viewHeight: CGFloat) -> some View {
         let baseFontSize = min(max(columnWidth * 0.065, 24), 48)
