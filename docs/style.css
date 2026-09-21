@@ -1823,6 +1823,7 @@ a {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(69, 43, 26, 0.08);
   background: #0f1c24;
+  aspect-ratio: 1024 / 449;
 }
 
 .hugo-card-img {

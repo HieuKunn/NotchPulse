@@ -18,7 +18,7 @@
   <link rel="preload" as="image" href="assets/cozy_bg.webp" type="image/webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/app_icon.png">
   
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
 
@@ -674,8 +674,17 @@
   <section class="section" id="creator">
     <div class="container">
       <div class="creator-card fade-in-section">
-        <!-- Author photo -->
-        <img src="assets/author_portrait.jpg" alt="Kun Nguyen Portrait" class="creator-portrait">
+        <!-- Author photo with instant WebP & async decode -->
+        <picture>
+          <source srcset="assets/author_portrait.webp" type="image/webp">
+          <img src="assets/author_portrait.jpg" 
+               alt="Kun Nguyen Portrait" 
+               class="creator-portrait" 
+               width="170" 
+               height="170" 
+               loading="lazy" 
+               decoding="async">
+        </picture>
 
         <!-- Info & Bio -->
         <div class="creator-info">
@@ -714,7 +723,16 @@
       <div class="hugo-showcase-container fade-in-section delay-1">
         <div class="hugo-card-image-wrap">
           <a href="https://hanilearning.site/" target="_blank" rel="noopener" title="Ghé thăm website Hani Learning của Đỗ Mạnh Hùng (Hugo)">
-            <img src="assets/hugo_hani.png" alt="Đỗ Mạnh Hùng (Hugo) — Hani Learning" class="hugo-card-img">
+            <picture>
+              <source srcset="assets/hugo_hani.webp" type="image/webp">
+              <img src="assets/hugo_hani.png" 
+                   alt="Đỗ Mạnh Hùng (Hugo) — Hani Learning" 
+                   class="hugo-card-img" 
+                   width="1024" 
+                   height="449" 
+                   loading="lazy" 
+                   decoding="async">
+            </picture>
           </a>
         </div>
         <div class="hugo-action-bar">
@@ -780,7 +798,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="main.js?v=31"></script>
+  <script src="main.js?v=32"></script>
 
   <!-- Service Worker Registration for Instant Local Disk Caching -->
   <script>
