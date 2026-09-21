@@ -45,8 +45,6 @@ class QuickShareService: ObservableObject {
             "Test Text" as NSString
         ]
 
-        let services = await finder.findApplicableServices(for: testItems)
-
         var providers: [QuickShareProvider] = []
 
         // Register native AirDrop as the primary sharing provider
