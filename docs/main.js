@@ -25,12 +25,12 @@ const i18nData = {
     "nav.get": "Get App (DMG)",
 
     // Hero
-    "hero.badge": "NotchPulse v4.5 Released",
+    "hero.badge": "NotchPulse {version} Released",
     "hero.title": "MacBook Notch, Reimagined.",
     "hero.titleMain": "MacBook Notch,",
     "hero.titleAccent": "Reimagined.",
     "hero.subtitle": "Transform your MacBook camera notch into a fluid, 120Hz ProMotion interactive Dynamic Island. Native Apple Silicon performance with Biometric Face ID, real-time lyrics, and smart hardware HUDs.",
-    "hero.downloadBtn": "Download NotchPulse.dmg (v4.5)",
+    "hero.downloadBtn": "Download NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
@@ -140,12 +140,12 @@ const i18nData = {
     "nav.get": "Tải Ngay (DMG)",
 
     // Hero
-    "hero.badge": "Đã ra mắt NotchPulse v4.5",
+    "hero.badge": "Đã ra mắt NotchPulse {version}",
     "hero.title": "Tai Thỏ MacBook, Tái Định Nghĩa.",
     "hero.titleMain": "Tai Thỏ MacBook,",
     "hero.titleAccent": "Tái Định Nghĩa.",
     "hero.subtitle": "Biến phần khuyết camera trên MacBook thành Dynamic Island tương tác mượt mà 120Hz ProMotion. Tối ưu hoàn hảo cho chip Apple Silicon với nhận diện Face ID, lời bài hát đồng bộ thời gian thực và bảng điều khiển HUD thông minh.",
-    "hero.downloadBtn": "Tải Trực Tiếp NotchPulse.dmg (v4.5)",
+    "hero.downloadBtn": "Tải Trực Tiếp NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
@@ -255,12 +255,12 @@ const i18nData = {
     "nav.get": "App laden (DMG)",
 
     // Hero
-    "hero.badge": "NotchPulse v4.5 Veröffentlicht",
+    "hero.badge": "NotchPulse {version} Veröffentlicht",
     "hero.title": "MacBook Notch, neu definiert.",
     "hero.titleMain": "MacBook Notch,",
     "hero.titleAccent": "neu definiert.",
     "hero.subtitle": "Verwandle die MacBook-Kamerakerbe in eine flüssige 120Hz ProMotion Dynamic Island. Native Apple Silicon Performance mit Face ID, synchronisierten Songtexten und Hardware-HUDs.",
-    "hero.downloadBtn": "NotchPulse.dmg herunterladen (v4.5)",
+    "hero.downloadBtn": "NotchPulse.dmg herunterladen ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
@@ -370,12 +370,12 @@ const i18nData = {
     "nav.get": "アプリを入手 (DMG)",
 
     // Hero
-    "hero.badge": "NotchPulse v4.5 リリース",
+    "hero.badge": "NotchPulse {version} リリース",
     "hero.title": "MacBookのノッチを、再定義。",
     "hero.titleMain": "MacBookのノッチを、",
     "hero.titleAccent": "再定義。",
     "hero.subtitle": "MacBookのカメラノッチを滑らかな120Hz ProMotionのDynamic Islandへ進化。Face ID生体認証、リアルタイム同期歌詞、スマートハードウェアHUDを搭載。",
-    "hero.downloadBtn": "NotchPulse.dmg をダウンロード (v4.5)",
+    "hero.downloadBtn": "NotchPulse.dmg をダウンロード ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
@@ -485,12 +485,12 @@ const i18nData = {
     "nav.get": "取得應用 (DMG)",
 
     // Hero
-    "hero.badge": "NotchPulse v4.5 正式發佈",
+    "hero.badge": "NotchPulse {version} 正式發佈",
     "hero.title": "MacBook 瀏海，重塑想像。",
     "hero.titleMain": "MacBook 瀏海，",
     "hero.titleAccent": "重塑想像。",
     "hero.subtitle": "將 MacBook 鏡頭瀏海蛻變為流暢的 120Hz ProMotion 靈動島。原生 Apple Silicon 極致效能，具備 Face ID 辨識、即時同步歌詞與硬體監控儀表板。",
-    "hero.downloadBtn": "下載 NotchPulse.dmg (v4.5)",
+    "hero.downloadBtn": "下載 NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
@@ -600,12 +600,12 @@ const i18nData = {
     "nav.get": "获取应用 (DMG)",
 
     // Hero
-    "hero.badge": "NotchPulse v4.5 正式发布",
+    "hero.badge": "NotchPulse {version} 正式发布",
     "hero.title": "MacBook 刘海，重塑想象。",
     "hero.titleMain": "MacBook 刘海，",
     "hero.titleAccent": "重塑想象。",
     "hero.subtitle": "将 MacBook 摄像头刘海变为丝滑流畅的 120Hz ProMotion 灵动岛。基于 Apple Silicon 原生性能，支持 Face ID 识别、实时同步歌词与硬件监控 HUD。",
-    "hero.downloadBtn": "下载 NotchPulse.dmg (v4.5)",
+    "hero.downloadBtn": "下载 NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
@@ -715,12 +715,12 @@ const i18nData = {
     "nav.get": "Obtener App (DMG)",
 
     // Hero
-    "hero.badge": "NotchPulse v4.5 Lanzado",
+    "hero.badge": "NotchPulse {version} Lanzado",
     "hero.title": "El Notch de tu MacBook, reinventado.",
     "hero.titleMain": "El Notch de tu MacBook,",
     "hero.titleAccent": "reinventado.",
     "hero.subtitle": "Transforma el notch de tu MacBook en una Dynamic Island interactiva y fluida a 120Hz ProMotion. Rendimiento nativo en Apple Silicon con Face ID, letras en tiempo real y paneles HUD inteligentes.",
-    "hero.downloadBtn": "Descargar NotchPulse.dmg (v4.5)",
+    "hero.downloadBtn": "Descargar NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
@@ -857,6 +857,7 @@ document.documentElement.setAttribute("data-theme", "dark");
 document.addEventListener("DOMContentLoaded", () => {
   document.documentElement.setAttribute("data-theme", "dark");
   initNavbarScroll();
+  initReleaseAutoUpdater();
   initLanguage();
   initScrollFadeIn();
   initParallaxAndTilt();
@@ -864,6 +865,76 @@ document.addEventListener("DOMContentLoaded", () => {
   initReviewsFilter();
   initCopyActions();
 });
+
+// =============================================================================
+// Dynamic Release Auto-Updater (Syncs latest version & DMG url from GitHub)
+// =============================================================
+
+let appReleaseInfo = {
+  version: "v4.5.0",
+  versionShort: "v4.5",
+  name: "NotchPulse v4.5",
+  downloadUrl: "https://github.com/HieuKunn/NotchPulse/releases/latest/download/NotchPulse.dmg"
+};
+
+function initReleaseAutoUpdater() {
+  const cached = sessionStorage.getItem("notchpulse_latest_release");
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      if (data && data.versionShort) {
+        appReleaseInfo = data;
+        applyLanguage(currentLang);
+        updateDownloadLinks(appReleaseInfo.downloadUrl);
+        return;
+      }
+    } catch (e) {}
+  }
+
+  fetch("https://api.github.com/repos/HieuKunn/NotchPulse/releases/latest")
+    .then((res) => {
+      if (!res.ok) throw new Error("GitHub API unavailable");
+      return res.json();
+    })
+    .then((data) => {
+      if (data && data.tag_name) {
+        const rawTag = data.tag_name;
+        const cleanVer = rawTag.startsWith("v") ? rawTag : "v" + rawTag;
+        const parts = cleanVer.replace("v", "").split(".");
+        const shortVer = parts.length >= 2 ? `v${parts[0]}.${parts[1]}` : cleanVer;
+
+        let dmgUrl = "https://github.com/HieuKunn/NotchPulse/releases/latest/download/NotchPulse.dmg";
+        if (data.assets && Array.isArray(data.assets)) {
+          const dmgAsset = data.assets.find((a) => a.name && a.name.endsWith(".dmg"));
+          if (dmgAsset && dmgAsset.browser_download_url) {
+            dmgUrl = dmgAsset.browser_download_url;
+          }
+        }
+
+        appReleaseInfo = {
+          version: cleanVer,
+          versionShort: shortVer,
+          name: data.name || `NotchPulse ${shortVer}`,
+          downloadUrl: dmgUrl
+        };
+
+        sessionStorage.setItem("notchpulse_latest_release", JSON.stringify(appReleaseInfo));
+        applyLanguage(currentLang);
+        updateDownloadLinks(appReleaseInfo.downloadUrl);
+      }
+    })
+    .catch(() => {
+      // Graceful fallback to default v4.5
+    });
+}
+
+function updateDownloadLinks(url) {
+  if (!url) return;
+  const links = document.querySelectorAll('a[href*="NotchPulse.dmg"]');
+  links.forEach((link) => {
+    link.href = url;
+  });
+}
 
 // =============================================================================
 // Navbar Scroll Transition (Transparent at Top, Frosted Coffee on Scroll)
@@ -995,7 +1066,11 @@ function applyLanguage(lang) {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (dict[key]) {
-      el.textContent = dict[key];
+      let text = dict[key];
+      text = text.replace(/\{version\}/g, appReleaseInfo.versionShort);
+      text = text.replace(/\{fullVersion\}/g, appReleaseInfo.version);
+      text = text.replace(/\{releaseName\}/g, appReleaseInfo.name);
+      el.textContent = text;
     }
   });
 
