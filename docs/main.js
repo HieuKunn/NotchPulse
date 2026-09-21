@@ -347,33 +347,60 @@ function initNotchSimulator() {
     { el: pillShelf, action: "shelf" }
   ];
 
+  let isPinned = false;
+
   actionPills.forEach(({ el, action }) => {
     if (el) {
       el.addEventListener("click", () => {
         actionPills.forEach((p) => p.el.classList.remove("active"));
         el.classList.add("active");
         currentAction = action;
+        isPinned = true;
         notch.classList.add("expanded");
-        renderNotchContent();
+        renderNotchContent(true);
       });
     }
   });
 
   if (notch) {
+    notch.addEventListener("mouseenter", () => {
+      notch.classList.add("expanded");
+      renderNotchContent();
+    });
+
+    notch.addEventListener("mouseleave", () => {
+      if (!isPinned) {
+        notch.classList.remove("expanded");
+      }
+    });
+
     notch.addEventListener("click", () => {
-      notch.classList.toggle("expanded");
+      isPinned = !isPinned;
+      if (isPinned) {
+        notch.classList.add("expanded");
+      } else {
+        notch.classList.remove("expanded");
+      }
       renderNotchContent();
     });
   }
 }
 
-function renderNotchContent() {
+let lastRenderedState = "";
+
+function renderNotchContent(force = false) {
   const content = document.getElementById("notchExpandedContent");
   const compactIcon = document.getElementById("compactIcon");
   const compactText = document.getElementById("compactText");
   const isVi = currentLang === "vi";
 
   if (!content) return;
+
+  const currentStateKey = currentAction + "_" + currentLang;
+  if (!force && lastRenderedState === currentStateKey) {
+    return;
+  }
+  lastRenderedState = currentStateKey;
 
   if (currentAction === "faceid") {
     if (compactIcon) compactIcon.textContent = "👤";
