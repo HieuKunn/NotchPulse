@@ -22,8 +22,8 @@
 </head>
 <body>
 
-  <!-- High-Performance Fixed Background Layer (Zero-Latency Rendering, GPU Isolated) -->
-  <div class="site-bg" aria-hidden="true">
+  <!-- High-Performance Fixed Background Layer (Zero-Latency Local Rendering, GPU Isolated) -->
+  <div class="site-bg" style="background-image: url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABQODxIPDRQSEBIXFRQYHjIhHhwcHj0sLiQySUBMS0dARkVQWnNiUFVtVkVGZIhlbXd7gYKBTmCNl4x9lnN+gXz/2wBDARUXFx4aHjshITt8U0ZTfHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHz/wAARCAASACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCSHXTKojeJFyed/KgYzWha6jbt8oVQ2eiOOfwNcfHt4yxHHYkitWziVmXbH5keST8oGD7E1zyN0dU88SJuYlR74H86zZtVtIslmUgcKdxIpklptXcY5XXrgOD/ADrIvEtlk3TxXIHrgDH4YqVqOyRSsVDTKGAIweo/2a6vTo4xCCEUHc3OPeiirkJGgCSDk1VkRdrjaMfSiioBH//Z'); background-size: cover; background-position: center;" aria-hidden="true">
     <picture>
       <source srcset="assets/cozy_bg.webp" type="image/webp">
       <img src="assets/cozy_bg.jpg" alt="" class="site-bg-img" fetchpriority="high" decoding="sync" width="1376" height="768">
@@ -781,5 +781,16 @@
 
   <!-- Main JavaScript File -->
   <script src="main.js?v=31"></script>
+
+  <!-- Service Worker Registration for Instant Local Disk Caching -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          // Pre-cache on installation
+        }).catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
