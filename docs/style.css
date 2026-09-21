@@ -267,19 +267,26 @@ a {
   line-height: 1.15;
   letter-spacing: -0.035em;
   margin-bottom: 20px;
-  max-width: 920px;
+  max-width: 940px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.hero-title-main {
   color: #ffffff !important;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 0 40px rgba(255, 255, 255, 0.2);
+}
+
+.hero-title-accent {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 28px rgba(251, 191, 36, 0.65), 0 0 56px rgba(245, 158, 11, 0.35);
+  display: inline-block;
 }
 
 .gradient-text {
-  color: #ffffff;
-  background: linear-gradient(180deg, #ffffff 40%, #fef3c7 75%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #fbbf24 !important;
+  text-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
   display: inline-block;
-  text-shadow: 0 0 40px rgba(245, 158, 11, 0.25);
 }
 
 .hero-subtitle {
@@ -353,11 +360,15 @@ a {
 .demo-showcase {
   margin-top: 20px;
   perspective: 1400px;
+  position: relative;
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .demo-device-frame {
   width: 100%;
-  max-width: 880px;
+  max-width: 860px;
   margin: 0 auto;
   background: linear-gradient(145deg, rgba(22, 29, 45, 0.85), rgba(12, 16, 26, 0.95));
   backdrop-filter: blur(28px);
@@ -533,42 +544,59 @@ a {
 
 .parallax-chip {
   position: absolute;
-  padding: 10px 18px;
-  border-radius: 16px;
-  background: rgba(22, 28, 44, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(245, 158, 11, 0.18);
-  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: rgba(16, 22, 34, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(245, 158, 11, 0.16);
+  font-size: 0.82rem;
   font-weight: 600;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   pointer-events: none;
-  transition: transform 0.2s ease-out;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
-  z-index: 50;
+  z-index: 20;
+}
+
+.parallax-chip .chip-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.parallax-chip .chip-label {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .chip-tl {
-  top: 10%;
-  left: -54px;
+  top: 15%;
+  left: 10px;
 }
 
 .chip-bl {
-  bottom: 12%;
-  left: -54px;
+  bottom: 15%;
+  left: 10px;
 }
 
 .chip-tr {
-  top: 10%;
-  right: -54px;
+  top: 15%;
+  right: 10px;
 }
 
 .chip-br {
-  bottom: 12%;
-  right: -54px;
+  bottom: 15%;
+  right: 10px;
+}
+
+@media (max-width: 1080px) {
+  .parallax-chip {
+    display: none;
+  }
 }
 
 /* ==========================================================================

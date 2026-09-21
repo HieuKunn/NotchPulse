@@ -27,6 +27,8 @@ const i18nData = {
     // Hero
     "hero.badge": "NotchPulse v4.5 Released",
     "hero.title": "MacBook Notch, Reimagined.",
+    "hero.titleMain": "MacBook Notch,",
+    "hero.titleAccent": "Reimagined.",
     "hero.subtitle": "Transform your MacBook camera notch into a fluid, 120Hz ProMotion interactive Dynamic Island. Native Apple Silicon performance with Biometric Face ID, real-time lyrics, and smart hardware HUDs.",
     "hero.downloadBtn": "Download NotchPulse.dmg (v4.5)",
 
@@ -111,6 +113,8 @@ const i18nData = {
     // Hero
     "hero.badge": "Đã ra mắt NotchPulse v4.5",
     "hero.title": "Tai Thỏ MacBook, Tái Định Nghĩa.",
+    "hero.titleMain": "Tai Thỏ MacBook,",
+    "hero.titleAccent": "Tái Định Nghĩa.",
     "hero.subtitle": "Biến phần khuyết camera trên MacBook thành Dynamic Island tương tác mượt mà 120Hz ProMotion. Tối ưu hoàn hảo cho chip Apple Silicon với nhận diện Face ID, lời bài hát đồng bộ thời gian thực và bảng điều khiển HUD thông minh.",
     "hero.downloadBtn": "Tải Trực Tiếp NotchPulse.dmg (v4.5)",
 

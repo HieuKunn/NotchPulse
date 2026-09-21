@@ -65,7 +65,8 @@
       </div>
 
       <h1 class="hero-title">
-        <span class="gradient-text" data-i18n="hero.title">MacBook Notch, Reimagined.</span>
+        <span class="hero-title-main" data-i18n="hero.titleMain">MacBook Notch,</span>
+        <span class="hero-title-accent" data-i18n="hero.titleAccent">Reimagined.</span>
       </h1>
 
       <p class="hero-subtitle" data-i18n="hero.subtitle">
@@ -87,40 +88,29 @@
 
       <!-- 3D Parallax Device Showcase with Live Interactive Notch -->
       <div class="demo-showcase" id="interactive-demo">
+
+        <!-- 4 Compact Floating Capsule Nodes (Positioned cleanly OUTSIDE device frame) -->
+        <div class="parallax-chip chip-tl" id="chipFaceId">
+          <span class="chip-icon">👤</span>
+          <span class="chip-label" data-i18n="chip.faceidTitle">Face ID Ready</span>
+        </div>
+
+        <div class="parallax-chip chip-bl" id="chipShelf">
+          <span class="chip-icon">📁</span>
+          <span class="chip-label" data-i18n="chip.shelfTitle">Notch Shelf</span>
+        </div>
+
+        <div class="parallax-chip chip-tr" id="chipBattery">
+          <span class="chip-icon">⚡️</span>
+          <span class="chip-label" data-i18n="chip.batteryTitle">98W MagSafe</span>
+        </div>
+
+        <div class="parallax-chip chip-br" id="chipLyrics">
+          <span class="chip-icon">🎵</span>
+          <span class="chip-label" data-i18n="chip.lyricsTitle">Live Synced Lyrics</span>
+        </div>
+
         <div class="demo-device-frame" id="deviceFrame">
-          
-          <!-- 4 Floating Parallax Chips (Positioned comfortably outside device frame) -->
-          <div class="parallax-chip chip-tl" id="chipFaceId">
-            <span style="font-size: 1.2rem;">👤</span>
-            <div>
-              <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.faceidTitle">Face ID Ready</div>
-              <div style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="chip.faceidSub">Instant biometric unlock</div>
-            </div>
-          </div>
-
-          <div class="parallax-chip chip-bl" id="chipShelf">
-            <span style="font-size: 1.2rem;">📁</span>
-            <div>
-              <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.shelfTitle">Notch Shelf</div>
-              <div style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="chip.shelfSub">Quick file staging dock</div>
-            </div>
-          </div>
-
-          <div class="parallax-chip chip-tr" id="chipBattery">
-            <span style="font-size: 1.2rem;">⚡️</span>
-            <div>
-              <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.batteryTitle">98W MagSafe</div>
-              <div style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="chip.batterySub">Real-time charge telemetry</div>
-            </div>
-          </div>
-
-          <div class="parallax-chip chip-br" id="chipLyrics">
-            <span style="font-size: 1.2rem;">🎵</span>
-            <div>
-              <div style="color: var(--text-primary); font-weight: 700;" data-i18n="chip.lyricsTitle">Live Synced Lyrics</div>
-              <div style="color: var(--text-muted); font-size: 0.75rem;" data-i18n="chip.lyricsSub">Spotify & Apple Music</div>
-            </div>
-          </div>
 
           <!-- Controls inside showcase -->
           <div class="demo-controls-bar">
