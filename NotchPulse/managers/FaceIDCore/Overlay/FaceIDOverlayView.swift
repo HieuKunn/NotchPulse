@@ -237,8 +237,8 @@ struct FaceIDOverlayView: View {
                 .padding(.trailing, scanContentPaddingTrailing)
                 .padding(.top, scanContentPaddingTop)
                 .padding(.bottom, scanContentPaddingBottom)
-                .scaleEffect(0.80 * scanPulseScale)
-                .opacity(scanPulseOpacity)
+                .scaleEffect(isScanning ? (0.80 * scanPulseScale) : 0.80)
+                .opacity(isScanning ? scanPulseOpacity : 1.0)
         }
     }
 
@@ -453,9 +453,6 @@ struct FaceIDOverlayView: View {
     private func stopScanPulse() {
         scanPulseTask?.cancel()
         scanPulseTask = nil
-        guard isScanPulseDimmed else { return }
-        withAnimation(.easeOut(duration: FaceIDOverlayGeometry.scanPulseSettleDuration)) {
-            isScanPulseDimmed = false
-        }
+        isScanPulseDimmed = false
     }
 }

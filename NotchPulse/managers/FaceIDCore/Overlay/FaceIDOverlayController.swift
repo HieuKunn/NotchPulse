@@ -422,7 +422,6 @@ final class FaceIDOverlayController {
         // Same re-measure as `disarm()` — self-corrects a geometry captured
         // during a mid-wake reading before the panel settles to `.closed`.
         geometry = windowController.currentGeometry
-        content = .scan(.idle)
         if isArmed {
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 phase = .closed
@@ -433,6 +432,14 @@ final class FaceIDOverlayController {
                 phase = .closed
             }
             windowController.hide()
+        }
+
+        // Reset content to idle ONLY AFTER the collapse animation is fully complete
+        // and window is hidden, preventing video teardown black flashes mid-collapse.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(100))
+            guard let self, self.phase == .closed else { return }
+            self.content = .scan(.idle)
         }
     }
 

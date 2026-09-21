@@ -85,9 +85,12 @@ final class FaceIDScanAnimationHostView: NSView {
         fallbackRevealWorkItem?.cancel()
 
         guard let resource = media.videoResourceName else {
-            teardownPlayer()
-            playerLayer.isHidden = true
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             stillImageLayer.isHidden = false
+            playerLayer.isHidden = true
+            CATransaction.commit()
+            teardownPlayer()
             return
         }
 
