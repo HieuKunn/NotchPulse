@@ -1,11 +1,12 @@
 /**
  * NotchPulse Landing Page Controller
  * Features:
- * - Auto Dark / Light mode based on OS preferences with manual override
+ * - Pure Apple Dark Aesthetic
+ * - Scroll-Triggered Fade-In Animations (IntersectionObserver)
  * - Complete English & Vietnamese bilingual localization (i18n)
- * - 3D Mouse Tilt & Scroll Parallax effects
+ * - 3D Mouse Tilt & Parallax effects
  * - Interactive Dynamic Island & MacBook Notch Simulator
- * - Filterable Customer Testimonials & Reviews
+ * - Multilingual & Diverse Customer Reviews Filter (5★, 4.5★, 4★, 3.5★)
  * - 1-Click Homebrew command copy with toast feedback
  */
 
@@ -47,28 +48,35 @@ const i18nData = {
     "notch.faceIdScanned": "Face ID Verified",
     "notch.faceIdPrompt": "Mac unlocked seamlessly via front camera",
 
-    // Features Section
+    // Bento Features Section
     "features.tag": "Engineered for macOS",
-    "features.title": "Supercharge Your MacBook Notch",
+    "features.title": "Next-Level Bento Architecture",
     "features.subtitle": "Built natively in Swift with 0% CPU overhead at idle. Experience smooth 120Hz ProMotion animations, biometric conveniences, and smart desktop tools.",
-    "feat1.title": "Biometric Face ID",
+    
+    "feat1.title": "Biometric Face ID Recognition",
     "feat1.desc": "Brings iOS-grade facial recognition to your Mac. Continuously senses your presence, previews camera status smoothly, and unlocks protected apps with privacy-first on-device Apple Vision processing.",
-    "feat2.title": "120Hz Dual Notch / Island",
-    "feat2.desc": "Adapts dynamically whether you are on a built-in MacBook Pro Notch screen or an external Studio Display. Fluidly morphs into a floating Dynamic Island on any monitor at 120Hz ProMotion.",
-    "feat3.title": "Real-Time Synced Lyrics",
-    "feat3.desc": "Stream live karaoke-style lyrics right across your notch or floating island for Spotify and Apple Music. Hover to scrub tracks, play, pause, or view album artwork in glorious high-DPI.",
+    "bento.faceidVerified": "Neural Face Mesh Active",
+
+    "feat2.title": "120Hz ProMotion Dual Mode",
+    "feat2.desc": "Fluidly morphs between native MacBook Notch profile and a centered floating Dynamic Island on external Studio Displays.",
+
+    "feat3.title": "Live Synced Karaoke Lyrics",
+    "feat3.desc": "Live word-by-word streaming lyrics for Spotify and Apple Music directly over the notch. Scrub tracks, seek timestamps, or expand into fullscreen lyric mode with vibrant album artwork.",
+
     "feat4.title": "Notch Shelf & Quick Drop",
-    "feat4.desc": "Turn the physical bezel into an intuitive staging dock. Drag any files, photos, links, or code snippets to the top of your screen to hold them temporarily across workspaces and apps.",
-    "feat5.title": "External DDC Monitor HUD",
-    "feat5.desc": "Direct hardware DDC/CI control for third-party external monitors. Adjust real hardware brightness, contrast, and audio volume directly with native keyboard shortcut overlays.",
-    "feat6.title": "Smart Power & MagSafe HUD",
-    "feat6.desc": "Plugging in MagSafe or USB-C triggers a sleek Apple-style battery pulse with real-time wattage speed, estimated time to full charge, and battery health cycle telemetry.",
+    "feat4.desc": "Drag files, links, or screenshots directly into the notch bezel to hold them temporarily across workspaces and apps.",
+
+    "feat5.title": "Hardware DDC External Display HUD",
+    "feat5.desc": "Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with native Apple keyboard shortcuts.",
+
+    "feat6.title": "Smart Power & 140W MagSafe HUD",
+    "feat6.desc": "Plugging in MagSafe or USB-C reveals live charging wattage, estimated time to 100%, and battery health cycle telemetry.",
 
     // Reviews Section
-    "reviews.tag": "Community Love",
-    "reviews.title": "Loved by Developers & Creators",
-    "reviews.subtitle": "Join thousands of Mac power users who elevated their daily macOS workflow with NotchPulse.",
-    "reviews.all": "All Reviews (4.9 ★)",
+    "reviews.tag": "Global Community",
+    "reviews.title": "Loved by Developers Worldwide",
+    "reviews.subtitle": "Real feedback from Mac engineers, designers, and creators across the globe with diverse ratings.",
+    "reviews.all": "All Reviews (4.8 ★)",
     "reviews.five": "5 Stars",
     "reviews.fourPointFive": "4.5 Stars",
     "reviews.four": "4 Stars",
@@ -89,9 +97,9 @@ const i18nData = {
 
   vi: {
     // Navigation
-    "nav.features": "Tính Năng",
+    "nav.features": "Tính Năng Bento",
     "nav.demo": "Demo Trực Tiếp",
-    "nav.reviews": "Đánh Giá",
+    "nav.reviews": "Đánh Giá Quốc Tế",
     "nav.creator": "Tác Giả",
     "nav.download": "Tải Xuống",
     "nav.get": "Tải Ngay",
@@ -120,28 +128,35 @@ const i18nData = {
     "notch.faceIdScanned": "Đã Xác Thực Face ID",
     "notch.faceIdPrompt": "Mở khoá máy Mac an toàn qua camera trước",
 
-    // Features Section
+    // Bento Features Section
     "features.tag": "Tối Ưu Riêng Cho macOS",
-    "features.title": "Nâng Tầm Tai Thỏ MacBook Của Bạn",
+    "features.title": "Kiến Trúc Bento Đẳng Cấp",
     "features.subtitle": "Viết bằng Swift thuần túy, 0% CPU khi chạy nền. Tận hưởng hoạt ảnh 120Hz ProMotion, bảo mật sinh trắc học và công cụ làm việc thông minh.",
+    
     "feat1.title": "Mở Khoá Face ID Sinh Trắc Học",
     "feat1.desc": "Mang trải nghiệm nhận diện khuôn mặt chuẩn iPhone lên máy Mac. Tự động cảm biến hiện diện, xem trước camera mượt mà và mở khóa ứng dụng an toàn với Apple Vision ngay trên thiết bị.",
+    "bento.faceidVerified": "Mô Hình Lưới Face Mesh Kích Hoạt",
+
     "feat2.title": "Chế Độ Kép 120Hz Notch & Island",
-    "feat2.desc": "Tự động chuyển đổi linh hoạt giữa màn hình tai thỏ MacBook Pro và màn hình ngoài Studio Display. Biến hóa mượt mà thành Dynamic Island nổi trên bất kỳ màn hình nào ở tần số 120Hz.",
-    "feat3.title": "Lời Nhạc Đồng Bộ Karaoke",
+    "feat2.desc": "Tự động chuyển đổi linh hoạt giữa màn hình tai thỏ MacBook Pro và màn hình ngoài Studio Display ở tần số 120Hz ProMotion.",
+
+    "feat3.title": "Lời Nhạc Đồng Bộ Karaoke Trực Tiếp",
     "feat3.desc": "Hiển thị lời bài hát karaoke chạy từng chữ theo thời gian thực trên tai thỏ cho Spotify và Apple Music. Rê chuột để tua nhạc, tạm dừng hoặc xem ảnh bìa album siêu nét.",
+
     "feat4.title": "Ngăn Kéo Notch Shelf & Thả Nhanh",
-    "feat4.desc": "Biến phần khuyết tai thỏ thành nơi lưu tạm tài liệu thông minh. Kéo thả file, ảnh, đường link hoặc đoạn mã lên đỉnh màn hình để chuyển đổi nhanh giữa các app và không gian làm việc.",
+    "feat4.desc": "Biến phần khuyết tai thỏ thành nơi lưu tạm tài liệu thông minh. Kéo thả file, ảnh, đường link hoặc đoạn mã lên đỉnh màn hình để chuyển đổi nhanh giữa các app.",
+
     "feat5.title": "Điều Khiển Màn Hình Ngoài DDC HUD",
-    "feat5.desc": "Can thiệp phần cứng DDC/CI trực tiếp cho màn hình rời. Tăng giảm độ sáng thật, độ tương phản và âm lượng bằng phím tắt bàn phím tiện lợi với hiệu ứng HUD gốc.",
-    "feat6.title": "Bảng Theo Dõi Pin & Sạc MagSafe",
+    "feat5.desc": "Can thiệp phần cứng DDC/CI trực tiếp cho màn hình rời. Tăng giảm độ sáng thật, độ tương phản và âm lượng bằng phím tắt bàn phím tiện lợi.",
+
+    "feat6.title": "Bảng Theo Dõi Pin & Sạc MagSafe 140W",
     "feat6.desc": "Khi cắm sạc MagSafe hoặc USB-C, tai thỏ lập tức mở rộng thông báo công suất sạc watt thời gian thực, thời gian sạc đầy dự kiến và số chu kỳ sức khỏe pin.",
 
     // Reviews Section
-    "reviews.tag": "Cộng Đồng Tin Dùng",
-    "reviews.title": "Được Lập Trình Viên & Nhà Sáng Tạo Yêu Thích",
-    "reviews.subtitle": "Tham gia cùng hàng nghìn người dùng Mac nâng tầm trải nghiệm làm việc mỗi ngày với NotchPulse.",
-    "reviews.all": "Tất Cả Đánh Giá (4.9 ★)",
+    "reviews.tag": "Cộng Đồng Toàn Cầu",
+    "reviews.title": "Được Kỹ Sư Toàn Cầu Đánh Giá Cao",
+    "reviews.subtitle": "Phản hồi thực tế từ các lập trình viên, nhà thiết kế UI/UX trên khắp thế giới với các mức đánh giá phong phú.",
+    "reviews.all": "Tất Cả Đánh Giá (4.8 ★)",
     "reviews.five": "5 Sao",
     "reviews.fourPointFive": "4.5 Sao",
     "reviews.four": "4 Sao",
@@ -166,13 +181,12 @@ const i18nData = {
 // =============================================================================
 
 let currentLang = localStorage.getItem("notchpulse_lang") || (navigator.language.startsWith("vi") ? "vi" : "en");
-let currentTheme = localStorage.getItem("notchpulse_theme") || "auto"; // 'auto', 'dark', 'light'
 let notchMode = "notch"; // 'notch' or 'island'
 let currentAction = "faceid"; // 'faceid', 'music', 'battery', 'shelf'
 
 document.addEventListener("DOMContentLoaded", () => {
-  initTheme();
   initLanguage();
+  initScrollFadeIn();
   initParallaxAndTilt();
   initNotchSimulator();
   initReviewsFilter();
@@ -180,53 +194,26 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // =============================================================================
-// 1. Theme Management (Auto OS detection + Manual override)
+// 1. Scroll-Driven Fade-In Animations (IntersectionObserver)
 // =============================================================================
 
-function initTheme() {
-  const themeToggle = document.getElementById("themeToggle");
-  const themeIcon = document.getElementById("themeIcon");
-
-  // Apply theme
-  applyTheme(currentTheme);
-
-  // Listen to OS system theme changes
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-    if (currentTheme === "auto") {
-      document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
-    }
+function initScrollFadeIn() {
+  const elements = document.querySelectorAll(".fade-in-section");
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: "0px 0px -40px 0px"
   });
 
-  // Toggle click: Cycle Auto -> Dark -> Light -> Auto
-  if (themeToggle) {
-    themeToggle.addEventListener("click", () => {
-      if (currentTheme === "auto") {
-        currentTheme = "dark";
-      } else if (currentTheme === "dark") {
-        currentTheme = "light";
-      } else {
-        currentTheme = "auto";
-      }
-      localStorage.setItem("notchpulse_theme", currentTheme);
-      applyTheme(currentTheme);
-    });
-  }
-}
-
-function applyTheme(theme) {
-  const themeIcon = document.getElementById("themeIcon");
-  const isSystemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-  if (theme === "auto") {
-    document.documentElement.setAttribute("data-theme", isSystemDark ? "dark" : "light");
-    if (themeIcon) themeIcon.textContent = "🌓";
-  } else if (theme === "dark") {
-    document.documentElement.setAttribute("data-theme", "dark");
-    if (themeIcon) themeIcon.textContent = "🌙";
-  } else {
-    document.documentElement.setAttribute("data-theme", "light");
-    if (themeIcon) themeIcon.textContent = "☀️";
-  }
+  elements.forEach((el) => {
+    observer.observe(el);
+  });
 }
 
 // =============================================================================
@@ -235,9 +222,6 @@ function applyTheme(theme) {
 
 function initLanguage() {
   const langToggle = document.getElementById("langToggle");
-  const langLabel = document.getElementById("langLabel");
-  const langFlag = document.getElementById("langFlag");
-
   applyLanguage(currentLang);
 
   if (langToggle) {
@@ -264,7 +248,6 @@ function applyLanguage(lang) {
     }
   });
 
-  // Re-render simulator content to reflect translated strings
   renderNotchContent();
 }
 
@@ -280,7 +263,6 @@ function initParallaxAndTilt() {
 
   if (!deviceFrame) return;
 
-  // Mouse tilt on the showcase container
   window.addEventListener("mousemove", (e) => {
     const rect = deviceFrame.getBoundingClientRect();
     const frameCenterX = rect.left + rect.width / 2;
@@ -289,13 +271,11 @@ function initParallaxAndTilt() {
     const deltaX = (e.clientX - frameCenterX) / (window.innerWidth / 2);
     const deltaY = (e.clientY - frameCenterY) / (window.innerHeight / 2);
 
-    // Limit rotation between -10deg and 10deg
     const rotX = Math.max(-10, Math.min(10, -deltaY * 12));
     const rotY = Math.max(-10, Math.min(10, deltaX * 12));
 
     deviceFrame.style.transform = `perspective(1200px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
 
-    // Counter-shift floating chips for 3D parallax depth
     if (chipFaceId) {
       chipFaceId.style.transform = `translate3d(${-rotY * 2.5}px, ${-rotX * 2.5}px, 40px)`;
     }
@@ -304,14 +284,12 @@ function initParallaxAndTilt() {
     }
   });
 
-  // Reset tilt when mouse leaves window
   window.addEventListener("mouseleave", () => {
     deviceFrame.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)";
     if (chipFaceId) chipFaceId.style.transform = "translate3d(0, 0, 0)";
     if (chipLyrics) chipLyrics.style.transform = "translate3d(0, 0, 0)";
   });
 
-  // Scroll parallax for background ambient glow
   window.addEventListener("scroll", () => {
     const scrollY = window.scrollY;
     if (ambientGlow) {
@@ -334,7 +312,6 @@ function initNotchSimulator() {
   const pillBattery = document.getElementById("pillBattery");
   const pillShelf = document.getElementById("pillShelf");
 
-  // Mode buttons
   if (btnNotch && btnIsland) {
     btnNotch.addEventListener("click", () => {
       notchMode = "notch";
@@ -351,7 +328,6 @@ function initNotchSimulator() {
     });
   }
 
-  // Action Pills
   const actionPills = [
     { el: pillFaceID, action: "faceid" },
     { el: pillMusic, action: "music" },
@@ -371,7 +347,6 @@ function initNotchSimulator() {
     }
   });
 
-  // Click on notch directly to expand/collapse
   if (notch) {
     notch.addEventListener("click", () => {
       notch.classList.toggle("expanded");
@@ -448,7 +423,7 @@ function renderNotchContent() {
 }
 
 // =============================================================================
-// 5. Testimonial Rating Filter
+// 5. Testimonial Rating Filter (All, 5, 4.5, 4, 3.5)
 // =============================================================================
 
 function initReviewsFilter() {
@@ -466,10 +441,14 @@ function initReviewsFilter() {
         const rating = card.getAttribute("data-rating");
         if (filterValue === "all" || rating === filterValue) {
           card.style.display = "flex";
-          card.style.opacity = "1";
+          setTimeout(() => {
+            card.style.opacity = "1";
+            card.style.transform = "translateY(0)";
+          }, 50);
         } else {
           card.style.display = "none";
           card.style.opacity = "0";
+          card.style.transform = "translateY(20px)";
         }
       });
     });
@@ -491,7 +470,6 @@ function initCopyActions() {
         navigator.clipboard.writeText(brewCommand).then(() => {
           showToast();
         }).catch(() => {
-          // Fallback
           showToast();
         });
       });
