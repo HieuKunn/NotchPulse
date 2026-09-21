@@ -68,6 +68,24 @@ struct ContentView: View {
         }
     }
 
+    private var isFaceIDContentActive: Bool {
+        switch faceIDOverlay.phase {
+        case .scanning, .success, .failure, .collapsing:
+            return true
+        case .onboarding:
+            if Defaults[.showOnAllDisplays] {
+                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+                   let targetUUID = targetScreen.displayUUID {
+                    return vm.screenUUID == targetUUID
+                }
+            }
+            return true
+        case .closed:
+            return false
+        }
+    }
+
     private var isMinimalScan: Bool {
         if case .onboarding = faceIDOverlay.content { return false }
         return faceIDOverlay.activeUnlockStyle == .minimal
@@ -410,8 +428,10 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
-                } else if isFaceIDActive {
+                } else if isFaceIDContentActive {
                     FaceIDContentView()
+                        .opacity(faceIDOverlay.phase == .collapsing ? 0 : 1)
+                        .animation(.easeInOut(duration: 0.28), value: faceIDOverlay.phase == .collapsing)
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
                             removal: .opacity
@@ -425,14 +445,18 @@ struct ContentView: View {
                       } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                           MusicLiveActivity()
                               .frame(alignment: .center)
+                              .transition(.opacity)
                       } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
                           NotchPulseFaceAnimation()
+                              .transition(.opacity)
                        } else if vm.notchState == .open {
                            NotchPulseHeader()
                                .frame(height: max(24, vm.effectiveClosedNotchHeight))
                                .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
+                               .transition(.opacity)
                        } else {
                            Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
+                               .transition(.opacity)
                        }
 
                       if coordinator.sneakPeek.show {

@@ -290,13 +290,6 @@ final class FaceIDOverlayController {
         phase = .collapsing
         updateInteractivity()
 
-        // Restore previous screen if it was switched for onboarding
-        if let prevUUID = previousScreenUUIDBeforeOnboarding {
-            previousScreenUUIDBeforeOnboarding = nil
-            NotchPulseViewCoordinator.shared.selectedScreenUUID = prevUUID
-            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
-        }
-
         Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(for: self.collapseAnimationDuration)
@@ -304,6 +297,13 @@ final class FaceIDOverlayController {
             self.content = .scan(.idle)
             self.phase = .closed
             self.windowController.hide()
+
+            // Restore previous screen AFTER collapse animation fully finishes
+            if let prevUUID = self.previousScreenUUIDBeforeOnboarding {
+                self.previousScreenUUIDBeforeOnboarding = nil
+                NotchPulseViewCoordinator.shared.selectedScreenUUID = prevUUID
+                NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
+            }
         }
     }
 
