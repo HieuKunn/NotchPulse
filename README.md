@@ -19,7 +19,7 @@
 
 ### 🌸 𝒪𝓋ℯ𝓇𝓋𝒾ℯ𝓌 · 𝒯𝒽ℯ 𝒞𝓊𝓉ℯ 𝒩ℴ𝓉𝒸𝒽 𝒞ℴ𝓂𝓅𝒶𝓃𝒾ℴ𝓃 ☁️
 
-> **NotchPulse** transforms your MacBook camera cutout and external displays into a dynamic, responsive, and adorable workspace center. Engineered natively with Swift and SwiftUI, it integrates on-device biometric Face ID recognition, synced karaoke lyrics, interactive media widgets, drag-and-drop file shelf, and smart SMC battery management right in your menu bar! ✨
+> **NotchPulse** transforms your MacBook camera cutout and external displays into a dynamic, responsive, and adorable workspace center. Engineered natively with Swift and SwiftUI, it integrates on-device biometric Face ID recognition, synced karaoke lyrics, interactive media widgets, drag-and-drop file shelf, and battery power status right in your menu bar! ✨
 
 ---
 
@@ -52,9 +52,8 @@
 #### 💡 6. Multi-Display Hardware HUD
 - 🌤️ Fine-grained brightness and audio control across both built-in Apple Silicon panels and third-party external monitors via DDC.
 
-#### 🔋 7. Smart Battery Health Management
-- ⚡ Direct communication with the Apple Silicon SMC to enforce custom charging limits (e.g., stopping at 80% to preserve battery lifespan).
-- 🔌 Supports instant full-charge bypass and power adapter disconnection without physical unplugging.
+#### 🔋 7. Power Status & Battery HUD
+- ⚡ Real-time battery percentage tracking, charging connection notifications, and quick power status popover in the notch.
 
 #### 🌿 8. Resource-Efficient Engineering
 - 🌸 **Zero-Idle Overhead**: On-demand CoreML model loading saves memory at launch; background timers and sensors are strictly gated by visibility and active state.

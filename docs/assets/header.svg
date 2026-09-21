@@ -75,7 +75,7 @@
       <text x="14" y="19" class="tag">🎵 Live Lyrics</text>
 
       <rect x="320" y="0" width="170" height="30" rx="15" fill="#21262d" stroke="#30363d" />
-      <text x="14" y="19" class="tag">🔋 Battery SMC</text>
+      <text x="14" y="19" class="tag">⚡ Power HUD</text>
     </g>
   </g>
 
