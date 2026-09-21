@@ -22,13 +22,13 @@ const i18nData = {
     "nav.reviews": "Reviews",
     "nav.creator": "Creator",
     "nav.download": "Download",
-    "nav.get": "Get App",
+    "nav.get": "Get App (DMG)",
 
     // Hero
     "hero.badge": "NotchPulse v4.5 Released",
     "hero.title": "MacBook Notch, Reimagined.",
     "hero.subtitle": "Transform your MacBook camera notch into a fluid, 120Hz ProMotion interactive Dynamic Island. Native Apple Silicon performance with Biometric Face ID, real-time lyrics, and smart hardware HUDs.",
-    "hero.downloadBtn": "Download DMG (v4.5)",
+    "hero.downloadBtn": "Download NotchPulse.dmg (v4.5)",
 
     // Chips
     "chip.faceidTitle": "Face ID Ready",
@@ -89,7 +89,7 @@ const i18nData = {
     "install.tag": "Ready to Elevate Your Mac?",
     "install.title": "Get NotchPulse Today",
     "install.subtitle": "Compatible with macOS 14.0+ Sonoma and macOS 15 Sequoia. Optimized for Apple Silicon M1/M2/M3/M4 & Intel Macs.",
-    "install.btnDmg": "Download NotchPulse-4.5.dmg",
+    "install.btnDmg": "Download NotchPulse.dmg (Direct)",
 
     // Toast
     "toast.copied": "Homebrew command copied to clipboard!"
@@ -102,13 +102,13 @@ const i18nData = {
     "nav.reviews": "Đánh Giá Quốc Tế",
     "nav.creator": "Tác Giả",
     "nav.download": "Tải Xuống",
-    "nav.get": "Tải Ngay",
+    "nav.get": "Tải Ngay (DMG)",
 
     // Hero
     "hero.badge": "Đã ra mắt NotchPulse v4.5",
     "hero.title": "Tai Thỏ MacBook, Tái Định Nghĩa.",
     "hero.subtitle": "Biến phần khuyết camera trên MacBook thành Dynamic Island tương tác mượt mà 120Hz ProMotion. Tối ưu hoàn hảo cho chip Apple Silicon với nhận diện Face ID, lời bài hát đồng bộ thời gian thực và bảng điều khiển HUD thông minh.",
-    "hero.downloadBtn": "Tải file DMG (v4.5)",
+    "hero.downloadBtn": "Tải Trực Tiếp NotchPulse.dmg (v4.5)",
 
     // Chips
     "chip.faceidTitle": "Face ID Sẵn Sàng",
@@ -169,7 +169,7 @@ const i18nData = {
     "install.tag": "Sẵn Sàng Nâng Cấp Máy Mac Của Bạn?",
     "install.title": "Cài Đặt NotchPulse Ngay Hôm Nay",
     "install.subtitle": "Tương thích hoàn toàn với macOS 14.0+ Sonoma và macOS 15 Sequoia. Tối ưu cho chip Apple Silicon M1/M2/M3/M4 và chip Intel.",
-    "install.btnDmg": "Tải về NotchPulse-4.5.dmg",
+    "install.btnDmg": "Tải Trực Tiếp NotchPulse.dmg",
 
     // Toast
     "toast.copied": "Đã sao chép lệnh Homebrew vào bộ nhớ tạm!"
