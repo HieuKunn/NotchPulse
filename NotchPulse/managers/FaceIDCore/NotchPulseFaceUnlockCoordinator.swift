@@ -245,20 +245,23 @@ final class NotchPulseFaceUnlockCoordinator {
     private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
+        let showsUI = self.showsUI
+        if showsUI {
+            FaceIDOverlayController.shared.beginScanning()
+        }
+        statusMessage = "Looking for your face…"
+
         await camera.start()
         guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
             statusMessage = error
             camera.stop()
+            if showsUI {
+                FaceIDOverlayController.shared.finish(success: false)
+            }
             return
         }
-
-        let showsUI = self.showsUI
-        if showsUI {
-            FaceIDOverlayController.shared.beginScanning()
-        }
-        statusMessage = "Looking for your face…"
 
         let outcome = await observeScanWindow(
             deadline: Date().addingTimeInterval(scanWindowDuration),

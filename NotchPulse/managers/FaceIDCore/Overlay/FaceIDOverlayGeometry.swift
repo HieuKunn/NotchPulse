@@ -11,8 +11,9 @@ import Defaults
 import SwiftUI
 
 struct FaceIDOverlayGeometry {
-    /// Shared interactive spring for morphing animations matching NotchPulse's native hover spring.
-    static let springAnimation = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+    /// Shared interactive spring for morphing animations matching NotchPulse's native pop-notch spring.
+    static let springAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
+    static let closeSpringAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
 
     /// Physical notch's own dimensions, or `pillClosedSize`.
     let closedSize: CGSize

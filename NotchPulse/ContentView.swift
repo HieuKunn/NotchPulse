@@ -235,8 +235,21 @@ struct ContentView: View {
                     return vm.notchState == .open ? 26 : max(14, vm.effectiveClosedNotchHeight / 2)
                 }()
 
+                let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
+                let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+                let isFaceIDOpening = isFaceIDActive && faceIDOverlay.phase != .collapsing && faceIDOverlay.phase != .closed
+                let faceIDAnimation = isFaceIDOpening ? openAnimation : closeAnimation
+
+                let currentNotchWidth: CGFloat = isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth)
+                let currentNotchHeight: CGFloat = isFaceIDActive ? targetFaceIDSize.height : (vm.notchState == .open ? vm.notchSize.height : max(vm.effectiveClosedNotchHeight, 0))
+
                 let mainLayout = NotchLayout()
-                    .frame(alignment: .top)
+                    .frame(
+                        width: currentNotchWidth,
+                        height: currentNotchHeight,
+                        alignment: .top
+                    )
+                    .clipped()
                     .padding(
                         .horizontal,
                         isDynamicIsland
@@ -282,19 +295,11 @@ struct ContentView: View {
                     )
                 
                 mainLayout
-                    .frame(
-                        width: isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth),
-                        height: isFaceIDActive ? targetFaceIDSize.height : (vm.notchState == .open ? vm.notchSize.height : max(vm.effectiveClosedNotchHeight, 0)),
-                        alignment: .top
-                    )
                     .conditionalModifier(true) { view in
-                        let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
-                        let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
-                        
                         return view
                             .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
-                            .animation(animationSpring, value: isFaceIDActive)
-                            .animation(animationSpring, value: targetFaceIDSize)
+                            .animation(faceIDAnimation, value: isFaceIDActive)
+                            .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
                     }
                     .onHover { hovering in
@@ -478,7 +483,12 @@ struct ContentView: View {
                     FaceIDContentView()
                         .opacity(faceIDOverlay.phase == .collapsing ? 0 : 1)
                         .animation(.easeInOut(duration: 0.28), value: faceIDOverlay.phase == .collapsing)
-                        .transition(.opacity)
+                        .transition(
+                            .asymmetric(
+                                insertion: .scale(scale: 0.78, anchor: .top).combined(with: .opacity),
+                                removal: .opacity
+                            )
+                        )
                 } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
                     Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
                 } else {

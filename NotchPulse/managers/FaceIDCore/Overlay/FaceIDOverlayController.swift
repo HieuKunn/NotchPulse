@@ -391,16 +391,12 @@ final class FaceIDOverlayController {
                 return
             }
             resolveTask?.cancel(); resolveTask = nil
-            if !isArmed {
-                // Captures its own style here; the armed path doesn't need to since
-                // `onActivate()` routes through `beginScanning()`, which captures.
-                activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-                content = .scan(.idle)
-                withAnimation(FaceIDOverlayGeometry.springAnimation) {
-                    phase = .scanning
-                }
-                updateInteractivity()
+            activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
+            content = .scan(.idle)
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                phase = .scanning
             }
+            updateInteractivity()
             onActivate()
         case .scanning, .success, .collapsing, .onboarding:
             break
@@ -412,7 +408,7 @@ final class FaceIDOverlayController {
     /// orders it out entirely if not.
     func collapse() async {
         guard phase != .closed, phase != .collapsing else { return }
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+        withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
             phase = .collapsing
         }
         updateInteractivity()
@@ -423,12 +419,12 @@ final class FaceIDOverlayController {
         // during a mid-wake reading before the panel settles to `.closed`.
         geometry = windowController.currentGeometry
         if isArmed {
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
                 phase = .closed
             }
             updateInteractivity()
         } else {
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
                 phase = .closed
             }
             windowController.hide()
