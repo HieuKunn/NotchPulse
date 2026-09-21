@@ -1160,25 +1160,63 @@ a {
   justify-content: center;
 }
 
-.shelf-tag {
-  padding: 7px 14px;
-  border-radius: 980px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(69, 43, 26, 0.1);
-  color: var(--text-primary);
-  font-size: 0.82rem;
-  font-weight: 500;
+.shelf-file-chip {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 235, 220, 0.1);
   display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-  font-family: var(--font-sans);
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  text-align: left;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
 }
 
-.shelf-tag:hover {
+.shelf-file-chip:hover {
   transform: translateY(-2px);
-  border-color: rgba(69, 43, 26, 0.24);
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 235, 220, 0.24);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.shelf-chip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.shelf-chip-ext {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  background: rgba(255, 235, 220, 0.12);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.shelf-chip-size {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #A69587;
+}
+
+.shelf-chip-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 /* DDC Sliders (Minimalist Apple Monochromatic Design) */

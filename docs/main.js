@@ -1150,10 +1150,10 @@ function renderNotchContent(force = false) {
     if (compactText) compactText.textContent = dict["notch.shelfItems"] || "Shelf: 3 Items";
 
     content.innerHTML = `
-      <div style="display: flex; gap: 12px; margin-bottom: 8px;">
-        <div style="padding: 10px 14px; background: rgba(255, 255, 255, 0.1); border-radius: 12px; font-size: 0.8rem; text-align: center;">📄 proposal.pdf</div>
-        <div style="padding: 10px 14px; background: rgba(255, 255, 255, 0.1); border-radius: 12px; font-size: 0.8rem; text-align: center;">🖼 mockup.png</div>
-        <div style="padding: 10px 14px; background: rgba(255, 255, 255, 0.1); border-radius: 12px; font-size: 0.8rem; text-align: center;">🔗 figma.com/...</div>
+      <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+        <div style="padding: 8px 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 235, 220, 0.1); border-radius: 10px; font-size: 0.8rem; font-weight: 500; color: #fff;">Proposal.pdf</div>
+        <div style="padding: 8px 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 235, 220, 0.1); border-radius: 10px; font-size: 0.8rem; font-weight: 500; color: #fff;">Mockup.png</div>
+        <div style="padding: 8px 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 235, 220, 0.1); border-radius: 10px; font-size: 0.8rem; font-weight: 500; color: #fff;">figma.com</div>
       </div>
       <div style="font-size: 0.78rem; color: #94a3b8;">
         ${dict["notch.shelfPrompt"] || "Drop files into notch to stash temporarily"}
