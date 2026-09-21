@@ -1,4 +1,4 @@
-# NotchPulse v4.3.0
+# NotchPulse v4.5.0
 
 ## ⚡ Silky-Smooth Animations & Morphing
 - **Fluid Notch Expansion & Collapse**: Re-engineered the transition curves and layout calculations to eliminate frame stuttering. Expanding and shrinking the notch now glides smoothly at 120Hz ProMotion.
