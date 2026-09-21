@@ -83,7 +83,7 @@ const i18nData = {
 
     // Creator Section
     "creator.tag": "Meet The Creator",
-    "creator.bio": "Independent macOS developer passionate about crafting pixel-perfect, native software experiences. Built NotchPulse from the ground up to push the boundaries of Apple Silicon and redefine human-computer interaction around the MacBook notch.",
+    "creator.bio": "ITM student with a deep passion for system design and native macOS architectures. Built NotchPulse from scratch to explore human-computer interaction and make the MacBook notch genuinely delightful and functional.",
 
     // Installation Section
     "install.tag": "Ready to Elevate Your Mac?",
@@ -163,7 +163,7 @@ const i18nData = {
 
     // Creator Section
     "creator.tag": "Gặp Gỡ Tác Giả",
-    "creator.bio": "Lập trình viên macOS độc lập đam mê phát triển các ứng dụng gốc mượt mà, tối ưu từng pixel. Xây dựng NotchPulse từ số 0 để khai phá tiềm năng chip Apple Silicon và tái định nghĩa cách tương tác với tai thỏ MacBook.",
+    "creator.bio": "Sinh viên ITM đam mê System Design và kiến trúc hệ thống native trên macOS. Xây dựng NotchPulse từ số 0 để học hỏi, trải nghiệm tương tác người - máy và biến tai thỏ MacBook thành một không gian tiện ích thú vị.",
 
     // Installation Section
     "install.tag": "Sẵn Sàng Nâng Cấp Máy Mac Của Bạn?",
