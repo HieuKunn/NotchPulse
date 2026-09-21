@@ -53,6 +53,13 @@ struct ContentView: View {
     private var isFaceIDActive: Bool {
         switch faceIDOverlay.phase {
         case .scanning, .success, .failure:
+            if Defaults[.showOnAllDisplays] {
+                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+                   let targetUUID = targetScreen.displayUUID {
+                    return vm.screenUUID == targetUUID
+                }
+            }
             return true
         case .onboarding:
             if Defaults[.showOnAllDisplays] {
@@ -71,6 +78,13 @@ struct ContentView: View {
     private var isFaceIDContentActive: Bool {
         switch faceIDOverlay.phase {
         case .scanning, .success, .failure, .collapsing:
+            if Defaults[.showOnAllDisplays] {
+                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+                   let targetUUID = targetScreen.displayUUID {
+                    return vm.screenUUID == targetUUID
+                }
+            }
             return true
         case .onboarding:
             if Defaults[.showOnAllDisplays] {
@@ -258,12 +272,11 @@ struct ContentView: View {
                     .conditionalModifier(true) { view in
                         let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
                         let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
-                        let faceIDSpring = Animation.spring(response: 0.44, dampingFraction: 0.82, blendDuration: 0.15)
                         
                         return view
                             .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
-                            .animation(faceIDSpring, value: isFaceIDActive)
-                            .animation(faceIDSpring, value: targetFaceIDSize)
+                            .animation(animationSpring, value: isFaceIDActive)
+                            .animation(animationSpring, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
                     }
                     .contentShape(currentNotchShape)
@@ -431,7 +444,7 @@ struct ContentView: View {
                 } else if isFaceIDContentActive {
                     FaceIDContentView()
                         .opacity(faceIDOverlay.phase == .collapsing ? 0 : 1)
-                        .animation(.easeInOut(duration: 0.28), value: faceIDOverlay.phase == .collapsing)
+                        .animation(.easeInOut(duration: 0.25), value: faceIDOverlay.phase == .collapsing)
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
                             removal: .opacity

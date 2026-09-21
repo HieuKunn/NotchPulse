@@ -94,7 +94,7 @@ final class FaceIDOverlayController {
     }
     /// Long enough for the closing spring to fully settle before the window is
     /// hidden/left closed — collapsing state too early made the window visibly pop away.
-    let collapseAnimationDuration: Duration = .milliseconds(700)
+    let collapseAnimationDuration: Duration = .milliseconds(420)
 
     private init() {
         windowController.contentView = NSHostingView(rootView: FaceIDOverlayView(controller: self))
@@ -186,7 +186,9 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         content = .scan(.idle)
-        phase = .scanning
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = .scanning
+        }
         updateInteractivity()
 
         scanTimeoutTask = Task { [weak self] in
@@ -239,7 +241,9 @@ final class FaceIDOverlayController {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
             guard let self else { return }
-            self.phase = .scanning
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                self.phase = .scanning
+            }
             self.updateInteractivity()
         }
     }
@@ -276,7 +280,9 @@ final class FaceIDOverlayController {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
             guard let self else { return }
-            self.phase = .onboarding
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                self.phase = .onboarding
+            }
             self.updateInteractivity()
         }
     }
@@ -287,7 +293,9 @@ final class FaceIDOverlayController {
         guard case .onboarding = content else { return }
         // Drop key/interactivity now, not inside the Task: first-run completion opens
         // Settings this same turn, and a still-key overlay would leave it inactive.
-        phase = .collapsing
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = .collapsing
+        }
         updateInteractivity()
 
         Task { [weak self] in
@@ -295,7 +303,9 @@ final class FaceIDOverlayController {
             try? await Task.sleep(for: self.collapseAnimationDuration)
             guard case .onboarding = self.content else { return }
             self.content = .scan(.idle)
-            self.phase = .closed
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                self.phase = .closed
+            }
             self.windowController.hide()
 
             // Restore previous screen AFTER collapse animation fully finishes
@@ -320,7 +330,9 @@ final class FaceIDOverlayController {
         // retry behavior are unaffected. Reads the cycle's captured style, not live settings.
         let shouldAnimate = activeUnlockStyle != .none
         content = shouldAnimate ? .scan(success ? .success : .failure) : .scan(.idle)
-        phase = success ? .success : .failure
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = success ? .success : .failure
+        }
         updateInteractivity()
 
         let hold = shouldAnimate ? (success ? successHoldDuration : failureHoldDuration) : Duration.milliseconds(400)
@@ -384,7 +396,9 @@ final class FaceIDOverlayController {
                 // `onActivate()` routes through `beginScanning()`, which captures.
                 activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
                 content = .scan(.idle)
-                phase = .scanning
+                withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                    phase = .scanning
+                }
                 updateInteractivity()
             }
             onActivate()
@@ -398,7 +412,9 @@ final class FaceIDOverlayController {
     /// orders it out entirely if not.
     func collapse() async {
         guard phase != .closed, phase != .collapsing else { return }
-        phase = .collapsing
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = .collapsing
+        }
         updateInteractivity()
         try? await Task.sleep(for: collapseAnimationDuration)
         guard phase == .collapsing else { return }
@@ -408,10 +424,14 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         content = .scan(.idle)
         if isArmed {
-            phase = .closed
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                phase = .closed
+            }
             updateInteractivity()
         } else {
-            phase = .closed
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                phase = .closed
+            }
             windowController.hide()
         }
     }

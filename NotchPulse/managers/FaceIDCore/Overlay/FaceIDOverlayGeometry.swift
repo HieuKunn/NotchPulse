@@ -8,8 +8,12 @@
 import AppKit
 import CoreGraphics
 import Defaults
+import SwiftUI
 
 struct FaceIDOverlayGeometry {
+    /// Shared interactive spring for morphing animations matching NotchPulse's native hover spring.
+    static let springAnimation = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+
     /// Physical notch's own dimensions, or `pillClosedSize`.
     let closedSize: CGSize
     /// True if this screen has a real physical notch (vs. the pill fallback).
