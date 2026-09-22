@@ -1373,6 +1373,7 @@ struct Shelf: View {
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
     @Default(.expandedDragDetection) var expandedDragDetection: Bool
+    @Default(.dragDetectionPadding) var dragDetectionPadding: Double
     @StateObject private var quickShareService = QuickShareService.shared
 
     private var selectedProvider: QuickShareProvider? {
@@ -1400,6 +1401,20 @@ struct Shelf: View {
                         name: Notification.Name.expandedDragDetectionChanged,
                         object: nil
                     )
+                }
+                if expandedDragDetection {
+                    Slider(value: $dragDetectionPadding, in: 10...120, step: 5) {
+                        Text("Drag hover expansion - \(dragDetectionPadding, specifier: "%.0f") px")
+                    }
+                    .onChange(of: dragDetectionPadding) {
+                        NotificationCenter.default.post(
+                            name: Notification.Name.expandedDragDetectionChanged,
+                            object: nil
+                        )
+                    }
+                    Text("Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 Defaults.Toggle(key: .copyOnDrag) {
                     Text("Copy items on drag")

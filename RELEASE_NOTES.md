@@ -1,6 +1,10 @@
-# NotchPulse v4.6.2
+# NotchPulse v4.6.1
 
-## 🖥️ Multi-Display & External Monitor Improvements
-- **Persistent Display Preference**: Fixed an issue where the notch could automatically reset back to the built-in MacBook screen after waking from sleep or locking your Mac while using an external monitor.
-- **Reliable External Monitor Reconnection**: Your chosen preferred display is now remembered seamlessly, ensuring the notch instantly reappears on your selected screen when monitors wake up or reconnect.
-- **Improved Launch Positioning**: NotchPulse opens immediately on your preferred display at startup without brief positioning flickers.
+## 📁 Shelf & Drag Detection
+- **Adjustable Drag Reach**: Added a customizable drag hover expansion slider in Settings. The notch now opens smoothly well before your cursor reaches the very top screen edge, avoiding conflicts with macOS top-edge window tiling and full-screen triggers.
+- **Refined Border & Visual Polish**: Fixed edge clipping on the Shelf and file drop areas with perfectly rounded dashed borders and balanced interior padding.
+- **Direct Native AirDrop**: Dropping files onto AirDrop launches the native macOS AirDrop transfer sheet directly.
+
+## 🖥️ Multi-Display & External Monitors
+- **Persistent Display Preference**: Fixed an issue where the notch could automatically reset back to the MacBook display after waking from sleep or locking your Mac with an external display connected.
+- **Reliable Reconnection**: Your chosen screen is remembered reliably, ensuring the notch instantly reappears on your preferred monitor when it wakes up.

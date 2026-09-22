@@ -216,13 +216,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let screenFrame = screen.frame
         let notchHeight = openNotchSize.height
         let notchWidth = openNotchSize.width
+        let padding = CGFloat(Defaults[.dragDetectionPadding])
         
-        // Create notch region at the top-center of the screen where an open notch would occupy
+        // Create notch region at the top-center of the screen where an open notch would occupy,
+        // extended downwards and outwards by the user's configured reach padding
         let notchRegion = CGRect(
-            x: screenFrame.midX - notchWidth / 2,
-            y: screenFrame.maxY - notchHeight,
-            width: notchWidth,
-            height: notchHeight
+            x: screenFrame.midX - (notchWidth / 2 + padding),
+            y: screenFrame.maxY - (notchHeight + padding),
+            width: notchWidth + (padding * 2),
+            height: notchHeight + padding
         )
         
         let detector = DragDetector(notchRegion: notchRegion)
