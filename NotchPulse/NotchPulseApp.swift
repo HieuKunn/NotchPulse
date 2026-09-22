@@ -193,8 +193,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        guard Defaults[.expandedDragDetection] else { return }
-
+        // Always set up detectors — even when expandedDragDetection is off we still need
+        // to intercept file drags reaching the notch area, otherwise macOS's own drag-to-top
+        // gesture fires Mission Control instead of opening the Shelf.
         if Defaults[.showOnAllDisplays] {
             for screen in NSScreen.screens {
                 setupDragDetectorForScreen(screen)
@@ -216,10 +217,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let screenFrame = screen.frame
         let notchHeight = openNotchSize.height
         let notchWidth = openNotchSize.width
-        let padding = CGFloat(Defaults[.dragDetectionPadding])
+        // When expandedDragDetection is off use a small baseline padding (8 pt) so the
+        // detector still covers the notch without aggressively expanding the hit zone.
+        let padding = Defaults[.expandedDragDetection]
+            ? CGFloat(Defaults[.dragDetectionPadding])
+            : 8
         
         // Create notch region at the top-center of the screen where an open notch would occupy,
-        // extended downwards and outwards by the user's configured reach padding
+        // extended downwards and outwards by the configured reach padding.
         let notchRegion = CGRect(
             x: screenFrame.midX - (notchWidth / 2 + padding),
             y: screenFrame.maxY - (notchHeight + padding),
