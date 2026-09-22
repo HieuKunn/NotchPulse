@@ -225,11 +225,20 @@ struct ContentView: View {
                 let currentNotchHeight: CGFloat = isFaceIDActive ? targetFaceIDSize.height : (vm.notchState == .open ? vm.notchSize.height : max(vm.effectiveClosedNotchHeight, 0))
 
                 let mainLayout = NotchLayout()
-                    .frame(
-                        width: currentNotchWidth,
-                        height: currentNotchHeight,
-                        alignment: .top
-                    )
+                    .conditionalModifier(vm.notchState == .open || isFaceIDActive) { view in
+                        view.frame(
+                            width: currentNotchWidth,
+                            height: currentNotchHeight,
+                            alignment: .top
+                        )
+                    }
+                    .conditionalModifier(vm.notchState == .closed && !isFaceIDActive) { view in
+                        view.frame(
+                            minWidth: currentNotchWidth,
+                            minHeight: currentNotchHeight,
+                            alignment: .top
+                        )
+                    }
                     .conditionalModifier(isFaceIDActive) { view in
                         view.clipped()
                     }
