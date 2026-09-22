@@ -175,6 +175,7 @@ jobs:
       - name: Generate Sparkle Appcast
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
         run: |
           curl -L -s -o Sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz"
           mkdir -p Sparkle-tools
@@ -196,7 +197,7 @@ jobs:
           
           CLEAN_KEY=$(echo "$SPARKLE_PRIVATE_KEY" | sed 's/.*PRIVATE_KEY:[[:space:]]*//' | sed 's/.*SPARKLE_PRIVATE_KEY:[[:space:]]*//' | tr -d ' "\r\n\t')
           if [ -n "$CLEAN_KEY" ]; then
-            echo "$CLEAN_KEY" | ./Sparkle-tools/bin/generate_appcast --ed-key-file - --download-url-prefix "https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/" appcast_staging/ || echo "Warning: generate_appcast failed to sign appcast"
+            echo "$CLEAN_KEY" | ./Sparkle-tools/bin/generate_appcast --ed-key-file - --download-url-prefix "https://github.com/$PUBLIC_REPO/releases/download/$TAG/" appcast_staging/ || echo "Warning: generate_appcast failed to sign appcast"
             if [ -f "appcast_staging/appcast.xml" ]; then
               cp appcast_staging/appcast.xml .
             fi
@@ -212,7 +213,7 @@ jobs:
               '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">' \
               '    <channel>' \
               '        <title>NotchPulse Changelog</title>' \
-              '        <link>https://github.com/HieuKunn/NotchPulse</link>' \
+              "        <link>https://github.com/$PUBLIC_REPO</link>" \
               '        <description>Most recent changes with links to updates.</description>' \
               '        <language>en</language>' \
               '        <item>' \
@@ -221,13 +222,13 @@ jobs:
               "            <sparkle:version>10</sparkle:version>" \
               "            <sparkle:shortVersionString>$PLAIN_VER</sparkle:shortVersionString>" \
               '            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>' \
-              "            <enclosure url=\"https://github.com/HieuKunn/NotchPulse/releases/download/$TAG/NotchPulse.app.zip\" length=\"$ZIP_SIZE\" type=\"application/octet-stream\" sparkle:edSignature=\"4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=\" />" \
+              "            <enclosure url=\"https://github.com/$PUBLIC_REPO/releases/download/$TAG/NotchPulse.app.zip\" length=\"$ZIP_SIZE\" type=\"application/octet-stream\" sparkle:edSignature=\"4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=\" />" \
               '        </item>' \
               '    </channel>' \
               '</rss>' > appcast.xml
           fi
           
-      - name: Commit and Push Appcast
+      - name: Commit and Push Appcast to Local Repo
         run: |
           if [ -f "appcast.xml" ]; then
             git config --global user.name "github-actions[bot]"
@@ -236,9 +237,7 @@ jobs:
             git diff --quiet && git diff --staged --quiet || (git commit -m "chore: Update appcast.xml for release" && git push origin HEAD:main) || true
           fi
 
-      - name: Create or Update GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare Release Notes
         run: |
           TAG="v2.9.4.8"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
@@ -246,8 +245,6 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
           fi
-          echo "Publishing release $TAG..."
-
           git fetch --tags --unshallow || true
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -f "RELEASE_NOTES.md" ]; then
@@ -263,6 +260,76 @@ jobs:
             echo "" >> current_release_notes.md
             echo "_Built from commit ${{ github.sha }}_" >> current_release_notes.md
           fi
+
+      - name: Sync Web & Release Metadata to Public Distribution Repository
+        env:
+          PUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN || secrets.GITHUB_TOKEN }}
+          PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
+        run: |
+          echo "Cloning and syncing public repository: $PUBLIC_REPO..."
+          rm -rf pub_repo
+          git clone "https://x-access-token:${PUB_TOKEN}@github.com/${PUBLIC_REPO}.git" pub_repo || {
+            echo "::warning::Không thể clone $PUBLIC_REPO (kiểm tra lại PUBLIC_RELEASE_TOKEN)"
+            exit 0
+          }
+          
+          # Copy Landing Page, README, and appcast.xml to public repo
+          cp -f appcast.xml pub_repo/appcast.xml
+          cp -f README.md pub_repo/README.md
+          if [ -f "LICENSE" ]; then cp -f LICENSE pub_repo/LICENSE; fi
+          
+          # Copy docs for GitHub Pages
+          rm -rf pub_repo/docs
+          cp -R docs pub_repo/docs
+          
+          cd pub_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || (
+            git commit -m "docs: Update landing page, README, and Sparkle appcast for release $TAG"
+            git push origin main
+          )
+          echo "Sync to $PUBLIC_REPO completed successfully!"
+          cd ..
+
+      - name: Publish Release to Public Distribution Repository
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN }}
+          PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
+        run: |
+          TAG="v2.9.4.8"
+          if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
+            TAG="${{ github.event.inputs.release_tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+          fi
+          
+          if [ -n "$GH_TOKEN" ]; then
+            echo "Publishing release $TAG to public repo $PUBLIC_REPO..."
+            gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
+              --repo "$PUBLIC_REPO" \
+              --title "NotchPulse $TAG" \
+              --notes-file current_release_notes.md \
+              --draft=false \
+              --prerelease=false || ( \
+            gh release edit "$TAG" --repo "$PUBLIC_REPO" --title "NotchPulse $TAG" --notes-file current_release_notes.md && \
+            gh release upload "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip --repo "$PUBLIC_REPO" --clobber )
+          else
+            echo "::warning::Không tìm thấy PUBLIC_RELEASE_TOKEN, bỏ qua bước publish sang public repo."
+          fi
+
+      - name: Create or Update Local GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v2.9.4.8"
+          if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
+            TAG="${{ github.event.inputs.release_tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+          fi
+          echo "Publishing release $TAG to local repository..."
           gh release create "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip \
             --title "NotchPulse $TAG" \
             --notes-file current_release_notes.md \

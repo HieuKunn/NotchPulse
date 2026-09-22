@@ -8,7 +8,7 @@
 		<true/>
 	</dict>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/HieuKunn/NotchPulse/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/HieuKunn/NotchPulse-Release-for-everyone/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>4dg0W0Rh2wjz9jA0PN3TdM/+atobtF1Xj00RMJQbim0=</string>
 	<key>SUScheduledCheckInterval</key>
