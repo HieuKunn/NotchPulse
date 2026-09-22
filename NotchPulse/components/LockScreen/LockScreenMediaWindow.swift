@@ -71,6 +71,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     private func getTargetScreen() -> NSScreen? {
+        if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
+           let screen = NSScreen.screen(withUUID: prefUUID) {
+            return screen
+        }
         return NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
             ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
             ?? NSScreen.main

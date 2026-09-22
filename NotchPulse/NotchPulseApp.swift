@@ -463,7 +463,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if !Defaults[.showOnAllDisplays] {
-            if let screen = NSScreen.main ?? NSScreen.screens.first {
+            let preferredUUID = coordinator.preferredScreenUUID
+            let initialScreen: NSScreen? = (preferredUUID.flatMap { NSScreen.screen(withUUID: $0) })
+                ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
+                ?? NSScreen.main
+                ?? NSScreen.screens.first
+            if let screen = initialScreen {
                 let viewModel = self.vm
                 let window = createNotchPulseWindow(
                     for: screen, with: viewModel)
@@ -571,12 +576,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
-                targetScreen = activeScreen
-            } else if let preferredUUID = coordinator.preferredScreenUUID,
-                      let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
+            // 1. Prioritize user's preferred display if it is currently connected and active
+            if let preferredUUID = coordinator.preferredScreenUUID,
+               let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
                 coordinator.selectedScreenUUID = preferredUUID
                 targetScreen = preferredScreen
+            } else if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
+                targetScreen = activeScreen
             } else {
                 // The preferred display was disconnected or not found.
                 // Fall back gracefully so the notch never disappears!

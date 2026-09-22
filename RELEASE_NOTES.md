@@ -1,7 +1,6 @@
-# NotchPulse v4.6.1
+# NotchPulse v4.6.2
 
-## 📁 Enhanced Shelf & Quick Share
-- **Refined Border & Visual Polish**: Fixed edge clipping on the Shelf and file drop areas with perfectly rounded dashed borders and balanced interior padding.
-- **Direct Native AirDrop**: Clicking or dropping files into AirDrop now directly launches the native macOS AirDrop transfer sheet without unexpected menu fallbacks.
-- **Seamless Drag-to-Shelf Navigation**: Dragging files anywhere over the notch now instantly expands the notch and automatically switches to the Shelf tab for fast, effortless drops.
-- **Direct Drop Handling**: Files dropped directly onto the notch are automatically added to your shelf tray.
+## 🖥️ Multi-Display & External Monitor Improvements
+- **Persistent Display Preference**: Fixed an issue where the notch could automatically reset back to the built-in MacBook screen after waking from sleep or locking your Mac while using an external monitor.
+- **Reliable External Monitor Reconnection**: Your chosen preferred display is now remembered seamlessly, ensuring the notch instantly reappears on your selected screen when monitors wake up or reconnect.
+- **Improved Launch Positioning**: NotchPulse opens immediately on your preferred display at startup without brief positioning flickers.

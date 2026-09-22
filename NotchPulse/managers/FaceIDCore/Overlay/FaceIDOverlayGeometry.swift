@@ -219,12 +219,12 @@ struct FaceIDOverlayGeometry {
     /// falling back to the physical notch display if available, else primary.
     @MainActor
     static func preferredScreen() -> NSScreen? {
-        let selectedUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
-        if !selectedUUID.isEmpty, let screen = NSScreen.screen(withUUID: selectedUUID) {
-            return screen
-        }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
+            return screen
+        }
+        let selectedUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
+        if !selectedUUID.isEmpty, let screen = NSScreen.screen(withUUID: selectedUUID) {
             return screen
         }
         return NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
