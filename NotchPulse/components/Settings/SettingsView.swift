@@ -307,6 +307,8 @@ struct GeneralSettings: View {
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
     @Default(.enableGestures) var enableGestures
     @Default(.openNotchOnHover) var openNotchOnHover
+    @Default(.extendHoverArea) var extendHoverArea
+    @Default(.hoverDetectionPadding) var hoverDetectionPadding
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
@@ -718,6 +720,23 @@ struct GeneralSettings: View {
                 .onChange(of: minimumHoverDuration) {
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil)
+                }
+
+                Defaults.Toggle(key: .extendHoverArea) {
+                    Text("Expand hover detection area")
+                }
+                if extendHoverArea {
+                    Slider(value: $hoverDetectionPadding, in: 5...80, step: 5) {
+                        HStack {
+                            Text("Hover reach / expansion")
+                            Spacer()
+                            Text("\(hoverDetectionPadding, specifier: "%.0f") px")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("Expands the detection zone below and around the notch so it opens smoothly when hovering nearby, without having to reach the exact top edge.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
         } header: {
@@ -2085,9 +2104,6 @@ struct Advanced: View {
             }
             
             Section {
-                Defaults.Toggle(key: .extendHoverArea) {
-                    Text("Extend hover area")
-                }
                 Defaults.Toggle(key: .hideTitleBar) {
                     Text("Hide title bar")
                 }

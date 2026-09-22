@@ -39,6 +39,8 @@ struct ContentView: View {
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
+    @Default(.extendHoverArea) var extendHoverArea
+    @Default(.hoverDetectionPadding) var hoverDetectionPadding
 
     // Shared interactive spring for movement/resizing to avoid conflicting animations
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
@@ -273,7 +275,35 @@ struct ContentView: View {
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
                     )
                 
+                let hoverPad: CGFloat = (vm.notchState == .closed && !isFaceIDActive && extendHoverArea) ? CGFloat(hoverDetectionPadding) : 0
+
                 mainLayout
+                    .overlay(alignment: .top) {
+                        if vm.notchState == .closed && !isFaceIDActive && hoverPad > 0 {
+                            Color.clear
+                                .frame(
+                                    width: currentNotchWidth + (hoverPad * 2),
+                                    height: currentNotchHeight + hoverPad
+                                )
+                                .contentShape(Rectangle())
+                                .onHover { hovering in
+                                    handleHover(hovering)
+                                    if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                                        FaceIDOverlayController.shared.setHovering(hovering)
+                                        if hovering && faceIDOverlay.phase != .onboarding {
+                                            FaceIDOverlayController.shared.activate()
+                                        }
+                                    }
+                                }
+                                .onTapGesture {
+                                    if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
+                                        FaceIDOverlayController.shared.activate()
+                                        return
+                                    }
+                                    doOpen()
+                                }
+                        }
+                    }
                     .conditionalModifier(true) { view in
                         return view
                             .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)

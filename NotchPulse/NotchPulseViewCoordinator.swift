@@ -151,8 +151,6 @@ class NotchPulseViewCoordinator: ObservableObject {
 
                             if granted {
                                 await MediaKeyInterceptor.shared.start()
-                            } else {
-                                Defaults[.hudReplacement] = false
                             }
                         }
                     } else {
@@ -165,11 +163,14 @@ class NotchPulseViewCoordinator: ObservableObject {
             helloAnimationRunning = firstLaunch
 
             if Defaults[.hudReplacement] {
-                let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
-                if !authorized {
-                    Defaults[.hudReplacement] = false
-                } else {
-                    await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
+                // Retry checking authorization to allow XPC helper to initialize without overwriting user settings
+                for _ in 0..<5 {
+                    let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
+                    if authorized {
+                        await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
+                        break
+                    }
+                    try? await Task.sleep(for: .milliseconds(500))
                 }
             }
         }
