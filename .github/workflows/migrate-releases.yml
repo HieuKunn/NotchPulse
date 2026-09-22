@@ -1,0 +1,107 @@
+name: Migrate All Past Releases to Public Repo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Migrate Releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Migrate Releases to Public Repository
+        env:
+          SOURCE_REPO: "HieuKunn/NotchPulse"
+          TARGET_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
+          SOURCE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN }}
+        run: |
+          if [ -z "$TARGET_TOKEN" ]; then
+            echo "::error::Không tìm thấy TARGET_TOKEN / PUBLIC_RELEASE_TOKEN"
+            exit 1
+          fi
+
+          echo "Fetching releases list from $SOURCE_REPO..."
+          curl -s -H "Authorization: token $SOURCE_TOKEN" \
+            "https://api.github.com/repos/$SOURCE_REPO/releases?per_page=100" > releases.json
+
+          # Parse releases and process in chronological order (oldest first)
+          python3 - << 'EOF'
+          import json, os, subprocess, tempfile
+
+          with open('releases.json') as f:
+              releases = json.load(f)
+
+          target_repo = os.environ['TARGET_REPO']
+          target_token = os.environ['TARGET_TOKEN']
+          source_token = os.environ['SOURCE_TOKEN']
+
+          # Reverse so we create older releases first, and latest release last
+          releases.reverse()
+
+          for rel in releases:
+              tag = rel.get('tag_name')
+              name = rel.get('name') or tag
+              body = rel.get('body') or f"Release {tag}"
+              draft = rel.get('draft', False)
+              prerelease = rel.get('prerelease', False)
+              assets = rel.get('assets', [])
+
+              print(f"\n==========================================")
+              print(f"Migrating Release: {tag} ({name})")
+              print(f"==========================================")
+
+              with tempfile.TemporaryDirectory() as tmpdir:
+                  downloaded_files = []
+                  for asset in assets:
+                      asset_name = asset['name']
+                      download_url = asset['url']
+                      local_path = os.path.join(tmpdir, asset_name)
+                      print(f"Downloading asset {asset_name}...")
+                      
+                      cmd = [
+                          'curl', '-s', '-L',
+                          '-H', f"Authorization: token {source_token}",
+                          '-H', "Accept: application/octet-stream",
+                          '-o', local_path,
+                          download_url
+                      ]
+                      subprocess.run(cmd, check=True)
+                      if os.path.exists(local_path) and os.path.getsize(local_path) > 0:
+                          downloaded_files.append(local_path)
+
+                  notes_file = os.path.join(tmpdir, "notes.md")
+                  with open(notes_file, "w", encoding="utf-8") as nf:
+                      nf.write(body)
+
+                  # Create or update release in target repo using gh CLI
+                  env = os.environ.copy()
+                  env['GH_TOKEN'] = target_token
+
+                  create_cmd = [
+                      'gh', 'release', 'create', tag,
+                      '--repo', target_repo,
+                      '--title', name,
+                      '--notes-file', notes_file
+                  ]
+                  if prerelease:
+                      create_cmd.append('--prerelease')
+                  create_cmd.extend(downloaded_files)
+
+                  res = subprocess.run(create_cmd, env=env, capture_output=True, text=True)
+                  if res.returncode != 0:
+                      print(f"Release {tag} may already exist or error: {res.stderr}")
+                      print(f"Attempting to update release and upload assets...")
+                      # Edit notes/title
+                      edit_cmd = ['gh', 'release', 'edit', tag, '--repo', target_repo, '--title', name, '--notes-file', notes_file]
+                      subprocess.run(edit_cmd, env=env)
+                      if downloaded_files:
+                          upload_cmd = ['gh', 'release', 'upload', tag, '--repo', target_repo, '--clobber'] + downloaded_files
+                          subprocess.run(upload_cmd, env=env)
+
+                  print(f"Successfully migrated {tag} to {target_repo}!")
+
+          EOF
+          echo "All past releases have been successfully migrated!"
