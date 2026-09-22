@@ -172,11 +172,10 @@ class NotchPulseViewCoordinator: ObservableObject {
                 }
                 if authorized {
                     await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
-                } else {
-                    // Accessibility not granted — reset the setting so the UI reflects reality
-                    // and the user is prompted again the next time they enable it.
-                    Defaults[.hudReplacement] = false
                 }
+                // Note: intentionally NOT resetting hudReplacement to false here —
+                // the interceptor not starting just means media keys fall back to system behavior,
+                // which is fine. Resetting the setting would break inline HUD display.
             }
         }
     }
