@@ -1,0 +1,54 @@
+name: Sync Docs & README to Public Repo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+      - 'docs/**'
+      - 'appcast.xml'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync to NotchPulse-Release-for-everyone
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Sync Files to Public Repository
+        env:
+          PUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN || secrets.GITHUB_TOKEN }}
+          PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
+        run: |
+          if [ -z "$PUB_TOKEN" ]; then
+            echo "::warning::Không tìm thấy PUBLIC_RELEASE_TOKEN, bỏ qua bước đồng bộ."
+            exit 0
+          fi
+
+          echo "Cloning public repository $PUBLIC_REPO..."
+          rm -rf pub_repo
+          git clone "https://x-access-token:${PUB_TOKEN}@github.com/${PUBLIC_REPO}.git" pub_repo || {
+            echo "::error::Không thể clone $PUBLIC_REPO (kiểm tra lại token)"
+            exit 1
+          }
+
+          # Copy updated README, docs and appcast
+          cp -f README.md pub_repo/README.md
+          if [ -f "appcast.xml" ]; then cp -f appcast.xml pub_repo/appcast.xml; fi
+          if [ -f "LICENSE" ]; then cp -f LICENSE pub_repo/LICENSE; fi
+
+          rm -rf pub_repo/docs
+          if [ -d "docs" ]; then cp -R docs pub_repo/docs; fi
+
+          cd pub_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || (
+            git commit -m "docs: auto-sync README and landing page from main repo"
+            git push origin main
+            echo "Đồng bộ thành công sang $PUBLIC_REPO!"
+          )
