@@ -1,3 +1,13 @@
+# NotchPulse v4.6.8
+
+## 🖱️ Notch Animation
+- Restored the smooth Boring Notch-style opening and closing behavior.
+
+## 🧩 Maintenance
+- Updated the app and helper build metadata to version 4.6.8, build 106.
+
+---
+
 # NotchPulse v4.6.6
 
 ## ⚙️ Shelf Settings
