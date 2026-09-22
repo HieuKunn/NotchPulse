@@ -37,42 +37,29 @@ final class DragDetector {
 
     // MARK: - Private Helpers
     
-    /// Checks if the drag pasteboard contains valid content types that can be dropped on the shelf
-    private func hasValidDragContent() -> Bool {
+    /// Returns true ONLY for genuine file-system drag sessions initiated in Finder or
+    /// similar apps. This intentionally excludes text selections, web content, in-app
+    /// image drags, and anything that would cause false-positive shelf openings.
+    private func hasValidFileDragContent() -> Bool {
         guard let types = dragPasteboard.types, !types.isEmpty else { return false }
         
-        let validIdentifiers: Set<String> = [
-            NSPasteboard.PasteboardType.fileURL.rawValue,
-            NSPasteboard.PasteboardType.string.rawValue,
-            NSPasteboard.PasteboardType.tiff.rawValue,
-            NSPasteboard.PasteboardType.png.rawValue,
-            NSPasteboard.PasteboardType.html.rawValue,
-            NSPasteboard.PasteboardType.rtf.rawValue,
-            "NSFilenamesPboardType",
-            "com.apple.finder.node",
-            "com.apple.pasteboard.promised-file-url",
-            "com.apple.cocoa.pasteboard.item",
-            "public.file-url",
-            "public.url",
-            "public.utf8-plain-text",
-            "public.text",
-            "public.image",
-            "public.data"
+        // Exact-match allowlist for real file drags. Do NOT add broad types like
+        // "public.text", "public.image", "public.data" — those match web/in-app drags.
+        let fileOnlyTypes: Set<String> = [
+            "public.file-url",                           // Standard macOS file drag
+            NSPasteboard.PasteboardType.fileURL.rawValue, // Same via AppKit constant
+            "NSFilenamesPboardType",                      // Legacy Finder drag
+            "com.apple.finder.node",                      // Finder internal node drag
+            "com.apple.pasteboard.promised-file-url",     // Promised files (e.g. Photos export)
         ]
         
-        return types.contains { type in
-            validIdentifiers.contains(type.rawValue) ||
-            type.rawValue.contains("file") ||
-            type.rawValue.contains("url") ||
-            type.rawValue.contains("text") ||
-            type.rawValue.contains("image")
-        }
+        return types.contains { fileOnlyTypes.contains($0.rawValue) }
     }
 
     func startMonitoring() {
         stopMonitoring()
 
-        // Track mouse down to prepare drag detection
+        // Record pasteboard state at the moment the mouse button goes down.
         mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
             guard let self = self else { return }
             self.pasteboardChangeCount = self.dragPasteboard.changeCount
@@ -81,28 +68,26 @@ final class DragDetector {
             self.hasEnteredNotchRegion = false
         }
 
-        // Track drag movement and notch region intersection
+        // Track drag movement — only activate when it is a genuine file drag.
         mouseDraggedMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
             guard let self = self else { return }
+            guard self.isDragging else { return }
 
-            // If mouse button is pressed and dragging, detect drag state even if mouseDown was consumed by another app
-            let isMousePressed = (NSEvent.pressedMouseButtons & 1) != 0
-            guard self.isDragging || isMousePressed else { return }
-            self.isDragging = true
-
-            // Content is dragging if pasteboard has valid content or changeCount changed
+            // Promote to a content-drag only when:
+            //   1. The drag pasteboard changed since mouseDown (macOS populates it at drag start), AND
+            //   2. The pasteboard carries a real file type (not a web-page text selection, etc.)
             if !self.isContentDragging {
-                if self.hasValidDragContent() || (self.dragPasteboard.changeCount != self.pasteboardChangeCount && self.pasteboardChangeCount != -1) {
+                let pasteboardChanged = self.dragPasteboard.changeCount != self.pasteboardChangeCount
+                if pasteboardChanged && self.hasValidFileDragContent() {
                     self.isContentDragging = true
                 }
             }
 
-            // Only process position when content is being dragged
+            // Only track notch entry when carrying a genuine file.
             if self.isContentDragging {
                 let mouseLocation = NSEvent.mouseLocation
                 self.onDragMove?(mouseLocation)
                 
-                // Track notch region entry/exit
                 let containsMouse = self.notchRegion.contains(mouseLocation)
                 if containsMouse && !self.hasEnteredNotchRegion {
                     self.hasEnteredNotchRegion = true
