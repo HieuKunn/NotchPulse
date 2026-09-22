@@ -17,6 +17,7 @@ final class DragDetector {
 
     var onDragEntersNotchRegion: VoidCallback?
     var onDragExitsNotchRegion: VoidCallback?
+    var onDragEnds: VoidCallback?
     var onDragMove: PositionCallback?
 
     private var mouseDownMonitor: Any?
@@ -99,6 +100,7 @@ final class DragDetector {
             self.isDragging = false
             self.isContentDragging = false
             self.hasEnteredNotchRegion = false
+            self.onDragEnds?()
         }
     }
 

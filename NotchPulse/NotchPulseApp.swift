@@ -81,6 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
+    private var dragOpenedScreens: Set<String> = []
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
@@ -188,6 +189,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             detector.stopMonitoring()
         }
         dragDetectors.removeAll()
+        dragOpenedScreens.removeAll()
     }
 
     private func setupDragDetectors() {
@@ -239,6 +241,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleDragEntersNotchRegion(onScreen: screen)
             }
         }
+
+        detector.onDragExitsNotchRegion = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragExitsNotchRegion(onScreen: screen)
+            }
+        }
+
+        detector.onDragEnds = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragEnds(onScreen: screen)
+            }
+        }
         
         dragDetectors[uuid] = detector
         detector.startMonitoring()
@@ -251,10 +265,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
             viewModel.open()
             coordinator.currentView = .shelf
+            dragOpenedScreens.insert(uuid)
         } else if !Defaults[.showOnAllDisplays] {
             vm.open()
             coordinator.currentView = .shelf
+            dragOpenedScreens.insert(uuid)
         }
+    }
+
+    private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
+        guard let uuid = screen.displayUUID, dragOpenedScreens.remove(uuid) != nil else { return }
+
+        if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
+            viewModel.close()
+        } else if !Defaults[.showOnAllDisplays] {
+            vm.close()
+        }
+    }
+
+    private func handleDragEnds(onScreen screen: NSScreen) {
+        guard let uuid = screen.displayUUID else { return }
+        dragOpenedScreens.remove(uuid)
     }
 
     private func createNotchPulseWindow(for screen: NSScreen, with viewModel: NotchPulseViewModel) -> NSWindow {
