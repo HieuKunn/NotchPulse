@@ -185,14 +185,17 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         }
     }
     
-    func isMouseHovering(position: NSPoint = NSEvent.mouseLocation) -> Bool {
+    func isMouseHovering(position: NSPoint = NSEvent.mouseLocation, margin: CGFloat = 8) -> Bool {
         let screenFrame = getScreenFrame(screenUUID)
         if let frame = screenFrame {
+            let width = notchState == .open ? max(notchSize.width, openNotchWidth) : notchSize.width
+            let height = notchState == .open ? max(notchSize.height, openNotchSize.height) : notchSize.height
             
-            let baseY = frame.maxY - notchSize.height
-            let baseX = frame.midX - notchSize.width / 2
+            let baseY = frame.maxY - height - margin
+            let baseX = frame.midX - (width / 2) - margin
+            let maxX = frame.midX + (width / 2) + margin
             
-            return position.y >= baseY && position.x >= baseX && position.x <= baseX + notchSize.width
+            return position.y >= baseY && position.y <= (frame.maxY + margin) && position.x >= baseX && position.x <= maxX
         }
         
         return false

@@ -278,6 +278,17 @@ struct ContentView: View {
                 let hoverPad: CGFloat = (vm.notchState == .closed && !isFaceIDActive && extendHoverArea) ? CGFloat(hoverDetectionPadding) : 0
 
                 mainLayout
+                    .conditionalModifier(!isFaceIDContentActive) { view in
+                        view
+                            .contentShape(currentNotchShape)
+                            .onTapGesture {
+                                if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
+                                    FaceIDOverlayController.shared.activate()
+                                    return
+                                }
+                                doOpen()
+                            }
+                    }
                     .overlay(alignment: .top) {
                         if vm.notchState == .closed && !isFaceIDActive && hoverPad > 0 {
                             Color.clear
@@ -319,17 +330,6 @@ struct ContentView: View {
                                 FaceIDOverlayController.shared.activate()
                             }
                         }
-                    }
-                    .conditionalModifier(!isFaceIDContentActive) { view in
-                        view
-                            .contentShape(currentNotchShape)
-                            .onTapGesture {
-                                if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
-                                    FaceIDOverlayController.shared.activate()
-                                    return
-                                }
-                                doOpen()
-                            }
                     }
                     .onChange(of: faceIDOverlay.phase) { _, newPhase in
                         if newPhase == .onboarding {
@@ -804,10 +804,16 @@ struct ContentView: View {
             }
         } else {
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(100))
+                try? await Task.sleep(for: .milliseconds(200))
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
+                    // Do not close if the mouse is still physically within the open notch area
+                    if self.vm.isMouseHovering() {
+                        self.isHovering = true
+                        return
+                    }
+                    
                     withAnimation(animationSpring) {
                         self.isHovering = false
                     }
