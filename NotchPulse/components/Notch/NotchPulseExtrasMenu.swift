@@ -43,7 +43,7 @@ struct NotchPulseExtrasMenu : View {
     var github: some View {
         NotchPulseLargeButtons(
             action: {
-                if let url = URL(string: "https://github.com/HieuKunn/NotchPulse") {
+                if let url = URL(string: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone") {
                     NSWorkspace.shared.open(url)
                 }
             },

@@ -1337,7 +1337,7 @@ struct About: View {
                 HStack(spacing: 30) {
                     Spacer(minLength: 0)
                     Button {
-                        if let url = URL(string: "https://github.com/HieuKunn/NotchPulse") {
+                        if let url = URL(string: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone") {
                             NSWorkspace.shared.open(url)
                         }
                     } label: {

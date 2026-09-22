@@ -871,10 +871,10 @@ document.addEventListener("DOMContentLoaded", () => {
 // =============================================================
 
 let appReleaseInfo = {
-  version: "v4.5.0",
-  versionShort: "v4.5",
-  name: "NotchPulse v4.5",
-  downloadUrl: "https://github.com/HieuKunn/NotchPulse/releases/latest/download/NotchPulse.dmg"
+  version: "v4.6.1",
+  versionShort: "v4.6.1",
+  name: "NotchPulse v4.6.1",
+  downloadUrl: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg"
 };
 
 function initReleaseAutoUpdater() {
@@ -891,7 +891,7 @@ function initReleaseAutoUpdater() {
     } catch (e) {}
   }
 
-  fetch("https://api.github.com/repos/HieuKunn/NotchPulse/releases/latest")
+  fetch("https://api.github.com/repos/HieuKunn/NotchPulse-Release-for-everyone/releases/latest")
     .then((res) => {
       if (!res.ok) throw new Error("GitHub API unavailable");
       return res.json();
@@ -903,7 +903,7 @@ function initReleaseAutoUpdater() {
         const parts = cleanVer.replace("v", "").split(".");
         const shortVer = parts.length >= 2 ? `v${parts[0]}.${parts[1]}` : cleanVer;
 
-        let dmgUrl = "https://github.com/HieuKunn/NotchPulse/releases/latest/download/NotchPulse.dmg";
+        let dmgUrl = "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg";
         if (data.assets && Array.isArray(data.assets)) {
           const dmgAsset = data.assets.find((a) => a.name && a.name.endsWith(".dmg"));
           if (dmgAsset && dmgAsset.browser_download_url) {
@@ -1323,7 +1323,7 @@ function initReviewsFilter() {
 function initCopyActions() {
   const copyBoxes = [document.getElementById("copyBrewCmd"), document.getElementById("copyBrewCmdFooter")];
   const toast = document.getElementById("copyToast");
-  const brewCommand = "brew install --cask https://raw.githubusercontent.com/HieuKunn/NotchPulse/main/Casks/notchpulse.rb";
+  const brewCommand = "brew install --cask https://raw.githubusercontent.com/HieuKunn/NotchPulse-Release-for-everyone/main/Casks/notchpulse.rb";
 
   copyBoxes.forEach((box) => {
     if (box) {

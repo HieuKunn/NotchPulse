@@ -1,11 +1,11 @@
 cask "notchpulse" do
-  version "4.5.0"
+  version "4.6.1"
   sha256 :no_check
 
-  url "https://github.com/HieuKunn/NotchPulse/releases/download/v#{version}/NotchPulse.dmg"
+  url "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v#{version}/NotchPulse.dmg"
   name "NotchPulse"
   desc "Dynamic Island, Face ID authentication system, and productivity center for macOS"
-  homepage "https://github.com/HieuKunn/NotchPulse"
+  homepage "https://github.com/HieuKunn/NotchPulse-Release-for-everyone"
 
   livecheck do
     url :url
