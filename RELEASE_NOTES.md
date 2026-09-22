@@ -1,3 +1,18 @@
+# NotchPulse v4.7.0
+
+## 🖱️ Smooth Notch Animation
+- Regular notch opening and closing now interpolate continuously between closed and open sizes.
+- Opening and closing use the same spring timing as Face ID.
+
+## 🚪 Quit Reliability
+- Removed the delayed Exit action.
+- Prevented the MediaRemote helper cleanup from blocking app termination.
+
+## 🧩 Maintenance
+- Updated the app and helper build metadata to version 4.7.0, build 109.
+
+---
+
 # NotchPulse v4.6.10
 
 ## 🖱️ Notch Animation

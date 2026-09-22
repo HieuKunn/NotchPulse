@@ -85,11 +85,7 @@ struct NotchPulseExtrasMenu : View {
     var close: some View {
         NotchPulseLargeButtons(
             action: {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        NSApp.terminate(nil)
-                    }
-                }
+                NSApp.terminate(nil)
             },
             icon: Image(systemName: "xmark"),
             title: "Exit"
