@@ -251,7 +251,23 @@ jobs:
           git fetch --tags --unshallow || true
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -f "RELEASE_NOTES.md" ]; then
-            cat RELEASE_NOTES.md > current_release_notes.md
+            PLAIN_TAG="${TAG#v}"
+            awk -v heading="# NotchPulse v$PLAIN_TAG" '
+              $0 == heading { found=1; print; next }
+              found && /^# NotchPulse v/ { exit }
+              found { print }
+            ' RELEASE_NOTES.md > current_release_notes.md
+
+            if [ ! -s "current_release_notes.md" ]; then
+              echo "## 🚀 What's New in $TAG" > current_release_notes.md
+              echo "" >> current_release_notes.md
+              if [ -n "$PREV_TAG" ]; then
+                git log ${PREV_TAG}..HEAD --pretty=format:"- %s" >> current_release_notes.md
+              else
+                git log -n 5 --pretty=format:"- %s" >> current_release_notes.md
+              fi
+              echo "" >> current_release_notes.md
+            fi
           else
             echo "## 🚀 What's New in $TAG" > current_release_notes.md
             echo "" >> current_release_notes.md
