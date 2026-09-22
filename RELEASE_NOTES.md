@@ -1,4 +1,10 @@
-# NotchPulse v4.6.5
+# NotchPulse v4.6.6
+
+## 🖱️ Notch Hover & Shelf Dragging
+- **Smooth open and close animation**: Restored continuous notch sizing while hovering, including Inline HUD content.
+- **Closed-notch hover distance**: Shelf activation is measured from the closed notch edge plus the configured padding.
+- **Safer drag detection**: Global Shelf activation requires a changed drag pasteboard and a real file type, avoiding accidental activation from app or web drags.
+- **Close on drag exit**: A Shelf opened by dragging closes when the held file leaves the notch area.
 
 ## 📁 Shelf — Safer File Dragging
 - **Shelf takes priority at the notch center**: Dragging a file toward the center of the top edge opens the Shelf without requiring the pointer to land exactly on the closed notch.

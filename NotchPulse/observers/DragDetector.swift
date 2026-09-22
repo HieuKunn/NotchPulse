@@ -27,6 +27,7 @@ final class DragDetector {
     private var isDragging: Bool = false
     private var isContentDragging: Bool = false
     private var hasEnteredNotchRegion: Bool = false
+    private var pasteboardChangeCount: Int = -1
 
     private let notchRegion: CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
@@ -64,6 +65,7 @@ final class DragDetector {
             self.isDragging = true
             self.isContentDragging = false
             self.hasEnteredNotchRegion = false
+            self.pasteboardChangeCount = self.dragPasteboard.changeCount
         }
 
         // Track drag movement — only activate when it is a genuine file drag.
@@ -72,9 +74,8 @@ final class DragDetector {
             guard self.isDragging else { return }
 
             if !self.isContentDragging {
-                // Some Finder drags populate the pasteboard before the global mouse-down monitor fires.
-                // The file-type allowlist is the reliable discriminator in that case.
-                if self.hasValidFileDragContent() {
+                let pasteboardChanged = self.dragPasteboard.changeCount != self.pasteboardChangeCount
+                if pasteboardChanged && self.hasValidFileDragContent() {
                     self.isContentDragging = true
                 }
             }
@@ -100,6 +101,7 @@ final class DragDetector {
             self.isDragging = false
             self.isContentDragging = false
             self.hasEnteredNotchRegion = false
+            self.pasteboardChangeCount = -1
             self.onDragEnds?()
         }
     }
@@ -116,6 +118,7 @@ final class DragDetector {
         isDragging = false
         isContentDragging = false
         hasEnteredNotchRegion = false
+        pasteboardChangeCount = -1
     }
 
     deinit {

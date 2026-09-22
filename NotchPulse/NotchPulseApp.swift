@@ -217,16 +217,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
         
         let screenFrame = screen.frame
-        let notchHeight = openNotchSize.height
-        let notchWidth = openNotchSize.width
+        let closedNotchSize = getClosedNotchSize(screenUUID: uuid)
+        let notchHeight = closedNotchSize.height
+        let notchWidth = closedNotchSize.width
         // When expandedDragDetection is off use a small baseline padding (8 pt) so the
         // detector still covers the notch without aggressively expanding the hit zone.
         let padding = Defaults[.expandedDragDetection]
             ? CGFloat(Defaults[.dragDetectionPadding])
             : 8
         
-        // Create notch region at the top-center of the screen where an open notch would occupy,
-        // extended downwards and outwards by the configured reach padding.
+        // Open the Shelf when the cursor reaches the closed notch plus padding.
         let notchRegion = CGRect(
             x: screenFrame.midX - (notchWidth / 2 + padding),
             y: screenFrame.maxY - (notchHeight + padding),
