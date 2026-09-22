@@ -369,7 +369,7 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned {
-                                        self.vm.close()
+                                        self.doClose()
                                     }
                                 }
                             }
@@ -476,7 +476,7 @@ struct ContentView: View {
 
                 vm.dropEvent = false
                 if !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned {
-                    vm.close()
+                    doClose()
                 }
             }
         }
@@ -766,8 +766,14 @@ struct ContentView: View {
     }
 
     private func doOpen() {
-        withAnimation(animationSpring) {
+        withAnimation(openAnimation) {
             vm.open()
+        }
+    }
+
+    private func doClose() {
+        withAnimation(closeAnimation) {
+            vm.close()
         }
     }
 
@@ -825,7 +831,7 @@ struct ContentView: View {
                     }
                     
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned {
-                        self.vm.close()
+                        self.doClose()
                     }
                 }
             }
@@ -877,7 +883,7 @@ struct ContentView: View {
             }
             if !SharingStateManager.shared.preventNotchClose { 
                 gestureProgress = .zero
-                vm.close()
+                doClose()
             }
 
             if Defaults[.enableHaptics] {

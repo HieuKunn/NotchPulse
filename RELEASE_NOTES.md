@@ -1,3 +1,13 @@
+# NotchPulse v4.6.9
+
+## 🖱️ Notch Animation
+- Regular notch opening and closing now use the same spring timing as Face ID.
+
+## 🧩 Maintenance
+- Updated the app and helper build metadata to version 4.6.9, build 107.
+
+---
+
 # NotchPulse v4.6.8
 
 ## 🖱️ Notch Animation
