@@ -1,3 +1,14 @@
+# NotchPulse v4.7.2
+
+## 🎵 Lock Screen Media
+- **More reliable media display after locking**: Media now refreshes immediately and retries after `Ctrl+Cmd+Q`, so the lock-screen player is less likely to disappear when the screen locks.
+- **Correct startup behavior**: The lock-screen player now restores itself when NotchPulse starts while the Mac is already locked.
+
+## 🧩 Maintenance
+- Updated the app and helper build metadata to version 4.7.2, build 111.
+
+---
+
 # NotchPulse v4.7.1
 
 ## 🐛 Bug Fixes

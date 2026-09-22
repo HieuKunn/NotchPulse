@@ -871,9 +871,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // =============================================================
 
 let appReleaseInfo = {
-  version: "v4.7.1",
-  versionShort: "v4.7.1",
-  name: "NotchPulse v4.7.1",
+  version: "v4.7.2",
+  versionShort: "v4.7.2",
+  name: "NotchPulse v4.7.2",
   downloadUrl: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg"
 };
 

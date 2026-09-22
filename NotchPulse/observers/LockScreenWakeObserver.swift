@@ -19,6 +19,7 @@ final class LockScreenWakeObserver: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var distributedTokens: [NSObjectProtocol] = []
     private var lockSessionTimer: Task<Void, Never>?
+    private var mediaRefreshTask: Task<Void, Never>?
     
     nonisolated static var isSessionLocked: Bool {
         if let dict = CGSessionCopyCurrentDictionary() as? [String: Any] {
@@ -33,6 +34,11 @@ final class LockScreenWakeObserver: ObservableObject {
         if Self.isSessionLocked {
             self.isScreenLocked = true
             startLockSessionSupervisor()
+            Task { @MainActor [weak self] in
+                MusicManager.shared.forceUpdate()
+                try? await Task.sleep(for: .milliseconds(500))
+                self?.updateLockScreenMediaWindowVisibility()
+            }
         }
         setupObservers()
     }
@@ -40,6 +46,8 @@ final class LockScreenWakeObserver: ObservableObject {
     func cleanup() {
         lockSessionTimer?.cancel()
         lockSessionTimer = nil
+        mediaRefreshTask?.cancel()
+        mediaRefreshTask = nil
         for token in distributedTokens {
             DistributedNotificationCenter.default().removeObserver(token)
         }
@@ -77,7 +85,9 @@ final class LockScreenWakeObserver: ObservableObject {
                 guard let self = self else { return }
                 self.isScreenLocked = true
                 self.startLockSessionSupervisor()
+                MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
+                self.scheduleMediaRefresh()
             }
         }
         distributedTokens.append(lockToken)
@@ -108,7 +118,9 @@ final class LockScreenWakeObserver: ObservableObject {
                 if locked {
                     self.isScreenLocked = true
                     self.startLockSessionSupervisor()
+                    MusicManager.shared.forceUpdate()
                     self.updateLockScreenMediaWindowVisibility()
+                    self.scheduleMediaRefresh()
                 }
             }
         }
@@ -157,10 +169,7 @@ final class LockScreenWakeObserver: ObservableObject {
         let hasActiveTrack: Bool = {
             let title = MusicManager.shared.songTitle
             guard !title.isEmpty && title != "I'm Handsome" else { return false }
-            if let bundleId = MusicManager.shared.bundleIdentifier {
-                return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
-            }
-            return MusicManager.shared.isPlaying
+            return MusicManager.shared.isPlaying || !MusicManager.shared.isPlayerIdle
         }()
 
         let shouldShow = isScreenLocked
@@ -171,6 +180,16 @@ final class LockScreenWakeObserver: ObservableObject {
             LockScreenMediaWindow.shared.show()
         } else {
             LockScreenMediaWindow.shared.hide()
+        }
+    }
+
+    private func scheduleMediaRefresh() {
+        mediaRefreshTask?.cancel()
+        mediaRefreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled, let self = self, self.isScreenLocked else { return }
+            MusicManager.shared.forceUpdate()
+            self.updateLockScreenMediaWindowVisibility()
         }
     }
 }
