@@ -39,8 +39,6 @@ struct ContentView: View {
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
-    @Default(.extendHoverArea) var extendHoverArea
-    @Default(.hoverDetectionPadding) var hoverDetectionPadding
 
     // Shared interactive spring for movement/resizing to avoid conflicting animations
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
@@ -51,7 +49,7 @@ struct ContentView: View {
         return isFaceIDOpening ? openAnimation : closeAnimation
     }
 
-    private let extendedHoverPadding: CGFloat = 30
+    private let closedNotchHoverPadding: CGFloat = 40
     private let zeroHeightHoverPadding: CGFloat = 10
 
     private var faceIDOverlay: FaceIDOverlayController {
@@ -281,7 +279,7 @@ struct ContentView: View {
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
                     )
                 
-                let hoverPad: CGFloat = (vm.notchState == .closed && !isFaceIDActive && extendHoverArea) ? CGFloat(hoverDetectionPadding) : 0
+                let hoverPad: CGFloat = (vm.notchState == .closed && !isFaceIDActive) ? closedNotchHoverPadding : 0
 
                 mainLayout
                     .conditionalModifier(!isFaceIDContentActive) { view in
@@ -328,12 +326,14 @@ struct ContentView: View {
                             .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
                     }
-                    .onHover { hovering in
-                        handleHover(hovering)
-                        if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
-                            FaceIDOverlayController.shared.setHovering(hovering)
-                            if hovering && faceIDOverlay.phase != .onboarding {
-                                FaceIDOverlayController.shared.activate()
+                    .conditionalModifier(vm.notchState == .open || isFaceIDActive) { view in
+                        view.onHover { hovering in
+                            handleHover(hovering)
+                            if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                                FaceIDOverlayController.shared.setHovering(hovering)
+                                if hovering && faceIDOverlay.phase != .onboarding {
+                                    FaceIDOverlayController.shared.activate()
+                                }
                             }
                         }
                     }

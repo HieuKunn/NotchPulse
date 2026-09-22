@@ -92,8 +92,6 @@ extension Defaults.Keys {
     static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.3)
     static let enableHaptics = Key<Bool>("enableHaptics", default: true)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
-    static let extendHoverArea = Key<Bool>("extendHoverArea", default: true)
-    static let hoverDetectionPadding = Key<Double>("hoverDetectionPadding", default: 20.0)
     static let notchHeightMode = Key<WindowHeightMode>(
         "notchHeightMode",
         default: WindowHeightMode.matchRealNotchSize
