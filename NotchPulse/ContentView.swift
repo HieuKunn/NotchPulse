@@ -230,7 +230,9 @@ struct ContentView: View {
                         height: currentNotchHeight,
                         alignment: .top
                     )
-                    .clipped()
+                    .conditionalModifier(isFaceIDActive) { view in
+                        view.clipped()
+                    }
                     .padding(
                         .horizontal,
                         isDynamicIsland

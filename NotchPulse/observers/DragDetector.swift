@@ -23,7 +23,6 @@ final class DragDetector {
     private var mouseDraggedMonitor: Any?
     private var mouseUpMonitor: Any?
 
-    private var pasteboardChangeCount: Int = -1
     private var isDragging: Bool = false
     private var isContentDragging: Bool = false
     private var hasEnteredNotchRegion: Bool = false
@@ -59,10 +58,8 @@ final class DragDetector {
     func startMonitoring() {
         stopMonitoring()
 
-        // Record pasteboard state at the moment the mouse button goes down.
         mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
             guard let self = self else { return }
-            self.pasteboardChangeCount = self.dragPasteboard.changeCount
             self.isDragging = true
             self.isContentDragging = false
             self.hasEnteredNotchRegion = false
@@ -73,12 +70,10 @@ final class DragDetector {
             guard let self = self else { return }
             guard self.isDragging else { return }
 
-            // Promote to a content-drag only when:
-            //   1. The drag pasteboard changed since mouseDown (macOS populates it at drag start), AND
-            //   2. The pasteboard carries a real file type (not a web-page text selection, etc.)
             if !self.isContentDragging {
-                let pasteboardChanged = self.dragPasteboard.changeCount != self.pasteboardChangeCount
-                if pasteboardChanged && self.hasValidFileDragContent() {
+                // Some Finder drags populate the pasteboard before the global mouse-down monitor fires.
+                // The file-type allowlist is the reliable discriminator in that case.
+                if self.hasValidFileDragContent() {
                     self.isContentDragging = true
                 }
             }
@@ -104,7 +99,6 @@ final class DragDetector {
             self.isDragging = false
             self.isContentDragging = false
             self.hasEnteredNotchRegion = false
-            self.pasteboardChangeCount = -1
         }
     }
 

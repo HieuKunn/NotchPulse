@@ -1422,8 +1422,8 @@ struct Shelf: View {
                     )
                 }
                 if expandedDragDetection {
-                    Slider(value: $dragDetectionPadding, in: 10...120, step: 5) {
-                        Text("Drag hover expansion - \(dragDetectionPadding, specifier: "%.0f") px")
+                    Slider(value: $dragDetectionPadding, in: 0...160, step: 5) {
+                        Text("Drag distance from notch - \(dragDetectionPadding, specifier: "%.0f") px")
                     }
                     .onChange(of: dragDetectionPadding) {
                         NotificationCenter.default.post(
@@ -1431,7 +1431,7 @@ struct Shelf: View {
                             object: nil
                         )
                     }
-                    Text("Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.")
+                    Text("Opens the shelf when a file is dragged within this distance of the closed notch.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

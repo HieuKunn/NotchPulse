@@ -1,4 +1,13 @@
-# NotchPulse v4.6.3
+# NotchPulse v4.6.5
+
+## 📁 Shelf — Safer File Dragging
+- **Shelf takes priority at the notch center**: Dragging a file toward the center of the top edge opens the Shelf without requiring the pointer to land exactly on the closed notch.
+- **Reduced Mission Control confusion**: The detection zone is limited to the notch area and its configurable nearby padding, leaving macOS corner gestures untouched.
+- **Reliable Finder drags**: File drags are recognized even when Finder populates the drag pasteboard before the global mouse-down event.
+- **Configurable detection distance**: Shelf Settings now lets you adjust the nearby detection distance from 0 to 160 px.
+
+## 📊 HUD Display
+- **Inline HUD progress restored**: Fixed the progress bar and percentage being clipped when the inline HUD is wider than the closed notch.
 
 ## 🔐 Face Unlock — Session Authentication Fix
 - **Automatic re-authentication after lock**: Fixed a critical issue where Face Unlock would silently fail after your Mac woke from sleep or the screen was locked. Previously, the session key was cleared from memory on lock but the app never properly prompted for Touch ID or your password to restore it — meaning Face Unlock was stuck in a broken state until you manually went to Settings → Password and authenticated there. Now, when Face Unlock detects the session is locked, it immediately presents a Touch ID / password prompt and then automatically begins scanning your face once authenticated. No more manual workaround required.
