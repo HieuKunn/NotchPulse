@@ -1391,6 +1391,8 @@ struct Shelf: View {
     
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
+    @Default(.extendHoverArea) var extendHoverArea: Bool
+    @Default(.hoverDetectionPadding) var hoverDetectionPadding: Double
     @Default(.expandedDragDetection) var expandedDragDetection: Bool
     @Default(.dragDetectionPadding) var dragDetectionPadding: Double
     @StateObject private var quickShareService = QuickShareService.shared
@@ -1411,6 +1413,17 @@ struct Shelf: View {
                 }
                 Defaults.Toggle(key: .openShelfByDefault) {
                     Text("Open shelf by default if items are present")
+                }
+                Defaults.Toggle(key: .extendHoverArea) {
+                    Text("Expand pointer hover area")
+                }
+                if extendHoverArea {
+                    Slider(value: $hoverDetectionPadding, in: 5...80, step: 5) {
+                        Text("Pointer hover distance - \(hoverDetectionPadding, specifier: "%.0f") px")
+                    }
+                    Text("Opens the notch when the pointer is this close to the closed notch.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 Defaults.Toggle(key: .expandedDragDetection) {
                     Text("Expanded drag detection area")

@@ -1,5 +1,8 @@
 # NotchPulse v4.6.6
 
+## ⚙️ Shelf Settings
+- **Independent hover controls**: Pointer hover distance and file-drag distance can now be adjusted separately from Shelf Settings.
+
 ## 🖱️ Notch Hover & Shelf Dragging
 - **Smooth open and close animation**: Restored continuous notch sizing while hovering, including Inline HUD content.
 - **Closed-notch hover distance**: Shelf activation is measured from the closed notch edge plus the configured padding.
