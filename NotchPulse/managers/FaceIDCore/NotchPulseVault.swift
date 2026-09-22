@@ -183,8 +183,55 @@ enum NotchPulseVault {
     }
 
     /// Ensures the session key is unlocked and ready for use.
+    ///
+    /// If the key is already cached in memory, returns immediately. Otherwise it creates
+    /// an `LAContext`, evaluates `.deviceOwnerAuthentication` (Touch ID → Apple Watch →
+    /// device password — whichever the user has available), then reads the session key
+    /// from the Keychain using that authorised context. This is the only path that can
+    /// surface a Touch ID / password prompt; every other entry point that reads the key
+    /// either hits the in-memory cache or silently fails without an LAContext.
     nonisolated static func unlockSession(reason: String = "") async throws {
-        _ = ensureSessionKey()
+        // Fast path — key already in memory, nothing to do.
+        sessionLock.lock()
+        if _cachedKey != nil {
+            sessionLock.unlock()
+            return
+        }
+        sessionLock.unlock()
+
+        let displayReason = reason.isEmpty
+            ? "Authenticate to enable Face Unlock"
+            : reason
+
+        // Evaluate the policy first so the LAContext holds a reusable credential that
+        // the subsequent Keychain read can consume without a second prompt.
+        let context = LAContext()
+        context.localizedCancelTitle = "Cancel"
+
+        var policyError: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
+            throw policyError ?? KeychainError.authenticationFailed
+        }
+
+        // This is the call that surfaces the Touch ID sheet / password dialog.
+        _ = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: displayReason)
+
+        // Read the Keychain item using the now-authorised context so the OS doesn't
+        // prompt a second time. If no key exists yet (first-time setup), generate one
+        // and save it — the LAContext keeps the session authorised for the save too.
+        let key: SymmetricKey
+        do {
+            let keyData = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: context)
+            key = SymmetricKey(data: keyData)
+        } catch KeychainError.itemNotFound {
+            // First-time setup: generate a new session key and persist it.
+            let newKey = SymmetricKey(size: .bits256)
+            let keyData = newKey.withUnsafeBytes { Data($0) }
+            let access = NotchPulseKeychainManager.makeUserPresenceAccessControl()
+            try NotchPulseKeychainManager.save(account: sessionKeyAccount, data: keyData, accessControl: access)
+            key = newKey
+        }
+        setCachedKey(key)
     }
 
     /// Checked without needing the key itself, so this stays answerable precisely when the key can't be read.
