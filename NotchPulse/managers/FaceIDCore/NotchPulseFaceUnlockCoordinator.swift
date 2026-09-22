@@ -57,6 +57,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var autoRetryTask: Task<Void, Never>?
     /// Gap between headless auto-retries, just to keep the camera from restarting in a tight loop.
     private let headlessRetryDelay: Duration = .seconds(1)
+    /// The Keychain user-presence prompt must finish before a scan can read the stored password.
+    private var sessionUnlockTask: Task<Void, Never>?
 
     /// When off, no notch/pill presence at all — every overlay call in this file is conditioned on this rather than just skipping the video.
     private var showsUI: Bool { NotchPulseFaceIDSettings.shared.showUnlockAnimation }
@@ -112,11 +114,6 @@ final class NotchPulseFaceUnlockCoordinator {
         guard let signal = requiredTrigger(for: lockMonitor.lastEvent) else { return }
         // A pinned display that isn't connected bails entirely rather than showing up elsewhere; "Main display" (nil) always resolves.
         guard NotchGeometry.preferredScreen() != nil else { return }
-
-        guard NotchPulseVault.isSessionUnlocked else {
-            statusMessage = "Face unlock is on, but the session is locked — authenticate once from Password settings first."
-            return
-        }
         guard NotchPulseVault.hasStoredPassword() else {
             statusMessage = "Face unlock is on, but no password is stored yet."
             return
@@ -134,6 +131,12 @@ final class NotchPulseFaceUnlockCoordinator {
 
         hasArmedForCurrentLock = true
         lastArmedAt = .now
+        guard NotchPulseVault.isSessionUnlocked else {
+            statusMessage = "Authenticate to start Face Unlock."
+            requestSessionUnlockThenScan()
+            return
+        }
+
         Task { [weak self] in
             // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
             try? await Task.sleep(nanoseconds: 250_000_000)
@@ -159,6 +162,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private func disarmOverlay() {
         scanTask?.cancel()
         scanTask = nil
+        sessionUnlockTask?.cancel()
+        sessionUnlockTask = nil
         // Bumping makes any cycle still suspended at `await camera.start()` inert, rather than resuming and re-showing the overlay.
         scanGeneration &+= 1
         autoRetryTask?.cancel()
@@ -188,9 +193,13 @@ final class NotchPulseFaceUnlockCoordinator {
               NotchPulseFaceIDSettings.shared.unlockTriggers.contains(.onSpace),
               NotchPulseLockMonitor.isScreenActuallyLocked(),
               NotchGeometry.preferredScreen() != nil,
-              NotchPulseVault.isSessionUnlocked,
               NotchPulseVault.hasStoredPassword()
         else { return }
+
+        guard NotchPulseVault.isSessionUnlocked else {
+            requestSessionUnlockThenScan()
+            return
+        }
 
         // Already looking — swallows auto-repeat/double-presses and lets "On wake"/"On lock" override "On space" with no special-casing.
         guard FaceIDOverlayController.shared.phase != .scanning else { return }
@@ -217,10 +226,50 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
         FaceIDOverlayController.shared.arm { [weak self] in
-            self?.startScanCycle()
+            self?.startScanOrAuthenticate()
         }
         if autoScan {
             startScanCycle()
+        }
+    }
+
+    /// A locked session cannot read the encrypted password blob. Keychain user-presence
+    /// is the only supported way to re-authorize it, so authentication happens before
+    /// the camera starts and the existing password never enters this overlay.
+    private func startScanOrAuthenticate() {
+        guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
+        if NotchPulseVault.isSessionUnlocked {
+            startScanCycle()
+        } else {
+            requestSessionUnlockThenScan()
+        }
+    }
+
+    private func requestSessionUnlockThenScan() {
+        guard sessionUnlockTask == nil else { return }
+        sessionUnlockTask = Task { [weak self] in
+            guard let self else { return }
+
+            if self.showsUI && !FaceIDOverlayController.shared.isArmed {
+                await self.arm(autoScan: false)
+                try? await Task.sleep(for: .milliseconds(300))
+            }
+
+            guard !Task.isCancelled, NotchPulseLockMonitor.isScreenActuallyLocked() else {
+                self.sessionUnlockTask = nil
+                return
+            }
+
+            await self.pocController.unlockSession()
+            guard !Task.isCancelled, NotchPulseVault.isSessionUnlocked else {
+                self.statusMessage = self.pocController.sessionError ?? "Session authentication was cancelled."
+                self.sessionUnlockTask = nil
+                return
+            }
+
+            self.statusMessage = "Session unlocked — looking for your face…"
+            self.sessionUnlockTask = nil
+            self.startScanCycle()
         }
     }
 
