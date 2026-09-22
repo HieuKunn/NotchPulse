@@ -163,14 +163,19 @@ class NotchPulseViewCoordinator: ObservableObject {
             helloAnimationRunning = firstLaunch
 
             if Defaults[.hudReplacement] {
-                // Retry checking authorization to allow XPC helper to initialize without overwriting user settings
+                // Retry a few times to allow the XPC helper to initialize before checking authorization.
+                var authorized = false
                 for _ in 0..<5 {
-                    let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
-                    if authorized {
-                        await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
-                        break
-                    }
+                    authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
+                    if authorized { break }
                     try? await Task.sleep(for: .milliseconds(500))
+                }
+                if authorized {
+                    await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
+                } else {
+                    // Accessibility not granted — reset the setting so the UI reflects reality
+                    // and the user is prompted again the next time they enable it.
+                    Defaults[.hudReplacement] = false
                 }
             }
         }
