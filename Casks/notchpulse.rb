@@ -1,5 +1,5 @@
 cask "notchpulse" do
-  version "4.6.1"
+  version "4.7.1"
   sha256 :no_check
 
   url "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v#{version}/NotchPulse.dmg"

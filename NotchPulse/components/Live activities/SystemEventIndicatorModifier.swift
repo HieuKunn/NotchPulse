@@ -24,7 +24,7 @@ struct SystemEventIndicatorModifier: View {
     var sendEventBack: (CGFloat) -> Void
     
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 8) {
             switch (eventType) {
                 case .volume:
                     if icon.isEmpty {
@@ -60,6 +60,7 @@ struct SystemEventIndicatorModifier: View {
             }
             if (eventType != .mic) {
                 DraggableProgressBar(value: $value)
+                    .frame(minWidth: 0, maxWidth: .infinity)
                 if Defaults[.showClosedNotchHUDPercentage] {
                     Text("\(Int(value * 100))%")
                         .font(.system(size: 12, weight: .medium))
@@ -72,6 +73,7 @@ struct SystemEventIndicatorModifier: View {
                     .foregroundStyle(.gray)
                     .lineLimit(1)
                     .allowsTightening(true)
+                    .minimumScaleFactor(0.75)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

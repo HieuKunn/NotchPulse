@@ -1,3 +1,23 @@
+# NotchPulse v4.7.1
+
+## 🐛 Bug Fixes
+- **Reliable notch hover behavior**: Fixed the notch sometimes staying open or closed when moving the pointer in or out.
+- **HUD layout stability**: Fixed inline and normal HUDs hiding their progress bars, percentages, and mute status.
+- **More dependable HUD interaction**: HUD content now stays within the notch hit area, so hover interactions continue to work correctly.
+
+## 🖱️ Smooth Notch Animation
+- Regular notch opening and closing now interpolate continuously between closed and open sizes.
+- Opening and closing use the same spring timing as Face ID.
+
+## 🚪 Quit Reliability
+- Removed the delayed Exit action.
+- Prevented the MediaRemote helper cleanup from blocking app termination.
+
+## 🧩 Maintenance
+- Updated the app and helper build metadata to version 4.7.1, build 110.
+
+---
+
 # NotchPulse v4.7.0
 
 ## 🖱️ Smooth Notch Animation
@@ -47,13 +67,6 @@
 # NotchPulse v4.6.6
 
 ## ⚙️ Shelf Settings
-- **Independent hover controls**: Pointer hover distance and file-drag distance can now be adjusted separately from Shelf Settings.
-
-## 🖱️ Notch Hover & Shelf Dragging
-- **Smooth open and close animation**: Restored continuous notch sizing while hovering, including Inline HUD content.
-- **Closed-notch hover distance**: Shelf activation is measured from the closed notch edge plus the configured padding.
-- **Safer drag detection**: Global Shelf activation requires a changed drag pasteboard and a real file type, avoiding accidental activation from app or web drags.
-- **Close on drag exit**: A Shelf opened by dragging closes when the held file leaves the notch area.
 
 ## 📁 Shelf — Safer File Dragging
 - **Shelf takes priority at the notch center**: Dragging a file toward the center of the top edge opens the Shelf without requiring the pointer to land exactly on the closed notch.

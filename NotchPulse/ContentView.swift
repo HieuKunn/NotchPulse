@@ -546,6 +546,7 @@ struct ContentView: View {
                               .padding(.bottom, 10)
                               .padding(.leading, 4)
                               .padding(.trailing, 8)
+                              .frame(width: max(0, vm.closedNotchSize.width - 20), alignment: .leading)
                           }
                           // Old sneak peek music
                           else if coordinator.sneakPeek.type == .music {
