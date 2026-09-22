@@ -1,3 +1,14 @@
+# NotchPulse v4.6.10
+
+## 🖱️ Notch Animation
+- Fixed the regular notch so it expands and contracts continuously instead of jumping between closed and open states.
+- Matched the opening and closing spring behavior used by Face ID.
+
+## 🧩 Maintenance
+- Updated the app and helper build metadata to version 4.6.10, build 108.
+
+---
+
 # NotchPulse v4.6.9
 
 ## 🖱️ Notch Animation

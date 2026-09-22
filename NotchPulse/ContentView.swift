@@ -48,6 +48,9 @@ struct ContentView: View {
         let isFaceIDOpening = isFaceIDActive && faceIDOverlay.phase != .collapsing && faceIDOverlay.phase != .closed
         return isFaceIDOpening ? openAnimation : closeAnimation
     }
+    private var notchSizeAnimation: Animation {
+        vm.notchState == .open ? openAnimation : closeAnimation
+    }
 
     private let closedNotchHoverPadding: CGFloat = 40
     private let zeroHeightHoverPadding: CGFloat = 10
@@ -224,12 +227,8 @@ struct ContentView: View {
 
                 let mainLayout = NotchLayout()
                     .frame(
-                        width: isFaceIDActive
-                            ? targetFaceIDSize.width
-                            : (vm.notchState == .open ? notchOpenWidth : nil),
-                        height: isFaceIDActive
-                            ? targetFaceIDSize.height
-                            : (vm.notchState == .open ? vm.notchSize.height : nil),
+                        width: currentNotchWidth,
+                        height: currentNotchHeight,
                         alignment: .top
                     )
                     .conditionalModifier(isFaceIDActive) { view in
@@ -322,6 +321,8 @@ struct ContentView: View {
                     .conditionalModifier(true) { view in
                         return view
                             .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
+                            .animation(notchSizeAnimation, value: currentNotchWidth)
+                            .animation(notchSizeAnimation, value: currentNotchHeight)
                             .animation(faceIDAnimation, value: isFaceIDActive)
                             .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
