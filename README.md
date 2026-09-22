@@ -1,7 +1,7 @@
 <div align="center">
 
-  <!-- Sleek Dark Mode Header Banner (Clean Full-Bleed Logo, Caveat / Comic Font) -->
-  <img src="docs/assets/banner.svg?v=3" width="100%" alt="NotchPulse Banner" />
+  <!-- Sleek Header Banner (Auto Light/Dark Mode) -->
+  <img src="docs/assets/banner.svg?v=4" width="100%" alt="NotchPulse Banner" />
 
   <br/><br/>
 

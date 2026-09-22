@@ -3,28 +3,50 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&amp;family=Comic+Neue:wght@700&amp;display=swap');
       
+      :root {
+        --bg-fill: #0d1117;
+        --bg-stroke: #30363d;
+        --title-fill: #ffffff;
+        --subtitle-fill: #8b949e;
+        --pill-fill: #161b22;
+        --pill-stroke: #30363d;
+        --pill-text: #58a6ff;
+      }
+      
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg-fill: #f6f8fa;
+          --bg-stroke: #d0d7de;
+          --title-fill: #1f2328;
+          --subtitle-fill: #59636e;
+          --pill-fill: #ffffff;
+          --pill-stroke: #d0d7de;
+          --pill-text: #0969da;
+        }
+      }
+      
       .bg {
-        fill: #0d1117;
+        fill: var(--bg-fill, #0d1117);
         rx: 16px;
         ry: 16px;
-        stroke: #30363d;
+        stroke: var(--bg-stroke, #30363d);
         stroke-width: 1.5px;
       }
       .title {
         font-family: 'Caveat', 'Comic Sans MS', 'Comic Neue', cursive, -apple-system, sans-serif;
         font-weight: 700;
         font-size: 50px;
-        fill: #ffffff;
+        fill: var(--title-fill, #ffffff);
       }
       .subtitle {
         font-family: 'Caveat', 'Comic Sans MS', 'Comic Neue', cursive, -apple-system, sans-serif;
         font-size: 21px;
         font-weight: 600;
-        fill: #8b949e;
+        fill: var(--subtitle-fill, #8b949e);
       }
       .pill-bg {
-        fill: #161b22;
-        stroke: #30363d;
+        fill: var(--pill-fill, #161b22);
+        stroke: var(--pill-stroke, #30363d);
         stroke-width: 1px;
         rx: 14px;
         ry: 14px;
@@ -33,7 +55,7 @@
         font-family: 'Caveat', 'Comic Sans MS', 'Comic Neue', cursive, -apple-system, sans-serif;
         font-size: 16px;
         font-weight: 700;
-        fill: #58a6ff;
+        fill: var(--pill-text, #58a6ff);
         text-anchor: middle;
         dominant-baseline: middle;
       }
