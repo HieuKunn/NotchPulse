@@ -110,6 +110,32 @@ final class FaceIDOverlayController {
         }
     }
 
+    private var previousScreenUUIDBeforeFaceID: String?
+
+    private func routeToCameraScreen() {
+        let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+        if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+           let targetUUID = targetScreen.displayUUID {
+            if previousScreenUUIDBeforeFaceID == nil {
+                previousScreenUUIDBeforeFaceID = NotchPulseViewCoordinator.shared.selectedScreenUUID
+            }
+            if NotchPulseViewCoordinator.shared.selectedScreenUUID != targetUUID {
+                NotchPulseViewCoordinator.shared.selectedScreenUUID = targetUUID
+                NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
+            }
+        }
+    }
+
+    private func restorePreviousScreen() {
+        if let prevUUID = previousScreenUUIDBeforeFaceID {
+            previousScreenUUIDBeforeFaceID = nil
+            if NotchPulseViewCoordinator.shared.selectedScreenUUID != prevUUID {
+                NotchPulseViewCoordinator.shared.selectedScreenUUID = prevUUID
+                NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
+            }
+        }
+    }
+
     // MARK: - Armed mode (FaceUnlockCoordinator)
 
     /// Timestamp when arm() was called, used to ignore accidental hover triggers while the window/pill is animating in.
@@ -118,6 +144,7 @@ final class FaceIDOverlayController {
     /// Arms the overlay for the lock-screen flow: shows the window and keeps it
     /// up until `disarm()`. `onActivate` restarts scanning on hover.
     func arm(onActivate: @escaping () -> Void) {
+        routeToCameraScreen()
         isArmed = true
         armedAt = .now
         self.onActivate = onActivate
@@ -172,6 +199,7 @@ final class FaceIDOverlayController {
 
         guard geometry.style == .pill, windowController.isVisible else {
             windowController.hide()
+            restorePreviousScreen()
             return
         }
         // The pill is visible at rest, so hiding the window right now would blink it
@@ -180,12 +208,14 @@ final class FaceIDOverlayController {
             try? await Task.sleep(for: self?.collapseAnimationDuration ?? .milliseconds(700))
             guard let self, !self.isArmed, self.phase == .closed else { return }
             self.windowController.hide()
+            self.restorePreviousScreen()
         }
     }
 
     /// Shows the idle still; auto-collapses silently (no failure animation) after
     /// `scanTimeoutDuration` if nothing resolves it.
     func beginScanning() {
+        routeToCameraScreen()
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel()
         geometry = windowController.currentGeometry
@@ -231,6 +261,7 @@ final class FaceIDOverlayController {
     /// - Parameter styleOverride: forces `.minimal`/`.original` regardless of the saved
     ///   preference, for the Animation section's live preview.
     func present(styleOverride: UnlockAnimationStyle? = nil, onRetry: (() -> Void)? = nil) {
+        routeToCameraScreen()
         isArmed = false
         isPresenting = true
         onActivate = onRetry
@@ -256,27 +287,15 @@ final class FaceIDOverlayController {
 
     // MARK: - Onboarding mode (FaceIDEnrollmentController)
 
-    private var previousScreenUUIDBeforeOnboarding: String?
-
     /// Hands the panel to the onboarding flow — this object only owns visibility and
     /// interactivity while `.onboarding` is active; sizing/content is driven by `controller`.
     func presentOnboarding(_ controller: FaceIDEnrollmentController) {
+        routeToCameraScreen()
         isArmed = false
         isPresenting = true
         onActivate = nil
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-
-        // Move Notch to the screen containing the camera used for Face ID setup
-        let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-        if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-           let targetUUID = targetScreen.displayUUID {
-            if previousScreenUUIDBeforeOnboarding == nil {
-                previousScreenUUIDBeforeOnboarding = NotchPulseViewCoordinator.shared.selectedScreenUUID
-            }
-            NotchPulseViewCoordinator.shared.selectedScreenUUID = targetUUID
-            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
-        }
 
         geometry = windowController.currentGeometry
         content = .onboarding(controller)
@@ -428,6 +447,7 @@ final class FaceIDOverlayController {
             }
             isPresenting = false
             windowController.hide()
+            restorePreviousScreen()
         }
 
         // Reset content to idle ONLY AFTER the collapse animation is fully complete
@@ -451,6 +471,7 @@ final class FaceIDOverlayController {
         isPresenting = false
         windowController.setInteractive(false)
         windowController.hide()
+        restorePreviousScreen()
     }
 
     private func updateInteractivity() {

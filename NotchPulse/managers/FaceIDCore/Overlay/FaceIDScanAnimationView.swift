@@ -54,7 +54,7 @@ final class FaceIDScanAnimationHostView: NSView {
     private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
-        let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 155, height: 135)
+        let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
         super.init(frame: defaultFrame)
         wantsLayer = true
         let root = CALayer()
