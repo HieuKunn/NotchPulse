@@ -915,7 +915,12 @@ function initReleaseAutoUpdater() {
     sessionStorage.removeItem("notchpulse_latest_release");
   } catch (e) {}
 
-  fetch("https://api.github.com/repos/HieuKunn/NotchPulse-Release-for-everyone/releases/latest")
+  fetch(`https://api.github.com/repos/HieuKunn/NotchPulse-Release-for-everyone/releases/latest?_ts=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      "Accept": "application/vnd.github.v3+json"
+    }
+  })
     .then((res) => {
       if (!res.ok) throw new Error("GitHub API unavailable");
       return res.json();
