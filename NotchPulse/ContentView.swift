@@ -99,7 +99,7 @@ struct ContentView: View {
         if controller.phase == .closed || controller.phase == .collapsing {
             let baseHeight = isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
             return CGSize(
-                width: computedChinWidth,
+                width: baseChinWidth,
                 height: baseHeight
             )
         }
@@ -176,13 +176,9 @@ struct ContentView: View {
         )
     }
 
-    private var computedChinWidth: CGFloat {
-        if isFaceIDActive {
-            return targetFaceIDSize.width
-        }
+    private var baseChinWidth: CGFloat {
         let isDynamicIsland = notchStyle == .dynamicIsland
-        let baseClosedWidth: CGFloat = max(185, vm.closedNotchSize.width)
-        var chinWidth: CGFloat = isDynamicIsland ? baseClosedWidth : vm.closedNotchSize.width
+        var chinWidth: CGFloat = vm.closedNotchSize.width // Always match notch width like the user requested
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
@@ -203,7 +199,7 @@ struct ContentView: View {
                     chinWidth = artSize + 60 + artSize + 24 + gestureProgress
                 }
             } else {
-                chinWidth = vm.closedNotchSize.width + (artSize * 2) + gestureProgress
+                chinWidth = vm.closedNotchSize.width + (artSize * 2) + 20 + gestureProgress
             }
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
@@ -214,11 +210,17 @@ struct ContentView: View {
             if isDynamicIsland {
                 chinWidth = 140 + gestureProgress
             } else {
-                chinWidth = vm.closedNotchSize.width + (artSize * 2) + gestureProgress
+                chinWidth = vm.closedNotchSize.width + (artSize * 2) + 20 + gestureProgress
             }
         }
-
         return chinWidth
+    }
+
+    private var computedChinWidth: CGFloat {
+        if isFaceIDActive {
+            return targetFaceIDSize.width
+        }
+        return baseChinWidth
     }
 
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
@@ -256,11 +258,7 @@ struct ContentView: View {
     @ViewBuilder
     private func applyHitShape<V: View>(_ view: V) -> some View {
         if isDynamicIsland {
-            if vm.notchState == .open {
-                view.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
-            } else {
-                view.contentShape(Rectangle())
-            }
+            view.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
         } else {
             view.contentShape(currentNotchShape)
         }
@@ -282,12 +280,12 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
-                        ? 8
+                        ? 16
                         : (isDynamicIsland
                             ? (isFaceIDContentVisible ? 0 : 12)
                             : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
                     )
-                    .padding([.horizontal, .bottom], (vm.notchState == .open) ? 4 : 0)
+                    .padding([.horizontal, .bottom], (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view
@@ -715,7 +713,7 @@ struct ContentView: View {
                                     && Defaults[.sneakPeekStyles] == .inline)
                                     ? 1 : 0
                             )
-                            Spacer(minLength: isDynamicIsland ? 20 : vm.closedNotchSize.width)
+                            Spacer(minLength: isDynamicIsland ? 20 : vm.closedNotchSize.width + 12)
                             // Song Artist
                             Text(musicManager.artistName)
                                 .lineLimit(1)
@@ -741,7 +739,7 @@ struct ContentView: View {
                         ? (isDynamicIsland ? 360 : 380)
                         : (isDynamicIsland
                             ? 60
-                            : (vm.closedNotchSize.width - 12))
+                            : (vm.closedNotchSize.width + 8))
                 )
 
             HStack {
@@ -782,7 +780,7 @@ struct ContentView: View {
     var dragDetector: some View {
         if Defaults[.notchPulseShelf] && vm.notchState == .closed {
             let padding = expandedDragDetection ? CGFloat(dragDetectionPadding) : 0
-            Color.clear
+            Color.black.opacity(0.001)
                 .frame(
                     width: currentNotchWidth + (padding * 2),
                     height: currentNotchHeight + padding + (isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0)

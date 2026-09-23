@@ -22,6 +22,7 @@ struct NotchPulseHeader: View {
                     EmptyView()
                 }
             }
+            .padding(.leading, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(vm.notchState == .closed ? 0 : 1)
             .blur(radius: vm.notchState == .closed ? 20 : 0)
@@ -95,6 +96,7 @@ struct NotchPulseHeader: View {
                 }
             }
             .font(.system(.headline, design: .rounded))
+            .padding(.trailing, 12)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .opacity(vm.notchState == .closed ? 0 : 1)
             .blur(radius: vm.notchState == .closed ? 20 : 0)

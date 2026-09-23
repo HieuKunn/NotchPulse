@@ -128,7 +128,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, 4)
+            .padding(.trailing, 6)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)

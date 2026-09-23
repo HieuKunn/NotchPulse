@@ -87,13 +87,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        quitApplication()
-        return .terminateNow
-    }
-
     @MainActor
     func quitApplication() {
+        NSApplication.shared.terminate(nil)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
         NotificationCenter.default.removeObserver(self)
         if let observer = screenLockedObserver {
             DistributedNotificationCenter.default().removeObserver(observer)
@@ -109,13 +108,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         LockScreenWakeObserver.shared.cleanup()
         SystemAuthPromptObserver.shared.cleanup()
-        
-        NSApplication.shared.terminate(nil)
-        exit(0)
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        quitApplication()
     }
 
     @MainActor
@@ -142,15 +134,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @MainActor
     private func enableSkyLightOnAllWindows() {
-        if Defaults[.showOnAllDisplays] {
-            windows.values.forEach { window in
-                if let skyWindow = window as? NotchPulseSkyLightWindow {
-                    skyWindow.enableSkyLight()
+        Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            await MainActor.run {
+                if Defaults[.showOnAllDisplays] {
+                    self.windows.values.forEach { window in
+                        if let skyWindow = window as? NotchPulseSkyLightWindow {
+                            skyWindow.enableSkyLight()
+                        }
+                    }
+                } else {
+                    if let skyWindow = self.window as? NotchPulseSkyLightWindow {
+                        skyWindow.enableSkyLight()
+                    }
                 }
-            }
-        } else {
-            if let skyWindow = window as? NotchPulseSkyLightWindow {
-                skyWindow.enableSkyLight()
             }
         }
     }
