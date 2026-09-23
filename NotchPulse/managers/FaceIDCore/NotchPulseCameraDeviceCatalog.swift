@@ -28,7 +28,11 @@ enum NotchPulseCameraDeviceCatalog {
     /// external camera overrides.
     @MainActor
     static func isUsingBuiltInDisplay() -> Bool {
-        guard let screen = FaceIDOverlayGeometry.preferredScreen() ?? NSScreen.main,
+        let screen: NSScreen? = (NotchPulseViewCoordinator.shared.preferredScreenUUID.flatMap { NSScreen.screen(withUUID: $0) })
+            ?? NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
+            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+            ?? NSScreen.main
+        guard let screen,
               let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
         else { return true }
         return CGDisplayIsBuiltin(screenNumber) != 0
