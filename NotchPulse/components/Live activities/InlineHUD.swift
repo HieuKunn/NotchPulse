@@ -84,6 +84,7 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
+            .padding(.leading, 8)
             .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .leading)
             
             Rectangle()
@@ -128,7 +129,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, 6)
+            .padding(.trailing, 8)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -178,13 +179,13 @@ struct InlineHUD: View {
     static func leftColumnWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .brightness:
-            return 105
+            return 130
         case .backlight:
-            return 95
+            return 110
         case .mic:
-            return 60
+            return 75
         default:
-            return 85
+            return 100
         }
     }
 
@@ -205,7 +206,7 @@ struct InlineHUD: View {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
-        let padding: CGFloat = isDynamicIsland ? 20 : 0
+        let padding: CGFloat = isDynamicIsland ? 24 : 12
         return left + center + right + padding
     }
 }
