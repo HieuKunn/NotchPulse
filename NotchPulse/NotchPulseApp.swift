@@ -236,6 +236,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleDragEntersNotchRegion(onScreen: screen)
             }
         }
+
+        detector.onDragExitsNotchRegion = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragExitsNotchRegion(onScreen: screen)
+            }
+        }
         
         dragDetectors[uuid] = detector
         detector.startMonitoring()
@@ -244,12 +250,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
+        SharingStateManager.shared.preventNotchClose = true
+        
         if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
             viewModel.open()
             coordinator.currentView = .shelf
         } else if !Defaults[.showOnAllDisplays], let windowScreen = window?.screen, screen == windowScreen {
             vm.open()
             coordinator.currentView = .shelf
+        }
+    }
+
+    private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
+        guard let uuid = screen.displayUUID else { return }
+        
+        SharingStateManager.shared.preventNotchClose = false
+        
+        let targetVM = (Defaults[.showOnAllDisplays] ? viewModels[uuid] : nil) ?? vm
+        if !ShelfStateViewModel.shared.isPinned {
+            targetVM.close()
         }
     }
 

@@ -119,8 +119,11 @@ final class DragDetector {
             guard let self = self else { return }
             self.lastKnownIdleCount = self.dragPasteboard.changeCount
             self.mouseDownPasteboardCount = -1
+            if self.hasEnteredNotchRegion {
+                self.hasEnteredNotchRegion = false
+                self.onDragExitsNotchRegion?()
+            }
             self.isContentDragging = false
-            self.hasEnteredNotchRegion = false
         }
     }
 
