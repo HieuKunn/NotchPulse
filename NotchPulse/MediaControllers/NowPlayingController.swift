@@ -108,6 +108,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let process = self.process {
             if process.isRunning {
+                process.interrupt()
                 process.terminate()
             }
         }

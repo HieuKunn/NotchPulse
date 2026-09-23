@@ -89,7 +89,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     func quitApplication() {
+        cleanupWindows()
+        LockScreenFaceIDWindow.shared.hide()
+        LockScreenMediaWindow.shared.hide()
         NSApplication.shared.terminate(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            exit(0)
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
