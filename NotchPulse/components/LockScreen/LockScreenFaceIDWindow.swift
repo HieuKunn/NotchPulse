@@ -133,10 +133,12 @@ final class LockScreenFaceIDWindow: NSPanel {
     }
     
     func show() {
-        // Target specifically the screen where NotchPulse displays the notch
+        // Target specifically the screen where the active camera is located
+        let activeDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
         let preferredUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID
         let selectedUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
-        let screen: NSScreen? = (preferredUUID.flatMap { NSScreen.screen(withUUID: $0) })
+        let screen: NSScreen? = NotchPulseCameraDeviceCatalog.targetScreen(for: activeDevice)
+            ?? (preferredUUID.flatMap { NSScreen.screen(withUUID: $0) })
             ?? NSScreen.screen(withUUID: selectedUUID)
             ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil })
             ?? NSScreen.main

@@ -218,11 +218,14 @@ struct FaceIDOverlayGeometry {
         )
     }
 
-    /// Picks the screen the overlay should show on. Follows NotchPulse's active display
-    /// (`NotchPulseViewCoordinator.shared.selectedScreenUUID` / `preferredScreenUUID`),
-    /// falling back to the physical notch display if available, else primary.
+    /// Picks the screen the overlay should show on. Follows the camera device's physical
+    /// display, falling back to NotchPulse's active display or physical notch display.
     @MainActor
     static func preferredScreen() -> NSScreen? {
+        let activeDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+        if let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: activeDevice) {
+            return camScreen
+        }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
             return screen

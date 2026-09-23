@@ -40,6 +40,7 @@ struct FaceIDScanAnimationView: NSViewRepresentable {
 
     func updateNSView(_ nsView: FaceIDScanAnimationHostView, context: Context) {
         nsView.apply(media: media)
+        nsView.updateLayerFrames()
     }
 }
 
@@ -53,19 +54,28 @@ final class FaceIDScanAnimationHostView: NSView {
     private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
+        let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 155, height: 135)
+        super.init(frame: defaultFrame)
         wantsLayer = true
-        layer = CALayer()
+        let root = CALayer()
+        root.masksToBounds = true
+        layer = root
 
         stillImageLayer.contentsGravity = .resizeAspect
+        stillImageLayer.masksToBounds = true
+        stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         if let still = Self.loadStillFromBundle() {
             stillImageLayer.contents = still
         }
-        layer?.addSublayer(stillImageLayer)
+        root.addSublayer(stillImageLayer)
 
         playerLayer.videoGravity = .resizeAspect
+        playerLayer.masksToBounds = true
+        playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         playerLayer.isHidden = true
-        layer?.addSublayer(playerLayer)
+        root.addSublayer(playerLayer)
+
+        updateLayerFrames()
     }
 
     required init?(coder: NSCoder) {
@@ -74,15 +84,44 @@ final class FaceIDScanAnimationHostView: NSView {
 
     override func layout() {
         super.layout()
+        updateLayerFrames()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        updateLayerFrames()
+    }
+
+    override func resizeSubviews(withOldSize oldSize: NSSize) {
+        super.resizeSubviews(withOldSize: oldSize)
+        updateLayerFrames()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateLayerFrames()
+        if window != nil, let player = player, currentMedia == .scanning, player.timeControlStatus != .playing {
+            player.play()
+        }
+    }
+
+    func updateLayerFrames() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        playerLayer.frame = bounds
-        stillImageLayer.frame = bounds
+        let rect = bounds.size.width > 0 ? bounds : NSRect(x: 0, y: 0, width: 155, height: 135)
+        playerLayer.frame = rect
+        stillImageLayer.frame = rect
         CATransaction.commit()
     }
 
     func apply(media: FaceIDScanMedia) {
-        guard media != currentMedia else { return }
+        updateLayerFrames()
+        if media == currentMedia {
+            if media == .scanning, let player = player, player.timeControlStatus != .playing {
+                player.play()
+            }
+            return
+        }
         currentMedia = media
         readyObservation = nil
         fallbackRevealWorkItem?.cancel()
