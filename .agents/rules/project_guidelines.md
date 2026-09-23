@@ -9,6 +9,7 @@ This document outlines the core rules, architectural guidelines, and release pro
 ## 1. Commit Messages & Release Notes Guidelines (MANDATORY)
 - **Descriptive Commit Messages:** When committing code, ALWAYS provide a concise, itemized description of the specific changes and fixes. NEVER use generic messages like "update code" or "fix bug".
 - **English Release Notes (`RELEASE_NOTES.md`):**
+  - **Single Latest Version Only (REQUIRED):** `RELEASE_NOTES.md` must ONLY contain the notes for the single newest release being published. Do NOT keep or append past version notes in this file; each release completely replaces `RELEASE_NOTES.md` with only the latest release section.
   - **User-Centric, Plain English (REQUIRED):** Write release notes for end-users downloading the app, NOT for developers. Explain changes and features in simple, clear, intuitive language focusing on user benefits and visible improvements.
   - **NO Developer/Academic Jargon:** DO NOT use internal programming terms, framework names, error codes, or technical constants (e.g. avoid `EX_CONFIG 78`, `SMAppService`, `launchd plists`, `SMCComm`, `512D vector embeddings`, `XPC client protocol`, `SkyLight delegation`, etc.).
   - **Relevant Sections Only:** Only include categories/sections that actually changed in that version (e.g. `🚀 What's New`, `🔋 Smart Charging`, `🔒 Face ID`, `🎵 Music & Lyrics`, `🐛 Bug Fixes`). Do NOT include boilerplate, empty, or unchanged categories.
