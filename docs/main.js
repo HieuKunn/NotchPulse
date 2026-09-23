@@ -857,6 +857,7 @@ document.documentElement.setAttribute("data-theme", "dark");
 document.addEventListener("DOMContentLoaded", () => {
   document.documentElement.setAttribute("data-theme", "dark");
   initNavbarScroll();
+  initSmoothScroll();
   initReleaseAutoUpdater();
   initLanguage();
   initScrollFadeIn();
@@ -865,6 +866,38 @@ document.addEventListener("DOMContentLoaded", () => {
   initReviewsFilter();
   initCopyActions();
 });
+
+// =============================================================================
+// Smooth Navigation Links Scroll with Navbar Header Offset
+// =============================================================================
+
+function initSmoothScroll() {
+  document.querySelectorAll('a[href^="#"], .nav-brand').forEach((anchor) => {
+    anchor.addEventListener("click", function (e) {
+      const href = this.getAttribute("href");
+      const targetId = href || "#";
+      
+      if (!href || href === "#" || this.classList.contains("nav-brand")) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      
+      const targetElement = document.querySelector(targetId);
+      if (targetElement) {
+        e.preventDefault();
+        const headerOffset = 65;
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }
+    });
+  });
+}
 
 // =============================================================================
 // Dynamic Release Auto-Updater (Syncs latest version & DMG url from GitHub)

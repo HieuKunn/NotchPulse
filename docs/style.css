@@ -63,6 +63,11 @@ html {
   background-color: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+section[id], div[id] {
+  scroll-margin-top: 80px;
 }
 
 /* High-Performance Fixed Wallpaper Background: GPU-isolated, zero layout recalculation */
@@ -236,6 +241,7 @@ a {
   font-size: 1.18rem;
   letter-spacing: -0.02em;
   color: var(--text-primary);
+  cursor: pointer;
 }
 
 .nav-logo {
@@ -259,6 +265,7 @@ a {
   color: var(--text-primary);
   opacity: 0.75;
   letter-spacing: -0.01em;
+  cursor: pointer;
   transition: color 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), text-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -382,7 +389,8 @@ a {
   pointer-events: none;
 }
 
-.lang-dropdown-wrapper.open .lang-dropdown-menu {
+.lang-dropdown-wrapper.open .lang-dropdown-menu,
+.lang-dropdown-wrapper:hover .lang-dropdown-menu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
