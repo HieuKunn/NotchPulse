@@ -144,7 +144,7 @@ final class FaceIDOverlayController {
     /// Arms the overlay for the lock-screen flow: shows the window and keeps it
     /// up until `disarm()`. `onActivate` restarts scanning on hover.
     func arm(onActivate: @escaping () -> Void) {
-        routeToCameraScreen()
+        // Do not force route display here — only route when scanning is actively activated
         isArmed = true
         armedAt = .now
         self.onActivate = onActivate
@@ -399,6 +399,7 @@ final class FaceIDOverlayController {
                 if phase == .failure { Task { await collapse() } }
                 return
             }
+            routeToCameraScreen()
             resolveTask?.cancel(); resolveTask = nil
             activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
             content = .scan(.scanning)

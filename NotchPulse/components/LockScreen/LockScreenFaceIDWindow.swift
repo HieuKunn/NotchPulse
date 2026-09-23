@@ -279,7 +279,11 @@ struct LockScreenFaceIDPillView: View {
     }
     
     private var openBodySize: CGSize {
-        return CGSize(width: 140, height: 135)
+        if hasPhysicalNotch {
+            return CGSize(width: max(physicalNotchWidth, 140), height: 135)
+        } else {
+            return CGSize(width: 140, height: 135)
+        }
     }
     
     private var topRadius: CGFloat {
@@ -316,7 +320,7 @@ struct LockScreenFaceIDPillView: View {
                             .opacity(isExpanded ? 1.0 : 0.0)
                     }
                     .frame(width: currentSize.width, height: currentSize.height)
-                    .background(Color.black)
+                    .background(hasPhysicalNotch ? (isExpanded ? Color.black : Color.clear) : Color.black)
                 )
                 .overlay(
                     Group {

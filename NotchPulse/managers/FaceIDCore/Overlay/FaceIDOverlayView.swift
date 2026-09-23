@@ -84,7 +84,12 @@ struct FaceIDOverlayView: View {
     }
 
     private var scanOpenSize: CGSize {
-        style == .notch ? FaceIDOverlayGeometry.notchOpenSize : FaceIDOverlayGeometry.pillOpenSize
+        if style == .notch || controller.geometry.isPhysicalNotch {
+            let width = max(closedBodySize.width, FaceIDOverlayGeometry.notchOpenSize.width)
+            return CGSize(width: width, height: FaceIDOverlayGeometry.notchOpenSize.height)
+        } else {
+            return FaceIDOverlayGeometry.pillOpenSize
+        }
     }
 
     /// In notch style the width grows to add flanking black beside the physical cutout;

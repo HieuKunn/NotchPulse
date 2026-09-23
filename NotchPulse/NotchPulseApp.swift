@@ -241,7 +241,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let padding = CGFloat(Defaults[.dragDetectionPadding])
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
+            let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
+            let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
             
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding
@@ -670,8 +671,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            // 0. If Face ID is active / scanning, dynamically route to the camera's physical display
-            if FaceIDOverlayController.shared.isSessionActive,
+            // 0. Only dynamically route to the camera's physical display when Face ID is ACTIVELY scanning / showing
+            let isFaceIDScanning = FaceIDOverlayController.shared.phase == .scanning
+                || FaceIDOverlayController.shared.phase == .success
+                || FaceIDOverlayController.shared.phase == .failure
+                || FaceIDOverlayController.shared.phase == .onboarding
+            if isFaceIDScanning,
                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
                let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice) {
                 targetScreen = camScreen

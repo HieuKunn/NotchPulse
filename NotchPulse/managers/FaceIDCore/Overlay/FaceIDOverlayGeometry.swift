@@ -208,13 +208,13 @@ struct FaceIDOverlayGeometry {
     @MainActor
     static func forScreen(_ screen: NSScreen) -> FaceIDOverlayGeometry {
         let isNotchStyle = Defaults[.notchStyle] == .notch
-        let screenUUID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? String
-        let closedSize = isNotchStyle ? getClosedNotchSize(screenUUID: screenUUID) : pillClosedSize
-        let isPhysical = screen.safeAreaInsets.top > 0
+        let screenUUID = screen.displayUUID
+        let isPhysical = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
+        let closedSize = (isNotchStyle || isPhysical) ? getClosedNotchSize(screenUUID: screenUUID) : pillClosedSize
 
         return FaceIDOverlayGeometry(
             closedSize: closedSize,
-            isPhysicalNotch: isNotchStyle && isPhysical
+            isPhysicalNotch: isPhysical
         )
     }
 

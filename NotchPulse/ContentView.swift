@@ -91,13 +91,24 @@ struct ContentView: View {
         return faceIDOverlay.activeUnlockStyle == .minimal
     }
 
+    private var currentScreen: NSScreen? {
+        vm.screenUUID.flatMap { NSScreen.screen(withUUID: $0) }
+            ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
+            ?? NSScreen.main
+    }
+
+    private var hasPhysicalNotch: Bool {
+        let screen = currentScreen
+        return (screen?.safeAreaInsets.top ?? 0) > 0 || screen?.auxiliaryTopLeftArea != nil
+    }
+
     private var targetFaceIDSize: CGSize {
         let isDynamicIsland = notchStyle == .dynamicIsland
         let controller = faceIDOverlay
 
         // When closed or collapsing, target the computed chin width so the notch fluidly pulls up into inline/media content!
         if controller.phase == .closed || controller.phase == .collapsing {
-            let baseHeight = isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
+            let baseHeight = (isDynamicIsland && !hasPhysicalNotch) ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
             return CGSize(
                 width: baseChinWidth,
                 height: baseHeight
@@ -109,7 +120,7 @@ struct ContentView: View {
         }
 
         if isMinimalScan {
-            if isDynamicIsland {
+            if isDynamicIsland && !hasPhysicalNotch {
                 return CGSize(
                     width: FaceIDOverlayGeometry.minimalPillOpenWidth,
                     height: FaceIDOverlayGeometry.minimalPillOpenHeight
@@ -122,7 +133,7 @@ struct ContentView: View {
             }
         }
 
-        if isDynamicIsland {
+        if isDynamicIsland && !hasPhysicalNotch {
             return FaceIDOverlayGeometry.pillOpenSize
         } else {
             return CGSize(
@@ -215,7 +226,12 @@ struct ContentView: View {
     }
 
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
-    private var baseClosedHeight: CGFloat { isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0) }
+    private var baseClosedHeight: CGFloat {
+        if hasPhysicalNotch {
+            return vm.effectiveClosedNotchHeight
+        }
+        return isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
+    }
     private var islandRadius: CGFloat {
         if isFaceIDActive && isFaceIDContentVisible {
             if isMinimalScan {
@@ -248,7 +264,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private func applyHitShape<V: View>(_ view: V) -> some View {
-        if isDynamicIsland {
+        if isDynamicIsland && !hasPhysicalNotch {
             view.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
         } else {
             view.contentShape(currentNotchShape)
@@ -271,22 +287,23 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
-                        ? 16
+                        ? 10
                         : (isDynamicIsland
                             ? (isFaceIDContentVisible ? 0 : 12)
                             : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
                     )
-                    .padding([.horizontal, .bottom], (vm.notchState == .open) ? 8 : 0)
+                    .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
+                    .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
-                    .conditionalModifier(isDynamicIsland) { view in
+                    .conditionalModifier(isDynamicIsland && !hasPhysicalNotch) { view in
                         view
                             .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.8)
+                                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
                             }
                     }
-                    .conditionalModifier(!isDynamicIsland) { view in
+                    .conditionalModifier(!isDynamicIsland || hasPhysicalNotch) { view in
                         view
                             .clipShape(currentNotchShape)
                             .overlay(alignment: .top) {
@@ -295,17 +312,23 @@ struct ContentView: View {
                                     .frame(height: 1)
                                     .padding(.horizontal, topCornerRadius)
                             }
+                            .overlay {
+                                if isDynamicIsland && vm.notchState == .open {
+                                    currentNotchShape
+                                        .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
+                                }
+                            }
                     }
                     .shadow(
-                        color: isDynamicIsland
+                        color: (isDynamicIsland && !hasPhysicalNotch)
                             ? .black.opacity(0.65)
                             : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
                                 ? .black.opacity(0.7) : .clear),
-                        radius: isDynamicIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
+                        radius: (isDynamicIsland && !hasPhysicalNotch) ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
                         x: 0,
-                        y: isDynamicIsland ? 4 : 0
+                        y: (isDynamicIsland && !hasPhysicalNotch) ? 4 : 0
                     )
-                    .padding(.top, isDynamicIsland ? dynamicIslandTopOffset : 0)
+                    .padding(.top, (isDynamicIsland && !hasPhysicalNotch) ? dynamicIslandTopOffset : 0)
                     .padding(
                         .bottom,
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
@@ -770,7 +793,7 @@ struct ContentView: View {
             Color.black.opacity(0.001)
                 .frame(
                     width: currentNotchWidth + (padding * 2),
-                    height: currentNotchHeight + padding + (isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0)
+                    height: currentNotchHeight + padding + ((isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0)
                 )
                 .contentShape(Rectangle())
                 .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in

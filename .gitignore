@@ -40,6 +40,7 @@ build/
 boring.notch-main/
 glance-main/
 *backup*.mp4
+*.mov
 
 # Other
 *.DS_Store
