@@ -470,7 +470,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         }
 
         if let app = targetApp {
-            app.activate(options: [.activateIgnoringOtherApps])
+            app.activate()
             let bundle = app.bundleIdentifier ?? ""
             let requiresPasswordButton = bundle.localizedCaseInsensitiveContains("LocalAuthentication")
                 || bundle.localizedCaseInsensitiveContains("CoreAuthUI")
