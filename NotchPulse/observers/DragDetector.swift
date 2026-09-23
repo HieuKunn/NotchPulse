@@ -19,10 +19,12 @@ final class DragDetector {
     var onDragExitsNotchRegion: VoidCallback?
     var onDragMove: PositionCallback?
 
+    private var mouseDownMonitor: Any?
     private var mouseDraggedMonitor: Any?
     private var mouseUpMonitor: Any?
 
-    private var idlePasteboardChangeCount: Int = -1
+    private var mouseDownPasteboardCount: Int = -1
+    private var lastKnownIdleCount: Int = -1
     private var isContentDragging: Bool = false
     private var hasEnteredNotchRegion: Bool = false
 
@@ -31,7 +33,7 @@ final class DragDetector {
 
     init(notchRegion: CGRect) {
         self.notchRegion = notchRegion
-        self.idlePasteboardChangeCount = dragPasteboard.changeCount
+        self.lastKnownIdleCount = dragPasteboard.changeCount
     }
 
     // MARK: - Private Helpers
@@ -77,18 +79,26 @@ final class DragDetector {
 
     func startMonitoring() {
         stopMonitoring()
-        idlePasteboardChangeCount = dragPasteboard.changeCount
+        lastKnownIdleCount = dragPasteboard.changeCount
+
+        mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
+            guard let self = self else { return }
+            self.mouseDownPasteboardCount = self.dragPasteboard.changeCount
+            self.isContentDragging = false
+            self.hasEnteredNotchRegion = false
+        }
 
         // Track drag movement and notch region intersection
         mouseDraggedMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
             guard let self = self else { return }
 
-            let currentChangeCount = self.dragPasteboard.changeCount
-            let isNewDragOperation = (currentChangeCount != self.idlePasteboardChangeCount)
+            let currentCount = self.dragPasteboard.changeCount
+            
+            // Detect if a file/URL drag operation started during this mouse gesture
+            let isNewDragOperation = (self.mouseDownPasteboardCount != -1 && currentCount != self.mouseDownPasteboardCount) ||
+                                     (self.mouseDownPasteboardCount == -1 && currentCount != self.lastKnownIdleCount)
 
-            // ONLY trigger drag expansion if a NEW drag pasteboard item was created (file, url, text).
-            // If changeCount did NOT change, the user is dragging a window titlebar or selecting text!
-            if isNewDragOperation && self.hasValidDragContent() {
+            if (self.isContentDragging || isNewDragOperation) && self.hasValidDragContent() {
                 self.isContentDragging = true
                 let mouseLocation = NSEvent.mouseLocation
                 self.onDragMove?(mouseLocation)
@@ -107,22 +117,25 @@ final class DragDetector {
 
         mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] _ in
             guard let self = self else { return }
-            self.idlePasteboardChangeCount = self.dragPasteboard.changeCount
+            self.lastKnownIdleCount = self.dragPasteboard.changeCount
+            self.mouseDownPasteboardCount = -1
             self.isContentDragging = false
             self.hasEnteredNotchRegion = false
         }
     }
 
     func stopMonitoring() {
-        [mouseDraggedMonitor, mouseUpMonitor].forEach { monitor in
+        [mouseDownMonitor, mouseDraggedMonitor, mouseUpMonitor].forEach { monitor in
             if let monitor = monitor {
                 NSEvent.removeMonitor(monitor)
             }
         }
+        mouseDownMonitor = nil
         mouseDraggedMonitor = nil
         mouseUpMonitor = nil
         isContentDragging = false
         hasEnteredNotchRegion = false
+        mouseDownPasteboardCount = -1
     }
 
     deinit {
