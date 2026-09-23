@@ -2343,6 +2343,7 @@ struct SettingsDetailHeaderBar: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
+                .keyboardShortcut("q", modifiers: .command)
             }
         }
         .padding(.horizontal, 24)

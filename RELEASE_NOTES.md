@@ -4,6 +4,7 @@
 - **True Instant Hover Scan**: Hovering over the Notch or Dynamic Island now immediately displays the blue Face ID scanning animation at 0.00s without any delay, prewarming video assets right at startup.
 - **Unobstructed Face ID**: Ensured background shelf and inline views no longer linger or cover up the Face ID scanning animation when it triggers.
 - **Optimized Padding**: Tightened Dynamic Island horizontal padding for a sleek, compact profile, while slightly increasing Notch padding for a balanced, native fit.
+- **Reliable & Instant Quit**: Pressing Command+Q or clicking Quit now terminates the app immediately and cleanly without getting blocked by background windows or menu policies.
 
 # NotchPulse v4.7 (Important Release)
 

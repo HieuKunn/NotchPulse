@@ -58,7 +58,7 @@ struct DynamicNotchApp: App {
             Button("Quit", role: .destructive) {
                 appDelegate.quitApplication()
             }
-            .keyboardShortcut(KeyEquivalent("Q"), modifiers: .command)
+            .keyboardShortcut(KeyEquivalent("q"), modifiers: .command)
         }
     }
 }
@@ -87,13 +87,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        quitApplication()
+        return .terminateNow
+    }
+
     @MainActor
     func quitApplication() {
-        FaceIDOverlayController.shared.disarm()
-        LockScreenFaceIDWindow.shared.hide()
-        LockScreenMediaWindow.shared.hide()
+        NSApplication.shared.windows.forEach { $0.orderOut(nil) }
         cleanupWindows()
-        NSApplication.shared.terminate(nil)
+        cleanupDragDetectors()
+        FaceIDOverlayController.shared.disarm()
+        LockScreenFaceIDWindow.shared.orderOut(nil)
+        LockScreenMediaWindow.shared.orderOut(nil)
+        MusicManager.shared.destroy()
         exit(0)
     }
 
@@ -394,6 +401,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         FaceIDScanAnimationHostView.prewarm()
+
+        // Configure main menu with native Quit item so Cmd+Q works system-wide
+        let mainMenu = NSMenu()
+        let appMenuItem = NSMenuItem()
+        mainMenu.addItem(appMenuItem)
+        let appMenu = NSMenu(title: "NotchPulse")
+        appMenuItem.submenu = appMenu
+        let quitMenuItem = NSMenuItem(
+            title: "Quit NotchPulse",
+            action: #selector(quitAction),
+            keyEquivalent: "q"
+        )
+        appMenu.addItem(quitMenuItem)
+        NSApplication.shared.mainMenu = mainMenu
+
+        // Also intercept local Cmd+Q keyDown events directly
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers?.lowercased() == "q" {
+                self?.quitApplication()
+                return nil
+            }
+            return event
+        }
 
         if let updater = SettingsWindowController.shared.updaterController {
             SettingsWindowController.shared.setUpdaterController(updater, viewModel: self.vm)
