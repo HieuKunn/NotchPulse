@@ -400,8 +400,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        FaceIDScanAnimationHostView.prewarm()
-
         // Configure main menu with native Quit item so Cmd+Q works system-wide
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()

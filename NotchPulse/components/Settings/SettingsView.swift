@@ -736,7 +736,11 @@ struct GeneralSettings: View {
     private var appLifecycleSection: some View {
         Section {
             Button(role: .destructive) {
-                (NSApp.delegate as? AppDelegate)?.quitApplication() ?? exit(0)
+                if let appDelegate = NSApp.delegate as? AppDelegate {
+                    appDelegate.quitApplication()
+                } else {
+                    NSApp.terminate(nil)
+                }
             } label: {
                 HStack {
                     Image(systemName: "power")
@@ -2354,7 +2358,11 @@ struct SettingsDetailHeaderBar: View {
 
             if showQuitButton {
                 Button {
-                    (NSApp.delegate as? AppDelegate)?.quitApplication() ?? exit(0)
+                    if let appDelegate = NSApp.delegate as? AppDelegate {
+                        appDelegate.quitApplication()
+                    } else {
+                        NSApp.terminate(nil)
+                    }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "power")

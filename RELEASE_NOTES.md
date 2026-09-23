@@ -1,3 +1,9 @@
+# NotchPulse v4.7.7
+
+## 🔒 Smooth 80% Scale Face ID & Critical Build Fixes
+- **Refined Face ID Scale**: Clean 80% scale animation with instant response and natural breathing pulse.
+- **Reliable Application Exit**: Fixed AppDelegate quit handlers across Settings and Preferences for safe and instant app termination.
+
 # NotchPulse v4.7.6
 
 ## 🔒 Proportional 80% Face ID Scale & Fluid Animation
