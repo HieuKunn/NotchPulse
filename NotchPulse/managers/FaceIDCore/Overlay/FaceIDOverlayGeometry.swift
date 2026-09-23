@@ -12,8 +12,8 @@ import SwiftUI
 
 struct FaceIDOverlayGeometry {
     /// Shared interactive spring for morphing animations matching NotchPulse's native pop-notch spring.
-    static let springAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
-    static let closeSpringAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+    static let springAnimation = Animation.spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0)
+    static let closeSpringAnimation = Animation.spring(response: 0.30, dampingFraction: 1.0, blendDuration: 0)
 
     /// Physical notch's own dimensions, or `pillClosedSize`.
     let closedSize: CGSize
@@ -74,9 +74,9 @@ struct FaceIDOverlayGeometry {
     // MARK: - Panel open/close springs — EDIT HERE
     //
     // Shared by both styles. Opening overshoots slightly; closing is critically damped.
-    static let openSpringResponse: Double = 0.45
-    static let openSpringDamping: Double = 0.7
-    static let closeSpringResponse: Double = 0.45
+    static let openSpringResponse: Double = 0.28
+    static let openSpringDamping: Double = 0.78
+    static let closeSpringResponse: Double = 0.30
     static let closeSpringDamping: Double = 1.0
 
     // MARK: - Pill enter/exit choreography — EDIT HERE

@@ -20,8 +20,8 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
 
     private func currentActiveRect() -> NSRect {
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 220 : notchClosedSize.height
-        let targetWidth: CGFloat = isExpanded ? 290 : notchClosedSize.width
+        let targetHeight: CGFloat = isExpanded ? 135 : notchClosedSize.height
+        let targetWidth: CGFloat = isExpanded ? 140 : notchClosedSize.width
         // In NSHostingView (isFlipped == true), y = 0 is the top edge (the notch), not bounds.height!
         let y: CGFloat = isFlipped ? 0 : (bounds.height - targetHeight)
         return NSRect(
@@ -174,7 +174,7 @@ final class LockScreenFaceIDWindow: NSPanel {
             physicalNotchWidth: closedSize.width,
             notchStyle: notchStyle
         ))
-        trackingHostingView.notchClosedSize = CGSize(width: max(185, closedSize.width), height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
+        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? max(185, closedSize.width) : 140, height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
@@ -274,21 +274,17 @@ struct LockScreenFaceIDPillView: View {
         if hasPhysicalNotch {
             return CGSize(width: physicalNotchWidth, height: notchHardwareHeight)
         } else {
-            return CGSize(width: 155, height: max(32, notchHardwareHeight))
+            return CGSize(width: 140, height: max(32, notchHardwareHeight))
         }
     }
     
     private var openBodySize: CGSize {
-        if hasPhysicalNotch {
-            return CGSize(width: max(175, physicalNotchWidth), height: 160)
-        } else {
-            return CGSize(width: 155, height: 135)
-        }
+        return CGSize(width: 140, height: 135)
     }
     
     private var topRadius: CGFloat {
         if isExpanded {
-            return hasPhysicalNotch ? 16 : 48
+            return hasPhysicalNotch ? 19 : 26
         } else {
             return hasPhysicalNotch ? 6 : (closedBodySize.height / 2)
         }
@@ -296,9 +292,9 @@ struct LockScreenFaceIDPillView: View {
     
     private var bottomRadius: CGFloat {
         if isExpanded {
-            return hasPhysicalNotch ? 48 : 48
+            return hasPhysicalNotch ? 24 : 26
         } else {
-            return hasPhysicalNotch ? 12 : (closedBodySize.height / 2)
+            return hasPhysicalNotch ? 14 : (closedBodySize.height / 2)
         }
     }
     
@@ -345,7 +341,7 @@ struct LockScreenFaceIDPillView: View {
             .buttonStyle(.plain)
             .contentShape(Rectangle())
             .onHover { hovering in
-                withAnimation(.spring(response: 0.45, dampingFraction: hovering ? 0.70 : 1.0)) {
+                withAnimation(.spring(response: 0.28, dampingFraction: hovering ? 0.75 : 1.0)) {
                     self.isHovered = hovering
                 }
                 if hovering {
@@ -356,10 +352,10 @@ struct LockScreenFaceIDPillView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(.spring(response: 0.45, dampingFraction: isExpanded ? 0.70 : 1.0), value: isExpanded)
-        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: isHovered)
-        .animation(.spring(response: 0.45, dampingFraction: 0.70), value: faceIDManager.isScanning)
-        .animation(.spring(response: 0.45, dampingFraction: 0.70), value: faceIDManager.lastUnlockSuccess)
+        .animation(.spring(response: 0.28, dampingFraction: isExpanded ? 0.75 : 1.0), value: isExpanded)
+        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: isHovered)
+        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: faceIDManager.isScanning)
+        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: faceIDManager.lastUnlockSuccess)
         .onChange(of: faceIDManager.isScanning) { _, scanning in
             if scanning {
                 startBreathingPulse()

@@ -50,7 +50,7 @@ final class ScanAnimationHostView: NSView {
     private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
-        let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 155, height: 135)
+        let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
         super.init(frame: defaultFrame)
         wantsLayer = true
         let rootLayer = CALayer()
@@ -104,7 +104,7 @@ final class ScanAnimationHostView: NSView {
     func updateLayerFrames() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        let rect = bounds.size.width > 0 ? bounds : NSRect(x: 0, y: 0, width: 155, height: 135)
+        let rect = bounds.size.width > 0 ? bounds : NSRect(x: 0, y: 0, width: 140, height: 135)
         playerLayer.frame = rect
         stillImageLayer.frame = rect
         CATransaction.commit()
