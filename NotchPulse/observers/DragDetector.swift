@@ -93,6 +93,22 @@ final class DragDetector {
         mouseDraggedMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
             guard let self = self else { return }
 
+            let isMousePressed = (NSEvent.pressedMouseButtons & 1) != 0
+            if !isMousePressed {
+                if self.isContentDragging || self.hasEnteredNotchRegion {
+                    let wasInRegion = self.hasEnteredNotchRegion
+                    self.isContentDragging = false
+                    self.hasEnteredNotchRegion = false
+                    self.mouseDownPasteboardCount = -1
+                    self.lastKnownIdleCount = self.dragPasteboard.changeCount
+                    if wasInRegion {
+                        self.onDragExitsNotchRegion?()
+                    }
+                    self.onDragEnded?()
+                }
+                return
+            }
+
             let currentCount = self.dragPasteboard.changeCount
             
             // Detect if a file/URL drag operation started during this mouse gesture

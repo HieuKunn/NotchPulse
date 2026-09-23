@@ -217,7 +217,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         } else {
             let preferredScreen: NSScreen? = window?.screen
+                ?? (coordinator.preferredScreenUUID.flatMap({ NSScreen.screen(withUUID: $0) }))
                 ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
+                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
                 ?? NSScreen.main
                 ?? NSScreen.screens.first
 
@@ -238,13 +240,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding
-                let openWidth = max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth]))
-                let openHeight = openNotchSize.height
+                let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
+                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
                 return CGRect(
                     x: screenFrame.midX - (openWidth / 2 + padding),
                     y: screenFrame.maxY - (openHeight + padding),
                     width: openWidth + (padding * 2),
-                    height: openHeight + padding + 20
+                    height: openHeight + padding + 30
                 )
             } else {
                 // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
@@ -255,7 +257,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     x: screenFrame.midX - (closedWidth / 2 + padding),
                     y: screenFrame.maxY - (closedHeight + padding),
                     width: closedWidth + (padding * 2),
-                    height: closedHeight + padding + 20
+                    height: closedHeight + padding + 30
                 )
             }
         }
@@ -290,11 +292,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         SharingStateManager.shared.preventNotchClose = true
         
-        if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-            viewModel.open()
-            coordinator.currentView = .shelf
-        } else {
-            vm.open()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
+                viewModel.open()
+            } else {
+                vm.open()
+            }
             coordinator.currentView = .shelf
         }
     }

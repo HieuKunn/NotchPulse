@@ -1,4 +1,4 @@
-# NotchPulse v4.6.1 (Build 99)
+# NotchPulse v4.6.1 (Build 100)
 
 ## 📁 Enhanced File Shelf & Drag Detection
 - **Dynamic Drag Hover Detection**: The shelf now accurately opens as soon as you drag a file into the expanded detection zone (10–120px) and smoothly remains open as you move anywhere across the shelf to drop your files.
