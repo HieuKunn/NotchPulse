@@ -374,16 +374,7 @@ final class FaceIDOverlayController {
         // schedule activation to fire as soon as the settle window ends if still hovering!
         if let armedAt {
             let elapsed = ContinuousClock.now - armedAt
-            if elapsed < .milliseconds(400) {
-                pendingHoverActivationTask?.cancel()
-                pendingHoverActivationTask = Task { [weak self] in
-                    let remaining = Duration.milliseconds(400) - elapsed
-                    try? await Task.sleep(for: remaining)
-                    guard let self, !Task.isCancelled, self.isHovering, self.phase == .closed || self.phase == .failure else { return }
-                    self.performActivation()
-                }
-                return
-            }
+            // REMOVED 400ms delay to make it instant on hover!
         }
         performActivation()
     }

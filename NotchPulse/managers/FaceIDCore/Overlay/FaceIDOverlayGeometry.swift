@@ -26,7 +26,7 @@ struct FaceIDOverlayGeometry {
     }
 
     /// Shortened drop-down footprint for notch style, sized to comfortably fit the 80%-scaled animation.
-    static let notchOpenSize = CGSize(width: 175, height: 138)
+    static let notchOpenSize = CGSize(width: 140, height: 135)
 
     /// Corner radii matching NotchPulse's native cornerRadiusInsets.
     static let closedTopRadius: CGFloat = 6
@@ -50,7 +50,7 @@ struct FaceIDOverlayGeometry {
     }
 
     /// Shortened drop-down footprint for dynamic island, sized to comfortably fit the 80%-scaled animation.
-    static let pillOpenSize = CGSize(width: 155, height: 135)
+    static let pillOpenSize = CGSize(width: 140, height: 135)
 
     /// Pinned to NotchPulse's active dynamic island top offset.
     static var pillTopGap: CGFloat { Defaults[.dynamicIslandTopOffset] }
@@ -66,10 +66,10 @@ struct FaceIDOverlayGeometry {
     static let pillOffscreenSlack: CGFloat = 20
 
     /// Pill's equivalent of `notchContentPadding*` below, independent so it can be tuned separately.
-    static let pillContentPaddingTop: CGFloat = 14
-    static let pillContentPaddingLeading: CGFloat = 14
-    static let pillContentPaddingTrailing: CGFloat = 14
-    static let pillContentPaddingBottom: CGFloat = 14
+    static let pillContentPaddingTop: CGFloat = 0
+    static let pillContentPaddingLeading: CGFloat = 0
+    static let pillContentPaddingTrailing: CGFloat = 0
+    static let pillContentPaddingBottom: CGFloat = 0
 
     // MARK: - Panel open/close springs — EDIT HERE
     //
@@ -87,9 +87,9 @@ struct FaceIDOverlayGeometry {
     /// Ease-out rather than a spring — a straight-line move, not a bouncy resize.
     static let pillSlideDuration: Double = 0.25
     /// Expansion starts this long after the slide begins.
-    static let pillEnterExpansionDelay: Double = 0.16
+    static let pillEnterExpansionDelay: Double = 0.0
     /// Slide starts this long after the shrink begins.
-    static let pillExitSlideDelay: Double = 0.18
+    static let pillExitSlideDelay: Double = 0.0
 
     // MARK: - Minimal unlock style — EDIT HERE
     //
@@ -151,13 +151,13 @@ struct FaceIDOverlayGeometry {
 
     /// Wait before the first pulse cycle so breathing starts only once the panel has
     /// finished expanding. Hand-tuned approximation — springs have no hard end time.
-    static let scanPulseStartDelay: Double = 0.6
+    static let scanPulseStartDelay: Double = 0.0
 
     /// Notch-style padding around scan-mode content, fitted for the shortened drop-down.
-    static let notchContentPaddingTop: CGFloat = 16
-    static let notchContentPaddingLeading: CGFloat = 16
-    static let notchContentPaddingTrailing: CGFloat = 16
-    static let notchContentPaddingBottom: CGFloat = 16
+    static let notchContentPaddingTop: CGFloat = 0
+    static let notchContentPaddingLeading: CGFloat = 0
+    static let notchContentPaddingTrailing: CGFloat = 0
+    static let notchContentPaddingBottom: CGFloat = 0
 
     /// Cosmetic size bump applied on hover in FaceIDOverlayView. Included here so the
     /// fixed window has margin for it instead of clipping.

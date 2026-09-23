@@ -1,3 +1,13 @@
+# NotchPulse v4.7 (Important Release)
+
+## ⚡ Instant Face ID & Optimized Scanning Layout
+- **Zero-Delay Activation**: Hovering over the Face ID notch now instantly triggers the Face ID scan animation without any artificial delays. It shows up immediately when you need it.
+- **Perfect Fit Face ID**: Removed the excess horizontal black borders ("long sides") during the Face ID scanning animation. The drop-down overlay now perfectly hugs the video animation for a much cleaner and tighter look on both Notch and Dynamic Island styles.
+
+## 🎚️ Smooth HUD Animations
+- **Silky Smooth Volume & Brightness**: Adjusting system volume and display brightness now features beautifully smooth, fluid spring animations for both the Inline and Default HUD styles, replacing the old instant jumps.
+- **Fluid Icon Transitions**: Speaker and brightness icons now smoothly morph and crossfade between states when levels change.
+
 # NotchPulse v4.6.5
 
 ## 📷 Smart Multi-Display Camera Screen Routing

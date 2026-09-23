@@ -129,6 +129,7 @@ struct DraggableProgressBar: View {
                             Color.clear,
                             radius: 8, x: 3)
                         .opacity(value.isZero ? 0 : 1)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: value)
                 }
                 .gesture(
                     DragGesture(minimumDistance: 0)

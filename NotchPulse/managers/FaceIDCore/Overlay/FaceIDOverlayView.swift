@@ -253,7 +253,7 @@ struct FaceIDOverlayView: View {
                 }
             }
             // Content renders immediately in lock-step with expansion
-            .opacity(visualIsExpanded ? 1 : 0)
+            .opacity(targetIsExpanded ? 1 : 0)
             .environment(\.notchPanelStyle, style)
         }
         .frame(width: currentSize.width, height: currentSize.height)
