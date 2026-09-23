@@ -17,6 +17,7 @@ final class DragDetector {
 
     var onDragEntersNotchRegion: VoidCallback?
     var onDragExitsNotchRegion: VoidCallback?
+    var onDragEnded: VoidCallback?
     var onDragMove: PositionCallback?
 
     private var mouseDownMonitor: Any?
@@ -28,11 +29,11 @@ final class DragDetector {
     private var isContentDragging: Bool = false
     private var hasEnteredNotchRegion: Bool = false
 
-    private let notchRegion: CGRect
+    private let regionProvider: () -> CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
 
-    init(notchRegion: CGRect) {
-        self.notchRegion = notchRegion
+    init(regionProvider: @escaping () -> CGRect) {
+        self.regionProvider = regionProvider
         self.lastKnownIdleCount = dragPasteboard.changeCount
     }
 
@@ -103,8 +104,9 @@ final class DragDetector {
                 let mouseLocation = NSEvent.mouseLocation
                 self.onDragMove?(mouseLocation)
                 
-                // Track entry into the expanded notch region
-                let containsMouse = self.notchRegion.contains(mouseLocation)
+                // Track entry into the dynamic notch region (which expands when shelf is open)
+                let activeRegion = self.regionProvider()
+                let containsMouse = activeRegion.contains(mouseLocation)
                 if containsMouse && !self.hasEnteredNotchRegion {
                     self.hasEnteredNotchRegion = true
                     self.onDragEntersNotchRegion?()
@@ -119,11 +121,13 @@ final class DragDetector {
             guard let self = self else { return }
             self.lastKnownIdleCount = self.dragPasteboard.changeCount
             self.mouseDownPasteboardCount = -1
-            if self.hasEnteredNotchRegion {
-                self.hasEnteredNotchRegion = false
+            let wasInRegion = self.hasEnteredNotchRegion
+            self.hasEnteredNotchRegion = false
+            self.isContentDragging = false
+            if wasInRegion {
                 self.onDragExitsNotchRegion?()
             }
-            self.isContentDragging = false
+            self.onDragEnded?()
         }
     }
 

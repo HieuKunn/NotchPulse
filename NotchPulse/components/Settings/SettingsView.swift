@@ -2325,7 +2325,12 @@ struct SettingsDetailHeaderBar: View {
 
             if showQuitButton {
                 Button {
-                    NSApp.terminate(nil)
+                    if let appDelegate = NSApp.delegate as? AppDelegate {
+                        appDelegate.quitApplication()
+                    } else {
+                        NSApp.terminate(nil)
+                        exit(0)
+                    }
                 } label: {
                     Text("Quit app")
                         .font(.system(size: 12, weight: .medium))

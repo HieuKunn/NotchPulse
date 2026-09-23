@@ -56,7 +56,7 @@ struct DynamicNotchApp: App {
                 ApplicationRelauncher.restart()
             }
             Button("Quit", role: .destructive) {
-                NSApplication.shared.terminate(self)
+                appDelegate.quitApplication()
             }
             .keyboardShortcut(KeyEquivalent("Q"), modifiers: .command)
         }
@@ -81,12 +81,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
+    private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        quitApplication()
+        return .terminateNow
+    }
+
+    @MainActor
+    func quitApplication() {
         NotificationCenter.default.removeObserver(self)
         if let observer = screenLockedObserver {
             DistributedNotificationCenter.default().removeObserver(observer)
@@ -96,12 +103,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DistributedNotificationCenter.default().removeObserver(observer)
             screenUnlockedObserver = nil
         }
-        MusicManager.shared.destroy()
         cleanupDragDetectors()
         cleanupWindows()
+        MusicManager.shared.destroy()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         LockScreenWakeObserver.shared.cleanup()
         SystemAuthPromptObserver.shared.cleanup()
+        
+        NSApplication.shared.terminate(nil)
+        exit(0)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        quitApplication()
     }
 
     @MainActor
@@ -184,6 +198,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func cleanupDragDetectors() {
+        dragExitDebounceTasks.values.forEach { $0.cancel() }
+        dragExitDebounceTasks.removeAll()
         dragDetectors.values.forEach { detector in
             detector.stopMonitoring()
         }
@@ -203,6 +219,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let preferredScreen: NSScreen? = window?.screen
                 ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
                 ?? NSScreen.main
+                ?? NSScreen.screens.first
 
             if let screen = preferredScreen {
                 setupDragDetectorForScreen(screen)
@@ -213,23 +230,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectorForScreen(_ screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
-        let screenFrame = screen.frame
-        let viewModel = (Defaults[.showOnAllDisplays] ? viewModels[uuid] : nil) ?? vm
-        let notchSize = viewModel.closedNotchSize
-        let notchHeight = notchSize.height > 0 ? notchSize.height : 36.0
-        let notchWidth = notchSize.width > 0 ? notchSize.width : 180.0
-        let padding = CGFloat(Defaults[.dragDetectionPadding])
-        
-        // Calculate the expanded hover zone radiating from the physical closed notch:
-        // Expanded to the left, right, and downwards by the user's padding
-        let notchRegion = CGRect(
-            x: screenFrame.midX - (notchWidth / 2 + padding),
-            y: screenFrame.maxY - (notchHeight + padding),
-            width: notchWidth + (padding * 2),
-            height: notchHeight + padding
-        )
-        
-        let detector = DragDetector(notchRegion: notchRegion)
+        let detector = DragDetector { [weak self] in
+            guard let self = self else { return .zero }
+            let screenFrame = screen.frame
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            let padding = CGFloat(Defaults[.dragDetectionPadding])
+            
+            if targetVM.notchState == .open {
+                // When open, the region covers the ENTIRE open shelf plus expansion padding
+                let openWidth = max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth]))
+                let openHeight = openNotchSize.height
+                return CGRect(
+                    x: screenFrame.midX - (openWidth / 2 + padding),
+                    y: screenFrame.maxY - (openHeight + padding),
+                    width: openWidth + (padding * 2),
+                    height: openHeight + padding + 20
+                )
+            } else {
+                // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
+                let closedSize = targetVM.closedNotchSize
+                let closedWidth = closedSize.width > 0 ? closedSize.width : 185.0
+                let closedHeight = closedSize.height > 0 ? closedSize.height : 36.0
+                return CGRect(
+                    x: screenFrame.midX - (closedWidth / 2 + padding),
+                    y: screenFrame.maxY - (closedHeight + padding),
+                    width: closedWidth + (padding * 2),
+                    height: closedHeight + padding + 20
+                )
+            }
+        }
         
         detector.onDragEntersNotchRegion = { [weak self] in
             Task { @MainActor in
@@ -242,6 +271,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleDragExitsNotchRegion(onScreen: screen)
             }
         }
+
+        detector.onDragEnded = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragEnded(onScreen: screen)
+            }
+        }
         
         dragDetectors[uuid] = detector
         detector.startMonitoring()
@@ -250,12 +285,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
+        dragExitDebounceTasks[uuid]?.cancel()
+        dragExitDebounceTasks[uuid] = nil
+        
         SharingStateManager.shared.preventNotchClose = true
         
         if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
             viewModel.open()
             coordinator.currentView = .shelf
-        } else if !Defaults[.showOnAllDisplays], let windowScreen = window?.screen, screen == windowScreen {
+        } else {
             vm.open()
             coordinator.currentView = .shelf
         }
@@ -264,11 +302,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
-        SharingStateManager.shared.preventNotchClose = false
+        dragExitDebounceTasks[uuid]?.cancel()
+        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled, let self = self else { return }
+            
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
+            
+            SharingStateManager.shared.preventNotchClose = false
+            if !ShelfStateViewModel.shared.isPinned && targetVM.notchState == .open {
+                targetVM.close()
+            }
+        }
+    }
+
+    private func handleDragEnded(onScreen screen: NSScreen) {
+        guard let uuid = screen.displayUUID else { return }
         
-        let targetVM = (Defaults[.showOnAllDisplays] ? viewModels[uuid] : nil) ?? vm
-        if !ShelfStateViewModel.shared.isPinned {
-            targetVM.close()
+        dragExitDebounceTasks[uuid]?.cancel()
+        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled, let self = self else { return }
+            
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
+            
+            SharingStateManager.shared.preventNotchClose = false
+            if !ShelfStateViewModel.shared.isPinned && targetVM.notchState == .open {
+                targetVM.close()
+            }
         }
     }
 
@@ -662,7 +725,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func quitAction() {
-        NSApplication.shared.terminate(self)
+        quitApplication()
     }
 
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
