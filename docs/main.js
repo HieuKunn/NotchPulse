@@ -911,6 +911,10 @@ let appReleaseInfo = {
 };
 
 function initReleaseAutoUpdater() {
+  try {
+    sessionStorage.removeItem("notchpulse_latest_release");
+  } catch (e) {}
+
   fetch("https://api.github.com/repos/HieuKunn/NotchPulse-Release-for-everyone/releases/latest")
     .then((res) => {
       if (!res.ok) throw new Error("GitHub API unavailable");
@@ -937,13 +941,12 @@ function initReleaseAutoUpdater() {
           downloadUrl: dmgUrl
         };
 
-        sessionStorage.setItem("notchpulse_latest_release", JSON.stringify(appReleaseInfo));
         applyLanguage(currentLang);
         updateDownloadLinks(appReleaseInfo.downloadUrl);
       }
     })
     .catch(() => {
-      // Graceful fallback to default v4.5
+      // Graceful fallback to default v4.6.2
     });
 }
 
