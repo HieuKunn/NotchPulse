@@ -214,12 +214,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
         
         let screenFrame = screen.frame
-        let notchHeight = openNotchSize.height
-        let notchWidth = openNotchSize.width
+        let viewModel = (Defaults[.showOnAllDisplays] ? viewModels[uuid] : nil) ?? vm
+        let notchSize = viewModel.closedNotchSize
+        let notchHeight = notchSize.height > 0 ? notchSize.height : 36.0
+        let notchWidth = notchSize.width > 0 ? notchSize.width : 180.0
         let padding = CGFloat(Defaults[.dragDetectionPadding])
         
-        // Create notch region at the top-center of the screen where an open notch would occupy,
-        // extended downwards and outwards by the user's configured reach padding
+        // Calculate the expanded hover zone radiating from the physical closed notch:
+        // Expanded to the left, right, and downwards by the user's padding
         let notchRegion = CGRect(
             x: screenFrame.midX - (notchWidth / 2 + padding),
             y: screenFrame.maxY - (notchHeight + padding),
