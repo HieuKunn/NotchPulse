@@ -84,11 +84,11 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .frame(width: isDynamicIsland ? 85 : (100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2), height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .leading)
+            .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .leading)
             
             Rectangle()
                 .fill(.black)
-                .frame(width: isDynamicIsland ? 20 : (vm.closedNotchSize.width - 20))
+                .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width))
             
             HStack {
                 if (type == .mic) {
@@ -129,7 +129,7 @@ struct InlineHUD: View {
                 }
             }
             .padding(.trailing, 4)
-            .frame(width: isDynamicIsland ? 115 : (100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2), height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
+            .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
     }
@@ -173,6 +173,40 @@ struct InlineHUD: View {
             default:
                 return ""
         }
+    }
+
+    static func leftColumnWidth(for type: SneakContentType) -> CGFloat {
+        switch type {
+        case .brightness:
+            return 105
+        case .backlight:
+            return 95
+        case .mic:
+            return 60
+        default:
+            return 85
+        }
+    }
+
+    static func rightColumnWidth(for type: SneakContentType) -> CGFloat {
+        switch type {
+        case .mic:
+            return 70
+        default:
+            return 105
+        }
+    }
+
+    static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
+        isDynamicIsland ? 28 : max(0, closedNotchWidth - 24)
+    }
+
+    static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
+        let left = leftColumnWidth(for: type)
+        let right = rightColumnWidth(for: type)
+        let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
+        let padding: CGFloat = isDynamicIsland ? 20 : 0
+        return left + center + right + padding
     }
 }
 

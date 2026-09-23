@@ -37,8 +37,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
-    /// Requires enough consecutive below-threshold frames (~1.2s at ~30fps) so momentary glance angles or lighting settle don't fail prematurely.
-    private let wrongFaceStreakThreshold = 35
+    /// Requires enough consecutive below-threshold frames (~2.0s at ~30fps post-warmup) so momentary glance angles or lighting settle don't fail prematurely.
+    private let wrongFaceStreakThreshold = 65
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -354,6 +354,9 @@ final class NotchPulseFaceUnlockCoordinator {
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
 
+        let scanStartTime = ContinuousClock.now
+        let warmupGracePeriod: ContinuousClock.Duration = .milliseconds(1200)
+
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
             guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
@@ -402,6 +405,8 @@ final class NotchPulseFaceUnlockCoordinator {
             let scored = pipeline.score(result.embedding, against: NotchPulseFaceEnrollmentStore.shared.activeIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)
 
+            let isWarmingUp = (ContinuousClock.now - scanStartTime) < warmupGracePeriod
+
             if let matched {
                 consecutiveWrongFaceFrames = 0
                 latchedMatch = matched
@@ -410,9 +415,13 @@ final class NotchPulseFaceUnlockCoordinator {
                 if let last = lastMatchedAt, ContinuousClock.now - last > .milliseconds(400) {
                     latchedMatch = nil
                 }
-                consecutiveWrongFaceFrames += 1
-                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                    return .consistentlyWrongFace
+                // During the first 1.2s of camera start, Auto-Exposure / Auto-White-Balance is adjusting,
+                // so don't accumulate a failure streak on transitional dark/unfocused frames.
+                if !isWarmingUp {
+                    consecutiveWrongFaceFrames += 1
+                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                        return .consistentlyWrongFace
+                    }
                 }
             }
 

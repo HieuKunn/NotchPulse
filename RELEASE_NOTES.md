@@ -1,17 +1,14 @@
-# NotchPulse v4.6.1 (Build 101)
+# NotchPulse v4.6.2 (Build 102)
 
-## 🏝️ Dynamic Island Complete Feature Parity
-- **Music Live Activity in Dynamic Island**: When playing music, Dynamic Island now smoothly expands to display your album artwork on the left and an animated audio equalizer on the right, perfectly centered and beautifully styled like iOS.
-- **Identical Open & Close Mechanics**: Moving your mouse cursor to the top edge of the screen or hovering directly over the island smoothly opens NotchPulse with tabs (Home, Shelf, Stats), and moving your mouse away gracefully closes it.
-- **Click & Gesture Controls**: Click to open, tap the center header to close, swipe down with two fingers to expand, and swipe up to collapse.
-- **Inline Volume & Brightness HUDs**: Volume and brightness sliders now expand the Dynamic Island with clear icons, draggable level bars, and percentage indicators without distortion or clipping.
-- **Seamless File Shelf Dragging**: Dragging any file over the Dynamic Island instantly expands the shelf tab with dynamic detection padding.
+## 🔒 Biometric Fluid Unlock Animation
+- **Dynamic Color Morphing**: The Face ID scan now features a smooth color transition that starts with electric blue during active scanning and gracefully morphs into Apple's signature biometric emerald green (`#34C759`) as the checkmark draws upon successful authentication.
+- **Instant First-Try Recognition**: Added an intelligent camera sensor warmup grace period (1.2s) and balanced mismatch tolerances so Face ID recognizes your face on the very first try without false early cancellations caused by initial camera exposure adjustment.
 
-## 📁 Enhanced File Shelf & Drag Detection
-- **Dynamic Drag Hover Detection**: The shelf now accurately opens as soon as you drag a file into the expanded detection zone (10–120px) and smoothly remains open as you move anywhere across the shelf to drop your files.
-- **Reliable Exit Handling**: Moving a file away from the notch gracefully debounces before closing, eliminating frustrating premature closures.
-- **Window Move Protection**: Moving ordinary application windows near the top edge is safely ignored and will never accidentally open the file shelf.
+## 🎛️ Continuous Volume & Brightness HUDs
+- **Reliable Key Interception**: Added automatic recovery for system key interception so volume and brightness HUDs remain responsive and active at all times, preventing them from falling back to native macOS UI during high system load or fast app switching.
+- **Smart Snug HUD Sizing**: Adjusted inline HUD widths to wrap volume, brightness, and microphone levels snugly with zero wasted margins or cutoffs.
 
-## ⚡ Instant App Exit
-- **Zero-Lag App Termination**: Cleaned up background observers and connection hooks so NotchPulse quits instantly and cleanly when clicking "Quit" without hanging or requiring Force Quit.
+## 🏝️ Dynamic Island & Lock Screen Parity
+- **Full Closed Length Alignment**: Standardized Dynamic Island closed width on both lock screen and active desktop to match physical notch length (185pt+), keeping a consistent and seamless appearance.
+- **Fluid Biometric Transitions**: Re-engineered the Face ID pop-down and pull-up animations to smoothly chain into media and HUD inline expansions with continuous squircle curvature.
 

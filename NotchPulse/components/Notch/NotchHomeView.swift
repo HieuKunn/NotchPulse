@@ -53,8 +53,6 @@ struct AlbumArtView: View {
             }
             albumArtButton
         }
-        // Comfortable breathing room from the left curved notch corner
-        .padding(.leading, 8)
     }
 
     private var albumArtBackground: some View {
@@ -67,7 +65,9 @@ struct AlbumArtView: View {
                 RoundedRectangle(
                     cornerRadius: Defaults[.cornerRadiusScaling]
                         ? MusicPlayerImageSizes.cornerRadiusInset.opened
-                        : MusicPlayerImageSizes.cornerRadiusInset.closed)
+                        : MusicPlayerImageSizes.cornerRadiusInset.closed,
+                    style: .continuous
+                )
             )
             .scaleEffect(x: 1.3, y: 1.4)
             .rotationEffect(.degrees(92))
@@ -96,7 +96,9 @@ struct AlbumArtView: View {
         RoundedRectangle(
             cornerRadius: Defaults[.cornerRadiusScaling]
                 ? MusicPlayerImageSizes.cornerRadiusInset.opened
-                : MusicPlayerImageSizes.cornerRadiusInset.closed)
+                : MusicPlayerImageSizes.cornerRadiusInset.closed,
+            style: .continuous
+        )
             .aspectRatio(imageAspectRatio, contentMode: .fit)
             .frame(width: size, height: size)
             .foregroundColor(Color.black)
@@ -116,7 +118,9 @@ struct AlbumArtView: View {
                 RoundedRectangle(
                     cornerRadius: Defaults[.cornerRadiusScaling]
                         ? MusicPlayerImageSizes.cornerRadiusInset.opened
-                        : MusicPlayerImageSizes.cornerRadiusInset.closed)
+                        : MusicPlayerImageSizes.cornerRadiusInset.closed,
+                    style: .continuous
+                )
             )
     }
 
@@ -499,8 +503,8 @@ struct NotchHomeView: View {
         let isCalendarVisible = Defaults[.showCalendar]
         let isCameraVisible = shouldShowCamera
         
-        // Comfortable horizontal margin to prevent corner clipping
-        let horizontalPadding: CGFloat = 12
+        // Sleek horizontal margin to prevent corner clipping without excessive black borders
+        let horizontalPadding: CGFloat = 6
         let spacing: CGFloat = 14
         let baseWidth = totalWidth > 0 ? totalWidth : notchOpenWidth
         let availableWidth = max(280, baseWidth - (horizontalPadding * 2))

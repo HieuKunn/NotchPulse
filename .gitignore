@@ -38,6 +38,8 @@ build/
 
 # Reference
 boring.notch-main/
+glance-main/
+*backup*.mp4
 
 # Other
 *.DS_Store

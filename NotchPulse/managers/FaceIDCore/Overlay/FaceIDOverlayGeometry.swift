@@ -42,8 +42,11 @@ struct FaceIDOverlayGeometry {
 
     // MARK: - Pill style (Dynamic Island)
 
-    /// Resting capsule size matching NotchPulse's Dynamic Island
-    static let pillClosedSize = CGSize(width: 120, height: 28)
+    /// Resting capsule size matching NotchPulse's Dynamic Island (matching closed notch length)
+    static var pillClosedSize: CGSize {
+        let notch = getClosedNotchSize()
+        return CGSize(width: max(185, notch.width), height: max(32, notch.height))
+    }
 
     /// Shortened drop-down footprint for dynamic island, sized to comfortably fit the 80%-scaled animation.
     static let pillOpenSize = CGSize(width: 155, height: 135)

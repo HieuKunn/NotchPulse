@@ -172,7 +172,7 @@ final class LockScreenFaceIDWindow: NSPanel {
             physicalNotchWidth: closedSize.width,
             notchStyle: notchStyle
         ))
-        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? closedSize.width : 80, height: hasPhysicalNotch ? notchHardwareHeight : 24)
+        trackingHostingView.notchClosedSize = CGSize(width: max(185, closedSize.width), height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
@@ -267,10 +267,11 @@ struct LockScreenFaceIDPillView: View {
     
     //  Native NotchPulse Face ID biometric implementation.
     private var closedBodySize: CGSize {
+        let width = max(185, physicalNotchWidth)
         if hasPhysicalNotch {
-            return CGSize(width: physicalNotchWidth, height: notchHardwareHeight)
+            return CGSize(width: width, height: notchHardwareHeight)
         } else {
-            return CGSize(width: 80, height: 24)
+            return CGSize(width: width, height: max(32, notchHardwareHeight))
         }
     }
     

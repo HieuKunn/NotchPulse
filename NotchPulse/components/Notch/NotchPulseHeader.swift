@@ -39,7 +39,7 @@ struct NotchPulseHeader: View {
                 } else {
                     Rectangle()
                         .fill(Color.clear)
-                        .frame(width: isDynamicIsland ? 32 : vm.closedNotchSize.width)
+                        .frame(width: isDynamicIsland ? 120 : vm.closedNotchSize.width)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
