@@ -177,24 +177,41 @@ struct ContentView: View {
         if isFaceIDActive {
             return targetFaceIDSize.width
         }
-        var chinWidth: CGFloat = (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillClosedSize.width : vm.closedNotchSize.width
+        let isDynamicIsland = notchStyle == .dynamicIsland
+        var chinWidth: CGFloat = isDynamicIsland ? FaceIDOverlayGeometry.pillClosedSize.width : vm.closedNotchSize.width
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
         } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
-            chinWidth += (2 * (100 - (isHovering ? 0 : 12)) - 20 + gestureProgress)
+            if isDynamicIsland {
+                chinWidth = 260 + gestureProgress
+            } else {
+                chinWidth += (2 * (100 - (isHovering ? 0 : 12)) - 20 + gestureProgress)
+            }
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
         {
-            chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+            if isDynamicIsland {
+                if coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
+                    chinWidth = 440 + gestureProgress
+                } else {
+                    chinWidth = 210 + gestureProgress
+                }
+            } else {
+                chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+            }
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
             && !vm.hideOnClosed
         {
-            chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+            if isDynamicIsland {
+                chinWidth = 180 + gestureProgress
+            } else {
+                chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+            }
         }
 
         return chinWidth
@@ -211,6 +228,7 @@ struct ContentView: View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
                 let isDynamicIsland = notchStyle == .dynamicIsland
+                let baseClosedHeight: CGFloat = isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
                 let islandRadius: CGFloat = {
                     if isFaceIDActive && isFaceIDContentVisible {
                         if isMinimalScan {
@@ -218,11 +236,10 @@ struct ContentView: View {
                         }
                         return FaceIDOverlayGeometry.pillOpenCornerRadius
                     }
-                    return vm.notchState == .open ? 26 : (isDynamicIsland ? FaceIDOverlayGeometry.pillClosedSize.height / 2 : max(14, vm.effectiveClosedNotchHeight / 2))
+                    return vm.notchState == .open ? 26 : (isDynamicIsland ? baseClosedHeight / 2 : max(14, vm.effectiveClosedNotchHeight / 2))
                 }()
 
                 let isDefaultHUDActive = coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
-                let baseClosedHeight: CGFloat = isDynamicIsland ? FaceIDOverlayGeometry.pillClosedSize.height : max(vm.effectiveClosedNotchHeight, 0)
                 let currentNotchWidth: CGFloat = isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth)
                 let currentNotchHeight: CGFloat = isFaceIDActive 
                     ? targetFaceIDSize.height 
@@ -305,7 +322,11 @@ struct ContentView: View {
                     .conditionalModifier(!isFaceIDContentActive) { view in
                         view
                             .conditionalModifier(isDynamicIsland) { v in
-                                v.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+                                if vm.notchState == .open {
+                                    v.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+                                } else {
+                                    v.contentShape(Rectangle())
+                                }
                             }
                             .conditionalModifier(!isDynamicIsland) { v in
                                 v.contentShape(currentNotchShape)
@@ -315,7 +336,9 @@ struct ContentView: View {
                                     FaceIDOverlayController.shared.activate()
                                     return
                                 }
-                                doOpen()
+                                if vm.notchState == .closed {
+                                    doOpen()
+                                }
                             }
                     }
                     .onChange(of: faceIDOverlay.phase) { _, newPhase in
@@ -501,10 +524,10 @@ struct ContentView: View {
                                .frame(height: max(24, vm.effectiveClosedNotchHeight))
                                .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                .transition(.opacity)
-                        } else {
-                            Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillClosedSize.width : (vm.closedNotchSize.width - 20), height: (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillClosedSize.height : vm.effectiveClosedNotchHeight)
-                                .transition(.opacity)
-                        }
+                         } else {
+                             Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillClosedSize.width : (vm.closedNotchSize.width - 20), height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
+                                 .transition(.opacity)
+                         }
 
                       if coordinator.sneakPeek.show {
                           if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
@@ -609,34 +632,40 @@ struct ContentView: View {
 
     @ViewBuilder
     func NotchPulseFaceAnimation() -> some View {
+        let isDynamicIsland = notchStyle == .dynamicIsland
+        let faceHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
         HStack {
             HStack {
                 Rectangle()
                     .fill(.clear)
                     .frame(
-                        width: max(0, vm.effectiveClosedNotchHeight - 12),
-                        height: max(0, vm.effectiveClosedNotchHeight - 12)
+                        width: max(0, faceHeight - 12),
+                        height: max(0, faceHeight - 12)
                     )
                 Rectangle()
                     .fill(.black)
-                    .frame(width: vm.closedNotchSize.width - 20)
+                    .frame(width: isDynamicIsland ? 80 : (vm.closedNotchSize.width - 20))
                 MinimalFaceFeatures()
             }
         }.frame(
-            height: vm.effectiveClosedNotchHeight,
+            height: faceHeight,
             alignment: .center
         )
     }
 
     @ViewBuilder
     func MusicLiveActivity() -> some View {
-        HStack {
+        let isDynamicIsland = notchStyle == .dynamicIsland
+        let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
+        let artSize: CGFloat = max(18, liveHeight - 12)
+
+        HStack(spacing: 0) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
                 .scaledToFill()
                 .frame(
-                    width: max(0, vm.effectiveClosedNotchHeight - 12),
-                    height: max(0, vm.effectiveClosedNotchHeight - 12)
+                    width: artSize,
+                    height: artSize
                 )
                 .clipped()
                 .clipShape(
@@ -664,7 +693,7 @@ struct ContentView: View {
                                     && Defaults[.sneakPeekStyles] == .inline)
                                     ? 1 : 0
                             )
-                            Spacer(minLength: vm.closedNotchSize.width)
+                            Spacer(minLength: isDynamicIsland ? 20 : vm.closedNotchSize.width)
                             // Song Artist
                             Text(musicManager.artistName)
                                 .lineLimit(1)
@@ -687,9 +716,10 @@ struct ContentView: View {
                     width: (coordinator.expandingView.show
                         && coordinator.expandingView.type == .music
                         && Defaults[.sneakPeekStyles] == .inline)
-                        ? 380
-                        : vm.closedNotchSize.width
-                            + -cornerRadiusInsets.closed.top
+                        ? (isDynamicIsland ? 360 : 380)
+                        : (isDynamicIsland
+                            ? 146
+                            : (vm.closedNotchSize.width + -cornerRadiusInsets.closed.top))
                 )
 
             HStack {
@@ -714,18 +744,14 @@ struct ContentView: View {
             .frame(
                 width: max(
                     0,
-                    vm.effectiveClosedNotchHeight - 12
-                        + gestureProgress / 2
+                    artSize + (isDynamicIsland ? 0 : gestureProgress / 2)
                 ),
-                height: max(
-                    0,
-                    vm.effectiveClosedNotchHeight - 12
-                ),
+                height: artSize,
                 alignment: .center
             )
         }
         .frame(
-            height: vm.effectiveClosedNotchHeight,
+            height: liveHeight,
             alignment: .center
         )
     }

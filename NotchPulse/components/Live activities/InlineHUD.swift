@@ -11,12 +11,15 @@ import Defaults
 struct InlineHUD: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var brightnessManager = BrightnessManager.shared
+    @Default(.notchStyle) var notchStyle
     @Binding var type: SneakContentType
     @Binding var value: CGFloat
     @Binding var icon: String
     @Binding var hoverAnimation: Bool
     @Binding var gestureProgress: CGFloat
     var body: some View {
+        let isDynamicIsland = notchStyle == .dynamicIsland
+        let hudHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
         HStack {
             HStack(spacing: 5) {
                 Group {
@@ -81,11 +84,11 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .frame(width: 100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2, height: max(0, vm.effectiveClosedNotchHeight - (hoverAnimation ? 0 : 12)), alignment: .leading)
+            .frame(width: isDynamicIsland ? 85 : (100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2), height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .leading)
             
             Rectangle()
                 .fill(.black)
-                .frame(width: vm.closedNotchSize.width - 20)
+                .frame(width: isDynamicIsland ? 20 : (vm.closedNotchSize.width - 20))
             
             HStack {
                 if (type == .mic) {
@@ -126,9 +129,9 @@ struct InlineHUD: View {
                 }
             }
             .padding(.trailing, 4)
-            .frame(width: 100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2, height: max(0, vm.effectiveClosedNotchHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
+            .frame(width: isDynamicIsland ? 115 : (100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2), height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
-        .frame(height: vm.effectiveClosedNotchHeight + (hoverAnimation ? 8 : 0), alignment: .center)
+        .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
     }
     
     func SpeakerSymbol(_ value: CGFloat) -> String {

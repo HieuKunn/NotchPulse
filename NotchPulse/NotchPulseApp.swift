@@ -238,26 +238,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             let padding = CGFloat(Defaults[.dragDetectionPadding])
             
+            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+            let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
+            
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding
                 let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
                 let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
                 return CGRect(
                     x: screenFrame.midX - (openWidth / 2 + padding),
-                    y: screenFrame.maxY - (openHeight + padding),
+                    y: screenFrame.maxY - (openHeight + padding + topOffset),
                     width: openWidth + (padding * 2),
-                    height: openHeight + padding + 30
+                    height: openHeight + padding + topOffset + 30
                 )
             } else {
                 // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
                 let closedSize = targetVM.closedNotchSize
-                let closedWidth = closedSize.width > 0 ? closedSize.width : 185.0
-                let closedHeight = closedSize.height > 0 ? closedSize.height : 36.0
+                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
                 return CGRect(
                     x: screenFrame.midX - (closedWidth / 2 + padding),
-                    y: screenFrame.maxY - (closedHeight + padding),
+                    y: screenFrame.maxY - (closedHeight + padding + topOffset),
                     width: closedWidth + (padding * 2),
-                    height: closedHeight + padding + 30
+                    height: closedHeight + padding + topOffset + 30
                 )
             }
         }

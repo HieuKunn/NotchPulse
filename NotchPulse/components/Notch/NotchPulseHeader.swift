@@ -28,12 +28,25 @@ struct NotchPulseHeader: View {
             .zIndex(2)
 
             if vm.notchState == .open {
-                Rectangle()
-                    .fill(NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0 ? .black : .clear)
-                    .frame(width: vm.closedNotchSize.width)
-                    .mask {
-                        NotchShape()
-                    }
+                let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+                if !isDynamicIsland && (NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0) {
+                    Rectangle()
+                        .fill(.black)
+                        .frame(width: vm.closedNotchSize.width)
+                        .mask {
+                            NotchShape()
+                        }
+                } else {
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: isDynamicIsland ? 32 : vm.closedNotchSize.width)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                vm.close()
+                            }
+                        }
+                }
             }
 
             HStack(spacing: 4) {
