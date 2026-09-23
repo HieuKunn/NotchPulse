@@ -1,9 +1,9 @@
 # NotchPulse v4.7.8
 
-## 🏝️ Apple Physical Notch Calibration, Instant Animations & Polish
-- **Calibrated to Physical Notch**: The Face ID drop-down overlay width and proportions are now precisely matched to Apple's real hardware notch on both Notch and Dynamic Island styles, ensuring it never looks smaller than the physical cutout.
-- **Instant Zero-Delay Face ID Icon**: The Face ID icon appears instantaneously at 0ms upon hover, eliminating any blank black frames.
-- **Animated Searching Face**: Displays the animated Face ID face looking around while actively scanning, smoothly branching into a green checkmark upon match, head-shake on failure, or gentle auto-collapse if no one is detected.
-- **Harmonized Open Margins**: Balanced inner horizontal and bottom padding on Open Notch so album art and player controls have the exact same generous black border clearance as Dynamic Island.
-- **Compact Lock Screen Resting Size**: When locked or after waking up, both the Notch and Dynamic Island stay at their smallest, cleanest resting dimensions without expanding sideways.
-- **Smart Display Restoration**: When Face ID finishes scanning or stops on the lock screen, NotchPulse automatically restores back to your chosen display, only switching over to the camera display when actively hovering to unlock.
+## 🏝️ Authentic Face ID Drop-Down, Instant Display & Physical Notch Precision
+- **Instant Face ID Icon (0ms)**: The Face ID face now appears instantaneously the moment the notch drops down, eliminating blank black boxes with native high-resolution image rendering.
+- **Universal macOS Image Compatibility**: Full multi-format asset pipeline ensures Face ID icons display with crystal-clear fidelity across all Mac models and display scaling modes.
+- **Unobstructed Lock Screen Unlock**: Resolved lock-screen occlusion logic so Face ID drops down smoothly and without hindrance when waking up your Mac.
+- **Continuous Searching Animation**: While looking for your face, the Face ID animation continuously looks around and transitions smoothly into a green checkmark upon match, head-shake on retry, or gentle close when idle.
+- **Calibrated Hardware Notch Proportions**: Expanded drop-down footprints (216×185pt on Notch, 185×175pt on Dynamic Island) precisely match Apple's real hardware notch aesthetics.
+- **Harmonized Margins & Resting Dimensions**: Balanced inner padding gives player controls and album art consistent border clearance, while maintaining the most compact resting size on lock screen and wake.

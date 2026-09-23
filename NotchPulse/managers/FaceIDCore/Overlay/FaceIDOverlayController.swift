@@ -399,7 +399,7 @@ final class FaceIDOverlayController {
             routeToCameraScreen()
             resolveTask?.cancel(); resolveTask = nil
             activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-            content = .scan(.idle)
+            content = .scan(.scanning)
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 phase = .scanning
             }

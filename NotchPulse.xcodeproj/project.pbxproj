@@ -81,6 +81,8 @@
 		11FA00022E80E27000EC13B2 /* unlockanimation.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 11FA00012E80E27000EC13B2 /* unlockanimation.mp4 */; };
 		11FA00042E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 11FA00032E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 */; };
 		11FA00062E80E27000EC13B2 /* unlockstatic.png in Resources */ = {isa = PBXBuildFile; fileRef = 11FA00052E80E27000EC13B2 /* unlockstatic.png */; };
+		11FA000E2E80E27000EC13B2 /* unlockstatic.tiff in Resources */ = {isa = PBXBuildFile; fileRef = 11FA000D2E80E27000EC13B2 /* unlockstatic.tiff */; };
+		11FA00102E80E27000EC13B2 /* unlockstatic.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 11FA000F2E80E27000EC13B2 /* unlockstatic.pdf */; };
 		11FA00082E80E27000EC13B2 /* idleanimation.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 11FA00072E80E27000EC13B2 /* idleanimation.mp4 */; };
 		11FA000A2E80E27000EC13B2 /* ScanAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA00092E80E27000EC13B2 /* ScanAnimationView.swift */; };
 		11FA000B2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */; };
@@ -337,6 +339,8 @@
 		11FA00012E80E27000EC13B2 /* unlockanimation.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = unlockanimation.mp4; sourceTree = "<group>"; };
 		11FA00032E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = unsuccessfulunlockanimation.mp4; sourceTree = "<group>"; };
 		11FA00052E80E27000EC13B2 /* unlockstatic.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = unlockstatic.png; sourceTree = "<group>"; };
+		11FA000D2E80E27000EC13B2 /* unlockstatic.tiff */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = unlockstatic.tiff; sourceTree = "<group>"; };
+		11FA000F2E80E27000EC13B2 /* unlockstatic.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = unlockstatic.pdf; sourceTree = "<group>"; };
 		11FA00072E80E27000EC13B2 /* idleanimation.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = idleanimation.mp4; sourceTree = "<group>"; };
 		11FA00092E80E27000EC13B2 /* ScanAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanAnimationView.swift; sourceTree = "<group>"; };
 		11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleFaceIDGlyphView.swift; sourceTree = "<group>"; };
@@ -640,6 +644,8 @@
 				11FA00012E80E27000EC13B2 /* unlockanimation.mp4 */,
 				11FA00032E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 */,
 				11FA00052E80E27000EC13B2 /* unlockstatic.png */,
+				11FA000D2E80E27000EC13B2 /* unlockstatic.tiff */,
+				11FA000F2E80E27000EC13B2 /* unlockstatic.pdf */,
 				11FA00072E80E27000EC13B2 /* idleanimation.mp4 */,
 			);
 			path = Resources;
@@ -1201,6 +1207,8 @@
 				11FA00022E80E27000EC13B2 /* unlockanimation.mp4 in Resources */,
 				11FA00042E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 in Resources */,
 				11FA00062E80E27000EC13B2 /* unlockstatic.png in Resources */,
+				11FA000E2E80E27000EC13B2 /* unlockstatic.tiff in Resources */,
+				11FA00102E80E27000EC13B2 /* unlockstatic.pdf in Resources */,
 				11FA00082E80E27000EC13B2 /* idleanimation.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1425,7 +1433,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 125;
+				CURRENT_PROJECT_VERSION = 126;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
@@ -1450,7 +1458,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 125;
+				CURRENT_PROJECT_VERSION = 126;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
@@ -1604,7 +1612,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 125;
+				CURRENT_PROJECT_VERSION = 126;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1658,7 +1666,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 125;
+				CURRENT_PROJECT_VERSION = 126;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";

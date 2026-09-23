@@ -297,9 +297,9 @@ struct ContentView: View {
                         .horizontal,
                         (vm.notchState == .open)
                         ? 14
-                        : (isDynamicIsland
-                            ? (isFaceIDContentVisible ? 0 : 8)
-                            : (isFaceIDContentVisible ? 0 : 17))
+                        : (isFaceIDActive || isFaceIDContentVisible
+                            ? 0
+                            : (isDynamicIsland ? 8 : 17))
                     )
                     .padding(.bottom, (vm.notchState == .open) ? 12 : 0)
                     .background(.black)
@@ -533,11 +533,11 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
-                } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
+                } else if !isFaceIDActive && NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
                     Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: vm.effectiveClosedNotchHeight)
                 } else {
                     ZStack {
-                        if !isFaceIDContentVisible {
+                        if !isFaceIDActive && !isFaceIDContentVisible {
                             Group {
                                 if !NotchPulseLockMonitor.isScreenActuallyLocked() && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                     InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
@@ -562,12 +562,12 @@ struct ContentView: View {
                             .transition(.opacity)
                         }
 
-                        if isFaceIDContentActive || isFaceIDContentVisible {
+                        if isFaceIDActive || isFaceIDContentVisible {
                             FaceIDContentView()
                         }
                     }
 
-                      if coordinator.sneakPeek.show {
+                      if coordinator.sneakPeek.show && !isFaceIDActive {
                           if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
                               SystemEventIndicatorModifier(
                                   eventType: $coordinator.sneakPeek.type,
@@ -604,7 +604,7 @@ struct ContentView: View {
                       }
                   }
               }
-              .conditionalModifier((coordinator.sneakPeek.show && (coordinator.sneakPeek.type == .music) && vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard) || (coordinator.sneakPeek.show && (coordinator.sneakPeek.type != .music) && (vm.notchState == .closed))) { view in
+              .conditionalModifier(!isFaceIDActive && ((coordinator.sneakPeek.show && (coordinator.sneakPeek.type == .music) && vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard) || (coordinator.sneakPeek.show && (coordinator.sneakPeek.type != .music) && (vm.notchState == .closed)))) { view in
                   view
                       .fixedSize()
               }
