@@ -68,16 +68,6 @@ struct SettingsView: View {
                 NavigationLink(value: "About") {
                     Label("About", systemImage: "info.circle")
                 }
-
-                Section {
-                    Button(role: .destructive) {
-                        (NSApp.delegate as? AppDelegate)?.quitApplication() ?? exit(0)
-                    } label: {
-                        Label("Quit NotchPulse", systemImage: "power")
-                            .foregroundStyle(.red)
-                    }
-                    .buttonStyle(.plain)
-                }
             }
             .listStyle(SidebarListStyle())
             .tint(.effectiveAccent)

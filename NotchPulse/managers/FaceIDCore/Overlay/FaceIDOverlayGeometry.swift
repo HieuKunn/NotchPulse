@@ -11,9 +11,9 @@ import Defaults
 import SwiftUI
 
 struct FaceIDOverlayGeometry {
-    /// Shared interactive spring for morphing animations matching NotchPulse's native pop-notch spring.
-    static let springAnimation = Animation.spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0)
-    static let closeSpringAnimation = Animation.spring(response: 0.30, dampingFraction: 1.0, blendDuration: 0)
+    /// Shared interactive spring matching Glance NotchGeometry springs
+    static let springAnimation = Animation.spring(response: openSpringResponse, dampingFraction: openSpringDamping, blendDuration: 0)
+    static let closeSpringAnimation = Animation.spring(response: closeSpringResponse, dampingFraction: closeSpringDamping, blendDuration: 0)
 
     /// Physical notch's own dimensions, or `pillClosedSize`.
     let closedSize: CGSize
@@ -25,14 +25,14 @@ struct FaceIDOverlayGeometry {
         Defaults[.notchStyle] == .dynamicIsland ? .pill : .notch
     }
 
-    /// Shortened drop-down footprint for notch style, sized to comfortably fit the 80%-scaled animation with clearance for physical notch.
-    static let notchOpenSize = CGSize(width: 140, height: 142)
+    /// Fixed footprint of expanded scan-mode content in notch style matching Glance.
+    static let notchOpenSize = CGSize(width: 220, height: 200)
 
-    /// Corner radii matching NotchPulse's native cornerRadiusInsets.
-    static let closedTopRadius: CGFloat = 6
-    static let closedBottomRadius: CGFloat = 14
-    static let openTopRadius: CGFloat = 19
-    static let openBottomRadius: CGFloat = 24
+    /// Corner radii matching Glance.
+    static let closedTopRadius: CGFloat = 8
+    static let closedBottomRadius: CGFloat = 12
+    static let openTopRadius: CGFloat = 16
+    static let openBottomRadius: CGFloat = 60
 
     /// A shape drawn in a rect of width `w` has a visible body of `w - 2 * topRadius`;
     /// zero in pill style, which has no flare.
@@ -42,21 +42,17 @@ struct FaceIDOverlayGeometry {
 
     // MARK: - Pill style (Dynamic Island)
 
-    /// Resting capsule size matching NotchPulse's Dynamic Island (matching closed notch / compact Face ID width)
-    @MainActor
-    static var pillClosedSize: CGSize {
-        let notch = getClosedNotchSize()
-        return CGSize(width: 140, height: max(32, notch.height))
-    }
+    /// Resting capsule size matching Glance pill closed size
+    static let pillClosedSize = CGSize(width: 80, height: 24)
 
-    /// Shortened drop-down footprint for dynamic island, sized to comfortably fit the 80%-scaled animation.
-    static let pillOpenSize = CGSize(width: 140, height: 135)
+    /// Expanded footprint matching Glance pill open size
+    static let pillOpenSize = CGSize(width: 180, height: 180)
 
     /// Pinned to NotchPulse's active dynamic island top offset.
     static var pillTopGap: CGFloat { Defaults[.dynamicIslandTopOffset] }
 
-    /// Continuous corner radius matching NotchPulse's open island (26pt).
-    static let pillOpenCornerRadius: CGFloat = 26
+    /// Continuous corner radius matching Glance (48pt).
+    static let pillOpenCornerRadius: CGFloat = 48
 
     /// Blur applied to the whole panel while off-screen, resolving to zero as it slides into place.
     static let pillEnterBlur: CGFloat = 0
@@ -65,21 +61,21 @@ struct FaceIDOverlayGeometry {
     /// radius, and without this margin the parked pill smears a faint band at the screen top.
     static let pillOffscreenSlack: CGFloat = 20
 
-    /// Pill's equivalent of `notchContentPadding*` below, independent so it can be tuned separately.
-    static let pillContentPaddingTop: CGFloat = 0
-    static let pillContentPaddingLeading: CGFloat = 0
-    static let pillContentPaddingTrailing: CGFloat = 0
-    static let pillContentPaddingBottom: CGFloat = 0
+    /// Pill's equivalent of `notchContentPadding*` matching Glance.
+    static let pillContentPaddingTop: CGFloat = 32
+    static let pillContentPaddingLeading: CGFloat = 32
+    static let pillContentPaddingTrailing: CGFloat = 32
+    static let pillContentPaddingBottom: CGFloat = 32
 
-    // MARK: - Panel open/close springs — EDIT HERE
+    // MARK: - Panel open/close springs matching Glance
     //
     // Shared by both styles. Opening overshoots slightly; closing is critically damped.
-    static let openSpringResponse: Double = 0.28
-    static let openSpringDamping: Double = 0.78
-    static let closeSpringResponse: Double = 0.30
+    static let openSpringResponse: Double = 0.45
+    static let openSpringDamping: Double = 0.7
+    static let closeSpringResponse: Double = 0.45
     static let closeSpringDamping: Double = 1.0
 
-    // MARK: - Pill enter/exit choreography — EDIT HERE
+    // MARK: - Pill enter/exit choreography
     //
     // Style `.pill` only. Slide and expansion run on independent timelines:
     // enter slides first then grows; exit shrinks first then slides away.
@@ -87,51 +83,50 @@ struct FaceIDOverlayGeometry {
     /// Ease-out rather than a spring — a straight-line move, not a bouncy resize.
     static let pillSlideDuration: Double = 0.25
     /// Expansion starts this long after the slide begins.
-    static let pillEnterExpansionDelay: Double = 0.0
+    static let pillEnterExpansionDelay: Double = 0.16
     /// Slide starts this long after the shrink begins.
-    static let pillExitSlideDelay: Double = 0.0
+    static let pillExitSlideDelay: Double = 0.18
 
-    // MARK: - Minimal unlock style — EDIT HERE
+    // MARK: - Minimal unlock style
     //
     // `UnlockAnimationStyle.minimal`: the silhouette widens only, revealing a lock
     // icon on one side and the unlock video on the other. See FaceIDMinimalUnlockView.
 
-    /// Total notch body width is `geometry.closedSize.width + 2 * this`. Window is
-    /// ~434pt wide (see `windowSize(for:)`), so much past 100 will start to clip.
-    static let minimalNotchFlankWidth: CGFloat = 34
+    /// Total notch body width is `geometry.closedSize.width + 2 * this`.
+    static let minimalNotchFlankWidth: CGFloat = 42
 
     /// Taller than `pillClosedSize.height` for legibility; radius stays `height / 2`
     /// so it remains a true capsule while stretching.
-    static let minimalPillOpenWidth: CGFloat = 140
-    static let minimalPillOpenHeight: CGFloat = 32
+    static let minimalPillOpenWidth: CGFloat = 150
+    static let minimalPillOpenHeight: CGFloat = 40
 
-    /// Zero chin bump — follows NotchPulse's inline notch height without protruding below it.
-    static let minimalNotchHeightBump: CGFloat = 0
+    /// Extra height added only in notch style.
+    static let minimalNotchHeightBump: CGFloat = 12
 
-    /// Radii matching NotchPulse closed notch (6/14).
-    static let minimalNotchTopRadius: CGFloat = 6
-    static let minimalNotchBottomRadius: CGFloat = 14
+    /// Radii matching Glance minimal notch.
+    static let minimalNotchTopRadius: CGFloat = 12
+    static let minimalNotchBottomRadius: CGFloat = 22
 
     /// In notch style the flare already occupies `topRadius` of this margin.
     static let minimalContentEdgeInset: CGFloat = 4
 
     /// Point size of the lock glyph, pill style (and the shared fallback).
-    static let minimalLockIconSize: CGFloat = 13
+    static let minimalLockIconSize: CGFloat = 14
     /// The video is square and aspect-fit.
-    static let minimalMediaWidth: CGFloat = 28
+    static let minimalMediaWidth: CGFloat = 34
     /// Vertical inset so the video aligns nicely with the lock icon.
-    static let minimalMediaVerticalInset: CGFloat = 4
+    static let minimalMediaVerticalInset: CGFloat = 8
 
-    /// Notch-style counterparts matching inline notch height.
-    static let minimalNotchLockIconSize: CGFloat = 13
-    static let minimalNotchMediaWidth: CGFloat = 28
-    static let minimalNotchMediaVerticalInset: CGFloat = 4
+    /// Notch-style counterparts matching Glance.
+    static let minimalNotchLockIconSize: CGFloat = 16
+    static let minimalNotchMediaWidth: CGFloat = 40
+    static let minimalNotchMediaVerticalInset: CGFloat = 11
 
     /// So the lock glyph can be nudged to land with the video's own resolve beat.
     static let minimalLockUnlockDelay: Double = 0
     static let minimalLockAnimationDuration: Double = 0.4
 
-    // MARK: - Scan "breathing" pulse — EDIT HERE
+    // MARK: - Scan "breathing" pulse matching Glance
     //
     // While `.scanning`, content ping-pongs between full size/opacity and
     // `scanPulseScale`/`scanPulseOpacity` so the panel reads as searching, not frozen.
@@ -151,13 +146,13 @@ struct FaceIDOverlayGeometry {
 
     /// Wait before the first pulse cycle so breathing starts only once the panel has
     /// finished expanding. Hand-tuned approximation — springs have no hard end time.
-    static let scanPulseStartDelay: Double = 0.0
+    static let scanPulseStartDelay: Double = 0.6
 
-    /// Notch-style padding around scan-mode content, shifting down to clear the physical MacBook notch.
-    static let notchContentPaddingTop: CGFloat = 22
-    static let notchContentPaddingLeading: CGFloat = 0
-    static let notchContentPaddingTrailing: CGFloat = 0
-    static let notchContentPaddingBottom: CGFloat = 0
+    /// Notch-style padding around scan-mode content matching Glance.
+    static let notchContentPaddingTop: CGFloat = 26
+    static let notchContentPaddingLeading: CGFloat = 40
+    static let notchContentPaddingTrailing: CGFloat = 40
+    static let notchContentPaddingBottom: CGFloat = 30
 
     /// Cosmetic size bump applied on hover in FaceIDOverlayView. Included here so the
     /// fixed window has margin for it instead of clipping.

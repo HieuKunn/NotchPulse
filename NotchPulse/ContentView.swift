@@ -292,7 +292,6 @@ struct ContentView: View {
                             ? (isFaceIDContentVisible ? 0 : 8)
                             : (isFaceIDContentVisible ? 0 : 17))
                     )
-                    .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland && !hasPhysicalNotch) { view in

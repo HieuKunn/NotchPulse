@@ -47,8 +47,21 @@ struct IntroStepView: View {
 
 private struct NotchPulseLogoView: View {
     var body: some View {
-        // Video already bakes in its own white rounded-card background — no extra chrome needed.
-        LoopingVideoView(resourceName: "logoanimation")
+        if Bundle.main.url(forResource: "logoanimation", withExtension: "mp4") != nil {
+            LoopingVideoView(resourceName: "logoanimation")
+        } else if Bundle.main.url(forResource: "idleanimation", withExtension: "mp4") != nil {
+            LoopingVideoView(resourceName: "idleanimation")
+        } else if let appIcon = NSImage(named: "AppIcon") {
+            Image(nsImage: appIcon)
+                .resizable()
+                .scaledToFit()
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+        } else {
+            Image(systemName: "teddybear.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(Color.effectiveAccent)
+        }
     }
 }
 

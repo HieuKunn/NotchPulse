@@ -242,7 +242,7 @@ struct FaceIDOverlayView: View {
                 .padding(.trailing, scanContentPaddingTrailing)
                 .padding(.top, scanContentPaddingTop)
                 .padding(.bottom, scanContentPaddingBottom)
-                .scaleEffect(isScanning ? (0.80 * scanPulseScale) : 0.80)
+                .scaleEffect(isScanning ? scanPulseScale : 1.0)
                 .opacity(isScanning ? scanPulseOpacity : 1.0)
         }
     }

@@ -1,3 +1,10 @@
+# NotchPulse v4.7.5
+
+## 🔒 Authentic Glance-Parity Face ID & Layout Polish
+- **1:1 Glance Parity Face ID**: Rewrote the Face ID scanning layer to match Glance's authentic architecture with zero decode latency. Uses instant CALayer still rendering at rest and breathing pulse (`unlockstatic.png`), transitioning into the smooth green checkmark animation (`unlockanimation.mp4`) upon successful match.
+- **Harmonized Open Margins**: Refined horizontal and bottom padding across Notch and Dynamic Island open states to ensure consistent, balanced borders without redundant spacing.
+- **Clean Settings Sidebar**: Removed the redundant Quit button from the left navigation sidebar while keeping the dedicated "Quit app" button in the top-right header bar.
+
 # NotchPulse v4.7.4
 
 ## 🧸 New Teddy Bear Menu Icon & Reliable Controls
