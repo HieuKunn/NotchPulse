@@ -5,14 +5,13 @@
         <link>https://github.com/HieuKunn/NotchPulse</link>
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
-
         <item>
             <title>4.6.5</title>
             <pubDate>Wed, 23 Sep 2026 20:25:00 +0700</pubDate>
             <sparkle:version>108</sparkle:version>
             <sparkle:shortVersionString>4.6.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.6.5/NotchPulse.app.zip" length="23073893" type="application/octet-stream" sparkle:edSignature="dunk1FXxtev4KvwA07khlha0/OmBA9YEi8uEgXbZ8it2Uw9xjiHbJUEBm9l8B0KW4MiwqAMwNB0Bhz7cz8jMBw=="/>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.6.5/NotchPulse.app.zip" length="23072137" type="application/octet-stream" sparkle:edSignature="NWtLr3V3tnbMT1dfrX+4nzuAeouODssjCJv2lokzozowWSY9zbNwZFXf970e2z/cd5Fg5W5uagiz/betcB99CQ=="/>
         </item>
         <item>
             <title>4.6.4</title>
@@ -29,22 +28,6 @@
             <sparkle:shortVersionString>4.6.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.6.3/NotchPulse.app.zip" length="23075538" type="application/octet-stream" sparkle:edSignature="hD/IEqssvuXFHnntm97VJ3XPeTAIHH8KBouN0MaHwWZ3zRZ8EAVGpva+FB1ZlIDcta5nIhR0nFtJFbutAnL/Dg=="/>
-        </item>
-        <item>
-            <title>4.6.2</title>
-            <pubDate>Wed, 23 Sep 2026 15:15:00 +0700</pubDate>
-            <sparkle:version>103</sparkle:version>
-            <sparkle:shortVersionString>4.6.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.6.2/NotchPulse.app.zip" length="23073893" type="application/octet-stream" sparkle:edSignature="dunk1FXxtev4KvwA07khlha0/OmBA9YEi8uEgXbZ8it2Uw9xjiHbJUEBm9l8B0KW4MiwqAMwNB0Bhz7cz8jMBw=="/>
-        </item>
-        <item>
-            <title>4.6.1</title>
-            <pubDate>Wed, 23 Sep 2026 11:00:00 +0700</pubDate>
-            <sparkle:version>101</sparkle:version>
-            <sparkle:shortVersionString>4.6.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.6.1/NotchPulse.app.zip" length="23401563" type="application/octet-stream" sparkle:edSignature="W/yYo94482IM8I+ClxbDHRHmVbM3Nalu8X6cJm9Tce+fiLozvgLuxWCzsvCYYGMiPuZse+v3PbLzPumr9fS0CQ=="/>
         </item>
     </channel>
 </rss>
