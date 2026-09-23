@@ -77,7 +77,7 @@ struct SettingsView: View {
             VStack(spacing: 0) {
                 SettingsDetailHeaderBar(
                     title: tabTitle(for: selectedTab),
-                    showQuitButton: selectedTab == "General"
+                    showQuitButton: true
                 )
 
                 ZStack(alignment: .top) {

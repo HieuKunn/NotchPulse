@@ -44,8 +44,8 @@ struct ContentView: View {
 
     // Shared interactive spring for movement/resizing to avoid conflicting animations
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
-    private let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
-    private let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+    private let openAnimation = Animation.spring(response: FaceIDOverlayGeometry.openSpringResponse, dampingFraction: FaceIDOverlayGeometry.openSpringDamping, blendDuration: 0)
+    private let closeAnimation = Animation.spring(response: FaceIDOverlayGeometry.closeSpringResponse, dampingFraction: FaceIDOverlayGeometry.closeSpringDamping, blendDuration: 0)
     private var faceIDAnimation: Animation {
         let isFaceIDOpening = isFaceIDActive && faceIDOverlay.phase != .collapsing && faceIDOverlay.phase != .closed
         return isFaceIDOpening ? openAnimation : closeAnimation

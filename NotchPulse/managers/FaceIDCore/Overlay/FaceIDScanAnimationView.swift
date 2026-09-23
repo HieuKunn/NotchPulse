@@ -76,6 +76,7 @@ final class FaceIDScanAnimationHostView: NSView {
     private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
     private var loopObserver: NSObjectProtocol?
+    private var fallbackRevealWorkItem: DispatchWorkItem?
 
     override init(frame frameRect: NSRect) {
         let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
@@ -165,14 +166,14 @@ final class FaceIDScanAnimationHostView: NSView {
             return
         }
 
-        // Keep backdrop frame while immediately unhiding player layer so video starts with zero delay
+        // Keep still image layer visible while player prepares in background, exactly like Glance
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if let frame = Self.firstFrame(for: resource) {
             stillImageLayer.contents = frame
         }
         stillImageLayer.isHidden = false
-        playerLayer.isHidden = false
+        playerLayer.isHidden = true
         CATransaction.commit()
 
         teardownPlayer()
@@ -195,16 +196,27 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
+        let reveal: () -> Void = { [weak self] in
+            guard let self else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            self.playerLayer.isHidden = false
+            self.stillImageLayer.isHidden = true
+            CATransaction.commit()
+        }
+
         readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
             guard change.newValue == true else { return }
             DispatchQueue.main.async {
-                CATransaction.begin()
-                CATransaction.setDisableActions(true)
-                self?.stillImageLayer.isHidden = true
-                CATransaction.commit()
+                self?.fallbackRevealWorkItem?.cancel()
+                reveal()
                 self?.readyObservation = nil
             }
         }
+
+        let fallback = DispatchWorkItem { reveal() }
+        fallbackRevealWorkItem = fallback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: fallback)
 
         newPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
         newPlayer.play()
@@ -212,6 +224,8 @@ final class FaceIDScanAnimationHostView: NSView {
 
     private func teardownPlayer() {
         readyObservation = nil
+        fallbackRevealWorkItem?.cancel()
+        fallbackRevealWorkItem = nil
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
             loopObserver = nil
