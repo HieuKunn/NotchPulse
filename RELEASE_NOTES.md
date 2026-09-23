@@ -1,10 +1,10 @@
-# NotchPulse v4.6.1
+# NotchPulse v4.6
 
-## 📁 Shelf & Drag Detection
-- **Adjustable Drag Reach**: Added a customizable drag hover expansion slider in Settings. The notch now opens smoothly well before your cursor reaches the very top screen edge, avoiding conflicts with macOS top-edge window tiling and full-screen triggers.
-- **Refined Border & Visual Polish**: Fixed edge clipping on the Shelf and file drop areas with perfectly rounded dashed borders and balanced interior padding.
-- **Direct Native AirDrop**: Dropping files onto AirDrop launches the native macOS AirDrop transfer sheet directly.
+## 🪟 Fluid Pop-Down Face ID Experience
+- **Organic Notch Pop-Down**: Face ID scanning now smoothly and beautifully springs open directly from inside the physical MacBook notch (or Dynamic Island pill), perfectly matching NotchPulse's signature fluid spring physics.
+- **Goodbye Pop-In Artifacts**: Eliminated the jarring sudden black box appearance on screen wake and hover. The silhouette morphs gracefully from resting notch height to the scanning view.
+- **Top-Anchor Reveal & Retraction**: Visual scanning elements gently drop down from the camera cutout and retract seamlessly back into the notch once authentication completes.
 
-## 🖥️ Multi-Display & External Monitors
-- **Persistent Display Preference**: Fixed an issue where the notch could automatically reset back to the MacBook display after waking from sleep or locking your Mac with an external display connected.
-- **Reliable Reconnection**: Your chosen screen is remembered reliably, ensuring the notch instantly reappears on your preferred monitor when it wakes up.
+## ⚡ Instant Response on Wake & Hover
+- **Zero-Latency Visual Feedback**: The notch immediately springs into action the instant you wake your Mac or hover your cursor over the notch, initializing the camera in parallel with zero hesitation.
+- **Lock Screen Hover Fluidity**: Hovering over the notch on the lock screen responds right away with an immediate fluid pop-down scan attempt.
