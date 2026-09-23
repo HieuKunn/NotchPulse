@@ -103,8 +103,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         streamTask?.cancel()
         
         if let pipeHandler = self.pipeHandler {
-            Task { await pipeHandler.close()
-            }
+            Task { await pipeHandler.close() }
         }
         
         if let process = self.process {

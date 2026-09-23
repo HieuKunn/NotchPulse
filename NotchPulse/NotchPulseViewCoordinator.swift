@@ -151,6 +151,8 @@ class NotchPulseViewCoordinator: ObservableObject {
 
                             if granted {
                                 await MediaKeyInterceptor.shared.start()
+                            } else {
+                                Defaults[.hudReplacement] = false
                             }
                         }
                     } else {
@@ -163,28 +165,27 @@ class NotchPulseViewCoordinator: ObservableObject {
             helloAnimationRunning = firstLaunch
 
             if Defaults[.hudReplacement] {
-                // Retry a few times to allow the XPC helper to initialize before checking authorization.
+                // Retry a few times to allow the XPC helper connection to warm up before checking authorization.
                 var authorized = false
                 for _ in 0..<5 {
                     authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
                     if authorized { break }
-                    try? await Task.sleep(for: .milliseconds(500))
+                    try? await Task.sleep(for: .milliseconds(300))
                 }
                 if authorized {
                     await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
                 }
-                // Note: intentionally NOT resetting hudReplacement to false here —
-                // the interceptor not starting just means media keys fall back to system behavior,
-                // which is fine. Resetting the setting would break inline HUD display.
             }
         }
     }
     
     @objc func sneakPeekEvent(_ notification: Notification) {
+        guard let data = notification.userInfo?.first?.value as? Data else {
+            print("Failed to extract Data from sneakPeek notification")
+            return
+        }
         let decoder = JSONDecoder()
-        if let decodedData = try? decoder.decode(
-            SharedSneakPeek.self, from: notification.userInfo?.first?.value as! Data)
-        {
+        if let decodedData = try? decoder.decode(SharedSneakPeek.self, from: data) {
             let contentType =
                 decodedData.type == "brightness"
                 ? SneakContentType.brightness

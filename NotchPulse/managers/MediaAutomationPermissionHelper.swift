@@ -13,8 +13,8 @@ import AppKit
 enum MediaAutomationPermissionHelper {
     static func requestAllPermissions() {
         DispatchQueue.global(qos: .userInitiated).async {
-            requestPermission(for: "com.spotify.client")
-            requestPermission(for: "com.apple.Music")
+            _ = requestPermission(for: "com.spotify.client")
+            _ = requestPermission(for: "com.apple.Music")
         }
     }
 
@@ -34,31 +34,27 @@ enum MediaAutomationPermissionHelper {
         if UserDefaults.standard.bool(forKey: "MediaSyncConfirmed") {
             return true
         }
-        let scriptSource = "tell application id \"com.apple.Music\" to return"
-        if let script = NSAppleScript(source: scriptSource) {
-            var err: NSDictionary?
-            script.executeAndReturnError(&err)
-            if err == nil {
-                UserDefaults.standard.set(true, forKey: "MediaSyncConfirmed")
-                return true
-            }
-        }
-        let spScript = "tell application id \"com.spotify.client\" to return"
-        if let script = NSAppleScript(source: spScript) {
-            var err: NSDictionary?
-            script.executeAndReturnError(&err)
-            if err == nil {
-                UserDefaults.standard.set(true, forKey: "MediaSyncConfirmed")
-                return true
-            }
-        }
         return false
     }
 
     @discardableResult
     static func requestPermission(for bundleIdentifier: String) -> Bool {
-        // Executing a dummy AppleScript targeted at the bundle ID is the most reliable way 
-        // to force macOS to display the Automation permission prompt to the user.
+        var targetDesc = AEDesc()
+        guard let bundleIDData = bundleIdentifier.data(using: .utf8) else { return false }
+        
+        let createStatus = bundleIDData.withUnsafeBytes { ptr in
+            AECreateDesc(typeApplicationBundleID, ptr.baseAddress, bundleIDData.count, &targetDesc)
+        }
+        
+        if createStatus == noErr {
+            let permStatus = AEDeterminePermissionToAutomateTarget(&targetDesc, typeWildCard, typeWildCard, true)
+            AEDisposeDesc(&targetDesc)
+            if permStatus == noErr {
+                UserDefaults.standard.set(true, forKey: "MediaSyncConfirmed")
+                return true
+            }
+        }
+        
         let scriptSource = "tell application id \"\(bundleIdentifier)\" to return"
         guard let script = NSAppleScript(source: scriptSource) else { return false }
         
@@ -69,6 +65,7 @@ enum MediaAutomationPermissionHelper {
             print("[AutomationPermission] Request for \(bundleIdentifier) failed/denied: \(error)")
             return false
         }
+        UserDefaults.standard.set(true, forKey: "MediaSyncConfirmed")
         return true
     }
 }

@@ -36,6 +36,9 @@ build/
 *.tmp
 *.log
 
+# Reference
+boring.notch-main/
+
 # Other
 *.DS_Store
 *.vscode/

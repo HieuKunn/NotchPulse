@@ -719,7 +719,6 @@ struct GeneralSettings: View {
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil)
                 }
-
             }
         } header: {
             Text("Notch behavior")
@@ -1064,6 +1063,8 @@ struct Media: View {
     @Default(.sneakPeekStyles) var sneakPeekStyles
 
     @Default(.enableLyrics) var enableLyrics
+    @State private var isSyncing: Bool = false
+    @State private var isMusicSyncConfirmed: Bool = MediaAutomationPermissionHelper.isSyncConfirmed()
 
     var body: some View {
         Form {
@@ -1150,11 +1151,33 @@ struct Media: View {
                     }
                 }
                 Button {
-                    MediaAutomationPermissionHelper.requestAllPermissions()
+                    Task {
+                        isSyncing = true
+                        let confirmed = await MediaAutomationPermissionHelper.requestAndVerify()
+                        await MainActor.run {
+                            isMusicSyncConfirmed = confirmed
+                            isSyncing = false
+                        }
+                    }
                 } label: {
-                    Label("Sync Music Permissions (Spotify & Apple Music)", systemImage: "arrow.triangle.2.circlepath")
+                    HStack(spacing: 6) {
+                        if isSyncing {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Syncing Permissions...")
+                        } else if isMusicSyncConfirmed {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("Music Permissions Synced (Spotify & Apple Music)")
+                                .foregroundStyle(.green)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text("Sync Music Permissions (Spotify & Apple Music)")
+                        }
+                    }
                 }
                 .buttonStyle(.bordered)
+                .disabled(isSyncing)
             } header: {
                 Text("Media controls")
             }  footer: {
@@ -1162,6 +1185,9 @@ struct Media: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        }
+        .onAppear {
+            isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
         }
         .accentColor(.effectiveAccent)
     }
@@ -1404,8 +1430,8 @@ struct Shelf: View {
                     )
                 }
                 if expandedDragDetection {
-                    Slider(value: $dragDetectionPadding, in: 0...160, step: 5) {
-                        Text("Drag distance from notch - \(dragDetectionPadding, specifier: "%.0f") px")
+                    Slider(value: $dragDetectionPadding, in: 10...120, step: 5) {
+                        Text("Drag hover expansion - \(dragDetectionPadding, specifier: "%.0f") px")
                     }
                     .onChange(of: dragDetectionPadding) {
                         NotificationCenter.default.post(
@@ -1413,7 +1439,7 @@ struct Shelf: View {
                             object: nil
                         )
                     }
-                    Text("Opens the shelf when a file is dragged within this distance of the closed notch.")
+                    Text("Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -1885,6 +1911,7 @@ struct Appearance: View {
 struct Advanced: View {
     @Default(.useCustomAccentColor) var useCustomAccentColor
     @Default(.customAccentColorData) var customAccentColorData
+    @Default(.extendHoverArea) var extendHoverArea
     @Default(.showOnLockScreen) var showOnLockScreen
     @Default(.hideFromScreenRecording) var hideFromScreenRecording
     
@@ -2085,6 +2112,9 @@ struct Advanced: View {
             }
             
             Section {
+                Defaults.Toggle(key: .extendHoverArea) {
+                    Text("Extend hover area")
+                }
                 Defaults.Toggle(key: .hideTitleBar) {
                     Text("Hide title bar")
                 }

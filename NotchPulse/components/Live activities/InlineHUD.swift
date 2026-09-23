@@ -17,7 +17,7 @@ struct InlineHUD: View {
     @Binding var hoverAnimation: Bool
     @Binding var gestureProgress: CGFloat
     var body: some View {
-        HStack(spacing: 8) {
+        HStack {
             HStack(spacing: 5) {
                 Group {
                     switch (type) {
@@ -81,8 +81,11 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .frame(width: 76, height: vm.notchSize.height - (hoverAnimation ? 0 : 12), alignment: .leading)
-            .layoutPriority(1)
+            .frame(width: 100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2, height: max(0, vm.effectiveClosedNotchHeight - (hoverAnimation ? 0 : 12)), alignment: .leading)
+            
+            Rectangle()
+                .fill(.black)
+                .frame(width: vm.closedNotchSize.width - 20)
             
             HStack {
                 if (type == .mic) {
@@ -90,7 +93,6 @@ struct InlineHUD: View {
                         .foregroundStyle(.gray)
                         .lineLimit(1)
                         .allowsTightening(true)
-                        .minimumScaleFactor(0.75)
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .contentTransition(.interpolate)
@@ -103,7 +105,6 @@ struct InlineHUD: View {
                                 BrightnessManager.shared.setAbsolute(value: Float32(v))
                             }
                         })
-                        .frame(minWidth: 0, maxWidth: .infinity)
                         if (type == .volume && value.isZero) {
                             Text("muted")
                                 .font(.caption)
@@ -111,7 +112,6 @@ struct InlineHUD: View {
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                                 .allowsTightening(true)
-                                .minimumScaleFactor(0.75)
                                 .multilineTextAlignment(.trailing)
                         } else if Defaults[.showClosedNotchHUDPercentage] {
                             Text("\(Int(value * 100))%")
@@ -120,18 +120,15 @@ struct InlineHUD: View {
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                                 .allowsTightening(true)
-                                .minimumScaleFactor(0.75)
                                 .multilineTextAlignment(.trailing)
                         }
                     }
                 }
             }
-            .frame(minWidth: 0, maxWidth: .infinity)
-            .frame(height: vm.closedNotchSize.height - (hoverAnimation ? 0 : 12), alignment: .center)
+            .padding(.trailing, 4)
+            .frame(width: 100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2, height: max(0, vm.effectiveClosedNotchHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
-        .padding(.horizontal, 8)
-        .frame(width: max(0, vm.closedNotchSize.width - 20), alignment: .center)
-        .frame(height: vm.closedNotchSize.height + (hoverAnimation ? 8 : 0), alignment: .center)
+        .frame(height: vm.effectiveClosedNotchHeight + (hoverAnimation ? 8 : 0), alignment: .center)
     }
     
     func SpeakerSymbol(_ value: CGFloat) -> String {

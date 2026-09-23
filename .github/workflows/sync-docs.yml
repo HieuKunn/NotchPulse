@@ -38,6 +38,7 @@ jobs:
           # Copy updated README, docs and appcast
           cp -f README.md pub_repo/README.md
           if [ -f "appcast.xml" ]; then cp -f appcast.xml pub_repo/appcast.xml; fi
+          if [ -f "RELEASE_NOTES.md" ]; then cp -f RELEASE_NOTES.md pub_repo/RELEASE_NOTES.md; fi
           if [ -f "LICENSE" ]; then cp -f LICENSE pub_repo/LICENSE; fi
 
           rm -rf pub_repo/docs
@@ -49,6 +50,10 @@ jobs:
           git add .
           git diff --quiet && git diff --staged --quiet || (
             git commit -m "docs: auto-sync README and landing page from main repo"
-            git push origin main
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              if git push origin main; then break; fi
+              if [ "$attempt" -eq 3 ]; then exit 1; fi
+            done
             echo "Đồng bộ thành công sang $PUBLIC_REPO!"
           )

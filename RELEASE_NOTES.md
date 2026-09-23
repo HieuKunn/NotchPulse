@@ -1,10 +1,16 @@
-# NotchPulse v4.6
+# NotchPulse v4.6.1
 
-## 🪟 Fluid Pop-Down Face ID Experience
-- **Organic Notch Pop-Down**: Face ID scanning now smoothly and beautifully springs open directly from inside the physical MacBook notch (or Dynamic Island pill), perfectly matching NotchPulse's signature fluid spring physics.
-- **Goodbye Pop-In Artifacts**: Eliminated the jarring sudden black box appearance on screen wake and hover. The silhouette morphs gracefully from resting notch height to the scanning view.
-- **Top-Anchor Reveal & Retraction**: Visual scanning elements gently drop down from the camera cutout and retract seamlessly back into the notch once authentication completes.
+## 🎛️ Refined Inline & Dropdown HUDs
+- **Seamless Notch HUDs**: Volume and brightness indicators now fluidly embrace the notch outline without any clipping or distortion.
+- **Reliable Startup Activation**: Volume and media HUD replacements now stay active automatically when launching NotchPulse without requiring toggle resets.
 
-## ⚡ Instant Response on Wake & Hover
-- **Zero-Latency Visual Feedback**: The notch immediately springs into action the instant you wake your Mac or hover your cursor over the notch, initializing the camera in parallel with zero hesitation.
-- **Lock Screen Hover Fluidity**: Hovering over the notch on the lock screen responds right away with an immediate fluid pop-down scan attempt.
+## 🏝️ Dynamic Island Mode Stability
+- **Smoother Floating Pill**: Fixed sizing and aspect ratio issues when running in Dynamic Island mode for external screens.
+- **Crash Prevention**: Resolved unexpected termination and memory issues when switching interface modes.
+
+## 🔒 Face ID Display Intelligence
+- **Precise Screen Placement**: Camera enrollment and Face ID setup reliably remain under the camera display instead of defaulting away.
+
+## 🎵 Responsive Music Sync & Clean App Exit
+- **Interactive Music Permission Sync**: Instant visual progress spinner and confirmation indicator when synchronizing Apple Music & Spotify access.
+- **Instant App Exit**: Fixed background process bottlenecks, ensuring NotchPulse quits immediately and smoothly without hanging.

@@ -11,24 +11,15 @@ import UniformTypeIdentifiers
 
 struct ShelfDropService {
     static func items(from providers: [NSItemProvider]) async -> [ShelfItem] {
-        guard !providers.isEmpty else { return [] }
+        var results: [ShelfItem] = []
 
-        // Process all providers concurrently instead of sequentially — a slow
-        // file-URL resolution on one provider no longer blocks the rest.
-        var results: [ShelfItem?] = Array(repeating: nil, count: providers.count)
-        await withTaskGroup(of: (Int, ShelfItem?).self) { group in
-            for (index, provider) in providers.enumerated() {
-                group.addTask {
-                    let item = await processProvider(provider)
-                    return (index, item)
-                }
-            }
-            for await (index, item) in group {
-                results[index] = item
+        for provider in providers {
+            if let item = await processProvider(provider) {
+                results.append(item)
             }
         }
-        // Preserve original drop order, skip providers that failed to resolve.
-        return results.compactMap { $0 }
+
+        return results
     }
     
     private static func processProvider(_ provider: NSItemProvider) async -> ShelfItem? {

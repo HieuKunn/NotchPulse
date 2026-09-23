@@ -39,9 +39,6 @@ jobs:
 
       - name: Resolve Swift Package Dependencies
         run: |
-          # A stale SwiftPM binary artifact can survive on the hosted runner and
-          # make resolution fail with "already exists in file system".
-          rm -rf "$HOME/Library/Caches/org.swift.swiftpm/artifacts/https___github_com_sparkle_project_Sparkle_releases_download_2.9.1_Sparkle_for_Swift_Package_Manager_zip"
           xcodebuild -resolvePackageDependencies -project NotchPulse.xcodeproj
 
       - name: Build App (Ad-Hoc Signing, No Paid Apple Cert Required)
@@ -251,23 +248,7 @@ jobs:
           git fetch --tags --unshallow || true
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -f "RELEASE_NOTES.md" ]; then
-            PLAIN_TAG="${TAG#v}"
-            awk -v heading="# NotchPulse v$PLAIN_TAG" '
-              $0 == heading { found=1; print; next }
-              found && /^# NotchPulse v/ { exit }
-              found { print }
-            ' RELEASE_NOTES.md > current_release_notes.md
-
-            if [ ! -s "current_release_notes.md" ]; then
-              echo "## 🚀 What's New in $TAG" > current_release_notes.md
-              echo "" >> current_release_notes.md
-              if [ -n "$PREV_TAG" ]; then
-                git log ${PREV_TAG}..HEAD --pretty=format:"- %s" >> current_release_notes.md
-              else
-                git log -n 5 --pretty=format:"- %s" >> current_release_notes.md
-              fi
-              echo "" >> current_release_notes.md
-            fi
+            cat RELEASE_NOTES.md > current_release_notes.md
           else
             echo "## 🚀 What's New in $TAG" > current_release_notes.md
             echo "" >> current_release_notes.md
@@ -295,6 +276,7 @@ jobs:
           # Copy Landing Page, README, and appcast.xml to public repo
           cp -f appcast.xml pub_repo/appcast.xml
           cp -f README.md pub_repo/README.md
+          if [ -f "RELEASE_NOTES.md" ]; then cp -f RELEASE_NOTES.md pub_repo/RELEASE_NOTES.md; fi
           if [ -f "LICENSE" ]; then cp -f LICENSE pub_repo/LICENSE; fi
           
           # Copy docs for GitHub Pages
@@ -307,7 +289,11 @@ jobs:
           git add .
           git diff --quiet && git diff --staged --quiet || (
             git commit -m "docs: Update landing page, README, and Sparkle appcast for release $TAG"
-            git push origin main
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              if git push origin main; then break; fi
+              if [ "$attempt" -eq 3 ]; then exit 1; fi
+            done
           )
           echo "Sync to $PUBLIC_REPO completed successfully!"
           cd ..

@@ -81,7 +81,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
-    private var dragOpenedScreens: Set<String> = []
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
@@ -189,15 +188,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             detector.stopMonitoring()
         }
         dragDetectors.removeAll()
-        dragOpenedScreens.removeAll()
     }
 
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        // Always set up detectors — even when expandedDragDetection is off we still need
-        // to intercept file drags reaching the notch area, otherwise macOS's own drag-to-top
-        // gesture fires Mission Control instead of opening the Shelf.
+        guard Defaults[.expandedDragDetection] else { return }
+
         if Defaults[.showOnAllDisplays] {
             for screen in NSScreen.screens {
                 setupDragDetectorForScreen(screen)
@@ -217,16 +214,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
         
         let screenFrame = screen.frame
-        let closedNotchSize = getClosedNotchSize(screenUUID: uuid)
-        let notchHeight = closedNotchSize.height
-        let notchWidth = closedNotchSize.width
-        // When expandedDragDetection is off use a small baseline padding (8 pt) so the
-        // detector still covers the notch without aggressively expanding the hit zone.
-        let padding = Defaults[.expandedDragDetection]
-            ? CGFloat(Defaults[.dragDetectionPadding])
-            : 8
+        let notchHeight = openNotchSize.height
+        let notchWidth = openNotchSize.width
+        let padding = CGFloat(Defaults[.dragDetectionPadding])
         
-        // Open the Shelf when the cursor reaches the closed notch plus padding.
+        // Create notch region at the top-center of the screen where an open notch would occupy,
+        // extended downwards and outwards by the user's configured reach padding
         let notchRegion = CGRect(
             x: screenFrame.midX - (notchWidth / 2 + padding),
             y: screenFrame.maxY - (notchHeight + padding),
@@ -241,51 +234,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleDragEntersNotchRegion(onScreen: screen)
             }
         }
-
-        detector.onDragExitsNotchRegion = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragExitsNotchRegion(onScreen: screen)
-            }
-        }
-
-        detector.onDragEnds = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragEnds(onScreen: screen)
-            }
-        }
         
         dragDetectors[uuid] = detector
         detector.startMonitoring()
     }
 
     private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
-        guard Defaults[.notchPulseShelf] else { return }
         guard let uuid = screen.displayUUID else { return }
         
         if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
             viewModel.open()
             coordinator.currentView = .shelf
-            dragOpenedScreens.insert(uuid)
-        } else if !Defaults[.showOnAllDisplays] {
+        } else if !Defaults[.showOnAllDisplays], let windowScreen = window?.screen, screen == windowScreen {
             vm.open()
             coordinator.currentView = .shelf
-            dragOpenedScreens.insert(uuid)
         }
-    }
-
-    private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
-        guard let uuid = screen.displayUUID, dragOpenedScreens.remove(uuid) != nil else { return }
-
-        if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-            viewModel.close()
-        } else if !Defaults[.showOnAllDisplays] {
-            vm.close()
-        }
-    }
-
-    private func handleDragEnds(onScreen screen: NSScreen) {
-        guard let uuid = screen.displayUUID else { return }
-        dragOpenedScreens.remove(uuid)
     }
 
     private func createNotchPulseWindow(for screen: NSScreen, with viewModel: NotchPulseViewModel) -> NSWindow {
@@ -615,13 +578,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            // 1. Prioritize user's preferred display if it is currently connected and active
-            if let preferredUUID = coordinator.preferredScreenUUID,
-               let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
+            // 1. Prioritize explicitly selected display (e.g. Face ID onboarding routed to camera display, or active selection)
+            if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
+                targetScreen = activeScreen
+            } else if let preferredUUID = coordinator.preferredScreenUUID,
+                      let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
                 coordinator.selectedScreenUUID = preferredUUID
                 targetScreen = preferredScreen
-            } else if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
-                targetScreen = activeScreen
             } else {
                 // The preferred display was disconnected or not found.
                 // Fall back gracefully so the notch never disappears!

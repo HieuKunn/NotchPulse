@@ -48,11 +48,8 @@ struct ContentView: View {
         let isFaceIDOpening = isFaceIDActive && faceIDOverlay.phase != .collapsing && faceIDOverlay.phase != .closed
         return isFaceIDOpening ? openAnimation : closeAnimation
     }
-    private var notchSizeAnimation: Animation {
-        vm.notchState == .open ? openAnimation : closeAnimation
-    }
 
-    private let closedNotchHoverPadding: CGFloat = 40
+    private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
 
     private var faceIDOverlay: FaceIDOverlayController {
@@ -180,12 +177,14 @@ struct ContentView: View {
         if isFaceIDActive {
             return targetFaceIDSize.width
         }
-        var chinWidth: CGFloat = vm.closedNotchSize.width
+        var chinWidth: CGFloat = (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillClosedSize.width : vm.closedNotchSize.width
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
+        } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
+            chinWidth += (2 * (100 - (isHovering ? 0 : 12)) - 20 + gestureProgress)
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
@@ -219,11 +218,17 @@ struct ContentView: View {
                         }
                         return FaceIDOverlayGeometry.pillOpenCornerRadius
                     }
-                    return vm.notchState == .open ? 26 : max(14, vm.effectiveClosedNotchHeight / 2)
+                    return vm.notchState == .open ? 26 : (isDynamicIsland ? FaceIDOverlayGeometry.pillClosedSize.height / 2 : max(14, vm.effectiveClosedNotchHeight / 2))
                 }()
 
+                let isDefaultHUDActive = coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
+                let baseClosedHeight: CGFloat = isDynamicIsland ? FaceIDOverlayGeometry.pillClosedSize.height : max(vm.effectiveClosedNotchHeight, 0)
                 let currentNotchWidth: CGFloat = isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth)
-                let currentNotchHeight: CGFloat = isFaceIDActive ? targetFaceIDSize.height : (vm.notchState == .open ? vm.notchSize.height : max(vm.effectiveClosedNotchHeight, 0))
+                let currentNotchHeight: CGFloat = isFaceIDActive 
+                    ? targetFaceIDSize.height 
+                    : (vm.notchState == .open 
+                        ? vm.notchSize.height 
+                        : (isDefaultHUDActive ? baseClosedHeight + 42 : baseClosedHeight))
 
                 let mainLayout = NotchLayout()
                     .frame(
@@ -278,12 +283,33 @@ struct ContentView: View {
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
                     )
                 
-                let hoverPad: CGFloat = (vm.notchState == .closed && !isFaceIDActive) ? closedNotchHoverPadding : 0
-
                 mainLayout
+                    .conditionalModifier(true) { view in
+                        return view
+                            .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
+                            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: currentNotchWidth)
+                            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: currentNotchHeight)
+                            .animation(faceIDAnimation, value: isFaceIDActive)
+                            .animation(faceIDAnimation, value: targetFaceIDSize)
+                            .animation(.smooth, value: gestureProgress)
+                    }
+                    .onHover { hovering in
+                        handleHover(hovering)
+                        if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            FaceIDOverlayController.shared.setHovering(hovering)
+                            if hovering && faceIDOverlay.phase != .onboarding {
+                                FaceIDOverlayController.shared.activate()
+                            }
+                        }
+                    }
                     .conditionalModifier(!isFaceIDContentActive) { view in
                         view
-                            .contentShape(currentNotchShape)
+                            .conditionalModifier(isDynamicIsland) { v in
+                                v.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+                            }
+                            .conditionalModifier(!isDynamicIsland) { v in
+                                v.contentShape(currentNotchShape)
+                            }
                             .onTapGesture {
                                 if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
                                     FaceIDOverlayController.shared.activate()
@@ -291,52 +317,6 @@ struct ContentView: View {
                                 }
                                 doOpen()
                             }
-                    }
-                    .overlay(alignment: .top) {
-                        if vm.notchState == .closed && !isFaceIDActive && hoverPad > 0 {
-                            Color.clear
-                                .frame(
-                                    width: currentNotchWidth + (hoverPad * 2),
-                                    height: currentNotchHeight + hoverPad
-                                )
-                                .contentShape(Rectangle())
-                                .onHover { hovering in
-                                    handleHover(hovering)
-                                    if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
-                                        FaceIDOverlayController.shared.setHovering(hovering)
-                                        if hovering && faceIDOverlay.phase != .onboarding {
-                                            FaceIDOverlayController.shared.activate()
-                                        }
-                                    }
-                                }
-                                .onTapGesture {
-                                    if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
-                                        FaceIDOverlayController.shared.activate()
-                                        return
-                                    }
-                                    doOpen()
-                                }
-                        }
-                    }
-                    .conditionalModifier(true) { view in
-                        return view
-                            .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
-                            .animation(notchSizeAnimation, value: currentNotchWidth)
-                            .animation(notchSizeAnimation, value: currentNotchHeight)
-                            .animation(faceIDAnimation, value: isFaceIDActive)
-                            .animation(faceIDAnimation, value: targetFaceIDSize)
-                            .animation(.smooth, value: gestureProgress)
-                    }
-                    .conditionalModifier(vm.notchState == .open || isFaceIDActive) { view in
-                        view.onHover { hovering in
-                            handleHover(hovering)
-                            if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
-                                FaceIDOverlayController.shared.setHovering(hovering)
-                                if hovering && faceIDOverlay.phase != .onboarding {
-                                    FaceIDOverlayController.shared.activate()
-                                }
-                            }
-                        }
                     }
                     .onChange(of: faceIDOverlay.phase) { _, newPhase in
                         if newPhase == .onboarding {
@@ -370,7 +350,7 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned {
-                                        self.doClose()
+                                        self.vm.close()
                                     }
                                 }
                             }
@@ -477,7 +457,7 @@ struct ContentView: View {
 
                 vm.dropEvent = false
                 if !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned {
-                    doClose()
+                    vm.close()
                 }
             }
         }
@@ -521,10 +501,10 @@ struct ContentView: View {
                                .frame(height: max(24, vm.effectiveClosedNotchHeight))
                                .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                .transition(.opacity)
-                       } else {
-                           Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
-                               .transition(.opacity)
-                       }
+                        } else {
+                            Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillClosedSize.width : (vm.closedNotchSize.width - 20), height: (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillClosedSize.height : vm.effectiveClosedNotchHeight)
+                                .transition(.opacity)
+                        }
 
                       if coordinator.sneakPeek.show {
                           if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
@@ -546,7 +526,6 @@ struct ContentView: View {
                               .padding(.bottom, 10)
                               .padding(.leading, 4)
                               .padding(.trailing, 8)
-                              .frame(width: max(0, vm.closedNotchSize.width - 20), alignment: .leading)
                           }
                           // Old sneak peek music
                           else if coordinator.sneakPeek.type == .music {
@@ -768,14 +747,8 @@ struct ContentView: View {
     }
 
     private func doOpen() {
-        withAnimation(openAnimation) {
+        withAnimation(animationSpring) {
             vm.open()
-        }
-    }
-
-    private func doClose() {
-        withAnimation(closeAnimation) {
-            vm.close()
         }
     }
 
@@ -818,22 +791,16 @@ struct ContentView: View {
             }
         } else {
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(200))
+                try? await Task.sleep(for: .milliseconds(100))
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
-                    // Do not close if the mouse is still physically within the open notch area
-                    if self.vm.isMouseHovering() {
-                        self.isHovering = true
-                        return
-                    }
-                    
                     withAnimation(animationSpring) {
                         self.isHovering = false
                     }
                     
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned {
-                        self.doClose()
+                        self.vm.close()
                     }
                 }
             }
@@ -885,7 +852,7 @@ struct ContentView: View {
             }
             if !SharingStateManager.shared.preventNotchClose { 
                 gestureProgress = .zero
-                doClose()
+                vm.close()
             }
 
             if Defaults[.enableHaptics] {
