@@ -217,36 +217,54 @@ struct ContentView: View {
         return chinWidth
     }
 
+    private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
+    private var baseClosedHeight: CGFloat { isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0) }
+    private var islandRadius: CGFloat {
+        if isFaceIDActive && isFaceIDContentVisible {
+            if isMinimalScan {
+                return FaceIDOverlayGeometry.minimalPillOpenHeight / 2
+            }
+            return FaceIDOverlayGeometry.pillOpenCornerRadius
+        }
+        return vm.notchState == .open ? 26 : (isDynamicIsland ? baseClosedHeight / 2 : max(14, vm.effectiveClosedNotchHeight / 2))
+    }
+    private var isDefaultHUDActive: Bool {
+        coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
+    }
+    private var currentNotchWidth: CGFloat {
+        isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth)
+    }
+    private var currentNotchHeight: CGFloat {
+        if isFaceIDActive {
+            return targetFaceIDSize.height
+        }
+        if vm.notchState == .open {
+            return vm.notchSize.height
+        }
+        return isDefaultHUDActive ? baseClosedHeight + 42 : baseClosedHeight
+    }
+    private var gestureScale: CGFloat {
+        guard gestureProgress != 0 else { return 1.0 }
+        let scaleFactor = 1.0 + gestureProgress * 0.01
+        return max(0.6, scaleFactor)
+    }
+
+    @ViewBuilder
+    private func applyHitShape<V: View>(_ view: V) -> some View {
+        if isDynamicIsland {
+            if vm.notchState == .open {
+                view.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+            } else {
+                view.contentShape(Rectangle())
+            }
+        } else {
+            view.contentShape(currentNotchShape)
+        }
+    }
+
     var body: some View {
-        // Calculate scale based on gesture progress only
-        let gestureScale: CGFloat = {
-            guard gestureProgress != 0 else { return 1.0 }
-            let scaleFactor = 1.0 + gestureProgress * 0.01
-            return max(0.6, scaleFactor)
-        }()
-        
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
-                let isDynamicIsland = notchStyle == .dynamicIsland
-                let baseClosedHeight: CGFloat = isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
-                let islandRadius: CGFloat = {
-                    if isFaceIDActive && isFaceIDContentVisible {
-                        if isMinimalScan {
-                            return FaceIDOverlayGeometry.minimalPillOpenHeight / 2
-                        }
-                        return FaceIDOverlayGeometry.pillOpenCornerRadius
-                    }
-                    return vm.notchState == .open ? 26 : (isDynamicIsland ? baseClosedHeight / 2 : max(14, vm.effectiveClosedNotchHeight / 2))
-                }()
-
-                let isDefaultHUDActive = coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
-                let currentNotchWidth: CGFloat = isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth)
-                let currentNotchHeight: CGFloat = isFaceIDActive 
-                    ? targetFaceIDSize.height 
-                    : (vm.notchState == .open 
-                        ? vm.notchSize.height 
-                        : (isDefaultHUDActive ? baseClosedHeight + 42 : baseClosedHeight))
-
                 let mainLayout = NotchLayout()
                     .frame(
                         width: currentNotchWidth,
@@ -320,17 +338,7 @@ struct ContentView: View {
                         }
                     }
                     .conditionalModifier(!isFaceIDContentActive) { view in
-                        view
-                            .conditionalModifier(isDynamicIsland) { v in
-                                if vm.notchState == .open {
-                                    v.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
-                                } else {
-                                    v.contentShape(Rectangle())
-                                }
-                            }
-                            .conditionalModifier(!isDynamicIsland) { v in
-                                v.contentShape(currentNotchShape)
-                            }
+                        applyHitShape(view)
                             .onTapGesture {
                                 if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
                                     FaceIDOverlayController.shared.activate()
