@@ -904,9 +904,9 @@ function initSmoothScroll() {
 // =============================================================
 
 let appReleaseInfo = {
-  version: "v4.6.2",
-  versionShort: "v4.6.2",
-  name: "NotchPulse v4.6.2",
+  version: "v4.6.3",
+  versionShort: "v4.6.3",
+  name: "NotchPulse v4.6.3",
   downloadUrl: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg"
 };
 
