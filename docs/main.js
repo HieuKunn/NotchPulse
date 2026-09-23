@@ -900,8 +900,7 @@ function initReleaseAutoUpdater() {
       if (data && data.tag_name) {
         const rawTag = data.tag_name;
         const cleanVer = rawTag.startsWith("v") ? rawTag : "v" + rawTag;
-        const parts = cleanVer.replace("v", "").split(".");
-        const shortVer = parts.length >= 2 ? `v${parts[0]}.${parts[1]}` : cleanVer;
+        const shortVer = cleanVer;
 
         let dmgUrl = "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg";
         if (data.assets && Array.isArray(data.assets)) {
