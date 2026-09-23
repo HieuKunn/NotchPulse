@@ -262,7 +262,7 @@ struct LockScreenFaceIDPillView: View {
             return .success
         } else if faceIDManager.statusMessage == "Face Not Recognized" {
             return .failure
-        } else if faceIDManager.isScanning {
+        } else if isHovered || faceIDManager.isScanning {
             return .scanning
         } else {
             return .idle
@@ -379,7 +379,7 @@ struct LockScreenFaceIDPillView: View {
     }
     
     private func triggerScan() {
-        if !faceIDManager.isScanning && NotchPulseLockMonitor.isScreenActuallyLocked() {
+        if !faceIDManager.isScanning {
             faceIDManager.startRecognitionOnWake()
         }
     }

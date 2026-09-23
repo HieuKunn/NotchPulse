@@ -158,18 +158,28 @@ final class ScanAnimationHostView: NSView {
             return
         }
 
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if let frame = Self.firstFrame(for: resource) {
+            stillImageLayer.contents = frame
+        }
+        stillImageLayer.isHidden = false
+        playerLayer.isHidden = false
+        CATransaction.commit()
+
         teardownPlayer()
-        let newPlayer = AVPlayer(url: url)
+        let item = AVPlayerItem(url: url)
+        let newPlayer = AVPlayer(playerItem: item)
         newPlayer.isMuted = true
         newPlayer.actionAtItemEnd = .none
 
         if media == .scanning {
             loopObserver = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
-                object: newPlayer.currentItem,
+                object: item,
                 queue: .main
             ) { [weak newPlayer] _ in
-                newPlayer?.seek(to: .zero)
+                newPlayer?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
                 newPlayer?.play()
             }
         }
@@ -177,37 +187,18 @@ final class ScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
-        let revealPlayerLayer: () -> Void = { [weak self] in
-            guard let self = self else { return }
-            self.readyObservation = nil
-            self.fallbackRevealWorkItem?.cancel()
-            self.fallbackRevealWorkItem = nil
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            self.playerLayer.isHidden = false
-            self.stillImageLayer.isHidden = true
-            CATransaction.commit()
+        readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
+            guard change.newValue == true else { return }
+            DispatchQueue.main.async {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                self?.stillImageLayer.isHidden = true
+                CATransaction.commit()
+                self?.readyObservation = nil
+            }
         }
 
-        if playerLayer.isReadyForDisplay {
-            revealPlayerLayer()
-        } else {
-            readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
-                if change.newValue == true {
-                    DispatchQueue.main.async {
-                        revealPlayerLayer()
-                    }
-                }
-            }
-
-            let workItem = DispatchWorkItem { [weak self] in
-                revealPlayerLayer()
-            }
-            fallbackRevealWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
-        }
-
-        newPlayer.seek(to: .zero)
+        newPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
         newPlayer.play()
     }
 

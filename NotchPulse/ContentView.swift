@@ -347,7 +347,8 @@ struct ContentView: View {
                     }
                     .onHover { hovering in
                         handleHover(hovering)
-                        if isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                        let isLockScreenOrFaceID = isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() || (hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && (faceIDOverlay.isArmed || NotchPulseLockMonitor.shared.isScreenLocked))
+                        if isLockScreenOrFaceID {
                             FaceIDOverlayController.shared.setHovering(hovering)
                             if hovering && faceIDOverlay.phase != .onboarding {
                                 FaceIDOverlayController.shared.activate()
@@ -357,7 +358,7 @@ struct ContentView: View {
                     .conditionalModifier(!isFaceIDContentActive) { view in
                         applyHitShape(view)
                             .onTapGesture {
-                                if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive {
+                                if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive || (NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed) {
                                     FaceIDOverlayController.shared.activate()
                                     return
                                 }

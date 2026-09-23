@@ -8,7 +8,7 @@
         <item>
             <title>4.7</title>
             <pubDate>Wed, 23 Sep 2026 23:20:00 +0700</pubDate>
-            <sparkle:version>115</sparkle:version>
+            <sparkle:version>116</sparkle:version>
             <sparkle:shortVersionString>4.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.7/NotchPulse.app.zip" length="23083597" type="application/octet-stream" sparkle:edSignature="plRQN9S7coj12u8G2b4E/M6yvtR4ilsIoVhhEkEsRw3zSnBUicubN99eeHZfngCSfoADpj0zMS+ISDxRmhgJAw=="/>

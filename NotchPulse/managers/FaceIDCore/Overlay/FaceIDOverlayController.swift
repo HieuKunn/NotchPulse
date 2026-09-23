@@ -394,11 +394,7 @@ final class FaceIDOverlayController {
         pendingHoverActivationTask = nil
 
         switch phase {
-        case .closed, .failure:
-            guard let onActivate else {
-                if phase == .failure { Task { await collapse() } }
-                return
-            }
+        case .closed, .failure, .collapsing:
             routeToCameraScreen()
             resolveTask?.cancel(); resolveTask = nil
             activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
@@ -407,8 +403,12 @@ final class FaceIDOverlayController {
                 phase = .scanning
             }
             updateInteractivity()
-            onActivate()
-        case .scanning, .success, .collapsing, .onboarding:
+            if let onActivate = self.onActivate {
+                onActivate()
+            } else {
+                NotchPulseFaceUnlockCoordinator.shared.startScanManually()
+            }
+        case .scanning, .success, .onboarding:
             break
         }
     }

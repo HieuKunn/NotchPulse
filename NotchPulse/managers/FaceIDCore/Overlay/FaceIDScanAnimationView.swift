@@ -47,6 +47,14 @@ struct FaceIDScanAnimationView: NSViewRepresentable {
 final class FaceIDScanAnimationHostView: NSView {
     private static var firstFrameCache: [String: CGImage] = [:]
 
+    static func prewarm() {
+        Task.detached(priority: .utility) {
+            _ = firstFrame(for: "idleanimation")
+            _ = firstFrame(for: "unlockanimation")
+            _ = firstFrame(for: "unsuccessfulunlockanimation")
+        }
+    }
+
     private static func firstFrame(for resourceName: String) -> CGImage? {
         if let cached = firstFrameCache[resourceName] { return cached }
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
@@ -67,7 +75,6 @@ final class FaceIDScanAnimationHostView: NSView {
     private let stillImageLayer = CALayer()
     private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
-    private var fallbackRevealWorkItem: DispatchWorkItem?
     private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
@@ -81,8 +88,8 @@ final class FaceIDScanAnimationHostView: NSView {
         stillImageLayer.contentsGravity = .resizeAspect
         stillImageLayer.masksToBounds = true
         stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        if let initialFrame = Self.firstFrame(for: "idleanimation") ?? Self.loadStillFromBundle()?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-            stillImageLayer.contents = initialFrame
+        if let still = Self.loadStillFromBundle()?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            stillImageLayer.contents = still
         }
         root.addSublayer(stillImageLayer)
 
@@ -93,6 +100,7 @@ final class FaceIDScanAnimationHostView: NSView {
         root.addSublayer(playerLayer)
 
         updateLayerFrames()
+        Self.prewarm()
     }
 
     required init?(coder: NSCoder) {
@@ -141,7 +149,6 @@ final class FaceIDScanAnimationHostView: NSView {
         }
         currentMedia = media
         readyObservation = nil
-        fallbackRevealWorkItem?.cancel()
 
         guard let resource = media.videoResourceName else {
             CATransaction.begin()
@@ -158,28 +165,29 @@ final class FaceIDScanAnimationHostView: NSView {
             return
         }
 
-        // Instantly display the first frame of the requested animation to avoid any black screen flash
+        // Keep backdrop frame while immediately unhiding player layer so video starts with zero delay
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         if let frame = Self.firstFrame(for: resource) {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
             stillImageLayer.contents = frame
-            stillImageLayer.isHidden = false
-            playerLayer.isHidden = true
-            CATransaction.commit()
         }
+        stillImageLayer.isHidden = false
+        playerLayer.isHidden = false
+        CATransaction.commit()
 
         teardownPlayer()
-        let newPlayer = AVPlayer(url: url)
+        let item = AVPlayerItem(url: url)
+        let newPlayer = AVPlayer(playerItem: item)
         newPlayer.isMuted = true
         newPlayer.actionAtItemEnd = .none
 
         if media == .scanning {
             loopObserver = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
-                object: newPlayer.currentItem,
+                object: item,
                 queue: .main
             ) { [weak newPlayer] _ in
-                newPlayer?.seek(to: .zero)
+                newPlayer?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
                 newPlayer?.play()
             }
         }
@@ -187,35 +195,23 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
-        let reveal: () -> Void = { [weak self] in
-            guard let self else { return }
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            self.playerLayer.isHidden = false
-            self.stillImageLayer.isHidden = true
-            CATransaction.commit()
-        }
-
         readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
             guard change.newValue == true else { return }
             DispatchQueue.main.async {
-                self?.fallbackRevealWorkItem?.cancel()
-                reveal()
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                self?.stillImageLayer.isHidden = true
+                CATransaction.commit()
                 self?.readyObservation = nil
             }
         }
 
-        let fallback = DispatchWorkItem { reveal() }
-        fallbackRevealWorkItem = fallback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: fallback)
-
-        newPlayer.seek(to: .zero)
+        newPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
         newPlayer.play()
     }
 
     private func teardownPlayer() {
         readyObservation = nil
-        fallbackRevealWorkItem?.cancel()
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
             loopObserver = nil
