@@ -817,16 +817,12 @@ struct ContentView: View {
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
         if isFaceIDActive { return true }
         if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
-        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-            return true
-        }
         return false
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
         if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
         if isFaceIDActive { return true }
-        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled { return true }
         return false
     }
 

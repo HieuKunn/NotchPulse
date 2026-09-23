@@ -1,11 +1,9 @@
-# NotchPulse v4.7.2
+# NotchPulse v4.7.3
 
-## ⚡ Instant Face ID Hover & Glance-Identical Performance
-- **Zero-Latency Hover Activation**: Hovering over the Notch or Dynamic Island triggers the Face ID recognition pipeline immediately with 0.00s delay.
-- **Seamless Layer Swap Rendering**: Pre-rendered still assets display instantaneously at frame 0.00 while the high-fidelity video decoder streams live in the background, matching Glance's instant visual feedback without black flashes.
-- **Unobstructed Face ID View**: Background headers, shelf components, and inline HUDs clear immediately when Face ID activates, preventing visual collisions.
-- **Fine-Tuned Hardware Padding**: Optimized horizontal insets for both Dynamic Island and physical MacBook notch cutouts for a balanced, native fit.
-- **Instant & Reliable App Exit**: Pressing `Command+Q` or clicking Quit in Settings (now available across all tabs) terminates the app and background processes immediately.
+## 🎯 Smart Display Routing & Normal Hover Separation
+- **Precise Screen Routing**: Multi-display camera screen switching is now strictly reserved for active Face ID unlock sessions (such as on the lock screen or during onboarding).
+- **Separated Notch Navigation**: Hovering over the Notch on secondary displays to view your Music, Calendar, or Shelf now stays on your active screen without unexpectedly switching to the camera screen.
+- **Zero-Latency Face ID & Instant Quit**: Includes all instant hover scan animations and clean application exit improvements.
 
 # NotchPulse v4.7 (Important Release)
 
