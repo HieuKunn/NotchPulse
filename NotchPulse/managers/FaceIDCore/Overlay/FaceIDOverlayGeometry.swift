@@ -25,8 +25,8 @@ struct FaceIDOverlayGeometry {
         Defaults[.notchStyle] == .dynamicIsland ? .pill : .notch
     }
 
-    /// Shortened drop-down footprint for notch style, sized to comfortably fit the 80%-scaled animation.
-    static let notchOpenSize = CGSize(width: 140, height: 135)
+    /// Shortened drop-down footprint for notch style, sized to comfortably fit the 80%-scaled animation with clearance for physical notch.
+    static let notchOpenSize = CGSize(width: 140, height: 142)
 
     /// Corner radii matching NotchPulse's native cornerRadiusInsets.
     static let closedTopRadius: CGFloat = 6
@@ -153,8 +153,8 @@ struct FaceIDOverlayGeometry {
     /// finished expanding. Hand-tuned approximation — springs have no hard end time.
     static let scanPulseStartDelay: Double = 0.0
 
-    /// Notch-style padding around scan-mode content, fitted for the shortened drop-down.
-    static let notchContentPaddingTop: CGFloat = 0
+    /// Notch-style padding around scan-mode content, shifting down to clear the physical MacBook notch.
+    static let notchContentPaddingTop: CGFloat = 22
     static let notchContentPaddingLeading: CGFloat = 0
     static let notchContentPaddingTrailing: CGFloat = 0
     static let notchContentPaddingBottom: CGFloat = 0

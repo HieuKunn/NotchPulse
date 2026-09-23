@@ -280,7 +280,7 @@ struct LockScreenFaceIDPillView: View {
     
     private var openBodySize: CGSize {
         if hasPhysicalNotch {
-            return CGSize(width: max(physicalNotchWidth, 140), height: 135)
+            return CGSize(width: max(physicalNotchWidth, 140), height: 142)
         } else {
             return CGSize(width: 140, height: 135)
         }
@@ -316,6 +316,7 @@ struct LockScreenFaceIDPillView: View {
                 applyNotchClip(
                     ZStack(alignment: .center) {
                         ScanAnimationView(media: scanMedia)
+                            .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? FaceIDOverlayGeometry.notchContentPaddingTop : 0)
                             .scaleEffect(0.80)
                             .opacity(isExpanded ? 1.0 : 0.0)
                     }
