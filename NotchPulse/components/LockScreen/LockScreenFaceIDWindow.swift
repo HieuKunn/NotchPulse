@@ -260,6 +260,8 @@ struct LockScreenFaceIDPillView: View {
             return .success
         } else if faceIDManager.statusMessage == "Face Not Recognized" {
             return .failure
+        } else if faceIDManager.isScanning {
+            return .scanning
         } else {
             return .idle
         }

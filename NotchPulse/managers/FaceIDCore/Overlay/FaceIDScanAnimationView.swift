@@ -15,12 +15,14 @@ import AppKit
 /// seamless.
 enum FaceIDScanMedia: Equatable {
     case idle
+    case scanning
     case success
     case failure
 
     var videoResourceName: String? {
         switch self {
         case .idle: return nil
+        case .scanning: return "idleanimation"
         case .success: return "unlockanimation"
         case .failure: return "unsuccessfulunlockanimation"
         }
@@ -48,6 +50,7 @@ final class FaceIDScanAnimationHostView: NSView {
     private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
     private var fallbackRevealWorkItem: DispatchWorkItem?
+    private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -106,6 +109,17 @@ final class FaceIDScanAnimationHostView: NSView {
         // Leaves the player paused on its final frame rather than rewinding.
         newPlayer.actionAtItemEnd = .none
 
+        if media == .scanning {
+            loopObserver = NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime,
+                object: newPlayer.currentItem,
+                queue: .main
+            ) { [weak newPlayer] _ in
+                newPlayer?.seek(to: .zero)
+                newPlayer?.play()
+            }
+        }
+
         playerLayer.player = newPlayer
         player = newPlayer
 
@@ -142,6 +156,10 @@ final class FaceIDScanAnimationHostView: NSView {
     private func teardownPlayer() {
         readyObservation = nil
         fallbackRevealWorkItem?.cancel()
+        if let observer = loopObserver {
+            NotificationCenter.default.removeObserver(observer)
+            loopObserver = nil
+        }
         player?.pause()
         player = nil
         playerLayer.player = nil
