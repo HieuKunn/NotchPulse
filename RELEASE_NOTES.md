@@ -1,10 +1,11 @@
-# NotchPulse v4.7.1
+# NotchPulse v4.7.2
 
-## ⚡ Instant Face ID Hover & Unobstructed Display
-- **True Instant Hover Scan**: Hovering over the Notch or Dynamic Island now immediately displays the blue Face ID scanning animation at 0.00s without any delay, prewarming video assets right at startup.
-- **Unobstructed Face ID**: Ensured background shelf and inline views no longer linger or cover up the Face ID scanning animation when it triggers.
-- **Optimized Padding**: Tightened Dynamic Island horizontal padding for a sleek, compact profile, while slightly increasing Notch padding for a balanced, native fit.
-- **Reliable & Instant Quit**: Pressing Command+Q or clicking Quit now terminates the app immediately and cleanly without getting blocked by background windows or menu policies.
+## ⚡ Instant Face ID Hover & Glance-Identical Performance
+- **Zero-Latency Hover Activation**: Hovering over the Notch or Dynamic Island triggers the Face ID recognition pipeline immediately with 0.00s delay.
+- **Seamless Layer Swap Rendering**: Pre-rendered still assets display instantaneously at frame 0.00 while the high-fidelity video decoder streams live in the background, matching Glance's instant visual feedback without black flashes.
+- **Unobstructed Face ID View**: Background headers, shelf components, and inline HUDs clear immediately when Face ID activates, preventing visual collisions.
+- **Fine-Tuned Hardware Padding**: Optimized horizontal insets for both Dynamic Island and physical MacBook notch cutouts for a balanced, native fit.
+- **Instant & Reliable App Exit**: Pressing `Command+Q` or clicking Quit in Settings (now available across all tabs) terminates the app and background processes immediately.
 
 # NotchPulse v4.7 (Important Release)
 
