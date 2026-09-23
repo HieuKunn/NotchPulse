@@ -29,7 +29,7 @@ struct DynamicNotchApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("NotchPulse", systemImage: "sparkle", isInserted: $showMenuBarIcon) {
+        MenuBarExtra("NotchPulse", systemImage: "teddybear.fill", isInserted: $showMenuBarIcon) {
             Button("Settings") {
                 DispatchQueue.main.async {
                     SettingsWindowController.shared.showWindow()
@@ -416,9 +416,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(quitMenuItem)
         NSApplication.shared.mainMenu = mainMenu
 
-        // Also intercept local Cmd+Q keyDown events directly
+        // Also intercept local pure Cmd+Q keyDown events directly (strictly excluding Shift, etc.)
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers?.lowercased() == "q" {
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags == .command && event.charactersIgnoringModifiers?.lowercased() == "q" {
                 self?.quitApplication()
                 return nil
             }

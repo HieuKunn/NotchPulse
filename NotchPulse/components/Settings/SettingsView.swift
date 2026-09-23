@@ -68,6 +68,16 @@ struct SettingsView: View {
                 NavigationLink(value: "About") {
                     Label("About", systemImage: "info.circle")
                 }
+
+                Section {
+                    Button(role: .destructive) {
+                        (NSApp.delegate as? AppDelegate)?.quitApplication() ?? exit(0)
+                    } label: {
+                        Label("Quit NotchPulse", systemImage: "power")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .listStyle(SidebarListStyle())
             .tint(.effectiveAccent)
@@ -648,6 +658,7 @@ struct GeneralSettings: View {
             notchSizingSection
             NotchBehaviour()
             gestureControls()
+            appLifecycleSection
         }
         .accentColor(.effectiveAccent)
         .onChange(of: openNotchOnHover) {
@@ -728,6 +739,28 @@ struct GeneralSettings: View {
             }
         } header: {
             Text("Notch behavior")
+        }
+    }
+
+    @ViewBuilder
+    private var appLifecycleSection: some View {
+        Section {
+            Button(role: .destructive) {
+                (NSApp.delegate as? AppDelegate)?.quitApplication() ?? exit(0)
+            } label: {
+                HStack {
+                    Image(systemName: "power")
+                        .foregroundStyle(.red)
+                    Text("Quit NotchPulse")
+                        .foregroundStyle(.red)
+                    Spacer()
+                    Text("⌘Q")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text("App Control")
         }
     }
 }
@@ -2331,19 +2364,17 @@ struct SettingsDetailHeaderBar: View {
 
             if showQuitButton {
                 Button {
-                    if let appDelegate = NSApp.delegate as? AppDelegate {
-                        appDelegate.quitApplication()
-                    } else {
-                        NSApp.terminate(nil)
-                        exit(0)
-                    }
+                    (NSApp.delegate as? AppDelegate)?.quitApplication() ?? exit(0)
                 } label: {
-                    Text("Quit app")
-                        .font(.system(size: 12, weight: .medium))
+                    HStack(spacing: 4) {
+                        Image(systemName: "power")
+                        Text("Quit app")
+                    }
+                    .font(.system(size: 12, weight: .medium))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
-                .keyboardShortcut("q", modifiers: .command)
+                .contentShape(Rectangle())
             }
         }
         .padding(.horizontal, 24)
@@ -2353,5 +2384,6 @@ struct SettingsDetailHeaderBar: View {
         .background {
             Color(nsColor: .windowBackgroundColor)
         }
+        .zIndex(100)
     }
 }

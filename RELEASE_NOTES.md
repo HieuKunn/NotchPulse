@@ -1,9 +1,10 @@
-# NotchPulse v4.7.3
+# NotchPulse v4.7.4
 
-## 🎯 Smart Display Routing & Normal Hover Separation
-- **Precise Screen Routing**: Multi-display camera screen switching is now strictly reserved for active Face ID unlock sessions (such as on the lock screen or during onboarding).
-- **Separated Notch Navigation**: Hovering over the Notch on secondary displays to view your Music, Calendar, or Shelf now stays on your active screen without unexpectedly switching to the camera screen.
-- **Zero-Latency Face ID & Instant Quit**: Includes all instant hover scan animations and clean application exit improvements.
+## 🧸 New Teddy Bear Menu Icon & Reliable Controls
+- **Cute Teddy Bear Menu Bar Icon**: Replaced the previous sparkle icon with a cute brown teddy bear SF symbol (`teddybear.fill`).
+- **Fixed Shortcut Conflict**: Ensured only pure `Command+Q` (and NOT `Command+Shift+Q`) quits the application, preventing accidental triggers of macOS system log-out.
+- **Clickable Settings Quit Button**: Fixed window background drag capturing so clicking "Quit app" in the Settings window header and sidebar terminates the app reliably.
+- **Harmonized Open Notch & Dynamic Island Spacing**: Increased inner horizontal padding to 12pt so Calendar times and Music player controls stay comfortably inset from the curved corners.
 
 # NotchPulse v4.7 (Important Release)
 

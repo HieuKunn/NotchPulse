@@ -54,7 +54,7 @@ class SettingsWindowController: NSWindowController {
         window.backgroundColor = .clear
         window.titleVisibility = .hidden
         window.toolbarStyle = .unified
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         
         // Make it behave like a regular app window with proper Spaces support
         window.collectionBehavior = [.managed, .participatesInCycle, .fullScreenAuxiliary]
