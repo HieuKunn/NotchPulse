@@ -150,9 +150,7 @@ class NotchPulseViewCoordinator: ObservableObject {
                             if Task.isCancelled { return }
 
                             if granted {
-                                await MediaKeyInterceptor.shared.start()
-                            } else {
-                                Defaults[.hudReplacement] = false
+                                await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
                             }
                         }
                     } else {
@@ -161,19 +159,21 @@ class NotchPulseViewCoordinator: ObservableObject {
                 }
             }
 
+        // Start background accessibility monitoring so when permission is granted, HUD automatically connects
+        XPCHelperClient.shared.startMonitoringAccessibilityAuthorization(every: 2.0)
+
         Task { @MainActor in
             helloAnimationRunning = firstLaunch
 
             if Defaults[.hudReplacement] {
                 // Retry a few times to allow the XPC helper connection to warm up before checking authorization.
-                var authorized = false
-                for _ in 0..<5 {
-                    authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
-                    if authorized { break }
-                    try? await Task.sleep(for: .milliseconds(300))
-                }
-                if authorized {
-                    await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
+                for _ in 0..<8 {
+                    let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
+                    if authorized {
+                        await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
+                        break
+                    }
+                    try? await Task.sleep(for: .milliseconds(250))
                 }
             }
         }
