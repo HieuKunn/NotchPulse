@@ -41,6 +41,23 @@ struct ScanAnimationView: NSViewRepresentable {
 }
 
 final class ScanAnimationHostView: NSView {
+    private static var firstFrameCache: [String: CGImage] = [:]
+
+    private static func firstFrame(for resourceName: String) -> CGImage? {
+        if let cached = firstFrameCache[resourceName] { return cached }
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
+            firstFrameCache[resourceName] = cgImage
+            return cgImage
+        }
+        return nil
+    }
+
     private var player: AVPlayer?
     private let playerLayer = AVPlayerLayer()
     private let stillImageLayer = CALayer()
@@ -60,8 +77,8 @@ final class ScanAnimationHostView: NSView {
         stillImageLayer.contentsGravity = .resizeAspect
         stillImageLayer.masksToBounds = true
         stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        if let still = Self.loadStillFromBundle() {
-            stillImageLayer.contents = still
+        if let initialFrame = Self.firstFrame(for: "idleanimation") ?? Self.loadStillFromBundle()?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            stillImageLayer.contents = initialFrame
         }
         rootLayer.addSublayer(stillImageLayer)
 
@@ -129,6 +146,14 @@ final class ScanAnimationHostView: NSView {
             return
         }
 
+        if let frame = Self.firstFrame(for: resource) {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            stillImageLayer.contents = frame
+            stillImageLayer.isHidden = false
+            CATransaction.commit()
+        }
+
         guard let url = Bundle.main.url(forResource: resource, withExtension: "mp4") else {
             return
         }
@@ -152,11 +177,35 @@ final class ScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        playerLayer.isHidden = false
-        stillImageLayer.isHidden = true
-        CATransaction.commit()
+        let revealPlayerLayer: () -> Void = { [weak self] in
+            guard let self = self else { return }
+            self.readyObservation = nil
+            self.fallbackRevealWorkItem?.cancel()
+            self.fallbackRevealWorkItem = nil
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            self.playerLayer.isHidden = false
+            self.stillImageLayer.isHidden = true
+            CATransaction.commit()
+        }
+
+        if playerLayer.isReadyForDisplay {
+            revealPlayerLayer()
+        } else {
+            readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
+                if change.newValue == true {
+                    DispatchQueue.main.async {
+                        revealPlayerLayer()
+                    }
+                }
+            }
+
+            let workItem = DispatchWorkItem { [weak self] in
+                revealPlayerLayer()
+            }
+            fallbackRevealWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
+        }
 
         newPlayer.seek(to: .zero)
         newPlayer.play()

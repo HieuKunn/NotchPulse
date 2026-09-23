@@ -83,8 +83,8 @@ final class NotchPulseFaceUnlockCoordinator {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.observeLockAndWakeEvents()
-                // Brief settle delay: CGSession's reported state can lag the true state right after wake.
-                try? await Task.sleep(nanoseconds: 300_000_000)
+                // Minimal settle delay so evaluation triggers immediately on wake
+                try? await Task.sleep(nanoseconds: 20_000_000)
                 self?.evaluateTrigger()
             }
         }

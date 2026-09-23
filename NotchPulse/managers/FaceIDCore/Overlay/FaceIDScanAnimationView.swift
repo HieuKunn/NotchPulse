@@ -45,6 +45,23 @@ struct FaceIDScanAnimationView: NSViewRepresentable {
 }
 
 final class FaceIDScanAnimationHostView: NSView {
+    private static var firstFrameCache: [String: CGImage] = [:]
+
+    private static func firstFrame(for resourceName: String) -> CGImage? {
+        if let cached = firstFrameCache[resourceName] { return cached }
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
+            firstFrameCache[resourceName] = cgImage
+            return cgImage
+        }
+        return nil
+    }
+
     private var player: AVPlayer?
     private let playerLayer = AVPlayerLayer()
     private let stillImageLayer = CALayer()
@@ -64,8 +81,8 @@ final class FaceIDScanAnimationHostView: NSView {
         stillImageLayer.contentsGravity = .resizeAspect
         stillImageLayer.masksToBounds = true
         stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        if let still = Self.loadStillFromBundle() {
-            stillImageLayer.contents = still
+        if let initialFrame = Self.firstFrame(for: "idleanimation") ?? Self.loadStillFromBundle()?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            stillImageLayer.contents = initialFrame
         }
         root.addSublayer(stillImageLayer)
 
@@ -108,7 +125,7 @@ final class FaceIDScanAnimationHostView: NSView {
     func updateLayerFrames() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        let rect = bounds.size.width > 0 ? bounds : NSRect(x: 0, y: 0, width: 155, height: 135)
+        let rect = bounds.size.width > 0 ? bounds : NSRect(x: 0, y: 0, width: 140, height: 135)
         playerLayer.frame = rect
         stillImageLayer.frame = rect
         CATransaction.commit()
@@ -141,11 +158,19 @@ final class FaceIDScanAnimationHostView: NSView {
             return
         }
 
+        // Instantly display the first frame of the requested animation to avoid any black screen flash
+        if let frame = Self.firstFrame(for: resource) {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            stillImageLayer.contents = frame
+            stillImageLayer.isHidden = false
+            playerLayer.isHidden = true
+            CATransaction.commit()
+        }
+
         teardownPlayer()
         let newPlayer = AVPlayer(url: url)
-        // This can play at the lock screen — never make noise.
         newPlayer.isMuted = true
-        // Leaves the player paused on its final frame rather than rewinding.
         newPlayer.actionAtItemEnd = .none
 
         if media == .scanning {
@@ -162,11 +187,27 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        playerLayer.isHidden = false
-        stillImageLayer.isHidden = true
-        CATransaction.commit()
+        let reveal: () -> Void = { [weak self] in
+            guard let self else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            self.playerLayer.isHidden = false
+            self.stillImageLayer.isHidden = true
+            CATransaction.commit()
+        }
+
+        readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
+            guard change.newValue == true else { return }
+            DispatchQueue.main.async {
+                self?.fallbackRevealWorkItem?.cancel()
+                reveal()
+                self?.readyObservation = nil
+            }
+        }
+
+        let fallback = DispatchWorkItem { reveal() }
+        fallbackRevealWorkItem = fallback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: fallback)
 
         newPlayer.seek(to: .zero)
         newPlayer.play()
