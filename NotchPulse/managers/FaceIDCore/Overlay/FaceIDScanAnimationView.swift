@@ -16,12 +16,14 @@ import AppKit
 /// seamless.
 enum FaceIDScanMedia: Equatable {
     case idle
+    case scanning
     case success
     case failure
 
     var videoResourceName: String? {
         switch self {
         case .idle: return nil
+        case .scanning: return "idleanimation"
         case .success: return "unlockanimation"
         case .failure: return "unsuccessfulunlockanimation"
         }
@@ -50,6 +52,7 @@ final class FaceIDScanAnimationHostView: NSView {
     private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
     private var fallbackRevealWorkItem: DispatchWorkItem?
+    private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
         let initialRect = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
@@ -130,11 +133,23 @@ final class FaceIDScanAnimationHostView: NSView {
         }
 
         teardownPlayer()
-        let newPlayer = AVPlayer(url: url)
+        let item = AVPlayerItem(url: url)
+        let newPlayer = AVPlayer(playerItem: item)
         // This can play at the lock screen — never make noise.
         newPlayer.isMuted = true
         // Leaves the player paused on its final frame rather than rewinding.
         newPlayer.actionAtItemEnd = .none
+
+        if media == .scanning {
+            loopObserver = NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime,
+                object: item,
+                queue: .main
+            ) { [weak newPlayer] _ in
+                newPlayer?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
+                newPlayer?.play()
+            }
+        }
 
         playerLayer.player = newPlayer
         player = newPlayer
@@ -170,6 +185,10 @@ final class FaceIDScanAnimationHostView: NSView {
     }
 
     private func teardownPlayer() {
+        if let observer = loopObserver {
+            NotificationCenter.default.removeObserver(observer)
+            loopObserver = nil
+        }
         readyObservation = nil
         fallbackRevealWorkItem?.cancel()
         player?.pause()

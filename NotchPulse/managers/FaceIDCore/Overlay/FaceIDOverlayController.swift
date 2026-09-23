@@ -220,7 +220,7 @@ final class FaceIDOverlayController {
         scanTimeoutTask?.cancel()
         geometry = windowController.currentGeometry
         activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-        content = .scan(.idle)
+        content = .scan(.scanning)
         withAnimation(FaceIDOverlayGeometry.springAnimation) {
             phase = .scanning
         }
@@ -278,6 +278,7 @@ final class FaceIDOverlayController {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
+            self.content = .scan(.scanning)
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 self.phase = .scanning
             }

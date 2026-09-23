@@ -134,10 +134,13 @@ struct ContentView: View {
         }
 
         if isDynamicIsland && !hasPhysicalNotch {
-            return FaceIDOverlayGeometry.pillOpenSize
+            return CGSize(
+                width: max(FaceIDOverlayGeometry.pillOpenSize.width, vm.closedNotchSize.width),
+                height: FaceIDOverlayGeometry.pillOpenSize.height
+            )
         } else {
             return CGSize(
-                width: max(vm.closedNotchSize.width, FaceIDOverlayGeometry.notchOpenSize.width + FaceIDOverlayGeometry.openTopRadius * 2),
+                width: max(vm.closedNotchSize.width + FaceIDOverlayGeometry.openTopRadius * 2, FaceIDOverlayGeometry.notchOpenSize.width),
                 height: FaceIDOverlayGeometry.notchOpenSize.height
             )
         }

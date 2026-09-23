@@ -88,7 +88,8 @@ struct FaceIDOverlayView: View {
             let width = max(closedBodySize.width, FaceIDOverlayGeometry.notchOpenSize.width)
             return CGSize(width: width, height: FaceIDOverlayGeometry.notchOpenSize.height)
         } else {
-            return FaceIDOverlayGeometry.pillOpenSize
+            let width = max(closedBodySize.width, FaceIDOverlayGeometry.pillOpenSize.width)
+            return CGSize(width: width, height: FaceIDOverlayGeometry.pillOpenSize.height)
         }
     }
 
