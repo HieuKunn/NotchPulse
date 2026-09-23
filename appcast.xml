@@ -11,7 +11,7 @@
             <sparkle:version>112</sparkle:version>
             <sparkle:shortVersionString>4.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.7/NotchPulse.app.zip" length="23072137" type="application/octet-stream" sparkle:edSignature="WILL_BE_UPDATED_BY_SPARKLE"/>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.7/NotchPulse.app.zip" length="23076484" type="application/octet-stream" sparkle:edSignature="4mxa+YGc61W1l940b37cPBhrBJ7dsOb3CsmPJFZyVu/onR4I17ElfEdE4z/E6vwHhSsE9to9+POcgSO5D+zmCw=="/>
         </item>
         <item>
             <title>4.6.5</title>
@@ -28,14 +28,6 @@
             <sparkle:shortVersionString>4.6.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.6.4/NotchPulse.app.zip" length="23073893" type="application/octet-stream" sparkle:edSignature="dunk1FXxtev4KvwA07khlha0/OmBA9YEi8uEgXbZ8it2Uw9xjiHbJUEBm9l8B0KW4MiwqAMwNB0Bhz7cz8jMBw=="/>
-        </item>
-        <item>
-            <title>4.6.3</title>
-            <pubDate>Wed, 23 Sep 2026 18:10:00 +0700</pubDate>
-            <sparkle:version>104</sparkle:version>
-            <sparkle:shortVersionString>4.6.3</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.6.3/NotchPulse.app.zip" length="23075538" type="application/octet-stream" sparkle:edSignature="hD/IEqssvuXFHnntm97VJ3XPeTAIHH8KBouN0MaHwWZ3zRZ8EAVGpva+FB1ZlIDcta5nIhR0nFtJFbutAnL/Dg=="/>
         </item>
     </channel>
 </rss>
