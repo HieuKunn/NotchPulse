@@ -125,8 +125,8 @@ final class NotchPulseFaceUnlockCoordinator {
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
         // Explicit screen lock (`.screenLocked` e.g. Ctrl + Cmd + Q) must NEVER automatically fire the camera to scan immediately
         // upon locking, because the user is intentionally locking the Mac. It only arms the overlay silhouette, leaving hover/wake/space to scan.
-        let isManualScreenLock = (lockMonitor.lastEvent == .screenLocked)
-        let shouldAutoScan = !isManualScreenLock && NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
+        // On Lock Screen, keep notch/pill collapsed at default size waiting for hover/click to trigger Face ID
+        let shouldAutoScan = false
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
