@@ -1,8 +1,15 @@
-# NotchPulse v4.6.6
+# NotchPulse v4.6.5
 
-## 🎵 Lock Screen Media Display Routing
-- **Smart Display Mode Awareness**: When "Show on all displays" is active, media player & lyrics on the lock screen cleanly frame on `NSScreen.main`. When a specific display is selected in settings, media player routes strictly to that designated display.
+## ⚡ Instant Face ID Animation Playback
+- **Zero-Delay Video Start**: Removed player layer ready-observation delays and task sleep buffers so the Face ID blue scanning grid animation (`idleanimation.mp4`) begins playing frame-1 immediately as the overlay spring expands.
 
-## 🌐 Instant Web Reload & Cache Invalidation
-- **Purged Stale Web Caches**: Added automatic ServiceWorker unregistration and Cache-Control headers to ensure standard `Cmd + R` reloads always fetch the latest `v4.6.6` release instantly without requiring `Cmd + Shift + R`.
+## 🏝️ Dynamic Island Expansion & Inline Layout
+- **Proportional Expansion**: Dynamic Island inline HUDs, music activities, and face animations now expand dynamically to match the full notch camera width with balanced spacing.
+
+## 📷 Notch Camera Mirror & Continuity Support
+- **Full Camera Device Compatibility**: Added support for Continuity Camera and external webcams, eliminating session freeze when opening the live mirror.
+
+## 🎵 Smart Lock Screen Media Routing
+- **Display Mode Awareness**: When "Show on all displays" is active, lock screen media frames on `NSScreen.main`. When a single display is selected, media routes strictly to the user's preferred display.
+
 

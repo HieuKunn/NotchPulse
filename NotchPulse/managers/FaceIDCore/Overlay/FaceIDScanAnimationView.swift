@@ -123,31 +123,11 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
-        // Waits for `isReadyForDisplay` rather than a fixed delay, which raced the
-        // real decode time and produced a black-frame flash.
-        let reveal: () -> Void = { [weak self] in
-            guard let self else { return }
-            // Without disabling implicit actions, toggling `isHidden` cross-fades both
-            // layers over CALayer's default duration instead of swapping instantly.
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            self.playerLayer.isHidden = false
-            self.stillImageLayer.isHidden = true
-            CATransaction.commit()
-        }
-        readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
-            guard change.newValue == true else { return }
-            DispatchQueue.main.async {
-                self?.fallbackRevealWorkItem?.cancel()
-                reveal()
-                self?.readyObservation = nil
-            }
-        }
-        // Safety net only — if isReadyForDisplay never fires for some
-        // reason, don't get stuck on the still forever.
-        let fallback = DispatchWorkItem { reveal() }
-        fallbackRevealWorkItem = fallback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: fallback)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        playerLayer.isHidden = false
+        stillImageLayer.isHidden = true
+        CATransaction.commit()
 
         newPlayer.seek(to: .zero)
         newPlayer.play()

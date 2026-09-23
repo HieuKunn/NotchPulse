@@ -134,10 +134,14 @@ final class NotchPulseFaceUnlockCoordinator {
 
         hasArmedForCurrentLock = true
         lastArmedAt = .now
-        Task { [weak self] in
-            // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
-            try? await Task.sleep(nanoseconds: 250_000_000)
-            await self?.arm(autoScan: shouldAutoScan)
+        if shouldAutoScan {
+            Task { [weak self] in
+                await self?.arm(autoScan: true)
+            }
+        } else {
+            Task { [weak self] in
+                await self?.arm(autoScan: false)
+            }
         }
     }
 

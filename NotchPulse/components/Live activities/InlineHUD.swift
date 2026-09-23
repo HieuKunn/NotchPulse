@@ -199,14 +199,14 @@ struct InlineHUD: View {
     }
 
     static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
-        isDynamicIsland ? 28 : max(0, closedNotchWidth - 24)
+        max(0, closedNotchWidth - 24)
     }
 
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
-        let padding: CGFloat = isDynamicIsland ? 24 : 12
+        let padding: CGFloat = isDynamicIsland ? 20 : 12
         return left + center + right + padding
     }
 }

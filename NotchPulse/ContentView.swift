@@ -192,14 +192,9 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            if isDynamicIsland {
-                if coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
-                    chinWidth = 440 + gestureProgress
-                } else {
-                    chinWidth = artSize + 60 + artSize + 24 + gestureProgress
-                }
-            } else {
-                chinWidth = vm.closedNotchSize.width + (artSize * 2) + 20 + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 20) + gestureProgress
+            if isDynamicIsland && coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
+                chinWidth = max(chinWidth, 440 + gestureProgress)
             }
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
@@ -207,11 +202,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            if isDynamicIsland {
-                chinWidth = 140 + gestureProgress
-            } else {
-                chinWidth = vm.closedNotchSize.width + (artSize * 2) + 20 + gestureProgress
-            }
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 20) + gestureProgress
         }
         return chinWidth
     }
@@ -541,8 +532,6 @@ struct ContentView: View {
                         if isFaceIDContentActive {
                             FaceIDContentView()
                                 .opacity(isFaceIDContentVisible ? 1 : 0)
-                                .scaleEffect(isFaceIDContentVisible ? 1.0 : 0.85, anchor: .top)
-                                .animation(.easeInOut(duration: 0.28), value: isFaceIDContentVisible)
                                 .transition(.opacity)
                         }
                     }
@@ -662,7 +651,7 @@ struct ContentView: View {
                     )
                 Rectangle()
                     .fill(.black)
-                    .frame(width: isDynamicIsland ? 80 : (vm.closedNotchSize.width - 20))
+                    .frame(width: max(0, vm.closedNotchSize.width - 20))
                 MinimalFaceFeatures()
             }
         }.frame(
@@ -737,9 +726,7 @@ struct ContentView: View {
                         && coordinator.expandingView.type == .music
                         && Defaults[.sneakPeekStyles] == .inline)
                         ? (isDynamicIsland ? 360 : 380)
-                        : (isDynamicIsland
-                            ? 60
-                            : (vm.closedNotchSize.width + 8))
+                        : (vm.closedNotchSize.width + (isDynamicIsland ? 12 : 8))
                 )
 
             HStack {

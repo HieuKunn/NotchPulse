@@ -269,19 +269,18 @@ struct LockScreenFaceIDPillView: View {
     
     //  Native NotchPulse Face ID biometric implementation.
     private var closedBodySize: CGSize {
-        let width = max(185, physicalNotchWidth)
         if hasPhysicalNotch {
-            return CGSize(width: width, height: notchHardwareHeight)
+            return CGSize(width: physicalNotchWidth, height: notchHardwareHeight)
         } else {
-            return CGSize(width: width, height: max(32, notchHardwareHeight))
+            return CGSize(width: 155, height: max(32, notchHardwareHeight))
         }
     }
     
     private var openBodySize: CGSize {
         if hasPhysicalNotch {
-            return CGSize(width: 250, height: 210)
+            return CGSize(width: max(175, physicalNotchWidth), height: 160)
         } else {
-            return CGSize(width: 210, height: 190)
+            return CGSize(width: 155, height: 135)
         }
     }
     
@@ -319,9 +318,6 @@ struct LockScreenFaceIDPillView: View {
                             .padding(.horizontal, hasPhysicalNotch ? 36 : 26)
                             .padding(.bottom, 24)
                             .scaleEffect(0.80)
-                            .scaleEffect(faceIDManager.isScanning && isScanPulseDimmed ? 0.97 : 1.0)
-                            .opacity(faceIDManager.isScanning && isScanPulseDimmed ? 0.70 : 1.0)
-                            .blur(radius: isExpanded ? 0 : 30)
                             .opacity(isExpanded ? 1.0 : 0.0)
                     }
                     .frame(width: currentSize.width, height: currentSize.height)

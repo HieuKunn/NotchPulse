@@ -46,7 +46,7 @@ struct FaceIDOverlayGeometry {
     @MainActor
     static var pillClosedSize: CGSize {
         let notch = getClosedNotchSize()
-        return CGSize(width: max(185, notch.width), height: max(32, notch.height))
+        return CGSize(width: 155, height: max(32, notch.height))
     }
 
     /// Shortened drop-down footprint for dynamic island, sized to comfortably fit the 80%-scaled animation.

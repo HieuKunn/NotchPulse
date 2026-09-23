@@ -252,12 +252,8 @@ struct FaceIDOverlayView: View {
                     scanContent
                 }
             }
-            // Content dissolves (blur + fade) as the panel shrinks, rather than being
-            // abruptly clipped by the collapsing shape. Rides the animation already
-            // active on `visualIsExpanded` — no separate `.animation` needed.
-            .blur(radius: visualIsExpanded ? 0 : 40)
+            // Content renders immediately in lock-step with expansion
             .opacity(visualIsExpanded ? 1 : 0)
-            .scaleEffect(visualIsExpanded ? 1 : 0.3)
             .environment(\.notchPanelStyle, style)
         }
         .frame(width: currentSize.width, height: currentSize.height)
