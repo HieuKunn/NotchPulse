@@ -310,11 +310,8 @@ struct LockScreenFaceIDPillView: View {
                 triggerScan()
             } label: {
                 applyNotchClip(
-                    ZStack(alignment: .top) {
+                    ZStack(alignment: .center) {
                         ScanAnimationView(media: scanMedia)
-                            .padding(.top, hasPhysicalNotch ? 36 : 24)
-                            .padding(.horizontal, hasPhysicalNotch ? 36 : 26)
-                            .padding(.bottom, 24)
                             .scaleEffect(0.80)
                             .opacity(isExpanded ? 1.0 : 0.0)
                     }

@@ -102,7 +102,7 @@ struct FaceIDOverlayGeometry {
 
     /// Taller than `pillClosedSize.height` for legibility; radius stays `height / 2`
     /// so it remains a true capsule while stretching.
-    static let minimalPillOpenWidth: CGFloat = 160
+    static let minimalPillOpenWidth: CGFloat = 140
     static let minimalPillOpenHeight: CGFloat = 32
 
     /// Zero chin bump — follows NotchPulse's inline notch height without protruding below it.
