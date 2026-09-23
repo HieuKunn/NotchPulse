@@ -336,11 +336,7 @@ final class FaceIDOverlayController {
             self.windowController.hide()
 
             // Restore previous screen AFTER collapse animation fully finishes
-            if let prevUUID = self.previousScreenUUIDBeforeOnboarding {
-                self.previousScreenUUIDBeforeOnboarding = nil
-                NotchPulseViewCoordinator.shared.selectedScreenUUID = prevUUID
-                NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
-            }
+            self.restorePreviousScreen()
         }
     }
 
@@ -389,12 +385,7 @@ final class FaceIDOverlayController {
         // stays unaffected — only the retry itself is removed.
         guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
 
-        // If within the initial arming settle window, don't drop the trigger:
-        // schedule activation to fire as soon as the settle window ends if still hovering!
-        if let armedAt {
-            let elapsed = ContinuousClock.now - armedAt
-            // REMOVED 400ms delay to make it instant on hover!
-        }
+        // REMOVED 400ms delay to make it instant on hover!
         performActivation()
     }
 
