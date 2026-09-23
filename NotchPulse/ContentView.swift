@@ -818,7 +818,7 @@ struct ContentView: View {
         if isFaceIDActive { return true }
         if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
         if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-            return faceIDOverlay.isArmed || NotchPulseLockMonitor.shared.isScreenLocked
+            return faceIDOverlay.isArmed || NotchPulseFaceUnlockCoordinator.shared.lockMonitor.isScreenLocked
         }
         return false
     }
