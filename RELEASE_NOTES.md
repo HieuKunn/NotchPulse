@@ -1,3 +1,9 @@
+# NotchPulse v4.7.6
+
+## 🔒 Proportional 80% Face ID Scale & Fluid Animation
+- **Custom 80% Scale Face ID**: Preserved the lightweight zero-delay Glance rendering architecture while sizing the Face ID scan animation to a refined 80% scale with silky-smooth breathing pulses.
+- **Instant Response & Zero Delay**: Instantaneous CALayer appearance on hover, transitioning seamlessly to the green checkmark unlock animation upon verification.
+
 # NotchPulse v4.7.5
 
 ## 🔒 Authentic Glance-Parity Face ID & Layout Polish
