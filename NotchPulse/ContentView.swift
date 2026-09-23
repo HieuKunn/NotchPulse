@@ -347,8 +347,7 @@ struct ContentView: View {
                     }
                     .onHover { hovering in
                         handleHover(hovering)
-                        let isLockScreenOrFaceID = isFaceIDActive || NotchPulseLockMonitor.isScreenActuallyLocked() || (hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && (faceIDOverlay.isArmed || NotchPulseLockMonitor.shared.isScreenLocked))
-                        if isLockScreenOrFaceID {
+                        if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
                             if hovering && faceIDOverlay.phase != .onboarding {
                                 FaceIDOverlayController.shared.activate()
@@ -358,7 +357,7 @@ struct ContentView: View {
                     .conditionalModifier(!isFaceIDContentActive) { view in
                         applyHitShape(view)
                             .onTapGesture {
-                                if NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDActive || (NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed) {
+                                if shouldHandleFaceIDTap() {
                                     FaceIDOverlayController.shared.activate()
                                     return
                                 }
@@ -814,6 +813,22 @@ struct ContentView: View {
     }
 
     // MARK: - Hover Management
+
+    private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
+        if isFaceIDActive { return true }
+        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
+        if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+            return faceIDOverlay.isArmed || NotchPulseLockMonitor.shared.isScreenLocked
+        }
+        return false
+    }
+
+    private func shouldHandleFaceIDTap() -> Bool {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
+        if isFaceIDActive { return true }
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed { return true }
+        return false
+    }
 
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch || isFaceIDActive { return }
