@@ -219,11 +219,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 setupDragDetectorForScreen(screen)
             }
         } else {
-            let preferredScreen: NSScreen? = window?.screen
-                ?? (coordinator.preferredScreenUUID.flatMap({ NSScreen.screen(withUUID: $0) }))
+            let preferredScreen: NSScreen? = (coordinator.preferredScreenUUID.flatMap({ NSScreen.screen(withUUID: $0) }))
                 ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
-                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+                ?? window?.screen
                 ?? NSScreen.main
+                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
                 ?? NSScreen.screens.first
 
             if let screen = preferredScreen {
@@ -671,22 +671,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            // 1. Prioritize explicitly selected display (e.g. Face ID onboarding routed to camera display, or active selection)
-            if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
-                targetScreen = activeScreen
-            } else if let preferredUUID = coordinator.preferredScreenUUID,
-                      let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
+            // 1. Prioritize explicitly preferred display chosen by user
+            if let preferredUUID = coordinator.preferredScreenUUID,
+               let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
                 coordinator.selectedScreenUUID = preferredUUID
                 targetScreen = preferredScreen
+            } else if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
+                targetScreen = activeScreen
             } else {
                 // The preferred display was disconnected or not found.
                 // Fall back gracefully so the notch never disappears!
-                // Prioritize:
-                // 1. Built-in MacBook display with physical notch (safeAreaInsets.top > 0)
-                // 2. NSScreen.main (active screen)
-                // 3. NSScreen.screens.first (primary display with menu bar)
-                let fallback = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
-                    ?? NSScreen.main
+                let fallback = NSScreen.main
+                    ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
                     ?? NSScreen.screens.first
 
                 if let fallback, let fallbackUUID = fallback.displayUUID {
@@ -706,6 +702,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             vm.screenUUID = selectedScreen.displayUUID
             vm.notchSize = getClosedNotchSize(screenUUID: selectedScreen.displayUUID)
+            vm.closedNotchSize = vm.notchSize
 
             if window == nil {
                 window = createNotchPulseWindow(for: selectedScreen, with: vm)

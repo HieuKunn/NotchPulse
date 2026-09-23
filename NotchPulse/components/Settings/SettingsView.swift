@@ -543,6 +543,12 @@ struct GeneralSettings: View {
                     Text(screen.name).tag(screen.uuid as String?)
                 }
             }
+            .onAppear {
+                screens = NSScreen.screens.compactMap { screen in
+                    guard let uuid = screen.displayUUID else { return nil }
+                    return (uuid, screen.localizedName)
+                }
+            }
             .onChange(of: NSScreen.screens) {
                 screens = NSScreen.screens.compactMap { screen in
                     guard let uuid = screen.displayUUID else { return nil }

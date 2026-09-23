@@ -30,7 +30,8 @@ struct NotchPulseHeader: View {
 
             if vm.notchState == .open {
                 let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-                if !isDynamicIsland && (NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0) {
+                let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
+                if !isDynamicIsland && (activeScreen?.safeAreaInsets.top ?? 0 > 0) {
                     Rectangle()
                         .fill(.black)
                         .frame(width: vm.closedNotchSize.width)
