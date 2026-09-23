@@ -207,7 +207,7 @@ struct InlineHUD: View {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
-        let padding: CGFloat = isDynamicIsland ? 20 : 12
+        let padding: CGFloat = isDynamicIsland ? 14 : 16
         return left + center + right + padding
     }
 }

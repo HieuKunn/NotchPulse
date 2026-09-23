@@ -203,7 +203,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 20) + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
             if isDynamicIsland && coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
                 chinWidth = max(chinWidth, 440 + gestureProgress)
             }
@@ -213,7 +213,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 20) + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
         }
         return chinWidth
     }
@@ -289,8 +289,8 @@ struct ContentView: View {
                         (vm.notchState == .open)
                         ? 10
                         : (isDynamicIsland
-                            ? (isFaceIDContentVisible ? 0 : 12)
-                            : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
+                            ? (isFaceIDContentVisible ? 0 : 8)
+                            : (isFaceIDContentVisible ? 0 : 17))
                     )
                     .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
@@ -346,13 +346,14 @@ struct ContentView: View {
                             .animation(.smooth, value: gestureProgress)
                     }
                     .onHover { hovering in
-                        handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
                             if hovering && faceIDOverlay.phase != .onboarding {
                                 FaceIDOverlayController.shared.activate()
                             }
+                            return
                         }
+                        handleHover(hovering)
                     }
                     .conditionalModifier(!isFaceIDContentActive) { view in
                         applyHitShape(view)
@@ -528,34 +529,33 @@ struct ContentView: View {
                     Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: vm.effectiveClosedNotchHeight)
                 } else {
                     ZStack {
-                        Group {
-                            if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
-                                InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
-                                    .transition(.opacity)
-                            } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
-                                MusicLiveActivity()
-                                    .frame(alignment: .center)
-                                    .transition(.opacity)
-                            } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
-                                NotchPulseFaceAnimation()
-                                    .transition(.opacity)
-                            } else if vm.notchState == .open {
-                                NotchPulseHeader()
-                                    .frame(height: max(24, vm.effectiveClosedNotchHeight))
-                                    .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
-                                    .transition(.opacity)
-                            } else {
-                                Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
-                                    .transition(.opacity)
+                        if !isFaceIDContentVisible {
+                            Group {
+                                if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
+                                    InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
+                                        .transition(.opacity)
+                                } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
+                                    MusicLiveActivity()
+                                        .frame(alignment: .center)
+                                        .transition(.opacity)
+                                } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
+                                    NotchPulseFaceAnimation()
+                                        .transition(.opacity)
+                                } else if vm.notchState == .open {
+                                    NotchPulseHeader()
+                                        .frame(height: max(24, vm.effectiveClosedNotchHeight))
+                                        .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
+                                        .transition(.opacity)
+                                } else {
+                                    Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
+                                        .transition(.opacity)
+                                }
                             }
+                            .transition(.opacity)
                         }
-                        .opacity(isFaceIDContentVisible ? 0 : 1)
-                        .animation(.easeInOut(duration: 0.28), value: isFaceIDContentVisible)
 
-                        if isFaceIDContentActive {
+                        if isFaceIDContentActive || isFaceIDContentVisible {
                             FaceIDContentView()
-                                .opacity(isFaceIDContentVisible ? 1 : 0)
-                                .transition(.opacity)
                         }
                     }
 
@@ -749,7 +749,7 @@ struct ContentView: View {
                         && coordinator.expandingView.type == .music
                         && Defaults[.sneakPeekStyles] == .inline)
                         ? (isDynamicIsland ? 360 : 380)
-                        : (vm.closedNotchSize.width + (isDynamicIsland ? 12 : 8))
+                        : (vm.closedNotchSize.width + (isDynamicIsland ? 8 : 12))
                 )
 
             HStack {
@@ -817,8 +817,8 @@ struct ContentView: View {
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
         if isFaceIDActive { return true }
         if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
-        if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-            return faceIDOverlay.isArmed || NotchPulseFaceUnlockCoordinator.shared.lockMonitor.isScreenLocked
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+            return true
         }
         return false
     }
@@ -826,12 +826,12 @@ struct ContentView: View {
     private func shouldHandleFaceIDTap() -> Bool {
         if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
         if isFaceIDActive { return true }
-        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed { return true }
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled { return true }
         return false
     }
 
     private func handleHover(_ hovering: Bool) {
-        if coordinator.firstLaunch || isFaceIDActive { return }
+        if coordinator.firstLaunch || isFaceIDActive || faceIDOverlay.phase != .closed { return }
         hoverTask?.cancel()
         
         if hovering {

@@ -393,6 +393,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        FaceIDScanAnimationHostView.prewarm()
+
         if let updater = SettingsWindowController.shared.updaterController {
             SettingsWindowController.shared.setUpdaterController(updater, viewModel: self.vm)
         }
