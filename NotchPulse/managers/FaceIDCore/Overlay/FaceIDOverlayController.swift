@@ -91,7 +91,7 @@ final class FaceIDOverlayController {
     /// Matches the success asset duration (~1.22s) plus a short beat to read the final frame.
     private let successHoldDuration: Duration = .milliseconds(1_700)
     /// Non-private so FaceUnlockCoordinator's auto-retry can wait this out too.
-    let failureHoldDuration: Duration = .seconds(5)
+    let failureHoldDuration: Duration = .milliseconds(1_500)
     /// Reads the same setting as `FaceUnlockCoordinator.scanWindowDuration` so
     /// the two separate timers expire together.
     private var scanTimeoutDuration: Duration {
@@ -433,6 +433,7 @@ final class FaceIDOverlayController {
                 phase = .closed
             }
             updateInteractivity()
+            restorePreviousScreen()
         } else {
             withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
                 phase = .closed

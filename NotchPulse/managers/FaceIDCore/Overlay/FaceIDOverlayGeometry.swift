@@ -25,14 +25,14 @@ struct FaceIDOverlayGeometry {
         Defaults[.notchStyle] == .dynamicIsland ? .pill : .notch
     }
 
-    /// Fixed footprint of expanded scan-mode content in notch style matching Glance.
-    static let notchOpenSize = CGSize(width: 220, height: 200)
+    /// Scaled to 80% to snug-fit the 80% face animation without excess black drop-down margins
+    static let notchOpenSize = CGSize(width: 176, height: 160)
 
     /// Corner radii matching Glance.
     static let closedTopRadius: CGFloat = 8
     static let closedBottomRadius: CGFloat = 12
-    static let openTopRadius: CGFloat = 16
-    static let openBottomRadius: CGFloat = 60
+    static let openTopRadius: CGFloat = 14
+    static let openBottomRadius: CGFloat = 48
 
     /// A shape drawn in a rect of width `w` has a visible body of `w - 2 * topRadius`;
     /// zero in pill style, which has no flare.
@@ -45,14 +45,14 @@ struct FaceIDOverlayGeometry {
     /// Resting capsule size matching Glance pill closed size
     static let pillClosedSize = CGSize(width: 80, height: 24)
 
-    /// Expanded footprint matching Glance pill open size
-    static let pillOpenSize = CGSize(width: 180, height: 180)
+    /// Expanded footprint matching Glance pill open size scaled to 80%
+    static let pillOpenSize = CGSize(width: 144, height: 144)
 
     /// Pinned to NotchPulse's active dynamic island top offset.
     static var pillTopGap: CGFloat { Defaults[.dynamicIslandTopOffset] }
 
-    /// Continuous corner radius matching Glance (48pt).
-    static let pillOpenCornerRadius: CGFloat = 48
+    /// Continuous corner radius matching Glance (scaled to 80%).
+    static let pillOpenCornerRadius: CGFloat = 38
 
     /// Blur applied to the whole panel while off-screen, resolving to zero as it slides into place.
     static let pillEnterBlur: CGFloat = 0
@@ -61,11 +61,11 @@ struct FaceIDOverlayGeometry {
     /// radius, and without this margin the parked pill smears a faint band at the screen top.
     static let pillOffscreenSlack: CGFloat = 20
 
-    /// Pill's equivalent of `notchContentPadding*` matching Glance.
-    static let pillContentPaddingTop: CGFloat = 32
-    static let pillContentPaddingLeading: CGFloat = 32
-    static let pillContentPaddingTrailing: CGFloat = 32
-    static let pillContentPaddingBottom: CGFloat = 32
+    /// Pill's equivalent of `notchContentPadding*` scaled to 80%.
+    static let pillContentPaddingTop: CGFloat = 26
+    static let pillContentPaddingLeading: CGFloat = 26
+    static let pillContentPaddingTrailing: CGFloat = 26
+    static let pillContentPaddingBottom: CGFloat = 26
 
     // MARK: - Panel open/close springs matching Glance
     //
@@ -148,11 +148,11 @@ struct FaceIDOverlayGeometry {
     /// finished expanding. Hand-tuned approximation — springs have no hard end time.
     static let scanPulseStartDelay: Double = 0.6
 
-    /// Notch-style padding around scan-mode content matching Glance.
-    static let notchContentPaddingTop: CGFloat = 26
-    static let notchContentPaddingLeading: CGFloat = 40
-    static let notchContentPaddingTrailing: CGFloat = 40
-    static let notchContentPaddingBottom: CGFloat = 30
+    /// Notch-style padding around scan-mode content scaled to 80%.
+    static let notchContentPaddingTop: CGFloat = 21
+    static let notchContentPaddingLeading: CGFloat = 32
+    static let notchContentPaddingTrailing: CGFloat = 32
+    static let notchContentPaddingBottom: CGFloat = 24
 
     /// Cosmetic size bump applied on hover in FaceIDOverlayView. Included here so the
     /// fixed window has margin for it instead of clipping.

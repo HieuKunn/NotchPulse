@@ -189,21 +189,27 @@ struct ContentView: View {
 
     private var baseChinWidth: CGFloat {
         let isDynamicIsland = notchStyle == .dynamicIsland
-        var chinWidth: CGFloat = vm.closedNotchSize.width // Always match notch width like the user requested
+        let defaultClosedWidth: CGFloat = (isDynamicIsland && !hasPhysicalNotch) ? 80 : vm.closedNotchSize.width
+
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            return defaultClosedWidth
+        }
+
+        var chinWidth: CGFloat = defaultClosedWidth
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
         } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
-            chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
+            chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: (isDynamicIsland && !hasPhysicalNotch ? 80 : vm.closedNotchSize.width)) + gestureProgress
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
+            chinWidth = (isDynamicIsland && !hasPhysicalNotch ? 80 : vm.closedNotchSize.width) + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
             if isDynamicIsland && coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
                 chinWidth = max(chinWidth, 440 + gestureProgress)
             }
@@ -213,7 +219,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
+            chinWidth = (isDynamicIsland && !hasPhysicalNotch ? 80 : vm.closedNotchSize.width) + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
         }
         return chinWidth
     }
@@ -287,12 +293,12 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
-                        ? 10
+                        ? 14
                         : (isDynamicIsland
                             ? (isFaceIDContentVisible ? 0 : 8)
                             : (isFaceIDContentVisible ? 0 : 17))
                     )
-                    .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
+                    .padding(.bottom, (vm.notchState == .open) ? 12 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland && !hasPhysicalNotch) { view in
                         view
@@ -530,14 +536,14 @@ struct ContentView: View {
                     ZStack {
                         if !isFaceIDContentVisible {
                             Group {
-                                if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
+                                if !NotchPulseLockMonitor.isScreenActuallyLocked() && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                     InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                         .transition(.opacity)
-                                } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
+                                } else if !NotchPulseLockMonitor.isScreenActuallyLocked() && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                                     MusicLiveActivity()
                                         .frame(alignment: .center)
                                         .transition(.opacity)
-                                } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
+                                } else if !NotchPulseLockMonitor.isScreenActuallyLocked() && !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
                                     NotchPulseFaceAnimation()
                                         .transition(.opacity)
                                 } else if vm.notchState == .open {
@@ -546,7 +552,7 @@ struct ContentView: View {
                                         .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                         .transition(.opacity)
                                 } else {
-                                    Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
+                                    Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 80 : max(185, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 32 : vm.effectiveClosedNotchHeight)
                                         .transition(.opacity)
                                 }
                             }
@@ -647,7 +653,6 @@ struct ContentView: View {
                     .padding(.trailing, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
                     .padding(.top, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
                     .padding(.bottom, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
-                    .scaleEffect(0.80)
             }
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)

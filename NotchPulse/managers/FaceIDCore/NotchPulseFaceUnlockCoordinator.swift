@@ -304,7 +304,9 @@ final class NotchPulseFaceUnlockCoordinator {
         case .noResolution:
             statusMessage = "No face detected."
             if showsUI {
-                // No explicit collapse call: FaceIDOverlayController's own scanning timeout fires on the same mark and collapses itself.
+                Task { @MainActor in
+                    await FaceIDOverlayController.shared.collapse()
+                }
                 statusMessage = "No face detected — hover the notch to try again."
                 scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
             } else {

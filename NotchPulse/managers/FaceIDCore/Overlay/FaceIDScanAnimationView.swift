@@ -39,6 +39,7 @@ struct FaceIDScanAnimationView: NSViewRepresentable {
 
     func updateNSView(_ nsView: FaceIDScanAnimationHostView, context: Context) {
         nsView.apply(media: media)
+        nsView.updateLayerFrames()
     }
 }
 
@@ -51,19 +52,26 @@ final class FaceIDScanAnimationHostView: NSView {
     private var fallbackRevealWorkItem: DispatchWorkItem?
 
     override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
+        let initialRect = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
+        super.init(frame: initialRect)
         wantsLayer = true
-        layer = CALayer()
+        let root = CALayer()
+        root.masksToBounds = true
+        layer = root
 
         stillImageLayer.contentsGravity = .resizeAspect
+        stillImageLayer.masksToBounds = true
         if let still = Self.loadStillFromBundle() {
             stillImageLayer.contents = still
         }
-        layer?.addSublayer(stillImageLayer)
+        root.addSublayer(stillImageLayer)
 
         playerLayer.videoGravity = .resizeAspect
+        playerLayer.masksToBounds = true
         playerLayer.isHidden = true
-        layer?.addSublayer(playerLayer)
+        root.addSublayer(playerLayer)
+
+        updateLayerFrames()
     }
 
     required init?(coder: NSCoder) {
@@ -72,14 +80,35 @@ final class FaceIDScanAnimationHostView: NSView {
 
     override func layout() {
         super.layout()
+        updateLayerFrames()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        updateLayerFrames()
+    }
+
+    override func resizeSubviews(withOldSize oldSize: NSSize) {
+        super.resizeSubviews(withOldSize: oldSize)
+        updateLayerFrames()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateLayerFrames()
+    }
+
+    func updateLayerFrames() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        playerLayer.frame = bounds
-        stillImageLayer.frame = bounds
+        let rect = bounds.size.width > 0 ? bounds : NSRect(x: 0, y: 0, width: 140, height: 135)
+        playerLayer.frame = rect
+        stillImageLayer.frame = rect
         CATransaction.commit()
     }
 
     func apply(media: FaceIDScanMedia) {
+        updateLayerFrames()
         guard media != currentMedia else { return }
         currentMedia = media
         readyObservation = nil
@@ -87,8 +116,11 @@ final class FaceIDScanAnimationHostView: NSView {
 
         guard let resource = media.videoResourceName else {
             teardownPlayer()
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             playerLayer.isHidden = true
             stillImageLayer.isHidden = false
+            CATransaction.commit()
             return
         }
 
@@ -145,10 +177,9 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = nil
     }
 
-    /// The asset lives in Resources/ rather than an asset catalog, so
-    /// `NSImage(named:)` won't find it — load by URL instead.
-    private static func loadStillFromBundle() -> NSImage? {
+    private static func loadStillFromBundle() -> CGImage? {
         guard let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png") else { return nil }
-        return NSImage(contentsOf: url)
+        guard let image = NSImage(contentsOf: url) else { return nil }
+        return image.cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
 }
