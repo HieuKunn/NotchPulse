@@ -1,6 +1,7 @@
 # NotchPulse v4.7.8
 
 ## 🏝️ Apple Physical Notch Calibration, Instant Animations & Polish
+- **Universal Dynamic Island Switching**: Restored Dynamic Island mode switching across all Mac models, including MacBooks with a physical camera notch, so you can freely switch between Notch and floating Dynamic Island styles at any time.
 - **Refined Inline Face ID Width & Silhouette**: Inline/minimal Face ID now widens gracefully sideways with generous clearance for both the lock and face icons, while strictly preserving standard resting height without unnecessary downward expansion.
 - **Smart Staged Face ID Animation**: Face ID scanning opens with the static face held steady; if no face is recognized after 2.5 seconds, it transitions smoothly into the searching face animation looking around until your configured scan timeout, branching cleanly into a green checkmark on match or a head-shake on retry.
 - **Seamless Lock Screen Media Playback**: Resolved an issue where locking your Mac while music was playing hid the media live activity on the lock screen. Media controls now remain continuously visible on the lock screen without requiring a wake hover.

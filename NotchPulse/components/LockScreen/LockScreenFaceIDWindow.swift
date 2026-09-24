@@ -156,14 +156,10 @@ final class LockScreenFaceIDWindow: NSPanel {
         let windowHeight: CGFloat = 260
         let y: CGFloat
         
-        if hasPhysicalNotch {
-            y = screen.frame.origin.y + screen.frame.height - windowHeight
+        if notchStyle == .dynamicIsland {
+            y = screen.frame.origin.y + screen.frame.height - windowHeight - dynamicIslandTopOffset
         } else {
-            if notchStyle == .dynamicIsland {
-                y = screen.frame.origin.y + screen.frame.height - windowHeight - dynamicIslandTopOffset
-            } else {
-                y = screen.frame.origin.y + screen.frame.height - windowHeight
-            }
+            y = screen.frame.origin.y + screen.frame.height - windowHeight
         }
         
         let x = screen.frame.origin.x + (screen.frame.width - windowWidth) / 2
@@ -321,11 +317,11 @@ struct LockScreenFaceIDPillView: View {
                             .opacity(isExpanded ? 1.0 : 0.0)
                     }
                     .frame(width: currentSize.width, height: currentSize.height)
-                    .background(hasPhysicalNotch ? (isExpanded ? Color.black : Color.clear) : Color.black)
+                    .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
                 )
                 .overlay(
                     Group {
-                        if !hasPhysicalNotch && notchStyle == .dynamicIsland {
+                        if notchStyle == .dynamicIsland {
                             RoundedRectangle(cornerRadius: bottomRadius, style: .continuous)
                                 .stroke(
                                     faceIDManager.lastUnlockSuccess ? Color.green.opacity(0.8) : Color.blue.opacity(isHovered ? 0.8 : 0.4),
@@ -369,9 +365,7 @@ struct LockScreenFaceIDPillView: View {
     
     @ViewBuilder
     private func applyNotchClip<V: View>(_ content: V) -> some View {
-        if hasPhysicalNotch {
-            content.clipShape(NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius))
-        } else if notchStyle == .dynamicIsland {
+        if notchStyle == .dynamicIsland {
             content.clipShape(RoundedRectangle(cornerRadius: bottomRadius, style: .continuous))
         } else {
             content.clipShape(NotchShape(topCornerRadius: topRadius, bottomCornerRadius: bottomRadius))
