@@ -702,15 +702,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            // 0. Only dynamically route to the camera's physical display when Face ID is ACTIVELY scanning / showing
-            let isFaceIDScanning = FaceIDOverlayController.shared.phase == .scanning
-                || FaceIDOverlayController.shared.phase == .success
-                || FaceIDOverlayController.shared.phase == .failure
-                || FaceIDOverlayController.shared.phase == .onboarding
+            // 0. Only dynamically route to the camera's physical display when Face ID is ACTIVELY scanning / showing / onboarding
+            let isFaceIDScanning = FaceIDOverlayController.shared.isSessionActive
+                || FaceIDOverlayController.shared.phase != .closed
+                || FaceIDOverlayController.shared.isPresenting
             if isFaceIDScanning,
                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
                let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice) {
                 targetScreen = camScreen
+                if let camUUID = camScreen.displayUUID {
+                    coordinator.selectedScreenUUID = camUUID
+                }
             }
             // 1. Prioritize explicitly preferred display chosen by user
             else if let preferredUUID = coordinator.preferredScreenUUID,

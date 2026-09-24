@@ -122,18 +122,24 @@ final class FaceIDOverlayController {
             }
             if NotchPulseViewCoordinator.shared.selectedScreenUUID != targetUUID {
                 NotchPulseViewCoordinator.shared.selectedScreenUUID = targetUUID
-                NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
             }
+            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
         }
     }
 
     private func restorePreviousScreen() {
+        isPresenting = false
         if let prevUUID = previousScreenUUIDBeforeFaceID {
             previousScreenUUIDBeforeFaceID = nil
             if NotchPulseViewCoordinator.shared.selectedScreenUUID != prevUUID {
                 NotchPulseViewCoordinator.shared.selectedScreenUUID = prevUUID
-                NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
             }
+            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
+        } else if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID {
+            if NotchPulseViewCoordinator.shared.selectedScreenUUID != prefUUID {
+                NotchPulseViewCoordinator.shared.selectedScreenUUID = prefUUID
+            }
+            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
         }
     }
 
@@ -217,6 +223,9 @@ final class FaceIDOverlayController {
     /// Shows the idle still first; after 2.5s switches to looking around animation;
     /// auto-collapses silently (no failure animation) after `scanTimeoutDuration` if no face is found.
     func beginScanning() {
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = .scanning
+        }
         routeToCameraScreen()
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
@@ -224,9 +233,6 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         content = .scan(.idle)
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
-            phase = .scanning
-        }
         updateInteractivity()
 
         searchingAnimationTask = Task { @MainActor [weak self] in
@@ -271,9 +277,9 @@ final class FaceIDOverlayController {
     /// - Parameter styleOverride: forces `.minimal`/`.original` regardless of the saved
     ///   preference, for the Animation section's live preview.
     func present(styleOverride: UnlockAnimationStyle? = nil, onRetry: (() -> Void)? = nil) {
-        routeToCameraScreen()
-        isArmed = false
         isPresenting = true
+        isArmed = false
+        routeToCameraScreen()
         onActivate = onRetry
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
@@ -282,31 +288,25 @@ final class FaceIDOverlayController {
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         
         content = .scan(.idle)
-        phase = .closed
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = .scanning
+        }
         isPillDocked = true
         windowController.show()
         windowController.displaySynchronously()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            guard let self else { return }
-            self.content = .scan(.idle)
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
-                self.phase = .scanning
-            }
-            self.updateInteractivity()
+        updateInteractivity()
 
-            self.searchingAnimationTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(2.5))
-                guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-                self.content = .scan(.scanning)
-            }
+        searchingAnimationTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2.5))
+            guard let self, !Task.isCancelled, self.phase == .scanning else { return }
+            self.content = .scan(.scanning)
+        }
 
-            self.scanTimeoutTask = Task { @MainActor [weak self] in
-                let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
-                try? await Task.sleep(for: duration)
-                guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-                await self.collapse()
-            }
+        scanTimeoutTask = Task { @MainActor [weak self] in
+            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+            try? await Task.sleep(for: duration)
+            guard let self, !Task.isCancelled, self.phase == .scanning else { return }
+            await self.collapse()
         }
     }
 
@@ -315,27 +315,20 @@ final class FaceIDOverlayController {
     /// Hands the panel to the onboarding flow — this object only owns visibility and
     /// interactivity while `.onboarding` is active; sizing/content is driven by `controller`.
     func presentOnboarding(_ controller: FaceIDEnrollmentController) {
-        routeToCameraScreen()
-        isArmed = false
         isPresenting = true
+        isArmed = false
         onActivate = nil
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
 
         geometry = windowController.currentGeometry
         content = .onboarding(controller)
-        phase = .closed
+        phase = .onboarding
+        routeToCameraScreen()
         isPillDocked = true
         windowController.show()
         windowController.displaySynchronously()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            guard let self else { return }
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
-                self.phase = .onboarding
-            }
-            self.updateInteractivity()
-        }
+        updateInteractivity()
     }
 
     /// Gracefully shrinks the onboarding panel away and hides the window; guarded by

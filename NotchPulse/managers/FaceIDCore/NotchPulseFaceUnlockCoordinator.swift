@@ -37,8 +37,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
-    /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
-    private let wrongFaceStreakThreshold = 6
+    /// Requires continuous mismatch after camera warmup before triggering the failure animation.
+    private let wrongFaceStreakThreshold = 35
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -123,10 +123,8 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        // Explicit screen lock (`.screenLocked` e.g. Ctrl + Cmd + Q) must NEVER automatically fire the camera to scan immediately
-        // upon locking, because the user is intentionally locking the Mac. It only arms the overlay silhouette, leaving hover/wake/space to scan.
         let isSelectedTrigger = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
-        let shouldAutoScan = (signal != .onLock) && isSelectedTrigger
+        let shouldAutoScan = isSelectedTrigger
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
@@ -348,14 +346,18 @@ final class NotchPulseFaceUnlockCoordinator {
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
 
-        /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
+        /// Cleared when consistently failing, but latched briefly so a single jitter frame doesn't drop the match while liveness confirms.
         var readyMatch: ScoredIdentity?
+        var lastMatchInstant: ContinuousClock.Instant?
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
         /// Last frame's selected face, passed back so `selectDominantFace` stays on the same person instead of flip-flopping.
         var lastFaceBoundingBox: CGRect?
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
+
+        let scanStartInstant = ContinuousClock.now
+        let cameraWarmupDuration: Duration = .milliseconds(800)
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -371,13 +373,12 @@ final class NotchPulseFaceUnlockCoordinator {
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
             let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-            let threshold = matchThreshold
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(
                     in: frame.image,
                     preferNear: previousBoundingBox,
                     matchingAgainst: activeIdentities,
-                    threshold: threshold
+                    threshold: 0.55
                 ) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
@@ -412,14 +413,23 @@ final class NotchPulseFaceUnlockCoordinator {
             let scored = pipeline.score(result.embedding, against: NotchPulseFaceEnrollmentStore.shared.activeIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)
 
+            let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant) >= cameraWarmupDuration
+
             if let matched {
                 consecutiveWrongFaceFrames = 0
                 readyMatch = matched
+                lastMatchInstant = ContinuousClock.now
             } else {
-                readyMatch = nil
-                consecutiveWrongFaceFrames += 1
-                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                    return .consistentlyWrongFace
+                if let lastMatch = lastMatchInstant, ContinuousClock.now - lastMatch > .milliseconds(600) {
+                    readyMatch = nil
+                } else if lastMatchInstant == nil {
+                    readyMatch = nil
+                }
+                if isCameraWarmedUp {
+                    consecutiveWrongFaceFrames += 1
+                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                        return .consistentlyWrongFace
+                    }
                 }
             }
 
