@@ -204,7 +204,17 @@ extension NotchPulseFaceRecognitionPipeline {
     /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. No runner-up margin check: the same person can be enrolled multiple times under different appearances, so two of their own profiles legitimately score close together — a margin check can't tell that apart from two different people colliding.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
         guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
-        guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else { return nil }
+        // Match if either:
+        // 1. Both centroid and max sample meet threshold (standard match)
+        // 2. A specific pose/sample strongly matches (maxSampleSimilarity >= threshold) with centroid close (>= threshold - 0.05)
+        // 3. Overall centroid average strongly matches (centroidSimilarity >= threshold) with max sample close (>= threshold - 0.05)
+        let primaryThreshold = threshold
+        let secondaryFloor = max(0.50, threshold - 0.05)
+
+        let passesCentroid = first.centroidSimilarity >= primaryThreshold && first.maxSampleSimilarity >= secondaryFloor
+        let passesSample = first.maxSampleSimilarity >= primaryThreshold && first.centroidSimilarity >= secondaryFloor
+
+        guard passesCentroid || passesSample else { return nil }
         return first
     }
 }

@@ -15,8 +15,8 @@ actor ThumbnailService {
 
     private let cache: NSCache<NSString, NSImage> = {
         let cache = NSCache<NSString, NSImage>()
-        cache.countLimit = 30
-        cache.totalCostLimit = 20 * 1024 * 1024 // 20 MB
+        cache.countLimit = 16
+        cache.totalCostLimit = 8 * 1024 * 1024 // 8 MB (optimized from 20 MB)
         return cache
     }()
     private var pendingRequests: [String: Task<NSImage?, Never>] = [:]
