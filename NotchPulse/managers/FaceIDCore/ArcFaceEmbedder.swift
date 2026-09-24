@@ -42,7 +42,27 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let inputName = "input_image"
     private static let outputName = "embedding"
 
-    static let shared: ArcFaceEmbedder? = try? ArcFaceEmbedder()
+    private static let instanceLock = NSLock()
+    private static var _sharedInstance: ArcFaceEmbedder?
+
+    /// Lazily loads ArcFace model on demand; call unload() to release memory when unlock session is over.
+    static var shared: ArcFaceEmbedder? {
+        instanceLock.lock()
+        defer { instanceLock.unlock() }
+        if let existing = _sharedInstance {
+            return existing
+        }
+        let instance = try? ArcFaceEmbedder()
+        _sharedInstance = instance
+        return instance
+    }
+
+    /// Releases the MLModel and CVPixelBufferPool from RAM when idle on Desktop
+    static func unload() {
+        instanceLock.lock()
+        defer { instanceLock.unlock() }
+        _sharedInstance = nil
+    }
 
     // Loaded once and reused — model load dominates a single inference.
     private let model: MLModel

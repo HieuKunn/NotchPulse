@@ -202,6 +202,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.notchSize = openNotchSize
         self.notchState = .open
         
+        MusicManager.shared.isUIActive = true
         // Force music information update when notch is opened
         MusicManager.shared.forceUpdate()
     }
@@ -217,6 +218,13 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.isBatteryPopoverActive = false
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
+
+        if !LockScreenMediaWindow.shared.isWindowVisible {
+            MusicManager.shared.isUIActive = false
+        }
+        Task {
+            await ThumbnailService.shared.clearCache()
+        }
 
         if self.isCameraExpanded || self.webcamManager.isSessionRunning {
             self.isCameraExpanded = false

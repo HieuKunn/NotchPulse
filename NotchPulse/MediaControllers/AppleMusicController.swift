@@ -156,20 +156,29 @@ class AppleMusicController: MediaControllerProtocol {
         updatedState.lastUpdated = Date()
         self.playbackState = updatedState
 
-        if updatedState.isPlaying {
+        if updatedState.isPlaying && MusicManager.shared.isUIActive {
             startPeriodicSyncIfNeeded()
-        } else {
+        } else if !updatedState.isPlaying {
+            stopPeriodicSync()
+        }
+    }
+
+    func setUIActive(_ active: Bool) {
+        if active && playbackState.isPlaying {
+            startPeriodicSyncIfNeeded()
+        } else if !active {
             stopPeriodicSync()
         }
     }
 
     private func startPeriodicSyncIfNeeded() {
+        guard MusicManager.shared.isUIActive else { return }
         guard periodicSyncTask == nil else { return }
         periodicSyncTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2.0))
                 guard let self = self, !Task.isCancelled else { break }
-                guard self.playbackState.isPlaying, self.isActive() else {
+                guard self.playbackState.isPlaying, self.isActive(), MusicManager.shared.isUIActive else {
                     self.stopPeriodicSync()
                     break
                 }

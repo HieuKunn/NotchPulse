@@ -135,9 +135,9 @@ class SpotifyController: MediaControllerProtocol {
 
         playbackState = state
 
-        if state.isPlaying {
+        if state.isPlaying && MusicManager.shared.isUIActive {
             startPeriodicSyncIfNeeded()
-        } else {
+        } else if !state.isPlaying {
             stopPeriodicSync()
         }
 
@@ -168,13 +168,22 @@ class SpotifyController: MediaControllerProtocol {
         }
     }
 
+    func setUIActive(_ active: Bool) {
+        if active && playbackState.isPlaying {
+            startPeriodicSyncIfNeeded()
+        } else if !active {
+            stopPeriodicSync()
+        }
+    }
+
     private func startPeriodicSyncIfNeeded() {
+        guard MusicManager.shared.isUIActive else { return }
         guard periodicSyncTask == nil else { return }
         periodicSyncTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1.0))
                 guard let self = self, !Task.isCancelled else { break }
-                guard self.playbackState.isPlaying, self.isActive() else {
+                guard self.playbackState.isPlaying, self.isActive(), MusicManager.shared.isUIActive else {
                     self.stopPeriodicSync()
                     break
                 }

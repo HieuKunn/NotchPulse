@@ -139,6 +139,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             orderFrontRegardless()
         }
         isWindowVisible = true
+        MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()
     }
     
@@ -154,6 +155,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             self.contentView = nil
             self.isFullScreen = false
             self.isWindowVisible = false
+            MusicManager.shared.isUIActive = false
             if self.isSkyLightAttached {
                 SkyLightOperator.shared.undelegateWindow(self)
                 self.isSkyLightAttached = false

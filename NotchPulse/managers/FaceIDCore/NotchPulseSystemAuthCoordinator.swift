@@ -65,11 +65,13 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             
         if shouldPoll {
             if promptDetectionTimer == nil {
-                promptDetectionTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+                let timer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [weak self] _ in
                     Task { @MainActor [weak self] in
                         self?.checkOnScreenAuthPrompts()
                     }
                 }
+                timer.tolerance = 0.3
+                promptDetectionTimer = timer
             }
         } else {
             promptDetectionTimer?.invalidate()
@@ -185,6 +187,22 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             return
         }
 
+        // Fast check 1: Check frontmost application directly in O(1)
+        if let frontApp = NSWorkspace.shared.frontmostApplication, Self.isAuthAgent(frontApp) {
+            let pid = frontApp.processIdentifier
+            if pid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
+                lastPromptPid = pid
+                lastPromptTimestamp = Date()
+                authenticateForSystemPrompt(targetApp: frontApp)
+                return
+            }
+        }
+
+        // Fast check 2: Only enumerate CGWindowList if an auth agent is actually running in the system
+        let isAuthRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.SecurityAgent").isEmpty
+            || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.CoreAuthUI").isEmpty
+        guard isAuthRunning else { return }
+
         // Check on-screen window list for SecurityAgent or CoreAuthUI
         if let windowInfoList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
             for win in windowInfoList {
@@ -208,17 +226,6 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                         }
                     }
                 }
-            }
-        }
-
-        // Check frontmost application directly in O(1) without iterating all running applications
-        if let frontApp = NSWorkspace.shared.frontmostApplication, Self.isAuthAgent(frontApp) {
-            let pid = frontApp.processIdentifier
-            if pid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
-                lastPromptPid = pid
-                lastPromptTimestamp = Date()
-                authenticateForSystemPrompt(targetApp: frontApp)
-                return
             }
         }
     }
@@ -361,6 +368,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         let startTime = ContinuousClock.now
         let threshold = settings.matchThreshold
         var lastProcessedFrameID: UInt64?
+        var lastFaceBoundingBox: CGRect?
 
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { [weak self] in self?.settings.livenessMode ?? .light }
@@ -373,17 +381,31 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             }
             lastProcessedFrameID = frame.id
 
+            let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            guard !activeIdentities.isEmpty else {
+                FaceIDOverlayController.shared.finish(success: false)
+                return false
+            }
+
             let pipeline = self.pipeline
+            let previousBoundingBox = lastFaceBoundingBox
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                guard let result = try? pipeline.recognize(in: frame.image) else { return nil }
+                guard let result = try? pipeline.recognize(
+                    in: frame.image,
+                    preferNear: previousBoundingBox,
+                    matchingAgainst: activeIdentities,
+                    threshold: threshold
+                ) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
 
             guard let (result, livenessFrame) = outcome else {
+                lastFaceBoundingBox = nil
                 try? await Task.sleep(for: .milliseconds(20))
                 continue
             }
+            lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             if settings.livenessChecksEnabled {
                 let snapshot = liveness.observe(livenessFrame)
@@ -394,12 +416,6 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                 } else if snapshot.decision.isConfirmed {
                     livenessConfirmed = true
                 }
-            }
-
-            let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-            guard !activeIdentities.isEmpty else {
-                FaceIDOverlayController.shared.finish(success: false)
-                return false
             }
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)

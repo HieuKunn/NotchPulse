@@ -109,6 +109,17 @@ final class DragDetector {
                 return
             }
 
+            let mouseLocation = NSEvent.mouseLocation
+            // Fast rejection: If mouse is not in the upper region of any screen and not already inside the notch region, skip all pasteboard IPC
+            if !self.hasEnteredNotchRegion {
+                let isNearTopEdge = NSScreen.screens.contains { screen in
+                    mouseLocation.y >= screen.frame.maxY - 250
+                }
+                if !isNearTopEdge {
+                    return
+                }
+            }
+
             let currentCount = self.dragPasteboard.changeCount
             
             // Detect if a file/URL drag operation started during this mouse gesture

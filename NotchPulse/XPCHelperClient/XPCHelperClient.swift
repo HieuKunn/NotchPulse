@@ -77,7 +77,11 @@ final class XPCHelperClient: NSObject {
             guard let self = self else { return }
             while !Task.isCancelled {
                 // Call the helper method periodically which will notify on change
-                _ = await self.isAccessibilityAuthorized()
+                let authorized = await self.isAccessibilityAuthorized()
+                if authorized {
+                    // Once authorization is confirmed, we don't need to keep polling in the background!
+                    break
+                }
                 do {
                     try await Task.sleep(for: .seconds(interval))
                 } catch { break }

@@ -9,7 +9,7 @@
 import Foundation
 import Observation
 
-struct FaceSample: Codable, Equatable {
+struct FaceSample: Codable, Equatable, Sendable {
     let embedding: [Float]
     /// Which guided-enrollment pose this came from, or nil for untagged captures (e.g. Face Lab's manual capture).
     let pose: String?
@@ -36,7 +36,7 @@ extension FaceSample {
     }
 }
 
-struct FaceIdentity: Codable, Identifiable, Equatable {
+struct FaceIdentity: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     var name: String
     var samples: [FaceSample]

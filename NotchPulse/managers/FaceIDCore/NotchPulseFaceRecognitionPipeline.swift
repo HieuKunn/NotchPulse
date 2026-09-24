@@ -36,14 +36,13 @@ typealias NotchPulseNotchPulseFaceRecognitionPipelineError = NotchPulseFaceRecog
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
-    nonisolated static let sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) = {
+    nonisolated static var sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) {
         if let arcFace = ArcFaceEmbedder.shared {
             return (arcFace, false, nil)
         } else {
-            NSLog("[FaceIDPipeline] ArcFaceEmbedder failed to load. Using VisionFeaturePrint fallback.")
-            return (VisionFeaturePrintEmbedder(), true, "ArcFace model not available")
+            return (VisionFeaturePrintEmbedder(), true, "ArcFace model not loaded or available")
         }
-    }()
+    }
 
     nonisolated var embedder: FaceEmbedder {
         Self.sharedEmbedderResult.embedder
@@ -60,13 +59,46 @@ final class NotchPulseFaceRecognitionPipeline {
     init() {}
 
     /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
-    /// - Parameter previousBoundingBox: previous frame's selected box, if any — lets a continuous scanner keep selection "stuck" to the same person instead of re-picking every frame.
-    nonisolated func recognize(in frame: CGImage, preferNear previousBoundingBox: CGRect? = nil) throws -> FaceRecognitionResult {
+    /// - Parameters:
+    ///   - frame: The camera frame to analyze.
+    ///   - previousBoundingBox: previous frame's selected box, if any — lets continuous tracking stay locked to the user.
+    ///   - identities: If provided and multiple prominent faces are detected, tries each candidate until one matches an enrolled identity.
+    ///   - threshold: Match threshold used to determine if a candidate belongs to an enrolled user.
+    nonisolated func recognize(
+        in frame: CGImage,
+        preferNear previousBoundingBox: CGRect? = nil,
+        matchingAgainst identities: [FaceIdentity]? = nil,
+        threshold: Float = 0.55
+    ) throws -> FaceRecognitionResult {
         let faces = try NotchPulseFaceDetector.detectFaces(in: frame)
-        guard let face = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) else {
+        let candidates = Self.prominentFaces(in: faces, preferNear: previousBoundingBox)
+        guard !candidates.isEmpty else {
             throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
         }
-        return try recognize(face, in: frame)
+
+        // Multi-face resolution: If multiple candidates exist and active identities are provided,
+        // iterate candidates in order of prominence. If a candidate matches an enrolled user, select them immediately.
+        if let identities, !identities.isEmpty, candidates.count > 1 {
+            var firstValidResult: FaceRecognitionResult?
+            for candidate in candidates {
+                guard let result = try? recognize(candidate, in: frame) else { continue }
+                if firstValidResult == nil {
+                    firstValidResult = result
+                }
+                let scored = score(result.embedding, against: identities)
+                if bestMatch(in: scored, threshold: threshold) != nil {
+                    return result
+                }
+            }
+            if let first = firstValidResult {
+                return first
+            }
+        }
+
+        guard let dominant = candidates.first else {
+            throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
+        }
+        return try recognize(dominant, in: frame)
     }
 
     /// Aligns and embeds an already-chosen face; enrollment uses this to bypass the prominence filter so a too-small face reads as "move closer" rather than "nobody there".
@@ -102,20 +134,38 @@ final class NotchPulseFaceRecognitionPipeline {
     /// Max normalized-coordinate drift between frames still counted as "the same person".
     nonisolated private static let continuityDistanceTolerance: CGFloat = 0.3
 
-    /// Picks the person actually at the camera, not a bystander: filters out faces below `minimumProminentFaceWidth`, then prefers continuity with `previousBoundingBox` over raw largest-by-area so two similarly-sized faces can't flip-flop the selection frame to frame and starve the liveness/wrong-face streaks of agreement.
-    nonisolated static func selectDominantFace(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> DetectedFace? {
+    /// Returns candidate faces ordered by likelihood of being the primary user:
+    /// filters out bystander faces below `minimumProminentFaceWidth`, then sorts by proximity to `previousBoundingBox`
+    /// (if tracking) or by bounding box area (largest first).
+    nonisolated static func prominentFaces(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> [DetectedFace] {
         let candidates = faces.filter { $0.normalizedBoundingBox.width >= CGFloat(minimumProminentFaceWidth) }
-        guard !candidates.isEmpty else { return nil }
+        guard !candidates.isEmpty else { return [] }
 
         if let previous = previousBoundingBox {
             let previousCenter = CGPoint(x: previous.midX, y: previous.midY)
-            if let nearest = candidates.min(by: { distance(from: $0, to: previousCenter) < distance(from: $1, to: previousCenter) }),
-               distance(from: nearest, to: previousCenter) < continuityDistanceTolerance {
-                return nearest
+            return candidates.sorted { a, b in
+                let distA = distance(from: a, to: previousCenter)
+                let distB = distance(from: b, to: previousCenter)
+                let aClose = distA < continuityDistanceTolerance
+                let bClose = distB < continuityDistanceTolerance
+                if aClose != bClose {
+                    return aClose && !bClose
+                }
+                if aClose && bClose {
+                    return distA < distB
+                }
+                return (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height)
             }
         }
 
-        return candidates.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
+        return candidates.sorted {
+            ($0.boundingBox.width * $0.boundingBox.height) > ($1.boundingBox.width * $1.boundingBox.height)
+        }
+    }
+
+    /// Picks the person actually at the camera, not a bystander: filters out faces below `minimumProminentFaceWidth`, then prefers continuity with `previousBoundingBox` over raw largest-by-area so two similarly-sized faces can't flip-flop the selection frame to frame and starve the liveness/wrong-face streaks of agreement.
+    nonisolated static func selectDominantFace(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> DetectedFace? {
+        prominentFaces(in: faces, preferNear: previousBoundingBox).first
     }
 
     nonisolated private static func distance(from face: DetectedFace, to point: CGPoint) -> CGFloat {

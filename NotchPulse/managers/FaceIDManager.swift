@@ -296,6 +296,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         let startTime = ContinuousClock.now
         let threshold = NotchPulseFaceIDSettings.shared.matchThreshold
         var lastProcessedFrameID: UInt64?
+        var lastFaceBoundingBox: CGRect?
         
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { .light }
@@ -309,16 +310,24 @@ final class FaceIDManager: NSObject, ObservableObject {
             lastProcessedFrameID = frame.id
             
             let pipeline = self.pipeline
+            let previousBoundingBox = lastFaceBoundingBox
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                guard let result = try? pipeline.recognize(in: frame.image) else { return nil }
+                guard let result = try? pipeline.recognize(
+                    in: frame.image,
+                    preferNear: previousBoundingBox,
+                    matchingAgainst: activeIdentities,
+                    threshold: threshold
+                ) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
             
             guard let (result, livenessFrame) = outcome else {
+                lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
+            lastFaceBoundingBox = result.face.normalizedBoundingBox
             
             let snapshot = liveness.observe(livenessFrame)
             switch snapshot.decision {

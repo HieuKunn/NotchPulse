@@ -26,4 +26,9 @@ protocol MediaControllerProtocol: ObservableObject {
     func setVolume(_ level: Double) async
     func isActive() -> Bool
     func updatePlaybackInfo() async
+    func setUIActive(_ active: Bool)
+}
+
+extension MediaControllerProtocol {
+    func setUIActive(_ active: Bool) {}
 }

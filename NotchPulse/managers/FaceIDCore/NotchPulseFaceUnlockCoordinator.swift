@@ -167,6 +167,8 @@ final class NotchPulseFaceUnlockCoordinator {
         autoRetryTask = nil
         camera.stop()
         FaceIDOverlayController.shared.disarm()
+        // Unload ArcFace CoreML model to free 60MB - 100MB RAM when not locking!
+        ArcFaceEmbedder.unload()
         // Covers isEnabled being switched off directly, keeping "disarmed" and "not listening for space" in lockstep.
         spaceKeyMonitor.stop()
     }
@@ -376,8 +378,15 @@ final class NotchPulseFaceUnlockCoordinator {
 
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
+            let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            let threshold = matchThreshold
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                guard let result = try? pipeline.recognize(in: frame.image, preferNear: previousBoundingBox) else { return nil }
+                guard let result = try? pipeline.recognize(
+                    in: frame.image,
+                    preferNear: previousBoundingBox,
+                    matchingAgainst: activeIdentities,
+                    threshold: threshold
+                ) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value

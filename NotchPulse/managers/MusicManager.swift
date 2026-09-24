@@ -53,6 +53,12 @@ class MusicManager: ObservableObject {
     @Published var syncedLyrics: [(time: Double, text: String)] = []
     @Published var canFavoriteTrack: Bool = false
     @Published var isFavoriteTrack: Bool = false
+    @Published var isUIActive: Bool = false {
+        didSet {
+            guard oldValue != isUIActive else { return }
+            activeController?.setUIActive(isUIActive)
+        }
+    }
 
     private var artworkData: Data? = nil
 
