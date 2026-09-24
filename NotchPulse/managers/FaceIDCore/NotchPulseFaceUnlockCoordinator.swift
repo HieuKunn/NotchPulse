@@ -346,11 +346,11 @@ final class NotchPulseFaceUnlockCoordinator {
         let livenessEnabled = NotchPulseFaceIDSettings.shared.livenessChecksEnabled
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
-        var hasDetectedAnyFace = false
+        var consecutiveWrongFaceFrames = 0
+        let wrongFaceStreakThreshold = 8
 
-        /// Short-window latch (up to 400ms) so momentary blinks, head turns, or camera re-exposure don't miss the liveness confirmation window.
-        var latchedMatch: ScoredIdentity?
-        var lastMatchedAt: ContinuousClock.Instant?
+        /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
+        var readyMatch: ScoredIdentity?
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
         /// Last frame's selected face, passed back so `selectDominantFace` stays on the same person instead of flip-flopping.
@@ -383,11 +383,11 @@ final class NotchPulseFaceUnlockCoordinator {
             }.value
 
             guard let (result, livenessFrame) = outcome else {
+                consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
-            hasDetectedAnyFace = true
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
@@ -412,21 +412,22 @@ final class NotchPulseFaceUnlockCoordinator {
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)
 
             if let matched {
-                latchedMatch = matched
-                lastMatchedAt = ContinuousClock.now
+                consecutiveWrongFaceFrames = 0
+                readyMatch = matched
             } else {
-                if let last = lastMatchedAt, ContinuousClock.now - last > .milliseconds(400) {
-                    latchedMatch = nil
+                readyMatch = nil
+                consecutiveWrongFaceFrames += 1
+                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                    return .consistentlyWrongFace
                 }
             }
 
-            let candidateMatch = matched ?? latchedMatch
-            if let candidateMatch, livenessConfirmed {
+            if let readyMatch, livenessConfirmed {
                 statusMessage = "Recognized — unlocking…"
                 let livenessNote = livenessEnabled
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")
                     : "liveness off"
-                lastOutcome = "Matched \(candidateMatch.identity.name) at \(String(format: "%.3f", candidateMatch.centroidSimilarity)), \(livenessNote)."
+                lastOutcome = "Matched \(readyMatch.identity.name) at \(String(format: "%.3f", readyMatch.centroidSimilarity)), \(livenessNote)."
                 await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                 return .matched
             }
@@ -434,9 +435,6 @@ final class NotchPulseFaceUnlockCoordinator {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 
-        if hasDetectedAnyFace {
-            return .consistentlyWrongFace
-        }
         return .noResolution
     }
 }

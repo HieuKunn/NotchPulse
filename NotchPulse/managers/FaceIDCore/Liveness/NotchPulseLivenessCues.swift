@@ -101,7 +101,7 @@ struct LivenessTuning: Equatable {
     /// Deliberately lower than `glossLevel` — the device rectangle detector was already
     /// the one signal proven reliable in real-device testing.
     var deviceLevel: Float = 0.15
-    var deviceFrames: Int = 3
+    var deviceFrames: Int = 2
 
     /// Not the 0.5 you might expect: real-world Vision jitter alone measures ~0.21-0.46
     /// in the self-test, so 0.5 would mean this cue essentially never fires.
@@ -119,7 +119,7 @@ struct LivenessTuning: Equatable {
 
     /// Frames Light mode waits before auto-confirming, so deny cues get a fair chance to
     /// fire first — otherwise a first-frame match could unlock before glare/device ever ran.
-    var lightModeMinimumFrames: Int = 3
+    var lightModeMinimumFrames: Int = 4
 
     nonisolated static let `default` = LivenessTuning()
 

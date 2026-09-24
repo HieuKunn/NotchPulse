@@ -23,15 +23,15 @@ enum NotchPulseDeviceBezelDetector {
     /// First-pass estimates, not validated against real footage — tune here if false positives/negatives show up.
     private static func makeRequest() -> VNDetectRectanglesRequest {
         let request = VNDetectRectanglesRequest()
-        request.minimumConfidence = 0.6
-        // Fraction of image area, not width/height.
-        request.minimumSize = 0.15
-        request.maximumObservations = 3
-        // Covers phone-in-portrait (0.35) through near-square tablet crop (1.0).
+        request.minimumConfidence = 0.55
+        // Fraction of the lesser image dimension
+        request.minimumSize = 0.10
+        request.maximumObservations = 5
+        // Covers phone-in-portrait (0.35) through near-square tablet (1.0) and landscape phone/tablet (up to 2.5).
         request.minimumAspectRatio = 0.35
-        request.maximumAspectRatio = 1.0
-        // Generous so a phone held at a slight angle still registers.
-        request.quadratureTolerance = 30
+        request.maximumAspectRatio = 2.5
+        // Generous so a phone held at an angle still registers.
+        request.quadratureTolerance = 35
 
         return request
     }

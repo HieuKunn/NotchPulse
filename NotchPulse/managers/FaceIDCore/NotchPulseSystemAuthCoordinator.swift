@@ -389,8 +389,8 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                 let snapshot = liveness.observe(livenessFrame)
                 if case .denied(let cue) = snapshot.decision {
                     print("[SystemAuth] Liveness rejected: \(cue)")
-                    try? await Task.sleep(for: .milliseconds(80))
-                    continue
+                    FaceIDOverlayController.shared.finish(success: false)
+                    return false
                 } else if snapshot.decision.isConfirmed {
                     livenessConfirmed = true
                 }

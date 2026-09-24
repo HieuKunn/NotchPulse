@@ -84,15 +84,18 @@ struct RecognitionSettingsPage: View {
     }
 }
 
-/// The three selectable points on the "Match confidence" slider — named
+/// The selectable points on the "Match confidence" slider — named
 /// rather than exposing the raw cosine-similarity threshold directly.
+/// Includes intermediate stops so users can fine-tune between default and strict.
 private enum MatchConfidenceLevel: Int, CaseIterable {
-    case lessStrict, standard, moreStrict
+    case lessStrict, moderate, standard, strict, moreStrict
 
     var title: String {
         switch self {
         case .lessStrict: return "Less strict"
+        case .moderate: return "Moderate"
         case .standard: return "Default"
+        case .strict: return "Strict"
         case .moreStrict: return "More strict"
         }
     }
@@ -100,7 +103,9 @@ private enum MatchConfidenceLevel: Int, CaseIterable {
     var threshold: Float {
         switch self {
         case .lessStrict: return 0.58
-        case .standard: return 0.63
+        case .moderate: return 0.61
+        case .standard: return 0.64
+        case .strict: return 0.66
         case .moreStrict: return 0.68
         }
     }
@@ -134,9 +139,9 @@ private enum DetectionDistanceLevel: Int, CaseIterable {
 
     var minimumFaceWidth: Float {
         switch self {
-        case .close: return 0.22
-        case .standard: return 0.16
-        case .far: return 0.12
+        case .close: return 0.23
+        case .standard: return 0.19
+        case .far: return 0.15
         }
     }
 
