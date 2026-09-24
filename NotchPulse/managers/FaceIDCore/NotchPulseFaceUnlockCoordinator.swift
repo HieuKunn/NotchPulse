@@ -37,6 +37,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
+    /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
+    private let wrongFaceStreakThreshold = 6
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -81,8 +83,8 @@ final class NotchPulseFaceUnlockCoordinator {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.observeLockAndWakeEvents()
-                // Minimal settle delay so evaluation triggers immediately on wake
-                try? await Task.sleep(nanoseconds: 20_000_000)
+                // Brief settle delay: CGSession's reported state can lag the true state right after wake.
+                try? await Task.sleep(nanoseconds: 300_000_000)
                 self?.evaluateTrigger()
             }
         }
@@ -132,14 +134,10 @@ final class NotchPulseFaceUnlockCoordinator {
 
         hasArmedForCurrentLock = true
         lastArmedAt = .now
-        if shouldAutoScan {
-            Task { [weak self] in
-                await self?.arm(autoScan: true)
-            }
-        } else {
-            Task { [weak self] in
-                await self?.arm(autoScan: false)
-            }
+        Task { [weak self] in
+            // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            await self?.arm(autoScan: shouldAutoScan)
         }
     }
 
@@ -249,26 +247,24 @@ final class NotchPulseFaceUnlockCoordinator {
     private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
-        let showsUI = self.showsUI
-        if showsUI {
-            FaceIDOverlayController.shared.beginScanning()
-        }
-        statusMessage = "Looking for your face…"
-
-        // Pre-warm ArcFace CoreML model in background concurrently while camera hardware starts up
+        // Pre-warm ArcFace CoreML model concurrently while camera starts
         ArcFaceEmbedder.warmUp()
         NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
+
         await camera.start()
         guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
             statusMessage = error
             camera.stop()
-            if showsUI {
-                FaceIDOverlayController.shared.finish(success: false)
-            }
             return
         }
+
+        let showsUI = self.showsUI
+        if showsUI {
+            FaceIDOverlayController.shared.beginScanning()
+        }
+        statusMessage = "Looking for your face…"
 
         let outcome = await observeScanWindow(
             deadline: Date().addingTimeInterval(scanWindowDuration),
@@ -308,9 +304,7 @@ final class NotchPulseFaceUnlockCoordinator {
         case .noResolution:
             statusMessage = "No face detected."
             if showsUI {
-                Task { @MainActor in
-                    await FaceIDOverlayController.shared.collapse()
-                }
+                // No explicit collapse call: FaceIDOverlayController's own scanning timeout fires on the same mark and collapses itself.
                 statusMessage = "No face detected — hover the notch to try again."
                 scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
             } else {
@@ -352,19 +346,16 @@ final class NotchPulseFaceUnlockCoordinator {
         let livenessEnabled = NotchPulseFaceIDSettings.shared.livenessChecksEnabled
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
-        var hasDetectedAnyFace = false
+        var consecutiveWrongFaceFrames = 0
 
-        /// Short-window latch (up to 400ms) so momentary blinks, head turns, or camera re-exposure don't miss the liveness confirmation window.
-        var latchedMatch: ScoredIdentity?
-        var lastMatchedAt: ContinuousClock.Instant?
+        /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
+        var readyMatch: ScoredIdentity?
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
         /// Last frame's selected face, passed back so `selectDominantFace` stays on the same person instead of flip-flopping.
         var lastFaceBoundingBox: CGRect?
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
-
-        var firstFrameReceivedAt: ContinuousClock.Instant?
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -376,9 +367,6 @@ final class NotchPulseFaceUnlockCoordinator {
                 continue
             }
             lastProcessedFrameID = frame.id
-            if firstFrameReceivedAt == nil {
-                firstFrameReceivedAt = ContinuousClock.now
-            }
 
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
@@ -396,11 +384,11 @@ final class NotchPulseFaceUnlockCoordinator {
             }.value
 
             guard let (result, livenessFrame) = outcome else {
+                consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
-            hasDetectedAnyFace = true
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
@@ -425,21 +413,22 @@ final class NotchPulseFaceUnlockCoordinator {
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)
 
             if let matched {
-                latchedMatch = matched
-                lastMatchedAt = ContinuousClock.now
+                consecutiveWrongFaceFrames = 0
+                readyMatch = matched
             } else {
-                if let last = lastMatchedAt, ContinuousClock.now - last > .milliseconds(400) {
-                    latchedMatch = nil
+                readyMatch = nil
+                consecutiveWrongFaceFrames += 1
+                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                    return .consistentlyWrongFace
                 }
             }
 
-            let candidateMatch = matched ?? latchedMatch
-            if let candidateMatch, livenessConfirmed {
+            if let readyMatch, livenessConfirmed {
                 statusMessage = "Recognized — unlocking…"
                 let livenessNote = livenessEnabled
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")
                     : "liveness off"
-                lastOutcome = "Matched \(candidateMatch.identity.name) at \(String(format: "%.3f", candidateMatch.centroidSimilarity)), \(livenessNote)."
+                lastOutcome = "Matched \(readyMatch.identity.name) at \(String(format: "%.3f", readyMatch.centroidSimilarity)), \(livenessNote)."
                 await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                 return .matched
             }
@@ -447,9 +436,6 @@ final class NotchPulseFaceUnlockCoordinator {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 
-        if hasDetectedAnyFace {
-            return .consistentlyWrongFace
-        }
         return .noResolution
     }
 }
