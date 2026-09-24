@@ -205,16 +205,16 @@ struct ContentView: View {
         {
             chinWidth = openNotchSize.width
         } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
-            chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: (isDynamicIsland && !hasPhysicalNotch ? 80 : vm.closedNotchSize.width)) + gestureProgress
+            chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = (isDynamicIsland && !hasPhysicalNotch ? 80 : vm.closedNotchSize.width) + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
-            if isDynamicIsland && coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
-                chinWidth = max(chinWidth, 440 + gestureProgress)
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
+            if coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
+                chinWidth = max(chinWidth, (isDynamicIsland ? 440 : 460) + gestureProgress)
             }
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
@@ -222,7 +222,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = (isDynamicIsland && !hasPhysicalNotch ? 80 : vm.closedNotchSize.width) + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
         }
         return chinWidth
     }
