@@ -37,8 +37,6 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
-    /// Requires enough consecutive below-threshold frames (~2.0s at ~30fps post-warmup) so momentary glance angles or lighting settle don't fail prematurely.
-    private let wrongFaceStreakThreshold = 65
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -348,7 +346,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let livenessEnabled = NotchPulseFaceIDSettings.shared.livenessChecksEnabled
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
-        var consecutiveWrongFaceFrames = 0
+        var hasDetectedAnyFace = false
 
         /// Short-window latch (up to 400ms) so momentary blinks, head turns, or camera re-exposure don't miss the liveness confirmation window.
         var latchedMatch: ScoredIdentity?
@@ -360,8 +358,7 @@ final class NotchPulseFaceUnlockCoordinator {
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
 
-        let scanStartTime = ContinuousClock.now
-        let warmupGracePeriod: ContinuousClock.Duration = .milliseconds(1200)
+        var firstFrameReceivedAt: ContinuousClock.Instant?
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -373,6 +370,9 @@ final class NotchPulseFaceUnlockCoordinator {
                 continue
             }
             lastProcessedFrameID = frame.id
+            if firstFrameReceivedAt == nil {
+                firstFrameReceivedAt = ContinuousClock.now
+            }
 
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
@@ -383,11 +383,11 @@ final class NotchPulseFaceUnlockCoordinator {
             }.value
 
             guard let (result, livenessFrame) = outcome else {
-                consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
+            hasDetectedAnyFace = true
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
@@ -411,23 +411,12 @@ final class NotchPulseFaceUnlockCoordinator {
             let scored = pipeline.score(result.embedding, against: NotchPulseFaceEnrollmentStore.shared.activeIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)
 
-            let isWarmingUp = (ContinuousClock.now - scanStartTime) < warmupGracePeriod
-
             if let matched {
-                consecutiveWrongFaceFrames = 0
                 latchedMatch = matched
                 lastMatchedAt = ContinuousClock.now
             } else {
                 if let last = lastMatchedAt, ContinuousClock.now - last > .milliseconds(400) {
                     latchedMatch = nil
-                }
-                // During the first 1.2s of camera start, Auto-Exposure / Auto-White-Balance is adjusting,
-                // so don't accumulate a failure streak on transitional dark/unfocused frames.
-                if !isWarmingUp {
-                    consecutiveWrongFaceFrames += 1
-                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                        return .consistentlyWrongFace
-                    }
                 }
             }
 
@@ -443,6 +432,10 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        if hasDetectedAnyFace {
+            return .consistentlyWrongFace
         }
         return .noResolution
     }

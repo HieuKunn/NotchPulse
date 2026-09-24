@@ -309,7 +309,7 @@ final class NotchPulseFaceIDSettings {
         faceDetectionSeconds = (defaults.object(forKey: Key.faceDetectionSeconds) as? Int)
             .map { min(max($0, Self.faceDetectionRange.lowerBound), Self.faceDetectionRange.upperBound) }
             ?? 5
-        autoRetryOnce = defaults.object(forKey: Key.autoRetryOnce) as? Bool ?? false
+        autoRetryOnce = defaults.object(forKey: Key.autoRetryOnce) as? Bool ?? true
         hapticFeedbackEnabled = defaults.object(forKey: Key.hapticFeedbackEnabled) as? Bool ?? true
 
         // Defaults to 7 days — long enough not to nag daily users, short

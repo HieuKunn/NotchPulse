@@ -236,7 +236,8 @@ final class FaceIDOverlayController {
         }
 
         scanTimeoutTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
+            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+            try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
             await self.collapse()
         }
@@ -301,7 +302,8 @@ final class FaceIDOverlayController {
             }
 
             self.scanTimeoutTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
+                let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+                try? await Task.sleep(for: duration)
                 guard let self, !Task.isCancelled, self.phase == .scanning else { return }
                 await self.collapse()
             }
@@ -437,7 +439,8 @@ final class FaceIDOverlayController {
             }
 
             scanTimeoutTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
+                let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+                try? await Task.sleep(for: duration)
                 guard let self, !Task.isCancelled, self.phase == .scanning else { return }
                 await self.collapse()
             }

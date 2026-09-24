@@ -1,6 +1,7 @@
 # NotchPulse v4.7.8
 
-## 🏝️ Dynamic Island Layout Harmonization, Clean Settings & Biometric Polish
+## 🔒 Resilient Wake Face ID, Dynamic Island Parity & Clean Settings
+- **Resilient Wake-to-Unlock Face ID**: Eliminated premature "Face not recognized" cancellations when opening your MacBook lid or waking up. Face ID now patiently scans for the full duration you configured, giving the camera sensor time to adjust exposure and letting you comfortably look at the screen to unlock on the very first try.
 - **Harmonized Open Dynamic Island Layout**: Calibrated open Dynamic Island left and right borders and header icon placements to match the MacBook Notch layout 1:1, eliminating excessive side margins and ensuring tabs and action buttons align symmetrically.
 - **Streamlined General Settings**: Removed the duplicate "Quit NotchPulse" section from the bottom of General Settings, keeping a clean interface with the dedicated quit button in the header bar.
 - **Universal Dynamic Island Switching**: Restored Dynamic Island mode switching across all Mac models, including MacBooks with a physical camera notch, so you can freely switch between Notch and floating Dynamic Island styles at any time.
