@@ -167,8 +167,8 @@ final class NotchPulseFaceUnlockCoordinator {
         autoRetryTask = nil
         camera.stop()
         FaceIDOverlayController.shared.disarm()
-        // Unload ArcFace CoreML model to free 60MB - 100MB RAM when not locking!
-        ArcFaceEmbedder.unload()
+        // Schedule unload of ArcFace CoreML model after idle delay to save RAM without harming retries
+        ArcFaceEmbedder.scheduleUnload(after: 30.0)
         // Covers isEnabled being switched off directly, keeping "disarmed" and "not listening for space" in lockstep.
         spaceKeyMonitor.stop()
     }
@@ -255,6 +255,8 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         statusMessage = "Looking for your face…"
 
+        // Pre-warm ArcFace CoreML model in background concurrently while camera hardware starts up
+        ArcFaceEmbedder.warmUp()
         await camera.start()
         guard generation == scanGeneration else { return }
 

@@ -359,9 +359,12 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     private func runFaceVerification(promptTitle: String) async -> Bool {
         FaceIDOverlayController.shared.present()
 
+        // Pre-warm ArcFace CoreML model in background concurrently while camera hardware starts up
+        ArcFaceEmbedder.warmUp()
         await camera.start()
         defer {
             camera.stop()
+            ArcFaceEmbedder.scheduleUnload(after: 30.0)
         }
 
         let timeoutSeconds: Double = Double(settings.faceDetectionSeconds)

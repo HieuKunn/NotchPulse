@@ -88,6 +88,10 @@ struct FaceIdentity: Codable, Identifiable, Equatable, Sendable {
     nonisolated func isStale(comparedTo embedder: FaceEmbedder) -> Bool {
         modelIdentifier != embedder.modelIdentifier
     }
+
+    nonisolated func isStale(comparedToModelIdentifier identifier: String) -> Bool {
+        modelIdentifier != identifier
+    }
 }
 
 enum NotchPulseFaceEnrollmentStoreError: LocalizedError {
@@ -120,7 +124,10 @@ final class NotchPulseFaceEnrollmentStore {
 
     /// Everyone the user hasn't switched off — what unlock actually scores against. `identities` stays the full list.
     var activeIdentities: [FaceIdentity] {
-        identities.filter(\.isEnabled)
+        if identities.isEmpty && NotchPulseVault.isSessionUnlocked {
+            reloadIfUnlocked()
+        }
+        return identities.filter(\.isEnabled)
     }
 
     /// True if there is at least one active enrolled face identity.

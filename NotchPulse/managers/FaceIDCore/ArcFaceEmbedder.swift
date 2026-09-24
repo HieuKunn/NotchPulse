@@ -33,8 +33,21 @@ enum ArcFaceEmbedderError: LocalizedError {
 }
 
 final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
+    static let defaultModelIdentifier = "arcface-w600k_mbf-v1"
+
+    static var isModelBundled: Bool {
+        for name in ["ArcFace", "w600k_mbf"] {
+            for ext in ["mlmodelc", "mlpackage"] {
+                if Bundle.main.url(forResource: name, withExtension: ext) != nil { return true }
+                if Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Models") != nil { return true }
+                if Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "FaceIDCore") != nil { return true }
+            }
+        }
+        return false
+    }
+
     nonisolated let name = "ArcFace (w600k_mbf)"
-    nonisolated let modelIdentifier = "arcface-w600k_mbf-v1"
+    nonisolated let modelIdentifier = ArcFaceEmbedder.defaultModelIdentifier
     nonisolated let embeddingDimension = 512
     nonisolated let requiresAlignment = true
 
@@ -44,23 +57,64 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
 
     private static let instanceLock = NSLock()
     private static var _sharedInstance: ArcFaceEmbedder?
+    private static var unloadWorkItem: DispatchWorkItem?
 
-    /// Lazily loads ArcFace model on demand; call unload() to release memory when unlock session is over.
+    /// Lazily loads ArcFace model on demand; call scheduleUnload() or unload() to release memory when unlock session is over.
     static var shared: ArcFaceEmbedder? {
         instanceLock.lock()
         defer { instanceLock.unlock() }
+        unloadWorkItem?.cancel()
+        unloadWorkItem = nil
         if let existing = _sharedInstance {
             return existing
         }
-        let instance = try? ArcFaceEmbedder()
-        _sharedInstance = instance
-        return instance
+        do {
+            let instance = try ArcFaceEmbedder()
+            _sharedInstance = instance
+            return instance
+        } catch {
+            NSLog("[ArcFaceEmbedder] Failed to initialize shared instance: \(error.localizedDescription)")
+            return nil
+        }
     }
 
-    /// Releases the MLModel and CVPixelBufferPool from RAM when idle on Desktop
+    /// Asynchronously pre-warms the ArcFace ML model on a background task so it is ready before camera frames arrive.
+    static func warmUp() {
+        instanceLock.lock()
+        unloadWorkItem?.cancel()
+        unloadWorkItem = nil
+        let isLoaded = (_sharedInstance != nil)
+        instanceLock.unlock()
+
+        if !isLoaded {
+            Task.detached(priority: .userInitiated) {
+                _ = shared
+            }
+        }
+    }
+
+    /// Releases the MLModel and CVPixelBufferPool from RAM after an idle delay (e.g. 30s of inactivity).
+    /// Prevents repeated model loading/unloading overhead across rapid retries or testing.
+    static func scheduleUnload(after delay: TimeInterval = 30.0) {
+        instanceLock.lock()
+        defer { instanceLock.unlock() }
+        unloadWorkItem?.cancel()
+        let item = DispatchWorkItem {
+            instanceLock.lock()
+            defer { instanceLock.unlock() }
+            _sharedInstance = nil
+            NSLog("[ArcFaceEmbedder] Model unloaded from RAM after idle period.")
+        }
+        unloadWorkItem = item
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + delay, execute: item)
+    }
+
+    /// Immediately releases the MLModel and CVPixelBufferPool from RAM
     static func unload() {
         instanceLock.lock()
         defer { instanceLock.unlock() }
+        unloadWorkItem?.cancel()
+        unloadWorkItem = nil
         _sharedInstance = nil
     }
 
@@ -71,6 +125,7 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     /// Throws immediately if the model isn't bundled, so callers can fall back to `VisionFeaturePrintEmbedder`.
     init() throws {
         guard let modelURL = Self.locateModel() else {
+            NSLog("[ArcFaceEmbedder] Model file not found in any bundle.")
             throw ArcFaceEmbedderError.modelNotFound
         }
 
@@ -80,6 +135,7 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         do {
             model = try MLModel(contentsOf: modelURL, configuration: configuration)
         } catch {
+            NSLog("[ArcFaceEmbedder] CoreML model load failed at \(modelURL): \(error.localizedDescription)")
             throw ArcFaceEmbedderError.modelLoadFailed(error.localizedDescription)
         }
 
@@ -92,29 +148,32 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     /// Both names are checked in case the file was added under a different name.
     /// Supports precompiled .mlmodelc, raw .mlpackage (compiled on demand), and bundle subdirectories.
     private static func locateModel() -> URL? {
-        for name in ["ArcFace", "w600k_mbf"] {
-            if let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc") {
-                return url
-            }
-            if let url = Bundle.main.url(forResource: name, withExtension: "mlpackage") {
-                if let compiled = try? MLModel.compileModel(at: url) {
-                    return compiled
+        let bundles = [Bundle.main, Bundle(for: ArcFaceEmbedder.self)]
+        for bundle in bundles {
+            for name in ["ArcFace", "w600k_mbf"] {
+                if let url = bundle.url(forResource: name, withExtension: "mlmodelc") {
+                    return url
                 }
-            }
-            if let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc", subdirectory: "Models") {
-                return url
-            }
-            if let url = Bundle.main.url(forResource: name, withExtension: "mlpackage", subdirectory: "Models") {
-                if let compiled = try? MLModel.compileModel(at: url) {
-                    return compiled
+                if let url = bundle.url(forResource: name, withExtension: "mlpackage") {
+                    if let compiled = try? MLModel.compileModel(at: url) {
+                        return compiled
+                    }
                 }
-            }
-            if let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc", subdirectory: "FaceIDCore") {
-                return url
-            }
-            if let url = Bundle.main.url(forResource: name, withExtension: "mlpackage", subdirectory: "FaceIDCore") {
-                if let compiled = try? MLModel.compileModel(at: url) {
-                    return compiled
+                if let url = bundle.url(forResource: name, withExtension: "mlmodelc", subdirectory: "Models") {
+                    return url
+                }
+                if let url = bundle.url(forResource: name, withExtension: "mlpackage", subdirectory: "Models") {
+                    if let compiled = try? MLModel.compileModel(at: url) {
+                        return compiled
+                    }
+                }
+                if let url = bundle.url(forResource: name, withExtension: "mlmodelc", subdirectory: "FaceIDCore") {
+                    return url
+                }
+                if let url = bundle.url(forResource: name, withExtension: "mlpackage", subdirectory: "FaceIDCore") {
+                    if let compiled = try? MLModel.compileModel(at: url) {
+                        return compiled
+                    }
                 }
             }
         }

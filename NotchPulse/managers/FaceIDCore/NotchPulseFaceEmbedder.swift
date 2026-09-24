@@ -40,8 +40,10 @@ enum FaceEmbedderError: LocalizedError {
 }
 
 struct VisionFeaturePrintEmbedder: FaceEmbedder {
+    static let defaultModelIdentifier = "vision-feature-print-v1"
+
     nonisolated let name = "Vision Feature Print"
-    nonisolated let modelIdentifier = "vision-feature-print-v1"
+    nonisolated let modelIdentifier = VisionFeaturePrintEmbedder.defaultModelIdentifier
     // Nominal hint only — `modelIdentifier` is the real discriminator `NotchPulseSecureFaceStore` relies on.
     nonisolated let embeddingDimension = 2048
     nonisolated let requiresAlignment = false

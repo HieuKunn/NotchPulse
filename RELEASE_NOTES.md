@@ -1,6 +1,6 @@
-# NotchPulse v4.8.1
+# NotchPulse v4.8.2
 
-## 👤 Smart Multi-Face Recognition & System Auth Optimization
-- **Seamless Multi-Face Recognition**: When multiple faces appear in front of the camera, Face ID automatically identifies and prioritizes your enrolled face, ensuring uninterrupted unlocks even when someone is standing nearby.
-- **Continuous Face Lock**: Keeps visual tracking focused on your face across scanning frames to prevent accidental switching between multiple visible faces.
-- **Enhanced Power & CPU Efficiency**: System authentication prompts (such as sudo or password prompts) now use intelligent background checks to reduce CPU overhead and preserve battery life when waiting for authorization.
+## 🔒 Face ID Performance & Reliability
+- **Instant Face Recognition**: Face ID now prepares its recognition engine in the background the moment the camera turns on, eliminating initial recognition stutter and ensuring instant unlocks on wake and lock screen.
+- **Smart Memory Management**: Intelligent background caching keeps Face ID responsive during retries and consecutive authentications, while automatically releasing memory when idle to keep your Mac fast and lightweight.
+- **Enhanced Verification Stability**: Fixed an issue where Face ID could fail to recognize enrolled faces or time out prematurely after idle periods.

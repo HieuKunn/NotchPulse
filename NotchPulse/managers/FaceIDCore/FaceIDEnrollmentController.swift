@@ -620,6 +620,7 @@ final class FaceIDEnrollmentController {
         captureReadyAt = .now + initialCaptureDelay
         poseHoldStartedAt = nil
         sweepWindow.present(for: self)
+        ArcFaceEmbedder.warmUp()
         Task { await camera.start() }
     }
 
@@ -628,6 +629,7 @@ final class FaceIDEnrollmentController {
     func teardown() {
         stopPermissionsPolling()
         camera.stop()
+        ArcFaceEmbedder.scheduleUnload(after: 30.0)
         sweepWindow.dismiss()
     }
 

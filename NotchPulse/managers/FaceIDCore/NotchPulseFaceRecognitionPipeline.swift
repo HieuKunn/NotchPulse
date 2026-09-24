@@ -36,6 +36,10 @@ typealias NotchPulseNotchPulseFaceRecognitionPipelineError = NotchPulseFaceRecog
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
+    nonisolated static var activeModelIdentifier: String {
+        ArcFaceEmbedder.isModelBundled ? ArcFaceEmbedder.defaultModelIdentifier : VisionFeaturePrintEmbedder.defaultModelIdentifier
+    }
+
     nonisolated static var sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) {
         if let arcFace = ArcFaceEmbedder.shared {
             return (arcFace, false, nil)

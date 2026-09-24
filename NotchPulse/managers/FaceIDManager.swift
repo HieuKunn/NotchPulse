@@ -92,7 +92,7 @@ struct VerifyResult {
 final class NotchPulseEnrollmentService: @unchecked Sendable {
     static let minimumCaptureQuality: Float = 0.35
     private var embedder: FaceEmbedder {
-        (try? ArcFaceEmbedder()) ?? VisionFeaturePrintEmbedder()
+        ArcFaceEmbedder.shared ?? VisionFeaturePrintEmbedder()
     }
     
     static func hasEnrolledFace() -> Bool {
@@ -251,6 +251,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         recognitionTask?.cancel()
         unlockTask?.cancel()
         camera.stop()
+        ArcFaceEmbedder.scheduleUnload(after: 10.0)
         isScanning = false
         isEnrollmentMode = false
         isTestingMode = false
@@ -287,9 +288,11 @@ final class FaceIDManager: NSObject, ObservableObject {
         lastUnlockSuccess = false
         statusMessage = "Looking for your face…"
         
+        ArcFaceEmbedder.warmUp()
         await camera.requestAccessAndStart()
         defer {
             camera.stop()
+            ArcFaceEmbedder.scheduleUnload(after: 30.0)
             isScanning = false
         }
         
@@ -378,9 +381,11 @@ final class FaceIDManager: NSObject, ObservableObject {
             // Ensure session key is created/unlocked before we save embeddings
             _ = await self.ensureSessionUnlocked()
             
+            ArcFaceEmbedder.warmUp()
             await self.camera.requestAccessAndStart()
             defer {
                 self.camera.stop()
+                ArcFaceEmbedder.scheduleUnload(after: 30.0)
                 self.isScanning = false
                 self.isEnrollmentMode = false
             }
@@ -501,9 +506,11 @@ final class FaceIDManager: NSObject, ObservableObject {
                 return
             }
             
+            ArcFaceEmbedder.warmUp()
             await self.camera.requestAccessAndStart()
             defer {
                 self.camera.stop()
+                ArcFaceEmbedder.scheduleUnload(after: 30.0)
                 self.isScanning = false
                 self.isTestingMode = false
                 if self.testResultText == "Looking for face..." || self.testResultText == "Searching..." {
@@ -535,6 +542,7 @@ final class FaceIDManager: NSObject, ObservableObject {
                         self.testResultColor = .red
                     }
                 } catch {
+                    NSLog("[FaceID Test] Verification frame error: \(error.localizedDescription)")
                     self.testResultText = "Looking for face..."
                     self.testResultColor = .secondary
                 }
