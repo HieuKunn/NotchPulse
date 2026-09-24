@@ -7,6 +7,14 @@
         <language>en</language>
         <item>
             <title>4.7.8</title>
+            <pubDate>Thu, 24 Sep 2026 01:47:08 +0000</pubDate>
+            <sparkle:version>129</sparkle:version>
+            <sparkle:shortVersionString>4.7.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.7.8/NotchPulse.app.zip" length="23147860" type="application/octet-stream" sparkle:edSignature="Xb2GHCZKI3ZjV4J+3iTQKg+YyV2VtsxR3ms2DQC0yW8nEBarzl84hUi0+/Nzl5kfOv6PPPEDDN+gZJ+rfoVFCg=="/>
+        </item>
+        <item>
+            <title>4.7.8</title>
             <pubDate>Thu, 24 Sep 2026 01:39:25 +0000</pubDate>
             <sparkle:version>128</sparkle:version>
             <sparkle:shortVersionString>4.7.8</sparkle:shortVersionString>
@@ -20,14 +28,6 @@
             <sparkle:shortVersionString>4.7.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.7.8/NotchPulse.app.zip" length="23132231" type="application/octet-stream" sparkle:edSignature="Ocw4EtC2dUJ1gqyHAlWawCI/MODeKS0VdiL/cMSe5dQgBEjRsogxcJkLhnoaEVyfT1WSk6vL7fWAJDRWaORdCg=="/>
-        </item>
-        <item>
-            <title>4.7.8</title>
-            <pubDate>Wed, 23 Sep 2026 19:11:30 +0000</pubDate>
-            <sparkle:version>126</sparkle:version>
-            <sparkle:shortVersionString>4.7.8</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v4.7.8/NotchPulse.app.zip" length="23132156" type="application/octet-stream" sparkle:edSignature="Stkfy/frucnZSxokNiP3AOlMfx6aDl0ly+xHQKOvAuQR8+nam8C5fGEgWmd9LbAAAK2ImVF8XLZMs5XFuhbBDg=="/>
         </item>
     </channel>
 </rss>
