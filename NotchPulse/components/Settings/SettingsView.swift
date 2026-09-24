@@ -648,7 +648,6 @@ struct GeneralSettings: View {
             notchSizingSection
             NotchBehaviour()
             gestureControls()
-            appLifecycleSection
         }
         .accentColor(.effectiveAccent)
         .onChange(of: openNotchOnHover) {
@@ -729,32 +728,6 @@ struct GeneralSettings: View {
             }
         } header: {
             Text("Notch behavior")
-        }
-    }
-
-    @ViewBuilder
-    private var appLifecycleSection: some View {
-        Section {
-            Button(role: .destructive) {
-                if let appDelegate = NSApp.delegate as? AppDelegate {
-                    appDelegate.quitApplication()
-                } else {
-                    NSApp.terminate(nil)
-                }
-            } label: {
-                HStack {
-                    Image(systemName: "power")
-                        .foregroundStyle(.red)
-                    Text("Quit NotchPulse")
-                        .foregroundStyle(.red)
-                    Spacer()
-                    Text("⌘Q")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        } header: {
-            Text("App Control")
         }
     }
 }

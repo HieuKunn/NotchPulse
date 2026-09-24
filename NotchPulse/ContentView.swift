@@ -293,12 +293,12 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
-                        ? 14
+                        ? (isDynamicIsland ? 0 : topCornerRadius)
                         : (isFaceIDActive || isFaceIDContentVisible
                             ? 0
                             : (isDynamicIsland ? 8 : 17))
                     )
-                    .padding(.bottom, (vm.notchState == .open) ? 12 : 0)
+                    .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view
@@ -316,12 +316,6 @@ struct ContentView: View {
                                     .fill(.black)
                                     .frame(height: 1)
                                     .padding(.horizontal, topCornerRadius)
-                            }
-                            .overlay {
-                                if isDynamicIsland && vm.notchState == .open {
-                                    currentNotchShape
-                                        .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
-                                }
                             }
                     }
                     .shadow(
