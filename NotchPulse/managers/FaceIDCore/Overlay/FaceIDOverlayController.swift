@@ -404,7 +404,15 @@ final class FaceIDOverlayController {
         // stays unaffected — only the retry itself is removed.
         guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
 
-        // REMOVED 400ms delay to make it instant on hover!
+        // If armed very recently (e.g. screen just locked or woke up and cursor happened to be at the notch),
+        // ignore accidental initial hover for 1.2s to prevent premature auto-scan upon locking!
+        if let armedAt {
+            let elapsed = ContinuousClock.now - armedAt
+            if elapsed < .milliseconds(1200) {
+                return
+            }
+        }
+
         performActivation()
     }
 

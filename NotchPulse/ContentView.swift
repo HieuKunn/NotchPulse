@@ -825,30 +825,21 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Hover Management
-
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
-        if isFaceIDActive { return true }
-        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
-        return false
+        guard isFaceIDActive else { return false }
+        return true
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
-        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
-        if isFaceIDActive { return true }
-        return false
+        guard isFaceIDActive else { return false }
+        return true
     }
 
     private func handleHover(_ hovering: Bool) {
-        if coordinator.firstLaunch || isFaceIDActive || faceIDOverlay.phase != .closed { return }
+        if coordinator.firstLaunch || isFaceIDActive || faceIDOverlay.phase != .closed || NotchPulseLockMonitor.isScreenActuallyLocked() { return }
         hoverTask?.cancel()
         
         if hovering {
-            if NotchPulseLockMonitor.isScreenActuallyLocked() {
-                FaceIDOverlayController.shared.activate()
-                return
-            }
-
             withAnimation(animationSpring) {
                 isHovering = true
             }
