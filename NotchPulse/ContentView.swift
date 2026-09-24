@@ -123,12 +123,12 @@ struct ContentView: View {
             if isDynamicIsland && !hasPhysicalNotch {
                 return CGSize(
                     width: FaceIDOverlayGeometry.minimalPillOpenWidth,
-                    height: FaceIDOverlayGeometry.minimalPillOpenHeight
+                    height: max(32, vm.effectiveClosedNotchHeight)
                 )
             } else {
                 return CGSize(
                     width: vm.closedNotchSize.width + FaceIDOverlayGeometry.minimalNotchFlankWidth * 2,
-                    height: max(vm.effectiveClosedNotchHeight, FaceIDOverlayGeometry.minimalPillOpenHeight) + FaceIDOverlayGeometry.minimalNotchHeightBump
+                    height: vm.effectiveClosedNotchHeight
                 )
             }
         }
@@ -194,7 +194,7 @@ struct ContentView: View {
         let isDynamicIsland = notchStyle == .dynamicIsland
         let defaultClosedWidth: CGFloat = (isDynamicIsland && !hasPhysicalNotch) ? 80 : vm.closedNotchSize.width
 
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
             return defaultClosedWidth
         }
 
@@ -432,6 +432,21 @@ struct ContentView: View {
                             vm.close()
                         }
                     }
+                    .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screenIsLocked"))) { _ in
+                        withAnimation(animationSpring) {
+                            // Trigger layout refresh on lock
+                        }
+                    }
+                    .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screenIsUnlocked"))) { _ in
+                        withAnimation(animationSpring) {
+                            // Trigger layout refresh on unlock
+                        }
+                    }
+                    .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidWakeNotification)) { _ in
+                        withAnimation(animationSpring) {
+                            // Trigger layout refresh on wake
+                        }
+                    }
                     .onChange(of: notchOpenWidth) { _, newWidth in
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             if vm.notchState == .open {
@@ -539,14 +554,14 @@ struct ContentView: View {
                     ZStack {
                         if !isFaceIDActive && !isFaceIDContentVisible {
                             Group {
-                                if !NotchPulseLockMonitor.isScreenActuallyLocked() && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
+                                if (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                     InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                         .transition(.opacity)
-                                } else if !NotchPulseLockMonitor.isScreenActuallyLocked() && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
+                                } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) {
                                     MusicLiveActivity()
                                         .frame(alignment: .center)
                                         .transition(.opacity)
-                                } else if !NotchPulseLockMonitor.isScreenActuallyLocked() && !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
+                                } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen])  {
                                     NotchPulseFaceAnimation()
                                         .transition(.opacity)
                                 } else if vm.notchState == .open {

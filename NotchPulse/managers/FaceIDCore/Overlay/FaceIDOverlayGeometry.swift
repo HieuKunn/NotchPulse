@@ -87,40 +87,41 @@ struct FaceIDOverlayGeometry {
     /// Slide starts this long after the shrink begins.
     static let pillExitSlideDelay: Double = 0.18
 
-    // MARK: - Minimal unlock style
+    // MARK: - Minimal unlock style (Inline FaceID)
     //
-    // `UnlockAnimationStyle.minimal`: the silhouette widens only, revealing a lock
-    // icon on one side and the unlock video on the other. See FaceIDMinimalUnlockView.
+    // `UnlockAnimationStyle.minimal`: the silhouette widens horizontally only,
+    // revealing a lock icon on one side and the unlock icon/video on the other,
+    // without expanding vertically downwards.
 
     /// Total notch body width is `geometry.closedSize.width + 2 * this`.
-    static let minimalNotchFlankWidth: CGFloat = 42
+    static let minimalNotchFlankWidth: CGFloat = 68
 
-    /// Taller than `pillClosedSize.height` for legibility; radius stays `height / 2`
-    /// so it remains a true capsule while stretching.
-    static let minimalPillOpenWidth: CGFloat = 150
-    static let minimalPillOpenHeight: CGFloat = 40
+    /// Pill dimensions: wide enough so lock glyph and face animation are well-spaced,
+    /// with height matching standard closed island height (no downward expansion).
+    static let minimalPillOpenWidth: CGFloat = 220
+    static let minimalPillOpenHeight: CGFloat = 32
 
-    /// Extra height added only in notch style.
-    static let minimalNotchHeightBump: CGFloat = 12
+    /// Zero extra height — strictly inline, widening sideways only.
+    static let minimalNotchHeightBump: CGFloat = 0
 
-    /// Radii matching Glance minimal notch.
-    static let minimalNotchTopRadius: CGFloat = 12
-    static let minimalNotchBottomRadius: CGFloat = 22
+    /// Radii matching closed silhouette
+    static let minimalNotchTopRadius: CGFloat = 10
+    static let minimalNotchBottomRadius: CGFloat = 16
 
     /// In notch style the flare already occupies `topRadius` of this margin.
-    static let minimalContentEdgeInset: CGFloat = 4
+    static let minimalContentEdgeInset: CGFloat = 8
 
     /// Point size of the lock glyph, pill style (and the shared fallback).
     static let minimalLockIconSize: CGFloat = 14
-    /// The video is square and aspect-fit.
-    static let minimalMediaWidth: CGFloat = 34
-    /// Vertical inset so the video aligns nicely with the lock icon.
-    static let minimalMediaVerticalInset: CGFloat = 8
+    /// The icon/video is square and fits comfortably inside inline height without vertical overflow.
+    static let minimalMediaWidth: CGFloat = 22
+    /// Vertical inset so the media aligns nicely without overflowing the capsule.
+    static let minimalMediaVerticalInset: CGFloat = 0
 
-    /// Notch-style counterparts matching Glance.
-    static let minimalNotchLockIconSize: CGFloat = 16
-    static let minimalNotchMediaWidth: CGFloat = 40
-    static let minimalNotchMediaVerticalInset: CGFloat = 11
+    /// Notch-style counterparts matching inline height.
+    static let minimalNotchLockIconSize: CGFloat = 15
+    static let minimalNotchMediaWidth: CGFloat = 22
+    static let minimalNotchMediaVerticalInset: CGFloat = 0
 
     /// So the lock glyph can be nudged to land with the video's own resolve beat.
     static let minimalLockUnlockDelay: Double = 0
