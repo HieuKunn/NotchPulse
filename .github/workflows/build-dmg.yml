@@ -37,6 +37,17 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Cache Swift Package Dependencies & Xcode Build Artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            build/SourcePackages
+            build/Build/Intermediates.noindex
+          key: ${{ runner.os }}-xcode-cache-${{ hashFiles('NotchPulse.xcodeproj/project.pbxproj') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-cache-
+
       - name: Resolve Swift Package Dependencies
         run: |
           xcodebuild -resolvePackageDependencies -project NotchPulse.xcodeproj
@@ -44,7 +55,7 @@ jobs:
       - name: Build App (Ad-Hoc Signing, No Paid Apple Cert Required)
         run: |
           set -o pipefail
-          xcodebuild clean build \
+          xcodebuild build \
             -project NotchPulse.xcodeproj \
             -scheme NotchPulse \
             -destination 'generic/platform=macOS' \
