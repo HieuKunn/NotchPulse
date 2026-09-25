@@ -304,6 +304,7 @@ final class FaceIDManager: NSObject, ObservableObject {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { .light }
         var livenessConfirmed = false
+        var consecutiveMatches = 0
         
         while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
@@ -326,6 +327,7 @@ final class FaceIDManager: NSObject, ObservableObject {
             }.value
             
             guard let (result, livenessFrame) = outcome else {
+                consecutiveMatches = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
@@ -344,9 +346,21 @@ final class FaceIDManager: NSObject, ObservableObject {
                 break
             }
             
+            let isQualityAcceptable = (result.face.quality ?? 1.0) >= 0.25
+            guard isQualityAcceptable else {
+                consecutiveMatches = 0
+                try? await Task.sleep(nanoseconds: 20_000_000)
+                continue
+            }
+            
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            if let _ = pipeline.bestMatch(in: scored, threshold: threshold) {
-                if !livenessConfirmed {
+            if let matched = pipeline.bestMatch(in: scored, threshold: threshold) {
+                consecutiveMatches += 1
+                let effectiveSimilarity = max(matched.centroidSimilarity, matched.maxSampleSimilarity)
+                let isHighConfidence = effectiveSimilarity >= (threshold + 0.04)
+                let isConfirmed = isHighConfidence || (consecutiveMatches >= 2)
+
+                if !livenessConfirmed || !isConfirmed {
                     try? await Task.sleep(nanoseconds: 30_000_000)
                     continue
                 }
@@ -357,6 +371,8 @@ final class FaceIDManager: NSObject, ObservableObject {
                     NSSound(named: "Glass")?.play()
                 }
                 return true
+            } else {
+                consecutiveMatches = 0
             }
             
             try? await Task.sleep(nanoseconds: 30_000_000)
