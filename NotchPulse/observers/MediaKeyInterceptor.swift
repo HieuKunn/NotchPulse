@@ -160,6 +160,7 @@ final class MediaKeyInterceptor {
         
         // Handle normal key press
         handleKeyPress(keyType: keyType, option: option, shift: shift, command: command, control: control)
+        return nil
     }
     
     private func handleOptionAction(for keyType: NXKeyType, command: Bool) -> Bool {
