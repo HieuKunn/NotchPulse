@@ -52,7 +52,7 @@ final class NotchPulseFaceUnlockCoordinator {
     /// When the last scan cycle was armed — collapses a single wake into a single arm (see `.wake` branch of `evaluateTrigger`).
     private var lastArmedAt: ContinuousClock.Instant?
     /// One lid-open fires several wake signals within a few hundred ms of each other; anything in this window counts as the same wake.
-    private let rearmDebounce: Duration = .seconds(2)
+    private let rearmDebounce: Duration = .milliseconds(400)
     /// Held separately from `scanTask` since it's scheduled from inside the scan task it follows — reusing `scanTask` would self-cancel it.
     private var autoRetryTask: Task<Void, Never>?
     /// Gap between headless auto-retries, just to keep the camera from restarting in a tight loop.
@@ -83,8 +83,8 @@ final class NotchPulseFaceUnlockCoordinator {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.observeLockAndWakeEvents()
-                // Brief settle delay: CGSession's reported state can lag the true state right after wake.
-                try? await Task.sleep(nanoseconds: 300_000_000)
+                // Fast settle delay (80ms): CGSession state settles promptly on modern macOS.
+                try? await Task.sleep(nanoseconds: 80_000_000)
                 self?.evaluateTrigger()
             }
         }
@@ -135,8 +135,8 @@ final class NotchPulseFaceUnlockCoordinator {
         hasArmedForCurrentLock = true
         lastArmedAt = .now
         Task { [weak self] in
-            // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
-            try? await Task.sleep(nanoseconds: 250_000_000)
+            // Fast 70ms buffer to combine with 80ms settle delay = exactly 150ms (0.15s) responsiveness.
+            try? await Task.sleep(nanoseconds: 70_000_000)
             await self?.arm(autoScan: shouldAutoScan)
         }
     }
@@ -348,6 +348,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
+        var consecutiveMatchedFrames = 0
         var sawAnyFace = false
 
         /// Cleared when consistently failing, but latched briefly so a single jitter frame doesn't drop the match while liveness confirms.
@@ -422,12 +423,17 @@ final class NotchPulseFaceUnlockCoordinator {
             processedFramesCount += 1
             let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant >= cameraWarmupDuration) && (processedFramesCount >= 15)
             let isQualityAcceptable = (result.face.quality ?? 1.0) >= 0.25
+            let isFrameStabilized = (ContinuousClock.now - scanStartInstant >= .milliseconds(150)) || (processedFramesCount >= 3)
 
             if let matched {
                 consecutiveWrongFaceFrames = 0
-                readyMatch = matched
-                lastMatchInstant = ContinuousClock.now
+                consecutiveMatchedFrames += 1
+                if isFrameStabilized || consecutiveMatchedFrames >= 2 {
+                    readyMatch = matched
+                    lastMatchInstant = ContinuousClock.now
+                }
             } else {
+                consecutiveMatchedFrames = 0
                 if let lastMatch = lastMatchInstant, ContinuousClock.now - lastMatch > .milliseconds(600) {
                     readyMatch = nil
                 } else if lastMatchInstant == nil {
@@ -441,7 +447,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 }
             }
 
-            if let readyMatch, livenessConfirmed {
+            if let readyMatch, livenessConfirmed, isFrameStabilized {
                 statusMessage = "Recognized — unlocking…"
                 let livenessNote = livenessEnabled
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")

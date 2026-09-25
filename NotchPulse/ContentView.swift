@@ -733,7 +733,7 @@ struct ContentView: View {
                         style: .continuous
                     )
                 )
-                .padding(.leading, isDynamicIsland ? 10 : 12)
+                .padding(.leading, 11)
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
 
             Rectangle()
@@ -801,7 +801,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .padding(.trailing, isDynamicIsland ? 10 : 12)
+            .padding(.trailing, 10)
             .frame(
                 width: max(
                     0,

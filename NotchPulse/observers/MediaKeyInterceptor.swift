@@ -15,15 +15,18 @@ private let kSystemDefinedEventType = CGEventType(rawValue: 14)!
 final class MediaKeyInterceptor {
     static let shared = MediaKeyInterceptor()
     
-    private enum NXKeyType: Int {
-        case soundUp = 0
-        case soundDown = 1
-        case brightnessUp = 2
-        case brightnessDown = 3
-        case mute = 7
-        case keyboardBrightnessUp = 21
-        case keyboardBrightnessDown = 22
-    }
+fileprivate enum NXKeyType: Int {
+    case soundUp = 0
+    case soundDown = 1
+    case brightnessUp = 2
+    case brightnessDown = 3
+    case mute = 7
+    case keyboardBrightnessUp = 21
+    case keyboardBrightnessDown = 22
+}
+
+final class MediaKeyInterceptor {
+    static let shared = MediaKeyInterceptor()
     
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -80,6 +83,15 @@ final class MediaKeyInterceptor {
                     if let eventTap = interceptor.eventTap {
                         CGEvent.tapEnable(tap: eventTap, enable: true)
                     }
+                    if let nsEvent = NSEvent(cgEvent: cgEvent),
+                       nsEvent.type == .systemDefined,
+                       nsEvent.subtype.rawValue == 8 {
+                        let data1 = nsEvent.data1
+                        let keyCode = (data1 & 0xFFFF_0000) >> 16
+                        if NXKeyType(rawValue: keyCode) != nil {
+                            return nil
+                        }
+                    }
                     return Unmanaged.passRetained(cgEvent)
                 }
                 
@@ -125,10 +137,15 @@ final class MediaKeyInterceptor {
         let keyCode = (data1 & 0xFFFF_0000) >> 16
         let stateByte = ((data1 & 0xFF00) >> 8)
         
-        // 0xA = key down, 0xB = key up. Only handle key down.
-        guard stateByte == 0xA,
-              let keyType = NXKeyType(rawValue: keyCode) else {
+        // Match against media keys handled by NotchPulse
+        guard let keyType = NXKeyType(rawValue: keyCode) else {
             return Unmanaged.passRetained(cgEvent)
+        }
+        
+        // 0xA = key down, 0xB = key up.
+        // Completely swallow key-up (0xB) and non-down states so macOS Bezel/OSD never triggers on key release!
+        guard stateByte == 0xA else {
+            return nil
         }
         
         let flags = nsEvent.modifierFlags
@@ -146,7 +163,6 @@ final class MediaKeyInterceptor {
         
         // Handle normal key press
         handleKeyPress(keyType: keyType, option: option, shift: shift, command: command, control: control)
-        return nil
     }
     
     private func handleOptionAction(for keyType: NXKeyType, command: Bool) -> Bool {

@@ -304,6 +304,8 @@ final class FaceIDManager: NSObject, ObservableObject {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { .light }
         var livenessConfirmed = false
+        var processedFrames = 0
+        var consecutiveMatches = 0
         
         while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
@@ -344,9 +346,12 @@ final class FaceIDManager: NSObject, ObservableObject {
                 break
             }
             
+            processedFrames += 1
             let scored = pipeline.score(result.embedding, against: activeIdentities)
             if let _ = pipeline.bestMatch(in: scored, threshold: threshold) {
-                if !livenessConfirmed {
+                consecutiveMatches += 1
+                let isStabilized = processedFrames >= 3 || consecutiveMatches >= 2 || (ContinuousClock.now - startTime >= .milliseconds(150))
+                if !livenessConfirmed || !isStabilized {
                     try? await Task.sleep(nanoseconds: 30_000_000)
                     continue
                 }
@@ -357,6 +362,8 @@ final class FaceIDManager: NSObject, ObservableObject {
                     NSSound(named: "Glass")?.play()
                 }
                 return true
+            } else {
+                consecutiveMatches = 0
             }
             
             try? await Task.sleep(nanoseconds: 30_000_000)

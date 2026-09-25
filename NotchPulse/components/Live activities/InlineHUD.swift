@@ -124,6 +124,7 @@ struct InlineHUD: View {
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                                 .allowsTightening(true)
+                                .contentTransition(.numericText())
                                 .multilineTextAlignment(.trailing)
                         }
                     }
@@ -133,7 +134,6 @@ struct InlineHUD: View {
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: value)
     }
     
     func SpeakerSymbol(_ value: CGFloat) -> String {

@@ -65,6 +65,7 @@ struct SystemEventIndicatorModifier: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white)
                         .monospacedDigit()
+                        .contentTransition(.numericText())
                         .frame(width: 35, alignment: .trailing)
                 }
             } else {
@@ -129,20 +130,16 @@ struct DraggableProgressBar: View {
                             Color.clear,
                             radius: 8, x: 3)
                         .opacity(value.isZero ? 0 : 1)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: value)
+                        .animation(isDragging ? nil : .smooth(duration: 0.18), value: value)
                 }
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { gesture in
-                            withAnimation(.smooth(duration: 0.3)) {
-                                isDragging = true
-                                updateValue(gesture: gesture, in: geo)
-                            }
+                            isDragging = true
+                            updateValue(gesture: gesture, in: geo)
                         }
                         .onEnded { _ in
-                            withAnimation(.smooth(duration: 0.3)) {
-                                isDragging = false
-                            }
+                            isDragging = false
                         }
                 )
             }
