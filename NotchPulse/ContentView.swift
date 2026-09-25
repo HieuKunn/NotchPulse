@@ -206,10 +206,11 @@ struct ContentView: View {
             chinWidth = openNotchSize.width
         } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
             chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
+        // NOTE: ĐẢM BẢO TOÀN BỘ UI CỦA DYNAMIC ISLAND VÀ NOTCH PHẢI GIỐNG HỆT NHAU TRỪ KHI NGƯỜI DÙNG YÊU CẦU SỬA
         } else if coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
-            chinWidth = max(vm.closedNotchSize.width, isDynamicIsland ? 220 : 216) + gestureProgress
+            chinWidth = max(isDynamicIsland ? 220 : vm.closedNotchSize.width, 220) + gestureProgress
         } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed && !vm.hideOnClosed {
-            chinWidth = max(vm.closedNotchSize.width + 40, isDynamicIsland ? 260 : 250) + gestureProgress
+            chinWidth = max(isDynamicIsland ? 260 : (vm.closedNotchSize.width + 40), 260) + gestureProgress
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
@@ -257,6 +258,9 @@ struct ContentView: View {
     private var isBottomRowMusicActive: Bool {
         coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed && !vm.hideOnClosed
     }
+    // NOTE: ĐẢM BẢO TOÀN BỘ UI CỦA DYNAMIC ISLAND VÀ NOTCH PHẢI GIỐNG HỆT NHAU TRỪ KHI NGƯỜI DÙNG YÊU CẦU SỬA
+    private let bottomRowHUDHeight: CGFloat = 40
+
     private var isBottomRowActive: Bool {
         isBottomRowHUDActive || isBottomRowMusicActive
     }
@@ -270,7 +274,7 @@ struct ContentView: View {
         if vm.notchState == .open {
             return vm.notchSize.height
         }
-        return isBottomRowActive ? baseClosedHeight + 42 : baseClosedHeight
+        return isBottomRowActive ? baseClosedHeight + bottomRowHUDHeight : baseClosedHeight
     }
     private var gestureScale: CGFloat {
         guard gestureProgress != 0 else { return 1.0 }
@@ -535,8 +539,8 @@ struct ContentView: View {
 
     @ViewBuilder
     func NotchLayout() -> some View {
-        VStack(alignment: .leading) {
-            VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .center, spacing: 0) {
                 if coordinator.helloAnimationRunning {
                     Spacer()
                     HelloAnimation(onFinish: {
@@ -569,7 +573,7 @@ struct ContentView: View {
                                         .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                         .transition(.opacity)
                                 } else {
-                                    Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
+                                    Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: baseClosedHeight)
                                         .transition(.opacity)
                                 }
                             }
@@ -581,44 +585,47 @@ struct ContentView: View {
                         }
                     }
 
-                      if coordinator.sneakPeek.show && !isFaceIDActive {
-                          if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
-                              SystemEventIndicatorModifier(
-                                  eventType: $coordinator.sneakPeek.type,
-                                  value: $coordinator.sneakPeek.value,
-                                  icon: $coordinator.sneakPeek.icon,
-                                  sendEventBack: { newVal in
-                                      switch coordinator.sneakPeek.type {
-                                      case .volume:
-                                          VolumeManager.shared.setAbsolute(Float32(newVal))
-                                      case .brightness:
-                                          BrightnessManager.shared.setAbsolute(value: Float32(newVal))
-                                      default:
-                                          break
-                                      }
-                                  }
-                              )
-                              .frame(height: 42, alignment: .center)
-                              .padding(.horizontal, isDynamicIsland ? 14 : 18)
-                          }
-                          // Old sneak peek music
-                          else if coordinator.sneakPeek.type == .music {
-                              if vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard {
-                                  HStack(alignment: .center, spacing: 8) {
-                                      Image(systemName: "music.note")
-                                          .frame(width: 16, alignment: .center)
-                                      GeometryReader { geo in
-                                          MarqueeText(.constant(musicManager.songTitle + " - " + musicManager.artistName),  textColor: Defaults[.playerColorTinting] ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray, minDuration: 1, frameWidth: geo.size.width)
-                                      }
-                                  }
-                                  .foregroundStyle(.gray)
-                                  .frame(height: 42, alignment: .center)
-                                  .padding(.horizontal, isDynamicIsland ? 14 : 18)
-                              }
-                          }
-                      }
-                  }
-              }
+                    // NOTE: ĐẢM BẢO TOÀN BỘ UI CỦA DYNAMIC ISLAND VÀ NOTCH PHẢI GIỐNG HỆT NHAU TRỪ KHI NGƯỜI DÙNG YÊU CẦU SỬA
+                    if coordinator.sneakPeek.show && !isFaceIDActive {
+                        if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
+                            SystemEventIndicatorModifier(
+                                eventType: $coordinator.sneakPeek.type,
+                                value: $coordinator.sneakPeek.value,
+                                icon: $coordinator.sneakPeek.icon,
+                                sendEventBack: { newVal in
+                                    switch coordinator.sneakPeek.type {
+                                    case .volume:
+                                        VolumeManager.shared.setAbsolute(Float32(newVal))
+                                    case .brightness:
+                                        BrightnessManager.shared.setAbsolute(value: Float32(newVal))
+                                    default:
+                                        break
+                                    }
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .frame(height: bottomRowHUDHeight, alignment: .center)
+                        }
+                        // Old sneak peek music
+                        else if coordinator.sneakPeek.type == .music {
+                            if vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard {
+                                HStack(alignment: .center, spacing: 8) {
+                                    Image(systemName: "music.note")
+                                        .frame(width: 16, alignment: .center)
+                                    GeometryReader { geo in
+                                        MarqueeText(.constant(musicManager.songTitle + " - " + musicManager.artistName),  textColor: Defaults[.playerColorTinting] ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray, minDuration: 1, frameWidth: geo.size.width)
+                                    }
+                                }
+                                .foregroundStyle(.gray)
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .frame(height: bottomRowHUDHeight, alignment: .center)
+                            }
+                        }
+                    }
+                }
+            }
               .conditionalModifier(!isFaceIDActive && isBottomRowActive) { view in
                   view
                       .fixedSize(horizontal: false, vertical: true)
