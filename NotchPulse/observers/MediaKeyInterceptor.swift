@@ -12,9 +12,6 @@ import AVFoundation
 
 private let kSystemDefinedEventType = CGEventType(rawValue: 14)!
 
-final class MediaKeyInterceptor {
-    static let shared = MediaKeyInterceptor()
-    
 fileprivate enum NXKeyType: Int {
     case soundUp = 0
     case soundDown = 1
