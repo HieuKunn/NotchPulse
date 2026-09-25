@@ -24,36 +24,36 @@ struct SystemEventIndicatorModifier: View {
     var sendEventBack: (CGFloat) -> Void
     
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 14) {
             switch (eventType) {
                 case .volume:
                     if icon.isEmpty {
                         Image(systemName: SpeakerSymbol(value))
                             .contentTransition(.interpolate)
                             .symbolVariant(value > 0 ? .none : .slash)
-                            .frame(width: 20, height: 15, alignment: .leading)
+                            .frame(width: 20, height: 15, alignment: .center)
                     } else {
                         Image(systemName: icon)
                             .contentTransition(.interpolate)
                             .opacity(value.isZero ? 0.6 : 1)
                             .scaleEffect(value.isZero ? 0.85 : 1)
-                            .frame(width: 20, height: 15, alignment: .leading)
+                            .frame(width: 20, height: 15, alignment: .center)
                     }
                 case .brightness:
                     Image(systemName: icon.isEmpty ? (BrightnessManager.shared.isCurrentBuiltin ? "sun.max.fill" : "display") : icon)
                         .contentTransition(.symbolEffect)
-                        .frame(width: 20, height: 15)
+                        .frame(width: 20, height: 15, alignment: .center)
                         .foregroundStyle(.white)
                 case .backlight:
                     Image(systemName: value > 0.5 ? "light.max" : "light.min")
                         .contentTransition(.interpolate)
-                        .frame(width: 20, height: 15)
+                        .frame(width: 20, height: 15, alignment: .center)
                         .foregroundStyle(.white)
                 case .mic:
                     Image(systemName: "mic")
                         .symbolVariant(value > 0 ? .none : .slash)
                         .contentTransition(.interpolate)
-                        .frame(width: 20, height: 15)
+                        .frame(width: 20, height: 15, alignment: .center)
                         .foregroundStyle(.white)
                 default:
                     EmptyView()
@@ -74,7 +74,7 @@ struct SystemEventIndicatorModifier: View {
                     .allowsTightening(true)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
         .symbolVariant(.fill)
         .imageScale(.large)
     }

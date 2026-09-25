@@ -216,7 +216,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 32 : 44) + gestureProgress
             if coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
                 chinWidth = max(chinWidth, (isDynamicIsland ? 440 : 460) + gestureProgress)
             }
@@ -226,7 +226,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 16 : 24) + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 32 : 44) + gestureProgress
         }
         return chinWidth
     }
@@ -556,11 +556,11 @@ struct ContentView: View {
                                 if (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                     InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                         .transition(.opacity)
-                                } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) {
+                                } else if !isBottomRowActive && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) {
                                     MusicLiveActivity()
                                         .frame(alignment: .center)
                                         .transition(.opacity)
-                                } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen])  {
+                                } else if !isBottomRowActive && !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen])  {
                                     NotchPulseFaceAnimation()
                                         .transition(.opacity)
                                 } else if vm.notchState == .open {
@@ -598,7 +598,7 @@ struct ContentView: View {
                                       }
                                   }
                               )
-                              .padding(.bottom, 10)
+                              .frame(height: 42, alignment: .center)
                               .padding(.horizontal, isDynamicIsland ? 14 : 18)
                           }
                           // Old sneak peek music
@@ -606,13 +606,13 @@ struct ContentView: View {
                               if vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard {
                                   HStack(alignment: .center, spacing: 8) {
                                       Image(systemName: "music.note")
-                                          .frame(width: 16)
+                                          .frame(width: 16, alignment: .center)
                                       GeometryReader { geo in
                                           MarqueeText(.constant(musicManager.songTitle + " - " + musicManager.artistName),  textColor: Defaults[.playerColorTinting] ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray, minDuration: 1, frameWidth: geo.size.width)
                                       }
                                   }
                                   .foregroundStyle(.gray)
-                                  .padding(.bottom, 10)
+                                  .frame(height: 42, alignment: .center)
                                   .padding(.horizontal, isDynamicIsland ? 14 : 18)
                               }
                           }
@@ -726,6 +726,7 @@ struct ContentView: View {
                         style: .continuous
                     )
                 )
+                .padding(.leading, isDynamicIsland ? 10 : 12)
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
 
             Rectangle()
@@ -793,6 +794,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .padding(.trailing, isDynamicIsland ? 10 : 12)
             .frame(
                 width: max(
                     0,

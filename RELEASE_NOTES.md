@@ -1,8 +1,9 @@
 # NotchPulse v4.8.5
 
-## 📐 Precise Notch Sizing & Seamless Lock Screen Flow
-- **Hardware Notch Alignment**: The collapsed Notch now matches your MacBook's real camera notch width 1:1, removing artificial padding and double-retraction glitches when locking your Mac.
-- **Flawless Bottom-Row HUD & Media**: Volume, brightness sliders, and music indicators displayed below the notch now have ample space and rounded-corner clearance without text or icon clipping.
+## 📐 Refined Notch Geometry & HUD Alignment
+- **Spacious Inline Album Art**: Expanded left-side width margin for media view in both Notch and Dynamic Island modes so album artwork is never cramped against the left corner boundary.
+- **Clean Default HUD Modes**: Suppressed top inline media during active bottom-row HUD notifications, ensuring default HUDs and inline content never overlap simultaneously.
+- **Symmetrical Center Alignment**: Perfectly centered default system HUDs (volume, brightness, backlight, mic) and standard music popups vertically and horizontally within the extended notch footprint.
 
 ## 🔒 Face ID Enhancements & Cold Wake Reliability
 - **First-Try Auto Unlock After Sleep**: Guaranteed smooth, instant face recognition on your very first try when waking your Mac after sleep or idle periods, eliminating dark camera startup frame drops.
