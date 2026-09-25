@@ -83,8 +83,6 @@ final class NotchPulseFaceUnlockCoordinator {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.observeLockAndWakeEvents()
-                // Fast settle delay (80ms): CGSession state settles promptly on modern macOS.
-                try? await Task.sleep(nanoseconds: 80_000_000)
                 self?.evaluateTrigger()
             }
         }
@@ -99,9 +97,8 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         guard !lockMonitor.isSleeping else { return }
 
-        // `.wake` (sleep, display sleep, or screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
-        // `isWithinRecentArmBurst` keeps the several wake signals from one lid-open from each re-arming and fighting over the camera.
-        if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
+        // `.wake` (lid open, display sleep, screensaver stop) is an explicit wake signal, always allow fresh scan.
+        if lockMonitor.lastEvent == .wake {
             hasArmedForCurrentLock = false
         }
 
@@ -135,8 +132,6 @@ final class NotchPulseFaceUnlockCoordinator {
         hasArmedForCurrentLock = true
         lastArmedAt = .now
         Task { [weak self] in
-            // Fast 70ms buffer to combine with 80ms settle delay = exactly 150ms (0.15s) responsiveness.
-            try? await Task.sleep(nanoseconds: 70_000_000)
             await self?.arm(autoScan: shouldAutoScan)
         }
     }
@@ -348,7 +343,6 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        var consecutiveMatchedFrames = 0
         var sawAnyFace = false
 
         /// Cleared when consistently failing, but latched briefly so a single jitter frame doesn't drop the match while liveness confirms.
@@ -427,13 +421,9 @@ final class NotchPulseFaceUnlockCoordinator {
 
             if let matched {
                 consecutiveWrongFaceFrames = 0
-                consecutiveMatchedFrames += 1
-                if isFrameStabilized || consecutiveMatchedFrames >= 2 {
-                    readyMatch = matched
-                    lastMatchInstant = ContinuousClock.now
-                }
+                readyMatch = matched
+                lastMatchInstant = ContinuousClock.now
             } else {
-                consecutiveMatchedFrames = 0
                 if let lastMatch = lastMatchInstant, ContinuousClock.now - lastMatch > .milliseconds(600) {
                     readyMatch = nil
                 } else if lastMatchInstant == nil {
@@ -447,7 +437,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 }
             }
 
-            if let readyMatch, livenessConfirmed, isFrameStabilized {
+            if let readyMatch, livenessConfirmed {
                 statusMessage = "Recognized — unlocking…"
                 let livenessNote = livenessEnabled
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")

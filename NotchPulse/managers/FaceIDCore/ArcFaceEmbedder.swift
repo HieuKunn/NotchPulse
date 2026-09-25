@@ -56,15 +56,19 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let outputName = "embedding"
 
     private static let instanceLock = NSLock()
-    private static var _sharedInstance: ArcFaceEmbedder?
-    private static var unloadWorkItem: DispatchWorkItem?
+    private static var _sharedInstance: ArcFaceEmbedder? = {
+        do {
+            return try ArcFaceEmbedder()
+        } catch {
+            NSLog("[ArcFaceEmbedder] Failed to initialize persistent instance: \(error.localizedDescription)")
+            return nil
+        }
+    }()
 
-    /// Lazily loads ArcFace model on demand; call scheduleUnload() or unload() to release memory when unlock session is over.
+    /// Persistent ArcFace model resident in memory (24/7, ~12MB) for instant 0ms recognition on sleep wake and lock screen.
     static var shared: ArcFaceEmbedder? {
         instanceLock.lock()
         defer { instanceLock.unlock() }
-        unloadWorkItem?.cancel()
-        unloadWorkItem = nil
         if let existing = _sharedInstance {
             return existing
         }
@@ -78,52 +82,25 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         }
     }
 
-    /// Asynchronously pre-warms the ArcFace ML model and runs a dummy prediction so the Neural Engine pipeline is compiled and ready before camera frames arrive.
+    /// Pre-warms the ArcFace ML model so the Neural Engine pipeline is compiled and ready before camera frames arrive.
     static func warmUp() {
-        instanceLock.lock()
-        unloadWorkItem?.cancel()
-        unloadWorkItem = nil
-        let instance = _sharedInstance
-        instanceLock.unlock()
-
         Task.detached(priority: .userInitiated) {
-            guard let embedder = instance ?? shared else { return }
-            embedder.prewarmPrediction()
+            shared?.prewarmPrediction()
         }
     }
 
-    /// Asynchronously ensures the model is loaded and runs prewarmPrediction on a background thread before scanning begins.
+    /// Asynchronously ensures prewarmPrediction has run before scanning begins.
     static func prepare() async {
         await Task.detached(priority: .userInitiated) {
-            guard let embedder = shared else { return }
-            embedder.prewarmPrediction()
+            shared?.prewarmPrediction()
         }.value
     }
 
-    /// Releases the MLModel and CVPixelBufferPool from RAM after an idle delay (e.g. 60s of inactivity).
-    /// Prevents repeated model loading/unloading overhead across rapid retries or testing.
-    static func scheduleUnload(after delay: TimeInterval = 60.0) {
-        instanceLock.lock()
-        defer { instanceLock.unlock() }
-        unloadWorkItem?.cancel()
-        let item = DispatchWorkItem {
-            instanceLock.lock()
-            defer { instanceLock.unlock() }
-            _sharedInstance = nil
-            NSLog("[ArcFaceEmbedder] Model unloaded from RAM after idle period.")
-        }
-        unloadWorkItem = item
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + delay, execute: item)
-    }
+    /// Kept resident in RAM for instant 0ms response.
+    static func scheduleUnload(after delay: TimeInterval = 60.0) {}
 
-    /// Immediately releases the MLModel and CVPixelBufferPool from RAM
-    static func unload() {
-        instanceLock.lock()
-        defer { instanceLock.unlock() }
-        unloadWorkItem?.cancel()
-        unloadWorkItem = nil
-        _sharedInstance = nil
-    }
+    /// Kept resident in RAM for instant 0ms response.
+    static func unload() {}
 
     // Loaded once and reused — model load dominates a single inference.
     private let model: MLModel

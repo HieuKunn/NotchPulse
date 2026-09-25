@@ -1,9 +1,9 @@
 # NotchPulse v4.8.5
 
-## 🔒 Instant Face ID & Resilient Sensor Stabilization
-- **Ultra-Responsive 150ms Lock Screen Face ID**: Reduced lock screen wake settle delay to 0.15s (150ms) and rearm cooldown to 400ms for instant face unlock when waking or locking your Mac.
-- **Camera Sensor Warmup & Stabilization**: Added 3-frame sensor stabilization and consecutive frame match verification to let the camera auto-exposure settle, eliminating cold-wake frame jitter and false early aborts.
-- **Concurrent Model Pre-Warming**: AI neural pipeline pre-warms in parallel while hardware camera starts up, giving zero-wait face recognition without draining RAM during idle periods.
+## 🔒 Instant Face ID & 24/7 Zero-Latency Unlock
+- **24/7 Resident AI Engine**: Kept the ArcFace CoreML model persistently resident in memory (~12MB RAM) to eliminate cold-start unloading lag and prevent model eviction after sleep.
+- **0ms Lid Open & Wake Trigger**: Guaranteed instant scan trigger when opening the laptop lid or waking the screen, removing arm burst blocking and artificial delay buffers.
+- **Lightning-Fast Recognition**: Instant Apple-style unlock the moment your face is recognized and liveness is confirmed.
 
 ## 🎛️ Liquid-Smooth HUDs & Native Popup Suppression
 - **Leak-Free System Controls**: Completely suppressed native macOS sound and brightness popup overlays by swallowing Key-Up media events and timeout fallbacks.
