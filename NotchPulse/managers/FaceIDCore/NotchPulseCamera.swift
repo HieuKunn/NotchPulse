@@ -213,7 +213,7 @@ final class NotchPulseCamera: NSObject {
         /// is unaffected. The undownscaled `source` is kept alongside for callers needing native pixels (`renderCrop`).
         private let maxLongEdge: CGFloat = 640
         private var nextFrameID: UInt64 = 0
-        private var lastPublishedTime: ContinuousClock.Instant = .distantPast
+        private var lastPublishedTime: ContinuousClock.Instant?
         private let minFrameInterval: Duration = .milliseconds(45) // Caps at ~22 FPS for ultra-low CPU load
 
         func captureOutput(
@@ -222,7 +222,7 @@ final class NotchPulseCamera: NSObject {
             from connection: AVCaptureConnection
         ) {
             let now = ContinuousClock.now
-            guard now - lastPublishedTime >= minFrameInterval else { return }
+            if let last = lastPublishedTime, now - last < minFrameInterval { return }
             lastPublishedTime = now
 
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }

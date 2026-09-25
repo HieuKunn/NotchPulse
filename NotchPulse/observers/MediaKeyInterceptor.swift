@@ -200,15 +200,17 @@ final class MediaKeyInterceptor {
         }
     }
 
-    private var cachedFeedbackCheckTime: ContinuousClock.Instant = .distantPast
+    private var cachedFeedbackCheckTime: ContinuousClock.Instant?
     private var cachedFeedbackEnabled: Bool = false
 
     private func isFeedbackSoundEnabled() -> Bool {
-        if ContinuousClock.now - cachedFeedbackCheckTime > .seconds(5) {
-            let feedback = UserDefaults.standard.persistentDomain(forName: "NSGlobalDomain")?["com.apple.sound.beep.feedback"] as? Int
-            cachedFeedbackEnabled = (feedback == 1)
-            cachedFeedbackCheckTime = .now
+        let now = ContinuousClock.now
+        if let last = cachedFeedbackCheckTime, now - last < .seconds(5) {
+            return cachedFeedbackEnabled
         }
+        let feedback = UserDefaults.standard.persistentDomain(forName: "NSGlobalDomain")?["com.apple.sound.beep.feedback"] as? Int
+        cachedFeedbackEnabled = (feedback == 1)
+        cachedFeedbackCheckTime = now
         return cachedFeedbackEnabled
     }
 

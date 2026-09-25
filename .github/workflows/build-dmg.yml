@@ -37,16 +37,15 @@ jobs:
           fi
           xcodebuild -version
 
-      - name: Cache Swift Package Dependencies & Xcode Build Artifacts
+      - name: Cache Swift Package Dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
             build/SourcePackages
-            build/Build/Intermediates.noindex
-          key: ${{ runner.os }}-xcode-cache-${{ hashFiles('NotchPulse.xcodeproj/project.pbxproj') }}
+          key: ${{ runner.os }}-spm-cache-${{ hashFiles('NotchPulse.xcodeproj/project.pbxproj') }}
           restore-keys: |
-            ${{ runner.os }}-xcode-cache-
+            ${{ runner.os }}-spm-cache-
 
       - name: Resolve Swift Package Dependencies
         run: |

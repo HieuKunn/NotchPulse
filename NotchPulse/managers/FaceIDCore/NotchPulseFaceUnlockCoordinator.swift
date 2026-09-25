@@ -420,7 +420,6 @@ final class NotchPulseFaceUnlockCoordinator {
             processedFramesCount += 1
             let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant >= cameraWarmupDuration) && (processedFramesCount >= 15)
             let isQualityAcceptable = (result.face.quality ?? 1.0) >= 0.25
-            let isFrameStabilized = (ContinuousClock.now - scanStartInstant >= .milliseconds(150)) || (processedFramesCount >= 3)
 
             if let matched {
                 consecutiveWrongFaceFrames = 0
