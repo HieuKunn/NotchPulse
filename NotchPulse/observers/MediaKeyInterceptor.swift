@@ -200,20 +200,23 @@ final class MediaKeyInterceptor {
         }
     }
 
+    private var cachedFeedbackCheckTime: ContinuousClock.Instant = .distantPast
+    private var cachedFeedbackEnabled: Bool = false
+
+    private func isFeedbackSoundEnabled() -> Bool {
+        if ContinuousClock.now - cachedFeedbackCheckTime > .seconds(5) {
+            let feedback = UserDefaults.standard.persistentDomain(forName: "NSGlobalDomain")?["com.apple.sound.beep.feedback"] as? Int
+            cachedFeedbackEnabled = (feedback == 1)
+            cachedFeedbackCheckTime = .now
+        }
+        return cachedFeedbackEnabled
+    }
+
     private func playFeedbackSound() {
-        guard let feedback = UserDefaults.standard.persistentDomain(forName: "NSGlobalDomain")?["com.apple.sound.beep.feedback"] as? Int,
-              feedback == 1 else { return }
+        guard isFeedbackSoundEnabled() else { return }
 
         prepareAudioPlayerIfNeeded()
-        guard let player = audioPlayer else {
-            print("⚠️ [MediaKeyInterceptor] No audio player available to play feedback sound")
-            return
-        }
-        if let url = player.url {
-            print("🔊 [MediaKeyInterceptor] Playing feedback sound from: \(url.path)")
-        } else {
-            print("🔊 [MediaKeyInterceptor] Playing feedback sound (no url available for AVAudioPlayer)")
-        }
+        guard let player = audioPlayer else { return }
         if player.isPlaying {
             player.stop()
             player.currentTime = 0
