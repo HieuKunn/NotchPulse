@@ -206,6 +206,10 @@ struct ContentView: View {
             chinWidth = openNotchSize.width
         } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
             chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
+        } else if coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
+            chinWidth = max(vm.closedNotchSize.width, isDynamicIsland ? 220 : 216) + gestureProgress
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed && !vm.hideOnClosed {
+            chinWidth = max(vm.closedNotchSize.width + 40, isDynamicIsland ? 260 : 250) + gestureProgress
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
@@ -247,8 +251,14 @@ struct ContentView: View {
         }
         return vm.notchState == .open ? 26 : (isDynamicIsland ? baseClosedHeight / 2 : max(14, vm.effectiveClosedNotchHeight / 2))
     }
-    private var isDefaultHUDActive: Bool {
+    private var isBottomRowHUDActive: Bool {
         coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
+    }
+    private var isBottomRowMusicActive: Bool {
+        coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed && !vm.hideOnClosed
+    }
+    private var isBottomRowActive: Bool {
+        isBottomRowHUDActive || isBottomRowMusicActive
     }
     private var currentNotchWidth: CGFloat {
         isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth)
@@ -260,7 +270,7 @@ struct ContentView: View {
         if vm.notchState == .open {
             return vm.notchSize.height
         }
-        return isDefaultHUDActive ? baseClosedHeight + 42 : baseClosedHeight
+        return isBottomRowActive ? baseClosedHeight + 42 : baseClosedHeight
     }
     private var gestureScale: CGFloat {
         guard gestureProgress != 0 else { return 1.0 }
@@ -294,9 +304,7 @@ struct ContentView: View {
                         .horizontal,
                         (vm.notchState == .open)
                         ? (isDynamicIsland ? 0 : topCornerRadius)
-                        : (isFaceIDActive || isFaceIDContentVisible
-                            ? 0
-                            : (isDynamicIsland ? 8 : 17))
+                        : 0
                     )
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
@@ -540,7 +548,7 @@ struct ContentView: View {
                     .padding(.top, 40)
                     Spacer()
                 } else if !isFaceIDActive && NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
-                    Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: vm.effectiveClosedNotchHeight)
+                    Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: vm.effectiveClosedNotchHeight)
                 } else {
                     ZStack {
                         if !isFaceIDActive && !isFaceIDContentVisible {
@@ -561,7 +569,7 @@ struct ContentView: View {
                                         .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                         .transition(.opacity)
                                 } else {
-                                    Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : max(185, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
+                                    Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
                                         .transition(.opacity)
                                 }
                             }
@@ -591,28 +599,29 @@ struct ContentView: View {
                                   }
                               )
                               .padding(.bottom, 10)
-                              .padding(.leading, 4)
-                              .padding(.trailing, 8)
+                              .padding(.horizontal, isDynamicIsland ? 14 : 18)
                           }
                           // Old sneak peek music
                           else if coordinator.sneakPeek.type == .music {
                               if vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard {
-                                  HStack(alignment: .center) {
+                                  HStack(alignment: .center, spacing: 8) {
                                       Image(systemName: "music.note")
+                                          .frame(width: 16)
                                       GeometryReader { geo in
                                           MarqueeText(.constant(musicManager.songTitle + " - " + musicManager.artistName),  textColor: Defaults[.playerColorTinting] ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray, minDuration: 1, frameWidth: geo.size.width)
                                       }
                                   }
                                   .foregroundStyle(.gray)
                                   .padding(.bottom, 10)
+                                  .padding(.horizontal, isDynamicIsland ? 14 : 18)
                               }
                           }
                       }
                   }
               }
-              .conditionalModifier(!isFaceIDActive && ((coordinator.sneakPeek.show && (coordinator.sneakPeek.type == .music) && vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard) || (coordinator.sneakPeek.show && (coordinator.sneakPeek.type != .music) && (vm.notchState == .closed)))) { view in
+              .conditionalModifier(!isFaceIDActive && isBottomRowActive) { view in
                   view
-                      .fixedSize()
+                      .fixedSize(horizontal: false, vertical: true)
               }
               .zIndex(2)
             if vm.notchState == .open && !isFaceIDActive {
