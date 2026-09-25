@@ -83,6 +83,8 @@ final class NotchPulseFaceUnlockCoordinator {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.observeLockAndWakeEvents()
+                // Brief settle delay: CGSession's reported state can lag the true state right after wake.
+                try? await Task.sleep(nanoseconds: 200_000_000)
                 self?.evaluateTrigger()
             }
         }
@@ -97,8 +99,9 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         guard !lockMonitor.isSleeping else { return }
 
-        // `.wake` (lid open, display sleep, screensaver stop) is an explicit wake signal, always allow fresh scan.
-        if lockMonitor.lastEvent == .wake {
+        // `.wake` (sleep, display sleep, screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
+        // `isWithinRecentArmBurst` keeps multiple wake signals from one lid-open from re-arming and fighting over the camera.
+        if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
             hasArmedForCurrentLock = false
         }
 
@@ -120,18 +123,18 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        // Explicit screen lock (`.screenLocked` e.g. Ctrl + Cmd + Q) must NEVER automatically fire the camera to scan immediately
-        // upon locking, because the user is intentionally locking the Mac. It only arms the overlay silhouette, leaving hover/wake/space to scan.
+        // Explicit screen lock (`.screenLocked` e.g. Ctrl + Cmd + Q) only arms the silhouette if selected, leaving hover/wake/space to scan.
         let isSelectedTrigger = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
         let shouldAutoScan = (signal != .onLock) && isSelectedTrigger
 
-        // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
-        // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
+        // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do.
         guard showsUI || shouldAutoScan else { return }
 
         hasArmedForCurrentLock = true
         lastArmedAt = .now
         Task { [weak self] in
+            // Brief 150ms buffer past login window's entrance so overlay attaches cleanly
+            try? await Task.sleep(nanoseconds: 150_000_000)
             await self?.arm(autoScan: shouldAutoScan)
         }
     }
