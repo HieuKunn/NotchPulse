@@ -78,24 +78,31 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         }
     }
 
-    /// Asynchronously pre-warms the ArcFace ML model on a background task so it is ready before camera frames arrive.
+    /// Asynchronously pre-warms the ArcFace ML model and runs a dummy prediction so the Neural Engine pipeline is compiled and ready before camera frames arrive.
     static func warmUp() {
         instanceLock.lock()
         unloadWorkItem?.cancel()
         unloadWorkItem = nil
-        let isLoaded = (_sharedInstance != nil)
+        let instance = _sharedInstance
         instanceLock.unlock()
 
-        if !isLoaded {
-            Task.detached(priority: .userInitiated) {
-                _ = shared
-            }
+        Task.detached(priority: .userInitiated) {
+            guard let embedder = instance ?? shared else { return }
+            embedder.prewarmPrediction()
         }
     }
 
-    /// Releases the MLModel and CVPixelBufferPool from RAM after an idle delay (e.g. 30s of inactivity).
+    /// Asynchronously ensures the model is loaded and runs prewarmPrediction on a background thread before scanning begins.
+    static func prepare() async {
+        await Task.detached(priority: .userInitiated) {
+            guard let embedder = shared else { return }
+            embedder.prewarmPrediction()
+        }.value
+    }
+
+    /// Releases the MLModel and CVPixelBufferPool from RAM after an idle delay (e.g. 60s of inactivity).
     /// Prevents repeated model loading/unloading overhead across rapid retries or testing.
-    static func scheduleUnload(after delay: TimeInterval = 30.0) {
+    static func scheduleUnload(after delay: TimeInterval = 60.0) {
         instanceLock.lock()
         defer { instanceLock.unlock() }
         unloadWorkItem?.cancel()
@@ -122,6 +129,15 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private let model: MLModel
     private let pixelBufferPool: CVPixelBufferPool
 
+    /// Compiles and warms up the Neural Engine / GPU compute pipeline ahead of real frames.
+    nonisolated func prewarmPrediction() {
+        var pixelBufferOut: CVPixelBuffer?
+        let status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pixelBufferPool, &pixelBufferOut)
+        guard status == kCVReturnSuccess, let pixelBuffer = pixelBufferOut else { return }
+        guard let input = try? MLDictionaryFeatureProvider(dictionary: [Self.inputName: MLFeatureValue(pixelBuffer: pixelBuffer)]) else { return }
+        _ = try? model.prediction(from: input)
+    }
+
     /// Throws immediately if the model isn't bundled, so callers can fall back to `VisionFeaturePrintEmbedder`.
     init() throws {
         guard let modelURL = Self.locateModel() else {
@@ -143,6 +159,7 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
             throw ArcFaceEmbedderError.pixelBufferCreationFailed
         }
         pixelBufferPool = pool
+        prewarmPrediction()
     }
 
     /// Both names are checked in case the file was added under a different name.

@@ -118,7 +118,13 @@ final class FaceIDOverlayController {
         if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
            let targetUUID = targetScreen.displayUUID {
             if previousScreenUUIDBeforeFaceID == nil {
-                previousScreenUUIDBeforeFaceID = NotchPulseViewCoordinator.shared.selectedScreenUUID
+                let currentUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
+                let preferredUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID
+                if currentUUID != targetUUID {
+                    previousScreenUUIDBeforeFaceID = currentUUID
+                } else if let preferredUUID, preferredUUID != targetUUID {
+                    previousScreenUUIDBeforeFaceID = preferredUUID
+                }
             }
             if NotchPulseViewCoordinator.shared.selectedScreenUUID != targetUUID {
                 NotchPulseViewCoordinator.shared.selectedScreenUUID = targetUUID
@@ -129,16 +135,23 @@ final class FaceIDOverlayController {
 
     private func restorePreviousScreen() {
         isPresenting = false
-        if let prevUUID = previousScreenUUIDBeforeFaceID {
-            previousScreenUUIDBeforeFaceID = nil
-            if NotchPulseViewCoordinator.shared.selectedScreenUUID != prevUUID {
-                NotchPulseViewCoordinator.shared.selectedScreenUUID = prevUUID
+        let destinationUUID: String? = {
+            if let prev = previousScreenUUIDBeforeFaceID,
+               let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
+               let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+               let camUUID = camScreen.displayUUID,
+               prev != camUUID {
+                return prev
             }
-            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
-        } else if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID {
-            if NotchPulseViewCoordinator.shared.selectedScreenUUID != prefUUID {
-                NotchPulseViewCoordinator.shared.selectedScreenUUID = prefUUID
+            if let pref = NotchPulseViewCoordinator.shared.preferredScreenUUID {
+                return pref
             }
+            return previousScreenUUIDBeforeFaceID
+        }()
+        previousScreenUUIDBeforeFaceID = nil
+
+        if let destinationUUID, NotchPulseViewCoordinator.shared.selectedScreenUUID != destinationUUID {
+            NotchPulseViewCoordinator.shared.selectedScreenUUID = destinationUUID
             NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
         }
     }
@@ -405,10 +418,10 @@ final class FaceIDOverlayController {
         guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
 
         // If armed very recently (e.g. screen just locked or woke up and cursor happened to be at the notch),
-        // ignore accidental initial hover for 1.2s to prevent premature auto-scan upon locking!
+        // ignore accidental initial hover for 0.5s to prevent premature auto-scan upon locking!
         if let armedAt {
             let elapsed = ContinuousClock.now - armedAt
-            if elapsed < .milliseconds(1200) {
+            if elapsed < .milliseconds(500) {
                 return
             }
         }

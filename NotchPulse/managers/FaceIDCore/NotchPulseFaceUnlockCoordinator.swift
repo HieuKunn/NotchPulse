@@ -38,7 +38,7 @@ final class NotchPulseFaceUnlockCoordinator {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
     /// Requires continuous mismatch after camera warmup before triggering the failure animation.
-    private let wrongFaceStreakThreshold = 35
+    private let wrongFaceStreakThreshold = 70
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -165,8 +165,8 @@ final class NotchPulseFaceUnlockCoordinator {
         autoRetryTask = nil
         camera.stop()
         FaceIDOverlayController.shared.disarm()
-        // Immediately release ArcFace CoreML model & pixel buffer pool to reclaim ~50MB RAM
-        ArcFaceEmbedder.unload()
+        // Retain ArcFace CoreML model for a grace period to avoid cold-start lag on rapid relocks
+        ArcFaceEmbedder.scheduleUnload(after: 60.0)
         // Covers isEnabled being switched off directly, keeping "disarmed" and "not listening for space" in lockstep.
         spaceKeyMonitor.stop()
     }
@@ -247,11 +247,12 @@ final class NotchPulseFaceUnlockCoordinator {
     private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
-        // Pre-warm ArcFace CoreML model concurrently while camera starts
-        ArcFaceEmbedder.warmUp()
+        // Pre-warm ArcFace CoreML model concurrently while camera hardware starts up
+        async let modelWarmup: Void = ArcFaceEmbedder.prepare()
+        async let cameraStart: Void = camera.start()
+        _ = await (modelWarmup, cameraStart)
         NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
 
-        await camera.start()
         guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
@@ -278,8 +279,8 @@ final class NotchPulseFaceUnlockCoordinator {
 
         switch outcome {
         case .matched:
-            // The unlock already happened inside observeScanWindow — release model from RAM immediately
-            ArcFaceEmbedder.unload()
+            // Retain ArcFace CoreML model for a grace period so rapid re-auth doesn't pay cold-start penalty
+            ArcFaceEmbedder.scheduleUnload(after: 60.0)
             if showsUI {
                 FaceIDOverlayController.shared.finish(success: true)
             }
@@ -304,8 +305,8 @@ final class NotchPulseFaceUnlockCoordinator {
         case .noResolution:
             statusMessage = "No face detected."
             if showsUI {
-                // No explicit collapse call: FaceIDOverlayController's own scanning timeout fires on the same mark and collapses itself.
                 statusMessage = "No face detected — hover the notch to try again."
+                await FaceIDOverlayController.shared.collapse()
                 scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
             } else {
                 scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
@@ -347,6 +348,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
+        var sawAnyFace = false
 
         /// Cleared when consistently failing, but latched briefly so a single jitter frame doesn't drop the match while liveness confirms.
         var readyMatch: ScoredIdentity?
@@ -359,7 +361,8 @@ final class NotchPulseFaceUnlockCoordinator {
         var lastProcessedFrameID: UInt64?
 
         let scanStartInstant = ContinuousClock.now
-        let cameraWarmupDuration: Duration = .milliseconds(800)
+        let cameraWarmupDuration: Duration = .milliseconds(1200)
+        var processedFramesCount = 0
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -392,6 +395,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
+            sawAnyFace = true
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
@@ -415,7 +419,9 @@ final class NotchPulseFaceUnlockCoordinator {
             let scored = pipeline.score(result.embedding, against: NotchPulseFaceEnrollmentStore.shared.activeIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)
 
-            let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant) >= cameraWarmupDuration
+            processedFramesCount += 1
+            let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant >= cameraWarmupDuration) && (processedFramesCount >= 15)
+            let isQualityAcceptable = (result.face.quality ?? 1.0) >= 0.25
 
             if let matched {
                 consecutiveWrongFaceFrames = 0
@@ -427,7 +433,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 } else if lastMatchInstant == nil {
                     readyMatch = nil
                 }
-                if isCameraWarmedUp {
+                if isCameraWarmedUp && isQualityAcceptable {
                     consecutiveWrongFaceFrames += 1
                     if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
                         return .consistentlyWrongFace
@@ -448,6 +454,6 @@ final class NotchPulseFaceUnlockCoordinator {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 
-        return .noResolution
+        return sawAnyFace ? .consistentlyWrongFace : .noResolution
     }
 }

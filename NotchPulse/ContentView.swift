@@ -826,11 +826,17 @@ struct ContentView: View {
     }
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() && faceIDOverlay.isArmed {
+            return true
+        }
         guard isFaceIDActive else { return false }
         return true
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() && faceIDOverlay.isArmed {
+            return true
+        }
         guard isFaceIDActive else { return false }
         return true
     }

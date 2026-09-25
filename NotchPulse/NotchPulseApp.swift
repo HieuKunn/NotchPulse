@@ -624,6 +624,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = LockScreenWakeObserver.shared
         _ = NotchPulseFaceUnlockCoordinator.shared
         _ = SystemAuthPromptObserver.shared
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+            ArcFaceEmbedder.warmUp()
+        }
 
         previousScreens = NSScreen.screens
     }
@@ -703,9 +706,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let targetScreen: NSScreen?
 
             // 0. Only dynamically route to the camera's physical display when Face ID is ACTIVELY scanning / showing / onboarding
-            let isFaceIDScanning = FaceIDOverlayController.shared.isSessionActive
-                || FaceIDOverlayController.shared.phase != .closed
-                || FaceIDOverlayController.shared.isPresenting
+            let isFaceIDScanning = (FaceIDOverlayController.shared.phase == .scanning
+                || FaceIDOverlayController.shared.phase == .success
+                || FaceIDOverlayController.shared.phase == .failure
+                || FaceIDOverlayController.shared.phase == .onboarding
+                || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed && FaceIDOverlayController.shared.phase != .collapsing))
             if isFaceIDScanning,
                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
                let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice) {
