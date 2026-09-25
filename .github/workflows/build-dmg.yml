@@ -168,20 +168,6 @@ jobs:
           echo "Đã đóng gói xong:"
           ls -lh release_out/
 
-      - name: Upload DMG Artifact (Tải trực tiếp từ GitHub Actions)
-        uses: actions/upload-artifact@v4
-        with:
-          name: NotchPulse.dmg
-          path: release_out/NotchPulse.dmg
-          if-no-files-found: error
-
-      - name: Upload App ZIP Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: NotchPulse.app.zip
-          path: release_out/NotchPulse.app.zip
-          if-no-files-found: error
-
       - name: Generate Sparkle Appcast
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
