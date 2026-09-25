@@ -168,6 +168,9 @@ final class FaceIDOverlayController {
         isArmed = true
         armedAt = .now
         self.onActivate = onActivate
+        resolveTask?.cancel(); resolveTask = nil
+        scanTimeoutTask?.cancel(); scanTimeoutTask = nil
+        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         geometry = windowController.currentGeometry
         phase = .closed
         content = .scan(.idle)

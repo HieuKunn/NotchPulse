@@ -16,6 +16,8 @@ enum LockEventKind {
     case screenLocked
     case screenUnlocked
     case willSleep
+    /// Display went to sleep (screen turned completely black).
+    case screensDidSleep
     /// Display turned back on, from system sleep, display sleep, or the screensaver stopping.
     case wake
 }
@@ -91,8 +93,14 @@ final class NotchPulseLockMonitor {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.isSleeping = true
-            self?.record(.willSleep)
+            self?.recordSleep(kind: .willSleep)
+        })
+        workspaceObservers.append(workspace.addObserver(
+            forName: NSWorkspace.screensDidSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.recordSleep(kind: .screensDidSleep)
         })
         // Display- and system-level wake are treated as equivalent triggers — they land within ~100ms of each other in either order.
         workspaceObservers.append(workspace.addObserver(
@@ -109,6 +117,11 @@ final class NotchPulseLockMonitor {
         ) { [weak self] _ in
             self?.recordWake()
         })
+    }
+
+    private func recordSleep(kind: LockEventKind) {
+        isSleeping = true
+        record(kind)
     }
 
     private func recordWake() {
