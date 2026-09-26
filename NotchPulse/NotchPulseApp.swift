@@ -249,15 +249,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectorForScreen(_ screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
-        let detector = DragDetector { [weak self] in
+        let detector = DragDetector { [weak self] isDraggingContent in
             guard let self = self else { return .zero }
             let screenFrame = screen.frame
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             
-            // Calculate combined padding for both drag expanded area AND normal mouse hover extension
-            let dragPadding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
-            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
-            let padding = max(dragPadding, hoverPadding)
+            // Tách biệt hoàn toàn bán kính quét: Kéo File cần vùng rất rộng (120px), Di Chuột (Hover) chỉ cần vùng nhỏ tinh tế (30px)
+            let padding = isDraggingContent
+                ? (Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0)
+                : (Defaults[.extendHoverArea] ? 30.0 : 0.0)
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
             let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil

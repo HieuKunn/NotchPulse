@@ -39,10 +39,10 @@ final class DragDetector {
     private var hasEnteredNotchRegion: Bool = false
     private var isHoveringFromRadar: Bool = false
 
-    private let regionProvider: () -> CGRect
+    private let regionProvider: (_ isDraggingContent: Bool) -> CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
 
-    init(regionProvider: @escaping () -> CGRect) {
+    init(regionProvider: @escaping (_ isDraggingContent: Bool) -> CGRect) {
         self.regionProvider = regionProvider
         self.lastKnownIdleCount = dragPasteboard.changeCount
     }
@@ -142,7 +142,7 @@ final class DragDetector {
                 self.onDragMove?(mouseLocation)
                 
                 // Track entry into the dynamic notch region (which expands when shelf is open)
-                let activeRegion = self.regionProvider()
+                let activeRegion = self.regionProvider(true)
                 let containsMouse = activeRegion.contains(mouseLocation)
                 if containsMouse && !self.hasEnteredNotchRegion {
                     self.hasEnteredNotchRegion = true
@@ -172,15 +172,15 @@ final class DragDetector {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
-            // Unconditional hover radar (works whether mouse is pressed or not)
+            // Unconditional hover radar (works whether mouse is pressed or not, uses distinct hover boundaries)
             let mouseLocation = NSEvent.mouseLocation
-            let activeRegion = self.regionProvider()
-            let containsMouse = activeRegion.contains(mouseLocation)
+            let hoverRegion = self.regionProvider(false)
+            let containsMouseHover = hoverRegion.contains(mouseLocation)
             
-            if containsMouse && !self.isHoveringFromRadar {
+            if containsMouseHover && !self.isHoveringFromRadar {
                 self.isHoveringFromRadar = true
                 self.onGlobalHoverStateChanged?(true)
-            } else if !containsMouse && self.isHoveringFromRadar {
+            } else if !containsMouseHover && self.isHoveringFromRadar {
                 self.isHoveringFromRadar = false
                 self.onGlobalHoverStateChanged?(false)
             }
@@ -208,10 +208,12 @@ final class DragDetector {
                 self.isContentDragging = true
                 self.onDragMove?(mouseLocation)
                 
-                if containsMouse && !self.hasEnteredNotchRegion {
+                let activeDragRegion = self.regionProvider(true)
+                let containsMouseDrag = activeDragRegion.contains(mouseLocation)
+                if containsMouseDrag && !self.hasEnteredNotchRegion {
                     self.hasEnteredNotchRegion = true
                     self.onDragEntersNotchRegion?()
-                } else if !containsMouse && self.hasEnteredNotchRegion {
+                } else if !containsMouseDrag && self.hasEnteredNotchRegion {
                     self.hasEnteredNotchRegion = false
                     self.onDragExitsNotchRegion?()
                 }
