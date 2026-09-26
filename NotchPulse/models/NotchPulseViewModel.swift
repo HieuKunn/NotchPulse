@@ -24,6 +24,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var dropZoneTargeting: Bool = false
     @Published var dropEvent: Bool = false
     @Published var anyDropZoneTargeting: Bool = false
+    @Published var isCurrentlyDraggingGlobal: Bool = false
     var cancellables: Set<AnyCancellable> = []
     
     @Published var hideOnClosed: Bool = true
