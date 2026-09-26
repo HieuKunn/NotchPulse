@@ -263,74 +263,168 @@ struct WheelPicker: View {
     }
 }
 
+
+struct FullMonthCalendarView: View {
+    @Binding var selectedDate: Date
+    @Binding var displayedDate: Date
+    let onSelect: (Date) -> Void
+    let onClose: () -> Void
+
+    private let calendar = Calendar.current
+    private let daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+
+    private var daysInMonth: [Date?] {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: displayedDate) else { return [] }
+        let monthStart = monthInterval.start
+        let firstWeekday = calendar.component(.weekday, from: monthStart)
+        let numberOfDays = calendar.range(of: .day, in: .month, for: displayedDate)?.count ?? 30
+
+        var days: [Date?] = Array(repeating: nil, count: firstWeekday - 1)
+        for day in 0..<numberOfDays {
+            if let date = calendar.date(byAdding: .day, value: day, to: monthStart) {
+                days.append(date)
+            }
+        }
+        return days
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold)).foregroundColor(.secondary) }
+                .buttonStyle(.plain)
+                Spacer()
+                Text(displayedDate.formatted(.dateTime.month(.wide).year()))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                Spacer()
+                Button { changeMonth(by: 1) } label: { Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold)).foregroundColor(.secondary) }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(0..<daysInMonth.count, id: \.self) { index in
+                    if let date = daysInMonth[index] {
+                        let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
+                        let isToday = calendar.isDateInToday(date)
+                        Button { onSelect(date) } label: {
+                            ZStack {
+                                if isSelected { Circle().fill(Color.effectiveAccentBackground).frame(width: 26, height: 26) }
+                                else if isToday { Circle().stroke(Color.effectiveAccentBackground, lineWidth: 1.5).frame(width: 26, height: 26) }
+                                Text("\(calendar.component(.day, from: date))")
+                                    .font(.system(size: 12, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
+                                    .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : .primary))
+                            }
+                            .frame(height: 28)
+                        }
+                        .buttonStyle(.plain)
+                    } else { Color.clear.frame(height: 28) }
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.black.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func changeMonth(by amount: Int) {
+        if let newDate = calendar.date(byAdding: .month, value: amount, to: displayedDate) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                displayedDate = newDate
+            }
+        }
+    }
+}
+
 struct CalendarView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var selectedDate = Date()
     @State private var displayedDate = Date()
+    @State private var isFullMonthView = false
 
     var body: some View {
         VStack(spacing: 2) {
             HStack(alignment: .center, spacing: 6) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(displayedDate.formatted(.dateTime.month(.abbreviated)))
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    Text(displayedDate.formatted(.dateTime.year()))
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(Color(white: 0.65))
-                }
-                .frame(minWidth: 42, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
-                        selectedDate = Date.now
-                        displayedDate = Date.now
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isFullMonthView.toggle()
+                        vm.customOpenHeight = isFullMonthView ? 310 : nil
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 3) {
+                            Text(displayedDate.formatted(.dateTime.month(.abbreviated)))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Image(systemName: isFullMonthView ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.secondary)
+                        }
+                        Text(displayedDate.formatted(.dateTime.year()))
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundColor(Color(white: 0.65))
                     }
                 }
+                .buttonStyle(.plain)
+                .frame(minWidth: 54, alignment: .leading)
 
-                ZStack(alignment: .top) {
-                    WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())
-                    HStack(alignment: .top) {
-                        LinearGradient(
-                            colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: 16)
-                        Spacer()
-                        LinearGradient(
-                            colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: 16)
+                if !isFullMonthView {
+                    ZStack(alignment: .top) {
+                        WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())
+                        HStack(alignment: .top) {
+                            LinearGradient(colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                            Spacer()
+                            LinearGradient(colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                        }
+                        .allowsHitTesting(false)
                     }
-                    .allowsHitTesting(false)
                 }
             }
             .frame(height: 40)
 
-            let filteredEvents = EventListView.filteredEvents(
-                events: calendarManager.events
-            )
-            Group {
-                if filteredEvents.isEmpty {
-                    EmptyEventsView(selectedDate: selectedDate)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    EventListView(events: calendarManager.events)
+            if isFullMonthView {
+                FullMonthCalendarView(selectedDate: $selectedDate, displayedDate: $displayedDate, onSelect: { date in
+                    selectedDate = date
+                    displayedDate = date
+                }, onClose: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isFullMonthView = false
+                        vm.customOpenHeight = nil
+                    }
+                })
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            } else {
+                let filteredEvents = EventListView.filteredEvents(events: calendarManager.events)
+                Group {
+                    if filteredEvents.isEmpty {
+                        EmptyEventsView(selectedDate: selectedDate)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        EventListView(events: calendarManager.events)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
         }
         .padding(.bottom, 8)
         .listRowBackground(Color.clear)
-        .frame(height: 148)
+        .frame(height: isFullMonthView ? 260 : 148)
         .clipped()
-        .onChange(of: selectedDate) {
+        .onChange(of: selectedDate) { _, newValue in
             Task { @MainActor in
-                await calendarManager.updateCurrentDate(selectedDate)
+                await calendarManager.updateCurrentDate(newValue)
             }
         }
-        .onChange(of: vm.notchState) { _, _ in
+        .onChange(of: vm.notchState) { _, newNotchState in
+            if newNotchState == .closed {
+                isFullMonthView = false
+                vm.customOpenHeight = nil
+            }
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
@@ -346,6 +440,7 @@ struct CalendarView: View {
         }
     }
 }
+
 
 struct EmptyEventsView: View {
     let selectedDate: Date

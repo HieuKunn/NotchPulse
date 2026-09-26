@@ -35,7 +35,9 @@ struct TabSelectionView: View {
         if enableSystemMonitor {
             list.append(TabModel(label: "Stats", icon: "cpu", view: .stats))
         }
-        // list.append(TabModel(label: "Battery", icon: "battery.100.bolt", view: .battery))
+        if Defaults[.enableClipboardManager] {
+            list.append(TabModel(label: "Clipboard", icon: "doc.on.clipboard.fill", view: .clipboard))
+        }
         return list
     }
 

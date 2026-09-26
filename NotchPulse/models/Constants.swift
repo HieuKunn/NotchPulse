@@ -228,4 +228,8 @@ extension Defaults.Keys {
     }
 
     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)
+
+    // MARK: Clipboard Manager
+    static let enableClipboardManager = Key<Bool>("enableClipboardManager", default: true)
+    static let clipboardMaxItems = Key<Int>("clipboardMaxItems", default: 10)
 }

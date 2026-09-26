@@ -26,6 +26,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var anyDropZoneTargeting: Bool = false
     @Published var isCurrentlyDraggingGlobal: Bool = false
     @Published var isHoveringFromRadar: Bool = false
+    @Published var customOpenHeight: CGFloat? = nil
     var cancellables: Set<AnyCancellable> = []
     
     @Published var hideOnClosed: Bool = true
@@ -210,6 +211,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     func close() {
+        self.customOpenHeight = nil
         // Do not close while a share picker or sharing service is active
         if SharingStateManager.shared.preventNotchClose {
             return

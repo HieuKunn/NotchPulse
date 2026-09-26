@@ -56,6 +56,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "tray.fill")
                 }
+                NavigationLink(value: "Clipboard") {
+                    Label("Clipboard", systemImage: "doc.on.clipboard.fill")
+                }
                 NavigationLink(value: "Shortcuts") {
                     Label("Shortcuts", systemImage: "command.square.fill")
                 }
@@ -99,6 +102,8 @@ struct SettingsView: View {
                             FaceIDSettingsView()
                         case "Shelf":
                             Shelf()
+                        case "Clipboard":
+                            ClipboardSettingsView()
                         case "Shortcuts":
                             Shortcuts()
                         case "Extensions":
@@ -2263,6 +2268,40 @@ struct AccentCircleButton: View {
         }
         .buttonStyle(.plain)
         .help(isSystemDefault ? "Use your macOS system accent color" : "")
+    }
+}
+
+struct ClipboardSettingsView: View {
+    @ObservedObject var clipboardManager = ClipboardManager.shared
+    @Default(.enableClipboardManager) var enableClipboardManager
+    @Default(.clipboardMaxItems) var clipboardMaxItems
+
+    var body: some View {
+        Form {
+            Section {
+                Defaults.Toggle(key: .enableClipboardManager) {
+                    Text("Enable Clipboard Manager")
+                }
+
+                if enableClipboardManager {
+                    Stepper("History limit: \(clipboardMaxItems) items", value: $clipboardMaxItems, in: 5...50, step: 5)
+                    
+                    Button("Clear clipboard history", role: .destructive) {
+                        clipboardManager.clearHistory()
+                    }
+                    .disabled(clipboardManager.history.isEmpty)
+                }
+            } header: {
+                Text("Clipboard History")
+            } footer: {
+                Text("NotchPulse securely keeps track of your recent text and image clips. Tap any clip in the Notch clipboard tab to re-copy it instantly.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
+        .accentColor(.effectiveAccent)
     }
 }
 

@@ -285,7 +285,7 @@ struct ContentView: View {
             return targetFaceIDSize.height
         }
         if vm.notchState == .open {
-            return vm.notchSize.height
+            return vm.customOpenHeight ?? vm.notchSize.height
         }
         return isBottomRowActive ? baseClosedHeight + bottomRowHUDHeight : baseClosedHeight
     }
@@ -671,6 +671,8 @@ struct ContentView: View {
                         ShelfView()
                     case .stats:
                         StatsView()
+                    case .clipboard:
+                        ClipboardNotchView()
                     }
                 }
                 .transition(
