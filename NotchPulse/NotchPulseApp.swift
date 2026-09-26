@@ -254,10 +254,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let screenFrame = screen.frame
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             
-            // Tách biệt hoàn toàn bán kính quét: Kéo File cần vùng rất rộng (120px), Di Chuột (Hover) chỉ cần vùng nhỏ tinh tế (30px)
-            let padding = isDraggingContent
-                ? (Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0)
-                : (Defaults[.extendHoverArea] ? 30.0 : 0.0)
+            let dragPadding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+            
+            // Lấy trực tiếp thông số từ thanh slider để bạn tự do tăng cường cự ly bắt radar tuỳ thích (lên tới 120)
+            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+            
+            let padding = isDraggingContent ? dragPadding : hoverPadding
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
             let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
