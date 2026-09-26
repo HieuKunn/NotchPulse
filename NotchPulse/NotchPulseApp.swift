@@ -225,7 +225,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        guard Defaults[.expandedDragDetection] else { return }
+        guard Defaults[.notchPulseShelf] else { return }
 
         if Defaults[.showOnAllDisplays] {
             for screen in NSScreen.screens {
@@ -252,7 +252,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self = self else { return .zero }
             let screenFrame = screen.frame
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            let padding = CGFloat(Defaults[.dragDetectionPadding])
+            let padding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
             let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
