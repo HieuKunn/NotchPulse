@@ -381,9 +381,6 @@ struct ContentView: View {
                             .animation(.smooth, value: gestureProgress)
                     }
                     .onHover { hovering in
-                        // Ignore standard view-based hover if radar is active to prevent conflicts
-                        if Defaults[.notchPulseShelf] || Defaults[.extendHoverArea] { return }
-                        
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
                             if hovering && faceIDOverlay.phase != .onboarding {
@@ -391,6 +388,10 @@ struct ContentView: View {
                             }
                             return
                         }
+
+                        // Ignore standard view-based hover if radar is active to prevent conflicts
+                        if Defaults[.notchPulseShelf] || Defaults[.extendHoverArea] { return }
+                        
                         handleHover(hovering)
                     }
                     .conditionalModifier(!isFaceIDContentActive) { view in
