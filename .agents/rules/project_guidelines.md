@@ -2,7 +2,15 @@
 
 This document outlines the core rules, architectural guidelines, and release procedures for the NotchPulse project. All AI agents working on this codebase MUST read and strictly adhere to these instructions.
 
-> **CRITICAL RULE FOR ALL AGENTS:** Always refer to and enforce `.agents/rules/project_guidelines.md` before releasing or committing.
+> 🚨 **MANDATORY RELEASE CHECKLIST (NEVER SKIP ANY STEP):**
+> 1. ✅ **Update Build Number & Version in Xcode Project:**
+>    - Bump `MARKETING_VERSION` (e.g., `4.8.7`) and increment `CURRENT_PROJECT_VERSION` (build number, e.g., `149`) in `NotchPulse.xcodeproj/project.pbxproj`.
+> 2. ✅ **Update `RELEASE_NOTES.md`:**
+>    - Write clear, user-centric release notes for the new version.
+> 3. ✅ **Update Sparkle `appcast.xml`:**
+>    - Ensure `<sparkle:version>` (build number) and `<sparkle:shortVersionString>` match.
+> 4. ✅ **Tag Git Release & Push:**
+>    - `git tag -a vX.Y.Z -m "NotchPulse vX.Y.Z Release"` and `git push origin main --tags`.
 
 ---
 
