@@ -256,8 +256,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             let dragPadding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
             
-            // Lấy trực tiếp thông số từ thanh slider để bạn tự do tăng cường cự ly bắt radar tuỳ thích (lên tới 120)
-            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+            // Slider độc lập cho cự ly hover (mặc định tối đa 60px để tránh cản trở vùng thao tác menu bar)
+            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
             
             let padding = isDraggingContent ? dragPadding : hoverPadding
             
