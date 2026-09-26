@@ -33,19 +33,19 @@ struct SettingsView: View {
                     Label("General", systemImage: "gear")
                 }
                 NavigationLink(value: "Appearance") {
-                    Label("Appearance", systemImage: "eye.fill")
+                    Label("Appearance", systemImage: "paintbrush.fill")
                 }
                 NavigationLink(value: "Media") {
-                    Label("Media", systemImage: "music.note")
+                    Label("Media", systemImage: "play.circle.fill")
                 }
                 NavigationLink(value: "Calendar") {
                     Label("Calendar", systemImage: "calendar")
                 }
                 NavigationLink(value: "HUD") {
-                    Label("HUDs", systemImage: "dial.medium.fill")
+                    Label("HUDs", systemImage: "gauge.with.dots.needle.33percent")
                 }
                 NavigationLink(value: "SystemMonitor") {
-                    Label("System Monitor", systemImage: "cpu")
+                    Label("System Monitor", systemImage: "chart.bar.fill")
                 }
                 NavigationLink(value: "FaceID") {
                     Label("Face Recognition", systemImage: "faceid")
@@ -54,19 +54,19 @@ struct SettingsView: View {
 //                    Label("Downloads", systemImage: "square.and.arrow.down")
 //                }
                 NavigationLink(value: "Shelf") {
-                    Label("Shelf", systemImage: "books.vertical")
+                    Label("Shelf", systemImage: "tray.fill")
                 }
                 NavigationLink(value: "Shortcuts") {
-                    Label("Shortcuts", systemImage: "keyboard")
+                    Label("Shortcuts", systemImage: "command.square.fill")
                 }
                 // NavigationLink(value: "Extensions") {
                 //     Label("Extensions", systemImage: "puzzlepiece.extension")
                 // }
                 NavigationLink(value: "Advanced") {
-                    Label("Advanced", systemImage: "gearshape.2")
+                    Label("Advanced", systemImage: "slider.horizontal.3")
                 }
                 NavigationLink(value: "About") {
-                    Label("About", systemImage: "info.circle")
+                    Label("About", systemImage: "info.circle.fill")
                 }
             }
             .listStyle(SidebarListStyle())
@@ -119,6 +119,7 @@ struct SettingsView: View {
                             GeneralSettings()
                         }
                     }
+                    .hideScrollbar()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .mask {
                         VStack(spacing: 0) {
@@ -649,6 +650,8 @@ struct GeneralSettings: View {
             NotchBehaviour()
             gestureControls()
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onChange(of: openNotchOnHover) {
             if !openNotchOnHover {
@@ -924,6 +927,8 @@ struct HUD: View {
             }
             .disabled(!Defaults[.hudReplacement])
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
@@ -1050,6 +1055,8 @@ struct SystemMonitorSettingsView: View {
             }
             .disabled(!enableSystemMonitor)
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onAppear {
             monitor.startMonitoring()
@@ -1195,6 +1202,8 @@ struct Media: View {
         .onAppear {
             isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 
@@ -1305,6 +1314,8 @@ struct CalendarSettings: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onAppear {
             Task {
@@ -1387,6 +1398,8 @@ struct About: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
+            .scrollContentBackground(.hidden)
+            .hideScrollbar()
             VStack(spacing: 0) {
                 Divider()
                 Text("Made with 🫶🏻 for NotchPulse")
@@ -1520,6 +1533,8 @@ struct Shelf: View {
                     .foregroundColor(.secondary)
             }
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 }
@@ -2134,6 +2149,8 @@ struct Advanced: View {
                 Text("Window Behavior")
             }
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onAppear {
             loadCustomColor()
@@ -2245,6 +2262,8 @@ struct Shortcuts: View {
                 KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
             }
         }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 }
@@ -2352,9 +2371,51 @@ struct SettingsDetailHeaderBar: View {
         .padding(.top, 16)
         .padding(.bottom, 12)
         .frame(minHeight: 52)
-        .background {
-            Color(nsColor: .windowBackgroundColor)
-        }
+        .adaptiveGlassBackground()
         .zIndex(100)
     }
 }
+
+// MARK: - Adaptive Glass Background & OS / Accessibility Adaptability
+struct AdaptiveGlassBackgroundModifier: ViewModifier {
+    @State private var reduceTransparency: Bool = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if reduceTransparency {
+                    Color(nsColor: .windowBackgroundColor)
+                } else {
+                    if #available(macOS 26.0, *) {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Rectangle()
+                                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+                            }
+                    } else {
+                        Rectangle()
+                            .fill(.regularMaterial)
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)) { _ in
+                reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+            }
+    }
+}
+
+extension View {
+    fileprivate func hideScrollbar() -> some View {
+        self.introspect(.scrollView, on: .macOS(.v12, .v13, .v14, .v15)) { (scrollView: NSScrollView) in
+            scrollView.hasVerticalScroller = false
+            scrollView.hasHorizontalScroller = false
+            scrollView.autohidesScrollers = true
+        }
+    }
+
+    func adaptiveGlassBackground() -> some View {
+        self.modifier(AdaptiveGlassBackgroundModifier())
+    }
+}
+

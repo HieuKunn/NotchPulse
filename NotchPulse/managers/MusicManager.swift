@@ -629,7 +629,18 @@ class MusicManager: ObservableObject {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            if let artworkImage = NSImage(data: artworkData) {
+            if let source = CGImageSourceCreateWithData(artworkData as CFData, nil),
+               let cgImage = CGImageSourceCreateImageAtIndex(source, 0, [
+                   kCGImageSourceCreateThumbnailFromImageAlways: true,
+                   kCGImageSourceThumbnailMaxPixelSize: 512,
+                   kCGImageSourceCreateThumbnailWithTransform: true
+               ] as CFDictionary) {
+                let artworkImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+                DispatchQueue.main.async { [weak self] in
+                    self?.usingAppIconForArtwork = false
+                    self?.updateAlbumArt(newAlbumArt: artworkImage)
+                }
+            } else if let artworkImage = NSImage(data: artworkData) {
                 DispatchQueue.main.async { [weak self] in
                     self?.usingAppIconForArtwork = false
                     self?.updateAlbumArt(newAlbumArt: artworkImage)

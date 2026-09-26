@@ -293,7 +293,6 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            dragDetector
             VStack(spacing: 0) {
                 let mainLayout = NotchLayout()
                     .frame(
@@ -815,26 +814,6 @@ struct ContentView: View {
             height: liveHeight,
             alignment: .center
         )
-    }
-
-    @ViewBuilder
-    var dragDetector: some View {
-        if Defaults[.notchPulseShelf] && vm.notchState == .closed {
-            let padding = expandedDragDetection ? CGFloat(dragDetectionPadding) : 0
-            Color.black.opacity(0.001)
-                .frame(
-                    width: currentNotchWidth + (padding * 2),
-                    height: currentNotchHeight + padding + (isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0)
-                )
-                .contentShape(Rectangle())
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
-                    vm.dropEvent = true
-                    ShelfStateViewModel.shared.load(providers)
-                    return true
-                }
-        } else {
-            EmptyView()
-        }
     }
 
     private func doOpen() {

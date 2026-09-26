@@ -13,6 +13,7 @@ final class MediaChecker: Sendable {
         case missingResources
         case processExecutionFailed
         case timeout
+        case testInfrastructureFailure(String)
     }
 
     func checkDeprecationStatus() async throws -> Bool {
@@ -24,9 +25,20 @@ final class MediaChecker: Sendable {
                 throw MediaCheckerError.missingResources
             }
 
+            // Verify the framework binary actually exists on disk
+            let frameworkBinaryPath = frameworkPath + "/MediaRemoteAdapter"
+            guard FileManager.default.fileExists(atPath: frameworkBinaryPath) else {
+                print("MediaChecker: MediaRemoteAdapter framework binary not found at \(frameworkBinaryPath)")
+                throw MediaCheckerError.missingResources
+            }
+
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
             process.arguments = [scriptURL.path, frameworkPath, nowPlayingTestClientPath, "test"]
+
+            // Capture stderr to distinguish real deprecation from test infrastructure failures
+            let stderrPipe = Pipe()
+            process.standardError = stderrPipe
 
             do {
                 try process.run()
@@ -60,8 +72,44 @@ final class MediaChecker: Sendable {
                 throw MediaCheckerError.timeout
             }
 
-            let isDeprecated = process.terminationStatus == 1
-            return isDeprecated
+            let exitCode = process.terminationStatus
+
+            // Exit code 0 means the test passed — NowPlaying is NOT deprecated
+            if exitCode == 0 {
+                return false
+            }
+
+            // Exit code 1 could mean either:
+            // (a) Real deprecation: adapter_test() ran and determined MediaRemote is non-functional
+            // (b) Infrastructure failure: framework failed to load, test client timed out, etc.
+            //
+            // We check stderr for known infrastructure failure messages.
+            // If it's an infrastructure failure, we throw instead of falsely marking as deprecated.
+            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            let stderrString = String(data: stderrData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+            if !stderrString.isEmpty {
+                let knownInfraFailures = [
+                    "Failed to load framework",
+                    "Framework not found",
+                    "Symbol",
+                    "not found in",
+                    "did not signal setup_done",
+                    "Error executing",
+                    "Missing",
+                ]
+                let isInfraFailure = knownInfraFailures.contains { stderrString.contains($0) }
+
+                if isInfraFailure {
+                    print("MediaChecker: Test infrastructure failure (not a real deprecation): \(stderrString)")
+                    throw MediaCheckerError.testInfrastructureFailure(stderrString)
+                }
+            }
+
+            // If we get here with exit code 1 and no known infra failure message,
+            // it's likely a genuine deprecation signal from adapter_test()
+            print("MediaChecker: adapter_test returned exit code \(exitCode), marking as deprecated")
+            return true
         }.value
     }
 }
