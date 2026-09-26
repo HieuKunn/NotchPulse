@@ -310,7 +310,28 @@ struct ContentView: View {
                         : 0
                     )
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
-                    .background(.black)
+                    .background {
+                        if vm.notchState != .open && !isHovering {
+                            // Pitched black when closed to blend with physical camera housing
+                            Color.black
+                        } else {
+                            // Ultra-modern Dark Frosted Glass when expanded
+                            if #available(macOS 26.0, *) {
+                                ZStack {
+                                    Rectangle().fill(.ultraThinMaterial)
+                                    // Soft dark overlay to ensure high contrast for media/lyrics
+                                    Color.black.opacity(0.6)
+                                }
+                            } else if #available(macOS 12.0, *) {
+                                ZStack {
+                                    Rectangle().fill(.ultraThinMaterial)
+                                    Color.black.opacity(0.7)
+                                }
+                            } else {
+                                Color.black.opacity(0.9)
+                            }
+                        }
+                    }
                     .conditionalModifier(isDynamicIsland) { view in
                         view
                             .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
