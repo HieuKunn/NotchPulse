@@ -89,6 +89,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
+    private var shelfWindows: [String: ShelfDropZoneWindow] = [:]
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
@@ -216,6 +217,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func cleanupDragDetectors() {
         dragExitDebounceTasks.values.forEach { $0.cancel() }
         dragExitDebounceTasks.removeAll()
+        shelfWindows.values.forEach { window in
+            window.orderOut(nil)
+        }
+        shelfWindows.removeAll()
         dragDetectors.values.forEach { detector in
             detector.stopMonitoring()
         }
@@ -249,67 +254,63 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectorForScreen(_ screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
-        let detector = DragDetector { [weak self] isDraggingContent in
-            guard let self = self else { return .zero }
-            let screenFrame = screen.frame
-            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            
-            let dragPadding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
-            
-            // Slider độc lập cho cự ly hover (mặc định tối đa 60px để tránh cản trở vùng thao tác menu bar)
-            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
-            
-            let padding = isDraggingContent ? dragPadding : hoverPadding
-            
-            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
-            let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
-            
-            if targetVM.notchState == .open {
-                // When open, the region covers the ENTIRE open shelf plus expansion padding
-                let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
-                return CGRect(
-                    x: screenFrame.midX - (openWidth / 2 + padding),
-                    y: screenFrame.maxY - (openHeight + padding + topOffset),
-                    width: openWidth + (padding * 2),
-                    height: openHeight + padding + topOffset + 30
-                )
-            } else {
-                // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
-                let closedSize = targetVM.closedNotchSize
-                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
-                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
-                return CGRect(
-                    x: screenFrame.midX - (closedWidth / 2 + padding),
-                    y: screenFrame.maxY - (closedHeight + padding + topOffset),
-                    width: closedWidth + (padding * 2),
-                    height: closedHeight + padding + topOffset + 30
-                )
-            }
-        }
+        let screenFrame = screen.frame
+        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
         
-        detector.onDragEntersNotchRegion = { [weak self] in
+        let dragPadding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+        let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
+        let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
+
+        // 1. SETUP GHOST WINDOW FOR FILE DRAGGING (Guaranteed drop zone registration without blocking clicks)
+        let ghostWindow = ShelfDropZoneWindow()
+        let width = (targetVM.notchState == .open ? max(targetVM.notchSize.width, openNotchSize.width) : (isDynamicIsland ? 210.0 : 185.0)) + (dragPadding * 2)
+        let height = (targetVM.notchState == .open ? max(targetVM.notchSize.height, openNotchSize.height) : (isDynamicIsland ? 32.0 : 36.0)) + dragPadding + topOffset + 30
+        
+        ghostWindow.setFrame(CGRect(
+            x: screenFrame.midX - (width / 2),
+            y: screenFrame.maxY - height,
+            width: width,
+            height: height
+        ), display: true)
+        
+        ghostWindow.dropZoneView.onDragEntered = { [weak self] in
             Task { @MainActor in
                 self?.handleDragEntersNotchRegion(onScreen: screen)
             }
         }
-
-        detector.onDragExitsNotchRegion = { [weak self] in
+        ghostWindow.dropZoneView.onDragExited = { [weak self] in
             Task { @MainActor in
                 self?.handleDragExitsNotchRegion(onScreen: screen)
             }
         }
+        ghostWindow.orderFrontRegardless()
+        shelfWindows[uuid] = ghostWindow
 
-        detector.onDragEnded = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragEnded(onScreen: screen)
-            }
-        }
-        
-        detector.onGlobalDragStateChanged = { [weak self] dragging in
-            Task { @MainActor in
-                self?.vm.isCurrentlyDraggingGlobal = dragging
+        // 2. SETUP LIGHTWEIGHT RADAR FOR HOVER (Mouse movement without dragging files)
+        let detector = DragDetector { [weak self] isDraggingContent in
+            guard let self = self else { return .zero }
+            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
+            
+            if targetVM.notchState == .open {
+                let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
+                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
+                return CGRect(
+                    x: screenFrame.midX - (openWidth / 2 + hoverPadding),
+                    y: screenFrame.maxY - (openHeight + hoverPadding + topOffset),
+                    width: openWidth + (hoverPadding * 2),
+                    height: openHeight + hoverPadding + topOffset + 30
+                )
+            } else {
+                let closedSize = targetVM.closedNotchSize
+                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                return CGRect(
+                    x: screenFrame.midX - (closedWidth / 2 + hoverPadding),
+                    y: screenFrame.maxY - (closedHeight + hoverPadding + topOffset),
+                    width: closedWidth + (hoverPadding * 2),
+                    height: closedHeight + hoverPadding + topOffset + 30
+                )
             }
         }
         
