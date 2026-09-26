@@ -2433,37 +2433,10 @@ struct SettingsDetailHeaderBar: View {
         .padding(.top, 16)
         .padding(.bottom, 12)
         .frame(minHeight: 52)
-        .adaptiveGlassBackground()
+        .background {
+            Color(nsColor: .windowBackgroundColor)
+        }
         .zIndex(100)
-    }
-}
-
-// MARK: - Adaptive Glass Background & OS / Accessibility Adaptability
-struct AdaptiveGlassBackgroundModifier: ViewModifier {
-    @State private var reduceTransparency: Bool = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
-
-    func body(content: Content) -> some View {
-        content
-            .background {
-                if reduceTransparency {
-                    Color(nsColor: .windowBackgroundColor)
-                } else {
-                    if #available(macOS 26.0, *) {
-                        Rectangle()
-                            .fill(.ultraThinMaterial)
-                            .overlay {
-                                Rectangle()
-                                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
-                            }
-                    } else {
-                        Rectangle()
-                            .fill(.regularMaterial)
-                    }
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)) { _ in
-                reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
-            }
     }
 }
 
@@ -2474,10 +2447,6 @@ extension View {
             scrollView.hasHorizontalScroller = false
             scrollView.autohidesScrollers = true
         }
-    }
-
-    func adaptiveGlassBackground() -> some View {
-        self.modifier(AdaptiveGlassBackgroundModifier())
     }
 }
 

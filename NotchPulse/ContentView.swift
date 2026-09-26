@@ -10,23 +10,7 @@ import AVFoundation
 import Combine
 import Defaults
 import KeyboardShortcuts
-import SwiftUI
 import SwiftUIIntrospect
-
-struct NotchVisualEffectView: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        // Ép kính mờ phải luôn luôn trong suốt lấp lánh (Kể cả khi Notch không giữ focus)
-        view.state = .active
-        // Sử dụng giao diện HUD Window tạo chất kính đen đa chiều cực sâu của Apple
-        view.material = .hudWindow 
-        view.blendingMode = .behindWindow
-        return view
-    }
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
-}
-
-@MainActor
 struct ContentView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var webcamManager = WebcamManager.shared
@@ -323,19 +307,7 @@ struct ContentView: View {
                         : 0
                     )
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
-                    .background {
-                        if vm.notchState != .open && !isHovering {
-                            // Pitched black when closed to blend with physical camera housing
-                            Color.black
-                        } else {
-                            // Cú lừa đồ họa: Giả lập khối kính đen mờ (Dark Frosted Glass)
-                            ZStack {
-                                NotchVisualEffectView()
-                                // Lớp sương đen giảm 50% độ chói để các nội dung khác trên Notch vẫn hiển thị siêu nổi bật
-                                Color.black.opacity(0.5)
-                            }
-                        }
-                    }
+                    .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view
                             .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
