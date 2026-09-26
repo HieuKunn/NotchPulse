@@ -13,6 +13,19 @@ import KeyboardShortcuts
 import SwiftUI
 import SwiftUIIntrospect
 
+struct NotchVisualEffectView: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        // Ép kính mờ phải luôn luôn trong suốt lấp lánh (Kể cả khi Notch không giữ focus)
+        view.state = .active
+        // Sử dụng giao diện HUD Window tạo chất kính đen đa chiều cực sâu của Apple
+        view.material = .hudWindow 
+        view.blendingMode = .behindWindow
+        return view
+    }
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
 @MainActor
 struct ContentView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
@@ -315,20 +328,11 @@ struct ContentView: View {
                             // Pitched black when closed to blend with physical camera housing
                             Color.black
                         } else {
-                            // Ultra-modern Dark Frosted Glass when expanded
-                            if #available(macOS 26.0, *) {
-                                ZStack {
-                                    Rectangle().fill(.ultraThinMaterial)
-                                    // Soft dark overlay to ensure high contrast for media/lyrics
-                                    Color.black.opacity(0.6)
-                                }
-                            } else if #available(macOS 12.0, *) {
-                                ZStack {
-                                    Rectangle().fill(.ultraThinMaterial)
-                                    Color.black.opacity(0.7)
-                                }
-                            } else {
-                                Color.black.opacity(0.9)
+                            // Cú lừa đồ họa: Giả lập khối kính đen mờ (Dark Frosted Glass)
+                            ZStack {
+                                NotchVisualEffectView()
+                                // Lớp sương đen giảm 50% độ chói để các nội dung khác trên Notch vẫn hiển thị siêu nổi bật
+                                Color.black.opacity(0.5)
                             }
                         }
                     }
