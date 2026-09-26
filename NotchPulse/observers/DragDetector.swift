@@ -20,6 +20,7 @@ final class DragDetector {
     var onDragEnded: VoidCallback?
     var onDragMove: PositionCallback?
     var onGlobalDragStateChanged: ((Bool) -> Void)?
+    var onGlobalHoverStateChanged: ((Bool) -> Void)?
 
     private var mouseDownMonitor: Any?
     private var mouseDraggedMonitor: Any?
@@ -36,6 +37,7 @@ final class DragDetector {
         }
     }
     private var hasEnteredNotchRegion: Bool = false
+    private var isHoveringFromRadar: Bool = false
 
     private let regionProvider: () -> CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
@@ -169,6 +171,20 @@ final class DragDetector {
         // where macOS WindowServer suppresses global leftMouseDragged events.
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
+            
+            // Unconditional hover radar (works whether mouse is pressed or not)
+            let mouseLocation = NSEvent.mouseLocation
+            let activeRegion = self.regionProvider()
+            let containsMouse = activeRegion.contains(mouseLocation)
+            
+            if containsMouse && !self.isHoveringFromRadar {
+                self.isHoveringFromRadar = true
+                self.onGlobalHoverStateChanged?(true)
+            } else if !containsMouse && self.isHoveringFromRadar {
+                self.isHoveringFromRadar = false
+                self.onGlobalHoverStateChanged?(false)
+            }
+
             let isMousePressed = (NSEvent.pressedMouseButtons & 1) != 0
             if !isMousePressed {
                 if self.isContentDragging || self.hasEnteredNotchRegion {
@@ -190,11 +206,8 @@ final class DragDetector {
             
             if (self.isContentDragging || isNewDragOperation) && self.hasValidDragContent() {
                 self.isContentDragging = true
-                let mouseLocation = NSEvent.mouseLocation
                 self.onDragMove?(mouseLocation)
                 
-                let activeRegion = self.regionProvider()
-                let containsMouse = activeRegion.contains(mouseLocation)
                 if containsMouse && !self.hasEnteredNotchRegion {
                     self.hasEnteredNotchRegion = true
                     self.onDragEntersNotchRegion?()
@@ -209,6 +222,7 @@ final class DragDetector {
     func stopMonitoring() {
         pollTimer?.invalidate()
         pollTimer = nil
+        self.isHoveringFromRadar = false
         
         [mouseDownMonitor, mouseDraggedMonitor, mouseUpMonitor].forEach { monitor in
             if let monitor = monitor {

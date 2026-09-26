@@ -377,6 +377,9 @@ struct ContentView: View {
                             .animation(.smooth, value: gestureProgress)
                     }
                     .onHover { hovering in
+                        // Ignore standard view-based hover if radar is active to prevent conflicts
+                        if Defaults[.notchPulseShelf] || Defaults[.extendHoverArea] { return }
+                        
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
                             if hovering && faceIDOverlay.phase != .onboarding {
@@ -527,6 +530,9 @@ struct ContentView: View {
         .animation(.smooth, value: gestureProgress)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
+        .onChange(of: vm.isHoveringFromRadar) { _, isRadarHovering in
+            handleHover(isRadarHovering)
+        }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 

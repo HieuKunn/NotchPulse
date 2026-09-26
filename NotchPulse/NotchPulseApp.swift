@@ -225,7 +225,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        guard Defaults[.notchPulseShelf] else { return }
+        // ALWAYS setup detectors if either Shelf or extendHoverArea is enabled!
+        guard Defaults[.notchPulseShelf] || Defaults[.extendHoverArea] else { return }
 
         if Defaults[.showOnAllDisplays] {
             for screen in NSScreen.screens {
@@ -252,7 +253,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self = self else { return .zero }
             let screenFrame = screen.frame
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            let padding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+            
+            // Calculate combined padding for both drag expanded area AND normal mouse hover extension
+            let dragPadding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+            let padding = max(dragPadding, hoverPadding)
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
             let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
@@ -303,6 +308,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         detector.onGlobalDragStateChanged = { [weak self] dragging in
             Task { @MainActor in
                 self?.vm.isCurrentlyDraggingGlobal = dragging
+            }
+        }
+        
+        detector.onGlobalHoverStateChanged = { [weak self] hovering in
+            Task { @MainActor in
+                self?.vm.isHoveringFromRadar = hovering
             }
         }
         
