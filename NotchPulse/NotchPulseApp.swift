@@ -133,6 +133,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenLocked(_ notification: Notification) {
         isScreenLocked = true
+        cleanupDragDetectors() // Tear down Ghost Windows and Radar while on lock screen!
+        
         let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
         if !shouldKeepWindow {
             cleanupWindows()
@@ -144,6 +146,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenUnlocked(_ notification: Notification) {
         isScreenLocked = false
+        setupDragDetectors() // Re-enable Ghost Windows and Radar after unlocking
+        
         let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
         if !shouldKeepWindow {
             adjustWindowPosition(changeAlpha: true)
@@ -230,7 +234,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        // ALWAYS setup detectors if either Shelf or extendHoverArea is enabled!
+        // 1. MUST NOT run when screen is locked to prevent FaceId/LockScreen conflicts
+        guard !isScreenLocked else { return }
+        
+        // 2. ALWAYS setup detectors if either Shelf or extendHoverArea is enabled!
         guard Defaults[.notchPulseShelf] || Defaults[.extendHoverArea] else { return }
 
         if Defaults[.showOnAllDisplays] {
