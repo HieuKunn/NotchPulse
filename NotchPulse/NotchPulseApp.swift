@@ -300,6 +300,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
+        detector.onGlobalDragStateChanged = { [weak self] dragging in
+            Task { @MainActor in
+                self?.vm.isCurrentlyDraggingGlobal = dragging
+            }
+        }
+        
         dragDetectors[uuid] = detector
         detector.startMonitoring()
     }
