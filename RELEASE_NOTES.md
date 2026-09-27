@@ -1,16 +1,13 @@
-# NotchPulse v5.0.0 (Build 188) Release Notes
+# NotchPulse v5.0.0 (Build 189) Release Notes
 
 ## 🚀 What's New & Visible Improvements
 
-- **✨ Pass-Through Spotlight Onboarding Tour**:
-  - **Interactive Screen Experience**: Guidance overlay now lets you click and interact directly with the Notch, Desktop, and Finder while learning about app features.
-  - **Live UI Auto-Switching**: Each tour step automatically expands the Notch to the exact relevant tab and feature (Home, Smart Shake Shelf, Synced Lyrics, Full Month Calendar, Clipboard History, Settings).
-  - **Guaranteed Notch Continuity**: Closing or skipping the onboarding tour or initial setup window keeps the Notch open and active on screen so you can use it immediately without closing the app.
+- **🤝 Ultra-Responsive Shake-to-Shelf Activation**:
+  - **Multi-Axis Reversal Engine**: Detects both horizontal, vertical, and diagonal shakes instantly with 7pt sensitivity and a 900ms gesture window.
+  - **Bypassed Pasteboard Baseline Locks**: Guarantees active drag detection as soon as you drag any file, image, URL, or text snippet > 6pt, preventing state locks when dragging multiple items in succession.
+  - **Zero False Negatives**: Effortlessly open the Notch Shelf by shaking any dragged file, image from Safari, or desktop item.
 
-- **🤝 Smart Shake-to-Shelf Enhancements**:
-  - **Enhanced Gesture Sensitivity**: Improved detection for natural mouse and trackpad shakes when dragging files, images, links, or text snippets.
-  - **Broadened Drag Support**: Seamlessly supports dragging files, images, web links, and text clippings straight into the Shelf.
-  - **Persistent Tour Shelf**: Auto-close timers are suppressed during the onboarding tour so you can explore the Shelf without interruption.
-
-- **🔒 Face ID & Lock Screen Security**:
-  - **Seamless Multi-Display Routing**: Dynamic Island overlays remain active on external monitors while Face ID authentication smoothly aligns with your Mac's physical camera.
+- **✨ Interactive Spotlight Onboarding Tour**:
+  - **Pass-Through Backdrop**: Dual-window system lets you interact directly with the Notch, Finder, and Desktop while reading guidance cards.
+  - **Live UI Tab Sync**: Automatically opens and displays the corresponding view (Home, Shelf, Calendar, Clipboard, Settings) for each tour step.
+  - **Guaranteed Notch Open State**: Closing onboarding or tour overlay keeps the Notch open and ready for immediate use.

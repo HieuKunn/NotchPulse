@@ -131,50 +131,60 @@ final class DragDetector {
 
         recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 850ms (natural human gesture window)
-        let cutoff = currentTime - 0.85
+        // Keep samples from the last 900ms (natural human gesture window)
+        let cutoff = currentTime - 0.90
         recentSamples.removeAll { $0.time < cutoff }
 
         guard recentSamples.count >= 3 else { return }
 
-        // Detect direction reversals (swings) with at least 10px travel (horizontal or vertical)
-        var reversals = 0
-        var currentDirection = 0 // -1 for left, +1 for right
-        var lastExtremumX = recentSamples[0].x
-        let minSwing: CGFloat = 10.0
+        // Detect direction reversals (swings) on horizontal (X) or vertical/diagonal (Y) axis with at least 7.0pt travel
+        let xs = recentSamples.map { $0.x }
+        let ys = recentSamples.map { $0.y }
+        let minSwing: CGFloat = 7.0
 
-        for sample in recentSamples {
-            let dx = sample.x - lastExtremumX
-            if currentDirection == 0 {
-                if abs(dx) >= minSwing {
-                    currentDirection = dx > 0 ? 1 : -1
-                    lastExtremumX = sample.x
-                }
-            } else if currentDirection == 1 { // Was moving right
-                if dx < -minSwing { // Reversed to moving left
-                    reversals += 1
-                    currentDirection = -1
-                    lastExtremumX = sample.x
-                } else if sample.x > lastExtremumX {
-                    lastExtremumX = sample.x
-                }
-            } else if currentDirection == -1 { // Was moving left
-                if dx > minSwing { // Reversed to moving right
-                    reversals += 1
-                    currentDirection = 1
-                    lastExtremumX = sample.x
-                } else if sample.x < lastExtremumX {
-                    lastExtremumX = sample.x
-                }
-            }
-        }
+        let revX = countAxisReversals(values: xs, minSwing: minSwing)
+        let revY = countAxisReversals(values: ys, minSwing: minSwing)
 
-        // 2 or more reversals in 850ms signifies a deliberate rapid horizontal shake (Left -> Right -> Left or Right -> Left -> Right)
-        if reversals >= 2 {
+        // 2 or more reversals in 900ms on either axis signifies a deliberate rapid shake
+        if revX >= 2 || revY >= 2 {
             lastShakeTriggerTime = currentTime
             recentSamples.removeAll()
             onShakeDetected?()
         }
+    }
+
+    private func countAxisReversals(values: [CGFloat], minSwing: CGFloat) -> Int {
+        guard values.count >= 3 else { return 0 }
+        var reversals = 0
+        var currentDirection = 0 // -1 for decreasing, +1 for increasing
+        var lastExtremum = values[0]
+
+        for val in values {
+            let delta = val - lastExtremum
+            if currentDirection == 0 {
+                if abs(delta) >= minSwing {
+                    currentDirection = delta > 0 ? 1 : -1
+                    lastExtremum = val
+                }
+            } else if currentDirection == 1 { // Was moving positive
+                if delta < -minSwing { // Reversed
+                    reversals += 1
+                    currentDirection = -1
+                    lastExtremum = val
+                } else if val > lastExtremum {
+                    lastExtremum = val
+                }
+            } else if currentDirection == -1 { // Was moving negative
+                if delta > minSwing { // Reversed
+                    reversals += 1
+                    currentDirection = 1
+                    lastExtremum = val
+                } else if val < lastExtremum {
+                    lastExtremum = val
+                }
+            }
+        }
+        return reversals
     }
 
     private func checkState() {
@@ -234,15 +244,14 @@ final class DragDetector {
             dragDistance = 0
         }
 
-        // 8 points is sufficient to distinguish an intentional drag from a static click
-        let hasMovedSufficiently = dragDistance >= 8.0
+        // 6 points is sufficient to distinguish an intentional drag from a static click
+        let hasMovedSufficiently = dragDistance >= 6.0
 
         // Detect if active drag session:
-        // Pasteboard changeCount changed from idle baseline or mouse-down baseline, with valid drag content,
-        // AND the user has moved the mouse sufficiently to distinguish from a stationary click.
+        // Pasteboard changeCount changed or pasteboard has valid drag content AND mouse moved >= 6pt
         let isPasteboardChanged = (lastKnownIdlePasteboardCount >= 0 && currentPbCount != lastKnownIdlePasteboardCount) ||
                                   (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
-        let isNewDragOperation = isPasteboardChanged && hasValidDragContent() && hasMovedSufficiently
+        let isNewDragOperation = (isPasteboardChanged || currentPbCount > 0) && hasValidDragContent() && hasMovedSufficiently
 
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
