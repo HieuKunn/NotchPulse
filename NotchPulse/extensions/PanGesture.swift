@@ -128,6 +128,13 @@ private struct ScrollMonitor: NSViewRepresentable {
 
             if direction == .up || direction == .down {
                 let isVerticallyScrollable = docRect.height > (clipBounds.height + 4.0)
+                let isHorizontallyScrollable = docRect.width > (clipBounds.width + 4.0)
+
+                // If the scroll view is horizontally scrollable (e.g. Calendar date strip), vertical scroll events are converted/handled locally.
+                if isHorizontallyScrollable {
+                    return true
+                }
+
                 guard isVerticallyScrollable else { return false }
 
                 let isFlipped = clipView.isFlipped
