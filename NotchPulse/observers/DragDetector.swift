@@ -172,10 +172,10 @@ final class DragDetector {
         // where macOS WindowServer suppresses global leftMouseDragged events.
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
+            let mouseLocation = NSEvent.mouseLocation
             
             // Hover radar (active when extendHoverArea is enabled in General settings)
             if Defaults[.extendHoverArea] {
-                let mouseLocation = NSEvent.mouseLocation
                 let hoverRegion = self.regionProvider(false)
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
                 

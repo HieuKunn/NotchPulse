@@ -364,14 +364,14 @@ private struct MonthDayCellButton: View {
 }
 
 // MARK: - Full Month Calendar (standalone grid, used in fullMonth and dayDetail modes)
-struct FullMonthCalendarGrid: View {
+struct FullMonthCalendarGrid<TrailingContent: View>: View {
     @Binding var selectedDate: Date
     @Binding var displayedDate: Date
     let showHeader: Bool
     let onSelectDay: (Date) -> Void
     let onPrevMonth: () -> Void
     let onNextMonth: () -> Void
-    @ViewBuilder var trailingHeaderButton: () -> some View
+    @ViewBuilder var trailingHeaderButton: () -> TrailingContent
 
     private let calendar = Calendar.current
     private let daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
