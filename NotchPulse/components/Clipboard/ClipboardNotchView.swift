@@ -48,22 +48,15 @@ struct ClipboardNotchView: View {
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 8) {
-                        ForEach(clipboardManager.history) { item in
-                            ClipboardRowView(item: item)
-                                .onTapGesture {
-                                    clipboardManager.copyToPasteboard(item)
-                                    // Provide feedback
-                                    NotchPulseViewCoordinator.shared.expandingView = .init(type: .success, show: true, message: "Copied!")
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                        NotchPulseViewCoordinator.shared.expandingView.show = false
-                                    }
-                                }
+                        ForEach(clipboardManager.history, id: \.id) { item in
+                            ClipboardRowView(item: item) {
+                                clipboardManager.copyToPasteboard(item)
+                            }
                         }
                     }
                     .padding(.horizontal, 12)
                     .padding(.bottom, 12)
                 }
-                // .frame(maxHeight: 250) // Adjust height as necessary, but dynamic is better
             }
         }
     }
@@ -71,7 +64,9 @@ struct ClipboardNotchView: View {
 
 struct ClipboardRowView: View {
     let item: ClipboardItem
+    var onCopy: (() -> Void)? = nil
     @State private var isHovered = false
+    @State private var isCopied = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -99,7 +94,16 @@ struct ClipboardRowView: View {
             
             Spacer()
             
-            if isHovered {
+            if isCopied {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("Copied")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(Color.green)
+                .transition(.opacity)
+            } else if isHovered {
                 Image(systemName: "doc.on.clipboard")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.secondary)
@@ -111,9 +115,21 @@ struct ClipboardRowView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.white.opacity(isHovered ? 0.08 : 0.04))
         )
+        .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
+            }
+        }
+        .onTapGesture {
+            onCopy?()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isCopied = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isCopied = false
+                }
             }
         }
     }

@@ -165,6 +165,7 @@ class QuickShareService: ObservableObject {
 
 private class SharingServiceDelegate: NSObject {}
     
+    @MainActor
     func shareDroppedFiles(_ providers: [NSItemProvider], using shareProvider: QuickShareProvider, from view: NSView?) async {
         var itemsToShare: [Any] = []
         var foundText: String?
