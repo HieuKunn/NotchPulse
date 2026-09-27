@@ -9,6 +9,7 @@ import Cocoa
 import SkyLightWindow
 import Defaults
 import Combine
+import SwiftUI
 
 extension SkyLightOperator {
     func undelegateWindow(_ window: NSWindow) {
@@ -115,3 +116,69 @@ class NotchPulseSkyLightWindow: NSPanel {
         FaceIDOverlayController.shared.phase == .onboarding
     }
 }
+
+// MARK: - NotchPulseHostingView with Passthrough Hit-Testing
+/// Ensures that mouse clicks outside the active, visible notch bounds are strictly passed through (returning nil).
+/// This prevents any transparent window canvas or padding from blocking clicks to underlying browser tabs, links, or controls.
+final class NotchPulseHostingView<Content: View>: NSHostingView<Content> {
+    weak var viewModel: NotchPulseViewModel?
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Allow normal event routing if Face ID onboarding requires keyboard/mouse focus
+        if FaceIDOverlayController.shared.phase == .onboarding {
+            return super.hitTest(point)
+        }
+
+        guard let vm = viewModel else {
+            return super.hitTest(point)
+        }
+
+        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+        let screen = window?.screen ?? NSScreen.main
+        let hasPhysicalNotch = (screen?.safeAreaInsets.top ?? 0) > 0 || screen?.auxiliaryTopLeftArea != nil
+        let topOffset: CGFloat = (isDynamicIsland && !hasPhysicalNotch) ? CGFloat(Defaults[.dynamicIslandTopOffset]) : 0
+
+        let notchWidth: CGFloat
+        let notchHeight: CGFloat
+
+        if vm.notchState == .open {
+            notchWidth = max(vm.notchSize.width, openNotchWidth) + 30
+            notchHeight = (vm.customOpenHeight ?? vm.notchSize.height) + topOffset + 30
+        } else {
+            let closedW = isDynamicIsland ? 210.0 : (vm.closedNotchSize.width > 0 ? vm.closedNotchSize.width : 185.0)
+            let closedH = isDynamicIsland ? 32.0 : (vm.effectiveClosedNotchHeight > 0 ? vm.effectiveClosedNotchHeight : 36.0)
+            let chinH = vm.chinHeight
+            let bottomRowH: CGFloat = 40 // Sneak peek or HUD if active
+
+            notchWidth = max(closedW, 240.0) + (vm.isCameraExpanded ? 60.0 : 0.0)
+            notchHeight = closedH + chinH + bottomRowH + topOffset + 10
+        }
+
+        let notchRect: NSRect
+        if isFlipped {
+            notchRect = NSRect(
+                x: bounds.midX - (notchWidth / 2),
+                y: topOffset,
+                width: notchWidth,
+                height: notchHeight
+            )
+        } else {
+            notchRect = NSRect(
+                x: bounds.midX - (notchWidth / 2),
+                y: bounds.height - (topOffset + notchHeight),
+                width: notchWidth,
+                height: notchHeight
+            )
+        }
+
+        // Strictly ignore any clicks outside the visible notch bounds.
+        // Returning nil lets macOS pass mouse clicks directly to underlying
+        // windows (Safari/Chrome tabs, address bar, web links, etc.) without any interference.
+        guard notchRect.contains(point) else {
+            return nil
+        }
+
+        return super.hitTest(point)
+    }
+}
+

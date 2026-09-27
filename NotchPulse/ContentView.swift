@@ -365,8 +365,8 @@ struct ContentView: View {
                             return
                         }
 
-                        // Ignore standard view-based hover if radar is active to prevent conflicts
-                        if Defaults[.notchPulseShelf] || Defaults[.extendHoverArea] { return }
+                        // Ignore standard view-based hover only if extendHoverArea radar is active to prevent conflicts
+                        if Defaults[.extendHoverArea] { return }
                         
                         handleHover(hovering)
                     }
@@ -513,6 +513,13 @@ struct ContentView: View {
         .environmentObject(vm)
         .onChange(of: vm.isHoveringFromRadar) { _, isRadarHovering in
             handleHover(isRadarHovering)
+        }
+        .onChange(of: coordinator.currentView) { _, newView in
+            if vm.customOpenHeight != nil {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    vm.customOpenHeight = nil
+                }
+            }
         }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()

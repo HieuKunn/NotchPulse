@@ -24,23 +24,30 @@ private let dayOfWeekFormatter: DateFormatter = {
 }()
 
 private struct CalendarScrollWheelHelper: NSViewRepresentable {
+    var onScrollOriginChanged: ((CGFloat, CGFloat) -> Void)? = nil
+
     func makeNSView(context: Context) -> HelperView {
-        HelperView()
+        let view = HelperView()
+        view.onScrollOriginChanged = onScrollOriginChanged
+        return view
     }
 
     func updateNSView(_ nsView: HelperView, context: Context) {
+        nsView.onScrollOriginChanged = onScrollOriginChanged
         nsView.checkSetup()
     }
 
     class HelperView: NSView {
         private var monitor: Any?
+        private var boundsObserver: NSObjectProtocol?
+        var onScrollOriginChanged: ((CGFloat, CGFloat) -> Void)?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             if window != nil {
                 checkSetup()
             } else {
-                removeMonitor()
+                cleanup()
             }
         }
 
@@ -52,48 +59,69 @@ private struct CalendarScrollWheelHelper: NSViewRepresentable {
         }
 
         deinit {
-            removeMonitor()
+            cleanup()
         }
 
-        private func removeMonitor() {
+        private func cleanup() {
             if let m = monitor {
                 NSEvent.removeMonitor(m)
                 monitor = nil
             }
+            if let b = boundsObserver {
+                NotificationCenter.default.removeObserver(b)
+                boundsObserver = nil
+            }
         }
 
         func checkSetup() {
-            guard window != nil, monitor == nil else { return }
-            monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
-                guard let self = self,
-                      let window = self.window,
-                      event.window === window,
-                      let scrollView = self.enclosingScrollView else {
+            guard window != nil else { return }
+
+            if let scrollView = enclosingScrollView, boundsObserver == nil {
+                let clipView = scrollView.contentView
+                clipView.postsBoundsChangedNotifications = true
+                boundsObserver = NotificationCenter.default.addObserver(
+                    forName: NSView.boundsDidChangeNotification,
+                    object: clipView,
+                    queue: .main
+                ) { [weak self] _ in
+                    guard let self = self, let sv = self.enclosingScrollView else { return }
+                    let clip = sv.contentView
+                    self.onScrollOriginChanged?(clip.bounds.origin.x, clip.bounds.width)
+                }
+            }
+
+            if monitor == nil {
+                monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
+                    guard let self = self,
+                          let window = self.window,
+                          event.window === window,
+                          let scrollView = self.enclosingScrollView else {
+                        return event
+                    }
+
+                    let locationInWindow = event.locationInWindow
+                    let locationInSV = scrollView.convert(locationInWindow, from: nil)
+                    guard scrollView.bounds.contains(locationInSV) else {
+                        return event
+                    }
+
+                    // If user scrolls vertically (physical mouse wheel or vertical gesture),
+                    // convert deltaY to smooth horizontal scrolling of this NSScrollView!
+                    if event.scrollingDeltaX == 0 && event.scrollingDeltaY != 0 {
+                        let clipView = scrollView.contentView
+                        var origin = clipView.bounds.origin
+                        let multiplier: CGFloat = event.hasPreciseScrollingDeltas ? 1.0 : 16.0
+                        let delta = event.scrollingDeltaY * multiplier
+                        let docWidth = scrollView.documentView?.bounds.width ?? 0
+                        let maxX = max(0, docWidth - clipView.bounds.width)
+                        origin.x = min(maxX, max(0, origin.x - delta))
+                        clipView.scroll(to: origin)
+                        scrollView.reflectScrolledClipView(clipView)
+                        return nil // Handled: prevent event from closing notch or other handlers
+                    }
+
                     return event
                 }
-
-                let locationInWindow = event.locationInWindow
-                let locationInSV = scrollView.convert(locationInWindow, from: nil)
-                guard scrollView.bounds.contains(locationInSV) else {
-                    return event
-                }
-
-                // If user scrolls vertically (physical mouse wheel or vertical gesture),
-                // convert deltaY to smooth horizontal scrolling of this NSScrollView!
-                if event.scrollingDeltaX == 0 && event.scrollingDeltaY != 0 {
-                    let clipView = scrollView.contentView
-                    var origin = clipView.bounds.origin
-                    let multiplier: CGFloat = event.hasPreciseScrollingDeltas ? 1.0 : 16.0
-                    let delta = event.scrollingDeltaY * multiplier
-                    let docWidth = scrollView.documentView?.bounds.width ?? 0
-                    let maxX = max(0, docWidth - clipView.bounds.width)
-                    origin.x = min(maxX, max(0, origin.x - delta))
-                    clipView.scroll(to: origin)
-                    scrollView.reflectScrolledClipView(clipView)
-                    return nil // Handled: prevent event from closing notch or other handlers
-                }
-
-                return event
             }
         }
     }
@@ -186,7 +214,18 @@ struct WheelPicker: View {
                 }
             }
             .frame(height: 40)
-            .background(CalendarScrollWheelHelper())
+            .background(CalendarScrollWheelHelper { originX, viewportWidth in
+                let cellWidth: CGFloat = 34.0 // 32 item width + 2 spacing
+                let centerX = originX + (viewportWidth / 2.0)
+                let itemIndex = Int(round((centerX - 16.0) / cellWidth))
+                let date = dateForItemIndex(index: itemIndex, spacerNum: config.offset)
+                if Calendar.current.component(.month, from: date) != Calendar.current.component(.month, from: displayedDate) ||
+                   Calendar.current.component(.year, from: date) != Calendar.current.component(.year, from: displayedDate) {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                        displayedDate = date
+                    }
+                }
+            })
         }
         .scrollIndicators(.never)
         .scrollPosition(id: $scrollPosition, anchor: .center)
@@ -264,6 +303,66 @@ struct WheelPicker: View {
 }
 
 
+// MARK: - Calendar Navigation Button (Hover and click feedback)
+struct CalendarNavButton: View {
+    let icon: String
+    let helpText: String?
+    let action: () -> Void
+    @State private var isHovered: Bool = false
+
+    init(icon: String, helpText: String? = nil, action: @escaping () -> Void) {
+        self.icon = icon
+        self.helpText = helpText
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(isHovered ? .white : Color(white: 0.7))
+                .frame(width: 24, height: 24)
+                .background(Color.white.opacity(isHovered ? 0.16 : 0.08), in: RoundedRectangle(cornerRadius: 6))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .help(helpText ?? "")
+    }
+}
+
+// MARK: - Month Day Cell Button
+private struct MonthDayCellButton: View {
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let dayNumber: Int
+    let onClick: () -> Void
+    @State private var isHovered: Bool = false
+
+    var body: some View {
+        Button(action: onClick) {
+            ZStack {
+                if isSelected {
+                    Circle().fill(Color.effectiveAccentBackground).frame(width: 24, height: 24)
+                } else if isHovered {
+                    Circle().fill(Color.white.opacity(0.12)).frame(width: 24, height: 24)
+                } else if isToday {
+                    Circle().stroke(Color.effectiveAccentBackground, lineWidth: 1.5).frame(width: 24, height: 24)
+                }
+                Text("\(dayNumber)")
+                    .font(.system(size: 11, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
+                    .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : (isHovered ? .white : Color(white: 0.78))))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 26)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+}
+
 // MARK: - Full Month Calendar (standalone grid, used in fullMonth and dayDetail modes)
 struct FullMonthCalendarGrid: View {
     @Binding var selectedDate: Date
@@ -296,28 +395,18 @@ struct FullMonthCalendarGrid: View {
         VStack(spacing: 6) {
             if showHeader {
                 HStack(spacing: 6) {
-                    Button { onPrevMonth() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.secondary)
-                            .frame(width: 24, height: 24)
-                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    CalendarNavButton(icon: "chevron.left", helpText: "Previous month") {
+                        onPrevMonth()
                     }
-                    .buttonStyle(.plain)
 
                     Text(displayedDate.formatted(.dateTime.month(.wide).year()))
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity, alignment: .center)
 
-                    Button { onNextMonth() } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.secondary)
-                            .frame(width: 24, height: 24)
-                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    CalendarNavButton(icon: "chevron.right", helpText: "Next month") {
+                        onNextMonth()
                     }
-                    .buttonStyle(.plain)
 
                     trailingHeaderButton()
                 }
@@ -340,20 +429,13 @@ struct FullMonthCalendarGrid: View {
                     if let date = daysInMonth[index] {
                         let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
                         let isToday = calendar.isDateInToday(date)
-                        Button { onSelectDay(date) } label: {
-                            ZStack {
-                                if isSelected {
-                                    Circle().fill(Color.effectiveAccentBackground).frame(width: 24, height: 24)
-                                } else if isToday {
-                                    Circle().stroke(Color.effectiveAccentBackground, lineWidth: 1.5).frame(width: 24, height: 24)
-                                }
-                                Text("\(calendar.component(.day, from: date))")
-                                    .font(.system(size: 11, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
-                                    .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : Color(white: 0.78)))
-                            }
-                            .frame(height: 26)
-                        }
-                        .buttonStyle(.plain)
+                        MonthDayCellButton(
+                            date: date,
+                            isSelected: isSelected,
+                            isToday: isToday,
+                            dayNumber: calendar.component(.day, from: date),
+                            onClick: { onSelectDay(date) }
+                        )
                     } else {
                         Color.clear.frame(height: 26)
                     }
@@ -430,6 +512,7 @@ private enum CalendarMode {
 struct CalendarView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
+    @ObservedObject private var coordinator = NotchPulseViewCoordinator.shared
     @State private var selectedDate = Date()
     @State private var displayedDate = Date()
     @State private var mode: CalendarMode = .normal
@@ -454,6 +537,14 @@ struct CalendarView: View {
                 await calendarManager.updateCurrentDate(newValue)
             }
         }
+        .onChange(of: coordinator.currentView) { _, newView in
+            if newView != .home {
+                mode = .normal
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    vm.customOpenHeight = nil
+                }
+            }
+        }
         .onChange(of: vm.notchState) { _, newState in
             if newState == .closed {
                 mode = .normal
@@ -466,11 +557,19 @@ struct CalendarView: View {
             }
         }
         .onAppear {
+            if coordinator.currentView != .home {
+                mode = .normal
+                vm.customOpenHeight = nil
+            }
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
                 displayedDate = Date.now
             }
+        }
+        .onDisappear {
+            mode = .normal
+            vm.customOpenHeight = nil
         }
     }
 
@@ -554,18 +653,9 @@ struct CalendarView: View {
             onPrevMonth: { changeDisplayedMonth(by: -1) },
             onNextMonth: { changeDisplayedMonth(by: 1) }
         ) {
-            // Trailing header button: collapse back to normal
-            Button {
+            CalendarNavButton(icon: "arrow.down.right.and.arrow.up.left", helpText: "Collapse calendar") {
                 exitFullPage()
-            } label: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .frame(width: 24, height: 24)
-                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
             }
-            .buttonStyle(.plain)
-            .help("Collapse calendar")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -591,18 +681,9 @@ struct CalendarView: View {
                 onPrevMonth: { changeDisplayedMonth(by: -1) },
                 onNextMonth: { changeDisplayedMonth(by: 1) }
             ) {
-                // Trailing button: collapse to normal
-                Button {
+                CalendarNavButton(icon: "arrow.down.right.and.arrow.up.left", helpText: "Collapse calendar") {
                     exitFullPage()
-                } label: {
-                    Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 24, height: 24)
-                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
                 }
-                .buttonStyle(.plain)
-                .help("Collapse calendar")
             }
             .frame(maxWidth: .infinity)
 

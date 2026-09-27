@@ -313,6 +313,8 @@ struct GeneralSettings: View {
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
     @Default(.enableGestures) var enableGestures
     @Default(.openNotchOnHover) var openNotchOnHover
+    @Default(.extendHoverArea) var extendHoverArea
+    @Default(.hoverAreaPadding) var hoverAreaPadding
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
@@ -732,6 +734,36 @@ struct GeneralSettings: View {
                 .onChange(of: minimumHoverDuration) {
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil)
+                }
+
+                Defaults.Toggle(key: .extendHoverArea) {
+                    Text("Extend hover area")
+                }
+                .onChange(of: extendHoverArea) {
+                    NotificationCenter.default.post(
+                        name: Notification.Name.expandedDragDetectionChanged,
+                        object: nil
+                    )
+                }
+                
+                if extendHoverArea {
+                    Slider(value: $hoverAreaPadding, in: 5...60, step: 5) {
+                        HStack {
+                            Text("Hover detection range")
+                            Spacer()
+                            Text("\(hoverAreaPadding, specifier: "%.0f") px")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: hoverAreaPadding) {
+                        NotificationCenter.default.post(
+                            name: Notification.Name.expandedDragDetectionChanged,
+                            object: nil
+                        )
+                    }
+                    Text("Expands the sensitivity area for hovering to open the notch, separate from Drag & Drop distance.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
         } header: {
@@ -1937,8 +1969,6 @@ struct Appearance: View {
 struct Advanced: View {
     @Default(.useCustomAccentColor) var useCustomAccentColor
     @Default(.customAccentColorData) var customAccentColorData
-    @Default(.extendHoverArea) var extendHoverArea
-    @Default(.hoverAreaPadding) var hoverAreaPadding
     @Default(.showOnLockScreen) var showOnLockScreen
     @Default(.hideFromScreenRecording) var hideFromScreenRecording
     
@@ -2139,31 +2169,6 @@ struct Advanced: View {
             }
             
             Section {
-                Defaults.Toggle(key: .extendHoverArea) {
-                    Text("Extend hover area")
-                }
-                .onChange(of: extendHoverArea) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.expandedDragDetectionChanged,
-                        object: nil
-                    )
-                }
-                
-                if extendHoverArea {
-                    Slider(value: $hoverAreaPadding, in: 5...60, step: 5) {
-                        Text("Hover detection range - \(hoverAreaPadding, specifier: "%.0f") px")
-                    }
-                    .onChange(of: hoverAreaPadding) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.expandedDragDetectionChanged,
-                            object: nil
-                        )
-                    }
-                    Text("Expands the sensitivity area for hovering to open the notch, without affecting Drag & Drop distance.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
                 Defaults.Toggle(key: .hideTitleBar) {
                     Text("Hide title bar")
                 }

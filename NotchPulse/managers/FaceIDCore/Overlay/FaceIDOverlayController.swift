@@ -111,6 +111,12 @@ final class FaceIDOverlayController {
         }
     }
 
+    // CRITICAL: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
+    // thì mới chuyển sang bên màn hình có camera. KHÔNG ĐƯỢC ĐỔI LOGIC NÀY!
+    // (DO NOT CHANGE THIS LOGIC: When at lock screen or waking from sleep/screen off,
+    // ONLY switch to camera screen if Face ID was triggered by hover!)
+    @Published var isHoverTriggeredOnLockScreen: Bool = false
+
     private var previousScreenUUIDBeforeFaceID: String?
 
     private func routeToCameraScreen() {
@@ -135,6 +141,7 @@ final class FaceIDOverlayController {
 
     private func restorePreviousScreen() {
         isPresenting = false
+        isHoverTriggeredOnLockScreen = false
         let destinationUUID: String? = {
             if let prev = previousScreenUUIDBeforeFaceID,
                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
@@ -201,6 +208,7 @@ final class FaceIDOverlayController {
     /// `collapse()` checks `isArmed` once its hold expires and hides for real then.
     func disarm() {
         isArmed = false
+        isHoverTriggeredOnLockScreen = false
         armedAt = nil
         onActivate = nil
         // Undocked before the guard: if a success collapse is already in flight, this
@@ -242,7 +250,12 @@ final class FaceIDOverlayController {
         withAnimation(FaceIDOverlayGeometry.springAnimation) {
             phase = .scanning
         }
-        routeToCameraScreen()
+        // CRITICAL RULE: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
+        // thì mới chuyển sang bên màn hình có camera. KHÔNG ĐƯỢC ĐỔI LOGIC NÀY!
+        // (DO NOT CHANGE: Only route to camera screen at lock screen if triggered by hover!)
+        if !NotchPulseLockMonitor.isScreenActuallyLocked() || isHoverTriggeredOnLockScreen {
+            routeToCameraScreen()
+        }
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         searchingAnimationTask?.cancel(); searchingAnimationTask = nil
@@ -436,6 +449,11 @@ final class FaceIDOverlayController {
         pendingHoverActivationTask?.cancel()
         pendingHoverActivationTask = nil
 
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            // Hover triggered Face ID on lock screen -> allow routing to camera screen!
+            isHoverTriggeredOnLockScreen = true
+        }
+
         switch phase {
         case .closed, .failure, .collapsing:
             routeToCameraScreen()
@@ -467,7 +485,11 @@ final class FaceIDOverlayController {
             } else {
                 NotchPulseFaceUnlockCoordinator.shared.startScanManually()
             }
-        case .scanning, .success, .onboarding:
+        case .scanning:
+            if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                routeToCameraScreen()
+            }
+        case .success, .onboarding:
             break
         }
     }

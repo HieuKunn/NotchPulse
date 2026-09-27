@@ -1,9 +1,8 @@
 # NotchPulse v4.8.7
 
-## 📅 Apple Calendar-Style Full Month Grid & Enhancements
-- **Full Month Calendar View**: Click the month and year header in the calendar tab to smoothly expand the notch and view a gorgeous, Apple Calendar-style full month grid. Navigate between months effortlessly with chevron controls.
-- **Seamless Date & Month Sync**: Fixed wheel picker scrolling date synchronization so month and year headers update smoothly across month boundaries.
-- **Lock Screen & Face ID Isolation**: Completely decoupled DND Ghost Windows and Radar monitoring on the lock screen to guarantee 100% reliable Face ID hover activation without interference.
-- **New Clipboard Manager Core**: Added background clipboard history tracking with a dedicated settings management pane and notch history tab.
-- **Dynamic Dark Frosted Glass**: Upgraded notch expansion backgrounds to use active `NSVisualEffectView` rendering for true multi-depth frosted glass aesthetics.
-
+## 🚀 Passthrough Click Accuracy & Layout Enhancements
+- **100% Unobstructed Browser Clicks**: Implemented strict hit-testing passthrough so clicking on browser tabs, links, address bars, and controls directly beneath or surrounding the virtual notch is completely unhindered with zero latency.
+- **Independent Hover & Drag Detection Settings**: Separated Notch General Hover Expansion (`extendHoverArea`) and Shelf File Drag Detection (`expandedDragDetection`) into distinct, independent settings for precise user control.
+- **Apple Calendar Month Navigation & Boundary Tracking**: Enhanced full-month calendar grid navigation buttons and added real-time month/year title updates when scrolling across month boundaries in horizontal day-wheel mode.
+- **Lock Screen Face ID Protection**: Enhanced Face ID lock screen hover routing so camera switching only triggers upon explicit hover intent on the lock screen.
+- **Auto-Collapsing Notch Height**: Navigating to another tab or view automatically resets custom open heights back to standard proportions.

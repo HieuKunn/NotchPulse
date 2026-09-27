@@ -28,6 +28,12 @@ final class ShelfDropZoneView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Return nil so regular mouse clicks pass through to windows beneath.
+        // Drag-and-drop operations in AppKit still route to draggingEntered / draggingExited.
+        return nil
+    }
+
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         onDragEntered?()
         return .copy
@@ -55,7 +61,7 @@ final class ShelfDropZoneWindow: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         isMovable = false
-        ignoresMouseEvents = true
+        ignoresMouseEvents = false
         level = .mainMenu + 2
         collectionBehavior = [.fullScreenAuxiliary, .stationary, .canJoinAllSpaces, .ignoresCycle]
         contentView = dropZoneView

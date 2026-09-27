@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import Defaults
 import UniformTypeIdentifiers
 
 final class DragDetector {
@@ -172,15 +173,20 @@ final class DragDetector {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
-            // Unconditional hover radar (works whether mouse is pressed or not, uses distinct hover boundaries)
-            let mouseLocation = NSEvent.mouseLocation
-            let hoverRegion = self.regionProvider(false)
-            let containsMouseHover = hoverRegion.contains(mouseLocation)
-            
-            if containsMouseHover && !self.isHoveringFromRadar {
-                self.isHoveringFromRadar = true
-                self.onGlobalHoverStateChanged?(true)
-            } else if !containsMouseHover && self.isHoveringFromRadar {
+            // Hover radar (active when extendHoverArea is enabled in General settings)
+            if Defaults[.extendHoverArea] {
+                let mouseLocation = NSEvent.mouseLocation
+                let hoverRegion = self.regionProvider(false)
+                let containsMouseHover = hoverRegion.contains(mouseLocation)
+                
+                if containsMouseHover && !self.isHoveringFromRadar {
+                    self.isHoveringFromRadar = true
+                    self.onGlobalHoverStateChanged?(true)
+                } else if !containsMouseHover && self.isHoveringFromRadar {
+                    self.isHoveringFromRadar = false
+                    self.onGlobalHoverStateChanged?(false)
+                }
+            } else if self.isHoveringFromRadar {
                 self.isHoveringFromRadar = false
                 self.onGlobalHoverStateChanged?(false)
             }

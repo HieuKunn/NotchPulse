@@ -265,63 +265,64 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let screenFrame = screen.frame
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
         
-        let dragPadding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
         let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
         let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
 
-        // 1. SETUP GHOST WINDOW FOR FILE DRAGGING (Guaranteed drop zone registration without blocking clicks)
-        let ghostWindow = ShelfDropZoneWindow()
-        let width = (targetVM.notchState == .open ? max(targetVM.notchSize.width, openNotchSize.width) : (isDynamicIsland ? 210.0 : 185.0)) + (dragPadding * 2)
-        let height = (targetVM.notchState == .open ? max(targetVM.notchSize.height, openNotchSize.height) : (isDynamicIsland ? 32.0 : 36.0)) + dragPadding + topOffset + 30
-        
-        ghostWindow.setFrame(CGRect(
-            x: screenFrame.midX - (width / 2),
-            y: screenFrame.maxY - height,
-            width: width,
-            height: height
-        ), display: true)
-        
-        ghostWindow.dropZoneView.onDragEntered = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragEntersNotchRegion(onScreen: screen)
-            }
-        }
-        ghostWindow.dropZoneView.onDragExited = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragExitsNotchRegion(onScreen: screen)
-            }
-        }
-        ghostWindow.orderFrontRegardless()
-        shelfWindows[uuid] = ghostWindow
-
-        // 2. SETUP LIGHTWEIGHT RADAR FOR HOVER (Mouse movement without dragging files)
+        // SETUP LIGHTWEIGHT RADAR FOR HOVER & DRAG DETECTION
+        // Uses pure coordinate monitoring (NSEvent.mouseLocation) with ZERO physical windows or overlays.
+        // Clicks to underlying tabs, links, and buttons remain 100% unobstructed.
         let detector = DragDetector { [weak self] isDraggingContent in
             guard let self = self else { return .zero }
-            let hoverPadding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
+            let padding: CGFloat
+            if isDraggingContent {
+                padding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
+            } else {
+                padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
+            }
             
             if targetVM.notchState == .open {
                 let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
                 let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
                 return CGRect(
-                    x: screenFrame.midX - (openWidth / 2 + hoverPadding),
-                    y: screenFrame.maxY - (openHeight + hoverPadding + topOffset),
-                    width: openWidth + (hoverPadding * 2),
-                    height: openHeight + hoverPadding + topOffset + 30
+                    x: screenFrame.midX - (openWidth / 2 + padding),
+                    y: screenFrame.maxY - (openHeight + padding + topOffset),
+                    width: openWidth + (padding * 2),
+                    height: openHeight + padding + topOffset + 30
                 )
             } else {
                 let closedSize = targetVM.closedNotchSize
                 let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
                 let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
                 return CGRect(
-                    x: screenFrame.midX - (closedWidth / 2 + hoverPadding),
-                    y: screenFrame.maxY - (closedHeight + hoverPadding + topOffset),
-                    width: closedWidth + (hoverPadding * 2),
-                    height: closedHeight + hoverPadding + topOffset + 30
+                    x: screenFrame.midX - (closedWidth / 2 + padding),
+                    y: screenFrame.maxY - (closedHeight + padding + topOffset),
+                    width: closedWidth + (padding * 2),
+                    height: closedHeight + padding + topOffset + 30
                 )
             }
         }
         
+        detector.onDragEntersNotchRegion = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragEntersNotchRegion(onScreen: screen)
+            }
+        }
+        detector.onDragExitsNotchRegion = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragExitsNotchRegion(onScreen: screen)
+            }
+        }
+        detector.onDragEnded = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragEnded(onScreen: screen)
+            }
+        }
+        detector.onGlobalDragStateChanged = { [weak self] isDragging in
+            Task { @MainActor in
+                targetVM.dragDetectorTargeting = isDragging
+            }
+        }
         detector.onGlobalHoverStateChanged = { [weak self] hovering in
             Task { @MainActor in
                 self?.vm.isHoveringFromRadar = hovering
@@ -399,10 +400,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.disableSkyLight()
         }
 
-        window.contentView = NSHostingView(
+        let hostingView = NotchPulseHostingView(
             rootView: ContentView()
                 .environmentObject(viewModel)
         )
+        hostingView.viewModel = viewModel
+        window.contentView = hostingView
 
         window.orderFrontRegardless()
         NotchSpaceManager.shared.notchSpace.windows.insert(window)
@@ -741,7 +744,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let targetScreen: NSScreen?
 
             // 0. Only dynamically route to the camera's physical display when Face ID is ACTIVELY scanning / showing / onboarding
-            let isFaceIDScanning = (FaceIDOverlayController.shared.phase == .scanning
+            // KHÔNG ĐƯỢC ĐỔI LOGIC NÀY: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
+            // thì mới chuyển sang bên màn hình có camera!
+            // (CRITICAL RULE: At lockscreen or wake/sleep, ONLY switch to camera screen if Face ID was triggered by hover!)
+            let isLockScreen = NotchPulseLockMonitor.isScreenActuallyLocked()
+            let canRouteForLockScreen = !isLockScreen || FaceIDOverlayController.shared.isHoverTriggeredOnLockScreen
+
+            let isFaceIDScanning = canRouteForLockScreen && (FaceIDOverlayController.shared.phase == .scanning
                 || FaceIDOverlayController.shared.phase == .success
                 || FaceIDOverlayController.shared.phase == .failure
                 || FaceIDOverlayController.shared.phase == .onboarding
