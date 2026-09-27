@@ -596,6 +596,10 @@ final class SpotlightTourHostingView<Content: View>: NSHostingView<Content> {
 final class SpotlightTourManager: ObservableObject {
     static let shared = SpotlightTourManager()
 
+    /// True while the spotlight tour overlay is visible. ContentView uses this flag
+    /// to suppress all auto-close timers so the notch stays open during the tour.
+    @Published var isActive: Bool = false
+
     var currentCutoutRect: CGRect = .zero
     var currentTooltipRect: CGRect = .zero
     private var tourWindow: NSWindow?
@@ -640,6 +644,7 @@ final class SpotlightTourManager: ObservableObject {
         window.contentView = SpotlightTourHostingView(rootView: tourView)
         self.tourWindow = window
 
+        isActive = true
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
@@ -689,6 +694,7 @@ final class SpotlightTourManager: ObservableObject {
             NotificationCenter.default.removeObserver(obs)
             faceIDPhaseObserver = nil
         }
+        isActive = false
         tourWindow?.orderOut(nil)
         tourWindow?.close()
         tourWindow = nil
