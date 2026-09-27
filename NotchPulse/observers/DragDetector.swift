@@ -235,12 +235,12 @@ final class DragDetector {
         }
 
         // Detect if active drag session:
-        // Pasteboard changeCount changed from idle baseline or mouse-down baseline, with valid drag types
+        // Pasteboard changeCount changed from idle baseline or mouse-down baseline, OR mouse is pressed with valid drag content
         let isPasteboardChanged = (lastKnownIdlePasteboardCount >= 0 && currentPbCount != lastKnownIdlePasteboardCount) ||
                                   (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
         let isNewDragOperation = isPasteboardChanged && hasValidDragContent()
 
-        if isContentDragging || isNewDragOperation {
+        if isContentDragging || isNewDragOperation || (mousePressed && hasValidDragContent()) {
             isContentDragging = true
             onDragMove?(mouseLocation)
 

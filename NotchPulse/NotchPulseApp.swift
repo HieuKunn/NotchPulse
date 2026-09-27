@@ -960,12 +960,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     step: step,
                     onFinish: {
                         window.orderOut(nil)
-//                        NSApp.setActivationPolicy(.accessory)
                         window.close()
-                        NSApp.deactivate()
+                        self.onboardingWindowController = nil
+                        self.coordinator.firstLaunch = false
                     },
                     onOpenSettings: {
+                        window.orderOut(nil)
                         window.close()
+                        self.onboardingWindowController = nil
+                        self.coordinator.firstLaunch = false
                         SettingsWindowController.shared.showWindow()
                     }
                 ))

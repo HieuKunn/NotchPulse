@@ -232,12 +232,69 @@ struct SpotlightTourView: View {
                     onNext: nextStep,
                     onPrev: prevStep,
                     onSkipStep: nextStep,
-                    onSkipAll: onDismiss,
+                    onSkipAll: dismissTour,
                     isFirst: currentStepIndex == 0,
                     isLast: currentStepIndex == SpotlightTourStep.allCases.count - 1
                 )
                 .position(tooltipPosition(targetRect: targetRect, screenSize: screenSize))
                 .animation(.spring(response: 0.45, dampingFraction: 0.75), value: currentStepIndex)
+            }
+            .onAppear {
+                updateLiveUIState(for: currentStep)
+            }
+            .onChange(of: currentStepIndex) { newIndex in
+                if let newStep = SpotlightTourStep(rawValue: newIndex) {
+                    updateLiveUIState(for: newStep)
+                }
+            }
+        }
+    }
+
+    private func dismissTour() {
+        Task { @MainActor in
+            NotchPulseViewModel.shared.close()
+        }
+        onDismiss()
+    }
+
+    private func updateLiveUIState(for step: SpotlightTourStep) {
+        Task { @MainActor in
+            let vm = NotchPulseViewModel.shared
+            let coordinator = NotchPulseViewCoordinator.shared
+
+            switch step {
+            case .notchHover:
+                coordinator.currentView = .notch
+                vm.open()
+
+            case .shakeToShelf:
+                coordinator.currentView = .shelf
+                vm.open()
+
+            case .musicPlayer:
+                coordinator.currentView = .media
+                vm.open()
+
+            case .calendarExpand:
+                coordinator.currentView = .calendar
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                vm.open()
+
+            case .calendarFullMonth:
+                coordinator.currentView = .calendar
+                CalendarStateViewModel.shared.isFullMonthExpanded = true
+                vm.open()
+
+            case .clipboardManager:
+                coordinator.currentView = .clipboard
+                vm.open()
+
+            case .faceIDLock:
+                vm.open()
+
+            case .menuBarSettings:
+                vm.close()
+                SettingsWindowController.shared.showWindow()
             }
         }
     }
@@ -248,7 +305,7 @@ struct SpotlightTourView: View {
                 currentStepIndex += 1
             }
         } else {
-            onDismiss()
+            dismissTour()
         }
     }
 
