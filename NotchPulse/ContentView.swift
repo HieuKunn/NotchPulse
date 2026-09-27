@@ -10,7 +10,11 @@ import AVFoundation
 import Combine
 import Defaults
 import KeyboardShortcuts
+import SwiftUI
 import SwiftUIIntrospect
+import UniformTypeIdentifiers
+
+@MainActor
 struct ContentView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var webcamManager = WebcamManager.shared
@@ -946,8 +950,6 @@ struct ContentView: View {
         }
     }
 }
-
-import UniformTypeIdentifiers
 
 class FullScreenDropDelegate: DropDelegate {
     @Binding var isTargeted: Bool
