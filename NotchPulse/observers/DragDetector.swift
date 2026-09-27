@@ -76,26 +76,34 @@ final class DragDetector {
         guard let types = dragPasteboard.types, !types.isEmpty else {
             return false
         }
-        guard let items = dragPasteboard.pasteboardItems, !items.isEmpty else {
-            return false
-        }
-
-        // Direct check: Can pasteboard provide file URLs?
-        if dragPasteboard.canReadObject(forClasses: [NSURL.self], options: [NSPasteboard.ReadingOptionKey.urlReadingFileURLsOnly: true]) {
-            return true
-        }
 
         let validFileOrItemTypeIdentifiers: Set<String> = [
             NSPasteboard.PasteboardType.fileURL.rawValue,
+            NSPasteboard.PasteboardType.URL.rawValue,
+            NSPasteboard.PasteboardType.string.rawValue,
             "public.file-url",
             "com.apple.finder.node",
             "NSFilenamesPboardType",
             "com.apple.pasteboard.promised-file-url",
             "com.apple.pasteboard.promised-file-content-type",
             "com.apple.mac.install-source-container",
-            "public.image"
+            "public.data",
+            "public.item",
+            "public.content",
+            "public.image",
+            "public.url",
+            "public.utf8-plain-text",
+            "NSStringPboardType"
         ]
-        return types.contains { validFileOrItemTypeIdentifiers.contains($0.rawValue) }
+
+        return types.contains { type in
+            validFileOrItemTypeIdentifiers.contains(type.rawValue) ||
+            type.rawValue.hasPrefix("dyn.") ||
+            type.rawValue.contains("file") ||
+            type.rawValue.contains("url") ||
+            type.rawValue.contains("finder") ||
+            type.rawValue.contains("image")
+        }
     }
 
     private var unpressedPollCount: Int = 0
@@ -112,9 +120,9 @@ final class DragDetector {
             self?.checkState()
         }
 
-        // High-frequency polling timer (25Hz / 40ms) running in .common mode so it continues
+        // High-frequency polling timer (33Hz / 30ms) running in .common mode so it continues
         // firing without pausing during active WindowServer NSDraggingSession.
-        let timer = Timer(timeInterval: 0.04, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.03, repeats: true) { [weak self] _ in
             self?.checkState()
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -122,22 +130,22 @@ final class DragDetector {
     }
 
     private func checkShakeGesture(currentX: CGFloat, currentTime: TimeInterval) {
-        // Debounce: don't trigger again within 1.2s of last shake
-        guard currentTime - lastShakeTriggerTime > 1.2 else { return }
+        // Debounce: don't trigger again within 1.0s of last shake
+        guard currentTime - lastShakeTriggerTime > 1.0 else { return }
 
         recentSamples.append(MouseSample(x: currentX, time: currentTime))
 
-        // Keep samples from the last 450ms
-        let cutoff = currentTime - 0.45
+        // Keep samples from the last 700ms (natural human gesture window)
+        let cutoff = currentTime - 0.70
         recentSamples.removeAll { $0.time < cutoff }
 
-        guard recentSamples.count >= 4 else { return }
+        guard recentSamples.count >= 3 else { return }
 
-        // Detect direction reversals (swings) with at least 15px travel
+        // Detect direction reversals (swings) with at least 10px travel
         var reversals = 0
         var currentDirection = 0 // -1 for left, +1 for right
         var lastExtremumX = recentSamples[0].x
-        let minSwing: CGFloat = 15.0
+        let minSwing: CGFloat = 10.0
 
         for sample in recentSamples {
             let dx = sample.x - lastExtremumX
@@ -165,8 +173,8 @@ final class DragDetector {
             }
         }
 
-        // 3 or more reversals in 450ms signifies a deliberate rapid horizontal shake/jiggle
-        if reversals >= 3 {
+        // 2 or more reversals in 700ms signifies a deliberate rapid horizontal shake (Left -> Right -> Left or Right -> Left -> Right)
+        if reversals >= 2 {
             lastShakeTriggerTime = currentTime
             recentSamples.removeAll()
             onShakeDetected?()
@@ -183,7 +191,7 @@ final class DragDetector {
             recentSamples.removeAll()
             mouseDownPasteboardCount = nil
             unpressedPollCount += 1
-            // Require sustained release (>= 3 ticks = 120ms) before declaring drag ended.
+            // Require sustained release (>= 3 ticks = 90ms) before declaring drag ended.
             // This prevents trackpad force-touch pressure drops from prematurely killing drag operations.
             if isContentDragging || hasEnteredNotchRegion {
                 if unpressedPollCount >= 3 {
@@ -226,10 +234,11 @@ final class DragDetector {
             mouseDownPasteboardCount = currentPbCount
         }
 
-        // Detect if a real file drag operation is active:
-        // Pasteboard changeCount increased from the idle baseline after mouse button went down, AND contains valid file content.
-        let initialBaseline = (lastKnownIdlePasteboardCount >= 0) ? min(mouseDownPasteboardCount ?? currentPbCount, lastKnownIdlePasteboardCount) : (mouseDownPasteboardCount ?? currentPbCount)
-        let isNewDragOperation = (currentPbCount > initialBaseline) && hasValidDragContent()
+        // Detect if active drag session:
+        // Pasteboard changeCount changed from idle baseline or mouse-down baseline, with valid drag types
+        let isPasteboardChanged = (lastKnownIdlePasteboardCount >= 0 && currentPbCount != lastKnownIdlePasteboardCount) ||
+                                  (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
+        let isNewDragOperation = isPasteboardChanged && hasValidDragContent()
 
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
