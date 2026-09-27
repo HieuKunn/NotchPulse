@@ -283,31 +283,65 @@ struct SpotlightTourView: View {
                 currentVM = appDelegate.vm
             }
 
-            // Step 1: Open the notch immediately with animation
+            // ── INTERACTIVE STEPS ──────────────────────────────────────────────
+            // These steps require the user to perform the gesture themselves.
+            // Keep the notch closed (or in the correct waiting state) so they
+            // can experience the actual feature, not just watch a demo.
+            switch step {
+
+            case .notchHover:
+                // USER must hover over the notch to open it.
+                // Close notch so the exercise is real.
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                currentVM.customOpenHeight = nil
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    currentVM.close()
+                }
+                return
+
+            case .shakeToShelf:
+                // USER must drag a file and shake left-right to open the shelf.
+                // Close notch and reset to home so they start from scratch.
+                coordinator.currentView = .home
+                currentVM.customOpenHeight = nil
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    currentVM.close()
+                }
+                return
+
+            case .calendarExpand:
+                // USER must click the month/date header inside the notch to expand calendar.
+                // Open notch on home tab with calendar compact (not expanded) — ready to click.
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                currentVM.customOpenHeight = nil
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    currentVM.open()
+                }
+                return
+
+            default:
+                break
+            }
+
+            // ── DEMO STEPS ─────────────────────────────────────────────────────
+            // These steps auto-open the notch and switch to the relevant tab so
+            // the user can clearly see the feature being explained.
+
+            // Step 1: Open notch immediately
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
                 currentVM.customOpenHeight = nil
                 currentVM.open()
             }
 
-            // Step 2: Wait for notch open animation to settle, then switch to the
-            // correct tab/view so the user clearly sees what's being demonstrated.
+            // Step 2: After notch open animation settles, switch to the correct tab
             try? await Task.sleep(for: .milliseconds(280))
             guard !Task.isCancelled else { return }
 
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                 switch step {
-                case .notchHover:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = false
-
-                case .shakeToShelf:
-                    coordinator.currentView = .shelf
-
                 case .musicPlayer:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = false
-
-                case .calendarExpand:
                     coordinator.currentView = .home
                     CalendarStateViewModel.shared.isFullMonthExpanded = false
 
@@ -325,6 +359,9 @@ struct SpotlightTourView: View {
                 case .menuBarSettings:
                     coordinator.currentView = .home
                     SettingsWindowController.shared.showWindow()
+
+                default:
+                    break
                 }
             }
         }
