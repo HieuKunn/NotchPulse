@@ -629,6 +629,29 @@ struct GeneralSettings: View {
 
     var body: some View {
         Form {
+            Section {
+                Button(action: {
+                    SpotlightTourManager.shared.showTour()
+                }) {
+                    HStack {
+                        Image(systemName: "sparkles.tv.fill")
+                            .foregroundColor(.cyan)
+                            .font(.system(size: 16))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Bắt đầu Hướng dẫn Spotlight (Interactive Tour)")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("Xem toàn bộ hướng dẫn vị trí & thao tác Notch, Shelf, Music Lyrics, Lịch Âm")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+
             styleSection
             dimensionsSection
             systemFeaturesSection

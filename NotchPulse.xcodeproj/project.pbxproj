@@ -70,6 +70,7 @@
 		11CC44A22CEE614100C7244B /* NotchPulseViewCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CC44A12CEE614100C7244B /* NotchPulseViewCoordinator.swift */; };
 		11CFC65B2E097E9D00748C80 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC65A2E097E9D00748C80 /* WelcomeView.swift */; };
 		11CFC65F2E097F2F00748C80 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC65E2E097F2100748C80 /* OnboardingView.swift */; };
+		11CFC9992E097F2F00748C80 /* SpotlightTourView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC9982E097F2100748C80 /* SpotlightTourView.swift */; };
 		11CFC6612E097F6800748C80 /* PermissionsRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */; };
 		11CFC6632E09918400748C80 /* MusicControllerSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6622E09917B00748C80 /* MusicControllerSelectionView.swift */; };
 		11CFC6652E09C7B300748C80 /* OnboardingFinishView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6642E09C7B300748C80 /* OnboardingFinishView.swift */; };
@@ -334,6 +335,7 @@
 		11CC44A12CEE614100C7244B /* NotchPulseViewCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPulseViewCoordinator.swift; sourceTree = "<group>"; };
 		11CFC65A2E097E9D00748C80 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		11CFC65E2E097F2100748C80 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		11CFC9982E097F2100748C80 /* SpotlightTourView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightTourView.swift; sourceTree = "<group>"; };
 		11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsRequestView.swift; sourceTree = "<group>"; };
 		11CFC6622E09917B00748C80 /* MusicControllerSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicControllerSelectionView.swift; sourceTree = "<group>"; };
 		11CFC6642E09C7B300748C80 /* OnboardingFinishView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFinishView.swift; sourceTree = "<group>"; };
@@ -925,6 +927,7 @@
 			isa = PBXGroup;
 			children = (
 				11CFC6642E09C7B300748C80 /* OnboardingFinishView.swift */,
+				11CFC9982E097F2100748C80 /* SpotlightTourView.swift */,
 				11CFC6622E09917B00748C80 /* MusicControllerSelectionView.swift */,
 				11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */,
 				11CFC65E2E097F2100748C80 /* OnboardingView.swift */,
@@ -1347,6 +1350,7 @@
 				1132E5142E777B920068732D /* YouTubeMusicNetworking.swift in Sources */,
 				1132E5122E777B6E0068732D /* YouTubeMusicModels.swift in Sources */,
 				11CFC65F2E097F2F00748C80 /* OnboardingView.swift in Sources */,
+				11CFC9992E097F2F00748C80 /* SpotlightTourView.swift in Sources */,
 				14CEF4162C5CAED300855D72 /* NotchPulseApp.swift in Sources */,
 				B17266DF2C64DFA00031BA0D /* BundleInfos.swift in Sources */,
 				118EBE3B2E9720C500D54B5A /* ShelfStateViewModel.swift in Sources */,
