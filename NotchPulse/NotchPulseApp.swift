@@ -308,16 +308,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let closedSize = currentTargetVM.closedNotchSize
                     let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
                     let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                    // Confine closed notch hover bounds strictly to the physical notch / island.
+                    // Absolutely no lateral or downward bleeding to prevent false triggers over browser tabs.
                     return CGRect(
-                        x: currentFrame.midX - (closedWidth / 2 + padding),
-                        y: currentFrame.maxY - (closedHeight + padding + topOffset),
-                        width: closedWidth + (padding * 2),
-                        height: closedHeight + (padding * 2) + topOffset
+                        x: currentFrame.midX - (closedWidth / 2),
+                        y: currentFrame.maxY - (closedHeight + topOffset),
+                        width: closedWidth,
+                        height: closedHeight + topOffset
                     )
                 }
             }
         }
         
+        detector.onShakeDetected = { [weak self] in
+            Task { @MainActor in
+                guard let self = self else { return }
+                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
+                SharingStateManager.shared.preventNotchClose = true
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    currentTargetVM.open()
+                    self.coordinator.currentView = .shelf
+                }
+                if Defaults[.enableHaptics] {
+                    NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                }
+            }
+        }
+
         detector.onDragEntersNotchRegion = { [weak self] in
             Task { @MainActor in
                 self?.handleDragEntersNotchRegion(onScreen: screen)

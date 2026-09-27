@@ -860,6 +860,12 @@ struct ContentView: View {
         hoverTask?.cancel()
         
         if hovering {
+            // If the user is dragging an app window or holding the mouse button down, NEVER open the closed notch on hover
+            let isMouseHeld = (NSEvent.pressedMouseButtons != 0) || CGEventSource.buttonState(.combinedSessionState, button: .left)
+            if vm.notchState == .closed && isMouseHeld {
+                return
+            }
+
             withAnimation(animationSpring) {
                 isHovering = true
             }
@@ -877,17 +883,19 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
+                    let stillPressed = (NSEvent.pressedMouseButtons != 0) || CGEventSource.buttonState(.combinedSessionState, button: .left)
                     guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
                           self.vm.notchState == .closed,
                           self.isHovering,
-                          !self.coordinator.sneakPeek.show else { return }
+                          !self.coordinator.sneakPeek.show,
+                          !stillPressed else { return }
                     
                     self.doOpen()
                 }
             }
         } else {
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(350))
+                try? await Task.sleep(for: .milliseconds(250))
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {

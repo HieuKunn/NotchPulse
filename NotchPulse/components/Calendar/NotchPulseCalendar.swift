@@ -410,6 +410,8 @@ struct WheelPicker: View {
             }
             .frame(height: 40)
             .background(CalendarScrollWheelHelper { originX, viewportWidth in
+                // Avoid false month updates when originX is 0 during initial view hierarchy insertion before scrollToToday
+                guard originX > 50 else { return }
                 let cellWidth: CGFloat = 34.0 // 32 item width + 2 spacing
                 let centerX = originX + (viewportWidth / 2.0)
                 let itemIndex = Int(round((centerX - 16.0) / cellWidth))
@@ -581,19 +583,26 @@ private struct MonthDayCellButton: View {
 
     var body: some View {
         Button(action: onClick) {
-            ZStack {
+            ZStack(alignment: .center) {
                 if isSelected {
-                    Circle().fill(Color.effectiveAccentBackground).frame(width: 25, height: 25)
+                    Circle()
+                        .fill(Color.effectiveAccentBackground)
+                        .frame(width: 25, height: 25)
                 } else if isHovered {
-                    Circle().fill(Color.white.opacity(0.12)).frame(width: 25, height: 25)
+                    Circle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 25, height: 25)
                 } else if isToday {
-                    Circle().stroke(Color.effectiveAccentBackground, lineWidth: 1.5).frame(width: 25, height: 25)
+                    Circle()
+                        .stroke(Color.effectiveAccentBackground, lineWidth: 1.5)
+                        .frame(width: 25, height: 25)
                 }
 
                 if showLunar {
                     VStack(spacing: 0) {
                         Text("\(dayNumber)")
                             .font(.system(size: 9.5, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
+                            .monospacedDigit()
                             .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : (isHovered ? .white : Color(white: 0.85))))
                         Text(AlternateCalendarHelper.gridCellString(for: date, type: alternateCalendarType))
                             .font(.system(size: 7.0, weight: .regular, design: .rounded))
@@ -603,9 +612,12 @@ private struct MonthDayCellButton: View {
                 } else {
                     Text("\(dayNumber)")
                         .font(.system(size: 11, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
+                        .monospacedDigit()
                         .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : (isHovered ? .white : Color(white: 0.78))))
+                        .offset(y: 0.5)
                 }
             }
+            .frame(width: 25, height: 25)
             .frame(maxWidth: .infinity)
             .frame(height: 26)
             .contentShape(Rectangle())
@@ -650,11 +662,7 @@ struct FullMonthCalendarGrid<TrailingContent: View>: View {
         VStack(spacing: 5) {
             if showHeader {
                 HStack(spacing: 8) {
-                    Text(displayedDate.formatted(.dateTime.month(.wide).year()))
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-
+                    // Navigation chevrons on the left
                     HStack(spacing: 3) {
                         CalendarNavButton(icon: "chevron.left", helpText: "Previous month") {
                             onPrevMonth()
@@ -662,29 +670,37 @@ struct FullMonthCalendarGrid<TrailingContent: View>: View {
                         CalendarNavButton(icon: "chevron.right", helpText: "Next month") {
                             onNextMonth()
                         }
-                        CalendarNavButton(
-                            icon: showLunarCalendar ? "moon.fill" : "moon",
-                            helpText: showLunarCalendar ? "Hide lunar calendar" : "Show lunar calendar",
-                            isToggled: showLunarCalendar
-                        ) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showLunarCalendar.toggle()
-                            }
-                        }
                     }
 
+                    // Month & Year title
+                    Text(displayedDate.formatted(.dateTime.month(.wide).year()))
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+
                     Spacer(minLength: 0)
+
+                    // Moon icon positioned to the far right of the 3/5 month section
+                    CalendarNavButton(
+                        icon: showLunarCalendar ? "moon.fill" : "moon",
+                        helpText: showLunarCalendar ? "Hide lunar calendar" : "Show lunar calendar",
+                        isToggled: showLunarCalendar
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showLunarCalendar.toggle()
+                        }
+                    }
 
                     trailingHeaderButton()
                 }
                 .padding(.horizontal, 4)
 
-                // Day of week row
+                // Day of week row - larger and clearly illuminated
                 HStack(spacing: 0) {
                     ForEach(daysOfWeek, id: \.self) { dow in
                         Text(dow)
-                            .font(.system(size: 9.5, weight: .medium, design: .rounded))
-                            .foregroundColor(Color(white: 0.5))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.85))
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -834,6 +850,11 @@ struct CalendarView: View {
         .onChange(of: selectedDate) { _, newValue in
             Task { @MainActor in
                 await calendarManager.updateCurrentDate(newValue)
+            }
+        }
+        .onChange(of: mode) { _, newMode in
+            if newMode == .dayDetail || newMode == .fullMonth {
+                displayedDate = selectedDate
             }
         }
         .onChange(of: coordinator.currentView) { _, newView in

@@ -22,9 +22,10 @@ final class DragDetector {
     var onDragMove: PositionCallback?
     var onGlobalDragStateChanged: ((Bool) -> Void)?
     var onGlobalHoverStateChanged: ((Bool) -> Void)?
+    var onShakeDetected: VoidCallback?
 
     private var pollTimer: Timer?
-    private var mouseDraggedMonitor: Any?
+    private var mouseMonitor: Any?
 
     private var lastKnownIdlePasteboardCount: Int = -1
     private var mouseDownPasteboardCount: Int?
@@ -37,6 +38,14 @@ final class DragDetector {
     }
     private var hasEnteredNotchRegion: Bool = false
     private var isHoveringFromRadar: Bool = false
+
+    // MARK: - Shake Detection State
+    private struct MouseSample {
+        let x: CGFloat
+        let time: TimeInterval
+    }
+    private var recentSamples: [MouseSample] = []
+    private var lastShakeTriggerTime: TimeInterval = 0
 
     private let regionProvider: (_ isDraggingContent: Bool) -> CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
@@ -92,9 +101,10 @@ final class DragDetector {
         lastKnownIdlePasteboardCount = dragPasteboard.changeCount
         mouseDownPasteboardCount = nil
         unpressedPollCount = 0
+        recentSamples.removeAll()
 
-        // Global monitor for leftMouseDragged (immediate response when events are delivered)
-        mouseDraggedMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
+        // Global monitor for leftMouseDragged & mouseMoved (for real-time response to drag and shake gestures)
+        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged, .mouseMoved]) { [weak self] _ in
             self?.checkState()
         }
 
@@ -107,8 +117,63 @@ final class DragDetector {
         pollTimer = timer
     }
 
+    private func checkShakeGesture(currentX: CGFloat, currentTime: TimeInterval) {
+        // Debounce: don't trigger again within 1.2s of last shake
+        guard currentTime - lastShakeTriggerTime > 1.2 else { return }
+
+        recentSamples.append(MouseSample(x: currentX, time: currentTime))
+
+        // Keep samples from the last 450ms
+        let cutoff = currentTime - 0.45
+        recentSamples.removeAll { $0.time < cutoff }
+
+        guard recentSamples.count >= 4 else { return }
+
+        // Detect direction reversals (swings) with at least 15px travel
+        var reversals = 0
+        var currentDirection = 0 // -1 for left, +1 for right
+        var lastExtremumX = recentSamples[0].x
+        let minSwing: CGFloat = 15.0
+
+        for sample in recentSamples {
+            let dx = sample.x - lastExtremumX
+            if currentDirection == 0 {
+                if abs(dx) >= minSwing {
+                    currentDirection = dx > 0 ? 1 : -1
+                    lastExtremumX = sample.x
+                }
+            } else if currentDirection == 1 { // Was moving right
+                if dx < -minSwing { // Reversed to moving left
+                    reversals += 1
+                    currentDirection = -1
+                    lastExtremumX = sample.x
+                } else if sample.x > lastExtremumX {
+                    lastExtremumX = sample.x
+                }
+            } else if currentDirection == -1 { // Was moving left
+                if dx > minSwing { // Reversed to moving right
+                    reversals += 1
+                    currentDirection = 1
+                    lastExtremumX = sample.x
+                } else if sample.x < lastExtremumX {
+                    lastExtremumX = sample.x
+                }
+            }
+        }
+
+        // 3 or more reversals in 450ms signifies a deliberate rapid horizontal shake/jiggle
+        if reversals >= 3 {
+            lastShakeTriggerTime = currentTime
+            recentSamples.removeAll()
+            onShakeDetected?()
+        }
+    }
+
     private func checkState() {
         let mouseLocation = NSEvent.mouseLocation
+        let now = ProcessInfo.processInfo.systemUptime
+        checkShakeGesture(currentX: mouseLocation.x, currentTime: now)
+
         let mousePressed = isLeftButtonPressed
         let currentPbCount = dragPasteboard.changeCount
 
@@ -184,14 +249,15 @@ final class DragDetector {
                 onDragExitsNotchRegion?()
             }
         } else {
-            // Regular mouse click inside UI: maintain hover radar state if extended hover area is enabled
-            let shouldRunHoverRadar = Defaults[.extendHoverArea]
-            if shouldRunHoverRadar {
+            // Mouse is pressed down (e.g. moving an app window, selecting text, or regular click):
+            // NEVER trigger a new hover radar open while mouse button is held!
+            // Only maintain hover radar if it was already active before mouse-down.
+            if isHoveringFromRadar {
                 let hoverRegion = regionProvider(false)
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
-                if containsMouseHover && !isHoveringFromRadar {
-                    isHoveringFromRadar = true
-                    onGlobalHoverStateChanged?(true)
+                if !containsMouseHover {
+                    isHoveringFromRadar = false
+                    onGlobalHoverStateChanged?(false)
                 }
             }
         }
@@ -202,12 +268,13 @@ final class DragDetector {
         pollTimer = nil
         isHoveringFromRadar = false
 
-        if let monitor = mouseDraggedMonitor {
+        if let monitor = mouseMonitor {
             NSEvent.removeMonitor(monitor)
         }
-        mouseDraggedMonitor = nil
+        mouseMonitor = nil
         isContentDragging = false
         hasEnteredNotchRegion = false
+        recentSamples.removeAll()
         mouseDownPasteboardCount = nil
         lastKnownIdlePasteboardCount = -1
     }
