@@ -117,6 +117,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
     }
 
 /// Calculate highlight frame relative to screen size (width, height)
+    @MainActor
     func targetFrame(screenSize: CGSize) -> CGRect {
         let screenWidth = screenSize.width
 
@@ -168,10 +169,12 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .menuBarSettings:
-            // NotchPulse icon in menu bar — top right corner
-            let width: CGFloat = 260
+            // Right Menu Bar section — stretches from top right screen corner to notch right edge
+            let notchWidth = max(220, getClosedNotchSize().width)
+            let notchRightEdge = (screenWidth + notchWidth) / 2
+            let width = max(50, screenWidth - notchRightEdge)
             let height: CGFloat = 34
-            return CGRect(x: screenWidth - width - 15, y: 0, width: width, height: height)
+            return CGRect(x: notchRightEdge, y: 0, width: width, height: height)
         }
     }
 }
