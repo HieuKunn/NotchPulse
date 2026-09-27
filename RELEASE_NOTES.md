@@ -1,11 +1,12 @@
-# 🚨 IMPORTANT RELEASE — NotchPulse v5.0.0 (Build 175)
+# 🚨 IMPORTANT RELEASE — NotchPulse v5.0.0 (Build 176)
 
 ## 🚀 What's New & Major Highlights
 
-- **🤝 Smart Shake-to-Open Shelf Improvements**:
+- **🤝 Smart Shake-to-Open Shelf & Drag Threshold Fixes**:
+  - **Distance Threshold Protection**: Standard button clicks and stationary mouse taps (< 10pt movement) are strictly ignored by the drag detector, guaranteeing zero accidental Shelf triggers or tab hijacking when clicking buttons anywhere on screen.
+  - **Instant Release & Cleanup**: Releasing the mouse immediately cancels drag states with zero tick delay, returning to normal operation instantly.
   - **5-Second Auto-Close Timeout**: When shaking to open the Shelf, if no file is dragged into the Notch within 5 seconds, it automatically closes and smoothly resets back to Home view.
-  - **Instant Release & Return**: If you cancel or release the file outside the Notch, the Notch closes immediately and reverts to normal operation without remaining open.
-  - **Clean Tab Switching & No Hijacking**: Merely having files saved in your Shelf will no longer force the Notch to open to Shelf on hover. The Notch opens cleanly to Home, allowing you to freely switch between Home, Stats, Clipboard, and Shelf tabs with zero lockup or unexpected snaps.
+  - **Clean Tab Switching**: Navigating between Home, Stats, Clipboard, and Shelf tabs works flawlessly with zero lockup or unexpected snaps to Shelf.
 
 - **✨ All-New Interactive Spotlight Onboarding Tour**:
   - **Hole-Punch Spotlight Overlay**: Dark background with elegant glowing white border highlighting active features step-by-step.
