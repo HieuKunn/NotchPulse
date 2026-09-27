@@ -502,14 +502,19 @@ struct NotchHomeView: View {
     private func mainContent(totalWidth: CGFloat) -> some View {
         let isCalendarVisible = Defaults[.showCalendar]
         let isCameraVisible = shouldShowCamera
-        
+        let isCalendarFullPage = isCalendarVisible && vm.customOpenHeight != nil
+
         // Balanced horizontal margin to prevent corner clipping and match Dynamic Island margins
         let horizontalPadding: CGFloat = 22
         let spacing: CGFloat = 14
         let baseWidth = totalWidth > 0 ? totalWidth : notchOpenWidth
         let availableWidth = max(280, baseWidth - (horizontalPadding * 2))
-        
+
         let (mediaWidth, calendarWidth, cameraWidth): (CGFloat, CGFloat, CGFloat) = {
+            // Calendar full page: media and camera are hidden
+            if isCalendarFullPage {
+                return (0, availableWidth, 0)
+            }
             if isCalendarVisible && isCameraVisible {
                 let camW: CGFloat = 130
                 let remainW = max(200, availableWidth - camW - (spacing * 2))
@@ -527,33 +532,39 @@ struct NotchHomeView: View {
             }
         }()
 
-        HStack(alignment: .top, spacing: spacing) {
-            MusicPlayerView(albumArtNamespace: albumArtNamespace, allocatedWidth: mediaWidth)
-                .frame(width: mediaWidth)
+        HStack(alignment: .top, spacing: isCalendarFullPage ? 0 : spacing) {
+            if !isCalendarFullPage {
+                MusicPlayerView(albumArtNamespace: albumArtNamespace, allocatedWidth: mediaWidth)
+                    .frame(width: mediaWidth)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            }
 
             if isCalendarVisible {
                 CalendarView()
-                    .frame(width: calendarWidth, height: 148)
+                    .frame(width: calendarWidth, height: isCalendarFullPage ? (vm.customOpenHeight ?? 300) : 148)
                     .clipped()
                     .onHover { isHovering in
                         vm.isHoveringCalendar = isHovering
                     }
                     .environmentObject(vm)
                     .transition(.opacity)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCalendarFullPage)
             }
 
-            if isCameraVisible {
+            if isCameraVisible && !isCalendarFullPage {
                 CameraPreviewView(webcamManager: webcamManager)
                     .frame(width: cameraWidth)
                     .scaledToFit()
                     .opacity(vm.notchState == .closed ? 0 : 1)
                     .blur(radius: vm.notchState == .closed ? 20 : 0)
                     .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.76, blendDuration: 0), value: shouldShowCamera)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .padding(.horizontal, horizontalPadding)
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
         .blur(radius: vm.notchState == .closed ? 30 : 0)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCalendarFullPage)
     }
 }
 

@@ -264,11 +264,15 @@ struct WheelPicker: View {
 }
 
 
-struct FullMonthCalendarView: View {
+// MARK: - Full Month Calendar (standalone grid, used in fullMonth and dayDetail modes)
+struct FullMonthCalendarGrid: View {
     @Binding var selectedDate: Date
     @Binding var displayedDate: Date
-    let onSelect: (Date) -> Void
-    let onClose: () -> Void
+    let showHeader: Bool
+    let onSelectDay: (Date) -> Void
+    let onPrevMonth: () -> Void
+    let onNextMonth: () -> Void
+    @ViewBuilder var trailingHeaderButton: () -> some View
 
     private let calendar = Calendar.current
     private let daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
@@ -290,47 +294,75 @@ struct FullMonthCalendarView: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            HStack {
-                Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold)).foregroundColor(.secondary) }
-                .buttonStyle(.plain)
-                Spacer()
-                Text(displayedDate.formatted(.dateTime.month(.wide).year()))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                Spacer()
-                Button { changeMonth(by: 1) } label: { Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold)).foregroundColor(.secondary) }
-                .buttonStyle(.plain)
+            if showHeader {
+                HStack(spacing: 6) {
+                    Button { onPrevMonth() } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 24, height: 24)
+                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+
+                    Text(displayedDate.formatted(.dateTime.month(.wide).year()))
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    Button { onNextMonth() } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 24, height: 24)
+                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+
+                    trailingHeaderButton()
+                }
+                .padding(.horizontal, 4)
+
+                // Day of week row
+                HStack(spacing: 0) {
+                    ForEach(daysOfWeek, id: \.self) { dow in
+                        Text(dow)
+                            .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                            .foregroundColor(Color(white: 0.5))
+                            .frame(maxWidth: .infinity)
+                    }
+                }
             }
-            .padding(.horizontal, 12)
 
             let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
-            LazyVGrid(columns: columns, spacing: 4) {
+            LazyVGrid(columns: columns, spacing: 3) {
                 ForEach(0..<daysInMonth.count, id: \.self) { index in
                     if let date = daysInMonth[index] {
                         let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
                         let isToday = calendar.isDateInToday(date)
-                        Button { onSelect(date) } label: {
+                        Button { onSelectDay(date) } label: {
                             ZStack {
-                                if isSelected { Circle().fill(Color.effectiveAccentBackground).frame(width: 26, height: 26) }
-                                else if isToday { Circle().stroke(Color.effectiveAccentBackground, lineWidth: 1.5).frame(width: 26, height: 26) }
+                                if isSelected {
+                                    Circle().fill(Color.effectiveAccentBackground).frame(width: 24, height: 24)
+                                } else if isToday {
+                                    Circle().stroke(Color.effectiveAccentBackground, lineWidth: 1.5).frame(width: 24, height: 24)
+                                }
                                 Text("\(calendar.component(.day, from: date))")
-                                    .font(.system(size: 12, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
-                                    .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : .primary))
+                                    .font(.system(size: 11, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
+                                    .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : Color(white: 0.78)))
                             }
-                            .frame(height: 28)
+                            .frame(height: 26)
                         }
                         .buttonStyle(.plain)
-                    } else { Color.clear.frame(height: 28) }
+                    } else {
+                        Color.clear.frame(height: 26)
+                    }
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.black.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func changeMonth(by amount: Int) {
+    func changeMonth(by amount: Int) {
         if let newDate = calendar.date(byAdding: .month, value: amount, to: displayedDate) {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
                 displayedDate = newDate
@@ -339,90 +371,92 @@ struct FullMonthCalendarView: View {
     }
 }
 
+// MARK: - Day Events Panel (right side in dayDetail mode)
+struct DayEventsPanelView: View {
+    let selectedDate: Date
+    @ObservedObject private var calendarManager = CalendarManager.shared
+    @Default(.showFullEventTitles) private var showFullEventTitles
+
+    private var filteredEvents: [EventModel] {
+        EventListView.filteredEvents(events: calendarManager.events)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Day header
+            VStack(alignment: .leading, spacing: 1) {
+                Text(selectedDate.formatted(.dateTime.weekday(.wide)))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(Color(white: 0.55))
+                    .textCase(.uppercase)
+                Text("\(Calendar.current.component(.day, from: selectedDate))")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(Calendar.current.isDateInToday(selectedDate) ? Color.effectiveAccent : .white)
+            }
+            .padding(.bottom, 2)
+
+            if filteredEvents.isEmpty {
+                VStack(spacing: 6) {
+                    Image(systemName: "calendar.badge.checkmark")
+                        .font(.system(size: 20))
+                        .foregroundColor(Color(white: 0.4))
+                    Text("No events")
+                        .font(.caption)
+                        .foregroundColor(Color(white: 0.5))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(spacing: 3) {
+                        ForEach(filteredEvents) { event in
+                            EventRowItemView(event: event, showFullEventTitles: showFullEventTitles)
+                        }
+                    }
+                    .padding(.bottom, 4)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+// MARK: - Calendar View (main entry point)
+private enum CalendarMode {
+    case normal       // Half media / half calendar with day-wheel
+    case fullMonth    // Full page month grid (media hidden)
+    case dayDetail    // 3/5 month grid + 2/5 day events (media hidden)
+}
+
 struct CalendarView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var selectedDate = Date()
     @State private var displayedDate = Date()
-    @State private var isFullMonthView = false
+    @State private var mode: CalendarMode = .normal
+
+    private var isFullPage: Bool { mode == .fullMonth || mode == .dayDetail }
 
     var body: some View {
-        VStack(spacing: 2) {
-            HStack(alignment: .center, spacing: 6) {
-                Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        isFullMonthView.toggle()
-                        vm.customOpenHeight = isFullMonthView ? 310 : nil
-                    }
-                } label: {
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 3) {
-                            Text(displayedDate.formatted(.dateTime.month(.abbreviated)))
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            Image(systemName: isFullMonthView ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.secondary)
-                        }
-                        Text(displayedDate.formatted(.dateTime.year()))
-                            .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundColor(Color(white: 0.65))
-                    }
-                }
-                .buttonStyle(.plain)
-                .frame(minWidth: 54, alignment: .leading)
-
-                if !isFullMonthView {
-                    ZStack(alignment: .top) {
-                        WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())
-                        HStack(alignment: .top) {
-                            LinearGradient(colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
-                            Spacer()
-                            LinearGradient(colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing).frame(width: 16)
-                        }
-                        .allowsHitTesting(false)
-                    }
-                }
-            }
-            .frame(height: 40)
-
-            if isFullMonthView {
-                FullMonthCalendarView(selectedDate: $selectedDate, displayedDate: $displayedDate, onSelect: { date in
-                    selectedDate = date
-                    displayedDate = date
-                }, onClose: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        isFullMonthView = false
-                        vm.customOpenHeight = nil
-                    }
-                })
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            } else {
-                let filteredEvents = EventListView.filteredEvents(events: calendarManager.events)
-                Group {
-                    if filteredEvents.isEmpty {
-                        EmptyEventsView(selectedDate: selectedDate)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        EventListView(events: calendarManager.events)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+        Group {
+            switch mode {
+            case .normal:
+                normalModeView
+            case .fullMonth:
+                fullMonthModeView
+            case .dayDetail:
+                dayDetailModeView
             }
         }
-        .padding(.bottom, 8)
-        .listRowBackground(Color.clear)
-        .frame(height: isFullMonthView ? 260 : 148)
+        .frame(height: frameHeight)
         .clipped()
         .onChange(of: selectedDate) { _, newValue in
             Task { @MainActor in
                 await calendarManager.updateCurrentDate(newValue)
             }
         }
-        .onChange(of: vm.notchState) { _, newNotchState in
-            if newNotchState == .closed {
-                isFullMonthView = false
+        .onChange(of: vm.notchState) { _, newState in
+            if newState == .closed {
+                mode = .normal
                 vm.customOpenHeight = nil
             }
             Task {
@@ -436,6 +470,175 @@ struct CalendarView: View {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
                 displayedDate = Date.now
+            }
+        }
+    }
+
+    private var frameHeight: CGFloat {
+        switch mode {
+        case .normal: return 148
+        case .fullMonth: return 280
+        case .dayDetail: return 280
+        }
+    }
+
+    // MARK: - Normal mode (day-wheel + events beside media)
+    private var normalModeView: some View {
+        VStack(spacing: 2) {
+            HStack(alignment: .center, spacing: 6) {
+                // Month/year header button → go to fullMonth
+                Button {
+                    enterFullMonth()
+                } label: {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 3) {
+                            Text(displayedDate.formatted(.dateTime.month(.abbreviated)))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.secondary)
+                        }
+                        Text(displayedDate.formatted(.dateTime.year()))
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundColor(Color(white: 0.65))
+                    }
+                }
+                .buttonStyle(.plain)
+                .frame(minWidth: 54, alignment: .leading)
+
+                ZStack(alignment: .top) {
+                    WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())
+                    HStack(alignment: .top) {
+                        LinearGradient(colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                        Spacer()
+                        LinearGradient(colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+            .frame(height: 40)
+
+            let filteredEvents = EventListView.filteredEvents(events: calendarManager.events)
+            Group {
+                if filteredEvents.isEmpty {
+                    EmptyEventsView(selectedDate: selectedDate)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    EventListView(events: calendarManager.events)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+        }
+        .padding(.bottom, 8)
+        .listRowBackground(Color.clear)
+    }
+
+    // MARK: - Full month mode (full page, media hidden)
+    private var fullMonthModeView: some View {
+        FullMonthCalendarGrid(
+            selectedDate: $selectedDate,
+            displayedDate: $displayedDate,
+            showHeader: true,
+            onSelectDay: { date in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                    selectedDate = date
+                    displayedDate = date
+                    mode = .dayDetail
+                }
+                Task { @MainActor in
+                    await calendarManager.updateCurrentDate(date)
+                }
+            },
+            onPrevMonth: { changeDisplayedMonth(by: -1) },
+            onNextMonth: { changeDisplayedMonth(by: 1) }
+        ) {
+            // Trailing header button: collapse back to normal
+            Button {
+                exitFullPage()
+            } label: {
+                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .frame(width: 24, height: 24)
+                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .help("Collapse calendar")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Day detail mode (3/5 month + 2/5 events, media hidden)
+    private var dayDetailModeView: some View {
+        HStack(alignment: .top, spacing: 10) {
+            // 3/5 — Full month calendar grid
+            FullMonthCalendarGrid(
+                selectedDate: $selectedDate,
+                displayedDate: $displayedDate,
+                showHeader: true,
+                onSelectDay: { date in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                        selectedDate = date
+                        displayedDate = date
+                    }
+                    Task { @MainActor in
+                        await calendarManager.updateCurrentDate(date)
+                    }
+                },
+                onPrevMonth: { changeDisplayedMonth(by: -1) },
+                onNextMonth: { changeDisplayedMonth(by: 1) }
+            ) {
+                // Trailing button: collapse to normal
+                Button {
+                    exitFullPage()
+                } label: {
+                    Image(systemName: "arrow.down.right.and.arrow.up.left")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 24, height: 24)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .help("Collapse calendar")
+            }
+            .frame(maxWidth: .infinity)
+
+            // Thin divider
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(width: 1)
+                .padding(.vertical, 4)
+
+            // 2/5 — Day events panel
+            DayEventsPanelView(selectedDate: selectedDate)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Helpers
+    private func enterFullMonth() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            mode = .fullMonth
+            vm.customOpenHeight = 310
+        }
+    }
+
+    private func exitFullPage() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            mode = .normal
+            vm.customOpenHeight = nil
+        }
+    }
+
+    private func changeDisplayedMonth(by amount: Int) {
+        if let newDate = Calendar.current.date(byAdding: .month, value: amount, to: displayedDate) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                displayedDate = newDate
             }
         }
     }
