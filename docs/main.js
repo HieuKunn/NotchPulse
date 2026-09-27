@@ -102,6 +102,8 @@ const i18nData = {
 
     "feat7.title": "Regional Lunar & Multi-Country Calendar",
     "feat7.desc": "Astronomical offline calculation for Vietnamese Lunar (UTC+7, Dr. Ho Ngoc Duc), Chinese Nongli (UTC+8), Islamic Hijri, Hebrew, Buddhist, and Persian systems. Interactive Moon button reveals daily lunar dates under full month grid.",
+    "feat7.moonBadge": "VN Lunar Cal",
+    "feat7.eventBadge": "Sep 27 (17/8 Lunar Cal)",
 
     "feat8.title": "Smart 80% Battery Health Guard",
     "feat8.desc": "Direct Apple Silicon SMC power controller. Caps charging at the 80% sweet spot to preserve battery cycle longevity, with one-tap 100% boost.",
@@ -233,6 +235,8 @@ const i18nData = {
 
     "feat7.title": "Lịch Âm Dương & Lịch Phụ Đa Quốc Gia",
     "feat7.desc": "Thuật toán thiên văn ngoại tuyến chính xác cho Âm lịch Việt Nam (UTC+7, Hồ Ngọc Đức), Nông lịch Trung Quốc/Đài Loan (UTC+8), Lịch Hồi giáo, Do Thái, Phật lịch và Ba Tư. Nút Mặt Trăng tiện lợi xem ngày âm ngay dưới lưới tháng.",
+    "feat7.moonBadge": "Âm Lịch VN",
+    "feat7.eventBadge": "27 Th9 (17/8 Âm Lịch)",
 
     "feat8.title": "Bảo Vệ Tuổi Thọ Pin & Giới Hạn Sạc 80%",
     "feat8.desc": "Can thiệp trực tiếp bộ điều khiển nguồn SMC của Apple Silicon. Tự động dừng sạc ở mức tối ưu 80% để chống chai pin, hỗ trợ sạc đầy 100% chỉ với 1 chạm.",
@@ -364,6 +368,8 @@ const i18nData = {
 
     "feat7.title": "Regionaler Mond- & Mehrländer-Kalender",
     "feat7.desc": "Astronomische Offline-Berechnung für vietnamesischen Mondkalender (UTC+7), chinesischen Nongli (UTC+8), Hijri, Hebräisch, Buddhistisch und Persisch.",
+    "feat7.moonBadge": "Mondkalender",
+    "feat7.eventBadge": "27. Sep. (17/8 Mondkalender)",
 
     "feat8.title": "Intelligenter 80% Akkuschutz",
     "feat8.desc": "Direkte Apple Silicon SMC-Steuerung. Begrenzt das Laden auf schonende 80% für maximale Lebensdauer mit 1-Klick 100% Schnellladung.",
@@ -495,6 +501,8 @@ const i18nData = {
 
     "feat7.title": "旧暦・地域別マルチカレンダー",
     "feat7.desc": "ベトナム旧暦（UTC+7）、中国農暦（UTC+8）、イスラム暦、ユダヤ暦、仏暦、ペルシア暦の高精度オフライン計算に対応。月表示ボタンで旧暦日付を表示。",
+    "feat7.moonBadge": "旧暦表示",
+    "feat7.eventBadge": "9月27日 (旧暦 17/8)",
 
     "feat8.title": "スマート80%バッテリー保護",
     "feat8.desc": "Apple Silicon SMC直接制御。バッテリー劣化を防ぐ80%充電リミットと、1タップでの100%フル充電切り替えに対応。",
@@ -626,6 +634,8 @@ const i18nData = {
 
     "feat7.title": "農曆與多國曆法計算引擎",
     "feat7.desc": "精準天文離線運算：支援越南農曆 (UTC+7)、台港中農曆 (UTC+8)、伊斯蘭曆、希伯來曆、佛曆與波斯曆。月相按鈕一鍵展開農曆初一十五標記。",
+    "feat7.moonBadge": "農曆標記",
+    "feat7.eventBadge": "9月27日 (農曆 17/8)",
 
     "feat8.title": "智慧型 80% 電池健康保護",
     "feat8.desc": "直接控制 Apple Silicon SMC 電源管理，將充電限制在 80% 最佳區間以延長電池壽命，出門前可一鍵充至 100%。",
@@ -757,6 +767,8 @@ const i18nData = {
 
     "feat7.title": "农历与多国历法计算引擎",
     "feat7.desc": "离线天文高精度计算：支持越南农历 (UTC+7)、中国农历 (UTC+8)、伊斯兰历、希伯来历、佛历及波斯历。一键切换农历阴阳双显。",
+    "feat7.moonBadge": "农历标记",
+    "feat7.eventBadge": "9月27日 (农历 17/8)",
 
     "feat8.title": "智能 80% 电池健康保护",
     "feat8.desc": "底层调用 Apple Silicon SMC 电源控制器，充电锁定 80% 黄金阈值以延长电池寿命，支持一键满电 100% 模式。",
@@ -888,6 +900,8 @@ const i18nData = {
 
     "feat7.title": "Calendario Lunar Regional y Multipaís",
     "feat7.desc": "Cálculo astronómico sin conexión para calendario lunar vietnamita (UTC+7), chino (UTC+8), islámico, hebreo, budista y persa con vista de fechas lunares.",
+    "feat7.moonBadge": "Cal Lunar VN",
+    "feat7.eventBadge": "Sep 27 (17/8 Cal Lunar)",
 
     "feat8.title": "Protección Inteligente de Batería al 80%",
     "feat8.desc": "Control directo de SMC en Apple Silicon. Limita la carga al 80% para evitar la degradación de la batería con modo rápido al 100%.",
