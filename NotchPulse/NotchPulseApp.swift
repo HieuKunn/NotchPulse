@@ -373,9 +373,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleDragEnded(onScreen: screen)
             }
         }
-        detector.onGlobalDragStateChanged = { [weak self] isDragging in
+        detector.onGlobalDragStateChanged = { [weak self] _ in
             Task { @MainActor in
-                guard let self = self else { return }
+                _ = self
                 // dragDetectorTargeting represents whether the notch detection zone is actively targeted,
                 // which is updated on region enter/exit.
             }

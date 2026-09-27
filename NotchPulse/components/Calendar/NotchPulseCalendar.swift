@@ -505,6 +505,7 @@ struct WheelPicker: View {
 final class CalendarStateViewModel: ObservableObject {
     static let shared = CalendarStateViewModel()
     @Published var isPinned: Bool = false
+    @Published var isFullMonthExpanded: Bool = false
     private init() {}
 }
 
@@ -855,6 +856,17 @@ struct CalendarView: View {
         .onChange(of: mode) { _, newMode in
             if newMode == .dayDetail || newMode == .fullMonth {
                 displayedDate = selectedDate
+            }
+        }
+        .onChange(of: CalendarStateViewModel.shared.isFullMonthExpanded) { _, expanded in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                if expanded {
+                    mode = .fullMonth
+                    vm.customOpenHeight = 240
+                } else if mode == .fullMonth || mode == .dayDetail {
+                    mode = .normal
+                    vm.customOpenHeight = nil
+                }
             }
         }
         .onChange(of: coordinator.currentView) { _, newView in
