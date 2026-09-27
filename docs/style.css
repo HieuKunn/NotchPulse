@@ -1593,6 +1593,295 @@ a {
   letter-spacing: -0.01em;
 }
 
+/* Regional Lunar Calendar Widget Preview */
+.calendar-preview-widget {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 235, 220, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.cal-grid-mini {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cal-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cal-month-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cal-moon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(253, 230, 138, 0.15);
+  border: 1px solid rgba(253, 230, 138, 0.35);
+  border-radius: 980px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #FDE68A;
+}
+
+.cal-days-mini-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+
+.cal-day-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.cal-day-cell.active {
+  background: rgba(141, 84, 40, 0.35);
+  border: 1px solid rgba(141, 84, 40, 0.6);
+}
+
+.cal-solar-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.cal-lunar-sub {
+  font-size: 0.6rem;
+  color: #A69587;
+  margin-top: 1px;
+}
+
+.cal-day-cell.active .cal-lunar-sub {
+  color: #FDE68A;
+  font-weight: 600;
+}
+
+.cal-event-panel-mini {
+  flex: 2;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cal-event-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #FDE68A;
+}
+
+.cal-event-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  line-height: 1.25;
+}
+
+.cal-event-time {
+  font-size: 0.7rem;
+  color: #8C7D73;
+}
+
+/* Smart Battery Limit Widget Preview */
+.battery-limit-widget {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.battery-status-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.battery-shield-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 980px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #4ade80;
+}
+
+.battery-pct-main {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  font-variant-numeric: tabular-nums;
+}
+
+.battery-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 980px;
+  position: relative;
+  overflow: hidden;
+}
+
+.battery-bar-fill {
+  height: 100%;
+  width: 80%;
+  background: linear-gradient(90deg, #16a34a, #4ade80);
+  border-radius: 980px;
+}
+
+.battery-limit-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 80%;
+  width: 2px;
+  background: #FFFFFF;
+  box-shadow: 0 0 6px #FFFFFF;
+}
+
+.battery-sub-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #A69587;
+}
+
+/* Clipboard History Widget Preview */
+.clipboard-preview-widget {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.clipboard-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.clipboard-item-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.clipboard-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.clipboard-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: rgba(141, 84, 40, 0.25);
+  border: 1px solid rgba(141, 84, 40, 0.4);
+  border-radius: 6px;
+  color: var(--accent-caramel);
+  font-family: var(--font-mono);
+}
+
+.clipboard-text {
+  font-size: 0.8rem;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+}
+
+.clipboard-copy-btn {
+  font-size: 0.7rem;
+  color: #8C7D73;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 9-Language Grid Widget Preview */
+.lang-grid-widget {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.lang-pill-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #C8BAAF;
+  transition: all 0.2s ease;
+}
+
+.lang-pill-item.active {
+  background: rgba(141, 84, 40, 0.2);
+  border-color: rgba(141, 84, 40, 0.5);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .calendar-preview-widget {
+    flex-direction: column;
+  }
+  .cal-event-panel-mini {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-left: 0;
+    padding-top: 8px;
+  }
+  .lang-grid-widget {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 600px) {
   .telemetry-grid-preview {
     gap: 6px;

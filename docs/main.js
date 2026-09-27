@@ -96,6 +96,18 @@ const i18nData = {
     "bento.ramUsage": "10.3 / 16 GB Active",
     "bento.gpuFps": "120 FPS Metal Pro",
 
+    "feat7.title": "Regional Lunar & Multi-Country Calendar",
+    "feat7.desc": "Astronomical offline calculation for Vietnamese Lunar (UTC+7, Dr. Ho Ngoc Duc), Chinese Nongli (UTC+8), Islamic Hijri, Hebrew, Buddhist, and Persian systems. Interactive Moon button reveals daily lunar dates under full month grid.",
+
+    "feat8.title": "Smart 80% Battery Health Guard",
+    "feat8.desc": "Direct Apple Silicon SMC power controller. Caps charging at the 80% sweet spot to preserve battery cycle longevity, with one-tap 100% boost.",
+
+    "feat9.title": "Smart Clipboard Manager & Stash",
+    "feat9.desc": "Access recent clips, code snippets, formatted text, and color hexes right inside the notch. Filter by app, search history in milliseconds, and paste instantly.",
+
+    "feat10.title": "9-Language Native Localization",
+    "feat10.desc": "Full native localized interface across English, Tiếng Việt, 繁體中文, 简体中文, 日本語, Deutsch, Français, Español, and العربية with real-time UI switching.",
+
     // Reviews Section
     "reviews.tag": "Global Community",
     "reviews.title": "Loved by Developers Worldwide",
@@ -210,6 +222,18 @@ const i18nData = {
     "bento.cpuCores": "8 Nhân Đang Hoạt Động",
     "bento.ramUsage": "10.3 / 16 GB Đang Dùng",
     "bento.gpuFps": "120 FPS Metal Pro",
+
+    "feat7.title": "Lịch Âm Dương & Lịch Phụ Đa Quốc Gia",
+    "feat7.desc": "Thuật toán thiên văn ngoại tuyến chính xác cho Âm lịch Việt Nam (UTC+7, Hồ Ngọc Đức), Nông lịch Trung Quốc/Đài Loan (UTC+8), Lịch Hồi giáo, Do Thái, Phật lịch và Ba Tư. Nút Mặt Trăng tiện lợi xem ngày âm ngay dưới lưới tháng.",
+
+    "feat8.title": "Bảo Vệ Tuổi Thọ Pin & Giới Hạn Sạc 80%",
+    "feat8.desc": "Can thiệp trực tiếp bộ điều khiển nguồn SMC của Apple Silicon. Tự động dừng sạc ở mức tối ưu 80% để chống chai pin, hỗ trợ sạc đầy 100% chỉ với 1 chạm.",
+
+    "feat9.title": "Bộ Nhớ Tạm Thông Minh & Lưu Trữ Nhanh",
+    "feat9.desc": "Quản lý lịch sử sao chép, đoạn mã, văn bản và mã màu ngay trên tai thỏ. Tìm kiếm tức thì theo mili-giây, lọc theo ứng dụng và dán nhanh chóng.",
+
+    "feat10.title": "Giao Diện 9 Ngôn Ngữ Bản Địa",
+    "feat10.desc": "Hỗ trợ bản địa hóa toàn diện cho 9 ngôn ngữ: Tiếng Anh, Tiếng Việt, 繁體中文, 简体中文, 日本語, Deutsch, Français, Español, العربية với khả năng chuyển đổi tức thì.",
 
     // Reviews Section
     "reviews.tag": "Cộng Đồng Toàn Cầu",
@@ -326,6 +350,18 @@ const i18nData = {
     "bento.ramUsage": "10.3 / 16 GB Aktiv",
     "bento.gpuFps": "120 FPS Metal Pro",
 
+    "feat7.title": "Regionaler Mond- & Mehrländer-Kalender",
+    "feat7.desc": "Astronomische Offline-Berechnung für vietnamesischen Mondkalender (UTC+7), chinesischen Nongli (UTC+8), Hijri, Hebräisch, Buddhistisch und Persisch.",
+
+    "feat8.title": "Intelligenter 80% Akkuschutz",
+    "feat8.desc": "Direkte Apple Silicon SMC-Steuerung. Begrenzt das Laden auf schonende 80% für maximale Lebensdauer mit 1-Klick 100% Schnellladung.",
+
+    "feat9.title": "Intelligente Zwischenablage & Snippets",
+    "feat9.desc": "Verlauf kopierter Texte, Code-Snippets und Farbcodes direkt in der Notch. Blitzschnelle Suche und sofortiges Einfügen.",
+
+    "feat10.title": "Native Lokalisierung in 9 Sprachen",
+    "feat10.desc": "Vollständige Benutzeroberfläche in Englisch, Vietnamesisch, Chinesisch (Trad./Simp.), Japanisch, Deutsch, Französisch, Spanisch und Arabisch.",
+
     // Reviews Section
     "reviews.tag": "Globale Community",
     "reviews.title": "Geschätzt von Entwicklern weltweit",
@@ -440,6 +476,18 @@ const i18nData = {
     "bento.cpuCores": "8コア 稼働中",
     "bento.ramUsage": "10.3 / 16 GB 使用中",
     "bento.gpuFps": "120 FPS Metal Pro",
+
+    "feat7.title": "旧暦・地域別マルチカレンダー",
+    "feat7.desc": "ベトナム旧暦（UTC+7）、中国農暦（UTC+8）、イスラム暦、ユダヤ暦、仏暦、ペルシア暦の高精度オフライン計算に対応。月表示ボタンで旧暦日付を表示。",
+
+    "feat8.title": "スマート80%バッテリー保護",
+    "feat8.desc": "Apple Silicon SMC直接制御。バッテリー劣化を防ぐ80%充電リミットと、1タップでの100%フル充電切り替えに対応。",
+
+    "feat9.title": "スマートクリップボード履歴",
+    "feat9.desc": "コピーしたテキスト、コード、カラーコードをノッチ上で瞬時に呼び出し。高速検索とスムーズなペースト。",
+
+    "feat10.title": "9言語ネイティブローカライズ",
+    "feat10.desc": "英語、ベトナム語、繁体字、簡体字、日本語、ドイツ語、フランス語、スペイン語、アラビア語のリアルタイム言語切り替えに対応。",
 
     // Reviews Section
     "reviews.tag": "グローバルコミュニティ",
@@ -556,6 +604,18 @@ const i18nData = {
     "bento.ramUsage": "10.3 / 16 GB 使用中",
     "bento.gpuFps": "120 FPS Metal Pro",
 
+    "feat7.title": "農曆與多國曆法計算引擎",
+    "feat7.desc": "精準天文離線運算：支援越南農曆 (UTC+7)、台港中農曆 (UTC+8)、伊斯蘭曆、希伯來曆、佛曆與波斯曆。月相按鈕一鍵展開農曆初一十五標記。",
+
+    "feat8.title": "智慧型 80% 電池健康保護",
+    "feat8.desc": "直接控制 Apple Silicon SMC 電源管理，將充電限制在 80% 最佳區間以延長電池壽命，出門前可一鍵充至 100%。",
+
+    "feat9.title": "智慧剪貼簿管理與暫存",
+    "feat9.desc": "於瀏海即時檢視剪貼紀錄、程式碼片段、文字與色碼。毫秒級快速搜尋並一鍵貼上。",
+
+    "feat10.title": "9 種語系原生多國語言",
+    "feat10.desc": "完整支援繁體中文、簡體中文、英文、越南文、日文、德文、法文、西班牙文與阿拉伯文，切換即時生效。",
+
     // Reviews Section
     "reviews.tag": "全球開發者社群",
     "reviews.title": "備受全球工程師與設計師喜愛",
@@ -671,6 +731,18 @@ const i18nData = {
     "bento.ramUsage": "10.3 / 16 GB 使用中",
     "bento.gpuFps": "120 FPS Metal Pro",
 
+    "feat7.title": "农历与多国历法计算引擎",
+    "feat7.desc": "离线天文高精度计算：支持越南农历 (UTC+7)、中国农历 (UTC+8)、伊斯兰历、希伯来历、佛历及波斯历。一键切换农历阴阳双显。",
+
+    "feat8.title": "智能 80% 电池健康保护",
+    "feat8.desc": "底层调用 Apple Silicon SMC 电源控制器，充电锁定 80% 黄金阈值以延长电池寿命，支持一键满电 100% 模式。",
+
+    "feat9.title": "智能剪贴板历史管理",
+    "feat9.desc": "在刘海中快速调取复制历史、代码片段、富文本与颜色代码。支持毫秒级检索与即时粘贴。",
+
+    "feat10.title": "9 种原生本地化语言",
+    "feat10.desc": "全面支持简体中文、繁体中文、英语、越南语、日语、德语、法语、西班牙语与阿拉伯语，即时响应无缝切换。",
+
     // Reviews Section
     "reviews.tag": "全球社区",
     "reviews.title": "备受全球开发者好评",
@@ -785,6 +857,18 @@ const i18nData = {
     "bento.cpuCores": "8 Núcleos Activos",
     "bento.ramUsage": "10.3 / 16 GB Activo",
     "bento.gpuFps": "120 FPS Metal Pro",
+
+    "feat7.title": "Calendario Lunar Regional y Multipaís",
+    "feat7.desc": "Cálculo astronómico sin conexión para calendario lunar vietnamita (UTC+7), chino (UTC+8), islámico, hebreo, budista y persa con vista de fechas lunares.",
+
+    "feat8.title": "Protección Inteligente de Batería al 80%",
+    "feat8.desc": "Control directo de SMC en Apple Silicon. Limita la carga al 80% para evitar la degradación de la batería con modo rápido al 100%.",
+
+    "feat9.title": "Gestor Inteligente de Portapapeles",
+    "feat9.desc": "Accede a textos copiados, fragmentos de código y códigos de color en el notch con búsqueda instantánea en milisegundos.",
+
+    "feat10.title": "Localización Nativa en 9 Idiomas",
+    "feat10.desc": "Interfaz completamente traducida a inglés, vietnamita, chino (trad./simp.), japonés, alemán, francés, español y árabe en tiempo real.",
 
     // Reviews Section
     "reviews.tag": "Comunidad Global",
@@ -904,9 +988,9 @@ function initSmoothScroll() {
 // =============================================================
 
 let appReleaseInfo = {
-  version: "v4.6.6",
-  versionShort: "v4.6.6",
-  name: "NotchPulse v4.6.6",
+  version: "v4.8.8",
+  versionShort: "v4.8.8",
+  name: "NotchPulse v4.8.8",
   downloadUrl: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg"
 };
 
@@ -951,7 +1035,7 @@ function initReleaseAutoUpdater() {
       }
     })
     .catch(() => {
-      // Graceful fallback to default v4.6.2
+      // Graceful fallback to default v4.8.8
     });
 }
 
