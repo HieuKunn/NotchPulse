@@ -75,9 +75,17 @@ struct ClipboardRowView: View {
                     .fill(item.isImage ? Color.purple.opacity(0.2) : Color.blue.opacity(0.2))
                     .frame(width: 32, height: 32)
                 
-                Image(systemName: item.isImage ? "photo" : "doc.text.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(item.isImage ? .purple : .blue)
+                if item.isImage, let data = item.imageData, let nsImage = NSImage(data: data) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 32, height: 32)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                } else {
+                    Image(systemName: item.isImage ? "photo" : "doc.text.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(item.isImage ? .purple : .blue)
+                }
             }
 
             VStack(alignment: .leading, spacing: 2) {

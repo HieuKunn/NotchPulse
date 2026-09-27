@@ -13,10 +13,14 @@ import Foundation
 struct ClipboardItem: Identifiable, Codable, Equatable {
     let id: UUID
     let contentString: String?
+    let imageData: Data?
     let timestamp: Date
     let isImage: Bool
     
     var displayString: String {
+        if isImage {
+            return "[Copied Image]"
+        }
         if let text = contentString {
             return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
@@ -101,6 +105,7 @@ final class ClipboardManager: ObservableObject {
             let newItem = ClipboardItem(
                 id: UUID(),
                 contentString: string,
+                imageData: nil,
                 timestamp: Date(),
                 isImage: false
             )
@@ -109,10 +114,16 @@ final class ClipboardManager: ObservableObject {
                 self.history.insert(newItem, at: 0)
                 self.trimHistory()
             }
-        } else if let _ = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+        } else if let imgData = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+            // Avoid image duplicates at top if identical data
+            if history.first?.imageData == imgData {
+                return
+            }
+
             let newItem = ClipboardItem(
                 id: UUID(),
-                contentString: "[Copied Image]",
+                contentString: nil,
+                imageData: imgData,
                 timestamp: Date(),
                 isImage: true
             )
@@ -132,9 +143,12 @@ final class ClipboardManager: ObservableObject {
     }
 
     func copyToPasteboard(_ item: ClipboardItem) {
-        guard let text = item.contentString, !item.isImage else { return }
         pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        if item.isImage, let data = item.imageData {
+            pasteboard.setData(data, forType: .png)
+        } else if let text = item.contentString {
+            pasteboard.setString(text, forType: .string)
+        }
         lastChangeCount = pasteboard.changeCount
     }
 
