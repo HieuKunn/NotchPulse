@@ -43,6 +43,7 @@ final class DragDetector {
     // MARK: - Shake Detection State
     private struct MouseSample {
         let x: CGFloat
+        let y: CGFloat
         let time: TimeInterval
     }
     private var recentSamples: [MouseSample] = []
@@ -63,32 +64,39 @@ final class DragDetector {
         return (NSEvent.pressedMouseButtons & 1) != 0
     }
 
-    /// Checks if the drag pasteboard contains actual file or folder content ONLY.
-    /// Text selections, string drags, and generic data are intentionally excluded so that
-    /// shake-to-shelf only fires when the user is genuinely moving a file/folder.
+    /// Checks if the drag pasteboard contains actual file, folder, image, text snippet, or droppable content.
     private func hasValidDragContent() -> Bool {
         guard let types = dragPasteboard.types, !types.isEmpty else {
             return false
         }
 
-        // STRICT file/folder-only UTIs — text, strings, plain data are deliberately excluded.
-        let fileOnlyTypes: Set<String> = [
-            NSPasteboard.PasteboardType.fileURL.rawValue,   // file://… URLs
-            "public.file-url",                             // same, UTI variant
+        let recognizedTypes: Set<String> = [
+            NSPasteboard.PasteboardType.fileURL.rawValue,   // file://… URLs ("public.file-url")
+            "public.file-url",
             "com.apple.finder.node",                       // Finder items (files, folders)
             "NSFilenamesPboardType",                       // legacy Finder drag
             "com.apple.pasteboard.promised-file-url",      // promised file drags (e.g. Mail attachments)
             "com.apple.pasteboard.promised-file-content-type",
             "com.apple.mac.install-source-container",      // .pkg, .dmg installer drags
+            "public.url",                                  // URLs, bookmarks
+            "Apple URL pasteboard type",
+            "public.image",                                // Any image dragged from browser/photos
+            "public.png",
+            "public.jpeg",
+            "public.tiff",
+            "public.utf8-plain-text",                      // Text snippets
+            "public.plain-text",
+            "NSStringPboardType",
+            "public.data",
+            "com.apple.cocoa.pasteboard.findernode"
         ]
 
         for type in types {
             let raw = type.rawValue
-            // Explicit allowlist match
-            if fileOnlyTypes.contains(raw) { return true }
-            // Dynamic UTIs that wrap real file types always start with "dyn." and
-            // carry a "file" or "finder" fragment; filter out pure text dynamic types.
-            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder")) { return true }
+            if recognizedTypes.contains(raw) { return true }
+            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("url") || raw.contains("image") || raw.contains("data")) {
+                return true
+            }
         }
         return false
     }
@@ -114,26 +122,26 @@ final class DragDetector {
         pollTimer = timer
     }
 
-    private func checkShakeGesture(currentX: CGFloat, currentTime: TimeInterval) {
+    private func checkShakeGesture(currentPoint: CGPoint, currentTime: TimeInterval) {
         // ONLY detect shake-to-shelf when ACTUALLY dragging droppable content!
         guard isContentDragging else { return }
 
-        // Debounce: don't trigger again within 1.0s of last shake
-        guard currentTime - lastShakeTriggerTime > 1.0 else { return }
+        // Debounce: don't trigger again within 0.8s of last shake
+        guard currentTime - lastShakeTriggerTime > 0.8 else { return }
 
-        recentSamples.append(MouseSample(x: currentX, time: currentTime))
+        recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 700ms (natural human gesture window)
-        let cutoff = currentTime - 0.70
+        // Keep samples from the last 850ms (natural human gesture window)
+        let cutoff = currentTime - 0.85
         recentSamples.removeAll { $0.time < cutoff }
 
         guard recentSamples.count >= 3 else { return }
 
-        // Detect direction reversals (swings) with at least 15px travel
+        // Detect direction reversals (swings) with at least 10px travel (horizontal or vertical)
         var reversals = 0
         var currentDirection = 0 // -1 for left, +1 for right
         var lastExtremumX = recentSamples[0].x
-        let minSwing: CGFloat = 15.0
+        let minSwing: CGFloat = 10.0
 
         for sample in recentSamples {
             let dx = sample.x - lastExtremumX
@@ -161,7 +169,7 @@ final class DragDetector {
             }
         }
 
-        // 2 or more reversals in 700ms signifies a deliberate rapid horizontal shake (Left -> Right -> Left or Right -> Left -> Right)
+        // 2 or more reversals in 850ms signifies a deliberate rapid horizontal shake (Left -> Right -> Left or Right -> Left -> Right)
         if reversals >= 2 {
             lastShakeTriggerTime = currentTime
             recentSamples.removeAll()
@@ -226,9 +234,8 @@ final class DragDetector {
             dragDistance = 0
         }
 
-        // A static click or slight finger jitter (< 10 points) is NEVER a drag operation.
-        // It must NOT trigger drag session, shake gesture, or notch shelf opening!
-        let hasMovedSufficiently = dragDistance >= 10.0
+        // 8 points is sufficient to distinguish an intentional drag from a static click
+        let hasMovedSufficiently = dragDistance >= 8.0
 
         // Detect if active drag session:
         // Pasteboard changeCount changed from idle baseline or mouse-down baseline, with valid drag content,
@@ -242,7 +249,7 @@ final class DragDetector {
             onDragMove?(mouseLocation)
 
             // ONLY detect shake-to-shelf when ACTUALLY dragging a file or droppable content!
-            checkShakeGesture(currentX: mouseLocation.x, currentTime: now)
+            checkShakeGesture(currentPoint: mouseLocation, currentTime: now)
 
             // While actively dragging files, disengage hover radar
             if isHoveringFromRadar {

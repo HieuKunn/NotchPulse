@@ -338,6 +338,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 guard let self = self else { return }
                 let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
+                currentTargetVM.customOpenHeight = nil
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     currentTargetVM.open()
                     self.coordinator.currentView = .shelf
@@ -346,11 +347,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 }
 
-                // If user shakes to open the shelf but does not drop into the notch within 5.0s, auto-close
+                // If user shakes to open the shelf but does not drop into the notch within 6.0s, auto-close (unless tour is active)
                 self.shakeAutoCloseTasks[uuid]?.cancel()
                 self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(5000))
+                    try? await Task.sleep(for: .milliseconds(6000))
                     guard !Task.isCancelled, let self = self else { return }
+                    guard !SpotlightTourManager.shared.isActive else { return }
                     let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
                     if !vm.dropZoneTargeting && !vm.generalDropTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
                         vm.close()
@@ -976,7 +978,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if onboardingWindowController == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
-                styleMask: [.titled, .fullSizeContentView],
+                styleMask: [.titled, .closable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
@@ -992,17 +994,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         window.close()
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            self.vm.open()
+                        }
                     },
                     onOpenSettings: {
                         window.orderOut(nil)
                         window.close()
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            self.vm.open()
+                        }
                         SettingsWindowController.shared.showWindow()
                     }
                 ))
             window.isRestorable = false
             window.identifier = NSUserInterfaceItemIdentifier("OnboardingWindow")
+
+            // Ensure closing the onboarding window keeps the app and notch open
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                guard let self = self else { return }
+                self.onboardingWindowController = nil
+                self.coordinator.firstLaunch = false
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    self.vm.open()
+                }
+            }
 
             onboardingWindowController = NSWindowController(window: window)
         }

@@ -139,10 +139,20 @@ struct OnboardingView: View {
                 OnboardingFinishView(onFinish: onFinish, onOpenSettings: onOpenSettings)
             }
 
-            if step != .finished && step != .welcome {
-                VStack {
-                    HStack {
-                        Spacer()
+            VStack {
+                HStack {
+                    Button(action: onFinish) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help("Đóng (Notch vẫn mở)")
+                    .padding(14)
+
+                    Spacer()
+
+                    if step != .finished && step != .welcome {
                         Button(action: {
                             NotchPulseViewCoordinator.shared.firstLaunch = false
                             withAnimation(.easeInOut(duration: 0.4)) {
@@ -162,8 +172,8 @@ struct OnboardingView: View {
                         .buttonStyle(PlainButtonStyle())
                         .padding(14)
                     }
-                    Spacer()
                 }
+                Spacer()
             }
         }
         .frame(width: 400, height: 600)

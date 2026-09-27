@@ -1,30 +1,16 @@
-# 🚨 IMPORTANT RELEASE — NotchPulse v5.0.0 (Build 178)
+# NotchPulse v5.0.0 (Build 188) Release Notes
 
-## 🐛 Build 178 — Critical Bug Fixes
+## 🚀 What's New & Visible Improvements
 
-- **🤝 Shake-to-Shelf không tự đóng notch sau khi thả file**: Sau khi lắc chuột mở shelf và thả file, notch giờ ở lại bình thường. Chỉ khi hover ra khỏi vùng notch như bình thường mới đóng.
-- **📍 Onboarding tour mở trên đúng màn hình**: Khi bật "Show on all displays", tour sẽ hiển thị trên màn hình có camera/notch vật lý thay vì NSScreen.main.
-- **🔔 Notch mở sẵn ở bước Face ID trong onboarding**: Bước Face ID giờ mở notch ra để user thấy vùng Face ID. Dismiss/skip tour không còn tự đóng notch.
+- **✨ Pass-Through Spotlight Onboarding Tour**:
+  - **Interactive Screen Experience**: Guidance overlay now lets you click and interact directly with the Notch, Desktop, and Finder while learning about app features.
+  - **Live UI Auto-Switching**: Each tour step automatically expands the Notch to the exact relevant tab and feature (Home, Smart Shake Shelf, Synced Lyrics, Full Month Calendar, Clipboard History, Settings).
+  - **Guaranteed Notch Continuity**: Closing or skipping the onboarding tour or initial setup window keeps the Notch open and active on screen so you can use it immediately without closing the app.
 
-## 🚀 What's New & Major Highlights
+- **🤝 Smart Shake-to-Shelf Enhancements**:
+  - **Enhanced Gesture Sensitivity**: Improved detection for natural mouse and trackpad shakes when dragging files, images, links, or text snippets.
+  - **Broadened Drag Support**: Seamlessly supports dragging files, images, web links, and text clippings straight into the Shelf.
+  - **Persistent Tour Shelf**: Auto-close timers are suppressed during the onboarding tour so you can explore the Shelf without interruption.
 
-- **🤝 Smart Shake-to-Open Shelf & Drag Targeting Fixes**:
-  - **Multi-Screen ViewModel Target Reset**: Resetting targeting flags (`dragDetectorTargeting`, `dropZoneTargeting`, `generalDropTargeting`, `anyDropZoneTargeting`) now operates globally across all screen viewModels and automatically when switching tabs, preventing the Notch from unexpectedly snapping back to Shelf when navigating to other pages.
-  - **Automatic Reversion to Home**: When closing the Notch or exiting hover after a shake, `currentView` cleanly reverts to `.home` unless pinned.
-  - **Distance Threshold Protection**: Standard button clicks and stationary mouse taps (< 10pt movement) are strictly ignored by the drag detector.
-
-- **✨ All-New Interactive Spotlight Onboarding Tour**:
-  - **Hole-Punch Spotlight Overlay**: Dark background with elegant glowing white border highlighting active features step-by-step.
-  - **Live UI Synchronization**: Each tour step automatically expands the Notch to the exact relevant tab and view (Home, Shelf, Full Month Calendar, Clipboard, etc.) so you can preview features in action.
-  - **Spacious 75% Screen View for Shelf**: Step 2 (Smart Shake) provides a generous 75% screen width illuminated area with mouse pass-through, giving you plenty of room to select and drag files from Finder or your desktop.
-  - **Seamless One-Click Face ID Setup**: Clicking "Yes" in the Face ID step now launches the native identity enrollment flow while temporarily minimizing the tour, returning seamlessly once completed.
-  - **Guaranteed Zero-Quit Policy**: Dismissing or skipping onboarding or declining setup will never quit the application.
-
-- **⚡ Automatic Notch Auto-Close**:
-  - Smooth 250ms hover exit delay across all interactions. Releasing a file or moving away closes the Notch automatically.
-
-- **🔒 Multi-Display Face ID Routing**:
-  - Notch and Dynamic Island remain intact on external monitors while Face ID authorization smoothly drops down under your physical Mac camera screen.
-
-- **📅 Revamped Calendar & Lunar Integration**:
-  - Navigation controls (`<` and `>`) placed on the left, today indicator badge, and right-aligned Moon icon for Lunar date details, Can Chi, and Auspicious hours.
+- **🔒 Face ID & Lock Screen Security**:
+  - **Seamless Multi-Display Routing**: Dynamic Island overlays remain active on external monitors while Face ID authentication smoothly aligns with your Mac's physical camera.

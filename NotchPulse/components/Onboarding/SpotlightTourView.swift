@@ -116,65 +116,51 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
         }
     }
 
-/// Calculate highlight frame relative to screen size (width, height)
+    /// Calculate highlight frame relative to screen size (width, height)
     @MainActor
     func targetFrame(screenSize: CGSize) -> CGRect {
         let screenWidth = screenSize.width
 
         switch self {
         case .notchHover:
-            // Closed notch pill — top center, same shape as the physical notch
-            let width: CGFloat = 280
-            let height: CGFloat = 52
-            return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
+            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
+            let height: CGFloat = 175
+            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .shakeToShelf:
-            // Highlight only the notch/top-center zone where the user shakes near.
-            // The rest of the screen is fully pass-through via hitTest so they can
-            // pick files from anywhere (Finder, Desktop, etc.).
-            let width: CGFloat = 420
-            let height: CGFloat = 60
-            return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
+            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
+            let height: CGFloat = 200
+            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .musicPlayer:
-            // Full expanded notch — music artwork + controls visible
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
             let height: CGFloat = 195
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .calendarExpand:
-            // Highlight specifically the calendar date/month HEADER row inside the
-            // expanded notch — that's the clickable element the user needs to tap.
-            // The header is in the upper ~90px of the open notch content.
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
-            let height: CGFloat = 90
+            let height: CGFloat = 240
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .calendarFullMonth:
-            // Full expanded notch including the full month calendar grid below
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
             let height: CGFloat = 265
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .clipboardManager:
-            // Notch clipboard tab — taller to show history list
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
             let height: CGFloat = 250
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .faceIDLock:
-            // Camera pill area at top center
-            let width: CGFloat = 280
+            let width: CGFloat = 320
             let height: CGFloat = 80
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .menuBarSettings:
-            // Highlight the Settings gear icon in the top-right header of the open notch
-            let openWidth = CGFloat(Defaults[.notchOpenWidth])
-            let notchRight = (screenWidth + openWidth) / 2
-            let width: CGFloat = 56
-            let height: CGFloat = 42
-            return CGRect(x: notchRight - width - 10, y: 0, width: width, height: height)
+            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
+            let height: CGFloat = 175
+            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
         }
     }
 }
@@ -196,223 +182,32 @@ struct SpotlightCutoutShape: Shape {
     }
 }
 
-// MARK: - Main Spotlight Tour View
+// MARK: - Fullscreen Pass-Through Backdrop View
 
-struct SpotlightTourView: View {
-    var language: AppLanguage = .english
-    @State private var currentStepIndex: Int = 0
-    let onDismiss: () -> Void
-
-    private var currentStep: SpotlightTourStep {
-        SpotlightTourStep(rawValue: currentStepIndex) ?? .notchHover
-    }
+struct SpotlightBackdropView: View {
+    @ObservedObject var manager = SpotlightTourManager.shared
 
     var body: some View {
-        GeometryReader { geometry in
-            let screenSize = geometry.size
-            let targetRect = currentStep.targetFrame(screenSize: screenSize)
-            let cornerRadius: CGFloat = (currentStep == .menuBarSettings || currentStep == .notchHover) ? 12 : 22
-            let tooltipPos = tooltipPosition(targetRect: targetRect, screenSize: screenSize)
-            let cardHeight: CGFloat = (currentStep == .faceIDLock) ? 290 : 240
-            let tooltipRect = CGRect(x: tooltipPos.x - 215, y: tooltipPos.y - cardHeight / 2, width: 430, height: cardHeight)
-
+        GeometryReader { _ in
             ZStack {
                 // 1. Dark Overlay with Cutout (Even-Odd hole punch)
-                SpotlightCutoutShape(targetRect: targetRect, cornerRadius: cornerRadius)
-                    .fill(Color.black.opacity(0.80), style: FillStyle(eoFill: true))
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        // Advance step on background tap
-                        nextStep()
-                    }
+                SpotlightCutoutShape(
+                    targetRect: manager.currentCutoutRect,
+                    cornerRadius: manager.currentCornerRadius
+                )
+                .fill(Color.black.opacity(0.75), style: FillStyle(eoFill: true))
+                .ignoresSafeArea()
 
-                // 2. Bright Glowing Pure White Frame around target (Clean, no neon)
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                // 2. Bright Glowing Pure White Frame around target
+                RoundedRectangle(cornerRadius: manager.currentCornerRadius, style: .continuous)
                     .stroke(Color.white, lineWidth: 2.5)
                     .shadow(color: Color.white.opacity(0.85), radius: 8)
                     .shadow(color: Color.white.opacity(0.4), radius: 18)
-                    .frame(width: targetRect.width, height: targetRect.height)
-                    .position(x: targetRect.midX, y: targetRect.midY)
-                    .animation(.spring(response: 0.45, dampingFraction: 0.75), value: currentStepIndex)
-
-                // 3. Floating Guidance Tooltip Card
-                SpotlightTooltipCard(
-                    step: currentStep,
-                    language: language,
-                    onNext: nextStep,
-                    onPrev: prevStep,
-                    onSkipStep: nextStep,
-                    onSkipAll: dismissTour,
-                    isFirst: currentStepIndex == 0,
-                    isLast: currentStepIndex == SpotlightTourStep.allCases.count - 1
-                )
-                .position(tooltipPos)
-                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: currentStepIndex)
-            }
-            .onAppear {
-                SpotlightTourManager.shared.currentStep = currentStep
-                SpotlightTourManager.shared.currentCutoutRect = targetRect
-                SpotlightTourManager.shared.currentTooltipRect = tooltipRect
-                updateLiveUIState(for: currentStep)
-            }
-            .onChange(of: currentStepIndex) { _, newIndex in
-                if let newStep = SpotlightTourStep(rawValue: newIndex) {
-                    let newTarget = newStep.targetFrame(screenSize: screenSize)
-                    let newTooltipPos = tooltipPosition(targetRect: newTarget, screenSize: screenSize)
-                    let newCardHeight: CGFloat = (newStep == .faceIDLock) ? 290 : 240
-                    SpotlightTourManager.shared.currentStep = newStep
-                    SpotlightTourManager.shared.currentCutoutRect = newTarget
-                    SpotlightTourManager.shared.currentTooltipRect = CGRect(x: newTooltipPos.x - 215, y: newTooltipPos.y - newCardHeight / 2, width: 430, height: newCardHeight)
-                    updateLiveUIState(for: newStep)
-                }
+                    .frame(width: max(0, manager.currentCutoutRect.width), height: max(0, manager.currentCutoutRect.height))
+                    .position(x: manager.currentCutoutRect.midX, y: manager.currentCutoutRect.midY)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.75), value: manager.currentStepIndex)
             }
         }
-    }
-
-    private func dismissTour() {
-        onDismiss()
-    }
-
-    private func updateLiveUIState(for step: SpotlightTourStep) {
-        Task { @MainActor in
-            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
-            let coordinator = NotchPulseViewCoordinator.shared
-
-            // Determine target VM: prefer camera/built-in screen when showOnAllDisplays.
-            let currentVM: NotchPulseViewModel
-            if Defaults[.showOnAllDisplays] {
-                let cameraScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
-                if let camUUID = cameraScreen?.displayUUID, let camVM = appDelegate.viewModels[camUUID] {
-                    currentVM = camVM
-                } else {
-                    currentVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
-                }
-            } else {
-                currentVM = appDelegate.vm
-            }
-
-            // ── INTERACTIVE STEPS ──────────────────────────────────────────────
-            // These steps require the user to perform the gesture themselves.
-            // Keep the notch closed (or in the correct waiting state) so they
-            // can experience the actual feature, not just watch a demo.
-            switch step {
-
-            case .notchHover:
-                // USER must hover over the notch to open it.
-                // Close notch so the exercise is real.
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                currentVM.customOpenHeight = nil
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                    currentVM.close()
-                }
-                return
-
-            case .shakeToShelf:
-                // USER must drag a file and shake left-right to open the shelf.
-                // Close notch and reset to home so they start from scratch.
-                coordinator.currentView = .home
-                currentVM.customOpenHeight = nil
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                    currentVM.close()
-                }
-                return
-
-            case .calendarExpand:
-                // USER must click the month/date header inside the notch to expand calendar.
-                // Open notch on home tab with calendar compact (not expanded) — ready to click.
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                currentVM.customOpenHeight = nil
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                    currentVM.open()
-                }
-                return
-
-            default:
-                break
-            }
-
-            // ── DEMO STEPS ─────────────────────────────────────────────────────
-            // These steps auto-open the notch and switch to the relevant tab so
-            // the user can clearly see the feature being explained.
-
-            // Step 1: Open notch immediately
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                currentVM.customOpenHeight = nil
-                currentVM.open()
-            }
-
-            // Step 2: After notch open animation settles, switch to the correct tab
-            try? await Task.sleep(for: .milliseconds(280))
-            guard !Task.isCancelled else { return }
-
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                switch step {
-                case .musicPlayer:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = false
-
-                case .calendarFullMonth:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = true
-                    currentVM.customOpenHeight = 240
-
-                case .clipboardManager:
-                    coordinator.currentView = .clipboard
-
-                case .faceIDLock:
-                    coordinator.currentView = .home
-
-                case .menuBarSettings:
-                    coordinator.currentView = .home
-
-                default:
-                    break
-                }
-            }
-        }
-    }
-
-    private func nextStep() {
-        if currentStepIndex < SpotlightTourStep.allCases.count - 1 {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.78)) {
-                currentStepIndex += 1
-            }
-        } else {
-            dismissTour()
-        }
-    }
-
-    private func prevStep() {
-        if currentStepIndex > 0 {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.78)) {
-                currentStepIndex -= 1
-            }
-        }
-    }
-
-    /// Smart positioning of the card relative to targetRect
-    private func tooltipPosition(targetRect: CGRect, screenSize: CGSize) -> CGPoint {
-        let cardWidth: CGFloat = 430
-        let cardHeight: CGFloat = (currentStep == .faceIDLock) ? 290 : 240
-        let padding: CGFloat = 20
-
-        if currentStep == .shakeToShelf {
-            let x = screenSize.width / 2
-            let y = min(screenSize.height - cardHeight / 2 - 25, targetRect.maxY + cardHeight / 2 + 15)
-            return CGPoint(x: x, y: y)
-        }
-
-        if currentStep == .menuBarSettings {
-            let x = min(screenSize.width - cardWidth / 2 - 20, max(cardWidth / 2 + 20, targetRect.midX - 80))
-            let y = targetRect.maxY + cardHeight / 2 + 15
-            return CGPoint(x: x, y: y)
-        }
-
-        let x = screenSize.width / 2
-        let y = targetRect.maxY + cardHeight / 2 + 20
-        return CGPoint(x: x, y: min(screenSize.height - cardHeight / 2 - padding, y))
     }
 }
 
@@ -454,14 +249,14 @@ struct SpotlightTooltipCard: View {
                     .background(Capsule().fill(Color.white.opacity(0.15)))
                     .foregroundColor(.white.opacity(0.85))
 
-                // Quick exit X button
+                // Quick exit X button: Closes guide and keeps Notch open
                 Button(action: onSkipAll) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 18))
                         .foregroundColor(.white.opacity(0.55))
                 }
                 .buttonStyle(PlainButtonStyle())
-                .help(isVietnamese ? "Đóng hướng dẫn (Bỏ qua tất cả)" : "Close guide (Skip all)")
+                .help(isVietnamese ? "Đóng hướng dẫn (Notch vẫn mở)" : "Close guide (Notch stays open)")
             }
 
             Divider()
@@ -604,35 +399,22 @@ struct SpotlightTooltipCard: View {
     }
 }
 
-// MARK: - Tour Window Hosting View with Pass-Through in Cutout
+// MARK: - Dedicated Tooltip Card Host View
 
-final class SpotlightTourHostingView<Content: View>: NSHostingView<Content> {
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let window = self.window else { return super.hitTest(point) }
-        let screenHeight = window.frame.height
-        // Convert AppKit (bottom-left origin) to SwiftUI (top-left origin)
-        let swiftUIPoint = CGPoint(x: point.x, y: screenHeight - point.y)
+struct SpotlightTooltipCardHostView: View {
+    @ObservedObject var manager = SpotlightTourManager.shared
 
-        // Tooltip card always captures events (buttons, Next/Back clicks)
-        let tooltip = SpotlightTourManager.shared.currentTooltipRect
-        if tooltip.contains(swiftUIPoint) {
-            return super.hitTest(point)
-        }
-
-        // ── shakeToShelf: entire screen is pass-through (except tooltip above) ──
-        // The user must be able to drag files from anywhere — Finder, Desktop,
-        // other apps. Blocking events in the dark overlay would prevent dragging.
-        if SpotlightTourManager.shared.currentStep == .shakeToShelf {
-            return nil
-        }
-
-        // For all other steps: cutout area is pass-through, dark area blocks events
-        let cutout = SpotlightTourManager.shared.currentCutoutRect
-        if cutout.contains(swiftUIPoint) {
-            return nil
-        }
-
-        return super.hitTest(point)
+    var body: some View {
+        SpotlightTooltipCard(
+            step: manager.currentStep,
+            language: manager.language,
+            onNext: { manager.nextStep() },
+            onPrev: { manager.prevStep() },
+            onSkipStep: { manager.nextStep() },
+            onSkipAll: { manager.closeTour() },
+            isFirst: manager.currentStepIndex == 0,
+            isLast: manager.currentStepIndex == SpotlightTourStep.allCases.count - 1
+        )
     }
 }
 
@@ -646,22 +428,23 @@ final class SpotlightTourManager: ObservableObject {
     /// to suppress all auto-close timers so the notch stays open during the tour.
     @Published var isActive: Bool = false
 
-    /// The currently active tour step — used by SpotlightTourHostingView.hitTest
-    /// to decide whether to pass through ALL mouse events (e.g. shakeToShelf).
-    var currentStep: SpotlightTourStep = .notchHover
+    @Published var currentStepIndex: Int = 0
+    @Published var currentCutoutRect: CGRect = .zero
+    @Published var currentCornerRadius: CGFloat = 22
+    @Published var language: AppLanguage = .english
 
-    var currentCutoutRect: CGRect = .zero
-    var currentTooltipRect: CGRect = .zero
-    private var tourWindow: NSWindow?
+    var currentStep: SpotlightTourStep {
+        SpotlightTourStep(rawValue: currentStepIndex) ?? .notchHover
+    }
+
+    private var backdropWindow: NSWindow?
+    private var cardWindow: NSWindow?
     private var faceIDPhaseObserver: NSObjectProtocol?
+    private var activeScreen: NSScreen?
 
     func showTour(useAppLanguage: Bool = false) {
         closeTour()
 
-        // Pick the correct screen:
-        // • showOnAllDisplays → prefer the camera/built-in screen so the highlight
-        //   lines up with the physical notch/camera the tour is pointing at.
-        // • Otherwise → use the selected (user-chosen) screen.
         let targetScreen: NSScreen?
         if Defaults[.showOnAllDisplays] {
             targetScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
@@ -671,43 +454,192 @@ final class SpotlightTourManager: ObservableObject {
             targetScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) ?? NSScreen.main
         }
         guard let mainScreen = targetScreen else { return }
+        self.activeScreen = mainScreen
 
-        let window = NSWindow(
+        self.language = useAppLanguage ? Defaults[.appLanguage] : .english
+        self.currentStepIndex = 0
+
+        let initialTarget = currentStep.targetFrame(screenSize: mainScreen.frame.size)
+        self.currentCutoutRect = initialTarget
+        self.currentCornerRadius = (currentStep == .menuBarSettings || currentStep == .notchHover) ? 12 : 22
+
+        // 1. Create Non-Blocking Backdrop Window (ignoresMouseEvents = true so all clicks pass through)
+        let backdrop = NSWindow(
             contentRect: mainScreen.frame,
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
-        window.level = .screenSaver
-        window.backgroundColor = .clear
-        window.isOpaque = false
-        window.hasShadow = false
-        window.ignoresMouseEvents = false
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        backdrop.level = .screenSaver
+        backdrop.backgroundColor = .clear
+        backdrop.isOpaque = false
+        backdrop.hasShadow = false
+        backdrop.ignoresMouseEvents = true // Full pass-through for Notch, Desktop, and Apps!
+        backdrop.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        backdrop.contentView = NSHostingView(rootView: SpotlightBackdropView())
+        self.backdropWindow = backdrop
 
-        let language: AppLanguage = useAppLanguage ? Defaults[.appLanguage] : .english
-
-        let tourView = SpotlightTourView(language: language) { [weak self] in
-            self?.closeTour()
-        }
-
-        window.contentView = SpotlightTourHostingView(rootView: tourView)
-        self.tourWindow = window
+        // 2. Create Floating Tooltip Card Window (sized strictly to the 430px card)
+        let initialCardRect = cardRect(for: currentStep, screen: mainScreen)
+        let card = NSPanel(
+            contentRect: initialCardRect,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        card.level = .screenSaver + 1
+        card.backgroundColor = .clear
+        card.isOpaque = false
+        card.hasShadow = false
+        card.ignoresMouseEvents = false // Card captures clicks on its own buttons
+        card.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        card.contentView = NSHostingView(rootView: SpotlightTooltipCardHostView())
+        self.cardWindow = card
 
         isActive = true
-        window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
-        NSApp.activate(ignoringOtherApps: true)
+
+        backdrop.orderFrontRegardless()
+        card.orderFrontRegardless()
+
+        updateLiveUIState(for: currentStep)
+    }
+
+    func nextStep() {
+        if currentStepIndex < SpotlightTourStep.allCases.count - 1 {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.78)) {
+                currentStepIndex += 1
+            }
+            stepDidChange()
+        } else {
+            closeTour()
+        }
+    }
+
+    func prevStep() {
+        if currentStepIndex > 0 {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.78)) {
+                currentStepIndex -= 1
+            }
+            stepDidChange()
+        }
+    }
+
+    private func stepDidChange() {
+        guard let screen = activeScreen else { return }
+        let newTarget = currentStep.targetFrame(screenSize: screen.frame.size)
+        self.currentCutoutRect = newTarget
+        self.currentCornerRadius = (currentStep == .menuBarSettings || currentStep == .notchHover) ? 12 : 22
+
+        let newCardRect = cardRect(for: currentStep, screen: screen)
+        cardWindow?.setFrame(newCardRect, display: true, animate: true)
+
+        updateLiveUIState(for: currentStep)
+    }
+
+    private func cardRect(for step: SpotlightTourStep, screen: NSScreen) -> NSRect {
+        let screenSize = screen.frame.size
+        let screenOrigin = screen.frame.origin
+        let targetRect = step.targetFrame(screenSize: screenSize)
+        let cardWidth: CGFloat = 430
+        let cardHeight: CGFloat = (step == .faceIDLock) ? 290 : 240
+        let padding: CGFloat = 20
+
+        let x: CGFloat
+        if step == .menuBarSettings {
+            let openWidth = CGFloat(Defaults[.notchOpenWidth])
+            let notchRight = (screenSize.width + openWidth) / 2
+            x = min(screenSize.width - cardWidth - 20, max(20, notchRight - cardWidth / 2))
+        } else {
+            x = (screenSize.width - cardWidth) / 2
+        }
+
+        let topY = targetRect.maxY + 20
+        let constrainedTopY = min(screenSize.height - cardHeight - padding, topY)
+
+        let appKitY = screenOrigin.y + (screenSize.height - constrainedTopY - cardHeight)
+        let appKitX = screenOrigin.x + x
+
+        return NSRect(x: appKitX, y: appKitY, width: cardWidth, height: cardHeight)
+    }
+
+    private func updateLiveUIState(for step: SpotlightTourStep) {
+        Task { @MainActor in
+            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+            let coordinator = NotchPulseViewCoordinator.shared
+
+            let currentVM: NotchPulseViewModel
+            if Defaults[.showOnAllDisplays] {
+                let cameraScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
+                if let camUUID = cameraScreen?.displayUUID, let camVM = appDelegate.viewModels[camUUID] {
+                    currentVM = camVM
+                } else {
+                    currentVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
+                }
+            } else {
+                currentVM = appDelegate.vm
+            }
+
+            // Always ensure the notch is open to display the feature being explained
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                switch step {
+                case .notchHover:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = false
+                    currentVM.customOpenHeight = nil
+                    currentVM.open()
+
+                case .shakeToShelf:
+                    coordinator.currentView = .shelf
+                    currentVM.customOpenHeight = nil
+                    currentVM.open()
+
+                case .musicPlayer:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = false
+                    currentVM.customOpenHeight = nil
+                    currentVM.open()
+
+                case .calendarExpand:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = true
+                    currentVM.customOpenHeight = 240
+                    currentVM.open()
+
+                case .calendarFullMonth:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = true
+                    currentVM.customOpenHeight = 240
+                    currentVM.open()
+
+                case .clipboardManager:
+                    coordinator.currentView = .clipboard
+                    currentVM.customOpenHeight = 250
+                    currentVM.open()
+
+                case .faceIDLock:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = false
+                    currentVM.customOpenHeight = nil
+                    currentVM.open()
+
+                case .menuBarSettings:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = false
+                    currentVM.customOpenHeight = nil
+                    currentVM.open()
+                }
+            }
+        }
     }
 
     func hideTour() {
-        tourWindow?.orderOut(nil)
+        backdropWindow?.orderOut(nil)
+        cardWindow?.orderOut(nil)
     }
 
     func unhideTour() {
-        tourWindow?.makeKeyAndOrderFront(nil)
-        tourWindow?.orderFrontRegardless()
-        NSApp.activate(ignoringOtherApps: true)
+        backdropWindow?.orderFrontRegardless()
+        cardWindow?.orderFrontRegardless()
     }
 
     func startFaceIDSetupFromTour(completion: @escaping () -> Void) {
@@ -745,8 +677,36 @@ final class SpotlightTourManager: ObservableObject {
             faceIDPhaseObserver = nil
         }
         isActive = false
-        tourWindow?.orderOut(nil)
-        tourWindow?.close()
-        tourWindow = nil
+        backdropWindow?.orderOut(nil)
+        backdropWindow?.close()
+        backdropWindow = nil
+
+        cardWindow?.orderOut(nil)
+        cardWindow?.close()
+        cardWindow = nil
+
+        // Keep the Notch OPEN after closing tour so user can start using it immediately!
+        Task { @MainActor in
+            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+            let coordinator = NotchPulseViewCoordinator.shared
+            let currentVM: NotchPulseViewModel
+            if Defaults[.showOnAllDisplays] {
+                let cameraScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
+                if let camUUID = cameraScreen?.displayUUID, let camVM = appDelegate.viewModels[camUUID] {
+                    currentVM = camVM
+                } else {
+                    currentVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
+                }
+            } else {
+                currentVM = appDelegate.vm
+            }
+
+            coordinator.currentView = .home
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            currentVM.customOpenHeight = nil
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                currentVM.open()
+            }
+        }
     }
 }
