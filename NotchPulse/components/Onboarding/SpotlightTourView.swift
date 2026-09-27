@@ -79,7 +79,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .faceIDLock:
                 return "Di chuột vào Notch để tự động quét nhận diện Face ID / Touch ID giải mã thông tin. Khi dùng màn hình rời, Face ID sẽ hạ xuống mượt mà bên màn hình có Camera thật."
             case .menuBarSettings:
-                return "Click icon NotchPulse trên thanh Menu Bar ở góc trên phải màn hình để chọn màn hình hiển thị, chỉnh độ cong góc, độ mờ hiệu ứng hoặc mở Cài đặt nâng cao."
+                return "Click icon Bánh răng ⚙️ ở góc trên bên phải Notch (khi mở) để mở Cài đặt, chuyển màn hình hiển thị, chỉnh độ cong góc hoặc các hiệu ứng ánh sáng."
             }
         default:
             switch self {
@@ -98,7 +98,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .faceIDLock:
                 return "Hover over the Notch to automatically authenticate using Face ID or Touch ID. When connected to an external display, Face ID drops down under your physical camera."
             case .menuBarSettings:
-                return "Click the NotchPulse icon in the Menu Bar at the top right to switch display monitors, customize corner radius, adjust lighting effects, or open Settings."
+                return "Click the Gear ⚙️ icon at the top right inside the open Notch to switch display monitors, customize corner radius, adjust lighting effects, or open Settings."
             }
         }
     }
@@ -169,12 +169,12 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .menuBarSettings:
-            // Right Menu Bar section — stretches from top right screen corner to notch right edge
-            let notchWidth = max(220, getClosedNotchSize().width)
-            let notchRightEdge = (screenWidth + notchWidth) / 2
-            let width = max(50, screenWidth - notchRightEdge)
-            let height: CGFloat = 34
-            return CGRect(x: notchRightEdge, y: 0, width: width, height: height)
+            // Highlight the Settings gear icon in the top-right header of the open notch
+            let openWidth = CGFloat(Defaults[.notchOpenWidth])
+            let notchRight = (screenWidth + openWidth) / 2
+            let width: CGFloat = 56
+            let height: CGFloat = 42
+            return CGRect(x: notchRight - width - 10, y: 0, width: width, height: height)
         }
     }
 }
@@ -366,7 +366,6 @@ struct SpotlightTourView: View {
 
                 case .menuBarSettings:
                     coordinator.currentView = .home
-                    SettingsWindowController.shared.showWindow()
 
                 default:
                     break
