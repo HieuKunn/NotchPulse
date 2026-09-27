@@ -27,13 +27,13 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
 
     var title: String {
         switch self {
-        case .general: return "General"
-        case .yourFace: return "Your Face"
-        case .password: return "Password"
-        case .camera: return "Camera"
-        case .recognition: return "Recognition"
-        case .about: return "About"
-        case .debugFaceLab: return "Face Lab"
+        case .general: return loc("General")
+        case .yourFace: return loc("Your Face")
+        case .password: return loc("Password")
+        case .camera: return loc("Camera")
+        case .recognition: return loc("Recognition")
+        case .about: return loc("About")
+        case .debugFaceLab: return loc("Face Lab")
         }
     }
 

@@ -45,8 +45,8 @@ struct PasswordSettingsPage: View {
     private var noPasswordState: some View {
         SettingsEmptyStateView(
             icon: "lock.fill",
-            message: "Set up a password",
-            buttonTitle: "Set password",
+            message: loc("Set up a password"),
+            buttonTitle: loc("Set password"),
             caption: statusMessage,
             action: { FaceIDEnrollmentController.startPasswordOnly() }
         )
@@ -96,9 +96,9 @@ struct PasswordSettingsPage: View {
             NotchPulseFaceEnrollmentStore.shared.deleteAll()
             try NotchPulseVault.deletePassword()
             pocController.refreshCredentialStatus()
-            statusMessage = "Password and face enrollment removed."
+            statusMessage = loc("Password and face enrollment removed.")
         } catch {
-            statusMessage = "Couldn't remove: \(error.localizedDescription)"
+            statusMessage = "\(loc("Couldn't remove")): \(error.localizedDescription)"
         }
     }
 }

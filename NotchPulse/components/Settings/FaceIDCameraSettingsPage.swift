@@ -40,7 +40,7 @@ struct CameraSettingsPage: View {
                     .fill(SettingsMetrics.pickerPillFill)
 
                 Menu {
-                    Button("System default") { selection.wrappedValue = nil }
+                    Button(loc("System default")) { selection.wrappedValue = nil }
                     ForEach(devices) { device in
                         Button(device.name) { selection.wrappedValue = device.id }
                     }
@@ -81,7 +81,7 @@ struct CameraSettingsPage: View {
 
     private func cameraLabel(for id: String?) -> String {
         guard let id, let device = devices.first(where: { $0.id == id }) else {
-            return "System default"
+            return loc("System default")
         }
         return device.name
     }

@@ -214,11 +214,11 @@ struct SettingsSlider: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
+                    Text(title.localized)
                         .font(SettingsMetrics.rowFont)
                         .foregroundStyle(SettingsMetrics.textPrimary)
                     if let subtitle {
-                        Text(subtitle)
+                        Text(subtitle.localized)
                             .font(.system(size: 11))
                             .foregroundStyle(SettingsMetrics.textSecondary)
                     }
@@ -291,7 +291,7 @@ private struct SettingsActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(title.localized)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
@@ -319,11 +319,11 @@ struct SettingsSteppedSliderRowContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text(title)
+                Text(title.localized)
                     .font(SettingsMetrics.rowFont)
                     .foregroundStyle(SettingsMetrics.textPrimary)
                 Spacer(minLength: 8)
-                Text(valueLabel)
+                Text(valueLabel.localized)
                     .font(SettingsMetrics.rowFont)
                     .foregroundStyle(SettingsMetrics.textSecondary)
             }
@@ -349,7 +349,7 @@ struct HoldToConfirmButton: View {
     @State private var fillProgress: CGFloat = 0
 
     var body: some View {
-        Text(title)
+        Text(title.localized)
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(SettingsMetrics.textPrimary)
             .padding(.horizontal, 14)
@@ -393,7 +393,7 @@ struct SettingsPrimaryButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(title.localized)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, compact ? 14 : 16)
@@ -424,7 +424,7 @@ struct SettingsEmptyStateView: View {
                 .font(.system(size: SettingsMetrics.emptyStateIconSize, weight: .regular))
                 .foregroundStyle(SettingsMetrics.textTertiary)
 
-            Text(message)
+            Text(message.localized)
                 .font(SettingsMetrics.rowFont)
                 .foregroundStyle(SettingsMetrics.textSecondary)
 
@@ -452,7 +452,7 @@ struct SettingsCaption: View {
     let text: String
 
     var body: some View {
-        Text(text)
+        Text(text.localized)
             .font(.system(size: 12))
             .foregroundStyle(SettingsMetrics.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -588,7 +588,7 @@ struct SettingsOptionTile<Preview: View>: View {
                         }
                     }
 
-                Text(title)
+                Text(title.localized)
                     .font(SettingsMetrics.optionLabelFont)
                     .foregroundStyle(isSelected ? SettingsMetrics.textPrimary : SettingsMetrics.textSecondary)
             }

@@ -55,7 +55,7 @@ struct YourFaceSettingsPage: View {
             store.reloadIfUnlocked()
         }
         .confirmationDialog(
-            "Delete this enrolled face?",
+            loc("Delete this enrolled face?"),
             isPresented: Binding(
                 get: { identityPendingDeletion != nil },
                 set: { if !$0 { identityPendingDeletion = nil } }
@@ -63,10 +63,10 @@ struct YourFaceSettingsPage: View {
             titleVisibility: .visible,
             presenting: identityPendingDeletion
         ) { identity in
-            Button("Delete", role: .destructive) { delete(identity) }
-            Button("Cancel", role: .cancel) { identityPendingDeletion = nil }
+            Button(loc("Delete"), role: .destructive) { delete(identity) }
+            Button(loc("Cancel"), role: .cancel) { identityPendingDeletion = nil }
         } message: { identity in
-            Text("\"\(identity.name)\" will stop being recognized until you enroll them again.")
+            Text(loc("\"%@\" will stop being recognized until you enroll them again.", identity.name))
         }
     }
 
@@ -81,11 +81,11 @@ struct YourFaceSettingsPage: View {
                 .font(.system(size: SettingsMetrics.emptyStateIconSize, weight: .regular))
                 .foregroundStyle(SettingsMetrics.qualityFairColor)
 
-            Text("Enrolled faces couldn't be read")
+            Text(loc("Enrolled faces couldn't be read"))
                 .font(SettingsMetrics.rowFont)
                 .foregroundStyle(SettingsMetrics.textSecondary)
 
-            SettingsCaption(text: store.loadFailure ?? "The stored data couldn't be decrypted.")
+            SettingsCaption(text: store.loadFailure ?? loc("The stored data couldn't be decrypted."))
                 .multilineTextAlignment(.center)
         }
         .padding(.vertical, 16)
@@ -103,8 +103,8 @@ struct YourFaceSettingsPage: View {
     private var notEnrolledState: some View {
         SettingsEmptyStateView(
             icon: "faceid",
-            message: "Face enrollment",
-            buttonTitle: "Set up Face Unlock",
+            message: loc("Face enrollment"),
+            buttonTitle: loc("Set up Face Unlock"),
             isButtonEnabled: !enrollmentFlowIsRunning,
             action: {
                 if NotchPulsePOCController.shared.hasStoredPassword {
@@ -138,7 +138,7 @@ struct YourFaceSettingsPage: View {
 
             // Worth saying out loud that face unlock now matches nobody.
             if !store.identities.isEmpty && store.activeIdentities.isEmpty {
-                SettingsCaption(text: "No identities are enabled — face unlock won't recognize anyone until you switch one back on.")
+                SettingsCaption(text: loc("No identities are enabled — face unlock won't recognize anyone until you switch one back on."))
             }
 
             if let writeError {
@@ -153,7 +153,7 @@ struct YourFaceSettingsPage: View {
         SettingsGroup {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
-                    Text("Face encrypted")
+                    Text(loc("Face encrypted"))
                         .font(SettingsMetrics.rowFont)
                         .foregroundStyle(SettingsMetrics.textPrimary)
                     Spacer(minLength: 8)
@@ -162,7 +162,7 @@ struct YourFaceSettingsPage: View {
                         .foregroundStyle(SettingsMetrics.textSecondary)
                 }
 
-                Text("Enroll separate identities to use NotchPulse with multiple people, accessories (ex. glasses), facial expressions, or new lighting environments. This improves recognition quality.")
+                Text(loc("Enroll separate identities to use NotchPulse with multiple people, accessories (ex. glasses), facial expressions, or new lighting environments. This improves recognition quality."))
                     .font(.system(size: 12))
                     .foregroundStyle(SettingsMetrics.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -175,7 +175,7 @@ struct YourFaceSettingsPage: View {
 
     private var identitiesHeader: some View {
         HStack(spacing: 0) {
-            SettingsSectionTitle(text: "Identities")
+            SettingsSectionTitle(text: loc("Identities"))
 
             Button {
                 FaceIDEnrollmentController.startAddIdentity()
@@ -189,7 +189,7 @@ struct YourFaceSettingsPage: View {
             .buttonStyle(.plain)
             .disabled(enrollmentFlowIsRunning)
             .opacity(enrollmentFlowIsRunning ? 0.4 : 1)
-            .help("Enroll another face")
+            .help(loc("Enroll another face"))
             .padding(.trailing, SettingsMetrics.sectionTitleHorizontalInset)
             .padding(.top, SettingsMetrics.sectionTitleVerticalPadding)
         }
@@ -249,9 +249,9 @@ private struct IdentityCard: View {
     /// per-sample quality existed reports "not recorded" rather than a
     /// misleading "0/18 low".
     private var qualityCaption: String {
-        if identity.samples.isEmpty { return "No samples captured" }
-        if ratedCount == 0 { return "Capture quality • not recorded" }
-        return "Capture quality • \(poorCount)/\(identity.samples.count) low"
+        if identity.samples.isEmpty { return loc("No samples captured") }
+        if ratedCount == 0 { return loc("Capture quality • not recorded") }
+        return "\(loc("Capture quality")) • \(poorCount)/\(identity.samples.count) \(loc("low"))"
     }
 
     var body: some View {
@@ -273,11 +273,11 @@ private struct IdentityCard: View {
                         QualityTickStrip(samples: identity.samples)
                         .padding(.leading, 2)
                         Spacer(minLength: 12)
-                        PillActionButton(title: "Recapture", action: recapture)
+                        PillActionButton(title: loc("Recapture"), action: recapture)
                             .disabled(!canStartFlow)
                             .opacity(canStartFlow ? 1 : 0.4)
                         PillIconButton(systemImage: "trash", action: delete)
-                            .help("Delete \(identity.name)")
+                            .help(loc("Delete %@ ", identity.name))
                     }
                 }
                 // Dimmed rather than hidden while switched off: the person
@@ -285,7 +285,7 @@ private struct IdentityCard: View {
                 .opacity(isEnabled ? 1 : 0.45)
 
                 if isStale {
-                    Text("Captured with a different recognition model — recapture before this face can unlock your Mac.")
+                    Text(loc("Captured with a different recognition model — recapture before this face can unlock your Mac."))
                         .font(.system(size: 11))
                         .foregroundStyle(SettingsMetrics.qualityFairColor)
                         .fixedSize(horizontal: false, vertical: true)

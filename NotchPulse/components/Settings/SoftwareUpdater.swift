@@ -29,7 +29,7 @@ struct CheckForUpdatesView: View {
     }
     
     var body: some View {
-        Button("Check for Updates…", action: updater.checkForUpdates)
+        Button(loc("Check for Updates…"), action: updater.checkForUpdates)
             .disabled(!checkForUpdatesViewModel.canCheckForUpdates)
     }
 }
@@ -50,12 +50,12 @@ struct UpdaterSettingsView: View {
     
     var body: some View {
         Section {
-            Toggle("Automatically check for updates", isOn: $automaticallyChecksForUpdates)
+            Toggle(loc("Automatically check for updates"), isOn: $automaticallyChecksForUpdates)
                 .onChange(of: automaticallyChecksForUpdates) { _, newValue in
                     updater.automaticallyChecksForUpdates = newValue
                 }
             
-            Toggle("Automatically download updates", isOn: $automaticallyDownloadsUpdates)
+            Toggle(loc("Automatically download updates"), isOn: $automaticallyDownloadsUpdates)
                 .disabled(!automaticallyChecksForUpdates)
                 .onChange(of: automaticallyDownloadsUpdates) { _, newValue in
                     updater.automaticallyDownloadsUpdates = newValue
@@ -70,14 +70,14 @@ struct UpdaterSettingsView: View {
                 }
                 
                 if updateDelegate.isUpdateAvailable {
-                    Text("NotchPulse v\(updateDelegate.latestVersionString) (Latest Release)")
+                    Text(loc("NotchPulse v%@ (Latest Release)", updateDelegate.latestVersionString))
                         .font(.caption)
                         .foregroundColor(.green)
                 }
             }
         } header: {
             HStack {
-                Text("Software updates")
+                Text(loc("Software updates"))
             }
         }
     }

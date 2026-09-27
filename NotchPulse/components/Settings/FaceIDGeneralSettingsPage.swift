@@ -13,28 +13,28 @@ struct FaceIDUnlockOptionsPage: View {
 
     var body: some View {
         SettingsGroup {
-            SettingsRowContent(title: "Enable Face Unlock") {
+            SettingsRowContent(title: loc("Enable Face Unlock")) {
                 NotchPulseToggle(isOn: $coordinator.isEnabled)
             }
         }
 
         VStack(alignment: .leading, spacing: 6) {
-            SettingsSectionTitle(text: "Behaviour")
+            SettingsSectionTitle(text: loc("Behaviour"))
             SettingsGroup {
-                SettingsRowContent(title: "Retry again on Hover") {
+                SettingsRowContent(title: loc("Retry again on Hover")) {
                     NotchPulseToggle(isOn: $settings.retryOnHover)
                 }
                 SettingsGroupDivider()
-                SettingsRowContent(title: "Auto retry again once") {
+                SettingsRowContent(title: loc("Auto retry again once")) {
                     NotchPulseToggle(isOn: $settings.autoRetryOnce)
                 }
                 SettingsGroupDivider()
-                SettingsRowContent(title: "Haptic feedback") {
+                SettingsRowContent(title: loc("Haptic feedback")) {
                     NotchPulseToggle(isOn: $settings.hapticFeedbackEnabled)
                 }
                 SettingsGroupDivider()
                 SettingsSteppedSliderRowContent(
-                    title: "Face detection duration",
+                    title: loc("Face detection duration"),
                     valueLabel: "\(settings.faceDetectionSeconds)s",
                     index: Binding(
                         get: { Double(settings.faceDetectionSeconds - NotchPulseFaceIDSettings.faceDetectionRange.lowerBound) },
@@ -46,9 +46,9 @@ struct FaceIDUnlockOptionsPage: View {
         }
 
         VStack(alignment: .leading, spacing: 6) {
-            SettingsSectionTitle(text: "Animation")
+            SettingsSectionTitle(text: loc("Animation"))
             SettingsGroup {
-                SettingsRowContent(title: "Show animation") {
+                SettingsRowContent(title: loc("Show animation")) {
                     NotchPulseToggle(isOn: $settings.showUnlockAnimation)
                 }
                 SettingsGroupDivider()
@@ -60,41 +60,41 @@ struct FaceIDUnlockOptionsPage: View {
         }
 
         VStack(alignment: .leading, spacing: 6) {
-            SettingsSectionTitle(text: "System & Terminal Authorization")
+            SettingsSectionTitle(text: loc("System & Terminal Authorization"))
             SettingsGroup {
                 SettingsRowContent(
-                    title: "Authorize system prompts",
-                    subtitle: "Automatically verify with Face ID when macOS requires admin approval or installer confirmation."
+                    title: loc("Authorize system prompts"),
+                    subtitle: loc("Automatically verify with Face ID when macOS requires admin approval or installer confirmation.")
                 ) {
                     NotchPulseToggle(isOn: $settings.isSystemAuthFaceIDEnabled)
                 }
                 SettingsGroupDivider()
                 SettingsRowContent(
-                    title: "Terminal & field quick-auth",
-                    subtitle: "Fill passwords in Terminal, iTerm, or active password fields with ⌘⌥F."
+                    title: loc("Terminal & field quick-auth"),
+                    subtitle: loc("Fill passwords in Terminal, iTerm, or active password fields with ⌘⌥F.")
                 ) {
                     NotchPulseToggle(isOn: $settings.isTerminalQuickAuthEnabled)
                 }
                 SettingsGroupDivider()
                 SettingsRowContent(
-                    title: "Apple biometrics fallback",
-                    subtitle: "Allow Touch ID, Apple Watch, or system password if Face ID camera scan is unconfirmed."
+                    title: loc("Apple biometrics fallback"),
+                    subtitle: loc("Allow Touch ID, Apple Watch, or system password if Face ID camera scan is unconfirmed.")
                 ) {
                     NotchPulseToggle(isOn: $settings.useAppleAuthFallback)
                 }
                 SettingsGroupDivider()
                 SettingsRowContent(
-                    title: "Terminal sudo Touch ID",
+                    title: loc("Terminal sudo Touch ID"),
                     subtitle: authCoordinator.isSudoTouchIDConfigured
-                        ? "Configured in /etc/pam.d/sudo_local (native Apple Touch ID active for sudo)."
-                        : "Enable Apple's native Touch ID PAM module for sudo commands in Terminal."
+                        ? loc("Configured in /etc/pam.d/sudo_local (native Apple Touch ID active for sudo).")
+                        : loc("Enable Apple's native Touch ID PAM module for sudo commands in Terminal.")
                 ) {
                     if authCoordinator.isSudoTouchIDConfigured {
-                        Label("Enabled", systemImage: "checkmark.circle.fill")
+                        Label(loc("Enabled"), systemImage: "checkmark.circle.fill")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.green)
                     } else {
-                        Button("Configure") {
+                        Button(loc("Configure")) {
                             Task {
                                 _ = await authCoordinator.enableSudoTouchID()
                             }

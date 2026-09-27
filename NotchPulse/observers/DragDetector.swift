@@ -27,6 +27,7 @@ final class DragDetector {
     private var mouseDraggedMonitor: Any?
 
     private var lastKnownIdlePasteboardCount: Int = -1
+    private var mouseDownPasteboardCount: Int?
     private var isContentDragging: Bool = false {
         didSet {
             if isContentDragging != oldValue {
@@ -61,12 +62,27 @@ final class DragDetector {
         return false
     }
 
-    /// Checks if the drag pasteboard contains valid content types
+    /// Checks if the drag pasteboard contains valid file/item content types
     private func hasValidDragContent() -> Bool {
         guard let types = dragPasteboard.types, !types.isEmpty else {
             return false
         }
-        return true
+        guard let items = dragPasteboard.pasteboardItems, !items.isEmpty else {
+            return false
+        }
+        let validFileOrItemTypeIdentifiers: Set<String> = [
+            NSPasteboard.PasteboardType.fileURL.rawValue,
+            NSPasteboard.PasteboardType.URL.rawValue,
+            "public.file-url",
+            "com.apple.finder.node",
+            "NSFilenamesPboardType",
+            "com.apple.pasteboard.promised-file-url",
+            "com.apple.pasteboard.promised-file-content-type",
+            "public.data",
+            "public.content",
+            "public.image"
+        ]
+        return types.contains { validFileOrItemTypeIdentifiers.contains($0.rawValue) }
     }
 
     private var unpressedPollCount: Int = 0
@@ -74,6 +90,7 @@ final class DragDetector {
     func startMonitoring() {
         stopMonitoring()
         lastKnownIdlePasteboardCount = dragPasteboard.changeCount
+        mouseDownPasteboardCount = nil
         unpressedPollCount = 0
 
         // Global monitor for leftMouseDragged (immediate response when events are delivered)
@@ -96,6 +113,7 @@ final class DragDetector {
         let currentPbCount = dragPasteboard.changeCount
 
         if !mousePressed {
+            mouseDownPasteboardCount = nil
             unpressedPollCount += 1
             // Require sustained release (>= 3 ticks = 120ms) before declaring drag ended.
             // This prevents trackpad force-touch pressure drops from prematurely killing drag operations.
@@ -114,8 +132,8 @@ final class DragDetector {
                 lastKnownIdlePasteboardCount = currentPbCount
             }
 
-            // Hover radar: Runs whenever extended hover or open-on-hover is enabled
-            let shouldRunHoverRadar = Defaults[.extendHoverArea] || Defaults[.openNotchOnHover]
+            // Hover radar: Only runs when extended hover area is explicitly enabled
+            let shouldRunHoverRadar = Defaults[.extendHoverArea]
             if shouldRunHoverRadar {
                 let hoverRegion = regionProvider(false)
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
@@ -136,10 +154,13 @@ final class DragDetector {
 
         // --- Mouse IS Pressed ---
         unpressedPollCount = 0
+        if mouseDownPasteboardCount == nil {
+            mouseDownPasteboardCount = currentPbCount
+        }
 
-        // Detect if a drag operation is active:
-        // Pasteboard changeCount changed from the idle baseline while button is down, with valid content
-        let isNewDragOperation = (currentPbCount != lastKnownIdlePasteboardCount) && hasValidDragContent()
+        // Detect if a real drag operation is active:
+        // Pasteboard changeCount increased since mouse-down and pasteboard has valid file/item content
+        let isNewDragOperation = (currentPbCount > (mouseDownPasteboardCount ?? lastKnownIdlePasteboardCount)) && hasValidDragContent()
 
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
@@ -163,8 +184,8 @@ final class DragDetector {
                 onDragExitsNotchRegion?()
             }
         } else {
-            // Regular mouse click inside UI: maintain hover radar state so clicking buttons doesn't close the notch
-            let shouldRunHoverRadar = Defaults[.extendHoverArea] || Defaults[.openNotchOnHover]
+            // Regular mouse click inside UI: maintain hover radar state if extended hover area is enabled
+            let shouldRunHoverRadar = Defaults[.extendHoverArea]
             if shouldRunHoverRadar {
                 let hoverRegion = regionProvider(false)
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
@@ -187,6 +208,7 @@ final class DragDetector {
         mouseDraggedMonitor = nil
         isContentDragging = false
         hasEnteredNotchRegion = false
+        mouseDownPasteboardCount = nil
         lastKnownIdlePasteboardCount = -1
     }
 

@@ -299,21 +299,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
                     let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
                     return CGRect(
-                        x: currentFrame.midX - (openWidth / 2 + padding + 15),
-                        y: currentFrame.maxY - (openHeight + padding + topOffset + 15),
-                        width: openWidth + ((padding + 15) * 2),
-                        height: openHeight + padding + topOffset + 45
+                        x: currentFrame.midX - (openWidth / 2 + padding),
+                        y: currentFrame.maxY - (openHeight + padding + topOffset),
+                        width: openWidth + (padding * 2),
+                        height: openHeight + padding + topOffset + 15
                     )
                 } else {
                     let closedSize = currentTargetVM.closedNotchSize
                     let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
                     let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
-                    let extraChin: CGFloat = hasPhysicalNotch ? 22.0 : 12.0
                     return CGRect(
-                        x: currentFrame.midX - (closedWidth / 2 + padding + 10),
-                        y: currentFrame.maxY - (closedHeight + padding + topOffset + extraChin),
-                        width: closedWidth + ((padding + 10) * 2),
-                        height: closedHeight + padding + topOffset + extraChin + 20
+                        x: currentFrame.midX - (closedWidth / 2 + padding),
+                        y: currentFrame.maxY - (closedHeight + padding + topOffset),
+                        width: closedWidth + (padding * 2),
+                        height: closedHeight + (padding * 2) + topOffset
                     )
                 }
             }

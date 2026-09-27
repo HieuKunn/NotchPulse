@@ -46,6 +46,10 @@ const i18nData = {
     "chip.fpsSub": "0% CPU Idle Overhead",
     "chip.lyricsTitle": "Live Synced Lyrics",
     "chip.lyricsSub": "Spotify & Apple Music",
+    "chip.statsTitle": "System Monitor",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "Clipboard History",
+    "chip.clipboardSub": "50 Items • Quick ⌘⌥V",
 
     // Demo Controls & Notch
     "demo.modeNotch": "MacBook Notch",
@@ -173,6 +177,10 @@ const i18nData = {
     "chip.fpsSub": "0% CPU khi chạy nền",
     "chip.lyricsTitle": "Lời Nhạc Trực Tiếp",
     "chip.lyricsSub": "Spotify & Apple Music",
+    "chip.statsTitle": "Giám Sát Hệ Thống",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "Bộ Nhớ Tạm",
+    "chip.clipboardSub": "50 Mục • Nhấn ⌘⌥V",
 
     // Demo Controls & Notch
     "demo.modeNotch": "Tai Thỏ",
@@ -300,6 +308,10 @@ const i18nData = {
     "chip.fpsSub": "0% CPU-Last im Leerlauf",
     "chip.lyricsTitle": "Live-Songtexte",
     "chip.lyricsSub": "Spotify & Apple Music",
+    "chip.statsTitle": "Systemmonitor",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "Zwischenablage",
+    "chip.clipboardSub": "50 Einträge • ⌘⌥V",
 
     // Demo Controls
     "demo.modeNotch": "MacBook Notch",
@@ -427,6 +439,10 @@ const i18nData = {
     "chip.fpsSub": "アイドル時CPU負荷 0%",
     "chip.lyricsTitle": "リアルタイム同期歌詞",
     "chip.lyricsSub": "Spotify & Apple Music 対応",
+    "chip.statsTitle": "システムモニター",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "クリップボード履歴",
+    "chip.clipboardSub": "50件保持 • ⌘⌥V",
 
     // Demo Controls
     "demo.modeNotch": "ノッチモード",
@@ -554,6 +570,10 @@ const i18nData = {
     "chip.fpsSub": "待機時 0% CPU 佔用",
     "chip.lyricsTitle": "即時同步歌詞",
     "chip.lyricsSub": "支援 Spotify 與 Apple Music",
+    "chip.statsTitle": "系統監控 (Stats)",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "剪貼簿紀錄",
+    "chip.clipboardSub": "50 筆紀錄 • 快速 ⌘⌥V",
 
     // Demo Controls
     "demo.modeNotch": "MacBook 瀏海",
@@ -681,6 +701,10 @@ const i18nData = {
     "chip.fpsSub": "待机 0% CPU 占用",
     "chip.lyricsTitle": "实时同步歌词",
     "chip.lyricsSub": "支持 Spotify 与 Apple Music",
+    "chip.statsTitle": "系统监控 (Stats)",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "剪贴板记录",
+    "chip.clipboardSub": "50 条记录 • 快捷 ⌘⌥V",
 
     // Demo Controls
     "demo.modeNotch": "MacBook 刘海",
@@ -808,6 +832,10 @@ const i18nData = {
     "chip.fpsSub": "0% de CPU en reposo",
     "chip.lyricsTitle": "Letras Sincronizadas",
     "chip.lyricsSub": "Spotify y Apple Music",
+    "chip.statsTitle": "Monitor del Sistema",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "Portapapeles",
+    "chip.clipboardSub": "50 elementos • ⌘⌥V",
 
     // Demo Controls
     "demo.modeNotch": "MacBook Notch",

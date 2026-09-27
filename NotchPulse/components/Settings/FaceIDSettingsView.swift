@@ -98,11 +98,11 @@ struct FaceIDSettingsView: View {
                         } else if isMusicSyncConfirmed {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text("Music Sync Confirmed (Spotify & Apple Music)")
+                            Text(loc("Music Sync Confirmed (Spotify & Apple Music)"))
                                 .foregroundStyle(.green)
                         } else {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                            Text("Sync Music Permissions (Spotify & Apple Music)")
+                            Text(loc("Sync Music Permissions (Spotify & Apple Music)"))
                         }
                     }
                 }
@@ -118,11 +118,11 @@ struct FaceIDSettingsView: View {
     private var permissionsWarning: some View {
         SettingsGroup {
             VStack(alignment: .leading, spacing: 10) {
-                Label("System Permissions Required", systemImage: "exclamationmark.shield.fill")
+                Label(loc("System Permissions Required"), systemImage: "exclamationmark.shield.fill")
                     .font(.headline)
                     .foregroundStyle(.orange)
                 
-                Text("Face ID requires Camera permission for face detection and Accessibility permission to automatically enter your password on unlock.")
+                Text(loc("Face ID requires Camera permission for face detection and Accessibility permission to automatically enter your password on unlock."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 
@@ -130,10 +130,10 @@ struct FaceIDSettingsView: View {
                     HStack {
                         Image(systemName: "camera.fill")
                             .foregroundStyle(.red)
-                        Text("Camera Permission Missing")
+                        Text(loc("Camera Permission Missing"))
                             .font(.subheadline)
                         Spacer()
-                        Button("Grant") {
+                        Button(loc("Grant")) {
                             let status = AVCaptureDevice.authorizationStatus(for: .video)
                             if status == .notDetermined {
                                 AVCaptureDevice.requestAccess(for: .video) { _ in
@@ -154,10 +154,10 @@ struct FaceIDSettingsView: View {
                     HStack {
                         Image(systemName: "hand.raised.fill")
                             .foregroundStyle(.orange)
-                        Text("Accessibility Permission Missing")
+                        Text(loc("Accessibility Permission Missing"))
                             .font(.subheadline)
                         Spacer()
-                        Button("Open Settings") {
+                        Button(loc("Open Settings")) {
                             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
                             _ = AXIsProcessTrustedWithOptions(options)
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {

@@ -342,7 +342,7 @@ struct GeneralSettings: View {
                         HStack(spacing: 5) {
                             Image(systemName: notchStyle == .notch ? "checkmark.circle.fill" : "circle")
                                 .foregroundStyle(notchStyle == .notch ? Color.accentColor : .secondary)
-                            Text("MacBook Notch")
+                            Text(loc("MacBook Notch"))
                                 .font(.subheadline)
                                 .fontWeight(notchStyle == .notch ? .semibold : .regular)
                         }
@@ -381,7 +381,7 @@ struct GeneralSettings: View {
                         HStack(spacing: 5) {
                             Image(systemName: notchStyle == .dynamicIsland ? "checkmark.circle.fill" : "circle")
                                 .foregroundStyle(notchStyle == .dynamicIsland ? Color.accentColor : .secondary)
-                            Text("Dynamic Island")
+                            Text(loc("Dynamic Island"))
                                 .font(.subheadline)
                                 .fontWeight(notchStyle == .dynamicIsland ? .semibold : .regular)
                         }
@@ -395,14 +395,14 @@ struct GeneralSettings: View {
             if notchStyle == .dynamicIsland {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Top Gap (Distance from Screen Edge)")
+                        Text(loc("Top Gap (Distance from Screen Edge)"))
                         Spacer()
                         Text("\(Int(dynamicIslandTopOffset)) px")
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
                     Slider(value: $dynamicIslandTopOffset, in: 0...24, step: 1) {
-                        Text("Top Gap")
+                        Text(loc("Top Gap"))
                     } minimumValueLabel: {
                         Text("0px")
                             .font(.caption2)
@@ -412,7 +412,7 @@ struct GeneralSettings: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
-                    Text("Sets the floating gap between the top bezel and the Dynamic Island capsule.")
+                    Text(loc("Sets the floating gap between the top bezel and the Dynamic Island capsule."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -420,7 +420,7 @@ struct GeneralSettings: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         } header: {
-            Text("Notch / Island Style")
+            Text(loc("Notch / Island Style"))
         }
     }
 
@@ -429,14 +429,14 @@ struct GeneralSettings: View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Expanded Width")
+                    Text(loc("Expanded Width"))
                     Spacer()
                     Text("\(Int(notchOpenWidth)) px")
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                         .fontWeight(.medium)
                     
-                    Button("Reset") {
+                    Button(loc("Reset")) {
                         notchOpenWidth = 740
                         triggerWidthPreview(width: 740, isEditing: false)
                     }
@@ -453,7 +453,7 @@ struct GeneralSettings: View {
                     in: 560...960,
                     step: 10,
                     label: {
-                        Text("Notch Width")
+                        Text(loc("Notch Width"))
                     },
                     minimumValueLabel: {
                         Text("560px")
@@ -471,21 +471,21 @@ struct GeneralSettings: View {
                 )
                 
                 HStack(spacing: 8) {
-                    Button("Compact (580px)") {
+                    Button(loc("Compact (580px)")) {
                         notchOpenWidth = 580
                         triggerWidthPreview(width: 580, isEditing: false)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     
-                    Button("Standard (740px)") {
+                    Button(loc("Standard (740px)")) {
                         notchOpenWidth = 740
                         triggerWidthPreview(width: 740, isEditing: false)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     
-                    Button("Wide (860px)") {
+                    Button(loc("Wide (860px)")) {
                         notchOpenWidth = 860
                         triggerWidthPreview(width: 860, isEditing: false)
                     }
@@ -494,7 +494,7 @@ struct GeneralSettings: View {
                 }
                 .padding(.top, 2)
                 
-                Text("Controls the horizontal expansion length when the notch or dynamic island is open. The notch opens and resizes live on your screen as you drag the slider.")
+                Text(loc("Controls the horizontal expansion length when the notch or dynamic island is open. The notch opens and resizes live on your screen as you drag the slider."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -503,7 +503,7 @@ struct GeneralSettings: View {
                 triggerWidthPreview(width: newWidth, isEditing: true)
             }
         } header: {
-            Text("Notch Dimensions (Width)")
+            Text(loc("Notch Dimensions (Width)"))
         }
     }
 
@@ -514,18 +514,18 @@ struct GeneralSettings: View {
                 get: { Defaults[.menubarIcon] },
                 set: { Defaults[.menubarIcon] = $0 }
             )) {
-                Text("Show menu bar icon")
+                Text(loc("Show menu bar icon"))
             }
             .tint(.effectiveAccent)
-            LaunchAtLogin.Toggle("Launch at login")
+            LaunchAtLogin.Toggle(loc("Launch at login"))
             Defaults.Toggle(key: .showOnAllDisplays) {
-                Text("Show on all displays")
+                Text(loc("Show on all displays"))
             }
             .onChange(of: showOnAllDisplays) {
                 NotificationCenter.default.post(
                     name: Notification.Name.showOnAllDisplaysChanged, object: nil)
             }
-            Picker("Preferred display", selection: $coordinator.preferredScreenUUID) {
+            Picker(loc("Preferred display"), selection: $coordinator.preferredScreenUUID) {
                 ForEach(screens, id: \.uuid) { screen in
                     Text(screen.name).tag(screen.uuid as String?)
                 }
@@ -545,7 +545,7 @@ struct GeneralSettings: View {
             .disabled(showOnAllDisplays)
             
             Defaults.Toggle(key: .automaticallySwitchDisplay) {
-                Text("Automatically switch displays")
+                Text(loc("Automatically switch displays"))
             }
             .onChange(of: automaticallySwitchDisplay) {
                 NotificationCenter.default.post(
@@ -553,7 +553,7 @@ struct GeneralSettings: View {
             }
             .disabled(showOnAllDisplays)
         } header: {
-            Text("System features")
+            Text(loc("System features"))
         }
     }
 
@@ -563,13 +563,13 @@ struct GeneralSettings: View {
             Picker(
                 selection: $notchHeightMode,
                 label:
-                    Text("Notch height on notch displays")
+                    Text(loc("Notch height on notch displays"))
             ) {
-                Text("Match real notch height")
+                Text(loc("Match real notch height"))
                     .tag(WindowHeightMode.matchRealNotchSize)
-                Text("Match menu bar height")
+                Text(loc("Match menu bar height"))
                     .tag(WindowHeightMode.matchMenuBar)
-                Text("Custom height")
+                Text(loc("Custom height"))
                     .tag(WindowHeightMode.custom)
             }
             .onChange(of: notchHeightMode) {
@@ -586,19 +586,19 @@ struct GeneralSettings: View {
             }
             if notchHeightMode == .custom {
                 Slider(value: $notchHeight, in: 15...45, step: 1) {
-                    Text("Custom notch size - \(notchHeight, specifier: "%.0f")")
+                    Text(loc("Custom notch size - %@", String(format: "%.0f", notchHeight)))
                 }
                 .onChange(of: notchHeight) {
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil)
                 }
             }
-            Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
-                Text("Match menubar height")
+            Picker(loc("Notch height on non-notch displays"), selection: $nonNotchHeightMode) {
+                Text(loc("Match menubar height"))
                     .tag(WindowHeightMode.matchMenuBar)
-                Text("Match real notch height")
+                Text(loc("Match real notch height"))
                     .tag(WindowHeightMode.matchRealNotchSize)
-                Text("Custom height")
+                Text(loc("Custom height"))
                     .tag(WindowHeightMode.custom)
             }
             .onChange(of: nonNotchHeightMode) {
@@ -615,7 +615,7 @@ struct GeneralSettings: View {
             }
             if nonNotchHeightMode == .custom {
                 Slider(value: $nonNotchHeight, in: 0...40, step: 1) {
-                    Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
+                    Text(loc("Custom notch size - %@", String(format: "%.0f", nonNotchHeight)))
                 }
                 .onChange(of: nonNotchHeight) {
                     NotificationCenter.default.post(
@@ -623,7 +623,7 @@ struct GeneralSettings: View {
                 }
             }
         } header: {
-            Text("Notch sizing")
+            Text(loc("Notch sizing"))
         }
     }
 
@@ -650,22 +650,22 @@ struct GeneralSettings: View {
     func gestureControls() -> some View {
         Section {
             Defaults.Toggle(key: .enableGestures) {
-                Text("Enable gestures")
+                Text(loc("Enable gestures"))
             }
                 .disabled(!openNotchOnHover)
             if enableGestures {
-                Toggle("Change media with horizontal gestures", isOn: .constant(false))
+                Toggle(loc("Change media with horizontal gestures"), isOn: .constant(false))
                     .disabled(true)
                 Defaults.Toggle(key: .closeGestureEnabled) {
-                    Text("Close gesture")
+                    Text(loc("Close gesture"))
                 }
                 Slider(value: $gestureSensitivity, in: 100...300, step: 100) {
                     HStack {
-                        Text("Gesture sensitivity")
+                        Text(loc("Gesture sensitivity"))
                         Spacer()
                         Text(
                             Defaults[.gestureSensitivity] == 100
-                                ? "High" : Defaults[.gestureSensitivity] == 200 ? "Medium" : "Low"
+                                ? loc("High") : Defaults[.gestureSensitivity] == 200 ? loc("Medium") : loc("Low")
                         )
                         .foregroundStyle(.secondary)
                     }
@@ -673,12 +673,12 @@ struct GeneralSettings: View {
             }
         } header: {
             HStack {
-                Text("Gesture control")
-                customBadge(text: "Beta")
+                Text(loc("Gesture control"))
+                customBadge(text: loc("Beta"))
             }
         } footer: {
             Text(
-                "Two-finger swipe up on notch to close, two-finger swipe down on notch to open when **Open notch on hover** option is disabled"
+                loc("Two-finger swipe up on notch to close, two-finger swipe down on notch to open when **Open notch on hover** option is disabled")
             )
             .multilineTextAlignment(.trailing)
             .foregroundStyle(.secondary)
@@ -690,21 +690,21 @@ struct GeneralSettings: View {
     func NotchBehaviour() -> some View {
         Section {
             Defaults.Toggle(key: .openNotchOnHover) {
-                Text("Open notch on hover")
+                Text(loc("Open notch on hover"))
             }
             Defaults.Toggle(key: .enableHaptics) {
-                    Text("Enable haptic feedback")
+                    Text(loc("Enable haptic feedback"))
             }
             VStack(alignment: .leading, spacing: 4) {
-                Toggle("Restore last tab on hover", isOn: $coordinator.openLastTabByDefault)
-                Text("When opening the notch on hover, restore the last selected tab (e.g. CPU/RAM Stats, Battery) instead of resetting to Home.")
+                Toggle(loc("Restore last tab on hover"), isOn: $coordinator.openLastTabByDefault)
+                Text(loc("When opening the notch on hover, restore the last selected tab (e.g. CPU/RAM Stats, Battery) instead of resetting to Home."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             if openNotchOnHover {
                 Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
                     HStack {
-                        Text("Hover delay")
+                        Text(loc("Hover delay"))
                         Spacer()
                         Text("\(minimumHoverDuration, specifier: "%.1f")s")
                             .foregroundStyle(.secondary)
@@ -716,7 +716,7 @@ struct GeneralSettings: View {
                 }
 
                 Defaults.Toggle(key: .extendHoverArea) {
-                    Text("Extend hover area")
+                    Text(loc("Extend hover area"))
                 }
                 .onChange(of: extendHoverArea) {
                     NotificationCenter.default.post(
@@ -728,7 +728,7 @@ struct GeneralSettings: View {
                 if extendHoverArea {
                     Slider(value: $hoverAreaPadding, in: 5...60, step: 5) {
                         HStack {
-                            Text("Hover detection range")
+                            Text(loc("Hover detection range"))
                             Spacer()
                             Text("\(hoverAreaPadding, specifier: "%.0f") px")
                                 .foregroundStyle(.secondary)
@@ -740,13 +740,13 @@ struct GeneralSettings: View {
                             object: nil
                         )
                     }
-                    Text("Expands the sensitivity area for hovering to open the notch, separate from Drag & Drop distance.")
+                    Text(loc("Expands the sensitivity area for hovering to open the notch, separate from Drag & Drop distance."))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
         } header: {
-            Text("Notch behavior")
+            Text(loc("Notch behavior"))
         }
     }
 }
@@ -847,9 +847,9 @@ struct HUD: View {
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Replace system HUD")
+                        Text(loc("Replace system HUD"))
                             .font(.headline)
-                        Text("Replaces the standard macOS volume, display brightness, and keyboard brightness HUDs with a custom design.")
+                        Text(loc("Replaces the standard macOS volume, display brightness, and keyboard brightness HUDs with a custom design."))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -864,12 +864,12 @@ struct HUD: View {
                 
                 if !accessibilityAuthorized {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Accessibility access is required to replace the system HUD.")
+                        Text(loc("Accessibility access is required to replace the system HUD."))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
                         HStack(spacing: 12) {
-                            Button("Request Accessibility") {
+                            Button(loc("Request Accessibility")) {
                                 XPCHelperClient.shared.requestAccessibilityAuthorization()
                             }
                             .buttonStyle(.borderedProminent)
@@ -880,50 +880,50 @@ struct HUD: View {
             }
             
             Section {
-                Picker("Option key behaviour", selection: $optionKeyAction) {
+                Picker(loc("Option key behaviour"), selection: $optionKeyAction) {
                     ForEach(OptionKeyAction.allCases) { opt in
                         Text(opt.rawValue).tag(opt)
                     }
                 }
                 
-                Picker("Progress bar style", selection: $enableGradient) {
-                    Text("Hierarchical")
+                Picker(loc("Progress bar style"), selection: $enableGradient) {
+                    Text(loc("Hierarchical"))
                         .tag(false)
-                    Text("Gradient")
+                    Text(loc("Gradient"))
                         .tag(true)
                 }
                 Defaults.Toggle(key: .systemEventIndicatorShadow) {
-                    Text("Enable glowing effect")
+                    Text(loc("Enable glowing effect"))
                 }
                 Defaults.Toggle(key: .systemEventIndicatorUseAccent) {
-                    Text("Tint progress bar with accent color")
+                    Text(loc("Tint progress bar with accent color"))
                 }
             } header: {
-                Text("General")
+                Text(loc("General"))
             }
             .disabled(!hudReplacement)
             
             Section {
                 Defaults.Toggle(key: .showOpenNotchHUD) {
-                    Text("Show HUD in open notch")
+                    Text(loc("Show HUD in open notch"))
                 }
                 Defaults.Toggle(key: .showOpenNotchHUDPercentage) {
-                    Text("Show percentage")
+                    Text(loc("Show percentage"))
                 }
                 .disabled(!Defaults[.showOpenNotchHUD])
             } header: {
                 HStack {
-                    Text("Open Notch")
-                    customBadge(text: "Beta")
+                    Text(loc("Open Notch"))
+                    customBadge(text: loc("Beta"))
                 }
             }
             .disabled(!hudReplacement)
             
             Section {
-                Picker("HUD style", selection: $inlineHUD) {
-                    Text("Default")
+                Picker(loc("HUD style"), selection: $inlineHUD) {
+                    Text(loc("Default"))
                         .tag(false)
-                    Text("Inline")
+                    Text(loc("Inline"))
                         .tag(true)
                 }
                 .onChange(of: Defaults[.inlineHUD]) {
@@ -936,10 +936,10 @@ struct HUD: View {
                 }
                 
                 Defaults.Toggle(key: .showClosedNotchHUDPercentage) {
-                    Text("Show percentage")
+                    Text(loc("Show percentage"))
                 }
             } header: {
-                Text("Closed Notch")
+                Text(loc("Closed Notch"))
             }
             .disabled(!Defaults[.hudReplacement])
         }
@@ -978,9 +978,9 @@ struct SystemMonitorSettingsView: View {
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("System Monitor (Stats)")
+                        Text(loc("System Monitor (Stats)"))
                             .font(.headline)
-                        Text("Monitor real-time CPU, RAM, and GPU load in a dedicated Notch tab inspired by the 'Stats' app.")
+                        Text(loc("Monitor real-time CPU, RAM, and GPU load in a dedicated Notch tab inspired by the 'Stats' app."))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -996,7 +996,7 @@ struct SystemMonitorSettingsView: View {
                     Image(systemName: "checkmark.shield.fill")
                         .foregroundStyle(.green)
                         .font(.system(size: 14))
-                    Text("System Monitoring Access: Active (Darwin Mach & IOKit native APIs)")
+                    Text(loc("System Monitoring Access: Active (Darwin Mach & IOKit native APIs)"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1005,10 +1005,10 @@ struct SystemMonitorSettingsView: View {
 
             Section {
                 Defaults.Toggle(key: .systemMonitorShowProcesses) {
-                    Text("Show top resource-consuming processes")
+                    Text(loc("Show top resource-consuming processes"))
                 }
             } header: {
-                Text("Display Options")
+                Text(loc("Display Options"))
             }
             .disabled(!enableSystemMonitor)
 
@@ -1020,7 +1020,7 @@ struct SystemMonitorSettingsView: View {
                             Image(systemName: "cpu")
                                 .foregroundStyle(.blue)
                             VStack(alignment: .leading) {
-                                Text("CPU")
+                                Text(loc("CPU"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Text(String(format: "%.0f%%", monitor.cpuTotal))
@@ -1036,12 +1036,12 @@ struct SystemMonitorSettingsView: View {
                             Image(systemName: "memorychip")
                                 .foregroundStyle(.green)
                             VStack(alignment: .leading) {
-                                Text("RAM")
+                                Text(loc("RAM"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Text(String(format: "%.1f / %.0f GB", monitor.ramUsedGB, monitor.ramTotalGB))
                                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                                Text("Swap: \(monitor.swapUsedFormatted)")
+                                Text("\(loc("Swap")): \(monitor.swapUsedFormatted)")
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
@@ -1055,7 +1055,7 @@ struct SystemMonitorSettingsView: View {
                             Image(systemName: "display")
                                 .foregroundStyle(.purple)
                             VStack(alignment: .leading) {
-                                Text("GPU")
+                                Text(loc("GPU"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Text(String(format: "%.0f%%", monitor.gpuUsage))
@@ -1067,7 +1067,7 @@ struct SystemMonitorSettingsView: View {
                     .padding(.vertical, 4)
                 }
             } header: {
-                Text("Live Preview")
+                Text(loc("Live Preview"))
             }
             .disabled(!enableSystemMonitor)
         }
@@ -1098,7 +1098,7 @@ struct Media: View {
     var body: some View {
         Form {
             Section {
-                Picker("Music Source", selection: $mediaController) {
+                Picker(loc("Music Source"), selection: $mediaController) {
                     ForEach(availableMediaControllers) { controller in
                         Text(controller.rawValue).tag(controller)
                     }
@@ -1110,11 +1110,11 @@ struct Media: View {
                     )
                 }
             } header: {
-                Text("Media Source")
+                Text(loc("Media Source"))
             } footer: {
                 if MusicManager.shared.isNowPlayingDeprecated {
                     HStack {
-                        Text("YouTube Music requires this third-party app to be installed: ")
+                        Text(loc("YouTube Music requires this third-party app to be installed: "))
                             .foregroundStyle(.secondary)
                             .font(.caption)
                         Link(
@@ -1126,7 +1126,7 @@ struct Media: View {
                     }
                 } else {
                     Text(
-                        "'Now Playing' was the only option on previous versions and works with all media apps."
+                        loc("'Now Playing' was the only option on previous versions and works with all media apps.")
                     )
                     .foregroundStyle(.secondary)
                     .font(.caption)
@@ -1135,11 +1135,11 @@ struct Media: View {
             
             Section {
                 Toggle(
-                    "Show music live activity",
+                    loc("Show music live activity"),
                     isOn: $coordinator.musicLiveActivityEnabled.animation()
                 )
-                Toggle("Show sneak peek on playback changes", isOn: $enableSneakPeek)
-                Picker("Sneak Peek Style", selection: $sneakPeekStyles) {
+                Toggle(loc("Show sneak peek on playback changes"), isOn: $enableSneakPeek)
+                Picker(loc("Sneak Peek Style"), selection: $sneakPeekStyles) {
                     ForEach(SneakPeekStyle.allCases) { style in
                         Text(style.rawValue).tag(style)
                     }
@@ -1147,9 +1147,9 @@ struct Media: View {
                 HStack {
                     Stepper(value: $waitInterval, in: 0...10, step: 1) {
                         HStack {
-                            Text("Media inactivity timeout")
+                            Text(loc("Media inactivity timeout"))
                             Spacer()
-                            Text("\(Defaults[.waitInterval], specifier: "%.0f") seconds")
+                            Text("\(Defaults[.waitInterval], specifier: "%.0f") \(loc("seconds"))")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -1158,25 +1158,25 @@ struct Media: View {
                     selection: $hideNotchOption,
                     label:
                         HStack {
-                            Text("Full screen behavior")
-                            customBadge(text: "Beta")
+                            Text(loc("Full screen behavior"))
+                            customBadge(text: loc("Beta"))
                         }
                 ) {
-                    Text("Hide for all apps").tag(HideNotchOption.always)
-                    Text("Hide for media app only").tag(
+                    Text(loc("Hide for all apps")).tag(HideNotchOption.always)
+                    Text(loc("Hide for media app only")).tag(
                         HideNotchOption.nowPlayingOnly)
-                    Text("Never hide").tag(HideNotchOption.never)
+                    Text(loc("Never hide")).tag(HideNotchOption.never)
                 }
             } header: {
-                Text("Media playback live activity")
+                Text(loc("Media playback live activity"))
             }
             
             Section {
                 MusicSlotConfigurationView()
                 Defaults.Toggle(key: .enableLyrics) {
                     HStack {
-                        Text("Show lyrics below artist name")
-                        customBadge(text: "Beta")
+                        Text(loc("Show lyrics below artist name"))
+                        customBadge(text: loc("Beta"))
                     }
                 }
                 Button {
@@ -1193,24 +1193,24 @@ struct Media: View {
                         if isSyncing {
                             ProgressView()
                                 .controlSize(.small)
-                            Text("Syncing Permissions...")
+                            Text(loc("Syncing Permissions..."))
                         } else if isMusicSyncConfirmed {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text("Music Permissions Synced (Spotify & Apple Music)")
+                            Text(loc("Music Permissions Synced (Spotify & Apple Music)"))
                                 .foregroundStyle(.green)
                         } else {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                            Text("Sync Music Permissions (Spotify & Apple Music)")
+                            Text(loc("Sync Music Permissions (Spotify & Apple Music)"))
                         }
                     }
                 }
                 .buttonStyle(.bordered)
                 .disabled(isSyncing)
             } header: {
-                Text("Media controls")
+                Text(loc("Media controls"))
             }  footer: {
-                Text("Customize which controls appear in the music player. Grant automation access for Spotify and Apple Music to keep playback and lyrics precisely in sync.")
+                Text(loc("Customize which controls appear in the music player. Grant automation access for Spotify and Apple Music to keep playback and lyrics precisely in sync."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1243,103 +1243,47 @@ struct CalendarSettings: View {
     @Default(.alternateCalendarType) private var alternateCalendarType
     @Default(.showLunarCalendar) private var showLunarCalendar
 
-    private var lunarSectionHeader: String {
-        switch appLanguage {
-        case .vietnamese: return "Lịch âm theo khu vực"
-        case .traditionalChinese: return "農曆地區"
-        case .simplifiedChinese: return "农历地区"
-        case .japanese: return "旧暦地域"
-        case .german: return "Mondkalender-Region"
-        case .french: return "Région du calendrier lunaire"
-        case .spanish: return "Región del calendario lunar"
-        case .arabic: return "منطقة التقويم القمري"
-        case .english: return "Lunar Calendar Region"
-        }
-    }
-
-    private var lunarPickerLabel: String {
-        switch appLanguage {
-        case .vietnamese: return "Khu vực lịch âm"
-        case .traditionalChinese: return "選擇農曆地區"
-        case .simplifiedChinese: return "选择农历地区"
-        case .japanese: return "旧暦地域の選択"
-        case .german: return "Mondkalender auswählen"
-        case .french: return "Sélectionner la région lunaire"
-        case .spanish: return "Seleccionar región lunar"
-        case .arabic: return "اختر منطقة التقويم القمري"
-        case .english: return "Lunar Calendar Region"
-        }
-    }
-
-    private var lunarToggleLabel: String {
-        switch appLanguage {
-        case .vietnamese: return "Hiển thị ngày âm trong lịch tháng"
-        case .traditionalChinese: return "在月曆中顯示農曆日期"
-        case .simplifiedChinese: return "在月历中显示农历日期"
-        case .japanese: return "月間カレンダーに旧暦を表示"
-        case .german: return "Monddatum im Monatsraster anzeigen"
-        case .french: return "Afficher la date lunaire dans la grille du mois"
-        case .spanish: return "Mostrar fecha lunar en la cuadrícula mensual"
-        case .arabic: return "إظهار التاريخ القمري في شبكة الشهر"
-        case .english: return "Show lunar date in month grid"
-        }
-    }
-
-    private var lunarDescription: String {
-        switch appLanguage {
-        case .vietnamese: return "Hỗ trợ tính toán âm lịch chuẩn xác theo múi giờ khu vực (Việt Nam UTC+7, Đài Loan / Trung Quốc UTC+8)."
-        case .traditionalChinese: return "支援依據當地時區精確計算農曆日期（台灣/中國 UTC+8、越南 UTC+7 等）。"
-        case .simplifiedChinese: return "支持依据当地时区精确计算农历日期（台湾/中国 UTC+8、越南 UTC+7 等）。"
-        case .japanese: return "地域タイムゾーン（ベトナム UTC+7、台湾・中国 UTC+8など）に応じた旧暦計算をサポートします。"
-        case .german: return "Unterstützt die genaue Mondkalenderberechnung nach regionaler Zeitzone (Vietnam UTC+7, Taiwan/China UTC+8 usw.)."
-        case .french: return "Prend en charge le calcul précis du calendrier lunaire selon le fuseau horaire régional (Vietnam UTC+7, Taïwan/Chine UTC+8, etc.)."
-        case .spanish: return "Admite el cálculo preciso del calendario lunar según la zona horaria regional (Vietnam UTC+7, Taiwán/China UTC+8, etc.)."
-        case .arabic: return "يدعم حساب التقويم القمري بدقة وفقًا للمنطقة الزمنية المحلية (فيتنام UTC+7، تايوان/الصين UTC+8، إلخ)."
-        case .english: return "Supports lunar calendar calculation according to local regional timezone (Vietnam UTC+7, Taiwan / China UTC+8)."
-        }
-    }
-
     var body: some View {
         Form {
             Defaults.Toggle(key: .showCalendar) {
-                Text(appLanguage == .vietnamese ? "Hiển thị lịch" : "Show calendar")
+                Text(loc("Show calendar"))
             }
             Defaults.Toggle(key: .hideCompletedReminders) {
-                Text(appLanguage == .vietnamese ? "Ẩn lời nhắc đã hoàn thành" : "Hide completed reminders")
+                Text(loc("Hide completed reminders"))
             }
             Defaults.Toggle(key: .hideAllDayEvents) {
-                Text(appLanguage == .vietnamese ? "Ẩn sự kiện cả ngày" : "Hide all-day events")
+                Text(loc("Hide all-day events"))
             }
             Defaults.Toggle(key: .autoScrollToNextEvent) {
-                Text(appLanguage == .vietnamese ? "Tự động cuộn đến sự kiện tiếp theo" : "Auto-scroll to next event")
+                Text(loc("Auto-scroll to next event"))
             }
             Defaults.Toggle(key: .showFullEventTitles) {
-                Text(appLanguage == .vietnamese ? "Luôn hiển thị đầy đủ tiêu đề sự kiện" : "Always show full event titles")
+                Text(loc("Always show full event titles"))
             }
 
-            Section(header: Text(lunarSectionHeader)) {
-                Picker(lunarPickerLabel, selection: $alternateCalendarType) {
+            Section(header: Text(loc("Lunar Calendar Region"))) {
+                Picker(loc("Lunar Calendar Region"), selection: $alternateCalendarType) {
                     ForEach(AlternateCalendarType.allCases) { type in
                         Text(type.localizedName(for: appLanguage)).tag(type)
                     }
                 }
 
                 Defaults.Toggle(key: .showLunarCalendar) {
-                    Text(lunarToggleLabel)
+                    Text(loc("Show lunar date in month grid"))
                 }
 
-                Text(lunarDescription)
+                Text(loc("Supports lunar calendar calculation according to local regional timezone (Vietnam UTC+7, Taiwan / China UTC+8)."))
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
 
-            Section(header: Text(appLanguage == .vietnamese ? "Danh sách lịch" : "Calendars")) {
+            Section(header: Text(loc("Calendars"))) {
                 if calendarManager.calendarAuthorizationStatus != .fullAccess {
-                    Text("Calendar access is denied. Please enable it in System Settings.")
+                    Text(loc("Calendar access is denied. Please enable it in System Settings."))
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
                         .padding()
-                    Button("Open Calendar Settings") {
+                    Button(loc("Open Calendar Settings")) {
                         if let settingsURL = URL(
                             string:
                                 "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
@@ -1369,13 +1313,13 @@ struct CalendarSettings: View {
                     }
                 }
             }
-            Section(header: Text("Reminders")) {
+            Section(header: Text(loc("Reminders"))) {
                 if calendarManager.reminderAuthorizationStatus != .fullAccess {
-                    Text("Reminder access is denied. Please enable it in System Settings.")
+                    Text(loc("Reminder access is denied. Please enable it in System Settings."))
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
                         .padding()
-                    Button("Open Reminder Settings") {
+                    Button(loc("Open Reminder Settings")) {
                         if let settingsURL = URL(
                             string:
                                 "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders"
@@ -1444,19 +1388,19 @@ struct About: View {
             Form {
                 Section {
                     HStack {
-                        Text("Release name")
+                        Text(loc("Release name"))
                         Spacer()
                         Text(Bundle.main.releaseNameString)
                             .foregroundStyle(.secondary)
                     }
                     HStack {
-                        Text("Version")
+                        Text(loc("Version"))
                         Spacer()
                         if showBuildNumber {
                             Text("(\(Bundle.main.buildVersionNumber ?? ""))")
                                 .foregroundStyle(.secondary)
                         }
-                        Text(Bundle.main.releaseVersionNumber ?? "unkown")
+                        Text(Bundle.main.releaseVersionNumber ?? "unknown")
                             .foregroundStyle(.secondary)
                     }
                     .onTapGesture {
@@ -1465,7 +1409,7 @@ struct About: View {
                         }
                     }
                 } header: {
-                    Text("Version info")
+                    Text(loc("Version info"))
                 }
 
                 UpdaterSettingsView(updater: updaterController.updater)
@@ -1482,7 +1426,7 @@ struct About: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 18)
-                            Text("GitHub")
+                            Text(loc("GitHub"))
                         }
                         .contentShape(Rectangle())
                     }
@@ -1494,7 +1438,7 @@ struct About: View {
             .hideScrollbar()
             VStack(spacing: 0) {
                 Divider()
-                Text("Made with 🫶🏻 for NotchPulse")
+                Text(loc("Made with 🫶🏻 for NotchPulse"))
                     .foregroundStyle(.secondary)
                     .padding(.top, 5)
                     .padding(.bottom, 7)
@@ -1507,7 +1451,6 @@ struct About: View {
 }
 
 struct Shelf: View {
-    
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
     @Default(.expandedDragDetection) var expandedDragDetection: Bool
@@ -1526,13 +1469,13 @@ struct Shelf: View {
         Form {
             Section {
                 Defaults.Toggle(key: .notchPulseShelf) {
-                    Text("Enable shelf")
+                    Text(loc("Enable shelf"))
                 }
                 Defaults.Toggle(key: .openShelfByDefault) {
-                    Text("Open shelf by default if items are present")
+                    Text(loc("Open shelf by default if items are present"))
                 }
                 Defaults.Toggle(key: .expandedDragDetection) {
-                    Text("Expanded drag detection area")
+                    Text(loc("Expanded drag detection area"))
                 }
                 .onChange(of: expandedDragDetection) {
                     NotificationCenter.default.post(
@@ -1542,7 +1485,7 @@ struct Shelf: View {
                 }
                 if expandedDragDetection {
                     Slider(value: $dragDetectionPadding, in: 10...120, step: 5) {
-                        Text("Drag hover expansion - \(dragDetectionPadding, specifier: "%.0f") px")
+                        Text(loc("Drag hover expansion - %@ px", String(format: "%.0f", dragDetectionPadding)))
                     }
                     .onChange(of: dragDetectionPadding) {
                         NotificationCenter.default.post(
@@ -1550,25 +1493,25 @@ struct Shelf: View {
                             object: nil
                         )
                     }
-                    Text("Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.")
+                    Text(loc("Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling."))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 Defaults.Toggle(key: .copyOnDrag) {
-                    Text("Copy items on drag")
+                    Text(loc("Copy items on drag"))
                 }
                 Defaults.Toggle(key: .autoRemoveShelfItems) {
-                    Text("Remove from shelf after dragging")
+                    Text(loc("Remove from shelf after dragging"))
                 }
 
             } header: {
                 HStack {
-                    Text("General")
+                    Text(loc("General"))
                 }
             }
             
             Section {
-                Picker("Quick Share Service", selection: $quickShareProvider) {
+                Picker(loc("Quick Share Service"), selection: $quickShareProvider) {
                     ForEach(quickShareService.availableProviders, id: \.id) { provider in
                         HStack {
                             Group {
@@ -1603,24 +1546,23 @@ struct Shelf: View {
                         .frame(width: 16, height: 16)
                         .foregroundColor(.accentColor)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Currently selected: \(selectedProvider.id)")
+                            Text("\(loc("Currently selected")): \(selectedProvider.id)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text("Files dropped on the shelf will be shared via this service")
+                            Text(loc("Files dropped on the shelf will be shared via this service"))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding(.vertical, 4)
                 }
-                // Providers are always enabled; user can pick default service above.
                 
             } header: {
                 HStack {
-                    Text("Quick Share")
+                    Text(loc("Quick Share"))
                 }
             } footer: {
-                Text("Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.")
+                Text(loc("Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately."))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -1630,145 +1572,6 @@ struct Shelf: View {
         .accentColor(.effectiveAccent)
     }
 }
-
-//struct Extensions: View {
-//    @State private var effectTrigger: Bool = false
-//    var body: some View {
-//        Form {
-//            Section {
-//                List {
-//                    ForEach(extensionManager.installedExtensions.indices, id: \.self) { index in
-//                        let item = extensionManager.installedExtensions[index]
-//                        HStack {
-//                            AppIcon(for: item.bundleIdentifier)
-//                                .resizable()
-//                                .frame(width: 24, height: 24)
-//                            Text(item.name)
-//                            ListItemPopover {
-//                                Text("Description")
-//                            }
-//                            Spacer(minLength: 0)
-//                            HStack(spacing: 6) {
-//                                Circle()
-//                                    .frame(width: 6, height: 6)
-//                                    .foregroundColor(
-//                                        isExtensionRunning(item.bundleIdentifier)
-//                                            ? .green : item.status == .disabled ? .gray : .red
-//                                    )
-//                                    .conditionalModifier(isExtensionRunning(item.bundleIdentifier))
-//                                { view in
-//                                    view
-//                                        .shadow(color: .green, radius: 3)
-//                                }
-//                                Text(
-//                                    isExtensionRunning(item.bundleIdentifier)
-//                                        ? "Running"
-//                                        : item.status == .disabled ? "Disabled" : "Stopped"
-//                                )
-//                                .contentTransition(.numericText())
-//                                .foregroundStyle(.secondary)
-//                                .font(.footnote)
-//                            }
-//                            .frame(width: 60, alignment: .leading)
-//
-//                            Menu(
-//                                content: {
-//                                    Button("Restart") {
-//                                        let ws = NSWorkspace.shared
-//
-//                                        if let ext = ws.runningApplications.first(where: {
-//                                            $0.bundleIdentifier == item.bundleIdentifier
-//                                        }) {
-//                                            ext.terminate()
-//                                        }
-//
-//                                        if let appURL = ws.urlForApplication(
-//                                            withBundleIdentifier: item.bundleIdentifier)
-//                                        {
-//                                            ws.openApplication(
-//                                                at: appURL, configuration: .init(),
-//                                                completionHandler: nil)
-//                                        }
-//                                    }
-//                                    .keyboardShortcut("R", modifiers: .command)
-//                                    Button("Disable") {
-//                                        if let ext = NSWorkspace.shared.runningApplications.first(
-//                                            where: { $0.bundleIdentifier == item.bundleIdentifier })
-//                                        {
-//                                            ext.terminate()
-//                                        }
-//                                        extensionManager.installedExtensions[index].status =
-//                                            .disabled
-//                                    }
-//                                    .keyboardShortcut("D", modifiers: .command)
-//                                    Divider()
-//                                    Button("Uninstall", role: .destructive) {
-//                                        //
-//                                    }
-//                                },
-//                                label: {
-//                                    Image(systemName: "ellipsis.circle")
-//                                        .foregroundStyle(.secondary)
-//                                }
-//                            )
-//                            .controlSize(.regular)
-//                        }
-//                        .buttonStyle(PlainButtonStyle())
-//                        .padding(.vertical, 5)
-//                    }
-//                }
-//                .frame(minHeight: 120)
-//                .actionBar {
-//                    Button {
-//                    } label: {
-//                        HStack(spacing: 3) {
-//                            Image(systemName: "plus")
-//                            Text("Add manually")
-//                        }
-//                        .foregroundStyle(.secondary)
-//                    }
-//                    .disabled(true)
-//                    Spacer()
-//                    Button {
-//                        withAnimation(.linear(duration: 1)) {
-//                            effectTrigger.toggle()
-//                        } completion: {
-//                            effectTrigger.toggle()
-//                        }
-//                        extensionManager.checkIfExtensionsAreInstalled()
-//                    } label: {
-//                        HStack(spacing: 3) {
-//                            Image(systemName: "arrow.triangle.2.circlepath")
-//                                .rotationEffect(effectTrigger ? .degrees(360) : .zero)
-//                        }
-//                        .foregroundStyle(.secondary)
-//                    }
-//                }
-//                .controlSize(.small)
-//                .buttonStyle(PlainButtonStyle())
-//                .overlay {
-//                    if extensionManager.installedExtensions.isEmpty {
-//                        Text("No extension installed")
-//                            .foregroundStyle(Color(.secondaryLabelColor))
-//                            .padding(.bottom, 22)
-//                    }
-//                }
-//            } header: {
-//                HStack(spacing: 0) {
-//                    Text("Installed extensions")
-//                    if !extensionManager.installedExtensions.isEmpty {
-//                        Text(" – \(extensionManager.installedExtensions.count)")
-//                            .foregroundStyle(.secondary)
-//                    }
-//                }
-//            }
-//        }
-//        .accentColor(.effectiveAccent)
-//        .navigationTitle("Extensions")
-//        // TipsView()
-//        // .padding(.horizontal, 19)
-//    }
-//}
 
 struct Appearance: View {
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
@@ -1788,43 +1591,43 @@ struct Appearance: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Always show tabs", isOn: $coordinator.alwaysShowTabs)
+                Toggle(loc("Always show tabs"), isOn: $coordinator.alwaysShowTabs)
                 Defaults.Toggle(key: .settingsIconInNotch) {
-                    Text("Show settings icon in notch")
+                    Text(loc("Show settings icon in notch"))
                 }
 
             } header: {
-                Text("General")
+                Text(loc("General"))
             }
 
             Section {
                 Defaults.Toggle(key: .coloredSpectrogram) {
-                    Text("Colored spectrogram")
+                    Text(loc("Colored spectrogram"))
                 }
                 Defaults
-                    .Toggle("Player tinting", key: .playerColorTinting)
+                    .Toggle(loc("Player tinting"), key: .playerColorTinting)
                 Defaults.Toggle(key: .lightingEffect) {
-                    Text("Enable blur effect behind album art")
+                    Text(loc("Enable blur effect behind album art"))
                 }
-                Picker("Slider color", selection: $sliderColor) {
+                Picker(loc("Slider color"), selection: $sliderColor) {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
                         Text(option.rawValue)
                     }
                 }
             } header: {
-                Text("Media")
+                Text(loc("Media"))
             }
 
             Section {
                 Toggle(
-                    "Use music visualizer spectrogram",
+                    loc("Use music visualizer spectrogram"),
                     isOn: $useMusicVisualizer.animation()
                 )
                 .disabled(true)
                 if !useMusicVisualizer {
                     if customVisualizers.count > 0 {
                         Picker(
-                            "Selected animation",
+                            loc("Selected animation"),
                             selection: $selectedVisualizer
                         ) {
                             ForEach(
@@ -1837,17 +1640,17 @@ struct Appearance: View {
                         }
                     } else {
                         HStack {
-                            Text("Selected animation")
+                            Text(loc("Selected animation"))
                             Spacer()
-                            Text("No custom animation available")
+                            Text(loc("No custom animation available"))
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
             } header: {
                 HStack {
-                    Text("Custom music live activity animation")
-                    customBadge(text: "Coming soon")
+                    Text(loc("Custom music live activity animation"))
+                    customBadge(text: loc("Coming soon"))
                 }
             }
 
@@ -1863,7 +1666,7 @@ struct Appearance: View {
                             Text(visualizer.name)
                             Spacer(minLength: 0)
                             if selectedVisualizer == visualizer {
-                                Text("selected")
+                                Text(loc("selected"))
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundStyle(.secondary)
@@ -1926,20 +1729,20 @@ struct Appearance: View {
                 .buttonStyle(PlainButtonStyle())
                 .overlay {
                     if customVisualizers.isEmpty {
-                        Text("No custom visualizer")
+                        Text(loc("No custom visualizer"))
                             .foregroundStyle(Color(.secondaryLabelColor))
                             .padding(.bottom, 22)
                     }
                 }
                 .sheet(isPresented: $isPresented) {
                     VStack(alignment: .leading) {
-                        Text("Add new visualizer")
+                        Text(loc("Add new visualizer"))
                             .font(.largeTitle.bold())
                             .padding(.vertical)
-                        TextField("Name", text: $name)
-                        TextField("Lottie JSON URL", text: $url)
+                        TextField(loc("Name"), text: $name)
+                        TextField(loc("Lottie JSON URL"), text: $url)
                         HStack {
-                            Text("Speed")
+                            Text(loc("Speed"))
                             Spacer(minLength: 80)
                             Text("\(speed, specifier: "%.1f")s")
                                 .multilineTextAlignment(.trailing)
@@ -1951,7 +1754,7 @@ struct Appearance: View {
                             Button {
                                 isPresented.toggle()
                             } label: {
-                                Text("Cancel")
+                                Text(loc("Cancel"))
                                     .frame(maxWidth: .infinity, alignment: .center)
                             }
 
@@ -1969,7 +1772,7 @@ struct Appearance: View {
 
                                 isPresented.toggle()
                             } label: {
-                                Text("Add")
+                                Text(loc("Add"))
                                     .frame(maxWidth: .infinity, alignment: .center)
                             }
                             .buttonStyle(BorderedProminentButtonStyle())
@@ -1981,7 +1784,7 @@ struct Appearance: View {
                 }
             } header: {
                 HStack(spacing: 0) {
-                    Text("Custom vizualizers (Lottie)")
+                    Text(loc("Custom vizualizers (Lottie)"))
                     if !Defaults[.customVisualizers].isEmpty {
                         Text(" – \(Defaults[.customVisualizers].count)")
                             .foregroundStyle(.secondary)
@@ -1991,21 +1794,21 @@ struct Appearance: View {
 
             Section {
                 Defaults.Toggle(key: .showMirror) {
-                    Text("Enable NotchPulse mirror")
+                    Text(loc("Enable NotchPulse mirror"))
                 }
                     .disabled(!checkVideoInput())
-                Picker("Mirror shape", selection: $mirrorShape) {
-                    Text("Circle")
+                Picker(loc("Mirror shape"), selection: $mirrorShape) {
+                    Text(loc("Circle"))
                         .tag(MirrorShapeEnum.circle)
-                    Text("Square")
+                    Text(loc("Square"))
                         .tag(MirrorShapeEnum.rectangle)
                 }
                 Defaults.Toggle(key: .showNotHumanFace) {
-                    Text("Show cool face animation while inactive")
+                    Text(loc("Show cool face animation while inactive"))
                 }
             } header: {
                 HStack {
-                    Text("Additional features")
+                    Text(loc("Additional features"))
                 }
             }
         }
@@ -2064,9 +1867,9 @@ struct Advanced: View {
             Section {
                 VStack(alignment: .leading, spacing: 16) {
                     // Toggle between system and custom
-                    Picker("Accent color", selection: $useCustomAccentColor) {
-                        Text("System").tag(false)
-                        Text("Custom").tag(true)
+                    Picker(loc("Accent color"), selection: $useCustomAccentColor) {
+                        Text(loc("System")).tag(false)
+                        Text(loc("Custom")).tag(true)
                     }
                     .pickerStyle(.segmented)
                     
@@ -2081,9 +1884,9 @@ struct Advanced: View {
                                 ) {}
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Using System Accent")
+                                    Text(loc("Using System Accent"))
                                         .font(.body)
-                                    Text("Your macOS system accent color")
+                                    Text(loc("Your macOS system accent color"))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -2093,7 +1896,7 @@ struct Advanced: View {
                     } else {
                         // Custom color options
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Color Presets")
+                            Text(loc("Color Presets"))
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.secondary)
@@ -2120,9 +1923,9 @@ struct Advanced: View {
                             // Custom color picker
                             HStack(spacing: 12) {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Pick a Color")
+                                    Text(loc("Pick a Color"))
                                         .font(.body)
-                                    Text("Choose any color")
+                                    Text(loc("Choose any color"))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -2157,9 +1960,9 @@ struct Advanced: View {
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Accent color")
+                Text(loc("Accent color"))
             } footer: {
-                Text("Choose between your system accent color or customize it with your own selection.")
+                Text(loc("Choose between your system accent color or customize it with your own selection."))
                     .multilineTextAlignment(.trailing)
                     .foregroundStyle(.secondary)
                     .font(.caption)
@@ -2170,13 +1973,13 @@ struct Advanced: View {
             
             Section {
                 Defaults.Toggle(key: .enableShadow) {
-                    Text("Enable window shadow")
+                    Text(loc("Enable window shadow"))
                 }
                 Defaults.Toggle(key: .cornerRadiusScaling) {
-                    Text("Corner radius scaling")
+                    Text(loc("Corner radius scaling"))
                 }
             } header: {
-                Text("Window Appearance")
+                Text(loc("Window Appearance"))
             }
             
             Section {
@@ -2191,11 +1994,11 @@ struct Advanced: View {
                                     RoundedRectangle(cornerRadius: 20, style: .circular)
                                         .strokeBorder(
                                             icon == selectedIcon ? Color.effectiveAccent : .clear,
-                                            lineWidth: 2.5
+                                             lineWidth: 2.5
                                         )
                                 )
 
-                            Text("Default")
+                            Text(loc("Default"))
                                 .fontWeight(.medium)
                                 .font(.caption)
                                 .foregroundStyle(icon == selectedIcon ? .white : .secondary)
@@ -2218,23 +2021,23 @@ struct Advanced: View {
                 .disabled(true)
             } header: {
                 HStack {
-                    Text("App icon")
-                    customBadge(text: "Coming soon")
+                    Text(loc("App icon"))
+                    customBadge(text: loc("Coming soon"))
                 }
             }
             
             Section {
                 Defaults.Toggle(key: .hideTitleBar) {
-                    Text("Hide title bar")
+                    Text(loc("Hide title bar"))
                 }
                 Defaults.Toggle(key: .showOnLockScreen) {
-                    Text("Show notch on lock screen")
+                    Text(loc("Show notch on lock screen"))
                 }
                 Defaults.Toggle(key: .hideFromScreenRecording) {
-                    Text("Hide from screen recording")
+                    Text(loc("Hide from screen recording"))
                 }
             } header: {
-                Text("Window Behavior")
+                Text(loc("Window Behavior"))
             }
         }
         .scrollContentBackground(.hidden)
@@ -2327,7 +2130,7 @@ struct AccentCircleButton: View {
             }
         }
         .buttonStyle(.plain)
-        .help(isSystemDefault ? "Use your macOS system accent color" : "")
+        .help(isSystemDefault ? loc("Your macOS system accent color") : "")
     }
 }
 
@@ -2340,21 +2143,21 @@ struct ClipboardSettingsView: View {
         Form {
             Section {
                 Defaults.Toggle(key: .enableClipboardManager) {
-                    Text("Enable Clipboard Manager")
+                    Text(loc("Enable Clipboard Manager"))
                 }
 
                 if enableClipboardManager {
-                    Stepper("History limit: \(clipboardMaxItems) items", value: $clipboardMaxItems, in: 5...50, step: 5)
+                    Stepper(loc("History limit: %lld items", clipboardMaxItems), value: $clipboardMaxItems, in: 5...50, step: 5)
                     
-                    Button("Clear clipboard history", role: .destructive) {
+                    Button(loc("Clear clipboard history"), role: .destructive) {
                         clipboardManager.clearHistory()
                     }
                     .disabled(clipboardManager.history.isEmpty)
                 }
             } header: {
-                Text("Clipboard History")
+                Text(loc("Clipboard History"))
             } footer: {
-                Text("NotchPulse securely keeps track of your recent text and image clips. Tap any clip in the Notch clipboard tab to re-copy it instantly.")
+                Text(loc("NotchPulse securely keeps track of your recent text and image clips. Tap any clip in the Notch clipboard tab to re-copy it instantly."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -2369,19 +2172,19 @@ struct Shortcuts: View {
     var body: some View {
         Form {
             Section {
-                KeyboardShortcuts.Recorder("Toggle Sneak Peek:", name: .toggleSneakPeek)
+                KeyboardShortcuts.Recorder(loc("Toggle Sneak Peek:"), name: .toggleSneakPeek)
             } header: {
-                Text("Media")
+                Text(loc("Media"))
             } footer: {
                 Text(
-                    "Sneak Peek shows the media title and artist under the notch for a few seconds."
+                    loc("Sneak Peek shows the media title and artist under the notch for a few seconds.")
                 )
                 .multilineTextAlignment(.trailing)
                 .foregroundStyle(.secondary)
                 .font(.caption)
             }
             Section {
-                KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
+                KeyboardShortcuts.Recorder(loc("Toggle Notch Open:"), name: .toggleNotchOpen)
             }
         }
         .scrollContentBackground(.hidden)
@@ -2391,7 +2194,7 @@ struct Shortcuts: View {
 }
 
 func proFeatureBadge() -> some View {
-    Text("Upgrade to Pro")
+    Text(loc("Upgrade to Pro"))
         .foregroundStyle(Color(red: 0.545, green: 0.196, blue: 0.98))
         .font(.footnote.bold())
         .padding(.vertical, 3)
@@ -2402,7 +2205,7 @@ func proFeatureBadge() -> some View {
 }
 
 func comingSoonTag() -> some View {
-    Text("Coming soon")
+    Text(loc("Coming soon"))
         .foregroundStyle(.secondary)
         .font(.footnote.bold())
         .padding(.vertical, 3)
@@ -2462,20 +2265,6 @@ struct SettingsDetailHeaderBar: View {
     var showQuitButton: Bool = false
     @Default(.appLanguage) private var appLanguage
 
-    private var quitAppText: String {
-        switch appLanguage {
-        case .vietnamese: return "Thoát ứng dụng"
-        case .traditionalChinese: return "結束應用程式"
-        case .simplifiedChinese: return "退出应用"
-        case .japanese: return "アプリを終了"
-        case .german: return "App beenden"
-        case .french: return "Quitter l'app"
-        case .spanish: return "Salir de la app"
-        case .arabic: return "إنهاء التطبيق"
-        case .english: return "Quit app"
-        }
-    }
-
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Text(title)
@@ -2495,7 +2284,7 @@ struct SettingsDetailHeaderBar: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "power")
-                        Text(quitAppText)
+                        Text(loc("Quit app"))
                     }
                     .font(.system(size: 12, weight: .medium))
                 }
@@ -2519,62 +2308,20 @@ struct SettingsDetailHeaderBar: View {
 struct LanguageSettingsView: View {
     @Default(.appLanguage) private var appLanguage
 
-    private var sectionHeader: String {
-        switch appLanguage {
-        case .vietnamese: return "Ngôn ngữ ứng dụng"
-        case .traditionalChinese: return "應用程式語言"
-        case .simplifiedChinese: return "应用程序语言"
-        case .japanese: return "アプリケーションの言語"
-        case .german: return "App-Sprache"
-        case .french: return "Langue de l'application"
-        case .spanish: return "Idioma de la aplicación"
-        case .arabic: return "لغة التطبيق"
-        case .english: return "App Language"
-        }
-    }
-
-    private var pickerLabel: String {
-        switch appLanguage {
-        case .vietnamese: return "Ngôn ngữ hiển thị"
-        case .traditionalChinese: return "顯示語言"
-        case .simplifiedChinese: return "显示语言"
-        case .japanese: return "表示言語"
-        case .german: return "Anzeigesprache"
-        case .french: return "Langue d'affichage"
-        case .spanish: return "Idioma de visualización"
-        case .arabic: return "لغة العرض"
-        case .english: return "Display Language"
-        }
-    }
-
-    private var descriptionText: String {
-        switch appLanguage {
-        case .vietnamese: return "Thay đổi ngôn ngữ hiển thị trong menu cài đặt và giao diện NotchPulse."
-        case .traditionalChinese: return "變更 NotchPulse 設定選單及介面的顯示語言。"
-        case .simplifiedChinese: return "更改 NotchPulse 设置菜单及界面的显示语言。"
-        case .japanese: return "NotchPulse の設定メニューとインターフェースの表示言語を変更します。"
-        case .german: return "Ändern Sie die Anzeigesprache für die NotchPulse-Einstellungen und Benutzeroberfläche."
-        case .french: return "Modifiez la langue d'affichage des réglages et de l'interface de NotchPulse."
-        case .spanish: return "Cambie el idioma de visualización del menú de ajustes y la interfaz de NotchPulse."
-        case .arabic: return "تغيير لغة العرض لقوائم إعدادات وواجهة NotchPulse."
-        case .english: return "Change the display language for NotchPulse settings and interface."
-        }
-    }
-
     var body: some View {
         Form {
             Section {
-                Picker(pickerLabel, selection: $appLanguage) {
+                Picker(loc("Display Language"), selection: $appLanguage) {
                     ForEach(AppLanguage.allCases) { lang in
                         Text(lang.displayName).tag(lang)
                     }
                 }
 
-                Text(descriptionText)
+                Text(loc("Change the display language for NotchPulse settings and interface."))
                     .font(.footnote)
                     .foregroundColor(.secondary)
             } header: {
-                Text(sectionHeader)
+                Text(loc("App Language"))
             }
         }
         .formStyle(.grouped)

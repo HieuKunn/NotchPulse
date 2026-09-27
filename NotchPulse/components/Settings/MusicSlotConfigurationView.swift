@@ -90,7 +90,7 @@ struct MusicSlotConfigurationView: View {
                     return handleDropOnTrash(providers)
                 }
 
-                Text("Clear slot")
+                Text(loc("Clear slot"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -103,11 +103,11 @@ struct MusicSlotConfigurationView: View {
     private var slotConfigurationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Layout Preview")
+                Text(loc("Layout Preview"))
                     .font(.headline)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("Drag items in the preview to reorder or drop from the palette")
+                Text(loc("Drag items in the preview to reorder or drop from the palette"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -116,7 +116,7 @@ struct MusicSlotConfigurationView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Drag a control onto a slot")
+                Text(loc("Drag a control onto a slot"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

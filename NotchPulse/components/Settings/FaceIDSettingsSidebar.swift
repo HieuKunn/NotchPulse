@@ -24,7 +24,7 @@ struct FaceIDSettingsSidebar: View {
             VStack(alignment: .leading, spacing: SettingsMetrics.sidebarSectionSpacing) {
                 sidebarRow(.general)
 
-                Text("Authentication")
+                Text(loc("Authentication"))
                     .font(SettingsMetrics.sectionHeaderFont)
                     .foregroundStyle(SettingsMetrics.textTertiary)
                     .padding(.horizontal, 10)
