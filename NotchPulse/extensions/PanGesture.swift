@@ -108,7 +108,7 @@ private struct ScrollMonitor: NSViewRepresentable {
             let localPoint = contentView.convert(event.locationInWindow, from: nil)
             guard let hitView = contentView.hitTest(localPoint) else { return false }
 
-            // Find enclosing NSScrollView if the cursor is hovering over a scrollable component
+            // Find enclosing NSScrollView if the cursor is hovering over any scrollable component
             var current: NSView? = hitView
             var targetScrollView: NSScrollView?
             while let v = current {
@@ -119,56 +119,9 @@ private struct ScrollMonitor: NSViewRepresentable {
                 current = v.superview
             }
 
-            guard let scrollView = targetScrollView,
-                  let docView = scrollView.documentView else { return false }
-
-            let clipView = scrollView.contentView
-            let docRect = docView.bounds
-            let clipBounds = clipView.bounds
-
-            if direction == .up || direction == .down {
-                let isVerticallyScrollable = docRect.height > (clipBounds.height + 4.0)
-                let isHorizontallyScrollable = docRect.width > (clipBounds.width + 4.0)
-
-                // If the scroll view is horizontally scrollable (e.g. Calendar date strip), vertical scroll events are converted/handled locally.
-                if isHorizontallyScrollable {
-                    return true
-                }
-
-                guard isVerticallyScrollable else { return false }
-
-                let isFlipped = clipView.isFlipped
-                let maxY = max(0, docRect.height - clipBounds.height)
-                let currentY = clipBounds.origin.y
-
-                if direction == .up {
-                    // Swiping up (moving towards bottom of document)
-                    // If not yet at the bottom boundary, let the scroll view scroll its contents
-                    let isAtBottom = isFlipped ? (currentY >= maxY - 4.0) : (currentY <= 4.0)
-                    return !isAtBottom
-                } else if direction == .down {
-                    // Swiping down (moving towards top of document)
-                    // If not yet at the top boundary, let the scroll view scroll its contents
-                    let isAtTop = isFlipped ? (currentY <= 4.0) : (currentY >= maxY - 4.0)
-                    return !isAtTop
-                }
-            } else if direction == .left || direction == .right {
-                let isHorizontallyScrollable = docRect.width > (clipBounds.width + 4.0)
-                guard isHorizontallyScrollable else { return false }
-
-                let maxX = max(0, docRect.width - clipBounds.width)
-                let currentX = clipBounds.origin.x
-
-                if direction == .left {
-                    let isAtRight = currentX >= maxX - 4.0
-                    return !isAtRight
-                } else if direction == .right {
-                    let isAtLeft = currentX <= 4.0
-                    return !isAtLeft
-                }
-            }
-
-            return false
+            // If the cursor is anywhere over an NSScrollView (Clipboard list, Calendar date wheel/month grid, Event list, etc.),
+            // ignore the scroll-to-close gesture so the user can scroll freely without accidentally shrinking/closing the notch.
+            return targetScrollView != nil
         }
 
         func removeMonitor() {
