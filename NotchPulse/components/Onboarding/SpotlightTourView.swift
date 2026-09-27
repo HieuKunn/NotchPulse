@@ -518,7 +518,7 @@ struct SpotlightTooltipCard: View {
             HStack(spacing: 8) {
                 Button(action: {
                     SpotlightTourManager.shared.startFaceIDSetupFromTour {
-                        nextStep()
+                        onNext()
                     }
                 }) {
                     HStack(spacing: 4) {
@@ -574,6 +574,7 @@ final class SpotlightTourHostingView<Content: View>: NSHostingView<Content> {
 
 // MARK: - Tour Manager Window Controller
 
+@MainActor
 final class SpotlightTourManager: ObservableObject {
     static let shared = SpotlightTourManager()
 
@@ -636,12 +637,13 @@ final class SpotlightTourManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            if FaceIDOverlayController.shared.phase == .closed {
-                if let obs = self?.faceIDPhaseObserver {
-                    NotificationCenter.default.removeObserver(obs)
-                    self?.faceIDPhaseObserver = nil
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            Task { @MainActor in
+                if FaceIDOverlayController.shared.phase == .closed {
+                    if let obs = self?.faceIDPhaseObserver {
+                        NotificationCenter.default.removeObserver(obs)
+                        self?.faceIDPhaseObserver = nil
+                    }
+                    try? await Task.sleep(for: .milliseconds(300))
                     self?.unhideTour()
                     completion()
                 }
