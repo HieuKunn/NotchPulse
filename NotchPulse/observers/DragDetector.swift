@@ -63,39 +63,34 @@ final class DragDetector {
         return (NSEvent.pressedMouseButtons & 1) != 0
     }
 
-    /// Checks if the drag pasteboard contains valid file/item content types
+    /// Checks if the drag pasteboard contains actual file or folder content ONLY.
+    /// Text selections, string drags, and generic data are intentionally excluded so that
+    /// shake-to-shelf only fires when the user is genuinely moving a file/folder.
     private func hasValidDragContent() -> Bool {
         guard let types = dragPasteboard.types, !types.isEmpty else {
             return false
         }
 
-        let validFileOrItemTypeIdentifiers: Set<String> = [
-            NSPasteboard.PasteboardType.fileURL.rawValue,
-            NSPasteboard.PasteboardType.URL.rawValue,
-            NSPasteboard.PasteboardType.string.rawValue,
-            "public.file-url",
-            "com.apple.finder.node",
-            "NSFilenamesPboardType",
-            "com.apple.pasteboard.promised-file-url",
+        // STRICT file/folder-only UTIs — text, strings, plain data are deliberately excluded.
+        let fileOnlyTypes: Set<String> = [
+            NSPasteboard.PasteboardType.fileURL.rawValue,   // file://… URLs
+            "public.file-url",                             // same, UTI variant
+            "com.apple.finder.node",                       // Finder items (files, folders)
+            "NSFilenamesPboardType",                       // legacy Finder drag
+            "com.apple.pasteboard.promised-file-url",      // promised file drags (e.g. Mail attachments)
             "com.apple.pasteboard.promised-file-content-type",
-            "com.apple.mac.install-source-container",
-            "public.data",
-            "public.item",
-            "public.content",
-            "public.image",
-            "public.url",
-            "public.utf8-plain-text",
-            "NSStringPboardType"
+            "com.apple.mac.install-source-container",      // .pkg, .dmg installer drags
         ]
 
-        return types.contains { type in
-            validFileOrItemTypeIdentifiers.contains(type.rawValue) ||
-            type.rawValue.hasPrefix("dyn.") ||
-            type.rawValue.contains("file") ||
-            type.rawValue.contains("url") ||
-            type.rawValue.contains("finder") ||
-            type.rawValue.contains("image")
+        for type in types {
+            let raw = type.rawValue
+            // Explicit allowlist match
+            if fileOnlyTypes.contains(raw) { return true }
+            // Dynamic UTIs that wrap real file types always start with "dyn." and
+            // carry a "file" or "finder" fragment; filter out pure text dynamic types.
+            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder")) { return true }
         }
+        return false
     }
 
     func startMonitoring() {

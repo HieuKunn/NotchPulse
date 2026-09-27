@@ -285,13 +285,14 @@ struct SpotlightTourView: View {
                 currentVM = appDelegate.vm
             }
 
-            // Open notch on every step so the user can always see it.
-            // Each step configures the correct tab/view inside the open notch.
+            // Open notch on every step so the user can always see it and understand what is being demonstrated.
             switch step {
             case .notchHover:
-                // Intentionally close so user can practice opening it themselves
+                // Show the notch open so user can see the expanded control panel
                 coordinator.currentView = .home
-                currentVM.close()
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                currentVM.customOpenHeight = nil
+                currentVM.open()
 
             case .shakeToShelf:
                 coordinator.currentView = .shelf
@@ -321,14 +322,16 @@ struct SpotlightTourView: View {
                 currentVM.open()
 
             case .faceIDLock:
-                // Open the notch so user can see the face ID area, then guide them
+                // Open the notch so user can see the Face ID camera area
                 coordinator.currentView = .home
                 currentVM.customOpenHeight = nil
                 currentVM.open()
 
             case .menuBarSettings:
-                // Close notch to highlight the menubar button
-                currentVM.close()
+                // Keep notch open while also showing the Settings window
+                coordinator.currentView = .home
+                currentVM.customOpenHeight = nil
+                currentVM.open()
                 SettingsWindowController.shared.showWindow()
             }
         }
