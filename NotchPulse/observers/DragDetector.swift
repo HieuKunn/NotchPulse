@@ -29,6 +29,7 @@ final class DragDetector {
 
     private var lastKnownIdlePasteboardCount: Int = -1
     private var mouseDownPasteboardCount: Int?
+    private var dragStartLocation: CGPoint?
     private var isContentDragging: Bool = false {
         didSet {
             if isContentDragging != oldValue {
@@ -57,18 +58,9 @@ final class DragDetector {
 
     // MARK: - Private Helpers
 
-    /// Checks if the left mouse or trackpad button is currently held down
+    /// Checks if the physical left mouse or trackpad button is currently held down
     private var isLeftButtonPressed: Bool {
-        if (NSEvent.pressedMouseButtons & 1) != 0 {
-            return true
-        }
-        if CGEventSource.buttonState(.combinedSessionState, button: .left) {
-            return true
-        }
-        if CGEventSource.buttonState(.hidSystemState, button: .left) {
-            return true
-        }
-        return false
+        return (NSEvent.pressedMouseButtons & 1) != 0
     }
 
     /// Checks if the drag pasteboard contains valid file/item content types
@@ -106,13 +98,11 @@ final class DragDetector {
         }
     }
 
-    private var unpressedPollCount: Int = 0
-
     func startMonitoring() {
         stopMonitoring()
         lastKnownIdlePasteboardCount = dragPasteboard.changeCount
         mouseDownPasteboardCount = nil
-        unpressedPollCount = 0
+        dragStartLocation = nil
         recentSamples.removeAll()
 
         // Global monitor for leftMouseDragged & mouseMoved (for real-time response to drag and shake gestures)
@@ -130,6 +120,9 @@ final class DragDetector {
     }
 
     private func checkShakeGesture(currentX: CGFloat, currentTime: TimeInterval) {
+        // ONLY detect shake-to-shelf when ACTUALLY dragging droppable content!
+        guard isContentDragging else { return }
+
         // Debounce: don't trigger again within 1.0s of last shake
         guard currentTime - lastShakeTriggerTime > 1.0 else { return }
 
@@ -141,11 +134,11 @@ final class DragDetector {
 
         guard recentSamples.count >= 3 else { return }
 
-        // Detect direction reversals (swings) with at least 10px travel
+        // Detect direction reversals (swings) with at least 15px travel
         var reversals = 0
         var currentDirection = 0 // -1 for left, +1 for right
         var lastExtremumX = recentSamples[0].x
-        let minSwing: CGFloat = 10.0
+        let minSwing: CGFloat = 15.0
 
         for sample in recentSamples {
             let dx = sample.x - lastExtremumX
@@ -189,24 +182,21 @@ final class DragDetector {
 
         if !mousePressed {
             recentSamples.removeAll()
+            dragStartLocation = nil
             mouseDownPasteboardCount = nil
-            unpressedPollCount += 1
-            // Require sustained release (>= 3 ticks = 90ms) before declaring drag ended.
-            // This prevents trackpad force-touch pressure drops from prematurely killing drag operations.
+
+            // Instant reset when mouse button is released.
+            // Under NO circumstance should a released mouse remain in a dragging state.
             if isContentDragging || hasEnteredNotchRegion {
-                if unpressedPollCount >= 2 {
-                    let wasInRegion = hasEnteredNotchRegion
-                    isContentDragging = false
-                    hasEnteredNotchRegion = false
-                    if wasInRegion {
-                        onDragExitsNotchRegion?()
-                    }
-                    onDragEnded?()
-                    lastKnownIdlePasteboardCount = currentPbCount
+                let wasInRegion = hasEnteredNotchRegion
+                isContentDragging = false
+                hasEnteredNotchRegion = false
+                if wasInRegion {
+                    onDragExitsNotchRegion?()
                 }
-            } else {
-                lastKnownIdlePasteboardCount = currentPbCount
+                onDragEnded?()
             }
+            lastKnownIdlePasteboardCount = currentPbCount
 
             // Hover radar: Only runs when extended hover area is explicitly enabled
             let shouldRunHoverRadar = Defaults[.extendHoverArea]
@@ -229,16 +219,28 @@ final class DragDetector {
         }
 
         // --- Mouse IS Pressed ---
-        unpressedPollCount = 0
-        if mouseDownPasteboardCount == nil {
+        if dragStartLocation == nil {
+            dragStartLocation = mouseLocation
             mouseDownPasteboardCount = currentPbCount
         }
 
+        let dragDistance: CGFloat
+        if let start = dragStartLocation {
+            dragDistance = hypot(mouseLocation.x - start.x, mouseLocation.y - start.y)
+        } else {
+            dragDistance = 0
+        }
+
+        // A static click or slight finger jitter (< 10 points) is NEVER a drag operation.
+        // It must NOT trigger drag session, shake gesture, or notch shelf opening!
+        let hasMovedSufficiently = dragDistance >= 10.0
+
         // Detect if active drag session:
-        // Pasteboard changeCount changed from idle baseline or mouse-down baseline, OR mouse is pressed with valid drag content
+        // Pasteboard changeCount changed from idle baseline or mouse-down baseline, with valid drag content,
+        // AND the user has moved the mouse sufficiently to distinguish from a stationary click.
         let isPasteboardChanged = (lastKnownIdlePasteboardCount >= 0 && currentPbCount != lastKnownIdlePasteboardCount) ||
                                   (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
-        let isNewDragOperation = isPasteboardChanged && hasValidDragContent()
+        let isNewDragOperation = isPasteboardChanged && hasValidDragContent() && hasMovedSufficiently
 
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
@@ -291,6 +293,7 @@ final class DragDetector {
         isContentDragging = false
         hasEnteredNotchRegion = false
         recentSamples.removeAll()
+        dragStartLocation = nil
         mouseDownPasteboardCount = nil
         lastKnownIdlePasteboardCount = dragPasteboard.changeCount
     }

@@ -90,6 +90,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
     private var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
+    private var currentViewObserver: AnyCancellable?
     private var shelfWindows: [String: ShelfDropZoneWindow] = [:]
     private var faceIDCameraWindow: NSWindow?
     private var faceIDCameraVM: NotchPulseViewModel?
@@ -345,13 +346,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 }
 
-                // If user shakes to open the shelf but does not drag to or hover over the notch within 5.0s, auto-close
+                // If user shakes to open the shelf but does not drop into the notch within 5.0s, auto-close
                 self.shakeAutoCloseTasks[uuid]?.cancel()
                 self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
                     try? await Task.sleep(for: .milliseconds(5000))
                     guard !Task.isCancelled, let self = self else { return }
                     let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
-                    if !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
+                    if !vm.dropZoneTargeting && !vm.generalDropTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
                         vm.close()
                         if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
                             self.coordinator.currentView = .home
@@ -437,42 +438,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         shakeAutoCloseTasks[uuid]?.cancel()
         shakeAutoCloseTasks[uuid] = nil
         dragExitDebounceTasks[uuid]?.cancel()
-        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(120))
-            guard !Task.isCancelled, let self = self else { return }
-            
-            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            targetVM.dragDetectorTargeting = false
-            targetVM.dropZoneTargeting = false
-            targetVM.generalDropTargeting = false
-            targetVM.dropEvent = false
-            
-            self.vm.dragDetectorTargeting = false
-            self.vm.dropZoneTargeting = false
-            self.vm.generalDropTargeting = false
-            self.vm.dropEvent = false
-            
-            // Check if mouse is still hovering over open notch window
-            let mouseLocation = NSEvent.mouseLocation
-            let screenFrame = screen.frame
-            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let topOffset = (isDynamicIsland && screen.safeAreaInsets.top == 0) ? Defaults[.dynamicIslandTopOffset] : 0
-            let openWidth = max(targetVM.notchSize.width, CGFloat(Defaults[.notchOpenWidth]))
-            let openHeight = max(targetVM.customOpenHeight ?? targetVM.notchSize.height, 190.0)
-            let openNotchRect = CGRect(
-                x: screenFrame.midX - openWidth / 2,
-                y: screenFrame.maxY - (openHeight + topOffset),
-                width: openWidth,
-                height: openHeight + topOffset
-            )
-            
-            let isMouseOverOpenNotch = openNotchRect.contains(mouseLocation)
-            
-            if !isMouseOverOpenNotch && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
-                targetVM.close()
-                if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
-                    self.coordinator.currentView = .home
-                }
+        dragExitDebounceTasks[uuid] = nil
+        
+        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+        targetVM.dragDetectorTargeting = false
+        targetVM.dropZoneTargeting = false
+        targetVM.generalDropTargeting = false
+        targetVM.dropEvent = false
+        
+        self.vm.dragDetectorTargeting = false
+        self.vm.dropZoneTargeting = false
+        self.vm.generalDropTargeting = false
+        self.vm.dropEvent = false
+        
+        // Check if mouse is still hovering over open notch window
+        let mouseLocation = NSEvent.mouseLocation
+        let screenFrame = screen.frame
+        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+        let topOffset = (isDynamicIsland && screen.safeAreaInsets.top == 0) ? Defaults[.dynamicIslandTopOffset] : 0
+        let openWidth = max(targetVM.notchSize.width, CGFloat(Defaults[.notchOpenWidth]))
+        let openHeight = max(targetVM.customOpenHeight ?? targetVM.notchSize.height, 190.0)
+        let openNotchRect = CGRect(
+            x: screenFrame.midX - openWidth / 2,
+            y: screenFrame.maxY - (openHeight + topOffset),
+            width: openWidth,
+            height: openHeight + topOffset
+        )
+        
+        let isMouseOverOpenNotch = openNotchRect.contains(mouseLocation)
+        
+        if !isMouseOverOpenNotch && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
+            targetVM.close()
+            if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
+                self.coordinator.currentView = .home
             }
         }
     }
@@ -778,6 +776,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         setupDragDetectors()
+
+        currentViewObserver = coordinator.$currentView
+            .sink { [weak self] view in
+                if view != .shelf {
+                    self?.shakeAutoCloseTasks.values.forEach { $0.cancel() }
+                    self?.shakeAutoCloseTasks.removeAll()
+                }
+            }
 
         let isFirstInstall = coordinator.firstLaunch
         let isUpdate = isAppUpdated()
