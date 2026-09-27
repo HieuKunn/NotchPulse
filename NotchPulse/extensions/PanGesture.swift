@@ -22,7 +22,7 @@ extension View {
     func panGesture(direction: PanDirection, threshold: CGFloat = 4, action: @escaping (CGFloat, NSEvent.Phase) -> Void) -> some View {
         self
             .gesture(
-                DragGesture(minimumDistance: 0)
+                DragGesture(minimumDistance: 10)
                     .onChanged { value in
                         let s = direction.signed(from: value.translation)
                         guard s > 0, s.magnitude >= threshold else { return }
@@ -88,9 +88,80 @@ private struct ScrollMonitor: NSViewRepresentable {
             removeMonitor()
             monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self, weak view] event in
                 guard let self = self, event.window === view?.window else { return event }
+                if self.shouldIgnoreScrollForNestedScrollView(event: event, in: view) {
+                    if self.active {
+                        self.action(0, .ended)
+                        self.active = false
+                    }
+                    self.accumulated = 0
+                    return event
+                }
                 self.handleScroll(event)
                 return event
             }
+        }
+
+        private func shouldIgnoreScrollForNestedScrollView(event: NSEvent, in rootNSView: NSView?) -> Bool {
+            guard let window = rootNSView?.window,
+                  let contentView = window.contentView else { return false }
+
+            let localPoint = contentView.convert(event.locationInWindow, from: nil)
+            guard let hitView = contentView.hitTest(localPoint) else { return false }
+
+            // Find enclosing NSScrollView if the cursor is hovering over a scrollable component
+            var current: NSView? = hitView
+            var targetScrollView: NSScrollView?
+            while let v = current {
+                if let sv = v as? NSScrollView {
+                    targetScrollView = sv
+                    break
+                }
+                current = v.superview
+            }
+
+            guard let scrollView = targetScrollView,
+                  let docView = scrollView.documentView else { return false }
+
+            let clipView = scrollView.contentView
+            let docRect = docView.bounds
+            let clipBounds = clipView.bounds
+
+            if direction == .up || direction == .down {
+                let isVerticallyScrollable = docRect.height > (clipBounds.height + 4.0)
+                guard isVerticallyScrollable else { return false }
+
+                let isFlipped = clipView.isFlipped
+                let maxY = max(0, docRect.height - clipBounds.height)
+                let currentY = clipBounds.origin.y
+
+                if direction == .up {
+                    // Swiping up (moving towards bottom of document)
+                    // If not yet at the bottom boundary, let the scroll view scroll its contents
+                    let isAtBottom = isFlipped ? (currentY >= maxY - 4.0) : (currentY <= 4.0)
+                    return !isAtBottom
+                } else if direction == .down {
+                    // Swiping down (moving towards top of document)
+                    // If not yet at the top boundary, let the scroll view scroll its contents
+                    let isAtTop = isFlipped ? (currentY <= 4.0) : (currentY >= maxY - 4.0)
+                    return !isAtTop
+                }
+            } else if direction == .left || direction == .right {
+                let isHorizontallyScrollable = docRect.width > (clipBounds.width + 4.0)
+                guard isHorizontallyScrollable else { return false }
+
+                let maxX = max(0, docRect.width - clipBounds.width)
+                let currentX = clipBounds.origin.x
+
+                if direction == .left {
+                    let isAtRight = currentX >= maxX - 4.0
+                    return !isAtRight
+                } else if direction == .right {
+                    let isAtLeft = currentX <= 4.0
+                    return !isAtLeft
+                }
+            }
+
+            return false
         }
 
         func removeMonitor() {

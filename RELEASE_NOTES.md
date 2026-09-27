@@ -1,7 +1,8 @@
-# NotchPulse v4.8.8
+# NotchPulse v4.9.0
 
 ## 🚀 What's New & Improvements
-- **Precision Drag Detection**: Fixed false triggers where normal mouse clicking, dragging windows, or selecting text could mistakenly activate the Notch Shelf. Dragging files and URLs into the Notch is now rock-solid and responsive.
-- **Accurate Hover & Opening Sensitivity**: Hover detection now strictly follows your Notch or Dynamic Island boundaries and preferences. Moving your cursor near or beneath the Notch will no longer cause unwanted accidental openings.
-- **Full 9-Language Localization Across Settings**: When switching the application interface language (English, Tiếng Việt, Traditional Chinese, Simplified Chinese, Japanese, German, French, Spanish, Arabic), all sections, tabs, labels, and descriptions throughout the Settings menu update dynamically in real time.
-- **Calendar Month & Year Expansion**: Fixed an issue where clicking the month/year header collapsed the Notch instead of opening the interactive full month view. Full month view now smoothly pins open until collapsed.
+- **Smart Scroll & Swipe-to-Close Gesture**: Scrolling through your **Clipboard History** or lists no longer triggers accidental Notch shrink or close gestures. The Notch only closes via swipe once you reach the very end of your scrollable content.
+- **Precision Drag Detection**: Resolved false triggers where normal mouse clicks, window movements, or text selections could mistakenly open the Notch Shelf. Dragging files and URLs is now smooth and reliable.
+- **Accurate Hover & Opening Sensitivity**: Hover detection strictly follows physical Notch and Dynamic Island boundaries. Cursor movements near or beneath the Notch will no longer cause unwanted accidental openings.
+- **Full 9-Language Dynamic Localization**: When switching languages (English, Tiếng Việt, Traditional Chinese, Simplified Chinese, Japanese, German, French, Spanish, Arabic), all Settings pages, tabs, and Face ID menus update instantly.
+- **Calendar Month & Year Expansion**: Fixed full month view toggle so clicking the month/year header pins the expanded calendar view smoothly.
