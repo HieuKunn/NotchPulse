@@ -119,55 +119,56 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
     /// Calculate highlight frame relative to screen size (width, height)
     func targetFrame(screenSize: CGSize) -> CGRect {
         let screenWidth = screenSize.width
+        let screenHeight = screenSize.height
 
         switch self {
         case .notchHover:
-            // Top center Notch area
+            // Top center Notch area (closed pill)
             let width: CGFloat = 280
-            let height: CGFloat = 50
+            let height: CGFloat = 52
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .shakeToShelf:
-            // Slightly larger top center area
-            let width: CGFloat = 360
-            let height: CGFloat = 180
+            // Generous 75% screen width and comfortable height for dragging & shaking files from Finder/Desktop
+            let width = min(screenWidth * 0.75, max(750, screenWidth - 100))
+            let height = min(screenHeight * 0.58, max(420, screenHeight * 0.50))
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .musicPlayer:
-            // Notch music area (center top expanded)
-            let width: CGFloat = 380
-            let height: CGFloat = 160
-            return CGRect(x: (screenWidth - width) / 2, y: 15, width: width, height: height)
+            // Notch music area (center top expanded Home tab)
+            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
+            let height: CGFloat = 195
+            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .calendarExpand:
-            // Compact Calendar header in Notch
-            let width: CGFloat = 320
-            let height: CGFloat = 70
-            return CGRect(x: (screenWidth - width) / 2, y: 10, width: width, height: height)
+            // Calendar compact header in Notch
+            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
+            let height: CGFloat = 195
+            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .calendarFullMonth:
-            // Notch Full Month Calendar Area
-            let width: CGFloat = 420
-            let height: CGFloat = 240
-            return CGRect(x: (screenWidth - width) / 2, y: 15, width: width, height: height)
+            // Full Month Calendar Expanded Area
+            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
+            let height: CGFloat = 265
+            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .clipboardManager:
-            // Notch Clipboard Area
-            let width: CGFloat = 420
-            let height: CGFloat = 240
-            return CGRect(x: (screenWidth - width) / 2, y: 15, width: width, height: height)
+            // Notch Clipboard Tab Area
+            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
+            let height: CGFloat = 250
+            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .faceIDLock:
             // Top Camera Lens area
-            let width: CGFloat = 240
-            let height: CGFloat = 75
+            let width: CGFloat = 280
+            let height: CGFloat = 80
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .menuBarSettings:
             // Menu bar right corner
             let width: CGFloat = 260
             let height: CGFloat = 34
-            return CGRect(x: screenWidth - width - 20, y: 0, width: width, height: height)
+            return CGRect(x: screenWidth - width - 15, y: 0, width: width, height: height)
         }
     }
 }
@@ -205,6 +206,9 @@ struct SpotlightTourView: View {
             let screenSize = geometry.size
             let targetRect = currentStep.targetFrame(screenSize: screenSize)
             let cornerRadius: CGFloat = (currentStep == .menuBarSettings || currentStep == .notchHover) ? 12 : 22
+            let tooltipPos = tooltipPosition(targetRect: targetRect, screenSize: screenSize)
+            let cardHeight: CGFloat = (currentStep == .faceIDLock) ? 290 : 240
+            let tooltipRect = CGRect(x: tooltipPos.x - 215, y: tooltipPos.y - cardHeight / 2, width: 430, height: cardHeight)
 
             ZStack {
                 // 1. Dark Overlay with Cutout (Even-Odd hole punch)
@@ -236,14 +240,21 @@ struct SpotlightTourView: View {
                     isFirst: currentStepIndex == 0,
                     isLast: currentStepIndex == SpotlightTourStep.allCases.count - 1
                 )
-                .position(tooltipPosition(targetRect: targetRect, screenSize: screenSize))
+                .position(tooltipPos)
                 .animation(.spring(response: 0.45, dampingFraction: 0.75), value: currentStepIndex)
             }
             .onAppear {
+                SpotlightTourManager.shared.currentCutoutRect = targetRect
+                SpotlightTourManager.shared.currentTooltipRect = tooltipRect
                 updateLiveUIState(for: currentStep)
             }
             .onChange(of: currentStepIndex) { _, newIndex in
                 if let newStep = SpotlightTourStep(rawValue: newIndex) {
+                    let newTarget = newStep.targetFrame(screenSize: screenSize)
+                    let newTooltipPos = tooltipPosition(targetRect: newTarget, screenSize: screenSize)
+                    let newCardHeight: CGFloat = (newStep == .faceIDLock) ? 290 : 240
+                    SpotlightTourManager.shared.currentCutoutRect = newTarget
+                    SpotlightTourManager.shared.currentTooltipRect = CGRect(x: newTooltipPos.x - 215, y: newTooltipPos.y - newCardHeight / 2, width: 430, height: newCardHeight)
                     updateLiveUIState(for: newStep)
                 }
             }
@@ -252,48 +263,57 @@ struct SpotlightTourView: View {
 
     private func dismissTour() {
         Task { @MainActor in
-            (NSApp.delegate as? AppDelegate)?.vm.close()
+            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+            let coordinator = NotchPulseViewCoordinator.shared
+            let currentVM = (Defaults[.showOnAllDisplays] ? appDelegate.viewModels[coordinator.selectedScreenUUID] : nil) ?? appDelegate.vm
+            currentVM.close()
         }
         onDismiss()
     }
 
     private func updateLiveUIState(for step: SpotlightTourStep) {
         Task { @MainActor in
-            guard let vm = (NSApp.delegate as? AppDelegate)?.vm else { return }
+            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
             let coordinator = NotchPulseViewCoordinator.shared
+            let currentVM = (Defaults[.showOnAllDisplays] ? appDelegate.viewModels[coordinator.selectedScreenUUID] : nil) ?? appDelegate.vm
 
             switch step {
             case .notchHover:
                 coordinator.currentView = .home
-                vm.open()
+                currentVM.close()
 
             case .shakeToShelf:
                 coordinator.currentView = .shelf
-                vm.open()
+                currentVM.open()
 
             case .musicPlayer:
                 coordinator.currentView = .home
-                vm.open()
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                currentVM.customOpenHeight = nil
+                currentVM.open()
 
             case .calendarExpand:
                 coordinator.currentView = .home
                 CalendarStateViewModel.shared.isFullMonthExpanded = false
-                vm.open()
+                currentVM.customOpenHeight = nil
+                currentVM.open()
 
             case .calendarFullMonth:
                 coordinator.currentView = .home
                 CalendarStateViewModel.shared.isFullMonthExpanded = true
-                vm.open()
+                currentVM.customOpenHeight = 240
+                currentVM.open()
 
             case .clipboardManager:
                 coordinator.currentView = .clipboard
-                vm.open()
+                currentVM.customOpenHeight = nil
+                currentVM.open()
 
             case .faceIDLock:
-                vm.open()
+                currentVM.close()
 
             case .menuBarSettings:
-                vm.close()
+                currentVM.close()
                 SettingsWindowController.shared.showWindow()
             }
         }
@@ -323,17 +343,21 @@ struct SpotlightTourView: View {
         let cardHeight: CGFloat = (currentStep == .faceIDLock) ? 290 : 240
         let padding: CGFloat = 20
 
-        // If target is near top (like Notch or MenuBar), place card below
-        if targetRect.minY < screenSize.height * 0.4 {
-            let y = min(screenSize.height - cardHeight / 2 - padding, targetRect.maxY + cardHeight / 2 + 25)
-            let x = min(max(cardWidth / 2 + padding, targetRect.midX), screenSize.width - cardWidth / 2 - padding)
-            return CGPoint(x: x, y: y)
-        } else {
-            // Place card above
-            let y = max(cardHeight / 2 + padding, targetRect.minY - cardHeight / 2 - 25)
-            let x = min(max(cardWidth / 2 + padding, targetRect.midX), screenSize.width - cardWidth / 2 - padding)
+        if currentStep == .shakeToShelf {
+            let x = screenSize.width / 2
+            let y = min(screenSize.height - cardHeight / 2 - 25, targetRect.maxY + cardHeight / 2 + 15)
             return CGPoint(x: x, y: y)
         }
+
+        if currentStep == .menuBarSettings {
+            let x = min(screenSize.width - cardWidth / 2 - 20, max(cardWidth / 2 + 20, targetRect.midX - 80))
+            let y = targetRect.maxY + cardHeight / 2 + 15
+            return CGPoint(x: x, y: y)
+        }
+
+        let x = screenSize.width / 2
+        let y = targetRect.maxY + cardHeight / 2 + 20
+        return CGPoint(x: x, y: min(screenSize.height - cardHeight / 2 - padding, y))
     }
 }
 
@@ -493,13 +517,8 @@ struct SpotlightTooltipCard: View {
 
             HStack(spacing: 8) {
                 Button(action: {
-                    onSkipAll()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        if NotchPulsePOCController.shared.hasStoredPassword {
-                            FaceIDEnrollmentController.startEnrollmentOnly()
-                        } else {
-                            FaceIDEnrollmentController.startFlow()
-                        }
+                    SpotlightTourManager.shared.startFaceIDSetupFromTour {
+                        nextStep()
                     }
                 }) {
                     HStack(spacing: 4) {
@@ -530,12 +549,38 @@ struct SpotlightTooltipCard: View {
     }
 }
 
+// MARK: - Tour Window Hosting View with Pass-Through in Cutout
+
+final class SpotlightTourHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard let window = self.window else { return super.hitTest(point) }
+        let screenHeight = window.frame.height
+        // Convert AppKit (bottom-left) to SwiftUI (top-left)
+        let swiftUIPoint = CGPoint(x: point.x, y: screenHeight - point.y)
+
+        let tooltip = SpotlightTourManager.shared.currentTooltipRect
+        if tooltip.contains(swiftUIPoint) {
+            return super.hitTest(point)
+        }
+
+        let cutout = SpotlightTourManager.shared.currentCutoutRect
+        if cutout.contains(swiftUIPoint) {
+            return nil // Allow clicks and drag events to fall through to desktop/finder/notch
+        }
+
+        return super.hitTest(point)
+    }
+}
+
 // MARK: - Tour Manager Window Controller
 
 final class SpotlightTourManager: ObservableObject {
     static let shared = SpotlightTourManager()
 
+    var currentCutoutRect: CGRect = .zero
+    var currentTooltipRect: CGRect = .zero
     private var tourWindow: NSWindow?
+    private var faceIDPhaseObserver: NSObjectProtocol?
 
     func showTour(useAppLanguage: Bool = false) {
         closeTour()
@@ -560,7 +605,7 @@ final class SpotlightTourManager: ObservableObject {
             self?.closeTour()
         }
 
-        window.contentView = NSHostingView(rootView: tourView)
+        window.contentView = SpotlightTourHostingView(rootView: tourView)
         self.tourWindow = window
 
         window.makeKeyAndOrderFront(nil)
@@ -568,7 +613,49 @@ final class SpotlightTourManager: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func hideTour() {
+        tourWindow?.orderOut(nil)
+    }
+
+    func unhideTour() {
+        tourWindow?.makeKeyAndOrderFront(nil)
+        tourWindow?.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func startFaceIDSetupFromTour(completion: @escaping () -> Void) {
+        hideTour()
+
+        if let existing = faceIDPhaseObserver {
+            NotificationCenter.default.removeObserver(existing)
+            faceIDPhaseObserver = nil
+        }
+
+        faceIDPhaseObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name.faceIDPhaseChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            if FaceIDOverlayController.shared.phase == .closed {
+                if let obs = self?.faceIDPhaseObserver {
+                    NotificationCenter.default.removeObserver(obs)
+                    self?.faceIDPhaseObserver = nil
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    self?.unhideTour()
+                    completion()
+                }
+            }
+        }
+
+        FaceIDEnrollmentController.startAddIdentity()
+    }
+
     func closeTour() {
+        if let obs = faceIDPhaseObserver {
+            NotificationCenter.default.removeObserver(obs)
+            faceIDPhaseObserver = nil
+        }
         tourWindow?.orderOut(nil)
         tourWindow?.close()
         tourWindow = nil

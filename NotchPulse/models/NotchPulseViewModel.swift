@@ -238,7 +238,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         // If user enabled restoring the last active tab on hover, preserve currentView
         if coordinator.openLastTabByDefault {
             // Keep currentView intact (Stats, Battery, Shelf, Home)
-        } else if !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] {
+        } else if !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] && coordinator.currentView == .shelf {
             coordinator.currentView = .shelf
         } else {
             coordinator.currentView = .home

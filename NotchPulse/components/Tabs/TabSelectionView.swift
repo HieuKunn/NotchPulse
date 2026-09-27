@@ -46,6 +46,9 @@ struct TabSelectionView: View {
         HStack(spacing: 0) {
             ForEach(tabs) { tab in
                 TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
+                    vm.dragDetectorTargeting = false
+                    vm.dropZoneTargeting = false
+                    vm.generalDropTargeting = false
                     if coordinator.currentView != tab.view && vm.customOpenHeight != nil {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             vm.customOpenHeight = nil

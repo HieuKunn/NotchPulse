@@ -435,12 +435,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         shakeAutoCloseTasks[uuid] = nil
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: .milliseconds(120))
             guard !Task.isCancelled, let self = self else { return }
             
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             targetVM.dragDetectorTargeting = false
+            targetVM.dropZoneTargeting = false
+            targetVM.generalDropTargeting = false
             targetVM.dropEvent = false
+            
+            self.vm.dragDetectorTargeting = false
+            self.vm.dropZoneTargeting = false
+            self.vm.generalDropTargeting = false
+            self.vm.dropEvent = false
             
             // Check if mouse is still hovering over open notch window
             let mouseLocation = NSEvent.mouseLocation

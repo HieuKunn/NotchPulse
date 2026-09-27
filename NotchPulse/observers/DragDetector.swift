@@ -240,7 +240,7 @@ final class DragDetector {
                                   (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
         let isNewDragOperation = isPasteboardChanged && hasValidDragContent()
 
-        if isContentDragging || isNewDragOperation || (mousePressed && hasValidDragContent()) {
+        if isContentDragging || isNewDragOperation {
             isContentDragging = true
             onDragMove?(mouseLocation)
 

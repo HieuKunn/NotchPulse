@@ -542,7 +542,7 @@ final class FaceIDEnrollmentController {
     /// requires acknowledgment before it'll run — so this quits rather than dismissing back
     /// into use.
     func declinePostUpdateNotice() {
-        NSApp.terminate(nil)
+        dismiss()
     }
 
     /// Immediately tears down and closes the onboarding overlay.

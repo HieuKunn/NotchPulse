@@ -64,7 +64,7 @@ struct ShelfItemView: View {
             }
         }
         .onChange(of: viewModel.isDropTargeted) { _, targeted in
-            vm.dragDetectorTargeting = targeted
+            vm.dropZoneTargeting = targeted
             // Debounce drop target state changes
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(50))
