@@ -242,7 +242,7 @@ struct SpotlightTourView: View {
             .onAppear {
                 updateLiveUIState(for: currentStep)
             }
-            .onChange(of: currentStepIndex) { newIndex in
+            .onChange(of: currentStepIndex) { _, newIndex in
                 if let newStep = SpotlightTourStep(rawValue: newIndex) {
                     updateLiveUIState(for: newStep)
                 }
@@ -252,14 +252,14 @@ struct SpotlightTourView: View {
 
     private func dismissTour() {
         Task { @MainActor in
-            NotchPulseViewModel.shared.close()
+            (NSApp.delegate as? AppDelegate)?.vm.close()
         }
         onDismiss()
     }
 
     private func updateLiveUIState(for step: SpotlightTourStep) {
         Task { @MainActor in
-            let vm = NotchPulseViewModel.shared
+            guard let vm = (NSApp.delegate as? AppDelegate)?.vm else { return }
             let coordinator = NotchPulseViewCoordinator.shared
 
             switch step {

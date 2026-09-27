@@ -280,7 +280,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectorForScreen(_ screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
-        let screenFrame = screen.frame
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
         
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
