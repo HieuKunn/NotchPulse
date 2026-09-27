@@ -235,12 +235,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             self.webcamManager.stopSession()
         }
 
-        // If user enabled restoring the last active tab on hover, preserve currentView
-        if coordinator.openLastTabByDefault {
-            // Keep currentView intact (Stats, Battery, Shelf, Home)
-        } else if !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] && coordinator.currentView == .shelf {
-            coordinator.currentView = .shelf
-        } else {
+        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf
+        if !coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
             coordinator.currentView = .home
         }
     }

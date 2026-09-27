@@ -194,7 +194,7 @@ final class DragDetector {
             // Require sustained release (>= 3 ticks = 90ms) before declaring drag ended.
             // This prevents trackpad force-touch pressure drops from prematurely killing drag operations.
             if isContentDragging || hasEnteredNotchRegion {
-                if unpressedPollCount >= 3 {
+                if unpressedPollCount >= 2 {
                     let wasInRegion = hasEnteredNotchRegion
                     isContentDragging = false
                     hasEnteredNotchRegion = false

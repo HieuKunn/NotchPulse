@@ -345,14 +345,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 }
 
-                // If user shakes to open the shelf but does not drag to or hover over the notch within 2.5s, auto-close
+                // If user shakes to open the shelf but does not drag to or hover over the notch within 5.0s, auto-close
                 self.shakeAutoCloseTasks[uuid]?.cancel()
                 self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(2500))
+                    try? await Task.sleep(for: .milliseconds(5000))
                     guard !Task.isCancelled, let self = self else { return }
                     let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
                     if !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
                         vm.close()
+                        if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
+                            self.coordinator.currentView = .home
+                        }
                     }
                 }
             }
@@ -467,6 +470,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             if !isMouseOverOpenNotch && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
                 targetVM.close()
+                if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
+                    self.coordinator.currentView = .home
+                }
             }
         }
     }
