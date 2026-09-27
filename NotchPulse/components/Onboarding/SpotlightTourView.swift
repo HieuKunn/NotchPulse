@@ -262,12 +262,6 @@ struct SpotlightTourView: View {
     }
 
     private func dismissTour() {
-        Task { @MainActor in
-            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
-            let coordinator = NotchPulseViewCoordinator.shared
-            let currentVM = (Defaults[.showOnAllDisplays] ? appDelegate.viewModels[coordinator.selectedScreenUUID] : nil) ?? appDelegate.vm
-            currentVM.close()
-        }
         onDismiss()
     }
 
@@ -275,10 +269,27 @@ struct SpotlightTourView: View {
         Task { @MainActor in
             guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
             let coordinator = NotchPulseViewCoordinator.shared
-            let currentVM = (Defaults[.showOnAllDisplays] ? appDelegate.viewModels[coordinator.selectedScreenUUID] : nil) ?? appDelegate.vm
 
+            // Determine target VM: prefer camera/built-in screen when showOnAllDisplays,
+            // otherwise use selectedScreen. This ensures the tour always shows on the
+            // screen with the physical notch/camera.
+            let currentVM: NotchPulseViewModel
+            if Defaults[.showOnAllDisplays] {
+                let cameraScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
+                if let camUUID = cameraScreen?.displayUUID, let camVM = appDelegate.viewModels[camUUID] {
+                    currentVM = camVM
+                } else {
+                    currentVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
+                }
+            } else {
+                currentVM = appDelegate.vm
+            }
+
+            // Open notch on every step so the user can always see it.
+            // Each step configures the correct tab/view inside the open notch.
             switch step {
             case .notchHover:
+                // Intentionally close so user can practice opening it themselves
                 coordinator.currentView = .home
                 currentVM.close()
 
@@ -310,9 +321,13 @@ struct SpotlightTourView: View {
                 currentVM.open()
 
             case .faceIDLock:
-                currentVM.close()
+                // Open the notch so user can see the face ID area, then guide them
+                coordinator.currentView = .home
+                currentVM.customOpenHeight = nil
+                currentVM.open()
 
             case .menuBarSettings:
+                // Close notch to highlight the menubar button
                 currentVM.close()
                 SettingsWindowController.shared.showWindow()
             }
@@ -585,7 +600,20 @@ final class SpotlightTourManager: ObservableObject {
 
     func showTour(useAppLanguage: Bool = false) {
         closeTour()
-        guard let mainScreen = NSScreen.main else { return }
+
+        // Pick the correct screen:
+        // • showOnAllDisplays → prefer the camera/built-in screen so the highlight
+        //   lines up with the physical notch/camera the tour is pointing at.
+        // • Otherwise → use the selected (user-chosen) screen.
+        let targetScreen: NSScreen?
+        if Defaults[.showOnAllDisplays] {
+            targetScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
+                ?? NSScreen.main
+        } else {
+            let coordinator = NotchPulseViewCoordinator.shared
+            targetScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) ?? NSScreen.main
+        }
+        guard let mainScreen = targetScreen else { return }
 
         let window = NSWindow(
             contentRect: mainScreen.frame,

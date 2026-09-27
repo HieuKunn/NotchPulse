@@ -459,6 +459,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         resetAllDropAndDragTargeting()
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
         
+        // If the user is currently on the shelf tab (opened via shake-to-shelf gesture),
+        // do NOT auto-close the notch. Let them interact with the shelf normally.
+        // The notch will close when they hover away as usual.
+        if coordinator.currentView == .shelf {
+            return
+        }
+        
         // Check if mouse is still hovering over open notch window
         let mouseLocation = NSEvent.mouseLocation
         let screenFrame = screen.frame

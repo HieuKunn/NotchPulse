@@ -1,4 +1,10 @@
-# 🚨 IMPORTANT RELEASE — NotchPulse v5.0.0 (Build 177)
+# 🚨 IMPORTANT RELEASE — NotchPulse v5.0.0 (Build 178)
+
+## 🐛 Build 178 — Critical Bug Fixes
+
+- **🤝 Shake-to-Shelf không tự đóng notch sau khi thả file**: Sau khi lắc chuột mở shelf và thả file, notch giờ ở lại bình thường. Chỉ khi hover ra khỏi vùng notch như bình thường mới đóng.
+- **📍 Onboarding tour mở trên đúng màn hình**: Khi bật "Show on all displays", tour sẽ hiển thị trên màn hình có camera/notch vật lý thay vì NSScreen.main.
+- **🔔 Notch mở sẵn ở bước Face ID trong onboarding**: Bước Face ID giờ mở notch ra để user thấy vùng Face ID. Dismiss/skip tour không còn tự đóng notch.
 
 ## 🚀 What's New & Major Highlights
 
