@@ -278,8 +278,8 @@
 
 /* Begin PBXFileReference section */
 
-		B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardNotchView.swift; sourceTree = "<group>"; };
+		B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPulse/managers/ClipboardManager.swift; sourceTree = "<group>"; };
+		0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPulse/components/Clipboard/ClipboardNotchView.swift; sourceTree = "<group>"; };
 		01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingControls.swift; sourceTree = "<group>"; };
 		09DEF060F7197B05866F7137 /* FaceIDMinimalUnlockView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDMinimalUnlockView.swift; sourceTree = "<group>"; };
 		0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsControls.swift; sourceTree = "<group>"; };
