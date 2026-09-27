@@ -5,6 +5,7 @@ This document outlines the core rules, architectural guidelines, and release pro
 > 🚨 **MANDATORY RELEASE CHECKLIST (NEVER SKIP ANY STEP):**
 > 1. ✅ **Update Build Number & Version in Xcode Project:**
 >    - Bump `MARKETING_VERSION` (e.g., `4.8.7`) and increment `CURRENT_PROJECT_VERSION` (build number, e.g., `149`) in `NotchPulse.xcodeproj/project.pbxproj`.
+>    - ⚠️ **BUILD ERROR EXCEPTION RULE**: If the user provides a GitHub Actions / Xcodebuild error log stating the build FAILED, DO NOT increment the build number or version on your subsequent fix attempt. Keep the exact same version/build number and just force-push the fix, because no runnable binary was successfully released to users. Only strictly increment the build number when introducing new features or finalizing a completely successful prior build.
 > 2. ✅ **Update `RELEASE_NOTES.md`:**
 >    - Write clear, user-centric release notes for the new version.
 > 3. ✅ **Update Sparkle `appcast.xml`:**
