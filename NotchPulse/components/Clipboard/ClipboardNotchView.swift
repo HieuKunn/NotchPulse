@@ -68,11 +68,31 @@ struct ClipboardRowView: View {
     @State private var isHovered = false
     @State private var isCopied = false
 
+    private var itemColor: Color {
+        if item.isImage { return .purple }
+        switch item.type {
+        case .url: return .cyan
+        case .file: return .orange
+        case .image: return .purple
+        case .text: return .blue
+        }
+    }
+
+    private var itemIconName: String {
+        if item.isImage { return "photo" }
+        switch item.type {
+        case .url: return "link"
+        case .file: return "doc.fill"
+        case .image: return "photo"
+        case .text: return "doc.text.fill"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(item.isImage ? Color.purple.opacity(0.2) : Color.blue.opacity(0.2))
+                    .fill(itemColor.opacity(0.2))
                     .frame(width: 32, height: 32)
                 
                 if item.isImage, let data = item.imageData, let nsImage = NSImage(data: data) {
@@ -82,9 +102,9 @@ struct ClipboardRowView: View {
                         .frame(width: 32, height: 32)
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 } else {
-                    Image(systemName: item.isImage ? "photo" : "doc.text.fill")
+                    Image(systemName: itemIconName)
                         .font(.system(size: 14))
-                        .foregroundStyle(item.isImage ? .purple : .blue)
+                        .foregroundStyle(itemColor)
                 }
             }
 
