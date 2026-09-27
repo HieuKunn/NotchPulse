@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+
+		18EA8295C95B4071AAFBD23B /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */; };
+		2DF809B2C72744C782CA5EEE /* ClipboardNotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */; };
 		00F5A59EDEF40C44ACAA05B8 /* NotchPulseFaceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */; };
 		06E0CC5B63D38C4AC96E9439 /* FaceIDOnboardingControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */; };
 		07091DD5105732B2E5354ED8 /* FaceIDYourFaceSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85C12921DFB812E651BDC87 /* FaceIDYourFaceSettingsPage.swift */; };
@@ -274,6 +277,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+
+		B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
+		0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardNotchView.swift; sourceTree = "<group>"; };
 		01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingControls.swift; sourceTree = "<group>"; };
 		09DEF060F7197B05866F7137 /* FaceIDMinimalUnlockView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDMinimalUnlockView.swift; sourceTree = "<group>"; };
 		0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsControls.swift; sourceTree = "<group>"; };
@@ -690,6 +696,7 @@
 		1471639B2C5D362F0068B555 /* components */ = {
 			isa = PBXGroup;
 			children = (
+				0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */,
 				F1D2000D2ED0000100000001 /* LockScreen */,
 				B141C23B2CA5F50900AC8CC8 /* Onboarding */,
 				B1C448992C97375A001F0858 /* Tips */,
