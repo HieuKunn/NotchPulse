@@ -631,16 +631,16 @@ struct GeneralSettings: View {
         Form {
             Section {
                 Button(action: {
-                    SpotlightTourManager.shared.showTour()
+                    SpotlightTourManager.shared.showTour(useAppLanguage: true)
                 }) {
                     HStack {
                         Image(systemName: "sparkles.tv.fill")
-                            .foregroundColor(.cyan)
+                            .foregroundColor(.white)
                             .font(.system(size: 16))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Bắt đầu Hướng dẫn Spotlight (Interactive Tour)")
+                            Text(loc("Interactive Spotlight Tour"))
                                 .font(.system(size: 13, weight: .semibold))
-                            Text("Xem toàn bộ hướng dẫn vị trí & thao tác Notch, Shelf, Music Lyrics, Lịch Âm")
+                            Text(loc("Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings"))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }

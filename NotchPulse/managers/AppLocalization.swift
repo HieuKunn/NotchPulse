@@ -75,6 +75,8 @@ struct L10n {
             "Hierarchical": "Hierarchical",
             
             // General Tab
+            "Interactive Spotlight Tour": "Interactive Spotlight Tour",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings",
             "Notch / Island Style": "Notch / Island Style",
             "MacBook Notch": "MacBook Notch",
             "Dynamic Island": "Dynamic Island",
@@ -400,6 +402,8 @@ struct L10n {
             "Hierarchical": "Phân cấp",
             
             // General Tab
+            "Interactive Spotlight Tour": "Bắt đầu Hướng dẫn Spotlight (Interactive Tour)",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "Xem toàn bộ hướng dẫn vị trí & thao tác Notch, Shelf, Music Lyrics, Lịch Âm",
             "Notch / Island Style": "Kiểu dáng Notch / Đảo",
             "MacBook Notch": "Notch MacBook",
             "Dynamic Island": "Dynamic Island",
