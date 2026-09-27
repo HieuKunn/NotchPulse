@@ -179,7 +179,7 @@ class AppleMusicController: MediaControllerProtocol {
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(2.0))
                     guard let self = self, !Task.isCancelled else { break }
-                    let isUIActive = await MusicManager.shared.isUIActive
+                    let isUIActive = await MainActor.run { MusicManager.shared.isUIActive }
                     guard self.playbackState.isPlaying, self.isActive(), isUIActive else {
                         await MainActor.run { self.stopPeriodicSync() }
                         break

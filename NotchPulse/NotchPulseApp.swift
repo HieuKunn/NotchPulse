@@ -281,9 +281,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
         
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-        
-        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-        let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
 
         // SETUP LIGHTWEIGHT RADAR FOR HOVER & DRAG DETECTION
         // Uses pure coordinate monitoring (NSEvent.mouseLocation) with ZERO physical windows or overlays.

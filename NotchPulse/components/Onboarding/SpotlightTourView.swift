@@ -272,16 +272,16 @@ struct SpotlightTourView: View {
                 vm.open()
 
             case .musicPlayer:
-                coordinator.currentView = .media
+                coordinator.currentView = .home
                 vm.open()
 
             case .calendarExpand:
-                coordinator.currentView = .calendar
+                coordinator.currentView = .home
                 CalendarStateViewModel.shared.isFullMonthExpanded = false
                 vm.open()
 
             case .calendarFullMonth:
-                coordinator.currentView = .calendar
+                coordinator.currentView = .home
                 CalendarStateViewModel.shared.isFullMonthExpanded = true
                 vm.open()
 
