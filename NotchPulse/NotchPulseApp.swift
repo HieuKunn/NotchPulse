@@ -329,8 +329,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         detector.onGlobalDragStateChanged = { [weak self] isDragging in
             Task { @MainActor in
                 guard let self = self else { return }
-                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-                currentTargetVM.dragDetectorTargeting = isDragging
+                // dragDetectorTargeting represents whether the notch detection zone is actively targeted,
+                // which is updated on region enter/exit.
             }
         }
         detector.onGlobalHoverStateChanged = { [weak self] hovering in
@@ -352,13 +352,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid] = nil
         
         SharingStateManager.shared.preventNotchClose = true
+        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+        targetVM.dragDetectorTargeting = true
         
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-                viewModel.open()
-            } else {
-                vm.open()
-            }
+            targetVM.open()
             coordinator.currentView = .shelf
         }
     }
@@ -372,6 +370,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard !Task.isCancelled, let self = self else { return }
             
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            targetVM.dragDetectorTargeting = false
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
             
             SharingStateManager.shared.preventNotchClose = false
@@ -390,6 +389,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard !Task.isCancelled, let self = self else { return }
             
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            targetVM.dragDetectorTargeting = false
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
             
             SharingStateManager.shared.preventNotchClose = false

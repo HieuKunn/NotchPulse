@@ -5,4 +5,5 @@
 - **Moon Toggle Button in Month Grid**: Added a dedicated Moon button to the full-month grid header. Toggling it displays small lunar date numbers under each day in the 3/5 grid and shows the calculation disclaimer at the bottom.
 - **Permanent Dual Date Header in Day Panel**: The 2/5 day detail panel now permanently displays both solar and lunar date numbers side-by-side (`27 (17/8 Lunar Cal)`).
 - **9-Language App Interface**: Added a dedicated "Language" tab in Settings supporting English, Tiếng Việt, Traditional Chinese (繁體中文), Simplified Chinese (简体中文), Japanese (日本語), German (Deutsch), French (Français), Spanish (Español), and Arabic (العربية).
+- **Independent Shelf Drag Detection Expansion**: Resolved global monitor race conditions and WindowServer drag session state tracking. Dragging files now smoothly expands the Notch radar zone independently up to 120px to open the Shelf early.
 - **Passthrough Click & Layout Enhancements**: Hit-testing passthrough for browser tabs beneath virtual notch, independent hover/drag settings, and smooth calendar height transitions.
