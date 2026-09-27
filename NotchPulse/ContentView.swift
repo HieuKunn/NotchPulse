@@ -947,19 +947,26 @@ struct ContentView: View {
     }
 }
 
-struct FullScreenDropDelegate: DropDelegate {
+import UniformTypeIdentifiers
+
+class FullScreenDropDelegate: DropDelegate {
     @Binding var isTargeted: Bool
     let onDrop: () -> Void
 
-    func dropEntered(info _: DropInfo) {
+    init(isTargeted: Binding<Bool>, onDrop: @escaping () -> Void) {
+        self._isTargeted = isTargeted
+        self.onDrop = onDrop
+    }
+
+    func dropEntered(info: DropInfo) {
         isTargeted = true
     }
 
-    func dropExited(info _: DropInfo) {
+    func dropExited(info: DropInfo) {
         isTargeted = false
     }
 
-    func performDrop(info _: DropInfo) -> Bool {
+    func performDrop(info: DropInfo) -> Bool {
         isTargeted = false
         onDrop()
         return true
@@ -967,8 +974,12 @@ struct FullScreenDropDelegate: DropDelegate {
 
 }
 
-struct GeneralDropTargetDelegate: DropDelegate {
+class GeneralDropTargetDelegate: DropDelegate {
     @Binding var isTargeted: Bool
+
+    init(isTargeted: Binding<Bool>) {
+        self._isTargeted = isTargeted
+    }
 
     func dropEntered(info: DropInfo) {
         isTargeted = true
@@ -989,7 +1000,13 @@ struct GeneralDropTargetDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         isTargeted = false
-        let providers = info.itemProviders(for: [.fileURL, .url, .utf8PlainText, .plainText, .data])
+        let providers = info.itemProviders(for: [
+            UTType.fileURL.identifier,
+            UTType.url.identifier,
+            UTType.utf8PlainText.identifier,
+            UTType.plainText.identifier,
+            UTType.data.identifier
+        ])
         if !providers.isEmpty {
             ShelfStateViewModel.shared.load(providers)
             return true
