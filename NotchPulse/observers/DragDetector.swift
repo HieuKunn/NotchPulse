@@ -69,9 +69,12 @@ final class DragDetector {
         return true
     }
 
+    private var unpressedPollCount: Int = 0
+
     func startMonitoring() {
         stopMonitoring()
         lastKnownIdlePasteboardCount = dragPasteboard.changeCount
+        unpressedPollCount = 0
 
         // Global monitor for leftMouseDragged (immediate response when events are delivered)
         mouseDraggedMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
@@ -93,22 +96,27 @@ final class DragDetector {
         let currentPbCount = dragPasteboard.changeCount
 
         if !mousePressed {
-            // Mouse is released -> IDLE STATE
+            unpressedPollCount += 1
+            // Require sustained release (>= 3 ticks = 120ms) before declaring drag ended.
+            // This prevents trackpad force-touch pressure drops from prematurely killing drag operations.
             if isContentDragging || hasEnteredNotchRegion {
-                let wasInRegion = hasEnteredNotchRegion
-                isContentDragging = false
-                hasEnteredNotchRegion = false
-                if wasInRegion {
-                    onDragExitsNotchRegion?()
+                if unpressedPollCount >= 3 {
+                    let wasInRegion = hasEnteredNotchRegion
+                    isContentDragging = false
+                    hasEnteredNotchRegion = false
+                    if wasInRegion {
+                        onDragExitsNotchRegion?()
+                    }
+                    onDragEnded?()
+                    lastKnownIdlePasteboardCount = currentPbCount
                 }
-                onDragEnded?()
+            } else {
+                lastKnownIdlePasteboardCount = currentPbCount
             }
 
-            // Continuously keep baseline synchronized to idle pasteboard
-            lastKnownIdlePasteboardCount = currentPbCount
-
-            // Hover radar: ONLY runs during idle (when mouse is NOT pressed and NOT dragging)
-            if Defaults[.extendHoverArea] {
+            // Hover radar: Runs whenever extended hover or open-on-hover is enabled
+            let shouldRunHoverRadar = Defaults[.extendHoverArea] || Defaults[.openNotchOnHover]
+            if shouldRunHoverRadar {
                 let hoverRegion = regionProvider(false)
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
 
@@ -127,11 +135,7 @@ final class DragDetector {
         }
 
         // --- Mouse IS Pressed ---
-        // While dragging, hover radar MUST NOT fire to prevent conflicting with drag expand
-        if isHoveringFromRadar {
-            isHoveringFromRadar = false
-            onGlobalHoverStateChanged?(false)
-        }
+        unpressedPollCount = 0
 
         // Detect if a drag operation is active:
         // Pasteboard changeCount changed from the idle baseline while button is down, with valid content
@@ -140,6 +144,12 @@ final class DragDetector {
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
             onDragMove?(mouseLocation)
+
+            // While actively dragging files, disengage hover radar
+            if isHoveringFromRadar {
+                isHoveringFromRadar = false
+                onGlobalHoverStateChanged?(false)
+            }
 
             // Check intersection with expanded drag detection region
             let activeDragRegion = regionProvider(true)
@@ -151,6 +161,17 @@ final class DragDetector {
             } else if !containsMouseDrag && hasEnteredNotchRegion {
                 hasEnteredNotchRegion = false
                 onDragExitsNotchRegion?()
+            }
+        } else {
+            // Regular mouse click inside UI: maintain hover radar state so clicking buttons doesn't close the notch
+            let shouldRunHoverRadar = Defaults[.extendHoverArea] || Defaults[.openNotchOnHover]
+            if shouldRunHoverRadar {
+                let hoverRegion = regionProvider(false)
+                let containsMouseHover = hoverRegion.contains(mouseLocation)
+                if containsMouseHover && !isHoveringFromRadar {
+                    isHoveringFromRadar = true
+                    onGlobalHoverStateChanged?(true)
+                }
             }
         }
     }

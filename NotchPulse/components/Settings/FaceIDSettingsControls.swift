@@ -136,15 +136,15 @@ struct SettingsRowContent<Trailing: View>: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {
-                    Text(title)
+                    Text(title.localized)
                         .font(SettingsMetrics.rowFont)
                         .foregroundStyle(SettingsMetrics.textPrimary)
                     if let info {
-                        SettingsInfoButton(text: info)
+                        SettingsInfoButton(text: info.localized)
                     }
                 }
                 if let subtitle {
-                    Text(subtitle)
+                    Text(subtitle.localized)
                         .font(.system(size: 11))
                         .foregroundStyle(SettingsMetrics.textSecondary)
                 }
@@ -464,7 +464,7 @@ struct SettingsSectionTitle: View {
     let text: String
 
     var body: some View {
-        Text(text)
+        Text(text.localized)
             .font(SettingsMetrics.sectionTitleFont)
             .foregroundStyle(SettingsMetrics.textTertiary)
             .frame(maxWidth: .infinity, alignment: .leading)

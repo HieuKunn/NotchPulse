@@ -1024,6 +1024,7 @@ struct CalendarView: View {
     // MARK: - Helpers
     private func enterFullMonth() {
         displayedDate = selectedDate
+        CalendarStateViewModel.shared.isPinned = true
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             mode = .dayDetail
             vm.customOpenHeight = 270

@@ -1,9 +1,7 @@
-# NotchPulse v4.8.7
+# NotchPulse v4.8.8
 
-## 🚀 Regional Lunar Calendar & Multi-Language Support
-- **Regional Lunar Calendar Engine (Âm Lịch Đa Quốc Gia)**: Complete support for offline astronomical Vietnamese Lunar calendar (UTC+7, Dr. Ho Ngoc Duc algorithm), Taiwan / China / HK Nông lịch (UTC+8), Islamic Hijri, Hebrew, Buddhist, and Persian Jalali systems.
-- **Moon Toggle Button in Month Grid**: Added a dedicated Moon button to the full-month grid header. Toggling it displays small lunar date numbers under each day in the 3/5 grid and shows the calculation disclaimer at the bottom.
-- **Permanent Dual Date Header in Day Panel**: The 2/5 day detail panel now permanently displays both solar and lunar date numbers side-by-side (`27 (17/8 Lunar Cal)`).
-- **9-Language App Interface**: Added a dedicated "Language" tab in Settings supporting English, Tiếng Việt, Traditional Chinese (繁體中文), Simplified Chinese (简体中文), Japanese (日本語), German (Deutsch), French (Français), Spanish (Español), and Arabic (العربية).
-- **Independent Shelf Drag Detection Expansion**: Resolved global monitor race conditions and WindowServer drag session state tracking. Dragging files now smoothly expands the Notch radar zone independently up to 120px to open the Shelf early.
-- **Passthrough Click & Layout Enhancements**: Hit-testing passthrough for browser tabs beneath virtual notch, independent hover/drag settings, and smooth calendar height transitions.
+## 🚀 What's New & Improvements
+- **Fix Calendar Month/Year Full View Expansion**: Fixed an issue where clicking the month/year header collapsed the Notch instead of opening the full month view. Full month view now smoothly pins open until collapsed.
+- **Full 9-Language Localization Across Settings**: When switching the application interface language (English, Tiếng Việt, Traditional Chinese, Simplified Chinese, Japanese, German, French, Spanish, Arabic), all sections, tabs, labels, and descriptions throughout the Settings menu update dynamically in real time.
+- **Enhanced MacBook Screen Hover & 120px Drag Detection**: Radar detection geometry now accurately encompasses MacBook built-in Notch chin margins and calculates early 120px drag expansion from the target shelf area across both laptop and external displays.
+- **Smooth Hover Stability**: Increased hover exit debounce and synchronized cursor radar tracking to eliminate accidental snap-closures during spring transitions.
