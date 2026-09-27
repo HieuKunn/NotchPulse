@@ -1,16 +1,18 @@
-# NotchPulse v5.0.0 (Build 171)
+# 🚨 IMPORTANT RELEASE — NotchPulse v5.0.0 (Build 172)
 
-## 🚀 What's New & Major Improvements
-- **Smart Shake-to-Open Shelf (Active Drag Only)**: You can now quickly shake your mouse cursor left and right while dragging a file to summon the Notch Shelf instantly! Unintentional shakes without holding a file will never falsely trigger the Shelf.
-- **Automatic Notch Auto-Close**:
-  - The Notch now automatically closes when you release a dragged file or move it away from the Notch area, eliminating any stuck or unclosing states.
-  - Smooth 250ms hover exit delay across all interactions for a super responsive feel.
-- **Seamless Multi-Display Face ID Routing**:
-  - Hovering on your selected external monitor to trigger Face ID keeps your Notch / Dynamic Island fully displayed on your primary monitor without disappearing or flickering.
-  - Face ID verification drops down smoothly right under your physical camera screen.
-- **Zero Browser Tab Interruption**: Closed notch hover boundaries are strictly confined to physical hardware dimensions so Safari/Chrome tabs are never obstructed.
-- **Revamped Full Month Calendar**:
-  - Navigation controls (`<` and `>`) positioned cleanly to the left of the Month/Year header.
-  - Lunar calendar moon icon aligned to the right edge.
-  - Date circle badges centered precisely around numbers, with larger and brighter weekday labels.
-- **Cleaned Up Settings**: Streamlined Shelf settings for a cleaner UI.
+## 🚀 Major New Features & Key Highlights
+
+- **✨ All-New Interactive Spotlight Onboarding Tour (Type B)**:
+  - **Hole-Punch Spotlight Overlay**: Dark background with elegant glowing white border highlighting active features step-by-step.
+  - **Full Feature Walkthrough**: Guided tour across Notch expansion, Smart Shake-to-Shelf, Music & Live Synced Lyrics, Full Month Calendar expansion, Lunar dates, Clipboard history, Face ID lock security, and Menu Bar settings.
+  - **Interactive Face ID Setup**: Includes in-tour prompt allowing instant one-click Face ID enrollment.
+  - **Skip Options & Localization**: Features "Skip step", "Skip all", and top-right close buttons. Runs in English by default on launch/update and adapts to your chosen app language in Settings.
+- **🤝 Ultra-Responsive Smart Shake-to-Open Shelf**:
+  - Completely redesigned drag detector that instantly senses when holding a file or droppable item.
+  - Tuned gesture algorithm (700ms window, 10px swing threshold) for effortless 2-3 shake triggering without false positives.
+- **⚡ Automatic Notch Auto-Close**:
+  - Smooth 250ms hover exit delay across all interactions. Releasing a file or moving away closes the Notch automatically.
+- **🔒 Multi-Display Face ID Routing**:
+  - Notch and Dynamic Island remain intact on external monitors while Face ID authorization smoothly drops down under your physical Mac camera screen.
+- **📅 Revamped Calendar & Lunar Integration**:
+  - Navigation controls (`<` and `>`) placed on the left, today indicator badge, and right-aligned Moon icon for Lunar date details, Can Chi, and Auspicious hours.
