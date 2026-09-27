@@ -696,7 +696,7 @@
 		1471639B2C5D362F0068B555 /* components */ = {
 			isa = PBXGroup;
 			children = (
-				0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */,
+				B1CB00012ED0000100000001 /* Clipboard */,
 				F1D2000D2ED0000100000001 /* LockScreen */,
 				B141C23B2CA5F50900AC8CC8 /* Onboarding */,
 				B1C448992C97375A001F0858 /* Tips */,
@@ -723,6 +723,7 @@
 		147163B52C5D804B0068B555 /* managers */ = {
 			isa = PBXGroup;
 			children = (
+				B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */,
 				F1D200042ED0000100000001 /* FaceIDManager.swift */,
 				11D58EA12E760AE100FA8377 /* ImageService.swift */,
 				112FB7342CCF16F70015238C /* NotchSpaceManager.swift */,
@@ -1016,6 +1017,14 @@
 				B186543B2C6F49AE000B926A /* ShortcutConstants.swift */,
 			);
 			path = Shortcuts;
+			sourceTree = "<group>";
+		};
+		B1CB00012ED0000100000001 /* Clipboard */ = {
+			isa = PBXGroup;
+			children = (
+				0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */,
+			);
+			path = Clipboard;
 			sourceTree = "<group>";
 		};
 		B1C448992C97375A001F0858 /* Tips */ = {

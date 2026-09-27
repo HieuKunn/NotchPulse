@@ -1,4 +1,4 @@
-# NotchPulse v4.9.0
+# NotchPulse v4.8.7
 
 ## 📅 Apple Calendar-Style Full Month Grid & Enhancements
 - **Full Month Calendar View**: Click the month and year header in the calendar tab to smoothly expand the notch and view a gorgeous, Apple Calendar-style full month grid. Navigate between months effortlessly with chevron controls.
