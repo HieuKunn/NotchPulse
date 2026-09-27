@@ -264,7 +264,7 @@ struct SpotlightTourView: View {
 
             switch step {
             case .notchHover:
-                coordinator.currentView = .notch
+                coordinator.currentView = .home
                 vm.open()
 
             case .shakeToShelf:

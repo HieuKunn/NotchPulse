@@ -284,7 +284,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
         let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
-        let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
 
         // SETUP LIGHTWEIGHT RADAR FOR HOVER & DRAG DETECTION
         // Uses pure coordinate monitoring (NSEvent.mouseLocation) with ZERO physical windows or overlays.
