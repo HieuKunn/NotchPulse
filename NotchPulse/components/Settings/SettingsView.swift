@@ -19,6 +19,7 @@ import SwiftUIIntrospect
 struct SettingsView: View {
     @State private var selectedTab = "General"
     @State private var accentColorUpdateTrigger = UUID()
+    @Default(.appLanguage) private var appLanguage
 
     let updaterController: SPUStandardUpdaterController?
 
@@ -30,46 +31,49 @@ struct SettingsView: View {
         NavigationSplitView {
             List(selection: $selectedTab) {
                 NavigationLink(value: "General") {
-                    Label("General", systemImage: "gear")
+                    Label(tabTitle(for: "General"), systemImage: "gear")
                 }
                 NavigationLink(value: "Appearance") {
-                    Label("Appearance", systemImage: "paintbrush.fill")
+                    Label(tabTitle(for: "Appearance"), systemImage: "paintbrush.fill")
                 }
                 NavigationLink(value: "Media") {
-                    Label("Media", systemImage: "play.circle.fill")
+                    Label(tabTitle(for: "Media"), systemImage: "play.circle.fill")
                 }
                 NavigationLink(value: "Calendar") {
-                    Label("Calendar", systemImage: "calendar")
+                    Label(tabTitle(for: "Calendar"), systemImage: "calendar")
                 }
                 NavigationLink(value: "HUD") {
-                    Label("HUDs", systemImage: "gauge.with.dots.needle.33percent")
+                    Label(tabTitle(for: "HUD"), systemImage: "gauge.with.dots.needle.33percent")
                 }
                 NavigationLink(value: "SystemMonitor") {
-                    Label("System Monitor", systemImage: "chart.bar.fill")
+                    Label(tabTitle(for: "SystemMonitor"), systemImage: "chart.bar.fill")
                 }
                 NavigationLink(value: "FaceID") {
-                    Label("Face Recognition", systemImage: "faceid")
+                    Label(tabTitle(for: "FaceID"), systemImage: "faceid")
                 }
 //                NavigationLink(value: "Downloads") {
-//                    Label("Downloads", systemImage: "square.and.arrow.down")
+//                    Label(tabTitle(for: "Downloads"), systemImage: "square.and.arrow.down")
 //                }
                 NavigationLink(value: "Shelf") {
-                    Label("Shelf", systemImage: "tray.fill")
+                    Label(tabTitle(for: "Shelf"), systemImage: "tray.fill")
                 }
                 NavigationLink(value: "Clipboard") {
-                    Label("Clipboard", systemImage: "doc.on.clipboard.fill")
+                    Label(tabTitle(for: "Clipboard"), systemImage: "doc.on.clipboard.fill")
                 }
                 NavigationLink(value: "Shortcuts") {
-                    Label("Shortcuts", systemImage: "command.square.fill")
+                    Label(tabTitle(for: "Shortcuts"), systemImage: "command.square.fill")
                 }
                 // NavigationLink(value: "Extensions") {
-                //     Label("Extensions", systemImage: "puzzlepiece.extension")
+                //     Label(tabTitle(for: "Extensions"), systemImage: "puzzlepiece.extension")
                 // }
                 NavigationLink(value: "Advanced") {
-                    Label("Advanced", systemImage: "slider.horizontal.3")
+                    Label(tabTitle(for: "Advanced"), systemImage: "slider.horizontal.3")
+                }
+                NavigationLink(value: "Language") {
+                    Label(tabTitle(for: "Language"), systemImage: "globe")
                 }
                 NavigationLink(value: "About") {
-                    Label("About", systemImage: "info.circle.fill")
+                    Label(tabTitle(for: "About"), systemImage: "info.circle.fill")
                 }
             }
             .listStyle(SidebarListStyle())
@@ -110,6 +114,8 @@ struct SettingsView: View {
                             GeneralSettings()
                         case "Advanced":
                             Advanced()
+                        case "Language":
+                            LanguageSettingsView()
                         case "About":
                             if let controller = updaterController {
                                 About(updaterController: controller)
@@ -169,33 +175,169 @@ struct SettingsView: View {
     }
 
     private func tabTitle(for tab: String) -> String {
-        switch tab {
-        case "General":
-            return "General"
-        case "Appearance":
-            return "Appearance"
-        case "Media":
-            return "Media"
-        case "Calendar":
-            return "Calendar"
-        case "HUD":
-            return "HUDs"
-        case "SystemMonitor":
-            return "System Monitor"
-        case "FaceID":
-            return "Face Recognition"
-        case "Shelf":
-            return "Shelf"
-        case "Shortcuts":
-            return "Shortcuts"
-        case "Extensions":
-            return "Extensions"
-        case "Advanced":
-            return "Advanced"
-        case "About":
-            return "About"
-        default:
-            return "General"
+        switch appLanguage {
+        case .vietnamese:
+            switch tab {
+            case "General": return "Cài đặt chung"
+            case "Appearance": return "Giao diện"
+            case "Media": return "Trình phát nhạc"
+            case "Calendar": return "Lịch & Sự kiện"
+            case "HUD": return "Chỉ báo HUD"
+            case "SystemMonitor": return "Giám sát hệ thống"
+            case "FaceID": return "Nhận diện khuôn mặt"
+            case "Shelf": return "Khay tạm (Shelf)"
+            case "Clipboard": return "Lịch sử Clipboard"
+            case "Shortcuts": return "Phím tắt"
+            case "Extensions": return "Tiện ích mở rộng"
+            case "Advanced": return "Cài đặt nâng cao"
+            case "Language": return "Ngôn ngữ"
+            case "About": return "Thông tin ứng dụng"
+            default: return "Cài đặt chung"
+            }
+        case .traditionalChinese:
+            switch tab {
+            case "General": return "一般"
+            case "Appearance": return "外觀"
+            case "Media": return "媒體播放"
+            case "Calendar": return "行事曆"
+            case "HUD": return "HUD 指示器"
+            case "SystemMonitor": return "系統監控"
+            case "FaceID": return "人臉辨識"
+            case "Shelf": return "暫存架 (Shelf)"
+            case "Clipboard": return "剪貼簿"
+            case "Shortcuts": return "快捷鍵"
+            case "Extensions": return "擴充功能"
+            case "Advanced": return "進階設定"
+            case "Language": return "語言"
+            case "About": return "關於 NotchPulse"
+            default: return "一般"
+            }
+        case .simplifiedChinese:
+            switch tab {
+            case "General": return "通用"
+            case "Appearance": return "外观"
+            case "Media": return "媒体播放"
+            case "Calendar": return "日历"
+            case "HUD": return "HUD 指示器"
+            case "SystemMonitor": return "系统监控"
+            case "FaceID": return "人脸识别"
+            case "Shelf": return "暂存架 (Shelf)"
+            case "Clipboard": return "剪贴板"
+            case "Shortcuts": return "快捷键"
+            case "Extensions": return "扩展功能"
+            case "Advanced": return "高级设置"
+            case "Language": return "语言"
+            case "About": return "关于 NotchPulse"
+            default: return "通用"
+            }
+        case .japanese:
+            switch tab {
+            case "General": return "一般"
+            case "Appearance": return "外観"
+            case "Media": return "メディア"
+            case "Calendar": return "カレンダー"
+            case "HUD": return "HUD"
+            case "SystemMonitor": return "システムモニター"
+            case "FaceID": return "顔認識"
+            case "Shelf": return "シェルフ (Shelf)"
+            case "Clipboard": return "クリップボード"
+            case "Shortcuts": return "ショートカット"
+            case "Extensions": return "拡張機能"
+            case "Advanced": return "詳細設定"
+            case "Language": return "言語"
+            case "About": return "NotchPulse について"
+            default: return "一般"
+            }
+        case .german:
+            switch tab {
+            case "General": return "Allgemein"
+            case "Appearance": return "Erscheinungsbild"
+            case "Media": return "Medien"
+            case "Calendar": return "Kalender"
+            case "HUD": return "HUDs"
+            case "SystemMonitor": return "Systemmonitor"
+            case "FaceID": return "Gesichtserkennung"
+            case "Shelf": return "Ablage (Shelf)"
+            case "Clipboard": return "Zwischenablage"
+            case "Shortcuts": return "Kurzbefehle"
+            case "Extensions": return "Erweiterungen"
+            case "Advanced": return "Erweitert"
+            case "Language": return "Sprache"
+            case "About": return "Über NotchPulse"
+            default: return "Allgemein"
+            }
+        case .french:
+            switch tab {
+            case "General": return "Général"
+            case "Appearance": return "Apparence"
+            case "Media": return "Médias"
+            case "Calendar": return "Calendrier"
+            case "HUD": return "HUDs"
+            case "SystemMonitor": return "Moniteur système"
+            case "FaceID": return "Reconnaissance faciale"
+            case "Shelf": return "Étagère (Shelf)"
+            case "Clipboard": return "Presse-papiers"
+            case "Shortcuts": return "Raccourcis"
+            case "Extensions": return "Extensions"
+            case "Advanced": return "Avancé"
+            case "Language": return "Langue"
+            case "About": return "À propos"
+            default: return "Général"
+            }
+        case .spanish:
+            switch tab {
+            case "General": return "General"
+            case "Appearance": return "Apariencia"
+            case "Media": return "Multimedia"
+            case "Calendar": return "Calendario"
+            case "HUD": return "HUDs"
+            case "SystemMonitor": return "Monitor del sistema"
+            case "FaceID": return "Reconocimiento facial"
+            case "Shelf": return "Estante (Shelf)"
+            case "Clipboard": return "Portapapeles"
+            case "Shortcuts": return "Atajos"
+            case "Extensions": return "Extensiones"
+            case "Advanced": return "Avanzado"
+            case "Language": return "Idioma"
+            case "About": return "Acerca de"
+            default: return "General"
+            }
+        case .arabic:
+            switch tab {
+            case "General": return "عام"
+            case "Appearance": return "المظهر"
+            case "Media": return "الوسائط"
+            case "Calendar": return "التقويم"
+            case "HUD": return "مؤشرات HUD"
+            case "SystemMonitor": return "مراقب النظام"
+            case "FaceID": return "التعرف على الوجه"
+            case "Shelf": return "الرف (Shelf)"
+            case "Clipboard": return "الحافظة"
+            case "Shortcuts": return "اختصارات"
+            case "Extensions": return "الملحقات"
+            case "Advanced": return "متقدم"
+            case "Language": return "اللغة"
+            case "About": return "حول NotchPulse"
+            default: return "عام"
+            }
+        case .english:
+            switch tab {
+            case "General": return "General"
+            case "Appearance": return "Appearance"
+            case "Media": return "Media"
+            case "Calendar": return "Calendar"
+            case "HUD": return "HUDs"
+            case "SystemMonitor": return "System Monitor"
+            case "FaceID": return "Face Recognition"
+            case "Shelf": return "Shelf"
+            case "Clipboard": return "Clipboard"
+            case "Shortcuts": return "Shortcuts"
+            case "Extensions": return "Extensions"
+            case "Advanced": return "Advanced"
+            case "Language": return "Language"
+            case "About": return "About"
+            default: return "General"
+            }
         }
     }
 }
@@ -1260,25 +1402,101 @@ struct CalendarSettings: View {
     @Default(.hideCompletedReminders) var hideCompletedReminders
     @Default(.hideAllDayEvents) var hideAllDayEvents
     @Default(.autoScrollToNextEvent) var autoScrollToNextEvent
+    @Default(.appLanguage) private var appLanguage
+    @Default(.alternateCalendarType) private var alternateCalendarType
+    @Default(.showLunarCalendar) private var showLunarCalendar
+
+    private var lunarSectionHeader: String {
+        switch appLanguage {
+        case .vietnamese: return "Lịch âm theo khu vực"
+        case .traditionalChinese: return "農曆地區"
+        case .simplifiedChinese: return "农历地区"
+        case .japanese: return "旧暦地域"
+        case .german: return "Mondkalender-Region"
+        case .french: return "Région du calendrier lunaire"
+        case .spanish: return "Región del calendario lunar"
+        case .arabic: return "منطقة التقويم القمري"
+        case .english: return "Lunar Calendar Region"
+        }
+    }
+
+    private var lunarPickerLabel: String {
+        switch appLanguage {
+        case .vietnamese: return "Khu vực lịch âm"
+        case .traditionalChinese: return "選擇農曆地區"
+        case .simplifiedChinese: return "选择农历地区"
+        case .japanese: return "旧暦地域の選択"
+        case .german: return "Mondkalender auswählen"
+        case .french: return "Sélectionner la région lunaire"
+        case .spanish: return "Seleccionar región lunar"
+        case .arabic: return "اختر منطقة التقويم القمري"
+        case .english: return "Lunar Calendar Region"
+        }
+    }
+
+    private var lunarToggleLabel: String {
+        switch appLanguage {
+        case .vietnamese: return "Hiển thị ngày âm trong lịch tháng"
+        case .traditionalChinese: return "在月曆中顯示農曆日期"
+        case .simplifiedChinese: return "在月历中显示农历日期"
+        case .japanese: return "月間カレンダーに旧暦を表示"
+        case .german: return "Monddatum im Monatsraster anzeigen"
+        case .french: return "Afficher la date lunaire dans la grille du mois"
+        case .spanish: return "Mostrar fecha lunar en la cuadrícula mensual"
+        case .arabic: return "إظهار التاريخ القمري في شبكة الشهر"
+        case .english: return "Show lunar date in month grid"
+        }
+    }
+
+    private var lunarDescription: String {
+        switch appLanguage {
+        case .vietnamese: return "Hỗ trợ tính toán âm lịch chuẩn xác theo múi giờ khu vực (Việt Nam UTC+7, Đài Loan / Trung Quốc UTC+8)."
+        case .traditionalChinese: return "支援依據當地時區精確計算農曆日期（台灣/中國 UTC+8、越南 UTC+7 等）。"
+        case .simplifiedChinese: return "支持依据当地时区精确计算农历日期（台湾/中国 UTC+8、越南 UTC+7 等）。"
+        case .japanese: return "地域タイムゾーン（ベトナム UTC+7、台湾・中国 UTC+8など）に応じた旧暦計算をサポートします。"
+        case .german: return "Unterstützt die genaue Mondkalenderberechnung nach regionaler Zeitzone (Vietnam UTC+7, Taiwan/China UTC+8 usw.)."
+        case .french: return "Prend en charge le calcul précis du calendrier lunaire selon le fuseau horaire régional (Vietnam UTC+7, Taïwan/Chine UTC+8, etc.)."
+        case .spanish: return "Admite el cálculo preciso del calendario lunar según la zona horaria regional (Vietnam UTC+7, Taiwán/China UTC+8, etc.)."
+        case .arabic: return "يدعم حساب التقويم القمري بدقة وفقًا للمنطقة الزمنية المحلية (فيتنام UTC+7، تايوان/الصين UTC+8، إلخ)."
+        case .english: return "Supports lunar calendar calculation according to local regional timezone (Vietnam UTC+7, Taiwan / China UTC+8)."
+        }
+    }
 
     var body: some View {
         Form {
             Defaults.Toggle(key: .showCalendar) {
-                Text("Show calendar")
+                Text(appLanguage == .vietnamese ? "Hiển thị lịch" : "Show calendar")
             }
             Defaults.Toggle(key: .hideCompletedReminders) {
-                Text("Hide completed reminders")
+                Text(appLanguage == .vietnamese ? "Ẩn lời nhắc đã hoàn thành" : "Hide completed reminders")
             }
             Defaults.Toggle(key: .hideAllDayEvents) {
-                Text("Hide all-day events")
+                Text(appLanguage == .vietnamese ? "Ẩn sự kiện cả ngày" : "Hide all-day events")
             }
             Defaults.Toggle(key: .autoScrollToNextEvent) {
-                Text("Auto-scroll to next event")
+                Text(appLanguage == .vietnamese ? "Tự động cuộn đến sự kiện tiếp theo" : "Auto-scroll to next event")
             }
             Defaults.Toggle(key: .showFullEventTitles) {
-                Text("Always show full event titles")
+                Text(appLanguage == .vietnamese ? "Luôn hiển thị đầy đủ tiêu đề sự kiện" : "Always show full event titles")
             }
-            Section(header: Text("Calendars")) {
+
+            Section(header: Text(lunarSectionHeader)) {
+                Picker(lunarPickerLabel, selection: $alternateCalendarType) {
+                    ForEach(AlternateCalendarType.allCases) { type in
+                        Text(type.localizedName(for: appLanguage)).tag(type)
+                    }
+                }
+
+                Defaults.Toggle(key: .showLunarCalendar) {
+                    Text(lunarToggleLabel)
+                }
+
+                Text(lunarDescription)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+
+            Section(header: Text(appLanguage == .vietnamese ? "Danh sách lịch" : "Calendars")) {
                 if calendarManager.calendarAuthorizationStatus != .fullAccess {
                     Text("Calendar access is denied. Please enable it in System Settings.")
                         .foregroundColor(.red)
@@ -2405,6 +2623,21 @@ extension View {
 struct SettingsDetailHeaderBar: View {
     let title: String
     var showQuitButton: Bool = false
+    @Default(.appLanguage) private var appLanguage
+
+    private var quitAppText: String {
+        switch appLanguage {
+        case .vietnamese: return "Thoát ứng dụng"
+        case .traditionalChinese: return "結束應用程式"
+        case .simplifiedChinese: return "退出应用"
+        case .japanese: return "アプリを終了"
+        case .german: return "App beenden"
+        case .french: return "Quitter l'app"
+        case .spanish: return "Salir de la app"
+        case .arabic: return "إنهاء التطبيق"
+        case .english: return "Quit app"
+        }
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -2425,7 +2658,7 @@ struct SettingsDetailHeaderBar: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "power")
-                        Text("Quit app")
+                        Text(quitAppText)
                     }
                     .font(.system(size: 12, weight: .medium))
                 }
@@ -2442,6 +2675,75 @@ struct SettingsDetailHeaderBar: View {
             Color(nsColor: .windowBackgroundColor)
         }
         .zIndex(100)
+    }
+}
+
+// MARK: - Language Settings View
+struct LanguageSettingsView: View {
+    @Default(.appLanguage) private var appLanguage
+
+    private var sectionHeader: String {
+        switch appLanguage {
+        case .vietnamese: return "Ngôn ngữ ứng dụng"
+        case .traditionalChinese: return "應用程式語言"
+        case .simplifiedChinese: return "应用程序语言"
+        case .japanese: return "アプリケーションの言語"
+        case .german: return "App-Sprache"
+        case .french: return "Langue de l'application"
+        case .spanish: return "Idioma de la aplicación"
+        case .arabic: return "لغة التطبيق"
+        case .english: return "App Language"
+        }
+    }
+
+    private var pickerLabel: String {
+        switch appLanguage {
+        case .vietnamese: return "Ngôn ngữ hiển thị"
+        case .traditionalChinese: return "顯示語言"
+        case .simplifiedChinese: return "显示语言"
+        case .japanese: return "表示言語"
+        case .german: return "Anzeigesprache"
+        case .french: return "Langue d'affichage"
+        case .spanish: return "Idioma de visualización"
+        case .arabic: return "لغة العرض"
+        case .english: return "Display Language"
+        }
+    }
+
+    private var descriptionText: String {
+        switch appLanguage {
+        case .vietnamese: return "Thay đổi ngôn ngữ hiển thị trong menu cài đặt và giao diện NotchPulse."
+        case .traditionalChinese: return "變更 NotchPulse 設定選單及介面的顯示語言。"
+        case .simplifiedChinese: return "更改 NotchPulse 设置菜单及界面的显示语言。"
+        case .japanese: return "NotchPulse の設定メニューとインターフェースの表示言語を変更します。"
+        case .german: return "Ändern Sie die Anzeigesprache für die NotchPulse-Einstellungen und Benutzeroberfläche."
+        case .french: return "Modifiez la langue d'affichage des réglages et de l'interface de NotchPulse."
+        case .spanish: return "Cambie el idioma de visualización del menú de ajustes y la interfaz de NotchPulse."
+        case .arabic: return "تغيير لغة العرض لقوائم إعدادات وواجهة NotchPulse."
+        case .english: return "Change the display language for NotchPulse settings and interface."
+        }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(pickerLabel, selection: $appLanguage) {
+                    ForEach(AppLanguage.allCases) { lang in
+                        Text(lang.displayName).tag(lang)
+                    }
+                }
+
+                Text(descriptionText)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text(sectionHeader)
+            }
+        }
+        .formStyle(.grouped)
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .padding(.bottom, 24)
     }
 }
 

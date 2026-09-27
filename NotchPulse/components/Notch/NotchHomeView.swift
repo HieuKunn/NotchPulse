@@ -487,6 +487,7 @@ struct NotchHomeView: View {
             if !coordinator.firstLaunch {
                 GeometryReader { geo in
                     mainContent(totalWidth: geo.size.width)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
                 .frame(minHeight: 148, maxHeight: .infinity, alignment: .top)
             }
@@ -541,7 +542,7 @@ struct NotchHomeView: View {
 
             if isCalendarVisible {
                 CalendarView()
-                    .frame(width: calendarWidth, height: isCalendarFullPage ? (vm.customOpenHeight ?? 300) : 148)
+                    .frame(width: calendarWidth, height: isCalendarFullPage ? 228 : 148, alignment: .top)
                     .clipped()
                     .onHover { isHovering in
                         vm.isHoveringCalendar = isHovering

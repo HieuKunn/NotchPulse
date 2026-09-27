@@ -281,22 +281,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
             }
             
-            if targetVM.notchState == .open {
-                let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
+            let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
+            let currentScreen = NSScreen.screen(withUUID: uuid) ?? screen
+            let currentFrame = currentScreen.frame
+            
+            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+            let hasPhysicalNotch = currentScreen.safeAreaInsets.top > 0 || currentScreen.auxiliaryTopLeftArea != nil
+            let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
+
+            if currentTargetVM.notchState == .open {
+                let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
+                let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
                 return CGRect(
-                    x: screenFrame.midX - (openWidth / 2 + padding),
-                    y: screenFrame.maxY - (openHeight + padding + topOffset),
+                    x: currentFrame.midX - (openWidth / 2 + padding),
+                    y: currentFrame.maxY - (openHeight + padding + topOffset),
                     width: openWidth + (padding * 2),
                     height: openHeight + padding + topOffset + 30
                 )
             } else {
-                let closedSize = targetVM.closedNotchSize
+                let closedSize = currentTargetVM.closedNotchSize
                 let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
                 let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
                 return CGRect(
-                    x: screenFrame.midX - (closedWidth / 2 + padding),
-                    y: screenFrame.maxY - (closedHeight + padding + topOffset),
+                    x: currentFrame.midX - (closedWidth / 2 + padding),
+                    y: currentFrame.maxY - (closedHeight + padding + topOffset),
                     width: closedWidth + (padding * 2),
                     height: closedHeight + padding + topOffset + 30
                 )
@@ -320,12 +328,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         detector.onGlobalDragStateChanged = { [weak self] isDragging in
             Task { @MainActor in
-                targetVM.dragDetectorTargeting = isDragging
+                guard let self = self else { return }
+                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+                currentTargetVM.dragDetectorTargeting = isDragging
             }
         }
         detector.onGlobalHoverStateChanged = { [weak self] hovering in
             Task { @MainActor in
-                self?.vm.isHoveringFromRadar = hovering
+                guard let self = self else { return }
+                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+                currentTargetVM.isHoveringFromRadar = hovering
             }
         }
         
@@ -363,7 +375,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
             
             SharingStateManager.shared.preventNotchClose = false
-            if !ShelfStateViewModel.shared.isPinned && targetVM.notchState == .open {
+            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
                 targetVM.close()
             }
         }
@@ -381,7 +393,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
             
             SharingStateManager.shared.preventNotchClose = false
-            if !ShelfStateViewModel.shared.isPinned && targetVM.notchState == .open {
+            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
                 targetVM.close()
             }
         }

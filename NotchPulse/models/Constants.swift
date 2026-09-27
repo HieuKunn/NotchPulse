@@ -78,6 +78,114 @@ enum NotchStyle: String, CaseIterable, Identifiable, Defaults.Serializable {
     var id: String { self.rawValue }
 }
 
+// Alternate / Lunar calendar regions and systems
+enum AlternateCalendarType: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case vietnamese = "vietnamese"
+    case chinese = "chinese"
+    case islamic = "islamic"
+    case hebrew = "hebrew"
+    case buddhist = "buddhist"
+    case persian = "persian"
+
+    var id: String { self.rawValue }
+
+    var displayName: String {
+        localizedName(for: Defaults[.appLanguage])
+    }
+
+    func localizedName(isVietnamese: Bool) -> String {
+        localizedName(for: isVietnamese ? .vietnamese : .english)
+    }
+
+    func localizedName(for language: AppLanguage) -> String {
+        switch language {
+        case .vietnamese:
+            switch self {
+            case .vietnamese: return "Việt Nam (Âm lịch VN - UTC+7)"
+            case .chinese: return "Đài Loan / Trung Quốc / HK (Nông lịch - UTC+8)"
+            case .islamic: return "Hồi giáo (Lịch Hijri)"
+            case .hebrew: return "Do Thái (Lịch Hebrew)"
+            case .buddhist: return "Phật lịch (Buddhist)"
+            case .persian: return "Ba Tư (Lịch Jalali)"
+            }
+        case .traditionalChinese:
+            switch self {
+            case .vietnamese: return "越南 (越南農曆 - UTC+7)"
+            case .chinese: return "台灣 / 中國 / 香港 (農曆 - UTC+8)"
+            case .islamic: return "伊斯蘭曆 (Hijri)"
+            case .hebrew: return "希伯來曆 (Hebrew)"
+            case .buddhist: return "佛曆 (Buddhist)"
+            case .persian: return "波斯曆 (Jalali)"
+            }
+        case .simplifiedChinese:
+            switch self {
+            case .vietnamese: return "越南 (越南农历 - UTC+7)"
+            case .chinese: return "台湾 / 中国 / 香港 (农历 - UTC+8)"
+            case .islamic: return "伊斯兰历 (Hijri)"
+            case .hebrew: return "希伯来历 (Hebrew)"
+            case .buddhist: return "佛历 (Buddhist)"
+            case .persian: return "波斯历 (Jalali)"
+            }
+        case .japanese:
+            switch self {
+            case .vietnamese: return "ベトナム (旧暦 - UTC+7)"
+            case .chinese: return "台湾・中国・香港 (旧暦 - UTC+8)"
+            case .islamic: return "ヒジュラ暦 (イスラム暦)"
+            case .hebrew: return "ユダヤ暦"
+            case .buddhist: return "仏暦"
+            case .persian: return "ペルシア暦"
+            }
+        case .arabic:
+            switch self {
+            case .vietnamese: return "فيتنام (التقويم القمري الفيتنامي - UTC+7)"
+            case .chinese: return "تايوان / الصين / هونغ كونغ (التقويم القمري - UTC+8)"
+            case .islamic: return "التقويم الهجري الإسلامي"
+            case .hebrew: return "التقويم العبري"
+            case .buddhist: return "التقويم البوذي"
+            case .persian: return "التقويم الفارسي (الجلالي)"
+            }
+        default:
+            switch self {
+            case .vietnamese: return "Vietnam (Vietnamese Lunar - UTC+7)"
+            case .chinese: return "Taiwan / China / HK (Chinese Lunar - UTC+8)"
+            case .islamic: return "Islamic (Hijri)"
+            case .hebrew: return "Hebrew"
+            case .buddhist: return "Buddhist"
+            case .persian: return "Persian (Jalali)"
+            }
+        }
+    }
+}
+
+// App interface language
+enum AppLanguage: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case english = "en"
+    case vietnamese = "vi"
+    case traditionalChinese = "zh-Hant"
+    case simplifiedChinese = "zh-Hans"
+    case japanese = "ja"
+    case german = "de"
+    case french = "fr"
+    case spanish = "es"
+    case arabic = "ar"
+
+    var id: String { self.rawValue }
+
+    var displayName: String {
+        switch self {
+        case .english: return "English"
+        case .vietnamese: return "Tiếng Việt (Vietnamese)"
+        case .traditionalChinese: return "繁體中文 (Traditional Chinese)"
+        case .simplifiedChinese: return "简体中文 (Simplified Chinese)"
+        case .japanese: return "日本語 (Japanese)"
+        case .german: return "Deutsch (German)"
+        case .french: return "Français (French)"
+        case .spanish: return "Español (Spanish)"
+        case .arabic: return "العربية (Arabic)"
+        }
+    }
+}
+
 extension Defaults.Keys {
     // MARK: General
     static let notchStyle = Key<NotchStyle>("notchStyle", default: .notch)
@@ -86,6 +194,11 @@ extension Defaults.Keys {
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
     static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: true)
+    static let appLanguage = Key<AppLanguage>("appLanguage", default: .english)
+
+    // MARK: Alternate / Lunar Calendar
+    static let alternateCalendarType = Key<AlternateCalendarType>("alternateCalendarType", default: .vietnamese)
+    static let showLunarCalendar = Key<Bool>("showLunarCalendar", default: false)
 
     
     // MARK: Behavior
