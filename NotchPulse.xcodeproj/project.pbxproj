@@ -1237,6 +1237,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				18EA8295C95B4071AAFBD23B /* ClipboardManager.swift in Sources */,
+				2DF809B2C72744C782CA5EEE /* ClipboardNotchView.swift in Sources */,
 				115C12EC2ED3D003009754CA /* OpenNotchHUD.swift in Sources */,
 				AA0000022ED0000100000002 /* SystemMonitorManager.swift in Sources */,
 				AA0000042ED0000200000004 /* StatsView.swift in Sources */,
