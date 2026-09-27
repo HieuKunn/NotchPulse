@@ -177,29 +177,32 @@ final class ClipboardManager: ObservableObject {
         }
 
         // 2. Check File URL or Web URL
-        if let url = NSURL(from: pasteboard) as URL?, let urlString = url.absoluteString, !urlString.isEmpty {
-            let isFile = url.isFileURL
-            let itemType: ClipboardType = isFile ? .file : .url
+        if let url = NSURL(from: pasteboard) as URL? {
+            let urlString = url.absoluteString
+            if !urlString.isEmpty {
+                let isFile = url.isFileURL
+                let itemType: ClipboardType = isFile ? .file : .url
 
-            // Avoid duplicate url at top
-            if history.first?.urlString == urlString || history.first?.contentString == urlString {
+                // Avoid duplicate url at top
+                if history.first?.urlString == urlString || history.first?.contentString == urlString {
+                    return
+                }
+
+                let newItem = ClipboardItem(
+                    id: UUID(),
+                    type: itemType,
+                    contentString: urlString,
+                    urlString: urlString,
+                    imageData: nil,
+                    timestamp: Date()
+                )
+
+                DispatchQueue.main.async {
+                    self.history.insert(newItem, at: 0)
+                    self.trimHistory()
+                }
                 return
             }
-
-            let newItem = ClipboardItem(
-                id: UUID(),
-                type: itemType,
-                contentString: urlString,
-                urlString: urlString,
-                imageData: nil,
-                timestamp: Date()
-            )
-
-            DispatchQueue.main.async {
-                self.history.insert(newItem, at: 0)
-                self.trimHistory()
-            }
-            return
         }
 
         // 3. Check Text / String
