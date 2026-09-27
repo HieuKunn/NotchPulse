@@ -190,7 +190,8 @@ struct SpotlightTourView: View {
                     step: currentStep,
                     onNext: nextStep,
                     onPrev: prevStep,
-                    onSkip: onDismiss,
+                    onSkipStep: nextStep,
+                    onSkipAll: onDismiss,
                     isFirst: currentStepIndex == 0,
                     isLast: currentStepIndex == SpotlightTourStep.allCases.count - 1
                 )
@@ -220,8 +221,8 @@ struct SpotlightTourView: View {
 
     /// Smart positioning of the card relative to targetRect
     private func tooltipPosition(targetRect: CGRect, screenSize: CGSize) -> CGPoint {
-        let cardWidth: CGFloat = 380
-        let cardHeight: CGFloat = 240
+        let cardWidth: CGFloat = 420
+        let cardHeight: CGFloat = 250
         let padding: CGFloat = 20
 
         // If target is near top (like Notch or MenuBar), place card below
@@ -244,7 +245,8 @@ struct SpotlightTooltipCard: View {
     let step: SpotlightTourStep
     let onNext: () -> Void
     let onPrev: () -> Void
-    let onSkip: () -> Void
+    let onSkipStep: () -> Void
+    let onSkipAll: () -> Void
     let isFirst: Bool
     let isLast: Bool
 
@@ -257,8 +259,9 @@ struct SpotlightTooltipCard: View {
                     .foregroundColor(.cyan)
 
                 Text(step.title)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
+                    .lineLimit(1)
 
                 Spacer()
 
@@ -268,6 +271,15 @@ struct SpotlightTooltipCard: View {
                     .padding(.vertical, 4)
                     .background(Capsule().fill(Color.white.opacity(0.15)))
                     .foregroundColor(.white.opacity(0.8))
+
+                // Quick exit X button
+                Button(action: onSkipAll) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("Đóng hướng dẫn (Bỏ qua tất cả)")
             }
 
             Divider()
@@ -276,20 +288,33 @@ struct SpotlightTooltipCard: View {
             // Body Description
             Text(step.description)
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(.white.opacity(0.92))
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
 
             // Action Buttons Footer
-            HStack {
-                Button(action: onSkip) {
-                    Text("Bỏ qua")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+            HStack(spacing: 8) {
+                Button(action: onSkipAll) {
+                    Text("Bỏ qua tất cả")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.55))
                 }
                 .buttonStyle(PlainButtonStyle())
+
+                Text("•")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.3))
+
+                if !isLast {
+                    Button(action: onSkipStep) {
+                        Text("Bỏ qua bước")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
 
                 Spacer()
 
@@ -299,8 +324,8 @@ struct SpotlightTooltipCard: View {
                             Image(systemName: "chevron.left")
                             Text("Quay lại")
                         }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
+                        .font(.system(size: 12, weight: .medium))
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12)))
                         .foregroundColor(.white)
@@ -315,9 +340,9 @@ struct SpotlightTooltipCard: View {
                             Image(systemName: "chevron.right")
                         }
                     }
-                    .font(.system(size: 13, weight: .semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
                             .fill(LinearGradient(colors: [.cyan, .blue], startPoint: .leading, endPoint: .trailing))
@@ -329,7 +354,7 @@ struct SpotlightTooltipCard: View {
             }
         }
         .padding(18)
-        .frame(width: 380, height: 230)
+        .frame(width: 420, height: 240)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color(nsColor: .windowBackgroundColor).opacity(0.85))

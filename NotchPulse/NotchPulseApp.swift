@@ -771,11 +771,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         setupDragDetectors()
 
-        if coordinator.firstLaunch {
+        let isFirstInstall = coordinator.firstLaunch
+        let isUpdate = isAppUpdated()
+
+        if isFirstInstall {
             DispatchQueue.main.async {
                 self.showOnboardingWindow()
             }
             playWelcomeSound()
+        } else if isUpdate {
+            // App was updated to a new version: automatically display Spotlight Tour
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                SpotlightTourManager.shared.showTour()
+            }
         } else if MusicManager.shared.isNowPlayingDeprecated
             && Defaults[.mediaController] == .nowPlaying
         {

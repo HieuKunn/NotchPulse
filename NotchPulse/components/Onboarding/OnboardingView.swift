@@ -138,6 +138,33 @@ struct OnboardingView: View {
             case .finished:
                 OnboardingFinishView(onFinish: onFinish, onOpenSettings: onOpenSettings)
             }
+
+            if step != .finished && step != .welcome {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            NotchPulseViewCoordinator.shared.firstLaunch = false
+                            withAnimation(.easeInOut(duration: 0.4)) {
+                                step = .finished
+                            }
+                        }) {
+                            HStack(spacing: 4) {
+                                Text("Bỏ qua tất cả")
+                                Image(systemName: "forward.fill")
+                            }
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Color.primary.opacity(0.08)))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(14)
+                    }
+                    Spacer()
+                }
+            }
         }
         .frame(width: 400, height: 600)
     }

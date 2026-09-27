@@ -48,12 +48,23 @@ struct BundleAppIcon: View {
 }
 
 func isNewVersion() -> Bool {
+    return isAppUpdated()
+}
+
+func isAppUpdated() -> Bool {
     let defaults = UserDefaults.standard
-    let currentVersion = Bundle.main.releaseVersionNumber ?? "1.0"
-    let savedVersion = defaults.string(forKey: "LastVersionRun") ?? ""
+    let currentVersionString = "\(Bundle.main.releaseVersionNumber ?? "1.0.0")b\(Bundle.main.buildVersionNumber ?? "0")"
+    let savedVersion = defaults.string(forKey: "LastVersionRun")
     
-    if currentVersion != savedVersion {
-        defaults.set(currentVersion, forKey: "LastVersionRun")
+    // First time running (fresh install)
+    guard let savedVersion = savedVersion, !savedVersion.isEmpty else {
+        defaults.set(currentVersionString, forKey: "LastVersionRun")
+        return false // Fresh install is handled via firstLaunch
+    }
+    
+    // App version or build changed
+    if currentVersionString != savedVersion {
+        defaults.set(currentVersionString, forKey: "LastVersionRun")
         return true
     }
     return false
