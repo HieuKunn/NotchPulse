@@ -400,12 +400,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.disableSkyLight()
         }
 
-        let hostingView = NotchPulseHostingView(
+        window.contentView = NSHostingView(
             rootView: ContentView()
                 .environmentObject(viewModel)
         )
-        hostingView.viewModel = viewModel
-        window.contentView = hostingView
 
         window.orderFrontRegardless()
         NotchSpaceManager.shared.notchSpace.windows.insert(window)
