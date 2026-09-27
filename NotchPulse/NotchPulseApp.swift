@@ -413,6 +413,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @MainActor
+    func resetAllDropAndDragTargeting() {
+        vm.dragDetectorTargeting = false
+        vm.dropZoneTargeting = false
+        vm.generalDropTargeting = false
+        vm.anyDropZoneTargeting = false
+        vm.dropEvent = false
+        for targetVM in viewModels.values {
+            targetVM.dragDetectorTargeting = false
+            targetVM.dropZoneTargeting = false
+            targetVM.generalDropTargeting = false
+            targetVM.anyDropZoneTargeting = false
+            targetVM.dropEvent = false
+        }
+    }
+
     private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
@@ -423,8 +439,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled, let self = self else { return }
             
+            self.resetAllDropAndDragTargeting()
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            targetVM.dragDetectorTargeting = false
             
             if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
                 targetVM.close()
@@ -440,16 +456,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = nil
         
+        resetAllDropAndDragTargeting()
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-        targetVM.dragDetectorTargeting = false
-        targetVM.dropZoneTargeting = false
-        targetVM.generalDropTargeting = false
-        targetVM.dropEvent = false
-        
-        self.vm.dragDetectorTargeting = false
-        self.vm.dropZoneTargeting = false
-        self.vm.generalDropTargeting = false
-        self.vm.dropEvent = false
         
         // Check if mouse is still hovering over open notch window
         let mouseLocation = NSEvent.mouseLocation

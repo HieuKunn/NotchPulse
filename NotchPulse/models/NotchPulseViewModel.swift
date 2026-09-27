@@ -223,6 +223,13 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
 
+        self.dragDetectorTargeting = false
+        self.dropZoneTargeting = false
+        self.generalDropTargeting = false
+        self.anyDropZoneTargeting = false
+        self.dropEvent = false
+        self.isHoveringFromRadar = false
+
         if !LockScreenMediaWindow.shared.isWindowVisible {
             MusicManager.shared.isUIActive = false
         }
