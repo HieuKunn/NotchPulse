@@ -116,56 +116,59 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
         }
     }
 
-    /// Calculate highlight frame relative to screen size (width, height)
+/// Calculate highlight frame relative to screen size (width, height)
     func targetFrame(screenSize: CGSize) -> CGRect {
         let screenWidth = screenSize.width
-        let screenHeight = screenSize.height
 
         switch self {
         case .notchHover:
-            // Top center Notch area (closed pill)
+            // Closed notch pill — top center, same shape as the physical notch
             let width: CGFloat = 280
             let height: CGFloat = 52
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .shakeToShelf:
-            // Generous 75% screen width and comfortable height for dragging & shaking files from Finder/Desktop
-            let width = min(screenWidth * 0.75, max(750, screenWidth - 100))
-            let height = min(screenHeight * 0.58, max(420, screenHeight * 0.50))
+            // Highlight only the notch/top-center zone where the user shakes near.
+            // The rest of the screen is fully pass-through via hitTest so they can
+            // pick files from anywhere (Finder, Desktop, etc.).
+            let width: CGFloat = 420
+            let height: CGFloat = 60
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .musicPlayer:
-            // Notch music area (center top expanded Home tab)
+            // Full expanded notch — music artwork + controls visible
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
             let height: CGFloat = 195
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .calendarExpand:
-            // Calendar compact header in Notch
+            // Highlight specifically the calendar date/month HEADER row inside the
+            // expanded notch — that's the clickable element the user needs to tap.
+            // The header is in the upper ~90px of the open notch content.
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
-            let height: CGFloat = 195
+            let height: CGFloat = 90
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .calendarFullMonth:
-            // Full Month Calendar Expanded Area
+            // Full expanded notch including the full month calendar grid below
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
             let height: CGFloat = 265
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .clipboardManager:
-            // Notch Clipboard Tab Area
+            // Notch clipboard tab — taller to show history list
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
             let height: CGFloat = 250
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .faceIDLock:
-            // Top Camera Lens area
+            // Camera pill area at top center
             let width: CGFloat = 280
             let height: CGFloat = 80
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .menuBarSettings:
-            // Menu bar right corner
+            // NotchPulse icon in menu bar — top right corner
             let width: CGFloat = 260
             let height: CGFloat = 34
             return CGRect(x: screenWidth - width - 15, y: 0, width: width, height: height)
@@ -244,6 +247,7 @@ struct SpotlightTourView: View {
                 .animation(.spring(response: 0.45, dampingFraction: 0.75), value: currentStepIndex)
             }
             .onAppear {
+                SpotlightTourManager.shared.currentStep = currentStep
                 SpotlightTourManager.shared.currentCutoutRect = targetRect
                 SpotlightTourManager.shared.currentTooltipRect = tooltipRect
                 updateLiveUIState(for: currentStep)
@@ -253,6 +257,7 @@ struct SpotlightTourView: View {
                     let newTarget = newStep.targetFrame(screenSize: screenSize)
                     let newTooltipPos = tooltipPosition(targetRect: newTarget, screenSize: screenSize)
                     let newCardHeight: CGFloat = (newStep == .faceIDLock) ? 290 : 240
+                    SpotlightTourManager.shared.currentStep = newStep
                     SpotlightTourManager.shared.currentCutoutRect = newTarget
                     SpotlightTourManager.shared.currentTooltipRect = CGRect(x: newTooltipPos.x - 215, y: newTooltipPos.y - newCardHeight / 2, width: 430, height: newCardHeight)
                     updateLiveUIState(for: newStep)
@@ -603,17 +608,26 @@ final class SpotlightTourHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard let window = self.window else { return super.hitTest(point) }
         let screenHeight = window.frame.height
-        // Convert AppKit (bottom-left) to SwiftUI (top-left)
+        // Convert AppKit (bottom-left origin) to SwiftUI (top-left origin)
         let swiftUIPoint = CGPoint(x: point.x, y: screenHeight - point.y)
 
+        // Tooltip card always captures events (buttons, Next/Back clicks)
         let tooltip = SpotlightTourManager.shared.currentTooltipRect
         if tooltip.contains(swiftUIPoint) {
             return super.hitTest(point)
         }
 
+        // ── shakeToShelf: entire screen is pass-through (except tooltip above) ──
+        // The user must be able to drag files from anywhere — Finder, Desktop,
+        // other apps. Blocking events in the dark overlay would prevent dragging.
+        if SpotlightTourManager.shared.currentStep == .shakeToShelf {
+            return nil
+        }
+
+        // For all other steps: cutout area is pass-through, dark area blocks events
         let cutout = SpotlightTourManager.shared.currentCutoutRect
         if cutout.contains(swiftUIPoint) {
-            return nil // Allow clicks and drag events to fall through to desktop/finder/notch
+            return nil
         }
 
         return super.hitTest(point)
@@ -629,6 +643,10 @@ final class SpotlightTourManager: ObservableObject {
     /// True while the spotlight tour overlay is visible. ContentView uses this flag
     /// to suppress all auto-close timers so the notch stays open during the tour.
     @Published var isActive: Bool = false
+
+    /// The currently active tour step — used by SpotlightTourHostingView.hitTest
+    /// to decide whether to pass through ALL mouse events (e.g. shakeToShelf).
+    var currentStep: SpotlightTourStep = .notchHover
 
     var currentCutoutRect: CGRect = .zero
     var currentTooltipRect: CGRect = .zero
