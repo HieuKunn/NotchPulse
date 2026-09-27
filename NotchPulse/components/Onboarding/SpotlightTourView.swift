@@ -270,9 +270,7 @@ struct SpotlightTourView: View {
             guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
             let coordinator = NotchPulseViewCoordinator.shared
 
-            // Determine target VM: prefer camera/built-in screen when showOnAllDisplays,
-            // otherwise use selectedScreen. This ensures the tour always shows on the
-            // screen with the physical notch/camera.
+            // Determine target VM: prefer camera/built-in screen when showOnAllDisplays.
             let currentVM: NotchPulseViewModel
             if Defaults[.showOnAllDisplays] {
                 let cameraScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
@@ -285,54 +283,49 @@ struct SpotlightTourView: View {
                 currentVM = appDelegate.vm
             }
 
-            // Open notch on every step so the user can always see it and understand what is being demonstrated.
-            switch step {
-            case .notchHover:
-                // Show the notch open so user can see the expanded control panel
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
+            // Step 1: Open the notch immediately with animation
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
                 currentVM.customOpenHeight = nil
                 currentVM.open()
+            }
 
-            case .shakeToShelf:
-                coordinator.currentView = .shelf
-                currentVM.open()
+            // Step 2: Wait for notch open animation to settle, then switch to the
+            // correct tab/view so the user clearly sees what's being demonstrated.
+            try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled else { return }
 
-            case .musicPlayer:
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                currentVM.customOpenHeight = nil
-                currentVM.open()
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                switch step {
+                case .notchHover:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = false
 
-            case .calendarExpand:
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                currentVM.customOpenHeight = nil
-                currentVM.open()
+                case .shakeToShelf:
+                    coordinator.currentView = .shelf
 
-            case .calendarFullMonth:
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = true
-                currentVM.customOpenHeight = 240
-                currentVM.open()
+                case .musicPlayer:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = false
 
-            case .clipboardManager:
-                coordinator.currentView = .clipboard
-                currentVM.customOpenHeight = nil
-                currentVM.open()
+                case .calendarExpand:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = false
 
-            case .faceIDLock:
-                // Open the notch so user can see the Face ID camera area
-                coordinator.currentView = .home
-                currentVM.customOpenHeight = nil
-                currentVM.open()
+                case .calendarFullMonth:
+                    coordinator.currentView = .home
+                    CalendarStateViewModel.shared.isFullMonthExpanded = true
+                    currentVM.customOpenHeight = 240
 
-            case .menuBarSettings:
-                // Keep notch open while also showing the Settings window
-                coordinator.currentView = .home
-                currentVM.customOpenHeight = nil
-                currentVM.open()
-                SettingsWindowController.shared.showWindow()
+                case .clipboardManager:
+                    coordinator.currentView = .clipboard
+
+                case .faceIDLock:
+                    coordinator.currentView = .home
+
+                case .menuBarSettings:
+                    coordinator.currentView = .home
+                    SettingsWindowController.shared.showWindow()
+                }
             }
         }
     }
