@@ -50,7 +50,13 @@ final class FaceIDOverlayController {
         }
     }
 
-    private(set) var phase: Phase = .closed
+    private(set) var phase: Phase = .closed {
+        didSet {
+            if phase != oldValue {
+                NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
+            }
+        }
+    }
     private(set) var content: Content = .scan(.idle)
     /// Read-only convenience for the scan-mode view/callers — `.idle` while
     /// onboarding owns the panel.
@@ -115,52 +121,21 @@ final class FaceIDOverlayController {
     // thì mới chuyển sang bên màn hình có camera. KHÔNG ĐƯỢC ĐỔI LOGIC NÀY!
     // (DO NOT CHANGE THIS LOGIC: When at lock screen or waking from sleep/screen off,
     // ONLY switch to camera screen if Face ID was triggered by hover!)
-    var isHoverTriggeredOnLockScreen: Bool = false
-
-    private var previousScreenUUIDBeforeFaceID: String?
+    var isHoverTriggeredOnLockScreen: Bool = false {
+        didSet {
+            NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
+        }
+    }
 
     private func routeToCameraScreen() {
-        let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-        if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-           let targetUUID = targetScreen.displayUUID {
-            if previousScreenUUIDBeforeFaceID == nil {
-                let currentUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
-                let preferredUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID
-                if currentUUID != targetUUID {
-                    previousScreenUUIDBeforeFaceID = currentUUID
-                } else if let preferredUUID, preferredUUID != targetUUID {
-                    previousScreenUUIDBeforeFaceID = preferredUUID
-                }
-            }
-            if NotchPulseViewCoordinator.shared.selectedScreenUUID != targetUUID {
-                NotchPulseViewCoordinator.shared.selectedScreenUUID = targetUUID
-            }
-            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
-        }
+        // Notify camera window without changing the user's selectedScreenUUID
+        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
     }
 
     private func restorePreviousScreen() {
         isPresenting = false
         isHoverTriggeredOnLockScreen = false
-        let destinationUUID: String? = {
-            if let prev = previousScreenUUIDBeforeFaceID,
-               let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
-               let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-               let camUUID = camScreen.displayUUID,
-               prev != camUUID {
-                return prev
-            }
-            if let pref = NotchPulseViewCoordinator.shared.preferredScreenUUID {
-                return pref
-            }
-            return previousScreenUUIDBeforeFaceID
-        }()
-        previousScreenUUIDBeforeFaceID = nil
-
-        if let destinationUUID, NotchPulseViewCoordinator.shared.selectedScreenUUID != destinationUUID {
-            NotchPulseViewCoordinator.shared.selectedScreenUUID = destinationUUID
-            NotificationCenter.default.post(name: Notification.Name.selectedScreenChanged, object: nil)
-        }
+        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
     }
 
     // MARK: - Armed mode (FaceUnlockCoordinator)

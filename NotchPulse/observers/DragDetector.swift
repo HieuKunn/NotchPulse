@@ -79,16 +79,20 @@ final class DragDetector {
         guard let items = dragPasteboard.pasteboardItems, !items.isEmpty else {
             return false
         }
+
+        // Direct check: Can pasteboard provide file URLs?
+        if dragPasteboard.canReadObject(forClasses: [NSURL.self], options: [NSPasteboard.ReadingOptionKey.urlReadingFileURLsOnly: true]) {
+            return true
+        }
+
         let validFileOrItemTypeIdentifiers: Set<String> = [
             NSPasteboard.PasteboardType.fileURL.rawValue,
-            NSPasteboard.PasteboardType.URL.rawValue,
             "public.file-url",
             "com.apple.finder.node",
             "NSFilenamesPboardType",
             "com.apple.pasteboard.promised-file-url",
             "com.apple.pasteboard.promised-file-content-type",
-            "public.data",
-            "public.content",
+            "com.apple.mac.install-source-container",
             "public.image"
         ]
         return types.contains { validFileOrItemTypeIdentifiers.contains($0.rawValue) }
@@ -172,12 +176,11 @@ final class DragDetector {
     private func checkState() {
         let mouseLocation = NSEvent.mouseLocation
         let now = ProcessInfo.processInfo.systemUptime
-        checkShakeGesture(currentX: mouseLocation.x, currentTime: now)
-
         let mousePressed = isLeftButtonPressed
         let currentPbCount = dragPasteboard.changeCount
 
         if !mousePressed {
+            recentSamples.removeAll()
             mouseDownPasteboardCount = nil
             unpressedPollCount += 1
             // Require sustained release (>= 3 ticks = 120ms) before declaring drag ended.
@@ -223,13 +226,17 @@ final class DragDetector {
             mouseDownPasteboardCount = currentPbCount
         }
 
-        // Detect if a real drag operation is active:
-        // Pasteboard changeCount increased since mouse-down and pasteboard has valid file/item content
-        let isNewDragOperation = (currentPbCount > (mouseDownPasteboardCount ?? lastKnownIdlePasteboardCount)) && hasValidDragContent()
+        // Detect if a real file drag operation is active:
+        // Pasteboard changeCount increased from the idle baseline after mouse button went down, AND contains valid file content.
+        let initialBaseline = (lastKnownIdlePasteboardCount >= 0) ? min(mouseDownPasteboardCount ?? currentPbCount, lastKnownIdlePasteboardCount) : (mouseDownPasteboardCount ?? currentPbCount)
+        let isNewDragOperation = (currentPbCount > initialBaseline) && hasValidDragContent()
 
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
             onDragMove?(mouseLocation)
+
+            // ONLY detect shake-to-shelf when ACTUALLY dragging a file or droppable content!
+            checkShakeGesture(currentX: mouseLocation.x, currentTime: now)
 
             // While actively dragging files, disengage hover radar
             if isHoveringFromRadar {
@@ -276,7 +283,7 @@ final class DragDetector {
         hasEnteredNotchRegion = false
         recentSamples.removeAll()
         mouseDownPasteboardCount = nil
-        lastKnownIdlePasteboardCount = -1
+        lastKnownIdlePasteboardCount = dragPasteboard.changeCount
     }
 
     deinit {

@@ -1,13 +1,16 @@
-# NotchPulse v5.0.0
+# NotchPulse v5.0.0 (Build 171)
 
 ## 🚀 What's New & Major Improvements
-- **Shake Mouse to Open Shelf**: You can now quickly shake or jiggle your mouse cursor horizontally to summon the Notch Shelf instantly! Whether you are dragging files or simply wanting to drop items into the Shelf, shaking your mouse opens the Shelf with gentle haptic feedback.
-- **Zero Browser Tab Interruption**: Closed notch hover detection has been strictly confined to the physical Notch dimensions. Rê chuột over browser tabs in Safari or Chrome, toolbars, or window controls will never accidentally trigger the Notch.
-- **Snappier Hover Exit**: The open Notch now smoothly closes after just 250ms when you move your cursor away, feeling much more responsive and nimble.
+- **Smart Shake-to-Open Shelf (Active Drag Only)**: You can now quickly shake your mouse cursor left and right while dragging a file to summon the Notch Shelf instantly! Unintentional shakes without holding a file will never falsely trigger the Shelf.
+- **Automatic Notch Auto-Close**:
+  - The Notch now automatically closes when you release a dragged file or move it away from the Notch area, eliminating any stuck or unclosing states.
+  - Smooth 250ms hover exit delay across all interactions for a super responsive feel.
+- **Seamless Multi-Display Face ID Routing**:
+  - Hovering on your selected external monitor to trigger Face ID keeps your Notch / Dynamic Island fully displayed on your primary monitor without disappearing or flickering.
+  - Face ID verification drops down smoothly right under your physical camera screen.
+- **Zero Browser Tab Interruption**: Closed notch hover boundaries are strictly confined to physical hardware dimensions so Safari/Chrome tabs are never obstructed.
 - **Revamped Full Month Calendar**:
-  - Always opens directly to the correct month and selected date.
-  - Navigation buttons (`<` and `>`) are now neatly positioned to the left of the Month/Year header.
-  - Lunar calendar moon icon is aligned to the right edge of the month calendar section.
-  - Date circle badges are optically and geometrically centered around the day numbers.
-  - Days of the week headers are larger, bolder, and clearly illuminated.
-- **Window Movement Protection**: Dragging app windows or selecting text near the top edge will never accidentally open the Notch.
+  - Navigation controls (`<` and `>`) positioned cleanly to the left of the Month/Year header.
+  - Lunar calendar moon icon aligned to the right edge.
+  - Date circle badges centered precisely around numbers, with larger and brighter weekday labels.
+- **Cleaned Up Settings**: Streamlined Shelf settings for a cleaner UI.

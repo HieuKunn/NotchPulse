@@ -89,7 +89,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
+    private var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
     private var shelfWindows: [String: ShelfDropZoneWindow] = [:]
+    private var faceIDCameraWindow: NSWindow?
+    private var faceIDCameraVM: NotchPulseViewModel?
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
@@ -176,6 +179,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         skyWindow.enableSkyLight()
                     }
                 }
+                if let skyCam = self.faceIDCameraWindow as? NotchPulseSkyLightWindow {
+                    skyCam.enableSkyLight()
+                }
             }
         }
     }
@@ -196,6 +202,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     if let skyWindow = self.window as? NotchPulseSkyLightWindow {
                         skyWindow.disableSkyLight()
                     }
+                }
+                if let skyCam = self.faceIDCameraWindow as? NotchPulseSkyLightWindow {
+                    skyCam.disableSkyLight()
                 }
             }
         }
@@ -220,11 +229,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             self.window = nil
         }
+
+        if let camWin = faceIDCameraWindow {
+            camWin.close()
+            NotchSpaceManager.shared.notchSpace.windows.remove(camWin)
+            faceIDCameraWindow = nil
+            faceIDCameraVM = nil
+        }
     }
 
     private func cleanupDragDetectors() {
         dragExitDebounceTasks.values.forEach { $0.cancel() }
         dragExitDebounceTasks.removeAll()
+        shakeAutoCloseTasks.values.forEach { $0.cancel() }
+        shakeAutoCloseTasks.removeAll()
         shelfWindows.values.forEach { window in
             window.orderOut(nil)
         }
@@ -324,13 +342,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 guard let self = self else { return }
                 let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
-                SharingStateManager.shared.preventNotchClose = true
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     currentTargetVM.open()
                     self.coordinator.currentView = .shelf
                 }
                 if Defaults[.enableHaptics] {
                     NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                }
+
+                // If user shakes to open the shelf but does not drag to or hover over the notch within 2.5s, auto-close
+                self.shakeAutoCloseTasks[uuid]?.cancel()
+                self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .milliseconds(2500))
+                    guard !Task.isCancelled, let self = self else { return }
+                    let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
+                    if !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
+                        vm.close()
+                    }
                 }
             }
         }
@@ -372,10 +400,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
+        shakeAutoCloseTasks[uuid]?.cancel()
+        shakeAutoCloseTasks[uuid] = nil
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = nil
         
-        SharingStateManager.shared.preventNotchClose = true
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
         targetVM.dragDetectorTargeting = true
         
@@ -388,16 +417,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
+        shakeAutoCloseTasks[uuid]?.cancel()
+        shakeAutoCloseTasks[uuid] = nil
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(400))
+            try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled, let self = self else { return }
             
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             targetVM.dragDetectorTargeting = false
-            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
             
-            SharingStateManager.shared.preventNotchClose = false
             if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
                 targetVM.close()
             }
@@ -407,17 +436,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDragEnded(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
+        shakeAutoCloseTasks[uuid]?.cancel()
+        shakeAutoCloseTasks[uuid] = nil
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(400))
+            try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled, let self = self else { return }
             
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             targetVM.dragDetectorTargeting = false
-            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
+            targetVM.dropEvent = false
             
-            SharingStateManager.shared.preventNotchClose = false
-            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
+            // Check if mouse is still hovering over open notch window
+            let mouseLocation = NSEvent.mouseLocation
+            let screenFrame = screen.frame
+            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+            let topOffset = (isDynamicIsland && screen.safeAreaInsets.top == 0) ? Defaults[.dynamicIslandTopOffset] : 0
+            let openWidth = max(targetVM.notchSize.width, CGFloat(Defaults[.notchOpenWidth]))
+            let openHeight = max(targetVM.customOpenHeight ?? targetVM.notchSize.height, 190.0)
+            let openNotchRect = CGRect(
+                x: screenFrame.midX - openWidth / 2,
+                y: screenFrame.maxY - (openHeight + topOffset),
+                width: openWidth,
+                height: openHeight + topOffset
+            )
+            
+            let isMouseOverOpenNotch = openNotchRect.contains(mouseLocation)
+            
+            if !isMouseOverOpenNotch && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
                 targetVM.close()
             }
         }
@@ -454,6 +500,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
         }
         return window
+    }
+
+    @MainActor
+    private func updateFaceIDCameraWindow() {
+        let isLockScreen = NotchPulseLockMonitor.isScreenActuallyLocked()
+        let canRouteForLockScreen = !isLockScreen || FaceIDOverlayController.shared.isHoverTriggeredOnLockScreen
+        let isFaceIDScanning = canRouteForLockScreen && (FaceIDOverlayController.shared.phase == .scanning
+            || FaceIDOverlayController.shared.phase == .success
+            || FaceIDOverlayController.shared.phase == .failure
+            || FaceIDOverlayController.shared.phase == .onboarding
+            || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed && FaceIDOverlayController.shared.phase != .collapsing))
+
+        guard isFaceIDScanning,
+              !Defaults[.showOnAllDisplays],
+              let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
+              let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+              let camUUID = camScreen.displayUUID,
+              camUUID != coordinator.selectedScreenUUID else {
+            if let window = faceIDCameraWindow {
+                window.close()
+                NotchSpaceManager.shared.notchSpace.windows.remove(window)
+                faceIDCameraWindow = nil
+                faceIDCameraVM = nil
+            }
+            return
+        }
+
+        if faceIDCameraWindow == nil {
+            let camVM = NotchPulseViewModel(screenUUID: camUUID)
+            let window = createNotchPulseWindow(for: camScreen, with: camVM)
+            faceIDCameraWindow = window
+            faceIDCameraVM = camVM
+        }
+
+        if let window = faceIDCameraWindow, let viewModel = faceIDCameraVM {
+            positionWindow(window, on: camScreen, changeAlpha: false)
+            window.orderFrontRegardless()
+        }
     }
 
     @MainActor
@@ -522,6 +606,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 self?.adjustWindowPosition()
                 self?.setupDragDetectors()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name.faceIDPhaseChanged, object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateFaceIDCameraWindow()
             }
         }
 
@@ -777,28 +869,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            // 0. Only dynamically route to the camera's physical display when Face ID is ACTIVELY scanning / showing / onboarding
-            // KHÔNG ĐƯỢC ĐỔI LOGIC NÀY: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
-            // thì mới chuyển sang bên màn hình có camera!
-            // (CRITICAL RULE: At lockscreen or wake/sleep, ONLY switch to camera screen if Face ID was triggered by hover!)
-            let isLockScreen = NotchPulseLockMonitor.isScreenActuallyLocked()
-            let canRouteForLockScreen = !isLockScreen || FaceIDOverlayController.shared.isHoverTriggeredOnLockScreen
-
-            let isFaceIDScanning = canRouteForLockScreen && (FaceIDOverlayController.shared.phase == .scanning
-                || FaceIDOverlayController.shared.phase == .success
-                || FaceIDOverlayController.shared.phase == .failure
-                || FaceIDOverlayController.shared.phase == .onboarding
-                || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed && FaceIDOverlayController.shared.phase != .collapsing))
-            if isFaceIDScanning,
-               let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
-               let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice) {
-                targetScreen = camScreen
-                if let camUUID = camScreen.displayUUID {
-                    coordinator.selectedScreenUUID = camUUID
-                }
-            }
             // 1. Prioritize explicitly preferred display chosen by user
-            else if let preferredUUID = coordinator.preferredScreenUUID,
+            if let preferredUUID = coordinator.preferredScreenUUID,
                let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
                 coordinator.selectedScreenUUID = preferredUUID
                 targetScreen = preferredScreen
@@ -823,6 +895,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if let window = window {
                     window.alphaValue = 0
                 }
+                updateFaceIDCameraWindow()
                 return
             }
 
@@ -841,6 +914,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     vm.close()
                 }
             }
+
+            updateFaceIDCameraWindow()
         }
     }
 
@@ -905,6 +980,7 @@ extension Notification.Name {
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
     static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
     static let expandedDragDetectionChanged = Notification.Name("expandedDragDetectionChanged")
+    static let faceIDPhaseChanged = Notification.Name("faceIDPhaseChanged")
 }
 
 extension CGRect: @retroactive Hashable {

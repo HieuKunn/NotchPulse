@@ -62,12 +62,10 @@ struct ContentView: View {
     private var isFaceIDActive: Bool {
         let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked())
         if isSessionActive || faceIDOverlay.phase != .closed {
-            if Defaults[.showOnAllDisplays] {
-                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-                   let targetUUID = targetScreen.displayUUID {
-                    return vm.screenUUID == targetUUID
-                }
+            let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+            if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+               let targetUUID = targetScreen.displayUUID {
+                return vm.screenUUID == targetUUID
             }
             return true
         }
@@ -535,16 +533,11 @@ struct ContentView: View {
             }
 
             anyDropDebounceTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(1200))
+                try? await Task.sleep(for: .milliseconds(800))
                 guard !Task.isCancelled else { return }
 
-                if vm.dropEvent {
-                    vm.dropEvent = false
-                    return
-                }
-
                 vm.dropEvent = false
-                if !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                     vm.close()
                 }
             }
@@ -903,7 +896,7 @@ struct ContentView: View {
                         self.isHovering = false
                     }
                     
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar {
+                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close()
                     }
                 }

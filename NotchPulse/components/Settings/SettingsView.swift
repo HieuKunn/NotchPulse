@@ -1453,8 +1453,6 @@ struct About: View {
 struct Shelf: View {
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
-    @Default(.expandedDragDetection) var expandedDragDetection: Bool
-    @Default(.dragDetectionPadding) var dragDetectionPadding: Double
     @StateObject private var quickShareService = QuickShareService.shared
 
     private var selectedProvider: QuickShareProvider? {
@@ -1473,29 +1471,6 @@ struct Shelf: View {
                 }
                 Defaults.Toggle(key: .openShelfByDefault) {
                     Text(loc("Open shelf by default if items are present"))
-                }
-                Defaults.Toggle(key: .expandedDragDetection) {
-                    Text(loc("Expanded drag detection area"))
-                }
-                .onChange(of: expandedDragDetection) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.expandedDragDetectionChanged,
-                        object: nil
-                    )
-                }
-                if expandedDragDetection {
-                    Slider(value: $dragDetectionPadding, in: 10...120, step: 5) {
-                        Text(loc("Drag hover expansion - %@ px", String(format: "%.0f", dragDetectionPadding)))
-                    }
-                    .onChange(of: dragDetectionPadding) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.expandedDragDetectionChanged,
-                            object: nil
-                        )
-                    }
-                    Text(loc("Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling."))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
                 Defaults.Toggle(key: .copyOnDrag) {
                     Text(loc("Copy items on drag"))
