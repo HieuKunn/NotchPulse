@@ -115,7 +115,7 @@ final class FaceIDOverlayController {
     // thì mới chuyển sang bên màn hình có camera. KHÔNG ĐƯỢC ĐỔI LOGIC NÀY!
     // (DO NOT CHANGE THIS LOGIC: When at lock screen or waking from sleep/screen off,
     // ONLY switch to camera screen if Face ID was triggered by hover!)
-    @Published var isHoverTriggeredOnLockScreen: Bool = false
+    var isHoverTriggeredOnLockScreen: Bool = false
 
     private var previousScreenUUIDBeforeFaceID: String?
 
