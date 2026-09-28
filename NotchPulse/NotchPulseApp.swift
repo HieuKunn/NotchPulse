@@ -861,7 +861,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             currentScreens.count != previousScreens?.count
             || Set(currentScreens.compactMap { $0.displayUUID })
                 != Set(previousScreens?.compactMap { $0.displayUUID } ?? [])
-            || Set(currentScreens.map { $0.frame }) != Set(previousScreens?.map { $0.frame } ?? [])
+            || currentScreens.map { $0.frame } != (previousScreens?.map { $0.frame } ?? [])
 
         previousScreens = currentScreens
 
@@ -1038,19 +1038,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         onboardingWindowController?.window?.makeKeyAndOrderFront(nil)
         onboardingWindowController?.window?.orderFrontRegardless()
-    }
-}
-
-
-extension CGRect: @retroactive Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(origin.x)
-        hasher.combine(origin.y)
-        hasher.combine(size.width)
-        hasher.combine(size.height)
-    }
-
-    public static func == (lhs: CGRect, rhs: CGRect) -> Bool {
-        return lhs.origin == rhs.origin && lhs.size == rhs.size
     }
 }
