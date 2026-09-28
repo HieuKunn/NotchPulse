@@ -112,9 +112,8 @@ final class DragDetector {
             self?.checkState()
         }
 
-        // High-frequency polling timer (33Hz / 30ms) running in .common mode so it continues
-        // firing without pausing during active WindowServer NSDraggingSession.
-        let timer = Timer(timeInterval: 0.03, repeats: true) { [weak self] _ in
+        // Polling timer running in .common mode so it continues firing during active drag
+        let timer = Timer(timeInterval: 0.10, repeats: true) { [weak self] _ in
             self?.checkState()
         }
         RunLoop.main.add(timer, forMode: .common)
