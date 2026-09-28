@@ -1,18 +1,20 @@
-# NotchPulse v5.0.0 (Build 197) Release Notes
+## 🚀 What's New in NotchPulse v5.0 (Build 201)
 
-## 🚀 What's New in v5.0.0
+### 📋 Clipboard Manager
+- Integrated **Clipboard History** tab directly on the Notch bar.
+- Automatically keeps track of copied text, images, web links, and file items.
+- Supports 1-click copying back to pasteboard, item count badge, and clearing history.
 
-### ✨ Interactive Spotlight Tour & Automatic Tab Switching
-- **Live Tab Switching**: Navigating through the Onboarding Spotlight Tour now automatically switches between Notch tabs (Home, Shelf, Calendar, Full Month, and Clipboard) so you can preview every feature in real time.
-- **Continuous Face ID Setup**: Choosing to set up Face ID during onboarding smoothly resumes the tour upon completion or cancellation without skipping steps or closing the guide.
-- **Dynamic Proportional Framing**: The glowing highlight cutout automatically expands and contracts in exact sync with the Notch's live dimensions and corner curves.
-- **Protected App Lifecycle**: Completed onboarding will never abruptly terminate the app; NotchPulse remains running safely in your menu bar.
+### 📅 Lunar Calendar Support
+- Native Lunar Calendar date integration inside the Calendar Notch tab.
 
-### 🤝 Smart Shake-to-Shelf & Multi-Display Support
-- **Effortless Shake Gesture**: While dragging files, images, or links, a quick left-right shake (4 continuous strokes) instantly pops open the Notch Shelf to catch your content.
-- **Multi-Monitor Friendly**: Shaking files on any connected display now reliably opens the Notch Shelf, with full immunity against momentary drag drops.
-- **Protected Shelf Session**: Opening the Shelf gives you ample time to drop files without the notch closing prematurely.
+### 🎧 Bluetooth Headphone Telemetry
+- Automatic detection of connected Bluetooth headphones and AirPods with battery percentage HUD indicator.
 
-### 🪶 Buttery-Smooth 120Hz ProMotion Animations
-- **Zero Frame Stutter**: Unified continuous spring physics across all Notch openings, tab switches, and hover interactions for an exceptionally fluid 120Hz experience.
-- **Fluid Tab Transitions**: Clean crossfading and gliding selection indicators when moving between tabs.
+### 🤝 Enhanced Shelf & Drop Zone Highlighting
+- **Isolated Target Stroke**: Hovering files over either AirDrop/QuickShare or the "Drop files here" shelf panel now accurately highlights only the active target zone.
+- Kept smooth Notch expansion during multi-zone file drags.
+
+### ✨ Interactive Spotlight Tour & Localization
+- Comprehensive 9-language support across the Interactive Tour and Settings UI.
+- Automated tab switching to preview features live as you step through the onboarding guide.
