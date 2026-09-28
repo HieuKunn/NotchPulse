@@ -37,29 +37,37 @@ jobs:
           fi
           xcodebuild -version
 
-      - name: Cache Swift Package Dependencies
+      - name: Cache Swift Package Dependencies & Intermediate Objects
         uses: actions/cache@v4
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
             build/SourcePackages
-          key: ${{ runner.os }}-spm-cache-${{ hashFiles('NotchPulse.xcodeproj/project.pbxproj') }}
+            build/Build/Intermediates.noindex
+          key: ${{ runner.os }}-spm-derived-${{ hashFiles('NotchPulse.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
+            ${{ runner.os }}-spm-derived-
             ${{ runner.os }}-spm-cache-
 
       - name: Resolve Swift Package Dependencies
         run: |
-          xcodebuild -resolvePackageDependencies -project NotchPulse.xcodeproj
+          xcodebuild -resolvePackageDependencies -project NotchPulse.xcodeproj -clonedSourcePackagesDirPath build/SourcePackages
 
-      - name: Build App (Ad-Hoc Signing, No Paid Apple Cert Required)
+      - name: Fast Incremental Build App (Multi-Threaded)
         run: |
           set -o pipefail
+          NCPU=$(sysctl -n hw.ncpu || echo 4)
+          echo "Building using $NCPU CPU cores..."
           xcodebuild build \
             -project NotchPulse.xcodeproj \
             -scheme NotchPulse \
             -destination 'generic/platform=macOS' \
             -configuration Release \
             -derivedDataPath build \
+            -clonedSourcePackagesDirPath build/SourcePackages \
+            -jobs "$NCPU" \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=YES \
