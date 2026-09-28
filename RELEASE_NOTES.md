@@ -2,6 +2,14 @@
 
 ## 🚀 What's New in v5.0.0
 
+### 📋 Smart Clipboard History Manager & Smooth Scroll Engine
+- **Clipboard History Storage**: Log, filter, and access your recent clips, formatted text, URLs, code snippets, and hex colors directly inside the Notch with quick ⌘⌥V access.
+- **AppKit Native Scroll Protection**: Integrated native AppKit scroll tracking (`NSView.boundsDidChangeNotification`) mirroring the split 1/2 Calendar engine. Browsing through copied history never triggers accidental notch collapse—the notch only closes when you reach the very last item and deliberately pull upward.
+
+### 🗓️ Full Month Calendar Grid & Regional Lunar Calendar
+- **Interactive 3-State Calendar Views**: Seamlessly switch between compact 1/2 view, 3/5 Month Grid + 2/5 Event Panel, and Full Page Month Grid view right inside the Notch.
+- **Astronomical Regional Lunar Calculations**: Offline calculation for Vietnamese Lunar (Âm Lịch VN, UTC+7), Chinese Nongli (UTC+8), Islamic Hijri, Hebrew, Buddhist, and Persian calendar systems with dedicated Moon badges and day-cell lunar dates.
+
 ### 🖥️ Smart Multi-Display Architecture & Mutual Exclusion
 - **Single Active Notch Rule**: Operating on a notch on any display now automatically collapses and unpins the notch on all other displays—guaranteeing strictly one active notch at any given moment across multi-monitor setups.
 - **Screen-Isolated Shake Gestures**: Shaking a file to open the Notch Shelf now triggers exclusively on the monitor where your cursor is currently located, preventing accidental triggers on inactive displays.
@@ -19,10 +27,6 @@
 ### 🎵 Centered Media Layout & Tight Spacing
 - **Unified Media Geometry**: Song titles, artist details, playback progress bar, and control buttons are now tightly grouped and vertically centered in both Notch and Dynamic Island expanded views.
 - **Responsive Slider**: Streamlined the music progress slider height (8px) and timestamps to prevent vertical clipping or awkward spacing.
-
-### 📋 AppKit Native Clipboard Scroll Engine
-- **Accidental Close Protection**: Integrated native AppKit scroll tracking (`NSView.boundsDidChangeNotification`) mirroring the split 1/2 Calendar engine.
-- **Smooth Clipboard Navigation**: Browsing through copied history never triggers accidental notch collapse. The notch only closes when you reach the very last copied item and deliberately pull upward.
 
 ### 🌐 Website Showcase & Regional Localization
 - **12-Node Feature Constellation**: Redesigned the official landing page hero showcase with 12 evenly-distributed feature badges (including Lunar Calendar, Dynamic Island Mode, Lock Screen HUD, and Multi-Display Hub).
