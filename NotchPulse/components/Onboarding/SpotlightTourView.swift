@@ -450,15 +450,28 @@ final class SpotlightTourManager: ObservableObject {
         if Defaults[.showOnAllDisplays] {
             targetScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
                 ?? NSScreen.main
+                ?? NSScreen.screens.first
         } else {
             let coordinator = NotchPulseViewCoordinator.shared
-            targetScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) ?? NSScreen.main
+            let appDelegate = NSApp.delegate as? AppDelegate
+            targetScreen = (coordinator.preferredScreenUUID.flatMap({ NSScreen.screen(withUUID: $0) }))
+                ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
+                ?? appDelegate?.window?.screen
+                ?? NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
+                ?? NSScreen.main
+                ?? NSScreen.screens.first
         }
         guard let mainScreen = targetScreen else { return }
         self.activeScreen = mainScreen
 
         self.language = useAppLanguage ? Defaults[.appLanguage] : .english
         self.currentStepIndex = 0
+
+        let coordinator = NotchPulseViewCoordinator.shared
+        coordinator.alwaysShowTabs = true
+        Defaults[.notchPulseShelf] = true
+        Defaults[.enableClipboardManager] = true
+        Defaults[.showCalendar] = true
 
         // Compute initial cutout immediately so backdrop and card open at the right location
         let targetVM: NotchPulseViewModel
@@ -513,6 +526,27 @@ final class SpotlightTourManager: ObservableObject {
 
         backdrop.orderFrontRegardless()
         card.orderFrontRegardless()
+    }
+
+    func updateLiveCutout(rect: CGRect, radius: CGFloat) {
+        guard isActive else { return }
+        if abs(currentCutoutRect.origin.x - rect.origin.x) < 0.5 &&
+           abs(currentCutoutRect.origin.y - rect.origin.y) < 0.5 &&
+           abs(currentCutoutRect.width - rect.width) < 0.5 &&
+           abs(currentCutoutRect.height - rect.height) < 0.5 &&
+           abs(currentCornerRadius - radius) < 0.5 {
+            return
+        }
+        self.currentCutoutRect = rect
+        self.currentCornerRadius = radius
+        if let screen = activeScreen, let card = cardWindow {
+            let newCardRect = cardRect(for: currentStep, screen: screen)
+            if abs(card.frame.origin.y - newCardRect.origin.y) > 1.5 ||
+               abs(card.frame.origin.x - newCardRect.origin.x) > 1.5 ||
+               abs(card.frame.height - newCardRect.height) > 1.5 {
+                card.setFrame(newCardRect, display: true, animate: false)
+            }
+        }
     }
 
     func nextStep() {
@@ -574,92 +608,94 @@ final class SpotlightTourManager: ObservableObject {
         guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
         let coordinator = NotchPulseViewCoordinator.shared
         coordinator.firstLaunch = false
+        coordinator.alwaysShowTabs = true
+        Defaults[.notchPulseShelf] = true
+        Defaults[.enableClipboardManager] = true
+        Defaults[.showCalendar] = true
 
         let targetVM: NotchPulseViewModel
-        if let activeUUID = self.activeScreen?.displayUUID,
-           let vm = appDelegate.viewModels[activeUUID] {
-            targetVM = vm
-        } else if let camScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }),
-                  let camUUID = camScreen.displayUUID,
-                  let vm = appDelegate.viewModels[camUUID] {
-            targetVM = vm
+        if Defaults[.showOnAllDisplays] {
+            if let activeUUID = self.activeScreen?.displayUUID,
+               let vm = appDelegate.viewModels[activeUUID] {
+                targetVM = vm
+            } else if let firstVM = appDelegate.viewModels.values.first {
+                targetVM = firstVM
+            } else {
+                targetVM = appDelegate.vm
+            }
         } else {
-            targetVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
+            targetVM = appDelegate.vm
         }
 
-        let allVMs: [NotchPulseViewModel] = [appDelegate.vm, targetVM] + Array(appDelegate.viewModels.values)
-
-        // Synchronously and smoothly pre-switch tab pages so the user sees the page directly
-        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-            switch step {
-            case .notchHover:
+        // Smoothly switch tab pages without colliding with notch open animation
+        switch step {
+        case .notchHover:
+            withAnimation(.smooth(duration: 0.28)) {
                 coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                for vm in allVMs {
-                    vm.customOpenHeight = nil
-                    vm.open()
-                }
-
-            case .shakeToShelf:
-                Defaults[.notchPulseShelf] = true
-                coordinator.currentView = .shelf
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                for vm in allVMs {
-                    vm.customOpenHeight = nil
-                    vm.open()
-                }
-
-            case .musicPlayer:
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                for vm in allVMs {
-                    vm.customOpenHeight = nil
-                    vm.open()
-                }
-
-            case .calendarExpand:
-                Defaults[.showCalendar] = true
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                for vm in allVMs {
-                    vm.customOpenHeight = nil
-                    vm.open()
-                }
-
-            case .calendarFullMonth:
-                Defaults[.showCalendar] = true
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = true
-                for vm in allVMs {
-                    vm.customOpenHeight = 240
-                    vm.open()
-                }
-
-            case .clipboardManager:
-                Defaults[.enableClipboardManager] = true
-                coordinator.currentView = .clipboard
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                for vm in allVMs {
-                    vm.customOpenHeight = 250
-                    vm.open()
-                }
-
-            case .faceIDLock:
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                for vm in allVMs {
-                    vm.customOpenHeight = nil
-                    vm.open()
-                }
-
-            case .menuBarSettings:
-                coordinator.currentView = .home
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                for vm in allVMs {
-                    vm.customOpenHeight = nil
-                    vm.open()
-                }
             }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            targetVM.customOpenHeight = nil
+            targetVM.open()
+
+        case .shakeToShelf:
+            Defaults[.notchPulseShelf] = true
+            withAnimation(.smooth(duration: 0.28)) {
+                coordinator.currentView = .shelf
+            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            targetVM.customOpenHeight = nil
+            targetVM.open()
+
+        case .musicPlayer:
+            withAnimation(.smooth(duration: 0.28)) {
+                coordinator.currentView = .home
+            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            targetVM.customOpenHeight = nil
+            targetVM.open()
+
+        case .calendarExpand:
+            Defaults[.showCalendar] = true
+            withAnimation(.smooth(duration: 0.28)) {
+                coordinator.currentView = .home
+            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            targetVM.customOpenHeight = nil
+            targetVM.open()
+
+        case .calendarFullMonth:
+            Defaults[.showCalendar] = true
+            withAnimation(.smooth(duration: 0.28)) {
+                coordinator.currentView = .home
+            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = true
+            targetVM.customOpenHeight = 240
+            targetVM.open()
+
+        case .clipboardManager:
+            Defaults[.enableClipboardManager] = true
+            withAnimation(.smooth(duration: 0.28)) {
+                coordinator.currentView = .clipboard
+            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            targetVM.customOpenHeight = 250
+            targetVM.open()
+
+        case .faceIDLock:
+            withAnimation(.smooth(duration: 0.28)) {
+                coordinator.currentView = .home
+            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            targetVM.customOpenHeight = nil
+            targetVM.open()
+
+        case .menuBarSettings:
+            withAnimation(.smooth(duration: 0.28)) {
+                coordinator.currentView = .home
+            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            targetVM.customOpenHeight = nil
+            targetVM.open()
         }
 
         // After vm.open() the notchSize is set to the real open dimensions — use those to
@@ -736,31 +772,15 @@ final class SpotlightTourManager: ObservableObject {
     func startFaceIDSetupFromTour(completion: @escaping () -> Void) {
         hideTour()
 
-        if let existing = faceIDPhaseObserver {
-            NotificationCenter.default.removeObserver(existing)
-            faceIDPhaseObserver = nil
-        }
-
-        faceIDPhaseObserver = NotificationCenter.default.addObserver(
-            forName: Notification.Name.faceIDPhaseChanged,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        // Start enrollment flow. When user completes it or closes/cancels it,
+        // FaceIDEnrollmentController invokes onDismiss, which unhides the tour and advances cleanly to next step!
+        FaceIDEnrollmentController.startEnrollmentOnly { [weak self] in
             Task { @MainActor in
-                if FaceIDOverlayController.shared.phase == .closed {
-                    if let obs = self?.faceIDPhaseObserver {
-                        NotificationCenter.default.removeObserver(obs)
-                        self?.faceIDPhaseObserver = nil
-                    }
-                    try? await Task.sleep(for: .milliseconds(350))
-                    self?.unhideTour()
-                    completion()
-                }
+                guard let self = self, self.isActive else { return }
+                self.unhideTour()
+                completion()
             }
         }
-
-        // Start enrollment flow. When user completes it or closes/cancels it, the phase will become .closed and trigger unhideTour + completion() (advancing to next step).
-        FaceIDEnrollmentController.startEnrollmentOnly()
     }
 
     func closeTour() {
@@ -775,19 +795,22 @@ final class SpotlightTourManager: ObservableObject {
         cardWindow?.orderOut(nil)
         cardWindow = nil
 
-        // Keep the Notch OPEN after closing tour so user can start using it immediately!
-        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
         let coordinator = NotchPulseViewCoordinator.shared
+        coordinator.alwaysShowTabs = false
         coordinator.firstLaunch = false
         coordinator.currentView = .home
         CalendarStateViewModel.shared.isFullMonthExpanded = false
 
-        let allVMs: [NotchPulseViewModel] = [appDelegate.vm] + Array(appDelegate.viewModels.values)
-        for vm in allVMs {
-            vm.customOpenHeight = nil
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                vm.open()
-            }
+        // Keep the active Notch OPEN after closing tour so user can start using it immediately!
+        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+        let targetVM: NotchPulseViewModel
+        if let activeUUID = self.activeScreen?.displayUUID,
+           let vm = appDelegate.viewModels[activeUUID] {
+            targetVM = vm
+        } else {
+            targetVM = appDelegate.vm
         }
+        targetVM.customOpenHeight = nil
+        targetVM.open()
     }
 }

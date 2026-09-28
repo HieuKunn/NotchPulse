@@ -337,8 +337,11 @@ final class FaceIDOverlayController {
 
     /// Gracefully shrinks the onboarding panel away and hides the window; guarded by
     /// re-checking `content` so a concurrently-started scan cycle can't be interrupted.
-    func dismissOnboarding() {
-        guard case .onboarding = content else { return }
+    func dismissOnboarding(onCompleted: (() -> Void)? = nil) {
+        guard case .onboarding = content else {
+            onCompleted?()
+            return
+        }
         // Drop key/interactivity now, not inside the Task: first-run completion opens
         // Settings this same turn, and a still-key overlay would leave it inactive.
         withAnimation(FaceIDOverlayGeometry.springAnimation) {
@@ -347,9 +350,15 @@ final class FaceIDOverlayController {
         updateInteractivity()
 
         Task { [weak self] in
-            guard let self else { return }
+            guard let self else {
+                onCompleted?()
+                return
+            }
             try? await Task.sleep(for: self.collapseAnimationDuration)
-            guard case .onboarding = self.content else { return }
+            guard case .onboarding = self.content else {
+                onCompleted?()
+                return
+            }
             self.content = .scan(.idle)
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 self.phase = .closed
@@ -359,6 +368,7 @@ final class FaceIDOverlayController {
 
             // Restore previous screen AFTER collapse animation fully finishes
             self.restorePreviousScreen()
+            onCompleted?()
         }
     }
 

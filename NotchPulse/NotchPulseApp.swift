@@ -65,6 +65,7 @@ struct DynamicNotchApp: App {
                 ApplicationRelauncher.restart()
             }
             Button("Quit", role: .destructive) {
+                appDelegate.isUserInitiatedQuit = true
                 appDelegate.quitApplication()
             }
             .keyboardShortcut(KeyEquivalent("q"), modifiers: .command)
@@ -101,17 +102,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var faceIDCameraWindow: NSWindow?
     private var faceIDCameraVM: NotchPulseViewModel?
 
+    static weak var shared: AppDelegate?
+    var isUserInitiatedQuit: Bool = false
+
+    override init() {
+        super.init()
+        AppDelegate.shared = self
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        quitApplication()
-        return .terminateNow
+        if isUserInitiatedQuit {
+            quitApplication()
+            return .terminateNow
+        }
+        return .terminateCancel
     }
 
     @MainActor
     func quitApplication() {
+        guard isUserInitiatedQuit else { return }
         NSApplication.shared.windows.forEach { $0.orderOut(nil) }
         cleanupWindows()
         cleanupDragDetectors()
@@ -351,6 +364,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             },
             screenFrameProvider: { [weak self] in
+                // If not in multi-display mode, allow shake anywhere across all connected displays
+                guard Defaults[.showOnAllDisplays] else { return nil }
                 guard let self = self else { return screen.frame }
                 return (NSScreen.screen(withUUID: uuid) ?? screen).frame
             }
@@ -566,6 +581,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             if flags == .command && event.charactersIgnoringModifiers?.lowercased() == "q" {
+                self?.isUserInitiatedQuit = true
                 self?.quitApplication()
                 return nil
             }
@@ -981,6 +997,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @available(macOS 14.0, *)
     @objc @MainActor func quitAction() {
+        isUserInitiatedQuit = true
         quitApplication()
     }
 

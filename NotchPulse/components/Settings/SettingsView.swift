@@ -2288,9 +2288,11 @@ struct SettingsDetailHeaderBar: View {
             if showQuitButton {
                 Button {
                     if let appDelegate = NSApp.delegate as? AppDelegate {
+                        appDelegate.isUserInitiatedQuit = true
                         appDelegate.quitApplication()
-                    } else {
-                        NSApp.terminate(nil)
+                    } else if let appDelegate = AppDelegate.shared {
+                        appDelegate.isUserInitiatedQuit = true
+                        appDelegate.quitApplication()
                     }
                 } label: {
                     HStack(spacing: 4) {

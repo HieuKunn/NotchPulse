@@ -82,6 +82,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 guard let self = self else { return }
+                // Never auto-close other displays or unpin when Spotlight Tour is active
+                guard !SpotlightTourManager.shared.isActive else { return }
                 guard let activeVM = notification.object as? NotchPulseViewModel else { return }
                 // Rule: Only 1 notch open at any time across all displays!
                 // If another display's notch opened, this notch must close immediately and unpin.
@@ -274,8 +276,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             self.webcamManager.stopSession()
         }
 
-        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf (always reset if forced)
-        if force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned) {
+        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf (always reset if forced, except during Spotlight Tour)
+        if !SpotlightTourManager.shared.isActive && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned)) {
             coordinator.currentView = .home
         }
     }

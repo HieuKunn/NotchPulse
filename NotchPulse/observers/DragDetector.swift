@@ -39,6 +39,8 @@ final class DragDetector {
     }
     private var isHoveringFromRadar: Bool = false
 
+    private var unpressedTicks: Int = 0
+
     // MARK: - Shake Detection State
     private struct MouseSample {
         let x: CGFloat
@@ -62,7 +64,9 @@ final class DragDetector {
 
     /// Checks if the physical left mouse or trackpad button is currently held down
     private var isLeftButtonPressed: Bool {
-        return (NSEvent.pressedMouseButtons & 1) != 0
+        return (NSEvent.pressedMouseButtons & 1) != 0 ||
+               CGEventSource.buttonState(.combinedSessionState, button: .left) ||
+               CGEventSource.buttonState(.hidSystemState, button: .left)
     }
 
     /// Checks if the drag pasteboard contains actual file, folder, image, text snippet, or droppable content.
@@ -124,8 +128,8 @@ final class DragDetector {
             return event
         }
 
-        // Polling timer running in .common mode so it continues firing during active drag
-        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Polling timer running in .common mode so it continues firing at ~40Hz during active drag
+        let timer = Timer(timeInterval: 0.025, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkState()
             }
@@ -138,9 +142,9 @@ final class DragDetector {
         // ONLY detect shake-to-shelf when ACTUALLY dragging droppable content!
         guard isContentDragging else { return }
 
-        // Rule: Shake must ONLY trigger on the display where the cursor actually is!
+        // Rule: Shake must ONLY trigger on the display where the cursor actually is (in multi-display mode)!
         if let screenFrame = screenFrameProvider?() {
-            guard screenFrame.contains(currentPoint) else { return }
+            guard screenFrame.insetBy(dx: -20, dy: -20).contains(currentPoint) else { return }
         }
 
         // Debounce: don't trigger again within 0.8s of last shake
@@ -148,20 +152,23 @@ final class DragDetector {
 
         recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 450ms (fast continuous shake)
-        let cutoff = currentTime - 0.45
+        // Keep samples from the last 1.8s (natural fast continuous shake)
+        let cutoff = currentTime - 1.8
         recentSamples.removeAll { $0.time < cutoff }
 
-        guard recentSamples.count >= 5 else { return }
+        guard recentSamples.count >= 4 else { return }
 
-        // Require at least 20pt per swing
+        // Require at least 12pt per swing
         let xs = recentSamples.map { $0.x }
-        let minSwing: CGFloat = 20.0
+        let ys = recentSamples.map { $0.y }
+        let minSwing: CGFloat = 12.0
 
         let revX = countAxisReversals(values: xs, minSwing: minSwing)
+        let revY = countAxisReversals(values: ys, minSwing: minSwing)
+        let maxReversals = max(revX, revY)
 
-        // Require 4 fast continuous reversals (left→right→left→right→left)
-        if revX >= 4 {
+        // Require 3 direction reversals (4 fast continuous strokes: L→R→L→R or R→L→R→L)
+        if maxReversals >= 3 {
             lastShakeTriggerTime = currentTime
             recentSamples.removeAll()
             onShakeDetected?()
@@ -204,14 +211,21 @@ final class DragDetector {
 
     private func checkState() {
         let mousePressed = isLeftButtonPressed
+        let currentPbCount = dragPasteboard.changeCount
 
         if !mousePressed {
+            unpressedTicks += 1
+            // If dragging, allow a ~75ms grace period (3 ticks @ 25ms) to bridge momentary event drops across screen borders
+            if isContentDragging && unpressedTicks < 3 {
+                return
+            }
+
+            lastKnownIdlePasteboardCount = currentPbCount
             recentSamples.removeAll()
             dragStartLocation = nil
             mouseDownPasteboardCount = nil
 
-            // Instant reset when mouse button is released.
-            // Under NO circumstance should a released mouse remain in a dragging state.
+            // Reset when mouse button is confirmed released.
             if isContentDragging {
                 isContentDragging = false
                 onDragEnded?()
@@ -239,7 +253,7 @@ final class DragDetector {
         }
 
         // --- Mouse IS Pressed ---
-        let currentPbCount = dragPasteboard.changeCount
+        unpressedTicks = 0
         let mouseLocation = NSEvent.mouseLocation
         let now = ProcessInfo.processInfo.systemUptime
 
@@ -306,6 +320,7 @@ final class DragDetector {
         }
         localMouseMonitor = nil
         isContentDragging = false
+        unpressedTicks = 0
         recentSamples.removeAll()
         dragStartLocation = nil
         mouseDownPasteboardCount = nil

@@ -291,6 +291,35 @@ struct ContentView: View {
         }
     }
 
+    private func reportLiveCutoutToTourIfNeeded() {
+        guard SpotlightTourManager.shared.isActive else { return }
+        let screenSize = currentScreen?.frame.size ?? NSScreen.main?.frame.size ?? CGSize(width: 1440, height: 900)
+        let totalWidth: CGFloat
+        let totalHeight: CGFloat = currentNotchHeight + (vm.notchState == .open ? 8 : 0)
+        let isDI = isDynamicIsland
+
+        if isDI {
+            totalWidth = currentNotchWidth
+            let pad: CGFloat = 8
+            let w = totalWidth + pad * 2
+            let h = totalHeight + pad * 2
+            let x = (screenSize.width - w) / 2
+            let y = dynamicIslandTopOffset - pad
+            let r = islandRadius + pad
+            SpotlightTourManager.shared.updateLiveCutout(rect: CGRect(x: x, y: y, width: w, height: h), radius: r)
+        } else {
+            totalWidth = currentNotchWidth + (vm.notchState == .open ? (topCornerRadius * 2) : 0)
+            let pad: CGFloat = 8
+            let topExtension: CGFloat = 20
+            let w = totalWidth + pad * 2
+            let h = totalHeight + pad + topExtension
+            let x = (screenSize.width - w) / 2
+            let y = -topExtension
+            let r: CGFloat = 28
+            SpotlightTourManager.shared.updateLiveCutout(rect: CGRect(x: x, y: y, width: w, height: h), radius: r)
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
@@ -364,6 +393,9 @@ struct ContentView: View {
                             return
                         }
 
+                        // Ignore standard view-based hover only if extendHoverArea radar is active to prevent conflicts
+                        if Defaults[.extendHoverArea] { return }
+
                         handleHover(hovering)
                     }
                     .conditionalModifier(!isFaceIDContentActive) { view in
@@ -403,16 +435,14 @@ struct ContentView: View {
                             }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
-                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SpotlightTourManager.shared.isActive {
+                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SpotlightTourManager.shared.isActive && coordinator.currentView != .shelf {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
-                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive {
-                                        withAnimation(self.animationSpring) {
-                                            self.vm.close()
-                                        }
+                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive && self.coordinator.currentView != .shelf {
+                                        self.vm.close()
                                     }
                                 }
                             }
@@ -474,16 +504,14 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.isBatteryPopoverActive) {
-                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive {
+                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive && coordinator.currentView != .shelf {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
-                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive {
-                                        withAnimation(self.animationSpring) {
-                                            self.vm.close()
-                                        }
+                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive && self.coordinator.currentView != .shelf {
+                                        self.vm.close()
                                     }
                                 }
                             }
@@ -548,14 +576,28 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
 
                 vm.dropEvent = false
-                // Never auto-close during onboarding tour
+                // Never auto-close during onboarding tour or when shelf is open
                 guard !SpotlightTourManager.shared.isActive else { return }
+                guard coordinator.currentView != .shelf else { return }
                 if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                    withAnimation(self.animationSpring) {
-                        self.vm.close()
-                    }
+                    self.vm.close()
                 }
             }
+        }
+        .onAppear {
+            reportLiveCutoutToTourIfNeeded()
+        }
+        .onChange(of: currentNotchWidth) { _, _ in
+            reportLiveCutoutToTourIfNeeded()
+        }
+        .onChange(of: currentNotchHeight) { _, _ in
+            reportLiveCutoutToTourIfNeeded()
+        }
+        .onChange(of: vm.notchState) { _, _ in
+            reportLiveCutoutToTourIfNeeded()
+        }
+        .onChange(of: coordinator.currentView) { _, _ in
+            reportLiveCutoutToTourIfNeeded()
         }
     }
 
@@ -654,23 +696,25 @@ struct ContentView: View {
               }
               .zIndex(2)
             if vm.notchState == .open && !isFaceIDActive {
-                VStack {
+                Group {
                     switch coordinator.currentView {
                     case .home:
                         NotchHomeView(albumArtNamespace: albumArtNamespace)
+                            .id(NotchViews.home)
                     case .shelf:
                         ShelfView()
+                            .id(NotchViews.shelf)
                     case .stats:
                         StatsView()
+                            .id(NotchViews.stats)
                     case .clipboard:
                         ClipboardNotchView()
                             .environmentObject(vm)
+                            .id(NotchViews.clipboard)
                     }
                 }
-                .transition(
-                    .scale(scale: 0.85, anchor: .top)
-                    .combined(with: .opacity)
-                )
+                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+                .animation(.smooth(duration: 0.28), value: coordinator.currentView)
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
@@ -844,9 +888,7 @@ struct ContentView: View {
     }
 
     private func doOpen() {
-        withAnimation(animationSpring) {
-            vm.open()
-        }
+        vm.open()
     }
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
@@ -916,12 +958,11 @@ struct ContentView: View {
                         self.isHovering = false
                     }
                     
-                    // Never auto-close while the onboarding tour is active
+                    // Never auto-close while the onboarding tour is active or when shelf is open
                     guard !SpotlightTourManager.shared.isActive else { return }
+                    guard self.coordinator.currentView != .shelf else { return }
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
-                        withAnimation(self.animationSpring) {
-                            self.vm.close()
-                        }
+                        self.vm.close()
                     }
                 }
             }
@@ -995,9 +1036,7 @@ struct ContentView: View {
             }
             if !SharingStateManager.shared.preventNotchClose { 
                 gestureProgress = .zero
-                withAnimation(animationSpring) {
-                    vm.close()
-                }
+                vm.close()
             }
 
             if Defaults[.enableHaptics] {

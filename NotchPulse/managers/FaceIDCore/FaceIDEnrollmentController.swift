@@ -172,6 +172,9 @@ final class FaceIDEnrollmentController {
     /// or the standalone post-update notice (so it can resume startup). `nil` otherwise.
     var onFirstRunComplete: (() -> Void)?
 
+    /// Fires whenever enrollment is dismissed (either by completion, cancellation, or backing out).
+    var onDismiss: (() -> Void)?
+
     /// True when started by `startEnrollmentOnly()` — shows only the guided pose-capture
     /// step and saves samples directly instead of continuing to the password step.
     private let isEnrollmentOnly: Bool
@@ -247,16 +250,19 @@ final class FaceIDEnrollmentController {
     ///
     /// The Your Face page is still single-identity, so this keeps targeting
     /// `identities.first`: "redo" replaces it in place, or enrolls someone new.
-    static func startEnrollmentOnly() {
+    static func startEnrollmentOnly(onDismiss: (() -> Void)? = nil) {
         Task { @MainActor in
             _ = NotchPulseVault.ensureSessionKey()
             let store = NotchPulseFaceEnrollmentStore.shared
             store.reloadIfUnlocked()
             let existing = store.identities.first
-            present(
-                target: existing.map { .replacing($0.id) } ?? .newIdentity,
-                prefillName: existing?.name ?? defaultName
+            let controller = FaceIDEnrollmentController(
+                isEnrollmentOnly: true,
+                enrollmentTarget: existing.map { .replacing($0.id) } ?? .newIdentity
             )
+            controller.pendingName = existing?.name ?? defaultName
+            controller.onDismiss = onDismiss
+            FaceIDOverlayController.shared.presentOnboarding(controller)
         }
     }
 
@@ -548,7 +554,11 @@ final class FaceIDEnrollmentController {
     /// Immediately tears down and closes the onboarding overlay.
     func dismiss() {
         teardown()
-        FaceIDOverlayController.shared.dismissOnboarding()
+        let cb = onDismiss
+        onDismiss = nil
+        FaceIDOverlayController.shared.dismissOnboarding {
+            cb?()
+        }
     }
 
     /// Steps backward. The enroll close control also lands here: a retreat to pre-setup
@@ -558,14 +568,22 @@ final class FaceIDEnrollmentController {
         // No earlier step to return to in the password-only flow — Back is a plain cancel.
         if isPasswordOnly {
             teardown()
-            FaceIDOverlayController.shared.dismissOnboarding()
+            let cb = onDismiss
+            onDismiss = nil
+            FaceIDOverlayController.shared.dismissOnboarding {
+                cb?()
+            }
             return
         }
         switch step {
         case .enroll where isEnrollmentOnly:
             // Nothing precedes enrollment in add/recapture flows — Close is a cancel.
             teardown()
-            FaceIDOverlayController.shared.dismissOnboarding()
+            let cb = onDismiss
+            onDismiss = nil
+            FaceIDOverlayController.shared.dismissOnboarding {
+                cb?()
+            }
         case .enroll:
             // Camera has to stop here; `.enroll` is the only step that owns it.
             resetEnrollmentState()
@@ -580,7 +598,11 @@ final class FaceIDEnrollmentController {
         case .name where isEnrollmentOnly:
             // Nothing precedes naming in add/recapture flows — Back is a cancel.
             teardown()
-            FaceIDOverlayController.shared.dismissOnboarding()
+            let cb = onDismiss
+            onDismiss = nil
+            FaceIDOverlayController.shared.dismissOnboarding {
+                cb?()
+            }
         case .name:
             // `.enroll` can't be resumed halfway, so backing past it discards the capture.
             resetEnrollmentState()
@@ -635,7 +657,11 @@ final class FaceIDEnrollmentController {
 
     func cancel() {
         teardown()
-        FaceIDOverlayController.shared.dismissOnboarding()
+        let cb = onDismiss
+        onDismiss = nil
+        FaceIDOverlayController.shared.dismissOnboarding {
+            cb?()
+        }
     }
 
     // MARK: - Permissions
@@ -982,8 +1008,12 @@ final class FaceIDEnrollmentController {
             guard let self else { return }
             let shouldFireCompletion = self.isFirstRunFlow || self.isPostUpdateNotice
             let onComplete = self.onFirstRunComplete
+            let onDismissCb = self.onDismiss
+            self.onDismiss = nil
             self.teardown()
-            FaceIDOverlayController.shared.dismissOnboarding()
+            FaceIDOverlayController.shared.dismissOnboarding {
+                onDismissCb?()
+            }
             if shouldFireCompletion {
                 onComplete?()
             }
