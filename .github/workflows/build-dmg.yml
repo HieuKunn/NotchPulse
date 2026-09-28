@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     name: Build macOS App & DMG
-    runs-on: macos-14
+    runs-on: macos-15
     permissions:
       contents: write
 
@@ -57,7 +57,7 @@ jobs:
         run: |
           set -o pipefail
           NCPU=$(sysctl -n hw.ncpu || echo 4)
-          echo "Building using $NCPU CPU cores..."
+          echo "Building using $NCPU CPU cores on Apple Silicon runner..."
           xcodebuild build \
             -project NotchPulse.xcodeproj \
             -scheme NotchPulse \
@@ -66,6 +66,8 @@ jobs:
             -derivedDataPath build \
             -clonedSourcePackagesDirPath build/SourcePackages \
             -jobs "$NCPU" \
+            ARCHS="arm64" \
+            ONLY_ACTIVE_ARCH=YES \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGN_IDENTITY="-" \
@@ -73,8 +75,7 @@ jobs:
             CODE_SIGNING_ALLOWED=YES \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             SWIFT_STRICT_CONCURRENCY=minimal \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            ONLY_ACTIVE_ARCH=NO 2>&1 | tee xcodebuild.log || {
+            COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee xcodebuild.log || {
               echo "::error::Xcodebuild thất bại! Dưới đây là các dòng lỗi chi tiết:"
               grep -C 3 -E "error:" xcodebuild.log | tail -n 60 || tail -n 80 xcodebuild.log
               exit 1
