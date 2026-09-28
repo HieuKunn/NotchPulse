@@ -70,6 +70,7 @@ struct DynamicNotchApp: App {
     }
 }
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var windows: [String: NSWindow] = [:] // UUID -> NSWindow
@@ -870,7 +871,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc func adjustWindowPosition(changeAlpha: Bool = false) {
+    func adjustWindowPosition(changeAlpha: Bool = false) {
         if Defaults[.showOnAllDisplays] {
             let currentScreenUUIDs = Set(NSScreen.screens.compactMap { $0.displayUUID })
 
@@ -1037,14 +1038,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-extension Notification.Name {
-    static let selectedScreenChanged = Notification.Name("SelectedScreenChanged")
-    static let notchHeightChanged = Notification.Name("NotchHeightChanged")
-    static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
-    static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
-    static let expandedDragDetectionChanged = Notification.Name("expandedDragDetectionChanged")
-    static let faceIDPhaseChanged = Notification.Name("faceIDPhaseChanged")
-}
 
 extension CGRect: @retroactive Hashable {
     public func hash(into hasher: inout Hasher) {

@@ -42,6 +42,12 @@ extension Notification.Name {
     static let previewNotchWidth = Notification.Name("previewNotchWidth")
     static let closeNotchPreview = Notification.Name("closeNotchPreview")
     static let notchDidOpen = Notification.Name("notchDidOpen")
+    static let selectedScreenChanged = Notification.Name("SelectedScreenChanged")
+    static let notchHeightChanged = Notification.Name("NotchHeightChanged")
+    static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
+    static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
+    static let expandedDragDetectionChanged = Notification.Name("expandedDragDetectionChanged")
+    static let faceIDPhaseChanged = Notification.Name("faceIDPhaseChanged")
 }
 
 // Media controller types for selection in settings

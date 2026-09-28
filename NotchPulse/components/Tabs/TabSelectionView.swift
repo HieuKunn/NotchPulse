@@ -42,38 +42,46 @@ struct TabSelectionView: View {
         return list
     }
 
+    private func selectTab(_ tabView: NotchViews) {
+        (NSApp.delegate as? AppDelegate)?.resetAllDropAndDragTargeting()
+        vm.dragDetectorTargeting = false
+        vm.dropZoneTargeting = false
+        vm.generalDropTargeting = false
+        vm.anyDropZoneTargeting = false
+        if coordinator.currentView != tabView && vm.customOpenHeight != nil {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                vm.customOpenHeight = nil
+            }
+        }
+        withAnimation(.smooth) {
+            coordinator.currentView = tabView
+        }
+    }
+
+    @ViewBuilder
+    private func tabBackground(isSelected: Bool) -> some View {
+        if isSelected {
+            Capsule()
+                .fill(Color(nsColor: .secondarySystemFill))
+                .matchedGeometryEffect(id: "capsule", in: animation)
+        } else {
+            Capsule()
+                .fill(Color.clear)
+                .matchedGeometryEffect(id: "capsule", in: animation)
+                .hidden()
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             ForEach(tabs) { tab in
-                TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
-                    (NSApp.delegate as? AppDelegate)?.resetAllDropAndDragTargeting()
-                    vm.dragDetectorTargeting = false
-                    vm.dropZoneTargeting = false
-                    vm.generalDropTargeting = false
-                    vm.anyDropZoneTargeting = false
-                    if coordinator.currentView != tab.view && vm.customOpenHeight != nil {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            vm.customOpenHeight = nil
-                        }
-                    }
-                    withAnimation(.smooth) {
-                        coordinator.currentView = tab.view
-                    }
+                let isSelected = (tab.view == coordinator.currentView)
+                TabButton(label: tab.label, icon: tab.icon, selected: isSelected) {
+                    selectTab(tab.view)
                 }
                 .frame(height: 26)
-                .foregroundStyle(tab.view == coordinator.currentView ? .white : .gray)
-                .background {
-                    if tab.view == coordinator.currentView {
-                        Capsule()
-                            .fill(Color(nsColor: .secondarySystemFill))
-                            .matchedGeometryEffect(id: "capsule", in: animation)
-                    } else {
-                        Capsule()
-                            .fill(Color.clear)
-                            .matchedGeometryEffect(id: "capsule", in: animation)
-                            .hidden()
-                    }
-                }
+                .foregroundStyle(isSelected ? Color.white : Color.gray)
+                .background(tabBackground(isSelected: isSelected))
             }
         }
         .clipShape(Capsule())

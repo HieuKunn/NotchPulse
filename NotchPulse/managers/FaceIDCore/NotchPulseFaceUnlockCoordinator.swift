@@ -343,7 +343,6 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveMatchedFrames = 0
-        var sawAnyFace = false
 
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
@@ -388,7 +387,6 @@ final class NotchPulseFaceUnlockCoordinator {
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
-            sawAnyFace = true
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             processedFramesCount += 1
