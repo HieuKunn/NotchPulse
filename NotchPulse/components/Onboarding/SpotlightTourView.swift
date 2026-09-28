@@ -67,7 +67,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "Di chuột vào khu vực Notch ở góc trên giữa màn hình để mở rộng bảng điều khiển nhanh. Rời chuột 250ms Notch sẽ tự thu gọn mượt mà."
             case .shakeToShelf:
-                return "Khi bạn đang nắm/kéo (drag) một file, hình ảnh hoặc đoạn văn bản, hãy lắc nhẹ chuột trái phải nhanh 2-3 lần. Khay lưu tạm Notch Shelf sẽ lập tức bung ra hứng file!"
+                return "Khi bạn đang nắm/kéo (drag) một file, hình ảnh hoặc đoạn văn bản, hãy lắc nhẹ chuột trái phải nhanh 4 lần liên tục. Khay lưu tạm Notch Shelf sẽ lập tức bung ra hứng file!"
             case .musicPlayer:
                 return "Click vào Bìa Album để mở nhanh App nhạc tương ứng. Click vào Tên bài hát hoặc biểu tượng Micro để mở Lời bài hát cuộn theo thời gian thực (Synced Lyrics)."
             case .calendarExpand:
@@ -86,7 +86,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "Hover your cursor over the Notch at the top center of your screen to expand the quick controls. Move mouse away for 250ms to smoothly auto-close."
             case .shakeToShelf:
-                return "While dragging any file, image, or text snippet, quickly shake your mouse left and right 2-3 times. The Notch Shelf will immediately pop open to catch your file!"
+                return "While dragging any file, image, or text snippet, quickly shake your mouse left and right 4 times in a row. The Notch Shelf will immediately pop open to catch your file!"
             case .musicPlayer:
                 return "Click the Album Art to jump directly into the active music app. Click the song title or lyrics icon to view real-time synced scrolling lyrics."
             case .calendarExpand:

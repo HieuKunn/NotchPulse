@@ -148,20 +148,20 @@ final class DragDetector {
 
         recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 500ms
-        let cutoff = currentTime - 0.50
+        // Keep samples from the last 450ms (fast continuous shake)
+        let cutoff = currentTime - 0.45
         recentSamples.removeAll { $0.time < cutoff }
 
-        guard recentSamples.count >= 3 else { return }
+        guard recentSamples.count >= 5 else { return }
 
-        // Require at least 20pt per swing (smooth and responsive shake)
+        // Require at least 20pt per swing
         let xs = recentSamples.map { $0.x }
         let minSwing: CGFloat = 20.0
 
         let revX = countAxisReversals(values: xs, minSwing: minSwing)
 
-        // Need 2 reversals (left→right→left) within 500ms
-        if revX >= 2 {
+        // Require 4 fast continuous reversals (left→right→left→right→left)
+        if revX >= 4 {
             lastShakeTriggerTime = currentTime
             recentSamples.removeAll()
             onShakeDetected?()
