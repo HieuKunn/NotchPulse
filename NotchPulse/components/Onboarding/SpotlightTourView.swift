@@ -196,6 +196,7 @@ struct SpotlightBackdropView: View {
                     cornerRadius: manager.currentCornerRadius
                 )
                 .fill(Color.black.opacity(0.75), style: FillStyle(eoFill: true))
+                .animation(.spring(response: 0.38, dampingFraction: 0.82), value: manager.currentCutoutRect)
                 .ignoresSafeArea()
 
                 // 2. Bright Glowing Pure White Frame around target
@@ -205,7 +206,7 @@ struct SpotlightBackdropView: View {
                     .shadow(color: Color.white.opacity(0.4), radius: 18)
                     .frame(width: max(0, manager.currentCutoutRect.width), height: max(0, manager.currentCutoutRect.height))
                     .position(x: manager.currentCutoutRect.midX, y: manager.currentCutoutRect.midY)
-                    .animation(.spring(response: 0.45, dampingFraction: 0.75), value: manager.currentStepIndex)
+                    .animation(.spring(response: 0.38, dampingFraction: 0.82), value: manager.currentCutoutRect)
             }
         }
     }
@@ -758,7 +759,7 @@ final class SpotlightTourManager: ObservableObject {
             }
         }
 
-        // Use standard enrollment flow (identical to Settings menu: startEnrollmentOnly)
+        // Start enrollment flow. When user completes it or closes/cancels it, the phase will become .closed and trigger unhideTour + completion() (advancing to next step).
         FaceIDEnrollmentController.startEnrollmentOnly()
     }
 

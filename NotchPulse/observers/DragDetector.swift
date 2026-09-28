@@ -25,6 +25,7 @@ final class DragDetector {
 
     private var pollTimer: Timer?
     private var mouseMonitor: Any?
+    private var localMouseMonitor: Any?
 
     private var lastKnownIdlePasteboardCount: Int = -1
     private var mouseDownPasteboardCount: Int?
@@ -94,11 +95,11 @@ final class DragDetector {
         for type in types {
             let raw = type.rawValue
             if recognizedTypes.contains(raw) { return true }
-            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("url") || raw.contains("image") || raw.contains("data")) {
+            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("url") || raw.contains("image") || raw.contains("data") || raw.contains("text")) {
                 return true
             }
         }
-        return false
+        return true
     }
 
     func startMonitoring() {
@@ -108,15 +109,23 @@ final class DragDetector {
         dragStartLocation = nil
         recentSamples.removeAll()
 
-        // Global monitor for leftMouseDragged (for real-time response to drag and shake gestures)
+        // Global monitor for leftMouseDragged (for real-time response to drag and shake gestures across other apps/Finder)
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
             Task { @MainActor in
                 self?.checkState()
             }
         }
 
+        // Local monitor for leftMouseDragged (for events when mouse is within app windows)
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] event in
+            Task { @MainActor in
+                self?.checkState()
+            }
+            return event
+        }
+
         // Polling timer running in .common mode so it continues firing during active drag
-        let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkState()
             }
@@ -139,21 +148,20 @@ final class DragDetector {
 
         recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 400ms — forces the shake to be genuinely fast
-        let cutoff = currentTime - 0.40
+        // Keep samples from the last 500ms
+        let cutoff = currentTime - 0.50
         recentSamples.removeAll { $0.time < cutoff }
 
-        guard recentSamples.count >= 4 else { return }
+        guard recentSamples.count >= 3 else { return }
 
-        // Require at least 28pt per swing (≈ 1cm travel) so slow lazy sweeps don't trigger.
-        // Only the horizontal axis counts — left/right shake intent.
+        // Require at least 20pt per swing (smooth and responsive shake)
         let xs = recentSamples.map { $0.x }
-        let minSwing: CGFloat = 28.0
+        let minSwing: CGFloat = 20.0
 
         let revX = countAxisReversals(values: xs, minSwing: minSwing)
 
-        // Need 3 reversals (left→right→left→right) within 400ms — unmistakably deliberate
-        if revX >= 3 {
+        // Need 2 reversals (left→right→left) within 500ms
+        if revX >= 2 {
             lastShakeTriggerTime = currentTime
             recentSamples.removeAll()
             onShakeDetected?()
@@ -293,6 +301,10 @@ final class DragDetector {
             NSEvent.removeMonitor(monitor)
         }
         mouseMonitor = nil
+        if let localMonitor = localMouseMonitor {
+            NSEvent.removeMonitor(localMonitor)
+        }
+        localMouseMonitor = nil
         isContentDragging = false
         recentSamples.removeAll()
         dragStartLocation = nil
@@ -304,6 +316,9 @@ final class DragDetector {
         pollTimer?.invalidate()
         if let monitor = mouseMonitor {
             NSEvent.removeMonitor(monitor)
+        }
+        if let localMonitor = localMouseMonitor {
+            NSEvent.removeMonitor(localMonitor)
         }
     }
 }
