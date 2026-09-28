@@ -761,7 +761,7 @@ final class SpotlightTourManager: ObservableObject {
         for vm in allVMs {
             vm.customOpenHeight = nil
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                vm.open()
+                vm.close()
             }
         }
     }

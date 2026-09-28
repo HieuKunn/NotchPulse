@@ -364,9 +364,6 @@ struct ContentView: View {
                             return
                         }
 
-                        // Ignore standard view-based hover only if extendHoverArea radar is active to prevent conflicts
-                        if Defaults[.extendHoverArea] { return }
-                        
                         handleHover(hovering)
                     }
                     .conditionalModifier(!isFaceIDContentActive) { view in
@@ -867,7 +864,7 @@ struct ContentView: View {
     }
 
     private func handleHover(_ hovering: Bool) {
-        if coordinator.firstLaunch || isFaceIDActive || faceIDOverlay.phase != .closed || NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+        if isFaceIDActive || faceIDOverlay.phase != .closed || NotchPulseLockMonitor.isScreenActuallyLocked() { return }
         hoverTask?.cancel()
         
         if hovering {
@@ -914,9 +911,8 @@ struct ContentView: View {
                         self.isHovering = false
                     }
                     
-                    // Never auto-close while the onboarding tour or first-launch onboarding window is active
-                    guard !SpotlightTourManager.shared.isActive,
-                          !coordinator.firstLaunch else { return }
+                    // Never auto-close while the onboarding tour is active
+                    guard !SpotlightTourManager.shared.isActive else { return }
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close()
                     }

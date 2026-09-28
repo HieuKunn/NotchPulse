@@ -108,15 +108,15 @@ final class DragDetector {
         dragStartLocation = nil
         recentSamples.removeAll()
 
-        // Global monitor for leftMouseDragged & mouseMoved (for real-time response to drag and shake gestures)
-        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged, .mouseMoved]) { [weak self] _ in
+        // Global monitor for leftMouseDragged (for real-time response to drag and shake gestures)
+        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
             Task { @MainActor in
                 self?.checkState()
             }
         }
 
         // Polling timer running in .common mode so it continues firing during active drag
-        let timer = Timer(timeInterval: 0.10, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkState()
             }
@@ -195,10 +195,7 @@ final class DragDetector {
     }
 
     private func checkState() {
-        let mouseLocation = NSEvent.mouseLocation
-        let now = ProcessInfo.processInfo.systemUptime
         let mousePressed = isLeftButtonPressed
-        let currentPbCount = dragPasteboard.changeCount
 
         if !mousePressed {
             recentSamples.removeAll()
@@ -211,11 +208,11 @@ final class DragDetector {
                 isContentDragging = false
                 onDragEnded?()
             }
-            lastKnownIdlePasteboardCount = currentPbCount
 
             // Hover radar: Only runs when extended hover area is explicitly enabled
             let shouldRunHoverRadar = Defaults[.extendHoverArea]
             if shouldRunHoverRadar {
+                let mouseLocation = NSEvent.mouseLocation
                 let hoverRegion = regionProvider()
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
 
@@ -234,6 +231,10 @@ final class DragDetector {
         }
 
         // --- Mouse IS Pressed ---
+        let currentPbCount = dragPasteboard.changeCount
+        let mouseLocation = NSEvent.mouseLocation
+        let now = ProcessInfo.processInfo.systemUptime
+
         if dragStartLocation == nil {
             dragStartLocation = mouseLocation
             mouseDownPasteboardCount = currentPbCount
@@ -250,10 +251,10 @@ final class DragDetector {
         let hasMovedSufficiently = dragDistance >= 6.0
 
         // Detect if active drag session:
-        // Pasteboard changeCount changed or pasteboard has valid drag content AND mouse moved >= 6pt
+        // Pasteboard changeCount changed with valid drag content AND mouse moved >= 6pt
         let isPasteboardChanged = (lastKnownIdlePasteboardCount >= 0 && currentPbCount != lastKnownIdlePasteboardCount) ||
                                   (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
-        let isNewDragOperation = (isPasteboardChanged || currentPbCount > 0) && hasValidDragContent() && hasMovedSufficiently
+        let isNewDragOperation = isPasteboardChanged && hasValidDragContent() && hasMovedSufficiently
 
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
