@@ -117,7 +117,9 @@ final class DragDetector {
 
         // Polling timer running in .common mode so it continues firing during active drag
         let timer = Timer(timeInterval: 0.10, repeats: true) { [weak self] _ in
-            self?.checkState()
+            Task { @MainActor in
+                self?.checkState()
+            }
         }
         RunLoop.main.add(timer, forMode: .common)
         pollTimer = timer
@@ -298,7 +300,10 @@ final class DragDetector {
     }
 
     deinit {
-        stopMonitoring()
+        pollTimer?.invalidate()
+        if let monitor = mouseMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
 }
 
