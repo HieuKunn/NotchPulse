@@ -70,6 +70,7 @@ struct DynamicNotchApp: App {
     }
 }
 
+@objc
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
@@ -573,11 +574,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(screenConfigurationDidChange),
-            name: NSApplication.didChangeScreenParametersNotification,
-            object: nil
-        )
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.screenConfigurationDidChange()
+            }
+        }
 
         NotificationCenter.default.addObserver(
             forName: Notification.Name.selectedScreenChanged, object: nil, queue: nil
@@ -850,7 +852,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    @objc @MainActor func screenConfigurationDidChange() {
+    @MainActor func screenConfigurationDidChange() {
         NSScreenUUIDCache.shared.rebuildCache()
         let currentScreens = NSScreen.screens
 
