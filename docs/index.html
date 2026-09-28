@@ -21,7 +21,7 @@
   <link rel="preload" as="image" href="assets/cozy_bg.webp" type="image/webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/logo_clean.png">
   
-  <link rel="stylesheet" href="style.css?v=38">
+  <link rel="stylesheet" href="style.css?v=39">
 </head>
 <body>
 
@@ -159,7 +159,7 @@
           </div>
         </div>
 
-        <!-- Scattered Floating Interactive Nodes (Evenly Distributed & Balanced) -->
+        <!-- Scattered Floating Interactive Nodes (Evenly Distributed & Balanced Constellation) -->
         <!-- 1. Top Left: Face ID -->
         <div class="float-node node-faceid" style="--delay: 0s;">
           <span class="node-icon">
@@ -180,8 +180,36 @@
           </div>
         </div>
 
-        <!-- 2. Mid Left: System Monitor (Stats) -->
-        <div class="float-node node-stats" style="--delay: 1.4s;">
+        <!-- 2. Top-Mid-Left: Multi-Display Hub -->
+        <div class="float-node node-display" style="--delay: 3.2s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.displayTitle">Multi-Display Hub</strong>
+            <span data-i18n="chip.displaySub">Dual Screen Seamless Sync</span>
+          </div>
+        </div>
+
+        <!-- 3. Upper Mid-Left: Regional Lunar & Multi-Calendar -->
+        <div class="float-node node-lunar" style="--delay: 1.1s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.lunarTitle">Lunar &amp; Multi-Cal</strong>
+            <span data-i18n="chip.lunarSub">Âm Lịch • Hijri • Hebrew</span>
+          </div>
+        </div>
+
+        <!-- 4. Mid Left: System Monitor (Stats) -->
+        <div class="float-node node-stats" style="--delay: 2.2s;">
           <span class="node-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="4" y="4" width="16" height="16" rx="2"/>
@@ -202,7 +230,7 @@
           </div>
         </div>
 
-        <!-- 3. Bottom Left: MagSafe Battery -->
+        <!-- 5. Lower Left: MagSafe Battery -->
         <div class="float-node node-battery" style="--delay: 2.8s;">
           <span class="node-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -215,7 +243,34 @@
           </div>
         </div>
 
-        <!-- 4. Bottom Center-Left: Clipboard History -->
+        <!-- 6. Bottom Left-Center: Lock Screen HUD -->
+        <div class="float-node node-lockscreen" style="--delay: 1.7s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.lockscreenTitle">Lock Screen HUD</strong>
+            <span data-i18n="chip.lockscreenSub">Instant Live Activity</span>
+          </div>
+        </div>
+
+        <!-- 7. Bottom Center: 120Hz ProMotion -->
+        <div class="float-node node-fps" style="--delay: 0.5s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l1.912 5.885a2 2 0 0 0 1.203 1.203L21 12l-5.885 1.912a2 2 0 0 0-1.203 1.203L12 21l-1.912-5.885a2 2 0 0 0-1.203-1.203L3 12l5.885-1.912a2 2 0 0 0 1.203-1.203L12 3z"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.fpsTitle">120Hz ProMotion</strong>
+            <span data-i18n="chip.fpsSub">0% CPU Idle Overhead</span>
+          </div>
+        </div>
+
+        <!-- 8. Bottom Right-Center: Clipboard History -->
         <div class="float-node node-clipboard" style="--delay: 0.9s;">
           <span class="node-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -229,20 +284,7 @@
           </div>
         </div>
 
-        <!-- 5. Bottom Center-Right: 120Hz ProMotion -->
-        <div class="float-node node-fps" style="--delay: 2.1s;">
-          <span class="node-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3l1.912 5.885a2 2 0 0 0 1.203 1.203L21 12l-5.885 1.912a2 2 0 0 0-1.203 1.203L12 21l-1.912-5.885a2 2 0 0 0-1.203-1.203L3 12l5.885-1.912a2 2 0 0 0 1.203-1.203L12 3z"/>
-            </svg>
-          </span>
-          <div class="node-text">
-            <strong data-i18n="chip.fpsTitle">120Hz ProMotion</strong>
-            <span data-i18n="chip.fpsSub">0% CPU Idle Overhead</span>
-          </div>
-        </div>
-
-        <!-- 6. Bottom Right: Shelf -->
+        <!-- 9. Lower Right: Notch Shelf -->
         <div class="float-node node-shelf" style="--delay: 3.5s;">
           <span class="node-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -257,7 +299,7 @@
           </div>
         </div>
 
-        <!-- 7. Mid Right: Synced Lyrics -->
+        <!-- 10. Mid Right: Synced Lyrics -->
         <div class="float-node node-lyrics" style="--delay: 1.6s;">
           <span class="node-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -272,8 +314,22 @@
           </div>
         </div>
 
-        <!-- 8. Top Right: DDC Display -->
-        <div class="float-node node-ddc" style="--delay: 0.5s;">
+        <!-- 11. Upper Mid-Right: Dynamic Island Mode -->
+        <div class="float-node node-island" style="--delay: 2.4s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="10" rx="5"/>
+              <circle cx="7" cy="12" r="1.5" fill="currentColor"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.islandTitle">Dynamic Island Mode</strong>
+            <span data-i18n="chip.islandSub">Pixel-Perfect Bezier Curve</span>
+          </div>
+        </div>
+
+        <!-- 12. Top Right: DDC Display Control -->
+        <div class="float-node node-ddc" style="--delay: 0.7s;">
           <span class="node-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="4"/>
@@ -996,7 +1052,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="main.js?v=38"></script>
+  <script src="main.js?v=39"></script>
 
   <!-- Service Worker Cleanup: Ensures standard Cmd+R always loads latest release without stale cache -->
   <script>

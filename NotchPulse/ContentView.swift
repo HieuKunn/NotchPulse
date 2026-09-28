@@ -376,7 +376,7 @@ struct ContentView: View {
                                     FaceIDOverlayController.shared.activate()
                                     return
                                 }
-                                if vm.notchState == .closed {
+                                if !NotchPulseLockMonitor.isScreenActuallyLocked() && vm.notchState == .closed {
                                     doOpen()
                                 }
                             }
@@ -426,22 +426,22 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .onReceive(NotificationCenter.default.publisher(for: .previewNotchWidth)) { notification in
-                        let targetWidth = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            vm.open()
-                            vm.notchSize = CGSize(width: targetWidth, height: openNotchSize.height)
-                        }
-                    }
                     .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
                         withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
                             vm.close()
                         }
                     }
                     .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screenIsLocked"))) { _ in
-                        withAnimation(animationSpring) {
-                            // Trigger layout refresh on lock
-                        }
+                        handleScreenLock()
+                    }
+                    .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screensaver.didstart"))) { _ in
+                        handleScreenLock()
+                    }
+                    .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.willSleepNotification)) { _ in
+                        handleScreenLock()
+                    }
+                    .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidSleepNotification)) { _ in
+                        handleScreenLock()
                     }
                     .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screenIsUnlocked"))) { _ in
                         withAnimation(animationSpring) {
@@ -450,7 +450,21 @@ struct ContentView: View {
                     }
                     .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidWakeNotification)) { _ in
                         withAnimation(animationSpring) {
-                            // Trigger layout refresh on wake
+                            if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                                handleScreenLock()
+                            }
+                        }
+                    }
+                    .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
+                        withAnimation(animationSpring) {
+                            if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                                handleScreenLock()
+                            }
+                        }
+                    }
+                    .onAppear {
+                        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            handleScreenLock()
                         }
                     }
                     .onChange(of: notchOpenWidth) { _, newWidth in
@@ -524,12 +538,10 @@ struct ContentView: View {
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
-            if isTargeted {
+            // If notch is closed, NEVER auto-open shelf on drag/hover! Shelf only opens via shake gesture.
+            if isTargeted && vm.notchState == .open {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     coordinator.currentView = .shelf
-                }
-                if vm.notchState == .closed {
-                    doOpen()
                 }
                 return
             }
@@ -653,6 +665,7 @@ struct ContentView: View {
                         StatsView()
                     case .clipboard:
                         ClipboardNotchView()
+                            .environmentObject(vm)
                     }
                 }
                 .transition(
@@ -665,7 +678,9 @@ struct ContentView: View {
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
             }
         }
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
+        .conditionalModifier(vm.notchState == .open) { view in
+            view.onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
+        }
     }
 
     @ViewBuilder
@@ -910,6 +925,18 @@ struct ContentView: View {
         }
     }
 
+    private func handleScreenLock() {
+        hoverTask?.cancel()
+        isHovering = false
+        gestureProgress = .zero
+        SharingStateManager.shared.preventNotchClose = false
+        ShelfStateViewModel.shared.isPinned = false
+        CalendarStateViewModel.shared.isPinned = false
+        withAnimation(animationSpring) {
+            vm.close(force: true)
+        }
+    }
+
     // MARK: - Gesture Handling
 
     private func handleDownGesture(translation: CGFloat, phase: NSEvent.Phase) {
@@ -938,6 +965,16 @@ struct ContentView: View {
 
     private func handleUpGesture(translation: CGFloat, phase: NSEvent.Phase) {
         guard vm.notchState == .open && !vm.isHoveringCalendar else { return }
+
+        // If in Clipboard view (or hovering over Clipboard), do NOT close the notch unless user has scrolled all the way to the last copied item
+        if (coordinator.currentView == .clipboard || vm.isHoveringClipboard) && !vm.clipboardScrolledToBottom {
+            if gestureProgress != .zero {
+                withAnimation(animationSpring) {
+                    gestureProgress = .zero
+                }
+            }
+            return
+        }
 
         withAnimation(animationSpring) {
             gestureProgress = (translation / Defaults[.gestureSensitivity]) * -20

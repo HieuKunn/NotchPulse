@@ -105,8 +105,9 @@ private struct ScrollMonitor: NSViewRepresentable {
             guard let window = rootNSView?.window,
                   let contentView = window.contentView else { return false }
 
-            let localPoint = contentView.convert(event.locationInWindow, from: nil)
-            guard let hitView = contentView.hitTest(localPoint) else { return false }
+            let point = event.locationInWindow
+            let localPoint = contentView.convert(point, from: nil)
+            guard let hitView = contentView.hitTest(point) ?? contentView.hitTest(localPoint) else { return false }
 
             // Find enclosing NSScrollView if the cursor is hovering over any scrollable component
             var current: NSView? = hitView
@@ -119,9 +120,28 @@ private struct ScrollMonitor: NSViewRepresentable {
                 current = v.superview
             }
 
-            // If the cursor is anywhere over an NSScrollView (Clipboard list, Calendar date wheel/month grid, Event list, etc.),
-            // ignore the scroll-to-close gesture so the user can scroll freely without accidentally shrinking/closing the notch.
-            return targetScrollView != nil
+            guard let sv = targetScrollView else { return false }
+
+            // Check if targetScrollView has reached the bottom of its content
+            guard let docView = sv.documentView else { return true }
+            let visibleRect = sv.documentVisibleRect
+            let docHeight = docView.bounds.height
+            let visibleHeight = visibleRect.height
+
+            // If the content fits within the visible area, all items are already visible
+            if docHeight <= visibleHeight + 4 {
+                return false
+            }
+
+            // In flipped coordinates (SwiftUI ScrollViews are flipped):
+            // visibleRect.maxY reaches docHeight when scrolled to the very bottom
+            let isFlipped = docView.isFlipped
+            let isAtBottom: Bool = isFlipped
+                ? (visibleRect.maxY >= docHeight - 8)
+                : (visibleRect.origin.y <= 8)
+
+            // If user has not scrolled all the way to the bottom/last item, ignore the scroll-to-close gesture
+            return !isAtBottom
         }
 
         func removeMonitor() {

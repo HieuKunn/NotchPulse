@@ -1,5 +1,5 @@
 // NotchPulse Service Worker - Instant Offline & Local Cache Storage
-const CACHE_NAME = 'notchpulse-local-v5';
+const CACHE_NAME = 'notchpulse-local-v6';
 
 const PRECACHE_URLS = [
   './assets/cozy_bg.webp',
@@ -10,8 +10,8 @@ const PRECACHE_URLS = [
   './assets/author_portrait.jpg',
   './assets/hugo_hani.webp',
   './assets/hugo_hani.png',
-  './style.css?v=38',
-  './main.js?v=38'
+  './style.css?v=39',
+  './main.js?v=39'
 ];
 
 self.addEventListener('install', (event) => {

@@ -33,6 +33,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     @Published var edgeAutoOpenActive: Bool = false
     @Published var isHoveringCalendar: Bool = false
+    @Published var isHoveringClipboard: Bool = false
+    @Published var clipboardScrolledToBottom: Bool = true
     @Published var isBatteryPopoverActive: Bool = false
 
     @Published var screenUUID: String?
@@ -67,6 +69,24 @@ class NotchPulseViewModel: NSObject, ObservableObject {
                 shelf || drag || general
             }
             .assign(to: \.anyDropZoneTargeting, on: self)
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: .notchDidOpen)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                guard let self = self else { return }
+                guard let activeVM = notification.object as? NotchPulseViewModel else { return }
+                // Rule: Only 1 notch open at any time across all displays!
+                // If another display's notch opened, this notch must close immediately and unpin.
+                if self !== activeVM && self.notchState == .open {
+                    ShelfStateViewModel.shared.isPinned = false
+                    CalendarStateViewModel.shared.isPinned = false
+                    SharingStateManager.shared.preventNotchClose = false
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        self.close(force: true)
+                    }
+                }
+            }
             .store(in: &cancellables)
         
         setupDetectorObserver()
@@ -208,12 +228,15 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         MusicManager.shared.isUIActive = true
         // Force music information update when notch is opened
         MusicManager.shared.forceUpdate()
+
+        // Rule: Only 1 notch open at any time across all displays!
+        NotificationCenter.default.post(name: .notchDidOpen, object: self)
     }
 
-    func close() {
+    func close(force: Bool = false) {
         self.customOpenHeight = nil
-        // Do not close while a share picker or sharing service is active
-        if SharingStateManager.shared.preventNotchClose {
+        // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen)
+        if !force && SharingStateManager.shared.preventNotchClose {
             return
         }
         self.notchSize = getClosedNotchSize(screenUUID: self.screenUUID)
@@ -229,6 +252,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.anyDropZoneTargeting = false
         self.dropEvent = false
         self.isHoveringFromRadar = false
+        self.isHoveringClipboard = false
+        self.clipboardScrolledToBottom = true
 
         if !LockScreenMediaWindow.shared.isWindowVisible {
             MusicManager.shared.isUIActive = false
@@ -242,8 +267,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             self.webcamManager.stopSession()
         }
 
-        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf
-        if !coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
+        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf (always reset if forced)
+        if force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned) {
             coordinator.currentView = .home
         }
     }

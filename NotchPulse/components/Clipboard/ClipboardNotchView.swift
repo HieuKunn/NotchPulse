@@ -10,6 +10,7 @@ import Defaults
 
 struct ClipboardNotchView: View {
     @ObservedObject var clipboardManager = ClipboardManager.shared
+    @EnvironmentObject var vm: NotchPulseViewModel
 
     var body: some View {
         VStack(spacing: 8) {
@@ -45,6 +46,9 @@ struct ClipboardNotchView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: 150)
+                .onAppear {
+                    vm.clipboardScrolledToBottom = true
+                }
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 8) {
@@ -56,6 +60,119 @@ struct ClipboardNotchView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.bottom, 12)
+                    .background(
+                        ClipboardScrollWheelHelper { isAtBottom in
+                            vm.clipboardScrolledToBottom = isAtBottom
+                        }
+                    )
+                }
+                .onAppear {
+                    if clipboardManager.history.count <= 3 {
+                        vm.clipboardScrolledToBottom = true
+                    } else {
+                        vm.clipboardScrolledToBottom = false
+                    }
+                }
+                .onChange(of: clipboardManager.history.count) { _, newCount in
+                    if newCount <= 3 {
+                        vm.clipboardScrolledToBottom = true
+                    }
+                }
+            }
+        }
+        .onHover { isHovering in
+            vm.isHoveringClipboard = isHovering
+        }
+    }
+}
+
+// MARK: - AppKit Scroll Helper for Clipboard
+private struct ClipboardScrollWheelHelper: NSViewRepresentable {
+    var onScrollStateChanged: ((Bool) -> Void)? = nil
+
+    func makeNSView(context: Context) -> HelperView {
+        let view = HelperView()
+        view.onScrollStateChanged = onScrollStateChanged
+        return view
+    }
+
+    func updateNSView(_ nsView: HelperView, context: Context) {
+        nsView.onScrollStateChanged = onScrollStateChanged
+        nsView.checkSetup()
+        nsView.recheck()
+    }
+
+    class HelperView: NSView {
+        private var boundsObserver: NSObjectProtocol?
+        var onScrollStateChanged: ((Bool) -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if window != nil {
+                checkSetup()
+            } else {
+                cleanup()
+            }
+        }
+
+        override func viewDidMoveToSuperview() {
+            super.viewDidMoveToSuperview()
+            if superview != nil {
+                checkSetup()
+            }
+        }
+
+        deinit {
+            cleanup()
+        }
+
+        private func cleanup() {
+            if let b = boundsObserver {
+                NotificationCenter.default.removeObserver(b)
+                boundsObserver = nil
+            }
+        }
+
+        func recheck() {
+            evaluateBottom()
+        }
+
+        func evaluateBottom() {
+            guard let sv = self.enclosingScrollView else { return }
+            let clip = sv.contentView
+            let doc = sv.documentView
+            let docHeight = doc?.bounds.height ?? 0
+            let clipHeight = clip.bounds.height
+            let originY = clip.bounds.origin.y
+
+            if docHeight <= clipHeight + 4 {
+                self.onScrollStateChanged?(true)
+                return
+            }
+
+            // In flipped NSScrollView (SwiftUI):
+            // originY starts at 0 at the top, and reaches docHeight - clipHeight at the bottom
+            let isAtBottom = (originY + clipHeight >= docHeight - 8)
+            self.onScrollStateChanged?(isAtBottom)
+        }
+
+        func checkSetup() {
+            guard window != nil else { return }
+
+            if let scrollView = enclosingScrollView, boundsObserver == nil {
+                let clipView = scrollView.contentView
+                clipView.postsBoundsChangedNotifications = true
+
+                DispatchQueue.main.async { [weak self] in
+                    self?.evaluateBottom()
+                }
+
+                boundsObserver = NotificationCenter.default.addObserver(
+                    forName: NSView.boundsDidChangeNotification,
+                    object: clipView,
+                    queue: .main
+                ) { [weak self] _ in
+                    self?.evaluateBottom()
                 }
             }
         }

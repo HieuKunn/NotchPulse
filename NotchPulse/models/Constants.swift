@@ -41,6 +41,7 @@ extension Notification.Name {
     static let mediaControllerChanged = Notification.Name("mediaControllerChanged")
     static let previewNotchWidth = Notification.Name("previewNotchWidth")
     static let closeNotchPreview = Notification.Name("closeNotchPreview")
+    static let notchDidOpen = Notification.Name("notchDidOpen")
 }
 
 // Media controller types for selection in settings
@@ -310,6 +311,7 @@ extension Defaults.Keys {
     static let quickShareProvider = Key<String>("quickShareProvider", default: QuickShareProvider.defaultProvider.id)
     static let copyOnDrag = Key<Bool>("copyOnDrag", default: false)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: false)
+    static let shakeAutoCloseDelay = Key<Double>("shakeAutoCloseDelay", default: 5.0)
     static let expandedDragDetection = Key<Bool>("expandedDragDetection", default: true)
     static let dragDetectionPadding = Key<Double>("dragDetectionPadding", default: 40.0)
     

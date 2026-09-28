@@ -16,8 +16,6 @@ final class DragDetector {
     typealias VoidCallback = () -> Void
     typealias PositionCallback = (_ globalPoint: CGPoint) -> Void
 
-    var onDragEntersNotchRegion: VoidCallback?
-    var onDragExitsNotchRegion: VoidCallback?
     var onDragEnded: VoidCallback?
     var onDragMove: PositionCallback?
     var onGlobalDragStateChanged: ((Bool) -> Void)?
@@ -37,7 +35,6 @@ final class DragDetector {
             }
         }
     }
-    private var hasEnteredNotchRegion: Bool = false
     private var isHoveringFromRadar: Bool = false
 
     // MARK: - Shake Detection State
@@ -49,11 +46,13 @@ final class DragDetector {
     private var recentSamples: [MouseSample] = []
     private var lastShakeTriggerTime: TimeInterval = 0
 
-    private let regionProvider: (_ isDraggingContent: Bool) -> CGRect
+    private let regionProvider: () -> CGRect
+    private let screenFrameProvider: (() -> CGRect)?
     private let dragPasteboard = NSPasteboard(name: .drag)
 
-    init(regionProvider: @escaping (_ isDraggingContent: Bool) -> CGRect) {
+    init(regionProvider: @escaping () -> CGRect, screenFrameProvider: (() -> CGRect)? = nil) {
         self.regionProvider = regionProvider
+        self.screenFrameProvider = screenFrameProvider
         self.lastKnownIdlePasteboardCount = dragPasteboard.changeCount
     }
 
@@ -125,6 +124,11 @@ final class DragDetector {
     private func checkShakeGesture(currentPoint: CGPoint, currentTime: TimeInterval) {
         // ONLY detect shake-to-shelf when ACTUALLY dragging droppable content!
         guard isContentDragging else { return }
+
+        // Rule: Shake must ONLY trigger on the display where the cursor actually is!
+        if let screenFrame = screenFrameProvider?() {
+            guard screenFrame.contains(currentPoint) else { return }
+        }
 
         // Debounce: don't trigger again within 0.8s of last shake
         guard currentTime - lastShakeTriggerTime > 0.8 else { return }
@@ -200,13 +204,8 @@ final class DragDetector {
 
             // Instant reset when mouse button is released.
             // Under NO circumstance should a released mouse remain in a dragging state.
-            if isContentDragging || hasEnteredNotchRegion {
-                let wasInRegion = hasEnteredNotchRegion
+            if isContentDragging {
                 isContentDragging = false
-                hasEnteredNotchRegion = false
-                if wasInRegion {
-                    onDragExitsNotchRegion?()
-                }
                 onDragEnded?()
             }
             lastKnownIdlePasteboardCount = currentPbCount
@@ -214,7 +213,7 @@ final class DragDetector {
             // Hover radar: Only runs when extended hover area is explicitly enabled
             let shouldRunHoverRadar = Defaults[.extendHoverArea]
             if shouldRunHoverRadar {
-                let hoverRegion = regionProvider(false)
+                let hoverRegion = regionProvider()
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
 
                 if containsMouseHover && !isHoveringFromRadar {
@@ -258,6 +257,7 @@ final class DragDetector {
             onDragMove?(mouseLocation)
 
             // ONLY detect shake-to-shelf when ACTUALLY dragging a file or droppable content!
+            // No proximity/hover drag tracking — shelf only opens on deliberate left-right shake!
             checkShakeGesture(currentPoint: mouseLocation, currentTime: now)
 
             // While actively dragging files, disengage hover radar
@@ -265,24 +265,12 @@ final class DragDetector {
                 isHoveringFromRadar = false
                 onGlobalHoverStateChanged?(false)
             }
-
-            // Check intersection with expanded drag detection region
-            let activeDragRegion = regionProvider(true)
-            let containsMouseDrag = activeDragRegion.contains(mouseLocation)
-
-            if containsMouseDrag && !hasEnteredNotchRegion {
-                hasEnteredNotchRegion = true
-                onDragEntersNotchRegion?()
-            } else if !containsMouseDrag && hasEnteredNotchRegion {
-                hasEnteredNotchRegion = false
-                onDragExitsNotchRegion?()
-            }
         } else {
             // Mouse is pressed down (e.g. moving an app window, selecting text, or regular click):
             // NEVER trigger a new hover radar open while mouse button is held!
             // Only maintain hover radar if it was already active before mouse-down.
             if isHoveringFromRadar {
-                let hoverRegion = regionProvider(false)
+                let hoverRegion = regionProvider()
                 let containsMouseHover = hoverRegion.contains(mouseLocation)
                 if !containsMouseHover {
                     isHoveringFromRadar = false
@@ -302,7 +290,6 @@ final class DragDetector {
         }
         mouseMonitor = nil
         isContentDragging = false
-        hasEnteredNotchRegion = false
         recentSamples.removeAll()
         dragStartLocation = nil
         mouseDownPasteboardCount = nil

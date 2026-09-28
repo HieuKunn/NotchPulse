@@ -85,10 +85,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboardingWindowController: NSWindowController?
     private var screenLockedObserver: Any?
     private var screenUnlockedObserver: Any?
+    private var screenLockedObservers: [Any] = []
+    private var workspaceLockObservers: [NSObjectProtocol] = []
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
-    private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
     private var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
     private var currentViewObserver: AnyCancellable?
     private var shelfWindows: [String: ShelfDropZoneWindow] = [:]
@@ -126,6 +127,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DistributedNotificationCenter.default().removeObserver(observer)
             screenUnlockedObserver = nil
         }
+        for observer in screenLockedObservers {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        screenLockedObservers.removeAll()
+        for observer in workspaceLockObservers {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+        workspaceLockObservers.removeAll()
         cleanupDragDetectors()
         cleanupWindows()
         MusicManager.shared.destroy()
@@ -138,6 +147,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func onScreenLocked(_ notification: Notification) {
         isScreenLocked = true
 
+        collapseAllNotches(force: true)
+
         shelfWindows.values.forEach { window in
             window.orderOut(nil)
         }
@@ -149,6 +160,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             enableSkyLightOnAllWindows()
         }
+    }
+
+    @MainActor
+    func collapseAllNotches(force: Bool = true) {
+        SharingStateManager.shared.preventNotchClose = false
+        ShelfStateViewModel.shared.isPinned = false
+        CalendarStateViewModel.shared.isPinned = false
+        withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
+            self.vm.close(force: force)
+            for (_, subVm) in self.viewModels {
+                subVm.close(force: force)
+            }
+        }
+        self.coordinator.toggleExpandingView(status: false)
+        self.coordinator.toggleSneakPeek(status: false)
     }
 
     @MainActor
@@ -283,10 +309,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
 
-        // SETUP LIGHTWEIGHT RADAR FOR HOVER & DRAG DETECTION
+        // SETUP LIGHTWEIGHT RADAR FOR HOVER DETECTION
         // Uses pure coordinate monitoring (NSEvent.mouseLocation) with ZERO physical windows or overlays.
         // Clicks to underlying tabs, links, and buttons remain 100% unobstructed.
-        let detector = DragDetector { [weak self] isDraggingContent in
+        let detector = DragDetector { [weak self] in
             guard let self = self else { return .zero }
             let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
             let currentScreen = NSScreen.screen(withUUID: uuid) ?? screen
@@ -296,43 +322,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let hasPhysicalNotch = currentScreen.safeAreaInsets.top > 0 || currentScreen.auxiliaryTopLeftArea != nil
             let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
 
-            if isDraggingContent {
-                let padding = Defaults[.expandedDragDetection] ? CGFloat(Defaults[.dragDetectionPadding]) : 0.0
-                // For drag: envelope spans from the open shelf bounds + padding so approaching within 120px always triggers shelf
-                let targetShelfWidth = max(700.0, max(currentTargetVM.notchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let targetShelfHeight = max(190.0, currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height)
+            let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
+            if currentTargetVM.notchState == .open {
+                let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
+                let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
                 return CGRect(
-                    x: currentFrame.midX - (targetShelfWidth / 2 + padding),
-                    y: currentFrame.maxY - (targetShelfHeight + padding + topOffset),
-                    width: targetShelfWidth + (padding * 2),
-                    height: targetShelfHeight + padding + topOffset + 40
+                    x: currentFrame.midX - (openWidth / 2 + padding),
+                    y: currentFrame.maxY - (openHeight + padding + topOffset),
+                    width: openWidth + (padding * 2),
+                    height: openHeight + padding + topOffset + 15
                 )
             } else {
-                let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
-                if currentTargetVM.notchState == .open {
-                    let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                    let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
-                    return CGRect(
-                        x: currentFrame.midX - (openWidth / 2 + padding),
-                        y: currentFrame.maxY - (openHeight + padding + topOffset),
-                        width: openWidth + (padding * 2),
-                        height: openHeight + padding + topOffset + 15
-                    )
-                } else {
-                    let closedSize = currentTargetVM.closedNotchSize
-                    let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
-                    let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
-                    // Confine closed notch hover bounds strictly to the physical notch / island.
-                    // Absolutely no lateral or downward bleeding to prevent false triggers over browser tabs.
-                    return CGRect(
-                        x: currentFrame.midX - (closedWidth / 2),
-                        y: currentFrame.maxY - (closedHeight + topOffset),
-                        width: closedWidth,
-                        height: closedHeight + topOffset
-                    )
-                }
+                let closedSize = currentTargetVM.closedNotchSize
+                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                // Confine closed notch hover bounds strictly to the physical notch / island.
+                // Absolutely no lateral or downward bleeding to prevent false triggers over browser tabs.
+                return CGRect(
+                    x: currentFrame.midX - (closedWidth / 2),
+                    y: currentFrame.maxY - (closedHeight + topOffset),
+                    width: closedWidth,
+                    height: closedHeight + topOffset
+                )
+            },
+            screenFrameProvider: { [weak self] in
+                guard let self = self else { return screen.frame }
+                return (NSScreen.screen(withUUID: uuid) ?? screen).frame
             }
-        }
+        )
         
         detector.onShakeDetected = { [weak self] in
             Task { @MainActor in
@@ -347,10 +364,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 }
 
-                // If user shakes to open the shelf but does not drop into the notch within 6.0s, auto-close (unless tour is active)
+                // If user shakes to open the shelf but does not drop into the notch within the configured delay, auto-close (unless tour is active)
                 self.shakeAutoCloseTasks[uuid]?.cancel()
+                let waitDuration = Defaults[.shakeAutoCloseDelay]
                 self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(6000))
+                    try? await Task.sleep(for: .milliseconds(Int(waitDuration * 1000)))
                     guard !Task.isCancelled, let self = self else { return }
                     guard !SpotlightTourManager.shared.isActive else { return }
                     let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
@@ -364,26 +382,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        detector.onDragEntersNotchRegion = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragEntersNotchRegion(onScreen: screen)
-            }
-        }
-        detector.onDragExitsNotchRegion = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragExitsNotchRegion(onScreen: screen)
-            }
-        }
         detector.onDragEnded = { [weak self] in
             Task { @MainActor in
                 self?.handleDragEnded(onScreen: screen)
-            }
-        }
-        detector.onGlobalDragStateChanged = { [weak self] _ in
-            Task { @MainActor in
-                _ = self
-                // dragDetectorTargeting represents whether the notch detection zone is actively targeted,
-                // which is updated on region enter/exit.
             }
         }
         detector.onGlobalHoverStateChanged = { [weak self] hovering in
@@ -396,23 +397,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         dragDetectors[uuid] = detector
         detector.startMonitoring()
-    }
-
-    private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
-        guard let uuid = screen.displayUUID else { return }
-        
-        shakeAutoCloseTasks[uuid]?.cancel()
-        shakeAutoCloseTasks[uuid] = nil
-        dragExitDebounceTasks[uuid]?.cancel()
-        dragExitDebounceTasks[uuid] = nil
-        
-        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-        targetVM.dragDetectorTargeting = true
-        
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            targetVM.open()
-            coordinator.currentView = .shelf
-        }
     }
 
     @MainActor
@@ -431,32 +415,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
-        guard let uuid = screen.displayUUID else { return }
-        
-        shakeAutoCloseTasks[uuid]?.cancel()
-        shakeAutoCloseTasks[uuid] = nil
-        dragExitDebounceTasks[uuid]?.cancel()
-        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled, let self = self else { return }
-            
-            self.resetAllDropAndDragTargeting()
-            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            
-            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
-                targetVM.close()
-            }
-        }
-    }
-
     private func handleDragEnded(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
         shakeAutoCloseTasks[uuid]?.cancel()
         shakeAutoCloseTasks[uuid] = nil
-        dragExitDebounceTasks[uuid]?.cancel()
-        dragExitDebounceTasks[uuid] = nil
         
         resetAllDropAndDragTargeting()
         guard !SpotlightTourManager.shared.isActive else { return }
@@ -675,12 +638,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self = self else { return }
             let width = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                self.vm.open()
-                self.vm.notchSize = CGSize(width: width, height: openNotchSize.height)
-                for (_, subVm) in self.viewModels {
-                    subVm.open()
-                    subVm.notchSize = CGSize(width: width, height: openNotchSize.height)
+                // Rule: Only 1 notch active at a time! Only preview on the screen containing mouse cursor.
+                let mouseLocation = NSEvent.mouseLocation
+                let activeScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
+                let activeVM: NotchPulseViewModel
+                if Defaults[.showOnAllDisplays], let uuid = activeScreen?.displayUUID, let sub = self.viewModels[uuid] {
+                    activeVM = sub
+                } else {
+                    activeVM = self.vm
                 }
+                activeVM.open()
+                activeVM.notchSize = CGSize(width: width, height: openNotchSize.height)
             }
         }
 
@@ -704,6 +672,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.onScreenLocked(notification)
                 }
         }
+        if let obs = screenLockedObserver {
+            screenLockedObservers.append(obs)
+        }
+
+        let screensaverLockObserver = DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name(rawValue: "com.apple.screensaver.didstart"),
+            object: nil, queue: .main) { [weak self] notification in
+                Task { @MainActor in
+                    self?.onScreenLocked(notification)
+                }
+        }
+        screenLockedObservers.append(screensaverLockObserver)
+
+        let willSleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil, queue: .main) { [weak self] notification in
+                Task { @MainActor in
+                    self?.onScreenLocked(notification)
+                }
+        }
+        workspaceLockObservers.append(willSleepObserver)
+
+        let screensDidSleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.screensDidSleepNotification,
+            object: nil, queue: .main) { [weak self] notification in
+                Task { @MainActor in
+                    self?.onScreenLocked(notification)
+                }
+        }
+        workspaceLockObservers.append(screensDidSleepObserver)
 
         screenUnlockedObserver = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name(rawValue: "com.apple.screenIsUnlocked"),
@@ -940,8 +938,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             vm.screenUUID = selectedScreen.displayUUID
-            vm.notchSize = getClosedNotchSize(screenUUID: selectedScreen.displayUUID)
-            vm.closedNotchSize = vm.notchSize
+            if vm.notchState == .closed {
+                vm.notchSize = getClosedNotchSize(screenUUID: selectedScreen.displayUUID)
+                vm.closedNotchSize = vm.notchSize
+            }
 
             if window == nil {
                 window = createNotchPulseWindow(for: selectedScreen, with: vm)

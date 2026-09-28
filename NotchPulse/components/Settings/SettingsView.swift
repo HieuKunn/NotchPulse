@@ -1476,6 +1476,7 @@ struct About: View {
 struct Shelf: View {
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
+    @Default(.shakeAutoCloseDelay) var shakeAutoCloseDelay
     @StateObject private var quickShareService = QuickShareService.shared
 
     private var selectedProvider: QuickShareProvider? {
@@ -1501,6 +1502,18 @@ struct Shelf: View {
                 Defaults.Toggle(key: .autoRemoveShelfItems) {
                     Text(loc("Remove from shelf after dragging"))
                 }
+
+                Slider(value: $shakeAutoCloseDelay, in: 2...20, step: 1) {
+                    HStack {
+                        Text(loc("Auto-close delay after shake"))
+                        Spacer()
+                        Text("\(Int(shakeAutoCloseDelay))s")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text(loc("When shaking to open the shelf while dragging a file, it will automatically close after this duration if you do not drop the file into the shelf."))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
 
             } header: {
                 HStack {

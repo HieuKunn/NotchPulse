@@ -66,7 +66,7 @@ struct ShelfView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(
-                        vm.dragDetectorTargeting
+                        vm.dropZoneTargeting
                             ? Color.accentColor.opacity(0.9)
                             : Color.white.opacity(0.12),
                         style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [8, 6])

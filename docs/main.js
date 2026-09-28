@@ -50,6 +50,14 @@ const i18nData = {
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Clipboard History",
     "chip.clipboardSub": "50 Items • Quick ⌘⌥V",
+    "chip.lunarTitle": "Lunar & Multi-Cal",
+    "chip.lunarSub": "Âm Lịch • Hijri • Hebrew",
+    "chip.islandTitle": "Dynamic Island Mode",
+    "chip.islandSub": "Pixel-Perfect Bezier Curve",
+    "chip.lockscreenTitle": "Lock Screen HUD",
+    "chip.lockscreenSub": "Instant Live Activity",
+    "chip.displayTitle": "Multi-Display Hub",
+    "chip.displaySub": "Dual Screen Seamless Sync",
 
     // Demo Controls & Notch
     "demo.modeNotch": "MacBook Notch",
@@ -186,6 +194,14 @@ const i18nData = {
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Bộ Nhớ Tạm",
     "chip.clipboardSub": "50 Mục • Nhấn ⌘⌥V",
+    "chip.lunarTitle": "Lịch Âm & Đa Lịch",
+    "chip.lunarSub": "Âm Lịch VN • Hồi Giáo • Do Thái",
+    "chip.islandTitle": "Chế Độ Dynamic Island",
+    "chip.islandSub": "Đường Cong Bezier Hoàn Hảo",
+    "chip.lockscreenTitle": "HUD Màn Hình Khóa",
+    "chip.lockscreenSub": "Live Activity Không Độ Trễ",
+    "chip.displayTitle": "Đồng Bộ Đa Màn Hình",
+    "chip.displaySub": "Hoạt Động 1 Notch Chuẩn Xác",
 
     // Demo Controls & Notch
     "demo.modeNotch": "Tai Thỏ",
@@ -322,6 +338,14 @@ const i18nData = {
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Zwischenablage",
     "chip.clipboardSub": "50 Einträge • ⌘⌥V",
+    "chip.lunarTitle": "Mond- & Regionalkalender",
+    "chip.lunarSub": "Mondkalender • Hijri • Hebräisch",
+    "chip.islandTitle": "Dynamic Island Modus",
+    "chip.islandSub": "Pixelgenaue Bezier-Kurve",
+    "chip.lockscreenTitle": "Sperrbildschirm-HUD",
+    "chip.lockscreenSub": "Verzögerungsfreie Live-Aktivität",
+    "chip.displayTitle": "Multi-Display-Hub",
+    "chip.displaySub": "Nahtlose Bildschirm-Sync",
 
     // Demo Controls
     "demo.modeNotch": "MacBook Notch",
@@ -458,6 +482,14 @@ const i18nData = {
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "クリップボード履歴",
     "chip.clipboardSub": "50件保持 • ⌘⌥V",
+    "chip.lunarTitle": "旧暦・地域別カレンダー",
+    "chip.lunarSub": "旧暦 • ヒジュラ暦 • ユダヤ暦",
+    "chip.islandTitle": "ダイナミックアイランド",
+    "chip.islandSub": "高精度ベジェ曲線",
+    "chip.lockscreenTitle": "ロック画面 HUD",
+    "chip.lockscreenSub": "遅延ゼロのライブアクティビティ",
+    "chip.displayTitle": "マルチディスプレイ同期",
+    "chip.displaySub": "スマート単一ノッチ制御",
 
     // Demo Controls
     "demo.modeNotch": "ノッチモード",
@@ -594,6 +626,14 @@ const i18nData = {
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "剪貼簿紀錄",
     "chip.clipboardSub": "50 筆紀錄 • 快速 ⌘⌥V",
+    "chip.lunarTitle": "農曆與多國曆法",
+    "chip.lunarSub": "農曆 • 回曆 • 希伯來曆",
+    "chip.islandTitle": "動態島靈動模式",
+    "chip.islandSub": "像素級貝茲曲線",
+    "chip.lockscreenTitle": "鎖定畫面 HUD",
+    "chip.lockscreenSub": "零延遲即時動態",
+    "chip.displayTitle": "多螢幕協同中樞",
+    "chip.displaySub": "智慧單一瀏海切換",
 
     // Demo Controls
     "demo.modeNotch": "MacBook 瀏海",
@@ -730,6 +770,14 @@ const i18nData = {
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "剪贴板记录",
     "chip.clipboardSub": "50 条记录 • 快捷 ⌘⌥V",
+    "chip.lunarTitle": "农历与多国历法",
+    "chip.lunarSub": "农历 • 回历 • 希伯来历",
+    "chip.islandTitle": "灵动岛模式",
+    "chip.islandSub": "像素级贝塞尔曲线",
+    "chip.lockscreenTitle": "锁定屏幕 HUD",
+    "chip.lockscreenSub": "零延迟实时活动",
+    "chip.displayTitle": "多显示器中枢",
+    "chip.displaySub": "智能单刘海切换",
 
     // Demo Controls
     "demo.modeNotch": "MacBook 刘海",
@@ -866,6 +914,14 @@ const i18nData = {
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Portapapeles",
     "chip.clipboardSub": "50 elementos • ⌘⌥V",
+    "chip.lunarTitle": "Cal Lunar y Regional",
+    "chip.lunarSub": "Lunar • Hijri • Hebreo",
+    "chip.islandTitle": "Modo Dynamic Island",
+    "chip.islandSub": "Curva Bézier Perfecta",
+    "chip.lockscreenTitle": "HUD Pantalla Bloqueada",
+    "chip.lockscreenSub": "Actividad en Vivo al Instante",
+    "chip.displayTitle": "Hub Multipantalla",
+    "chip.displaySub": "Sincronización Inteligente",
 
     // Demo Controls
     "demo.modeNotch": "MacBook Notch",
@@ -991,8 +1047,7 @@ if (!currentLang || !i18nData[currentLang]) {
   else if (browserLang.startsWith("es")) currentLang = "es";
   else if (browserLang.startsWith("zh-tw") || browserLang.startsWith("zh-hk")) currentLang = "zh-TW";
   else if (browserLang.startsWith("zh")) currentLang = "zh-CN";
-  else if (browserLang.startsWith("en")) currentLang = "en";
-  else currentLang = "vi";
+  else currentLang = "en";
 }
 
 let notchMode = "notch"; // 'notch' or 'island'
@@ -1237,10 +1292,11 @@ function applyLanguage(lang) {
   });
 
   const dict = i18nData[lang] || i18nData.en;
+  const enDict = i18nData.en;
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
-    if (dict[key]) {
-      let text = dict[key];
+    let text = dict[key] || enDict[key];
+    if (text) {
       text = text.replace(/\{version\}/g, appReleaseInfo.versionShort);
       text = text.replace(/\{fullVersion\}/g, appReleaseInfo.version);
       text = text.replace(/\{releaseName\}/g, appReleaseInfo.name);

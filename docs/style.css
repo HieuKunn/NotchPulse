@@ -616,7 +616,7 @@ a {
   position: relative;
   width: 100%;
   max-width: 1080px;
-  min-height: 460px;
+  min-height: 520px;
   margin: 36px auto 10px auto;
   border-radius: 32px;
   background: radial-gradient(ellipse at 50% 20%, rgba(255, 252, 248, 0.65) 0%, rgba(234, 219, 206, 0.2) 70%, transparent 100%);
@@ -769,12 +769,16 @@ a {
 
 .node-faceid .node-icon { color: #E8DFD8; }
 .node-stats .node-icon { color: #38BDF8; }
-.node-battery .node-icon { color: #10B981; }
+.node-battery .node-icon { color: #34D399; }
 .node-clipboard .node-icon { color: #A78BFA; }
 .node-fps .node-icon { color: #F43F5E; }
 .node-shelf .node-icon { color: #60A5FA; }
 .node-lyrics .node-icon { color: #F472B6; }
-.node-ddc .node-icon { color: #F59E0B; }
+.node-ddc .node-icon { color: #FB923C; }
+.node-lunar .node-icon { color: #FDE68A; }
+.node-island .node-icon { color: #C084FC; }
+.node-lockscreen .node-icon { color: #FBBF24; }
+.node-display .node-icon { color: #2DD4BF; }
 
 .node-text {
   display: flex;
@@ -796,48 +800,74 @@ a {
   font-weight: 400;
 }
 
-/* Individual Node Placements (Evenly Distributed & Balanced Across Frosted Frame) */
-/* Left Column */
+/* Individual Node Placements (Evenly Distributed & Random-Feel Staggered Constellation) */
+
+/* Left Wing */
 .node-faceid {
-  top: 14%;
-  left: 3.5%;
+  top: 11%;
+  left: 3%;
+}
+
+.node-display {
+  top: 11%;
+  left: 27%;
+}
+
+.node-lunar {
+  top: 29%;
+  left: 17%;
 }
 
 .node-stats {
-  top: 48%;
-  left: 5%;
+  top: 49%;
+  left: 3%;
 }
 
 .node-battery {
-  bottom: 14%;
-  left: 10%;
+  top: 69%;
+  left: 11%;
 }
 
-/* Bottom Center Cluster */
+.node-lockscreen {
+  bottom: 6%;
+  left: 21%;
+}
+
+/* Center Bottom */
+.node-fps {
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.node-fps:hover {
+  transform: translateX(-50%) translateY(-4px) !important;
+}
+
+/* Right Wing */
 .node-clipboard {
   bottom: 6%;
-  left: 31%;
+  right: 21%;
 }
 
-.node-fps {
-  bottom: 6%;
-  right: 31%;
-}
-
-/* Right Column */
 .node-shelf {
-  bottom: 14%;
-  right: 10%;
+  top: 69%;
+  right: 11%;
 }
 
 .node-lyrics {
-  top: 48%;
-  right: 5%;
+  top: 49%;
+  right: 3%;
+}
+
+.node-island {
+  top: 29%;
+  right: 17%;
 }
 
 .node-ddc {
-  top: 14%;
-  right: 3.5%;
+  top: 11%;
+  right: 3%;
 }
 
 @keyframes floatDrift {
