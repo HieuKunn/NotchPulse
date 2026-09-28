@@ -315,7 +315,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // SETUP LIGHTWEIGHT RADAR FOR HOVER DETECTION
         // Uses pure coordinate monitoring (NSEvent.mouseLocation) with ZERO physical windows or overlays.
         // Clicks to underlying tabs, links, and buttons remain 100% unobstructed.
-        let detector = DragDetector { [weak self] in
+        let detector = DragDetector(regionProvider: { [weak self] in
             guard let self = self else { return .zero }
             let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
             let currentScreen = NSScreen.screen(withUUID: uuid) ?? screen
@@ -1039,4 +1039,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         onboardingWindowController?.window?.makeKeyAndOrderFront(nil)
         onboardingWindowController?.window?.orderFrontRegardless()
     }
+}
+
 }
