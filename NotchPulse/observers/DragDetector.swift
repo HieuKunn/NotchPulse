@@ -9,6 +9,7 @@ import Cocoa
 import Defaults
 import UniformTypeIdentifiers
 
+@MainActor
 final class DragDetector {
 
     // MARK: - Callbacks
@@ -109,7 +110,9 @@ final class DragDetector {
 
         // Global monitor for leftMouseDragged & mouseMoved (for real-time response to drag and shake gestures)
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged, .mouseMoved]) { [weak self] _ in
-            self?.checkState()
+            Task { @MainActor in
+                self?.checkState()
+            }
         }
 
         // Polling timer running in .common mode so it continues firing during active drag
