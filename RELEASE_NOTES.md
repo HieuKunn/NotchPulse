@@ -1,13 +1,15 @@
-# NotchPulse v5.0.0 (Build 189) Release Notes
+# NotchPulse v5.0.0 (Build 190) Release Notes
 
 ## 🚀 What's New & Visible Improvements
 
-- **🤝 Ultra-Responsive Shake-to-Shelf Activation**:
-  - **Multi-Axis Reversal Engine**: Detects both horizontal, vertical, and diagonal shakes instantly with 7pt sensitivity and a 900ms gesture window.
-  - **Bypassed Pasteboard Baseline Locks**: Guarantees active drag detection as soon as you drag any file, image, URL, or text snippet > 6pt, preventing state locks when dragging multiple items in succession.
-  - **Zero False Negatives**: Effortlessly open the Notch Shelf by shaking any dragged file, image from Safari, or desktop item.
+- **🔒 Intelligent Face ID Camera-Screen Routing**:
+  - Setting up Face ID directly from the onboarding tour now displays strictly on the monitor equipped with the physical camera, identical to launching enrollment from Settings.
+  - Secondary displays maintain their normal notch interface without duplicate or misplaced setup prompts.
 
-- **✨ Interactive Spotlight Onboarding Tour**:
-  - **Pass-Through Backdrop**: Dual-window system lets you interact directly with the Notch, Finder, and Desktop while reading guidance cards.
-  - **Live UI Tab Sync**: Automatically opens and displays the corresponding view (Home, Shelf, Calendar, Clipboard, Settings) for each tour step.
-  - **Guaranteed Notch Open State**: Closing onboarding or tour overlay keeps the Notch open and ready for immediate use.
+- **✨ Automatic Tour Tab Navigation & Resumption**:
+  - **Instant Tab Pre-Switching**: The onboarding tour automatically navigates to each relevant tab (Home/Media, Shelf, Calendar, Clipboard) before presenting instructions, removing the need for manual tab clicks so you can immediately interact with items inside.
+  - **Seamless Flow Resumption**: Exiting or completing Face ID setup seamlessly advances directly to the next onboarding step without interrupting the walkthrough.
+  - **Non-Terminating Exit**: Closing onboarding or cancelling Face ID setup smoothly closes the guide overlay and keeps the Notch open—never terminating the application.
+
+- **🎨 High-Contrast Onboarding Readability**:
+  - Re-themed all onboarding card typography, badges, dividers, and control buttons with crisp high-contrast black styling, ensuring pristine legibility across all macOS display appearances.

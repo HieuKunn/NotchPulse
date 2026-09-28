@@ -233,39 +233,39 @@ struct SpotlightTooltipCard: View {
             HStack(spacing: 10) {
                 Image(systemName: step.iconName)
                     .font(.system(size: 19, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
 
                 Text(step.title(lang: language))
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .lineLimit(1)
 
                 Spacer()
 
                 Text(step.badgeText(lang: language))
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.white.opacity(0.15)))
-                    .foregroundColor(.white.opacity(0.85))
+                    .background(Capsule().fill(Color.black.opacity(0.08)))
+                    .foregroundColor(Color.black.opacity(0.75))
 
                 // Quick exit X button: Closes guide and keeps Notch open
                 Button(action: onSkipAll) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(Color.black.opacity(0.45))
                 }
                 .buttonStyle(PlainButtonStyle())
                 .help(isVietnamese ? "Đóng hướng dẫn (Notch vẫn mở)" : "Close guide (Notch stays open)")
             }
 
             Divider()
-                .background(Color.white.opacity(0.2))
+                .background(Color.black.opacity(0.12))
 
             // Body Description
             Text(step.description(lang: language))
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(.white.opacity(0.92))
+                .foregroundColor(Color.black.opacity(0.85))
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -281,19 +281,19 @@ struct SpotlightTooltipCard: View {
                 Button(action: onSkipAll) {
                     Text(isVietnamese ? "Bỏ qua tất cả" : "Skip all")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(Color.black.opacity(0.5))
                 }
                 .buttonStyle(PlainButtonStyle())
 
                 Text("•")
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.3))
+                    .foregroundColor(Color.black.opacity(0.3))
 
                 if !isLast {
                     Button(action: onSkipStep) {
                         Text(isVietnamese ? "Bỏ qua bước" : "Skip step")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(Color.black.opacity(0.7))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -309,8 +309,8 @@ struct SpotlightTooltipCard: View {
                         .font(.system(size: 12, weight: .medium))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12)))
-                        .foregroundColor(.white)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.08)))
+                        .foregroundColor(Color.black.opacity(0.85))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -327,10 +327,10 @@ struct SpotlightTooltipCard: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.white)
+                            .fill(Color.black)
                     )
-                    .foregroundColor(.black)
-                    .shadow(color: .white.opacity(0.35), radius: 6)
+                    .foregroundColor(.white)
+                    .shadow(color: Color.black.opacity(0.2), radius: 4)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -339,16 +339,16 @@ struct SpotlightTooltipCard: View {
         .frame(width: 430, height: (step == .faceIDLock) ? 290 : 240)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(nsColor: .windowBackgroundColor).opacity(0.88))
+                .fill(Color(nsColor: .windowBackgroundColor).opacity(0.96))
                 .background(
                     VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .stroke(Color.black.opacity(0.12), lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.5), radius: 20, x: 0, y: 10)
+                .shadow(color: Color.black.opacity(0.35), radius: 20, x: 0, y: 10)
         )
     }
 
@@ -357,12 +357,12 @@ struct SpotlightTooltipCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "person.badge.shield.checkmark.fill")
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .font(.system(size: 13))
 
                 Text(isVietnamese ? "Bạn có muốn thiết lập Face ID ngay không?" : "Would you like to set up Face ID now?")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
             }
 
             HStack(spacing: 8) {
@@ -378,8 +378,8 @@ struct SpotlightTooltipCard: View {
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.white))
-                    .foregroundColor(.black)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.black))
+                    .foregroundColor(.white)
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -388,14 +388,14 @@ struct SpotlightTooltipCard: View {
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.12)))
-                        .foregroundColor(.white.opacity(0.85))
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.08)))
+                        .foregroundColor(Color.black.opacity(0.8))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.06)))
     }
 }
 
@@ -498,10 +498,10 @@ final class SpotlightTourManager: ObservableObject {
 
         isActive = true
 
+        updateLiveUIState(for: currentStep)
+
         backdrop.orderFrontRegardless()
         card.orderFrontRegardless()
-
-        updateLiveUIState(for: currentStep)
     }
 
     func nextStep() {
@@ -526,14 +526,17 @@ final class SpotlightTourManager: ObservableObject {
 
     private func stepDidChange() {
         guard let screen = activeScreen else { return }
+        
+        // 1. Pre-switch live tabs & open notch for the new step beforehand
+        updateLiveUIState(for: currentStep)
+
+        // 2. Update spotlight cutout and card frame
         let newTarget = currentStep.targetFrame(screenSize: screen.frame.size)
         self.currentCutoutRect = newTarget
         self.currentCornerRadius = (currentStep == .menuBarSettings || currentStep == .notchHover) ? 12 : 22
 
         let newCardRect = cardRect(for: currentStep, screen: screen)
         cardWindow?.setFrame(newCardRect, display: true, animate: true)
-
-        updateLiveUIState(for: currentStep)
     }
 
     private func cardRect(for step: SpotlightTourStep, screen: NSScreen) -> NSRect {
@@ -563,70 +566,88 @@ final class SpotlightTourManager: ObservableObject {
     }
 
     private func updateLiveUIState(for step: SpotlightTourStep) {
-        Task { @MainActor in
-            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
-            let coordinator = NotchPulseViewCoordinator.shared
+        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+        let coordinator = NotchPulseViewCoordinator.shared
 
-            let currentVM: NotchPulseViewModel
-            if Defaults[.showOnAllDisplays] {
-                let cameraScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
-                if let camUUID = cameraScreen?.displayUUID, let camVM = appDelegate.viewModels[camUUID] {
-                    currentVM = camVM
-                } else {
-                    currentVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
+        let targetVM: NotchPulseViewModel
+        if let activeUUID = self.activeScreen?.displayUUID,
+           let vm = appDelegate.viewModels[activeUUID] {
+            targetVM = vm
+        } else if let camScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }),
+                  let camUUID = camScreen.displayUUID,
+                  let vm = appDelegate.viewModels[camUUID] {
+            targetVM = vm
+        } else {
+            targetVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
+        }
+
+        let allVMs: [NotchPulseViewModel] = [appDelegate.vm, targetVM] + Array(appDelegate.viewModels.values)
+
+        // Synchronously and smoothly pre-switch tab pages so the user sees the page directly
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            switch step {
+            case .notchHover:
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
                 }
-            } else {
-                currentVM = appDelegate.vm
-            }
 
-            // Always ensure the notch is open to display the feature being explained
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                switch step {
-                case .notchHover:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = false
-                    currentVM.customOpenHeight = nil
-                    currentVM.open()
+            case .shakeToShelf:
+                coordinator.currentView = .shelf
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
 
-                case .shakeToShelf:
-                    coordinator.currentView = .shelf
-                    currentVM.customOpenHeight = nil
-                    currentVM.open()
+            case .musicPlayer:
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
 
-                case .musicPlayer:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = false
-                    currentVM.customOpenHeight = nil
-                    currentVM.open()
+            case .calendarExpand:
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
 
-                case .calendarExpand:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = true
-                    currentVM.customOpenHeight = 240
-                    currentVM.open()
+            case .calendarFullMonth:
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = true
+                for vm in allVMs {
+                    vm.customOpenHeight = 240
+                    vm.open()
+                }
 
-                case .calendarFullMonth:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = true
-                    currentVM.customOpenHeight = 240
-                    currentVM.open()
+            case .clipboardManager:
+                coordinator.currentView = .clipboard
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = 250
+                    vm.open()
+                }
 
-                case .clipboardManager:
-                    coordinator.currentView = .clipboard
-                    currentVM.customOpenHeight = 250
-                    currentVM.open()
+            case .faceIDLock:
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
 
-                case .faceIDLock:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = false
-                    currentVM.customOpenHeight = nil
-                    currentVM.open()
-
-                case .menuBarSettings:
-                    coordinator.currentView = .home
-                    CalendarStateViewModel.shared.isFullMonthExpanded = false
-                    currentVM.customOpenHeight = nil
-                    currentVM.open()
+            case .menuBarSettings:
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
                 }
             }
         }
@@ -638,6 +659,7 @@ final class SpotlightTourManager: ObservableObject {
     }
 
     func unhideTour() {
+        guard isActive else { return }
         backdropWindow?.orderFrontRegardless()
         cardWindow?.orderFrontRegardless()
     }
@@ -661,14 +683,15 @@ final class SpotlightTourManager: ObservableObject {
                         NotificationCenter.default.removeObserver(obs)
                         self?.faceIDPhaseObserver = nil
                     }
-                    try? await Task.sleep(for: .milliseconds(300))
+                    try? await Task.sleep(for: .milliseconds(350))
                     self?.unhideTour()
                     completion()
                 }
             }
         }
 
-        FaceIDEnrollmentController.startAddIdentity()
+        // Use standard enrollment flow (identical to Settings menu: startEnrollmentOnly)
+        FaceIDEnrollmentController.startEnrollmentOnly()
     }
 
     func closeTour() {
@@ -686,26 +709,16 @@ final class SpotlightTourManager: ObservableObject {
         cardWindow = nil
 
         // Keep the Notch OPEN after closing tour so user can start using it immediately!
-        Task { @MainActor in
-            guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
-            let coordinator = NotchPulseViewCoordinator.shared
-            let currentVM: NotchPulseViewModel
-            if Defaults[.showOnAllDisplays] {
-                let cameraScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 })
-                if let camUUID = cameraScreen?.displayUUID, let camVM = appDelegate.viewModels[camUUID] {
-                    currentVM = camVM
-                } else {
-                    currentVM = appDelegate.viewModels[coordinator.selectedScreenUUID] ?? appDelegate.vm
-                }
-            } else {
-                currentVM = appDelegate.vm
-            }
+        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+        let coordinator = NotchPulseViewCoordinator.shared
+        coordinator.currentView = .home
+        CalendarStateViewModel.shared.isFullMonthExpanded = false
 
-            coordinator.currentView = .home
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            currentVM.customOpenHeight = nil
+        let allVMs: [NotchPulseViewModel] = [appDelegate.vm] + Array(appDelegate.viewModels.values)
+        for vm in allVMs {
+            vm.customOpenHeight = nil
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                currentVM.open()
+                vm.open()
             }
         }
     }

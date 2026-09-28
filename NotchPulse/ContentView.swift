@@ -77,6 +77,7 @@ struct ContentView: View {
     }
 
     private var isFaceIDContentVisible: Bool {
+        guard isFaceIDActive else { return false }
         switch faceIDOverlay.phase {
         case .scanning, .success, .failure, .onboarding:
             return true
@@ -513,6 +514,7 @@ struct ContentView: View {
             handleHover(isRadarHovering)
         }
         .onChange(of: coordinator.currentView) { _, newView in
+            guard !SpotlightTourManager.shared.isActive else { return }
             if vm.customOpenHeight != nil {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     vm.customOpenHeight = nil
@@ -564,7 +566,7 @@ struct ContentView: View {
                     Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: vm.effectiveClosedNotchHeight)
                 } else {
                     ZStack {
-                        if !isFaceIDActive && !isFaceIDContentVisible {
+                        if !isFaceIDContentVisible {
                             Group {
                                 if (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                     InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
@@ -589,7 +591,7 @@ struct ContentView: View {
                             .transition(.opacity)
                         }
 
-                        if isFaceIDActive || isFaceIDContentVisible {
+                        if isFaceIDContentVisible {
                             FaceIDContentView()
                         }
                     }

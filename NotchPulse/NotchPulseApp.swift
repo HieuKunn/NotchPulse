@@ -459,6 +459,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid] = nil
         
         resetAllDropAndDragTargeting()
+        guard !SpotlightTourManager.shared.isActive else { return }
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
         
         // If the user is currently on the shelf tab (opened via shake-to-shelf gesture),
