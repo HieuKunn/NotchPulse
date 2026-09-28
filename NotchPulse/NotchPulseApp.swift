@@ -407,7 +407,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handleDragEnded(onScreen: screen)
             }
         }
-        detector.onGlobalHoverStateChanged = { [weak self] hovering in
+        detector.onGlobalHoverStateChanged = { [weak self] (hovering: Bool) in
             Task { @MainActor in
                 guard let self = self else { return }
                 let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
@@ -541,7 +541,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             faceIDCameraVM = camVM
         }
 
-        if let window = faceIDCameraWindow, let viewModel = faceIDCameraVM {
+        if let window = faceIDCameraWindow, faceIDCameraVM != nil {
             positionWindow(window, on: camScreen, changeAlpha: false)
             window.orderFrontRegardless()
         }

@@ -51,10 +51,10 @@ final class DragDetector {
     private var lastShakeTriggerTime: TimeInterval = 0
 
     private let regionProvider: () -> CGRect
-    private let screenFrameProvider: (() -> CGRect)?
+    private let screenFrameProvider: (() -> CGRect?)?
     private let dragPasteboard = NSPasteboard(name: .drag)
 
-    init(regionProvider: @escaping () -> CGRect, screenFrameProvider: (() -> CGRect)? = nil) {
+    init(regionProvider: @escaping () -> CGRect, screenFrameProvider: (() -> CGRect?)? = nil) {
         self.regionProvider = regionProvider
         self.screenFrameProvider = screenFrameProvider
         self.lastKnownIdlePasteboardCount = dragPasteboard.changeCount
@@ -143,7 +143,7 @@ final class DragDetector {
         guard isContentDragging else { return }
 
         // Rule: Shake must ONLY trigger on the display where the cursor actually is (in multi-display mode)!
-        if let screenFrame = screenFrameProvider?() {
+        if let maybeFrame = screenFrameProvider?(), let screenFrame = maybeFrame {
             guard screenFrame.insetBy(dx: -20, dy: -20).contains(currentPoint) else { return }
         }
 
