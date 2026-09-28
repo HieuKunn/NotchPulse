@@ -1517,31 +1517,49 @@ function renderNotchContent(force = false) {
 
 function initReviewsFilter() {
   const filterBtns = document.querySelectorAll(".filter-btn");
-  const cards = document.querySelectorAll(".testimonial-card");
+  const allCards = Array.from(document.querySelectorAll(".testimonial-card"));
+
+  function applyFilter(filterValue) {
+    const visibleCardsSet = new Set();
+
+    if (filterValue === "all") {
+      // Pick 6 random cards out of all cards for a compact, fresh layout
+      const shuffled = [...allCards].sort(() => 0.5 - Math.random());
+      shuffled.slice(0, 6).forEach((card) => visibleCardsSet.add(card));
+    } else {
+      allCards.forEach((card) => {
+        if (card.getAttribute("data-rating") === filterValue) {
+          visibleCardsSet.add(card);
+        }
+      });
+    }
+
+    allCards.forEach((card) => {
+      if (visibleCardsSet.has(card)) {
+        card.style.display = "flex";
+        setTimeout(() => {
+          card.style.opacity = "1";
+          card.style.transform = "translateY(0)";
+        }, 50);
+      } else {
+        card.style.display = "none";
+        card.style.opacity = "0";
+        card.style.transform = "translateY(20px)";
+      }
+    });
+  }
 
   filterBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       filterBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-
       const filterValue = btn.getAttribute("data-filter");
-
-      cards.forEach((card) => {
-        const rating = card.getAttribute("data-rating");
-        if (filterValue === "all" || rating === filterValue) {
-          card.style.display = "flex";
-          setTimeout(() => {
-            card.style.opacity = "1";
-            card.style.transform = "translateY(0)";
-          }, 50);
-        } else {
-          card.style.display = "none";
-          card.style.opacity = "0";
-          card.style.transform = "translateY(20px)";
-        }
-      });
+      applyFilter(filterValue);
     });
   });
+
+  // Initial load: display 6 random cards for 'All'
+  applyFilter("all");
 }
 
 // =============================================================================
