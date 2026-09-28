@@ -70,7 +70,6 @@ struct DynamicNotchApp: App {
     }
 }
 
-@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var windows: [String: NSWindow] = [:] // UUID -> NSWindow
