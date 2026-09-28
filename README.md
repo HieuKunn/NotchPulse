@@ -50,16 +50,25 @@
 - Intelligent graphics throttling pauses all GPU animation passes when playback is paused or hidden.
 
 ### 5. Notch Shelf & Quick Share
-- Drag and drop files, images, and text onto the notch to temporarily stash them.
+- **Deliberate Shake Activation**: Pure left-right shake gesture activation when dragging files, eliminating accidental hover-drag triggers.
+- **Customizable Auto-Close Delay**: Configurable auto-close timer (2s–20s) in Shelf Settings to fit your workflow.
 - Quick AirDrop forwarding, clipboard copying, and shelf pinning for multitasking.
 
-### 6. Multi-Display Hardware HUD
+### 6. Smart Clipboard Manager & AppKit Scroll Protection
+- Access recent clips, code snippets, formatted text, and color hexes right inside the notch.
+- **AppKit Native Scroll Engine**: `NSView.boundsDidChangeNotification` tracking prevents accidental scroll-to-close gestures while browsing history.
+
+### 7. Regional Lunar & Multi-Country Calendar
+- Astronomical offline calculation for Vietnamese Lunar (UTC+7, Dr. Ho Ngoc Duc), Chinese Nongli (UTC+8), Islamic Hijri, Hebrew, Buddhist, and Persian calendar systems.
+
+### 8. Multi-Display Hardware HUD & Mutual Exclusion
+- **Strict Single-Notch Rule**: Operating on a notch on any screen automatically collapses and unpins all other screens, guaranteeing only one active notch at any time.
 - Fine-grained brightness and audio control across both built-in Apple Silicon panels and third-party external monitors via DDC.
 
-### 7. Power Status & Battery HUD
+### 9. Power Status & Battery HUD
 - Real-time battery percentage tracking, charging connection notifications, and quick power status popover in the notch.
 
-### 8. Resource-Efficient Engineering
+### 10. Resource-Efficient Engineering
 - **Zero-Idle Overhead**: On-demand CoreML model loading saves memory at launch; background timers and sensors are strictly gated by visibility and active state.
 - **Lightweight Footprint**: Native AppKit and SwiftUI implementation with no web-engine or Electron overhead.
 

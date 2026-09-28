@@ -1,24 +1,36 @@
 # NotchPulse v5.0.0 (Build 191) Release Notes
 
-## 🚀 What's New & Visible Improvements
+## 🚀 What's New in v5.0.0
 
-- **🖥️ Smart Multi-Display Mutual Exclusion**:
-  - **Single Active Notch Rule**: Operating on a notch on any display now automatically collapses and unpins the notch on other displays—guaranteeing strictly one active notch at any time.
-  - **Screen-Isolated Gestures**: Shaking a file to open the Notch Shelf now triggers exclusively on the monitor where your cursor is positioned.
+### 🖥️ Smart Multi-Display Architecture & Mutual Exclusion
+- **Single Active Notch Rule**: Operating on a notch on any display now automatically collapses and unpins the notch on all other displays—guaranteeing strictly one active notch at any given moment across multi-monitor setups.
+- **Screen-Isolated Shake Gestures**: Shaking a file to open the Notch Shelf now triggers exclusively on the monitor where your cursor is currently located, preventing accidental triggers on inactive displays.
+- **Per-Screen Hover & Preview Routing**: Notch hover radar and width preview notifications are strictly scoped to the active monitor containing the cursor.
 
-- **📁 Shelf Auto-Close Timer & Gesture Precision**:
-  - **Configurable Auto-Close Slider**: Added an intuitive slider in Shelf Settings allowing you to customize the auto-close wait duration from 2 to 20 seconds.
-  - **Pure Shake Recognition**: Removed accidental proximity/hover drag triggers—the Shelf now opens solely via deliberate left-right shake gestures.
+### 📁 Shelf Auto-Close Slider & Gesture Purity
+- **Customizable Auto-Close Slider**: Added a dedicated auto-close delay slider (2s–20s) under Shelf Settings, letting you configure how long the shelf stays open while holding files.
+- **Pure Shake-to-Open Activation**: Completely removed proximity and hover-drag triggers. The Notch Shelf now opens exclusively via deliberate left-right shake gestures when dragging content.
+- **Informative Settings Note**: Added localized advisory notes in Shelf Settings explaining exact shake usage and auto-close timer behavior.
 
-- **🔒 Auto-Collapse on Lock Screen & Sleep**:
-  - Returning to your Lock Screen, waking from sleep, or display sleep now automatically collapses the Notch and Dynamic Island back to compact mode.
+### 🔒 Lock Screen Auto-Collapse & Power Awareness
+- **Universal Auto-Collapse**: Returning to the Lock Screen, waking from sleep, screensaver activation, or display sleep automatically collapses both Notch and Dynamic Island back to their resting compact closed state.
+- **Face ID Setup Integration**: Face ID setup initiated from the onboarding tour intelligently routes to the monitor with the physical camera and exits smoothly back to the tour without terminating the application.
 
-- **🎵 Centered Media Layout**:
-  - Tightened and vertically centered track titles, progress timeline, and controls in expanded Notch and Dynamic Island modes for a balanced aesthetic.
+### 🎵 Centered Media Layout & Tight Spacing
+- **Unified Media Geometry**: Song titles, artist details, playback progress bar, and control buttons are now tightly grouped and vertically centered in both Notch and Dynamic Island expanded views.
+- **Responsive Slider**: Streamlined the music progress slider height (8px) and timestamps to prevent vertical clipping or awkward spacing.
 
-- **📋 Smooth Clipboard Scrolling**:
-  - Upgraded scroll gesture isolation so scrolling through your clipboard history never accidentally triggers the scroll-to-close gesture. The notch only closes when you reach the very end of your copied items and deliberately pull up.
+### 📋 AppKit Native Clipboard Scroll Engine
+- **Accidental Close Protection**: Integrated native AppKit scroll tracking (`NSView.boundsDidChangeNotification`) mirroring the split 1/2 Calendar engine.
+- **Smooth Clipboard Navigation**: Browsing through copied history never triggers accidental notch collapse. The notch only closes when you reach the very last copied item and deliberately pull upward.
 
-- **🌐 Website Visual Showcase & Localization**:
-  - Added new feature nodes (Lunar & Multi-Calendar, Dynamic Island Mode, Lock Screen HUD, Multi-Display Hub) in a balanced constellation across the hero showcase.
-  - Fixed regional calendar language switching to match your selected language.
+### 🌐 Website Showcase & Regional Localization
+- **12-Node Feature Constellation**: Redesigned the official landing page hero showcase with 12 evenly-distributed feature badges (including Lunar Calendar, Dynamic Island Mode, Lock Screen HUD, and Multi-Display Hub).
+- **Regional Lunar Localization**: Fixed language switching for the regional lunar calendar preview, automatically adapting lunar dates, badges, and event titles to your selected language.
+
+---
+
+### 🐛 Bug Fixes & Stability
+- Resolved cross-display pinned state conflicts between Shelf and Calendar singletons.
+- Fixed onboarding tour step progression and high-contrast text legibility.
+- Improved drag detector pasteboard change tracking and instant mouse-release reset.
