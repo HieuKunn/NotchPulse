@@ -19,6 +19,7 @@ struct TabModel: Identifiable, Equatable {
     }
 }
 
+@available(macOS 14.0, *)
 struct TabSelectionView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared

@@ -20,6 +20,7 @@ import KeyboardShortcuts
 import Sparkle
 import SwiftUI
 
+@available(macOS 14.0, *)
 @main
 struct DynamicNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -71,6 +72,7 @@ struct DynamicNotchApp: App {
     }
 }
 
+@available(macOS 14.0, *)
 @objc
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -963,6 +965,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @available(macOS 14.0, *)
     @objc @MainActor func togglePopover(_ sender: Any?) {
         if window?.isVisible == true {
             window?.orderOut(nil)
@@ -971,10 +974,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @available(macOS 14.0, *)
     @objc @MainActor func showMenu() {
         statusItem?.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 
+    @available(macOS 14.0, *)
     @objc @MainActor func quitAction() {
         quitApplication()
     }
