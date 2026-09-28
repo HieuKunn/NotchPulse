@@ -42,6 +42,7 @@ struct TabSelectionView: View {
         return list
     }
 
+    @MainActor
     private func selectTab(_ tabView: NotchViews) {
         (NSApp.delegate as? AppDelegate)?.resetAllDropAndDragTargeting()
         vm.dragDetectorTargeting = false

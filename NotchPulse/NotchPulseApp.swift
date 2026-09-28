@@ -19,6 +19,7 @@ import KeyboardShortcuts
 import Sparkle
 import SwiftUI
 
+@available(macOS 14.0, *)
 @main
 struct DynamicNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -70,6 +71,8 @@ struct DynamicNotchApp: App {
     }
 }
 
+@available(macOS 14.0, *)
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var windows: [String: NSWindow] = [:] // UUID -> NSWindow
@@ -849,7 +852,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    @objc @MainActor func screenConfigurationDidChange() {
+    @objc func screenConfigurationDidChange() {
         NSScreenUUIDCache.shared.rebuildCache()
         let currentScreens = NSScreen.screens
 
@@ -870,7 +873,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @MainActor
     func adjustWindowPosition(changeAlpha: Bool = false) {
         if Defaults[.showOnAllDisplays] {
             let currentScreenUUIDs = Set(NSScreen.screens.compactMap { $0.displayUUID })
@@ -976,7 +978,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         quitApplication()
     }
 
-    @MainActor
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
         if onboardingWindowController == nil {
             let window = NSWindow(
