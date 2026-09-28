@@ -143,7 +143,7 @@ final class DragDetector {
         guard isContentDragging else { return }
 
         // Rule: Shake must ONLY trigger on the display where the cursor actually is (in multi-display mode)!
-        if let maybeFrame = screenFrameProvider?(), let screenFrame = maybeFrame {
+        if let screenFrame = screenFrameProvider?() {
             guard screenFrame.insetBy(dx: -20, dy: -20).contains(currentPoint) else { return }
         }
 
