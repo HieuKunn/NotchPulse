@@ -178,8 +178,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 subVm.close(force: force)
             }
         }
-        self.coordinator.toggleExpandingView(status: false)
-        self.coordinator.toggleSneakPeek(status: false)
+        self.coordinator.toggleExpandingView(status: false, type: .music)
+        self.coordinator.toggleSneakPeek(status: false, type: .music)
     }
 
     @MainActor
@@ -271,8 +271,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func cleanupDragDetectors() {
-        dragExitDebounceTasks.values.forEach { $0.cancel() }
-        dragExitDebounceTasks.removeAll()
         shakeAutoCloseTasks.values.forEach { $0.cancel() }
         shakeAutoCloseTasks.removeAll()
         shelfWindows.values.forEach { window in
