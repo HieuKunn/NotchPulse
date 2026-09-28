@@ -19,7 +19,6 @@ import KeyboardShortcuts
 import Sparkle
 import SwiftUI
 
-@available(macOS 14.0, *)
 @main
 struct DynamicNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -71,7 +70,6 @@ struct DynamicNotchApp: App {
     }
 }
 
-@available(macOS 14.0, *)
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
