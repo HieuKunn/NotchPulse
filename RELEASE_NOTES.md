@@ -1,4 +1,4 @@
-# NotchPulse v5.0.0 (Build 191) Release Notes
+# NotchPulse v5.0.0 (Build 192) Release Notes
 
 ## 🚀 What's New in v5.0.0
 
