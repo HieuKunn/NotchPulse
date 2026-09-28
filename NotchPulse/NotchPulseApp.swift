@@ -317,38 +317,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // SETUP LIGHTWEIGHT RADAR FOR HOVER DETECTION
         // Uses pure coordinate monitoring (NSEvent.mouseLocation) with ZERO physical windows or overlays.
         // Clicks to underlying tabs, links, and buttons remain 100% unobstructed.
-        let detector = DragDetector(regionProvider: { [weak self] in
-            guard let self = self else { return .zero }
-            let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
-            let currentScreen = NSScreen.screen(withUUID: uuid) ?? screen
-            let currentFrame = currentScreen.frame
-            
-            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let hasPhysicalNotch = currentScreen.safeAreaInsets.top > 0 || currentScreen.auxiliaryTopLeftArea != nil
-            let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
+        let detector = DragDetector(
+            regionProvider: { [weak self] in
+                guard let self = self else { return .zero }
+                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
+                let currentScreen = NSScreen.screen(withUUID: uuid) ?? screen
+                let currentFrame = currentScreen.frame
+                
+                let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+                let hasPhysicalNotch = currentScreen.safeAreaInsets.top > 0 || currentScreen.auxiliaryTopLeftArea != nil
+                let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
 
-            let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
-            if currentTargetVM.notchState == .open {
-                let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
-                return CGRect(
-                    x: currentFrame.midX - (openWidth / 2 + padding),
-                    y: currentFrame.maxY - (openHeight + padding + topOffset),
-                    width: openWidth + (padding * 2),
-                    height: openHeight + padding + topOffset + 15
-                )
-            } else {
-                let closedSize = currentTargetVM.closedNotchSize
-                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
-                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
-                // Confine closed notch hover bounds strictly to the physical notch / island.
-                // Absolutely no lateral or downward bleeding to prevent false triggers over browser tabs.
-                return CGRect(
-                    x: currentFrame.midX - (closedWidth / 2),
-                    y: currentFrame.maxY - (closedHeight + topOffset),
-                    width: closedWidth,
-                    height: closedHeight + topOffset
-                )
+                let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
+                if currentTargetVM.notchState == .open {
+                    let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
+                    let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
+                    return CGRect(
+                        x: currentFrame.midX - (openWidth / 2 + padding),
+                        y: currentFrame.maxY - (openHeight + padding + topOffset),
+                        width: openWidth + (padding * 2),
+                        height: openHeight + padding + topOffset + 15
+                    )
+                } else {
+                    let closedSize = currentTargetVM.closedNotchSize
+                    let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                    let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                    // Confine closed notch hover bounds strictly to the physical notch / island.
+                    // Absolutely no lateral or downward bleeding to prevent false triggers over browser tabs.
+                    return CGRect(
+                        x: currentFrame.midX - (closedWidth / 2),
+                        y: currentFrame.maxY - (closedHeight + topOffset),
+                        width: closedWidth,
+                        height: closedHeight + topOffset
+                    )
+                }
             },
             screenFrameProvider: { [weak self] in
                 guard let self = self else { return screen.frame }
@@ -1044,6 +1046,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         onboardingWindowController?.window?.makeKeyAndOrderFront(nil)
         onboardingWindowController?.window?.orderFrontRegardless()
     }
-}
-
 }
