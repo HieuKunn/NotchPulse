@@ -850,7 +850,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    @objc func screenConfigurationDidChange() {
+    @objc @MainActor func screenConfigurationDidChange() {
         NSScreenUUIDCache.shared.rebuildCache()
         let currentScreens = NSScreen.screens
 
@@ -960,7 +960,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc func togglePopover(_ sender: Any?) {
+    @objc @MainActor func togglePopover(_ sender: Any?) {
         if window?.isVisible == true {
             window?.orderOut(nil)
         } else {
@@ -968,11 +968,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc func showMenu() {
+    @objc @MainActor func showMenu() {
         statusItem?.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 
-    @objc func quitAction() {
+    @objc @MainActor func quitAction() {
         quitApplication()
     }
 
