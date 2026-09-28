@@ -141,7 +141,7 @@ const i18nData = {
     // Installation Section
     "install.tag": "Ready to Elevate Your Mac?",
     "install.title": "Get NotchPulse Today",
-    "install.subtitle": "Compatible with macOS 14.0+ Sonoma and macOS 15 Sequoia. Optimized for all Mac devices (Apple Silicon & Intel Macs).",
+    "install.subtitle": "Compatible with all macOS versions (macOS Monterey, Ventura, Sonoma, Sequoia & newer). Optimized for all Mac devices (Apple Silicon & Intel Macs).",
     "install.btnDmg": "Download NotchPulse.dmg (Direct)",
 
     // Footer
@@ -284,7 +284,7 @@ const i18nData = {
     // Installation Section
     "install.tag": "Sẵn Sàng Nâng Cấp Máy Mac Của Bạn?",
     "install.title": "Cài Đặt NotchPulse Ngay Hôm Nay",
-    "install.subtitle": "Tương thích hoàn toàn với macOS 14.0+ Sonoma và macOS 15 Sequoia. Tối ưu hóa cho toàn bộ các dòng máy Mac (Apple Silicon & Intel).",
+    "install.subtitle": "Tương thích hoàn toàn với mọi phiên bản macOS (macOS Monterey, Ventura, Sonoma, Sequoia và mới hơn). Tối ưu hóa cho tất cả các dòng máy Mac (Apple Silicon & Intel).",
     "install.btnDmg": "Tải Trực Tiếp NotchPulse.dmg",
 
     // Footer
