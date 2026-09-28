@@ -131,9 +131,8 @@ const i18nData = {
     "reviews.subtitle": "Real feedback from Mac engineers, designers, and creators across the globe with diverse ratings.",
     "reviews.all": "All Reviews (4.8 ★)",
     "reviews.five": "5 Stars",
-    "reviews.fourPointEight": "4.8 Stars",
     "reviews.fourPointFive": "4.5 Stars",
-    "reviews.fourPointSeven": "4.7 Stars",
+    "reviews.four": "4 Stars",
 
     // Creator Section
     "creator.tag": "Meet The Creator",
@@ -275,9 +274,8 @@ const i18nData = {
     "reviews.subtitle": "Phản hồi thực tế từ các lập trình viên, nhà thiết kế UI/UX trên khắp thế giới với các mức đánh giá phong phú.",
     "reviews.all": "Tất Cả Đánh Giá (4.8 ★)",
     "reviews.five": "5 Sao",
-    "reviews.fourPointEight": "4.8 Sao",
     "reviews.fourPointFive": "4.5 Sao",
-    "reviews.fourPointSeven": "4.7 Sao",
+    "reviews.four": "4 Sao",
 
     // Creator Section
     "creator.tag": "Gặp Gỡ Tác Giả",

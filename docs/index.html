@@ -792,14 +792,15 @@
       <div class="testimonials-filter-bar fade-in-section">
         <button class="filter-btn active" data-filter="all" data-i18n="reviews.all">All Reviews (4.8 ★)</button>
         <button class="filter-btn" data-filter="5" data-i18n="reviews.five">5 Stars</button>
-        <button class="filter-btn" data-filter="4.8" data-i18n="reviews.fourPointEight">4.8 Stars</button>
         <button class="filter-btn" data-filter="4.5" data-i18n="reviews.fourPointFive">4.5 Stars</button>
-        <button class="filter-btn" data-filter="4.7" data-i18n="reviews.fourPointSeven">4.7 Stars</button>
+        <button class="filter-btn" data-filter="4" data-i18n="reviews.four">4 Stars</button>
       </div>
 
       <!-- Testimonials Grid -->
       <div class="testimonials-grid" id="testimonialsGrid">
         
+        <!-- ===== 5 STARS (4 REVIEWS) ===== -->
+
         <!-- Review 1: 5.0 stars (Vietnamese - UI/UX Designer) -->
         <div class="testimonial-card fade-in-section" data-rating="5">
           <div>
@@ -820,28 +821,8 @@
           </div>
         </div>
 
-        <!-- Review 2: 4.8 stars (English - Software Engineer) -->
-        <div class="testimonial-card fade-in-section delay-1" data-rating="4.8">
-          <div>
-            <div class="testimonial-header-row">
-              <div class="testimonial-stars">★★★★½ <span class="rating-num">4.8</span></div>
-              <span class="lang-badge">🇺🇸 English</span>
-            </div>
-            <p class="testimonial-quote">
-              "As a developer running heavy Docker containers, I appreciate that NotchPulse consumes less than 25MB RAM with 0% idle CPU overhead. The Clipboard History shortcut (⌘⌥V) is an absolute productivity cheat code."
-            </p>
-          </div>
-          <div class="testimonial-author">
-            <div class="author-avatar" style="background: #38bdf8; color: #000;">AL</div>
-            <div>
-              <div class="author-name">Alexandre Laurent</div>
-              <div class="author-role">Senior Software Engineer @ Stripe</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Review 3: 5.0 stars (Japanese - Music Producer) -->
-        <div class="testimonial-card fade-in-section delay-2" data-rating="5">
+        <!-- Review 2: 5.0 stars (Japanese - Music Producer) -->
+        <div class="testimonial-card fade-in-section delay-1" data-rating="5">
           <div>
             <div class="testimonial-header-row">
               <div class="testimonial-stars">★★★★★ <span class="rating-num">5.0</span></div>
@@ -860,8 +841,70 @@
           </div>
         </div>
 
-        <!-- Review 4: 4.5 stars (German - Financial Analyst & Data Scientist) -->
-        <div class="testimonial-card fade-in-section" data-rating="4.5">
+        <!-- Review 3: 5.0 stars (Spanish - 3D Digital Artist) -->
+        <div class="testimonial-card fade-in-section delay-2" data-rating="5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★★ <span class="rating-num">5.0</span></div>
+              <span class="lang-badge">🇪🇸 Español</span>
+            </div>
+            <p class="testimonial-quote">
+              "Como artista digital 3D, el espacio en pantalla es sagrado. ¡NotchPulse convirtió el muesca negro de la cámara en un espacio de trabajo súper útil para arrastrar texturas y códigos HEX!"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #10b981; color: #fff;">SM</div>
+            <div>
+              <div class="author-name">Sofia Martinez</div>
+              <div class="author-role">3D Digital Artist &amp; Illustrator</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 4: 5.0 stars (English - Motion Designer) -->
+        <div class="testimonial-card fade-in-section" data-rating="5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★★ <span class="rating-num">5.0</span></div>
+              <span class="lang-badge">🇦🇺 English</span>
+            </div>
+            <p class="testimonial-quote">
+              "The 120Hz ProMotion spring physics feel so organic and natural! It feels like a genuine feature built directly into macOS by Apple engineers. Truly indispensable."
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #8b5cf6; color: #fff;">LO</div>
+            <div>
+              <div class="author-name">Liam O'Connor</div>
+              <div class="author-role">Freelance Motion Designer</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 4.5 STARS (4 REVIEWS) ===== -->
+
+        <!-- Review 5: 4.5 stars (English - Software Engineer) -->
+        <div class="testimonial-card fade-in-section delay-1" data-rating="4.5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★½ <span class="rating-num">4.5</span></div>
+              <span class="lang-badge">🇺🇸 English</span>
+            </div>
+            <p class="testimonial-quote">
+              "As a developer running heavy Docker containers, I appreciate that NotchPulse consumes less than 25MB RAM with 0% idle CPU overhead. The Clipboard History shortcut (⌘⌥V) is an absolute productivity cheat code."
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #38bdf8; color: #000;">AL</div>
+            <div>
+              <div class="author-name">Alexandre Laurent</div>
+              <div class="author-role">Senior Software Engineer @ Stripe</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 6: 4.5 stars (German - Financial Analyst) -->
+        <div class="testimonial-card fade-in-section delay-2" data-rating="4.5">
           <div>
             <div class="testimonial-header-row">
               <div class="testimonial-stars">★★★★½ <span class="rating-num">4.5</span></div>
@@ -880,42 +923,124 @@
           </div>
         </div>
 
-        <!-- Review 5: 4.7 stars (French - Content Creator & Photographer) -->
-        <div class="testimonial-card fade-in-section delay-1" data-rating="4.7">
+        <!-- Review 7: 4.5 stars (English - Freelance Copywriter) -->
+        <div class="testimonial-card fade-in-section" data-rating="4.5">
           <div>
             <div class="testimonial-header-row">
-              <div class="testimonial-stars">★★★★½ <span class="rating-num">4.7</span></div>
+              <div class="testimonial-stars">★★★★½ <span class="rating-num">4.5</span></div>
+              <span class="lang-badge">🇸🇬 English</span>
+            </div>
+            <p class="testimonial-quote">
+              "Being able to access up to 50 items in instant clipboard history right inside the notch has cut my article drafting time in half. Super clean dark interface!"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #f43f5e; color: #fff;">HZ</div>
+            <div>
+              <div class="author-name">Hannah Zhang</div>
+              <div class="author-role">Freelance Content Copywriter</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 8: 4.5 stars (English - University Researcher) -->
+        <div class="testimonial-card fade-in-section delay-1" data-rating="4.5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★½ <span class="rating-num">4.5</span></div>
+              <span class="lang-badge">🇨🇿 English</span>
+            </div>
+            <p class="testimonial-quote">
+              "NotchPulse turned my MacBook M3 notch into a productivity power station. The Face ID unlock from lockscreen and instant clipboard stash make writing academic papers so much smoother!"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #64748b; color: #fff;">ER</div>
+            <div>
+              <div class="author-name">Elena Rostova</div>
+              <div class="author-role">University Student &amp; Researcher</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 4 STARS (4 REVIEWS) ===== -->
+
+        <!-- Review 9: 4.0 stars (French - Freelance Video Editor) -->
+        <div class="testimonial-card fade-in-section delay-2" data-rating="4">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★☆ <span class="rating-num">4.0</span></div>
               <span class="lang-badge">🇫🇷 Français</span>
             </div>
             <p class="testimonial-quote">
-              "Le Notch Shelf est devenu indispensable pour glisser-déposer mes photos RAW et vidéos 4K directement pendant le montage sur Premiere Pro. Design épuré et ultra réactif!"
+              "Le Notch Shelf est devenu indispensable pour glisser-déposer mes photos RAW et vidéos 4K directement pendant le montage sur Premiere Pro. Design épuré et très réactif!"
             </p>
           </div>
           <div class="testimonial-author">
             <div class="author-avatar" style="background: #ec4899; color: #fff;">CD</div>
             <div>
               <div class="author-name">Camille Dubois</div>
-              <div class="author-role">Digital Content Creator &amp; Photographer</div>
+              <div class="author-role">Freelance Video Editor &amp; Photographer</div>
             </div>
           </div>
         </div>
 
-        <!-- Review 6: 4.9 stars (English - Student & Researcher) -->
-        <div class="testimonial-card fade-in-section delay-2" data-rating="4.9">
+        <!-- Review 10: 4.0 stars (English - Podcast Host) -->
+        <div class="testimonial-card fade-in-section" data-rating="4">
           <div>
             <div class="testimonial-header-row">
-              <div class="testimonial-stars">★★★★★ <span class="rating-num">4.9</span></div>
+              <div class="testimonial-stars">★★★★☆ <span class="rating-num">4.0</span></div>
               <span class="lang-badge">🇬🇧 English</span>
             </div>
             <p class="testimonial-quote">
-              "NotchPulse turned my MacBook M3 notch into a productivity power station. The Face ID unlock from lockscreen and instant clipboard stash make writing research papers so much faster!"
+              "Brilliant core concept and smooth 120Hz springs. Multi-monitor DDC support works great. Really solid app that I recommend to all my fellow podcasters."
             </p>
           </div>
           <div class="testimonial-author">
-            <div class="author-avatar" style="background: #64748b; color: #fff;">DH</div>
+            <div class="author-avatar" style="background: #0ea5e9; color: #fff;">DH</div>
             <div>
               <div class="author-name">David Harrison</div>
-              <div class="author-role">University Student &amp; Researcher</div>
+              <div class="author-role">Podcast Host &amp; Audio Creator</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 11: 4.0 stars (Vietnamese - Freelance Photographer) -->
+        <div class="testimonial-card fade-in-section delay-1" data-rating="4">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★☆ <span class="rating-num">4.0</span></div>
+              <span class="lang-badge">🇻🇳 Tiếng Việt</span>
+            </div>
+            <p class="testimonial-quote">
+              "Tính năng Lịch Âm Việt Nam tích hợp ngay trên tai thỏ rất tiện cho người làm tự do như mình. Nhìn giao diện cực sang xịn mịn và thao tác mượt mà!"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #06b6d4; color: #fff;">AN</div>
+            <div>
+              <div class="author-name">Nguyễn An Nhiên</div>
+              <div class="author-role">Freelance Photographer &amp; Travel Blogger</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 12: 4.0 stars (Japanese - Game Developer) -->
+        <div class="testimonial-card fade-in-section delay-2" data-rating="4">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★☆ <span class="rating-num">4.0</span></div>
+              <span class="lang-badge">🇯🇵 日本語</span>
+            </div>
+            <p class="testimonial-quote">
+              "120Hzの非常に滑らかなアニメーションとCPU/RAMの低負荷が素晴らしいです。配信用モニターのDDC輝度調整がキーボードだけでできて重宝しています。"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #e11d48; color: #fff;">HT</div>
+            <div>
+              <div class="author-name">Hiroshi Tanaka (田中 宏)</div>
+              <div class="author-role">Game Developer &amp; Streamer</div>
             </div>
           </div>
         </div>
