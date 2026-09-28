@@ -849,7 +849,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    @objc func screenConfigurationDidChange() {
+    @objc @MainActor func screenConfigurationDidChange() {
         NSScreenUUIDCache.shared.rebuildCache()
         let currentScreens = NSScreen.screens
 
@@ -870,6 +870,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @MainActor
     func adjustWindowPosition(changeAlpha: Bool = false) {
         if Defaults[.showOnAllDisplays] {
             let currentScreenUUIDs = Set(NSScreen.screens.compactMap { $0.displayUUID })
@@ -975,6 +976,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         quitApplication()
     }
 
+    @MainActor
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
         if onboardingWindowController == nil {
             let window = NSWindow(
