@@ -51,51 +51,53 @@ struct NotchPulseHeader: View {
                 }
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 if vm.notchState == .open {
                     if isHUDType(coordinator.sneakPeek.type) && coordinator.sneakPeek.show && Defaults[.showOpenNotchHUD] {
                         OpenNotchHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon)
-                            .transition(.scale(scale: 0.8).combined(with: .opacity))
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     } else {
-                        if Defaults[.showMirror] {
-                            Button(action: {
-                                vm.toggleCameraPreview()
-                            }) {
-                                Capsule()
-                                    .fill(.black)
-                                    .frame(width: 30, height: 30)
-                                    .overlay {
-                                        Image(systemName: "web.camera")
-                                            .foregroundColor(.white)
-                                            .padding()
-                                            .imageScale(.medium)
-                                    }
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                        if Defaults[.settingsIconInNotch] {
-                            Button(action: {
-                                DispatchQueue.main.async {
-                                    SettingsWindowController.shared.showWindow()
+                        HStack(spacing: 6) {
+                            if Defaults[.showMirror] {
+                                Button(action: {
+                                    vm.toggleCameraPreview()
+                                }) {
+                                    Capsule()
+                                        .fill(.black)
+                                        .frame(width: 30, height: 30)
+                                        .overlay {
+                                            Image(systemName: "web.camera")
+                                                .foregroundColor(.white)
+                                                .padding()
+                                                .imageScale(.medium)
+                                        }
                                 }
-                                
-                            }) {
-                                Capsule()
-                                    .fill(.black)
-                                    .frame(width: 30, height: 30)
-                                    .overlay {
-                                        Image(systemName: "gear")
-                                            .foregroundColor(.white)
-                                            .padding()
-                                            .imageScale(.medium)
-                                    }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            if Defaults[.settingsIconInNotch] {
+                                Button(action: {
+                                    DispatchQueue.main.async {
+                                        SettingsWindowController.shared.showWindow()
+                                    }
+                                }) {
+                                    Capsule()
+                                        .fill(.black)
+                                        .frame(width: 30, height: 30)
+                                        .overlay {
+                                            Image(systemName: "gear")
+                                                .foregroundColor(.white)
+                                                .padding()
+                                                .imageScale(.medium)
+                                        }
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
                         }
-
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                 }
             }
+            .animation(.smooth(duration: 0.22), value: coordinator.sneakPeek.show)
             .font(.system(.headline, design: .rounded))
             .padding(.trailing, 12)
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -109,7 +111,7 @@ struct NotchPulseHeader: View {
 
     func isHUDType(_ type: SneakContentType) -> Bool {
         switch type {
-        case .volume, .brightness, .backlight, .mic:
+        case .volume, .brightness, .backlight, .mic, .battery:
             return true
         default:
             return false

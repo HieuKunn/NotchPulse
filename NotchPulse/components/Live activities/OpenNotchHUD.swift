@@ -43,6 +43,9 @@ struct OpenNotchHUD: View {
                     Image(systemName: "mic")
                         .symbolVariant(value > 0 ? .none : .slash)
                         .contentTransition(.interpolate)
+                case .battery:
+                    Image(systemName: icon.isEmpty ? "headphones" : icon)
+                        .contentTransition(.interpolate)
                 default:
                     EmptyView()
                 }
@@ -70,16 +73,9 @@ struct OpenNotchHUD: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.gray)
                     .monospacedDigit()
-                    .frame(width: 35, alignment: .trailing)
+                    .frame(width: 32, alignment: .trailing)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(Color.black)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: value)
     }
     

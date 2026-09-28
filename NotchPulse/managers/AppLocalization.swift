@@ -230,7 +230,8 @@ struct L10n {
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.",
             "Copy items on drag": "Copy items on drag",
             "Remove from shelf after dragging": "Remove from shelf after dragging",
-            "Auto-close delay after shake": "Auto-close delay after shake",
+            "Close delay after shake": "Close delay after shake",
+            "Auto-close delay after shake": "Close delay after shake",
             "When shaking to open the shelf while dragging a file, it will automatically close after this duration if you do not drop the file into the shelf.": "When shaking to open the shelf while dragging a file, it will automatically close after this duration if you do not drop the file into the shelf.",
             "Quick Share": "Quick Share",
             "Quick Share Service": "Quick Share Service",
@@ -559,7 +560,8 @@ struct L10n {
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "Mở rộng vùng nhận diện quanh notch để mở sớm khi kéo tệp, tránh bị vướng tính năng xếp cửa sổ mép trên của macOS.",
             "Copy items on drag": "Sao chép tệp khi kéo",
             "Remove from shelf after dragging": "Xóa khỏi Shelf sau khi kéo ra",
-            "Auto-close delay after shake": "Thời gian chờ tự đóng sau khi lắc",
+            "Close delay after shake": "Thời gian tự đóng sau khi lắc",
+            "Auto-close delay after shake": "Thời gian tự đóng sau khi lắc",
             "When shaking to open the shelf while dragging a file, it will automatically close after this duration if you do not drop the file into the shelf.": "Khi lắc chuột mở Shelf lúc đang kéo file, nếu bạn không thả file vào Notch thì Shelf sẽ tự động thu gọn lại sau khoảng thời gian này.",
             "Quick Share": "Chia sẻ nhanh",
             "Quick Share Service": "Dịch vụ chia sẻ nhanh",
@@ -733,6 +735,8 @@ struct L10n {
             "Hierarchical": "Hierarchisch",
             
             // General Tab
+            "Interactive Spotlight Tour": "Interaktive Spotlight-Tour",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "Interaktive Anleitungen für Notch, Shelf, Musik, Kalender & Einstellungen ansehen",
             "Notch / Island Style": "Notch / Island-Stil",
             "MacBook Notch": "MacBook Notch",
             "Dynamic Island": "Dynamic Island",
@@ -886,6 +890,8 @@ struct L10n {
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "Erweitert den Erkennungsbereich um die Notch, damit sie sich beim Ziehen von Dateien frühzeitig öffnet.",
             "Copy items on drag": "Elemente beim Ziehen kopieren",
             "Remove from shelf after dragging": "Nach dem Ziehen aus dem Shelf entfernen",
+            "Close delay after shake": "Schließverzögerung nach Schütteln",
+            "Auto-close delay after shake": "Schließverzögerung nach Schütteln",
             "Quick Share": "Schnellfreigabe",
             "Quick Share Service": "Schnellfreigabe-Dienst",
             "Currently selected: %@": "Aktuell ausgewählt: %@",
@@ -1029,6 +1035,8 @@ struct L10n {
             "Default": "預設", "Inline": "簡約內嵌", "Gradient": "漸層", "Hierarchical": "分層",
             
             // General Tab
+            "Interactive Spotlight Tour": "互動式 Spotlight 導覽",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "瀏覽 Notch、暫存架、音樂、行事曆和設定的互動指南",
             "Notch / Island Style": "瀏海 / 動態島樣式", "MacBook Notch": "MacBook 瀏海", "Dynamic Island": "動態島",
             "Top Gap (Distance from Screen Edge)": "頂部邊距（距螢幕頂部距離）", "Top Gap": "頂部邊距",
             "Sets the floating gap between the top bezel and the Dynamic Island capsule.": "設定頂部邊框與動態島膠囊之間的懸浮距離。",
@@ -1103,6 +1111,7 @@ struct L10n {
             "Expanded drag detection area": "擴大拖放感應區域", "Drag hover expansion - %@ px": "拖曳感應擴展 - %@ px",
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "擴大瀏海周圍感應區，拖放檔案時提前展開，避免誤觸 macOS 頂部視窗排列。",
             "Copy items on drag": "拖放時複製檔案", "Remove from shelf after dragging": "拖出後自暫存架移除",
+            "Close delay after shake": "搖動後自動關閉延遲", "Auto-close delay after shake": "搖動後自動關閉延遲",
             "Quick Share": "快速分享", "Quick Share Service": "快速分享服務", "Currently selected: %@": "目前選取：%@ ", "Currently selected": "目前選取",
             "Files dropped on the shelf will be shared via this service": "放置於暫存架的檔案將透過此服務進行分享",
             "Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.": "選擇分享暫存架檔案的預設服務。點擊暫存架按鈕選取檔案或直接拖曳即可立即分享。",
@@ -1148,6 +1157,8 @@ struct L10n {
             "Default": "默认", "Inline": "紧凑内嵌", "Gradient": "渐变", "Hierarchical": "分层",
             
             // General Tab
+            "Interactive Spotlight Tour": "交互式 Spotlight 导览",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "浏览 Notch、暂存架、音乐、日历和设置的交互指南",
             "Notch / Island Style": "刘海 / 灵动岛样式", "MacBook Notch": "MacBook 刘海", "Dynamic Island": "灵动岛",
             "Top Gap (Distance from Screen Edge)": "顶部边距（距屏幕顶部距离）", "Top Gap": "顶部边距",
             "Sets the floating gap between the top bezel and the Dynamic Island capsule.": "设定顶部边框与灵动岛胶囊之间的悬浮间距。",
@@ -1222,6 +1233,7 @@ struct L10n {
             "Expanded drag detection area": "扩大拖拽感应区域", "Drag hover expansion - %@ px": "拖拽感应扩展 - %@ px",
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "扩大刘海周围感应区，拖拽文件时提前展开，避免误触 macOS 顶部窗口排列。",
             "Copy items on drag": "拖拽时复制文件", "Remove from shelf after dragging": "拖出后从暂存架移除",
+            "Close delay after shake": "晃动后自动关闭延迟", "Auto-close delay after shake": "晃动后自动关闭延迟",
             "Quick Share": "快捷分享", "Quick Share Service": "快捷分享服务", "Currently selected: %@": "当前选择：%@ ", "Currently selected": "当前选择",
             "Files dropped on the shelf will be shared via this service": "放置于暂存架的文件将通过此服务进行分享",
             "Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.": "选择分享暂存架文件的默认服务。点击暂存架按钮选取文件或直接拖拽即可立即分享。",
@@ -1267,6 +1279,8 @@ struct L10n {
             "Default": "デフォルト", "Inline": "インライン", "Gradient": "グラデーション", "Hierarchical": "階層",
             
             // General Tab
+            "Interactive Spotlight Tour": "インタラクティブ Spotlight ガイド",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "Notch、Shelf、音楽、カレンダー、設定のインタラクティブガイドを見る",
             "Notch / Island Style": "ノッチ / アイランドのスタイル", "MacBook Notch": "MacBook ノッチ", "Dynamic Island": "Dynamic Island",
             "Top Gap (Distance from Screen Edge)": "上部余白（画面端からの距離）", "Top Gap": "上部余白",
             "Sets the floating gap between the top bezel and the Dynamic Island capsule.": "上部ベゼルとDynamic Islandカプセル間の浮遊余白を設定します。",
@@ -1341,6 +1355,7 @@ struct L10n {
             "Expanded drag detection area": "ドラッグ感知エリアの拡張", "Drag hover expansion - %@ px": "ドラッグホバー拡張 - %@ px",
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "ノッチ周辺の感知範囲を広げ、ファイルドラッグ時に素早く展開しmacOSの上部ウィンドウ配置を回避します。",
             "Copy items on drag": "ドラッグ時にアイテムをコピー", "Remove from shelf after dragging": "ドラッグ後にシェルフから削除",
+            "Close delay after shake": "シェイク後の自動非表示ディレイ", "Auto-close delay after shake": "シェイク後の自動非表示ディレイ",
             "Quick Share": "クイック共有", "Quick Share Service": "クイック共有サービス", "Currently selected: %@": "選択中: %@", "Currently selected": "選択中",
             "Files dropped on the shelf will be shared via this service": "シェルフにドロップされたファイルはこのサービス経由で共有されます",
             "Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.": "ファイル共有に使用するサービスを選択してください。ボタンをクリックするかファイルを直接ドラッグして即座に共有できます。",
@@ -1386,6 +1401,8 @@ struct L10n {
             "Default": "Par défaut", "Inline": "Compact", "Gradient": "Dégradé", "Hierarchical": "Hiérarchique",
             
             // General Tab
+            "Interactive Spotlight Tour": "Visite interactive Spotlight",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "Parcourez les guides interactifs pour Notch, Shelf, Musique, Calendrier & Réglages",
             "Notch / Island Style": "Style d'encoche / Îlot", "MacBook Notch": "Encoche MacBook", "Dynamic Island": "Dynamic Island",
             "Top Gap (Distance from Screen Edge)": "Espacement supérieur (Distance du bord)", "Top Gap": "Espacement supérieur",
             "Sets the floating gap between the top bezel and the Dynamic Island capsule.": "Définit l'espacement flottant entre le bord supérieur et la capsule Dynamic Island.",
@@ -1460,6 +1477,7 @@ struct L10n {
             "Expanded drag detection area": "Zone de détection de glisser élargie", "Drag hover expansion - %@ px": "Extension de glisser-survol - %@ px",
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "Élargit la zone de détection autour de l'encoche pour s'ouvrir dès le glisser de fichiers.",
             "Copy items on drag": "Copier les éléments lors du glissement", "Remove from shelf after dragging": "Retirer du Shelf après glissement",
+            "Close delay after shake": "Délai de fermeture après secousse", "Auto-close delay after shake": "Délai de fermeture après secousse",
             "Quick Share": "Partage rapide", "Quick Share Service": "Service de partage rapide", "Currently selected: %@": "Actuellement sélectionné : %@", "Currently selected": "Actuellement sélectionné",
             "Files dropped on the shelf will be shared via this service": "Les fichiers déposés sur le Shelf seront partagés via ce service",
             "Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.": "Choisissez le service de partage. Cliquez sur le bouton ou glissez directement des fichiers pour partager.",
@@ -1505,6 +1523,8 @@ struct L10n {
             "Default": "Predeterminado", "Inline": "Compacto", "Gradient": "Degradado", "Hierarchical": "Jerárquico",
             
             // General Tab
+            "Interactive Spotlight Tour": "Recorrido interactivo Spotlight",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "Explora guías interactivas para Notch, Shelf, Música, Calendario y Ajustes",
             "Notch / Island Style": "Estilo de Notch / Isla", "MacBook Notch": "Notch de MacBook", "Dynamic Island": "Dynamic Island",
             "Top Gap (Distance from Screen Edge)": "Separación superior (Distancia del borde)", "Top Gap": "Separación superior",
             "Sets the floating gap between the top bezel and the Dynamic Island capsule.": "Establece la separación flotante entre el marco superior y la cápsula Dynamic Island.",
@@ -1579,6 +1599,7 @@ struct L10n {
             "Expanded drag detection area": "Área de detección de arrastre ampliada", "Drag hover expansion - %@ px": "Expansión al arrastrar - %@ px",
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "Amplía la zona de detección para abrirse con rapidez al arrastrar archivos y evitar solapamientos con macOS.",
             "Copy items on drag": "Copiar elementos al arrastrar", "Remove from shelf after dragging": "Eliminar del Shelf tras arrastrar",
+            "Close delay after shake": "Retraso de cierre tras agitar", "Auto-close delay after shake": "Retraso de cierre tras agitar",
             "Quick Share": "Compartir rápido", "Quick Share Service": "Servicio de compartir rápido", "Currently selected: %@": "Seleccionado actualmente: %@", "Currently selected": "Seleccionado actualmente",
             "Files dropped on the shelf will be shared via this service": "Los archivos colocados en el Shelf se compartirán con este servicio",
             "Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.": "Elija el servicio para compartir archivos desde el Shelf. Haga clic o arrastre archivos directamente.",
@@ -1624,6 +1645,8 @@ struct L10n {
             "Default": "افتراضي", "Inline": "مضمن", "Gradient": "تدرج لوني", "Hierarchical": "هرمي",
             
             // General Tab
+            "Interactive Spotlight Tour": "جولة Spotlight التفاعلية",
+            "Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings": "استعرض الدليل التفاعلي للـ Notch والرف والموسيقى والتقويم والإعدادات",
             "Notch / Island Style": "نمط النوتش / الجزيرة", "MacBook Notch": "نوتش ماك بوك", "Dynamic Island": "الجزيرة التفاعلية",
             "Top Gap (Distance from Screen Edge)": "المسافة العلوية (البعد عن حافة الشاشة)", "Top Gap": "المسافة العلوية",
             "Sets the floating gap between the top bezel and the Dynamic Island capsule.": "يحدد مسافة العوم بين الحافة العلوية وكبسولة الجزيرة التفاعلية.",
@@ -1698,6 +1721,7 @@ struct L10n {
             "Expanded drag detection area": "توسيع منطقة استشعار السحب", "Drag hover expansion - %@ px": "توسيع نطاق السحب - %@ px",
             "Expands the detection zone around the notch so it opens early when dragging files, avoiding macOS top-edge window tiling.": "يوسع منطقة الاستشعار حول النوتش ليفتح مبكراً عند سحب الملفات وتفادي ترتيب النوافذ في macOS.",
             "Copy items on drag": "نسخ العناصر عند السحب", "Remove from shelf after dragging": "إزالة من الرف بعد السحب",
+            "Close delay after shake": "تأخير الإغلاق بعد الهز", "Auto-close delay after shake": "تأخير الإغلاق بعد الهز",
             "Quick Share": "المشاركة السريعة", "Quick Share Service": "خدمة المشاركة السريعة", "Currently selected: %@": "المحدد حالياً: %@", "Currently selected": "المحدد حالياً",
             "Files dropped on the shelf will be shared via this service": "الملفات المتروكة في الرف ستتم مشاركتها عبر هذه الخدمة",
             "Choose which service to use when sharing files from the shelf. Click the shelf button to select files, or drag files onto it to share immediately.": "اختر الخدمة المستخدمة لمشاركة الملفات. انقر على زر الرف أو اسحب الملفات مباشرة.",

@@ -146,14 +146,18 @@ private struct ClipboardScrollWheelHelper: NSViewRepresentable {
             let originY = clip.bounds.origin.y
 
             if docHeight <= clipHeight + 4 {
-                self.onScrollStateChanged?(true)
+                DispatchQueue.main.async { [weak self] in
+                    self?.onScrollStateChanged?(true)
+                }
                 return
             }
 
             // In flipped NSScrollView (SwiftUI):
             // originY starts at 0 at the top, and reaches docHeight - clipHeight at the bottom
             let isAtBottom = (originY + clipHeight >= docHeight - 8)
-            self.onScrollStateChanged?(isAtBottom)
+            DispatchQueue.main.async { [weak self] in
+                self?.onScrollStateChanged?(isAtBottom)
+            }
         }
 
         func checkSetup() {

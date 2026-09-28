@@ -9,7 +9,7 @@ import Defaults
 import SwiftUI
 
 struct TabModel: Identifiable, Equatable {
-    let id = UUID()
+    var id: NotchViews { view }
     let label: String
     let icon: String
     let view: NotchViews
@@ -25,6 +25,7 @@ struct TabSelectionView: View {
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @Default(.notchPulseShelf) var notchPulseShelf
     @Default(.enableSystemMonitor) var enableSystemMonitor
+    @Default(.enableClipboardManager) var enableClipboardManager
     @Namespace var animation
 
     var tabs: [TabModel] {
@@ -37,7 +38,7 @@ struct TabSelectionView: View {
         if enableSystemMonitor {
             list.append(TabModel(label: "Stats", icon: "cpu", view: .stats))
         }
-        if Defaults[.enableClipboardManager] {
+        if enableClipboardManager {
             list.append(TabModel(label: "Clipboard", icon: "doc.on.clipboard.fill", view: .clipboard))
         }
         return list
@@ -66,11 +67,6 @@ struct TabSelectionView: View {
             Capsule()
                 .fill(Color(nsColor: .secondarySystemFill))
                 .matchedGeometryEffect(id: "capsule", in: animation)
-        } else {
-            Capsule()
-                .fill(Color.clear)
-                .matchedGeometryEffect(id: "capsule", in: animation)
-                .hidden()
         }
     }
 

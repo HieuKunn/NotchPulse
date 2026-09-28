@@ -1505,7 +1505,7 @@ struct Shelf: View {
 
                 Slider(value: $shakeAutoCloseDelay, in: 2...20, step: 1) {
                     HStack {
-                        Text(loc("Auto-close delay after shake"))
+                        Text(loc("Close delay after shake"))
                         Spacer()
                         Text("\(Int(shakeAutoCloseDelay))s")
                             .foregroundStyle(.secondary)

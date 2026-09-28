@@ -376,21 +376,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self = self else { return }
                 let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
                 currentTargetVM.customOpenHeight = nil
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    currentTargetVM.open()
-                    self.coordinator.currentView = .shelf
-                }
+                self.coordinator.currentView = .shelf
+                currentTargetVM.open()
                 if Defaults[.enableHaptics] {
                     NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 }
 
-                // If user shakes to open the shelf but does not drop into the notch within the configured delay, auto-close (unless tour is active)
+                // If user shakes to open the shelf but does not drop into the notch within the configured delay, auto-close (unless close is prevented)
                 self.shakeAutoCloseTasks[uuid]?.cancel()
                 let waitDuration = Defaults[.shakeAutoCloseDelay]
                 self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
                     try? await Task.sleep(for: .milliseconds(Int(waitDuration * 1000)))
                     guard !Task.isCancelled, let self = self else { return }
-                    guard !SpotlightTourManager.shared.isActive else { return }
+                    guard !SharingStateManager.shared.preventNotchClose else { return }
                     let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
                     if !vm.dropZoneTargeting && !vm.generalDropTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
                         vm.close()
@@ -442,15 +440,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         shakeAutoCloseTasks[uuid] = nil
         
         resetAllDropAndDragTargeting()
-        guard !SpotlightTourManager.shared.isActive else { return }
+        guard !SharingStateManager.shared.preventNotchClose else { return }
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-        
-        // If the user is currently on the shelf tab (opened via shake-to-shelf gesture),
-        // do NOT auto-close the notch. Let them interact with the shelf normally.
-        // The notch will close when they hover away as usual.
-        if coordinator.currentView == .shelf {
-            return
-        }
         
         // Check if mouse is still hovering over open notch window
         let mouseLocation = NSEvent.mouseLocation
@@ -848,6 +839,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = LockScreenWakeObserver.shared
         _ = NotchPulseFaceUnlockCoordinator.shared
         _ = SystemAuthPromptObserver.shared
+        _ = BluetoothHeadphoneManager.shared
         if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
             ArcFaceEmbedder.warmUp()
         }
@@ -1023,17 +1015,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         window.orderOut(nil)
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            self.vm.open()
-                        }
+                        self.vm.open()
                     },
                     onOpenSettings: {
                         window.orderOut(nil)
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            self.vm.open()
-                        }
+                        self.vm.open()
                         SettingsWindowController.shared.showWindow()
                     }
                 ))
@@ -1047,9 +1035,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self = self else { return }
                 self.onboardingWindowController = nil
                 self.coordinator.firstLaunch = false
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    self.vm.open()
-                }
+                self.vm.open()
             }
 
             onboardingWindowController = NSWindowController(window: window)

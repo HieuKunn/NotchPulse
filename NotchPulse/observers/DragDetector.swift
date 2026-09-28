@@ -69,41 +69,69 @@ final class DragDetector {
                CGEventSource.buttonState(.hidSystemState, button: .left)
     }
 
-    /// Checks if the drag pasteboard contains actual file, folder, image, text snippet, or droppable content.
+    /// Checks if the drag pasteboard contains actual file, folder, image, or droppable items (strictly excluding tabs and app windows).
     private func hasValidDragContent() -> Bool {
         guard let types = dragPasteboard.types, !types.isEmpty else {
             return false
         }
 
+        // 1. Blacklist browser tabs, window dragging, and app UI elements
+        let tabAndWindowTypes: Set<String> = [
+            "org.chromium.drag-type.tab",
+            "com.google.Chrome.tab",
+            "company.thebrowser.Arc.tab",
+            "com.apple.Safari.tab",
+            "com.apple.Safari.tab-drag",
+            "application/x-moz-tabbrowser-tab",
+            "com.apple.tab-drag",
+            "com.apple.window-drag",
+            "com.apple.NSWindow.drag"
+        ]
+        for type in types {
+            let raw = type.rawValue
+            if tabAndWindowTypes.contains(raw) || raw.contains(".tab") || raw.contains("tab-drag") || raw.contains("window-drag") {
+                return false
+            }
+        }
+
+        // 2. High-priority check: Can the pasteboard provide actual file:// URLs?
+        if dragPasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) {
+            return true
+        }
+
+        // 3. File promise receivers (used by Dock stacks, Mail attachments, and Photos exports)
+        if dragPasteboard.canReadObject(forClasses: [NSFilePromiseReceiver.self], options: nil) {
+            return true
+        }
+
+        // 4. Exact recognized types for files, folders, and Dock stacks
         let recognizedTypes: Set<String> = [
             NSPasteboard.PasteboardType.fileURL.rawValue,   // file://… URLs ("public.file-url")
             "public.file-url",
             "com.apple.finder.node",                       // Finder items (files, folders)
             "NSFilenamesPboardType",                       // legacy Finder drag
-            "com.apple.pasteboard.promised-file-url",      // promised file drags (e.g. Mail attachments)
+            "com.apple.dock.item",                         // macOS Dock stack items (Downloads, etc.)
+            "com.apple.dock.drag-item",
+            "Apple promised file pasteboard type",         // Promised files from Dock or Mail
+            "com.apple.pasteboard.promised-file-url",
             "com.apple.pasteboard.promised-file-content-type",
             "com.apple.mac.install-source-container",      // .pkg, .dmg installer drags
-            "public.url",                                  // URLs, bookmarks
-            "Apple URL pasteboard type",
+            "com.apple.cocoa.pasteboard.findernode",
             "public.image",                                // Any image dragged from browser/photos
             "public.png",
             "public.jpeg",
-            "public.tiff",
-            "public.utf8-plain-text",                      // Text snippets
-            "public.plain-text",
-            "NSStringPboardType",
-            "public.data",
-            "com.apple.cocoa.pasteboard.findernode"
+            "public.tiff"
         ]
 
         for type in types {
             let raw = type.rawValue
             if recognizedTypes.contains(raw) { return true }
-            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("url") || raw.contains("image") || raw.contains("data") || raw.contains("text")) {
+            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("dock") || raw.contains("image")) {
                 return true
             }
         }
-        return true
+
+        return false
     }
 
     func startMonitoring() {

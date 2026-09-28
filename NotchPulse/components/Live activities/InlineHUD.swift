@@ -56,6 +56,11 @@ struct InlineHUD: View {
                                 .symbolVariant(value > 0 ? .none : .slash)
                                 .contentTransition(.interpolate)
                                 .frame(width: 20, height: 15, alignment: .center)
+                        case .battery:
+                            Image(systemName: icon.isEmpty ? "headphones" : icon)
+                                .font(.system(size: 14, weight: .semibold))
+                                .contentTransition(.interpolate)
+                                .frame(width: 20, height: 16, alignment: .center)
                         default:
                             EmptyView()
                     }
@@ -75,7 +80,7 @@ struct InlineHUD: View {
                             .contentTransition(.numericText())
                     }
                     .buttonStyle(PlainButtonStyle())
-                } else {
+                } else if type != .battery {
                     Text(Type2Name(type))
                         .font(.subheadline)
                         .fontWeight(.medium)
@@ -85,14 +90,33 @@ struct InlineHUD: View {
                 }
             }
             .padding(.leading, 8)
-            .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .leading)
+            .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
                 .fill(.black)
                 .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width))
             
             HStack {
-                if (type == .mic) {
+                if (type == .battery) {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.18), lineWidth: 2.2)
+                        Circle()
+                            .trim(from: 0, to: max(0.01, min(1.0, value)))
+                            .stroke(
+                                Color.green,
+                                style: StrokeStyle(lineWidth: 2.2, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                        Text("\(Int(round(value * 100)))")
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .allowsTightening(true)
+                    }
+                    .frame(width: 22, height: 22)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                } else if (type == .mic) {
                     Text(value.isZero ? "muted" : "unmuted")
                         .foregroundStyle(.gray)
                         .lineLimit(1)
@@ -101,7 +125,7 @@ struct InlineHUD: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .contentTransition(.interpolate)
                 } else {
-                        HStack {
+                    HStack {
                         DraggableProgressBar(value: $value, onChange: { v in
                             if type == .volume {
                                 VolumeManager.shared.setAbsolute(Float32(v))
@@ -172,6 +196,8 @@ struct InlineHUD: View {
                 return "Backlight"
             case .mic:
                 return "Mic"
+            case .battery:
+                return ""
             default:
                 return ""
         }
@@ -185,6 +211,8 @@ struct InlineHUD: View {
             return 110
         case .mic:
             return 75
+        case .battery:
+            return 36
         default:
             return 100
         }
@@ -194,6 +222,8 @@ struct InlineHUD: View {
         switch type {
         case .mic:
             return 70
+        case .battery:
+            return 36
         default:
             return 105
         }

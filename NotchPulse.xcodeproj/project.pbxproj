@@ -143,6 +143,7 @@
 		5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */; };
 		59B93ABF99A7E6D888BEFAA6 /* FaceIDLoopingVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622FB763131AE79F7065BECA /* FaceIDLoopingVideoView.swift */; };
 		59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D8C23B2E589FAA00147B33 /* VolumeManager.swift */; };
+		A9F1B2C42E589FAA00147B33 /* BluetoothHeadphoneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */; };
 		5BC711EB163AD4873045F4FE /* NotchPulseCameraDeviceCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC55C6A1A692A11F637F5B1 /* NotchPulseCameraDeviceCatalog.swift */; };
 		6D9F605AB51AE66345804BBD /* FaceIDTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F170AC01D2F3E72A025E250 /* FaceIDTheme.swift */; };
 		6DE97347A4ED6DF8617B2BE8 /* NotchPulseLivenessCues.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC7DF92B8FE14000CC68008 /* NotchPulseLivenessCues.swift */; };
@@ -410,6 +411,7 @@
 		5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyInterceptor.swift; sourceTree = "<group>"; };
 		5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationRelauncher.swift; sourceTree = "<group>"; };
 		59D8C23B2E589FAA00147B33 /* VolumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeManager.swift; sourceTree = "<group>"; };
+		A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothHeadphoneManager.swift; sourceTree = "<group>"; };
 		5A1FEFD6CEDA3049FF64861E /* NotchPulseLandmarkGeometry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLandmarkGeometry.swift; sourceTree = "<group>"; };
 		5C416320A68E66012C56039F /* FaceIDOverlayView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOverlayView.swift; sourceTree = "<group>"; };
 		5F5BB72A0F985602D6A8E514 /* NotchPulseGlareCue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseGlareCue.swift; sourceTree = "<group>"; };
@@ -736,6 +738,7 @@
 				14C08BB52C8DE42D000F8AA0 /* CalendarManager.swift */,
 				B1F0A0012E60000100000001 /* BrightnessManager.swift */,
 				59D8C23B2E589FAA00147B33 /* VolumeManager.swift */,
+				A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */,
 				AA0000012ED0000100000001 /* SystemMonitorManager.swift */,
 				EA3A0859B1FA539A5464FF90 /* FaceIDCore */,
 				DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */,
@@ -1289,6 +1292,7 @@
 				B141C2412CA5F53F00AC8CC8 /* SparkleView.swift in Sources */,
 				116398962DF5D6C00052E6AF /* CalendarServiceProviding.swift in Sources */,
 				59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */,
+				A9F1B2C42E589FAA00147B33 /* BluetoothHeadphoneManager.swift in Sources */,
 				1163988D2DF5CAB40052E6AF /* EventModel.swift in Sources */,
 				14D570B92C5E98A20011E668 /* drop.swift in Sources */,
 				11EFCD702E8E92D600D0B974 /* ShelfItemViewModel.swift in Sources */,

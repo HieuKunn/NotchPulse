@@ -204,7 +204,7 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
-        } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type != .music && (Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery) && vm.notchState == .closed {
             chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
         // NOTE: ĐẢM BẢO TOÀN BỘ UI CỦA DYNAMIC ISLAND VÀ NOTCH PHẢI GIỐNG HỆT NHAU TRỪ KHI NGƯỜI DÙNG YÊU CẦU SỬA
         } else if coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
@@ -291,38 +291,9 @@ struct ContentView: View {
         }
     }
 
-    private func reportLiveCutoutToTourIfNeeded() {
-        guard SpotlightTourManager.shared.isActive else { return }
-        let screenSize = currentScreen?.frame.size ?? NSScreen.main?.frame.size ?? CGSize(width: 1440, height: 900)
-        let totalWidth: CGFloat
-        let totalHeight: CGFloat = currentNotchHeight + (vm.notchState == .open ? 8 : 0)
-        let isDI = isDynamicIsland
-
-        if isDI {
-            totalWidth = currentNotchWidth
-            let pad: CGFloat = 8
-            let w = totalWidth + pad * 2
-            let h = totalHeight + pad * 2
-            let x = (screenSize.width - w) / 2
-            let y = dynamicIslandTopOffset - pad
-            let r = islandRadius + pad
-            SpotlightTourManager.shared.updateLiveCutout(rect: CGRect(x: x, y: y, width: w, height: h), radius: r)
-        } else {
-            totalWidth = currentNotchWidth + (vm.notchState == .open ? (topCornerRadius * 2) : 0)
-            let pad: CGFloat = 8
-            let topExtension: CGFloat = 20
-            let w = totalWidth + pad * 2
-            let h = totalHeight + pad + topExtension
-            let x = (screenSize.width - w) / 2
-            let y = -topExtension
-            let r: CGFloat = 28
-            SpotlightTourManager.shared.updateLiveCutout(rect: CGRect(x: x, y: y, width: w, height: h), radius: r)
-        }
-    }
-
     var body: some View {
         ZStack(alignment: .top) {
-            VStack(spacing: 0) {
+            VStack(alignment: .center, spacing: 0) {
                 let mainLayout = NotchLayout()
                     .frame(
                         width: currentNotchWidth,
@@ -435,13 +406,13 @@ struct ContentView: View {
                             }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
-                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SpotlightTourManager.shared.isActive && coordinator.currentView != .shelf {
+                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
-                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive && self.coordinator.currentView != .shelf {
+                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                                         self.vm.close()
                                     }
                                 }
@@ -504,13 +475,13 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.isBatteryPopoverActive) {
-                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive && coordinator.currentView != .shelf {
+                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
-                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive && self.coordinator.currentView != .shelf {
+                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                                         self.vm.close()
                                     }
                                 }
@@ -557,7 +528,7 @@ struct ContentView: View {
             handleHover(isRadarHovering)
         }
         .onChange(of: coordinator.currentView) { _, newView in
-            guard !SpotlightTourManager.shared.isActive else { return }
+            guard !SharingStateManager.shared.preventNotchClose else { return }
             if vm.customOpenHeight != nil {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     vm.customOpenHeight = nil
@@ -576,34 +547,16 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
 
                 vm.dropEvent = false
-                // Never auto-close during onboarding tour or when shelf is open
-                guard !SpotlightTourManager.shared.isActive else { return }
-                guard coordinator.currentView != .shelf else { return }
                 if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                     self.vm.close()
                 }
             }
         }
-        .onAppear {
-            reportLiveCutoutToTourIfNeeded()
-        }
-        .onChange(of: currentNotchWidth) { _, _ in
-            reportLiveCutoutToTourIfNeeded()
-        }
-        .onChange(of: currentNotchHeight) { _, _ in
-            reportLiveCutoutToTourIfNeeded()
-        }
-        .onChange(of: vm.notchState) { _, _ in
-            reportLiveCutoutToTourIfNeeded()
-        }
-        .onChange(of: coordinator.currentView) { _, _ in
-            reportLiveCutoutToTourIfNeeded()
-        }
     }
 
     @ViewBuilder
     func NotchLayout() -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .center, spacing: 0) {
             VStack(alignment: .center, spacing: 0) {
                 if coordinator.helloAnimationRunning {
                     Spacer()
@@ -621,7 +574,7 @@ struct ContentView: View {
                     ZStack {
                         if !isFaceIDContentVisible {
                             Group {
-                                if (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
+                                if (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) && coordinator.sneakPeek.show && (Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery) && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                     InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                         .transition(.opacity)
                                 } else if !isBottomRowActive && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) {
@@ -651,7 +604,7 @@ struct ContentView: View {
 
                     // NOTE: ĐẢM BẢO TOÀN BỘ UI CỦA DYNAMIC ISLAND VÀ NOTCH PHẢI GIỐNG HỆT NHAU TRỪ KHI NGƯỜI DÙNG YÊU CẦU SỬA
                     if coordinator.sneakPeek.show && !isFaceIDActive {
-                        if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
+                        if (coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery) && !Defaults[.inlineHUD] && vm.notchState == .closed {
                             SystemEventIndicatorModifier(
                                 eventType: $coordinator.sneakPeek.type,
                                 value: $coordinator.sneakPeek.value,
@@ -958,9 +911,6 @@ struct ContentView: View {
                         self.isHovering = false
                     }
                     
-                    // Never auto-close while the onboarding tour is active or when shelf is open
-                    guard !SpotlightTourManager.shared.isActive else { return }
-                    guard self.coordinator.currentView != .shelf else { return }
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close()
                     }

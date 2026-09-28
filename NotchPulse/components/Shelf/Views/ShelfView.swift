@@ -13,6 +13,7 @@ struct ShelfView: View {
     @StateObject var tvm = ShelfStateViewModel.shared
     @StateObject var selection = ShelfSelectionModel.shared
     @StateObject private var quickLookService = QuickLookService()
+    @State private var isShelfTargeted = false
     private let spacing: CGFloat = 8
 
     var body: some View {
@@ -21,12 +22,15 @@ struct ShelfView: View {
                 .aspectRatio(1, contentMode: .fit)
                 .environmentObject(vm)
             panel
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dropZoneTargeting) { providers in
+                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $isShelfTargeted) { providers in
                     handleDrop(providers: providers)
                 }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        .onChange(of: isShelfTargeted) { _, targeted in
+            vm.shelfDropTargeting = targeted
+        }
         // Bind Quick Look to shelf selection
         .onChange(of: selection.selectedIDs) {
             updateQuickLookSelection()
@@ -66,7 +70,7 @@ struct ShelfView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(
-                        vm.dropZoneTargeting
+                        isShelfTargeted
                             ? Color.accentColor.opacity(0.9)
                             : Color.white.opacity(0.12),
                         style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [8, 6])
@@ -140,7 +144,7 @@ struct ShelfView: View {
                 }
                 .padding(-spacing)
                 .scrollIndicators(.never)
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dropZoneTargeting) { providers in
+                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $isShelfTargeted) { providers in
                     handleDrop(providers: providers)
                 }
             }

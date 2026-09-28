@@ -36,7 +36,84 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .faceIDLock: return "🔒 Bảo mật Face ID & Khóa màn hình"
             case .menuBarSettings: return "⚙️ Menu Bar & Cài đặt Tùy chỉnh"
             }
-        default:
+        case .traditionalChinese:
+            switch self {
+            case .notchHover: return "🕳️ 展開瀏海（動態島）"
+            case .shakeToShelf: return "🤝 搖動滑鼠開啟暫存架 (Smart Shake)"
+            case .musicPlayer: return "🎵 音樂播放器與即時歌詞"
+            case .calendarExpand: return "📅 展開全月行事曆"
+            case .calendarFullMonth: return "🗓️ 行事曆導覽與農曆資訊"
+            case .clipboardManager: return "📋 剪貼簿歷史紀錄與片段"
+            case .faceIDLock: return "🔒 Face ID 與螢幕鎖定安全性"
+            case .menuBarSettings: return "⚙️ 選單列與自訂設定"
+            }
+        case .simplifiedChinese:
+            switch self {
+            case .notchHover: return "🕳️ 展开刘海（灵动岛）"
+            case .shakeToShelf: return "🤝 晃动鼠标打开暂存架 (Smart Shake)"
+            case .musicPlayer: return "🎵 音乐播放器与实时歌词"
+            case .calendarExpand: return "📅 展开全月日历"
+            case .calendarFullMonth: return "🗓️ 日历导航与农历信息"
+            case .clipboardManager: return "📋 剪贴板历史记录与片段"
+            case .faceIDLock: return "🔒 Face ID 与屏幕锁定安全性"
+            case .menuBarSettings: return "⚙️ 菜单栏与自定义设置"
+            }
+        case .japanese:
+            switch self {
+            case .notchHover: return "🕳️ ノッチ（Dynamic Island）の展開"
+            case .shakeToShelf: return "🤝 マウスシェイクでシェルフ展開"
+            case .musicPlayer: return "🎵 音楽プレイヤー＆同期歌詞"
+            case .calendarExpand: return "📅 月間カレンダーの展開"
+            case .calendarFullMonth: return "🗓️ カレンダー操作と旧暦情報"
+            case .clipboardManager: return "📋 クリップボード履歴＆スニペット"
+            case .faceIDLock: return "🔒 Face ID＆画面ロックセキュリティ"
+            case .menuBarSettings: return "⚙️ メニューバーとカスタム設定"
+            }
+        case .german:
+            switch self {
+            case .notchHover: return "🕳️ Notch erweitern (Dynamic Island)"
+            case .shakeToShelf: return "🤝 Schütteln zum Öffnen des Shelf"
+            case .musicPlayer: return "🎵 Musik-Player & Songtexte"
+            case .calendarExpand: return "📅 Vollmonatskalender erweitern"
+            case .calendarFullMonth: return "🗓️ Kalendernavigation & Monddetails"
+            case .clipboardManager: return "📋 Zwischenablage-Verlauf"
+            case .faceIDLock: return "🔒 Face ID & Bildschirmsperre"
+            case .menuBarSettings: return "⚙️ Menüleiste & Einstellungen"
+            }
+        case .french:
+            switch self {
+            case .notchHover: return "🕳️ Déployer l'encoche (Dynamic Island)"
+            case .shakeToShelf: return "🤝 Secouer pour ouvrir le Shelf"
+            case .musicPlayer: return "🎵 Lecteur de musique & Paroles"
+            case .calendarExpand: return "📅 Déployer le calendrier mensuel"
+            case .calendarFullMonth: return "🗓️ Navigation & Calendrier lunaire"
+            case .clipboardManager: return "📋 Historique du presse-papiers"
+            case .faceIDLock: return "🔒 Face ID & Sécurité de l'écran"
+            case .menuBarSettings: return "⚙️ Barre des menus & Réglages"
+            }
+        case .spanish:
+            switch self {
+            case .notchHover: return "🕳️ Expandir Notch (Dynamic Island)"
+            case .shakeToShelf: return "🤝 Agitar para abrir el Shelf"
+            case .musicPlayer: return "🎵 Reproductor de música y letras"
+            case .calendarExpand: return "📅 Expandir calendario mensual"
+            case .calendarFullMonth: return "🗓️ Navegación y calendario lunar"
+            case .clipboardManager: return "📋 Historial del portapapeles"
+            case .faceIDLock: return "🔒 Face ID y seguridad de bloqueo"
+            case .menuBarSettings: return "⚙️ Barra de menús y Ajustes"
+            }
+        case .arabic:
+            switch self {
+            case .notchHover: return "🕳️ توسيع النوتش (الجزيرة التفاعلية)"
+            case .shakeToShelf: return "🤝 هز الفأرة لفتح الرف (Shelf)"
+            case .musicPlayer: return "🎵 مشغل الموسيقى والكلمات"
+            case .calendarExpand: return "📅 توسيع تقويم الشهر بالكامل"
+            case .calendarFullMonth: return "🗓️ التنقل في التقويم والتفاصيل"
+            case .clipboardManager: return "📋 سجل الحافظة والقصاصات"
+            case .faceIDLock: return "🔒 أمان Face ID وقفل الشاشة"
+            case .menuBarSettings: return "⚙️ شريط القوائم والتخصيصات"
+            }
+        case .english:
             switch self {
             case .notchHover: return "🕳️ Expand Notch (Dynamic Island)"
             case .shakeToShelf: return "🤝 Shake to Open Shelf (Smart Shake)"
@@ -53,10 +130,16 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
     func badgeText(lang: AppLanguage) -> String {
         let current = rawValue + 1
         let total = SpotlightTourStep.allCases.count
-        if lang == .vietnamese {
-            return "Bước \(current)/\(total)"
-        } else {
-            return "Step \(current)/\(total)"
+        switch lang {
+        case .vietnamese: return "Bước \(current)/\(total)"
+        case .traditionalChinese: return "步驟 \(current)/\(total)"
+        case .simplifiedChinese: return "步骤 \(current)/\(total)"
+        case .japanese: return "ステップ \(current)/\(total)"
+        case .german: return "Schritt \(current)/\(total)"
+        case .french: return "Étape \(current)/\(total)"
+        case .spanish: return "Paso \(current)/\(total)"
+        case .arabic: return "الخطوة \(current)/\(total)"
+        case .english: return "Step \(current)/\(total)"
         }
     }
 
@@ -81,7 +164,140 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .menuBarSettings:
                 return "Click icon Bánh răng ⚙️ ở góc trên bên phải Notch (khi mở) để mở Cài đặt, chuyển màn hình hiển thị, chỉnh độ cong góc hoặc các hiệu ứng ánh sáng."
             }
-        default:
+        case .traditionalChinese:
+            switch self {
+            case .notchHover:
+                return "將滑鼠懸停在螢幕頂部中央的瀏海區域即可展開快捷控制面板。移開滑鼠 250 毫秒後瀏海將自動平滑收合。"
+            case .shakeToShelf:
+                return "當您正在拖曳檔案、圖片或文字片段時，快速左右晃動滑鼠 4 次，Notch 暫存架便會立即彈出承接您的檔案！"
+            case .musicPlayer:
+                return "點擊專輯封面可快速切換至對應音樂 App。點擊歌曲名稱或麥克風圖示即可開啟即時捲動歌詞 (Synced Lyrics)。"
+            case .calendarExpand:
+                return "直接點擊瀏海內的日期與月份資訊，即可立即展開完整的互動式月曆網格。"
+            case .calendarFullMonth:
+                return "使用左側的 `<` 和 `>` 按鈕切換月份，點擊右側的月亮圖示即可查看農曆日期、天干地支與吉時吉日。"
+            case .clipboardManager:
+                return "自動記錄您複製過的所有文字、圖片與連結。點擊任意項目即可快速重新複製，亦可釘選 📌 重要內容。"
+            case .faceIDLock:
+                return "將滑鼠懸停於瀏海即可自動進行 Face ID / Touch ID 辨識。連接外接螢幕時，Face ID 會自動於具備實體鏡頭的螢幕展開。"
+            case .menuBarSettings:
+                return "點擊展開瀏海右上角的齒輪 ⚙️ 圖示即可開啟設定，隨心切換顯示螢幕、調整圓角弧度或燈光特效。"
+            }
+        case .simplifiedChinese:
+            switch self {
+            case .notchHover:
+                return "将鼠标悬停在屏幕顶部中央的刘海区域即可展开快捷控制面板。移开鼠标 250 毫秒后刘海将自动平滑收起。"
+            case .shakeToShelf:
+                return "当您正在拖拽文件、图片或文本片段时，快速左右晃动鼠标 4 次，Notch 暂存架便会立即弹出承接您的文件！"
+            case .musicPlayer:
+                return "点击专辑封面可快速切换至对应音乐 App。点击歌曲名称或麦克风图标即可开启实时滚动歌词 (Synced Lyrics)。"
+            case .calendarExpand:
+                return "直接点击刘海内的日期与月份信息，即可立即展开完整的交互式月历网格。"
+            case .calendarFullMonth:
+                return "使用左侧的 `<` 和 `>` 按钮切换月份，点击右侧的月亮图标即可查看农历日期、天干地支与黄道吉时。"
+            case .clipboardManager:
+                return "自动记录您复制过的所有文本、图片与链接。点击任意项目即可快速重新复制，亦可固定 📌 重要内容。"
+            case .faceIDLock:
+                return "将鼠标悬停于刘海即可自动进行 Face ID / Touch ID 识别。连接外接显示器时，Face ID 会自动在具备实体摄像头的屏幕展开。"
+            case .menuBarSettings:
+                return "点击展开刘海右上角的齿轮 ⚙️ 图标即可打开设置，随心切换显示器、调整圆角弧度或灯光特效。"
+            }
+        case .japanese:
+            switch self {
+            case .notchHover:
+                return "画面上部中央のノッチにカーソルを合わせるとクイックコントロールが展開します。カーソルを離して250ミリ秒後に自動でスムーズに格納されます。"
+            case .shakeToShelf:
+                return "ファイル、画像、テキストをドラッグ中にマウスを素早く左右に4回振ると、Notch Shelf が即座に開いてファイルを受け取ります！"
+            case .musicPlayer:
+                return "アルバムアートをクリックして音楽アプリを開きます。曲名または歌詞アイコンをクリックすると、リアルタイム同期歌詞が表示されます。"
+            case .calendarExpand:
+                return "ノッチ内の日付と月表示を直接クリックすると、30日間のインタラクティブな月間カレンダーグリッドが展開します。"
+            case .calendarFullMonth:
+                return "左側の `<` と `>` ボタンで月を切り替え、右側の月アイコンをクリックすると旧暦や詳細情報を確認できます。"
+            case .clipboardManager:
+                return "コピーしたテキスト、画像、リンクを自動記録します。項目をクリックして即座に再コピーしたり、ピン留め 📌 できます。"
+            case .faceIDLock:
+                return "ノッチにホバーすると Face ID / Touch ID で自動認証します。外部ディスプレイ接続時は実カメラのある画面にドロップダウンします。"
+            case .menuBarSettings:
+                return "展開したノッチ右上の歯車 ⚙️ アイコンをクリックして設定を開き、ディスプレイ切替や角丸、発光エフェクトを調整できます。"
+            }
+        case .german:
+            switch self {
+            case .notchHover:
+                return "Bewegen Sie den Mauszeiger über die Notch oben in der Mitte des Bildschirms, um die Schnellsteuerung zu öffnen. Nach 250 ms ohne Maus schließt sie sich automatisch sanft."
+            case .shakeToShelf:
+                return "Während Sie eine Datei, ein Bild oder einen Text ziehen, schütteln Sie die Maus viermal schnell nach links und rechts. Das Notch Shelf öffnet sich sofort!"
+            case .musicPlayer:
+                return "Klicken Sie auf das Album-Cover, um die Musik-App zu öffnen. Klicken Sie auf den Songtitel für synchron mitlaufende Songtexte."
+            case .calendarExpand:
+                return "Klicken Sie direkt auf die Datums- und Monatsanzeige in der Notch, um das vollständige Monatsraster zu öffnen."
+            case .calendarFullMonth:
+                return "Verwenden Sie die Schaltflächen `<` und `>` zum Wechseln der Monate und das Mondsymbol für Mondkalenderdetails."
+            case .clipboardManager:
+                return "Speichert automatisch kopierte Texte, Bilder und Links. Klicken Sie auf einen Eintrag zum erneuten Kopieren oder Anpinnen 📌."
+            case .faceIDLock:
+                return "Bewegen Sie die Maus über die Notch für automatische Face ID/Touch ID-Erkennung. Bei externen Monitoren öffnet sich Face ID am Kamerabildschirm."
+            case .menuBarSettings:
+                return "Klicken Sie auf das Zahnrad ⚙️ oben rechts in der geöffneten Notch, um Einstellungen zu öffnen und Effekte anzupassen."
+            }
+        case .french:
+            switch self {
+            case .notchHover:
+                return "Survolez l'encoche en haut au centre de votre écran pour afficher les commandes rapides. Éloignez la souris pendant 250 ms pour la refermer en douceur."
+            case .shakeToShelf:
+                return "Pendant le glissement d'un fichier, d'une image ou d'un texte, secouez rapidement la souris de gauche à droite 4 fois. Le Shelf s'ouvrira immédiatement !"
+            case .musicPlayer:
+                return "Cliquez sur la pochette pour ouvrir l'app musicale. Cliquez sur le titre pour afficher les paroles défilantes en temps réel."
+            case .calendarExpand:
+                return "Cliquez sur la date et le mois dans l'encoche pour afficher la grille complète du calendrier interactif."
+            case .calendarFullMonth:
+                return "Utilisez les boutons `<` et `>` pour changer de mois et cliquez sur l'icône de lune pour voir les détails lunaires."
+            case .clipboardManager:
+                return "Conserve automatiquement vos textes, images et liens copiés. Cliquez sur un élément pour le copier à nouveau ou l'épingler 📌."
+            case .faceIDLock:
+                return "Survolez l'encoche pour vous authentifier avec Face ID ou Touch ID. Sur écran externe, Face ID s'affiche sous votre vraie caméra."
+            case .menuBarSettings:
+                return "Cliquez sur l'engrenage ⚙️ en haut à droite de l'encoche pour ouvrir les Réglages et personnaliser les effets."
+            }
+        case .spanish:
+            switch self {
+            case .notchHover:
+                return "Pase el cursor sobre el Notch en la parte superior central de la pantalla para desplegar los controles rápidos. Al retirar el cursor durante 250 ms se cerrará suavemente."
+            case .shakeToShelf:
+                return "Mientras arrastra cualquier archivo, imagen o texto, mueva el ratón rápidamente de izquierda a derecha 4 veces seguidas. ¡El Shelf se abrirá al instante!"
+            case .musicPlayer:
+                return "Haga clic en la carátula para abrir la app de música. Haga clic en el título para ver las letras sincronizadas en tiempo real."
+            case .calendarExpand:
+                return "Haga clic en la fecha y el mes dentro del Notch para desplegar la cuadrícula completa del calendario mensual."
+            case .calendarFullMonth:
+                return "Use los botones `<` y `>` para cambiar de mes y haga clic en el icono de luna para ver detalles lunares."
+            case .clipboardManager:
+                return "Guarda automáticamente textos, imágenes y enlaces copiados. Haga clic en cualquier elemento para volver a copiarlo o fijarlo 📌."
+            case .faceIDLock:
+                return "Pase el cursor sobre el Notch para autenticarse con Face ID o Touch ID. En pantalla externa, Face ID se despliega bajo su cámara real."
+            case .menuBarSettings:
+                return "Haga clic en el engranaje ⚙️ arriba a la derecha del Notch abierto para abrir Ajustes y personalizar los efectos."
+            }
+        case .arabic:
+            switch self {
+            case .notchHover:
+                return "مرر المؤشر فوق النوتش في أعلى منتصف الشاشة لتوسيع عناصر التحكم السريعة. سيتراجع النوتش بسلاسة بعد إبعاد المؤشر بـ 250 مللي ثانية."
+            case .shakeToShelf:
+                return "أثناء سحب أي ملف أو صورة أو نص، هز الفأرة بسرعة يميناً ويساراً 4 مرات متتالية، وسيفتح رف Notch فوراً لالتقاط ملفك!"
+            case .musicPlayer:
+                return "انقر فوق غلاف الألبوم لفتح تطبيق الموسيقى النشط. انقر فوق اسم الأغنية لعرض كلمات الأغاني المتزامنة في الوقت الفعلي."
+            case .calendarExpand:
+                return "انقر مباشرة على التاريخ والشهر داخل النوتش لتوسيع شبكة التقويم التفاعلية الكاملة."
+            case .calendarFullMonth:
+                return "استخدم زرّي `<` و `>` للتنقل بين الأشهر، وانقر على أيقونة القمر لعرض تفاصيل التقويم القمري."
+            case .clipboardManager:
+                return "يحفظ تلقائياً النصوص والصور والروابط المنسوخة. انقر فوق أي عنصر لإعادة نسخه أو تثبيته 📌."
+            case .faceIDLock:
+                return "مرر المؤشر فوق النوتش للمصادقة التلقائية باستخدام Face ID أو Touch ID. عند التوصيل بشاشة خارجية، يظهر Face ID تحت كاميرتك الفعلية."
+            case .menuBarSettings:
+                return "انقر فوق الترس ⚙️ أعلى يمين النوتش المفتوح لفتح الإعدادات وتبديل الشاشات وتخصيص المؤثرات."
+            }
+        case .english:
             switch self {
             case .notchHover:
                 return "Hover your cursor over the Notch at the top center of your screen to expand the quick controls. Move mouse away for 250ms to smoothly auto-close."
@@ -219,13 +435,106 @@ struct SpotlightTooltipCard: View {
     let language: AppLanguage
     let onNext: () -> Void
     let onPrev: () -> Void
-    let onSkipStep: () -> Void
-    let onSkipAll: () -> Void
+    let onClose: () -> Void
     let isFirst: Bool
     let isLast: Bool
 
-    private var isVietnamese: Bool {
-        language == .vietnamese
+    private var backText: String {
+        switch language {
+        case .vietnamese: return "Quay lại"
+        case .traditionalChinese: return "返回"
+        case .simplifiedChinese: return "返回"
+        case .japanese: return "戻る"
+        case .german: return "Zurück"
+        case .french: return "Retour"
+        case .spanish: return "Atrás"
+        case .arabic: return "رجوع"
+        case .english: return "Back"
+        }
+    }
+
+    private var nextText: String {
+        if isLast {
+            switch language {
+            case .vietnamese: return "Hoàn thành"
+            case .traditionalChinese: return "完成"
+            case .simplifiedChinese: return "完成"
+            case .japanese: return "完了"
+            case .german: return "Fertig"
+            case .french: return "Terminer"
+            case .spanish: return "Finalizar"
+            case .arabic: return "إنهاء"
+            case .english: return "Finish"
+            }
+        } else {
+            switch language {
+            case .vietnamese: return "Tiếp theo"
+            case .traditionalChinese: return "下一步"
+            case .simplifiedChinese: return "下一步"
+            case .japanese: return "次へ"
+            case .german: return "Weiter"
+            case .french: return "Suivant"
+            case .spanish: return "Siguiente"
+            case .arabic: return "التالي"
+            case .english: return "Next"
+            }
+        }
+    }
+
+    private var closeHelpText: String {
+        switch language {
+        case .vietnamese: return "Đóng hướng dẫn (Notch vẫn mở)"
+        case .traditionalChinese: return "關閉導覽（保持瀏海開啟）"
+        case .simplifiedChinese: return "关闭导览（保持刘海开启）"
+        case .japanese: return "ガイドを閉じる（ノッチは開いたまま）"
+        case .german: return "Tour schließen (Notch bleibt offen)"
+        case .french: return "Fermer le guide (L'encoche reste ouverte)"
+        case .spanish: return "Cerrar guía (El notch permanece abierto)"
+        case .arabic: return "إغلاق الجولة (يبقى النوتش مفتوحاً)"
+        case .english: return "Close guide (Notch stays open)"
+        }
+    }
+
+    private var faceIDPromptText: String {
+        switch language {
+        case .vietnamese: return "Bạn có muốn thiết lập Face ID ngay không?"
+        case .traditionalChinese: return "您想立即設定 Face ID 嗎？"
+        case .simplifiedChinese: return "您想立即设置 Face ID 吗？"
+        case .japanese: return "今すぐ Face ID を設定しますか？"
+        case .german: return "Möchten Sie Face ID jetzt einrichten?"
+        case .french: return "Voulez-vous configurer Face ID maintenant ?"
+        case .spanish: return "¿Desea configurar Face ID ahora?"
+        case .arabic: return "هل ترغب في إعداد Face ID الآن؟"
+        case .english: return "Would you like to set up Face ID now?"
+        }
+    }
+
+    private var faceIDYesText: String {
+        switch language {
+        case .vietnamese: return "Có (Thiết lập ngay)"
+        case .traditionalChinese: return "是 (立即設定)"
+        case .simplifiedChinese: return "是 (立即设置)"
+        case .japanese: return "はい (今すぐ設定)"
+        case .german: return "Ja (Jetzt einrichten)"
+        case .french: return "Oui (Configurer)"
+        case .spanish: return "Sí (Configurar ahora)"
+        case .arabic: return "نعم (إعداد الآن)"
+        case .english: return "Yes (Set up now)"
+        }
+    }
+
+    private var faceIDNoText: String {
+        switch language {
+        case .vietnamese: return "Không (Để sau)"
+        case .traditionalChinese: return "否 (稍後)"
+        case .simplifiedChinese: return "否 (稍后)"
+        case .japanese: return "いいえ (後で)"
+        case .german: return "Nein (Später)"
+        case .french: return "Non (Plus tard)"
+        case .spanish: return "No (Más tarde)"
+        case .arabic: return "لا (لاحقاً)"
+        case .english: return "No (Later)"
+        }
     }
 
     var body: some View {
@@ -251,13 +560,13 @@ struct SpotlightTooltipCard: View {
                     .foregroundColor(Color.black.opacity(0.75))
 
                 // Quick exit X button: Closes guide and keeps Notch open
-                Button(action: onSkipAll) {
+                Button(action: onClose) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 18))
                         .foregroundColor(Color.black.opacity(0.45))
                 }
                 .buttonStyle(PlainButtonStyle())
-                .help(isVietnamese ? "Đóng hướng dẫn (Notch vẫn mở)" : "Close guide (Notch stays open)")
+                .help(closeHelpText)
             }
 
             Divider()
@@ -279,33 +588,13 @@ struct SpotlightTooltipCard: View {
 
             // Action Buttons Footer
             HStack(spacing: 8) {
-                Button(action: onSkipAll) {
-                    Text(isVietnamese ? "Bỏ qua tất cả" : "Skip all")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color.black.opacity(0.5))
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                Text("•")
-                    .font(.system(size: 10))
-                    .foregroundColor(Color.black.opacity(0.3))
-
-                if !isLast {
-                    Button(action: onSkipStep) {
-                        Text(isVietnamese ? "Bỏ qua bước" : "Skip step")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color.black.opacity(0.7))
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-
                 Spacer()
 
                 if !isFirst {
                     Button(action: onPrev) {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
-                            Text(isVietnamese ? "Quay lại" : "Back")
+                            Text(backText)
                         }
                         .font(.system(size: 12, weight: .medium))
                         .padding(.horizontal, 10)
@@ -318,7 +607,7 @@ struct SpotlightTooltipCard: View {
 
                 Button(action: onNext) {
                     HStack(spacing: 4) {
-                        Text(isLast ? (isVietnamese ? "Hoàn thành" : "Finish") : (isVietnamese ? "Tiếp theo" : "Next"))
+                        Text(nextText)
                         if !isLast {
                             Image(systemName: "chevron.right")
                         }
@@ -361,7 +650,7 @@ struct SpotlightTooltipCard: View {
                     .foregroundColor(.black)
                     .font(.system(size: 13))
 
-                Text(isVietnamese ? "Bạn có muốn thiết lập Face ID ngay không?" : "Would you like to set up Face ID now?")
+                Text(faceIDPromptText)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.black)
             }
@@ -374,7 +663,7 @@ struct SpotlightTooltipCard: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark")
-                        Text(isVietnamese ? "Có (Thiết lập ngay)" : "Yes (Set up now)")
+                        Text(faceIDYesText)
                     }
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 10)
@@ -385,7 +674,7 @@ struct SpotlightTooltipCard: View {
                 .buttonStyle(PlainButtonStyle())
 
                 Button(action: onNext) {
-                    Text(isVietnamese ? "Không (Để sau)" : "No (Later)")
+                    Text(faceIDNoText)
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -411,8 +700,7 @@ struct SpotlightTooltipCardHostView: View {
             language: manager.language,
             onNext: { manager.nextStep() },
             onPrev: { manager.prevStep() },
-            onSkipStep: { manager.nextStep() },
-            onSkipAll: { manager.closeTour() },
+            onClose: { manager.closeTour() },
             isFirst: manager.currentStepIndex == 0,
             isLast: manager.currentStepIndex == SpotlightTourStep.allCases.count - 1
         )
@@ -443,7 +731,7 @@ final class SpotlightTourManager: ObservableObject {
     private var faceIDPhaseObserver: NSObjectProtocol?
     private var activeScreen: NSScreen?
 
-    func showTour(useAppLanguage: Bool = false) {
+    func showTour(useAppLanguage: Bool = true) {
         closeTour()
 
         let targetScreen: NSScreen?
@@ -517,6 +805,7 @@ final class SpotlightTourManager: ObservableObject {
         self.cardWindow = card
 
         isActive = true
+        SharingStateManager.shared.preventNotchClose = true
 
         updateLiveUIState(for: currentStep)
 
@@ -727,9 +1016,7 @@ final class SpotlightTourManager: ObservableObject {
         let notchTotalWidth = isDynamicIsland ? openWidth : (openWidth + 38)
         
         let notchContentHeight: CGFloat
-        if step == .faceIDLock {
-            notchContentHeight = 80
-        } else if step == .calendarFullMonth {
+        if step == .calendarFullMonth {
             notchContentHeight = 240
         } else if step == .clipboardManager {
             notchContentHeight = 250
@@ -800,6 +1087,7 @@ final class SpotlightTourManager: ObservableObject {
         coordinator.firstLaunch = false
         coordinator.currentView = .home
         CalendarStateViewModel.shared.isFullMonthExpanded = false
+        SharingStateManager.shared.preventNotchClose = false
 
         // Keep the active Notch OPEN after closing tour so user can start using it immediately!
         guard let appDelegate = NSApp.delegate as? AppDelegate else { return }

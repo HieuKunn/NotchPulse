@@ -18,6 +18,7 @@ struct FileShareView: View {
     @State private var hostView: NSView?
     @State private var interactionNonce: UUID = .init()
     @State private var isProcessing = false
+    @State private var isTargeted = false
     
     private var selectedProvider: QuickShareProvider {
         quickShare.availableProviders.first(where: { $0.id == quickShareProvider }) ?? QuickShareProvider(id: "System Share Menu", imageData: nil, supportsRawText: true)
@@ -26,11 +27,14 @@ struct FileShareView: View {
     var body: some View {
         dropArea
             .background(NSViewHost(view: $hostView))
-            .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image], isTargeted: $vm.dropZoneTargeting) { providers in
+            .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image], isTargeted: $isTargeted) { providers in
                 interactionNonce = .init()
                 vm.dropEvent = true
                 Task { await handleDrop(providers) }
                 return true
+            }
+            .onChange(of: isTargeted) { _, targeted in
+                vm.shareDropTargeting = targeted
             }
             .onTapGesture {
                 Task {
@@ -48,7 +52,7 @@ struct FileShareView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(
-                            vm.dropZoneTargeting
+                            isTargeted
                                 ? Color.accentColor.opacity(0.9)
                                 : Color.white.opacity(0.12),
                             style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [8, 6])
@@ -61,7 +65,7 @@ struct FileShareView: View {
                 ZStack {
                     Circle()
                         .fill(Color.white.opacity(
-                            vm.dropZoneTargeting ? 0.12 : 0.08
+                            isTargeted ? 0.12 : 0.08
                         ))
                         .frame(width: 50, height: 50)
                     Group {
@@ -76,12 +80,12 @@ struct FileShareView: View {
                     }
                     .frame(width: 28, height: 28)
                     .foregroundStyle(
-                        vm.dropZoneTargeting ? Color.accentColor : Color.white.opacity(0.85)
+                        isTargeted ? Color.accentColor : Color.white.opacity(0.85)
                     )
                     .scaleEffect(
-                        vm.dropZoneTargeting ? 1.06 : 1.0
+                        isTargeted ? 1.06 : 1.0
                     )
-                    .animation(.spring(response: 0.36, dampingFraction: 0.7), value: vm.dropZoneTargeting)
+                    .animation(.spring(response: 0.36, dampingFraction: 0.7), value: isTargeted)
                 }
 
                 Text(selectedProvider.id)

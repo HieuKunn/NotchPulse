@@ -75,7 +75,9 @@ final class ClipboardManager: ObservableObject {
     @Published var history: [ClipboardItem] = []
     @Published var isEnabled: Bool = Defaults[.enableClipboardManager] {
         didSet {
-            Defaults[.enableClipboardManager] = isEnabled
+            if Defaults[.enableClipboardManager] != isEnabled {
+                Defaults[.enableClipboardManager] = isEnabled
+            }
             if isEnabled {
                 startMonitoring()
             } else {
@@ -85,7 +87,9 @@ final class ClipboardManager: ObservableObject {
     }
     @Published var maxItems: Int = Defaults[.clipboardMaxItems] {
         didSet {
-            Defaults[.clipboardMaxItems] = maxItems
+            if Defaults[.clipboardMaxItems] != maxItems {
+                Defaults[.clipboardMaxItems] = maxItems
+            }
             trimHistory()
         }
     }
@@ -102,14 +106,22 @@ final class ClipboardManager: ObservableObject {
         
         // Listen to default changes
         Defaults.publisher(.enableClipboardManager)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] val in
-                self?.isEnabled = val.newValue
+                guard let self = self else { return }
+                if self.isEnabled != val.newValue {
+                    self.isEnabled = val.newValue
+                }
             }
             .store(in: &cancellables)
             
         Defaults.publisher(.clipboardMaxItems)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] val in
-                self?.maxItems = val.newValue
+                guard let self = self else { return }
+                if self.maxItems != val.newValue {
+                    self.maxItems = val.newValue
+                }
             }
             .store(in: &cancellables)
     }
@@ -117,17 +129,22 @@ final class ClipboardManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     func startMonitoring() {
-        stopMonitoring()
-        lastChangeCount = pasteboard.changeCount
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.stopMonitoring()
+            self.lastChangeCount = self.pasteboard.changeCount
 
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
-            self?.checkForChanges()
+            self.pollTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+                self?.checkForChanges()
+            }
         }
     }
 
     func stopMonitoring() {
-        pollTimer?.invalidate()
-        pollTimer = nil
+        DispatchQueue.main.async { [weak self] in
+            self?.pollTimer?.invalidate()
+            self?.pollTimer = nil
+        }
     }
 
     private func checkForChanges() {
