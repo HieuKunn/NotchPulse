@@ -459,9 +459,13 @@ final class SpotlightTourManager: ObservableObject {
         self.language = useAppLanguage ? Defaults[.appLanguage] : .english
         self.currentStepIndex = 0
 
-        let initialTarget = currentStep.targetFrame(screenSize: mainScreen.frame.size)
-        self.currentCutoutRect = initialTarget
-        self.currentCornerRadius = (currentStep == .menuBarSettings || currentStep == .notchHover) ? 12 : 22
+        // Compute initial cutout immediately so backdrop and card open at the right location
+        let targetVM: NotchPulseViewModel
+        let appDelegate = NSApp.delegate as? AppDelegate
+        targetVM = appDelegate?.vm ?? NotchPulseViewModel()
+        let (initialRect, initialRadius) = computeCutoutRect(for: currentStep, screen: mainScreen, targetVM: targetVM)
+        self.currentCutoutRect = initialRect
+        self.currentCornerRadius = initialRadius
 
         // 1. Create Non-Blocking Backdrop Window (ignoresMouseEvents = true so all clicks pass through)
         let backdrop = NSWindow(
@@ -476,6 +480,7 @@ final class SpotlightTourManager: ObservableObject {
         backdrop.hasShadow = false
         backdrop.ignoresMouseEvents = true // Full pass-through for Notch, Desktop, and Apps!
         backdrop.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        backdrop.isReleasedWhenClosed = false
         backdrop.contentView = NSHostingView(rootView: SpotlightBackdropView())
         self.backdropWindow = backdrop
 
@@ -493,12 +498,17 @@ final class SpotlightTourManager: ObservableObject {
         card.hasShadow = false
         card.ignoresMouseEvents = false // Card captures clicks on its own buttons
         card.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        card.isReleasedWhenClosed = false
         card.contentView = NSHostingView(rootView: SpotlightTooltipCardHostView())
         self.cardWindow = card
 
         isActive = true
 
         updateLiveUIState(for: currentStep)
+
+        // Position card properly below the computed cutout
+        let positionedCardRect = cardRect(for: currentStep, screen: mainScreen)
+        card.setFrame(positionedCardRect, display: true)
 
         backdrop.orderFrontRegardless()
         card.orderFrontRegardless()
@@ -527,14 +537,10 @@ final class SpotlightTourManager: ObservableObject {
     private func stepDidChange() {
         guard let screen = activeScreen else { return }
         
-        // 1. Pre-switch live tabs & open notch for the new step beforehand
+        // 1. Pre-switch live tabs & open notch for the new step beforehand (this updates currentCutoutRect)
         updateLiveUIState(for: currentStep)
 
-        // 2. Update spotlight cutout and card frame
-        let newTarget = currentStep.targetFrame(screenSize: screen.frame.size)
-        self.currentCutoutRect = newTarget
-        self.currentCornerRadius = (currentStep == .menuBarSettings || currentStep == .notchHover) ? 12 : 22
-
+        // 2. Update card frame below the updated cutout
         let newCardRect = cardRect(for: currentStep, screen: screen)
         cardWindow?.setFrame(newCardRect, display: true, animate: true)
     }
@@ -542,21 +548,19 @@ final class SpotlightTourManager: ObservableObject {
     private func cardRect(for step: SpotlightTourStep, screen: NSScreen) -> NSRect {
         let screenSize = screen.frame.size
         let screenOrigin = screen.frame.origin
-        let targetRect = step.targetFrame(screenSize: screenSize)
         let cardWidth: CGFloat = 430
         let cardHeight: CGFloat = (step == .faceIDLock) ? 290 : 240
         let padding: CGFloat = 20
 
-        let x: CGFloat
-        if step == .menuBarSettings {
-            let openWidth = CGFloat(Defaults[.notchOpenWidth])
-            let notchRight = (screenSize.width + openWidth) / 2
-            x = min(screenSize.width - cardWidth - 20, max(20, notchRight - cardWidth / 2))
-        } else {
-            x = (screenSize.width - cardWidth) / 2
-        }
+        let x = (screenSize.width - cardWidth) / 2
 
-        let topY = targetRect.maxY + 20
+        let cutoutBottom: CGFloat
+        if currentCutoutRect != .zero {
+            cutoutBottom = currentCutoutRect.maxY
+        } else {
+            cutoutBottom = 210
+        }
+        let topY = cutoutBottom + 16
         let constrainedTopY = min(screenSize.height - cardHeight - padding, topY)
 
         let appKitY = screenOrigin.y + (screenSize.height - constrainedTopY - cardHeight)
@@ -568,6 +572,7 @@ final class SpotlightTourManager: ObservableObject {
     private func updateLiveUIState(for step: SpotlightTourStep) {
         guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
         let coordinator = NotchPulseViewCoordinator.shared
+        coordinator.firstLaunch = false
 
         let targetVM: NotchPulseViewModel
         if let activeUUID = self.activeScreen?.displayUUID,
@@ -595,6 +600,7 @@ final class SpotlightTourManager: ObservableObject {
                 }
 
             case .shakeToShelf:
+                Defaults[.notchPulseShelf] = true
                 coordinator.currentView = .shelf
                 CalendarStateViewModel.shared.isFullMonthExpanded = false
                 for vm in allVMs {
@@ -611,6 +617,7 @@ final class SpotlightTourManager: ObservableObject {
                 }
 
             case .calendarExpand:
+                Defaults[.showCalendar] = true
                 coordinator.currentView = .home
                 CalendarStateViewModel.shared.isFullMonthExpanded = false
                 for vm in allVMs {
@@ -619,6 +626,7 @@ final class SpotlightTourManager: ObservableObject {
                 }
 
             case .calendarFullMonth:
+                Defaults[.showCalendar] = true
                 coordinator.currentView = .home
                 CalendarStateViewModel.shared.isFullMonthExpanded = true
                 for vm in allVMs {
@@ -627,6 +635,7 @@ final class SpotlightTourManager: ObservableObject {
                 }
 
             case .clipboardManager:
+                Defaults[.enableClipboardManager] = true
                 coordinator.currentView = .clipboard
                 CalendarStateViewModel.shared.isFullMonthExpanded = false
                 for vm in allVMs {
@@ -663,38 +672,54 @@ final class SpotlightTourManager: ObservableObject {
     @MainActor
     private func updateCutoutRectFromLiveVM(step: SpotlightTourStep, targetVM: NotchPulseViewModel) {
         guard let screen = activeScreen else { return }
-        let screenSize = screen.frame.size
-
-        // The open notch width comes directly from the VM (set by open() -> openNotchWidth).
-        // Add padding so the spotlight ring fits smoothly around the outer edge of the expanded notch.
-        let notchWidth = targetVM.notchSize.width
-        let ringPad: CGFloat = 12       // Generous padding around the open notch edges
-        let ringWidth = notchWidth + ringPad * 2
-
-        // Height: use the VM's effective open height (respects customOpenHeight overrides like
-        // calendar's 240pt or clipboard's 250pt). For the faceID closed-notch step use 80pt.
-        let notchHeight: CGFloat
-        if step == .faceIDLock {
-            notchHeight = 80
-        } else {
-            notchHeight = targetVM.customOpenHeight ?? targetVM.notchSize.height
-        }
-        
-        // Extend slightly above top of screen (-10) so top edge of ring merges cleanly off-screen,
-        // matching notch top attachment.
-        let yOffset: CGFloat = -10
-        let ringHeight = notchHeight + ringPad + abs(yOffset)
-
-        // Cutout X is centered on screen (same as the notch window centering logic).
-        let x = (screenSize.width - ringWidth) / 2
-        let y: CGFloat = yOffset
+        let (rect, radius) = computeCutoutRect(for: step, screen: screen, targetVM: targetVM)
 
         withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
-            self.currentCutoutRect = CGRect(x: x, y: y, width: ringWidth, height: ringHeight)
-            self.currentCornerRadius = step == .faceIDLock ? 18 : 32
+            self.currentCutoutRect = rect
+            self.currentCornerRadius = radius
         }
     }
 
+    @MainActor
+    func computeCutoutRect(for step: SpotlightTourStep, screen: NSScreen, targetVM: NotchPulseViewModel) -> (CGRect, CGFloat) {
+        let screenSize = screen.frame.size
+        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+        let openWidth = max(minNotchWidth, min(maxNotchWidth, CGFloat(Defaults[.notchOpenWidth])))
+        
+        // In standard notch mode, ContentView adds horizontal padding: 2 * 19 = 38
+        let notchTotalWidth = isDynamicIsland ? openWidth : (openWidth + 38)
+        
+        let notchContentHeight: CGFloat
+        if step == .faceIDLock {
+            notchContentHeight = 80
+        } else if step == .calendarFullMonth {
+            notchContentHeight = 240
+        } else if step == .clipboardManager {
+            notchContentHeight = 250
+        } else {
+            notchContentHeight = targetVM.customOpenHeight ?? openNotchSize.height
+        }
+        
+        let notchTotalHeight = notchContentHeight + 8 // 8pt bottom padding in ContentView
+        
+        if isDynamicIsland {
+            let topOffset = Defaults[.dynamicIslandTopOffset]
+            let pad: CGFloat = 8
+            let width = notchTotalWidth + pad * 2
+            let height = notchTotalHeight + pad * 2
+            let x = (screenSize.width - width) / 2
+            let y = topOffset - pad
+            return (CGRect(x: x, y: y, width: width, height: height), 26 + pad)
+        } else {
+            let pad: CGFloat = 8
+            let width = notchTotalWidth + pad * 2
+            let topExtension: CGFloat = 18
+            let height = notchTotalHeight + pad + topExtension
+            let x = (screenSize.width - width) / 2
+            let y = -topExtension
+            return (CGRect(x: x, y: y, width: width, height: height), 28)
+        }
+    }
 
     func hideTour() {
         backdropWindow?.orderOut(nil)
@@ -744,16 +769,15 @@ final class SpotlightTourManager: ObservableObject {
         }
         isActive = false
         backdropWindow?.orderOut(nil)
-        backdropWindow?.close()
         backdropWindow = nil
 
         cardWindow?.orderOut(nil)
-        cardWindow?.close()
         cardWindow = nil
 
         // Keep the Notch OPEN after closing tour so user can start using it immediately!
         guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
         let coordinator = NotchPulseViewCoordinator.shared
+        coordinator.firstLaunch = false
         coordinator.currentView = .home
         CalendarStateViewModel.shared.isFullMonthExpanded = false
 
@@ -761,7 +785,7 @@ final class SpotlightTourManager: ObservableObject {
         for vm in allVMs {
             vm.customOpenHeight = nil
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                vm.close()
+                vm.open()
             }
         }
     }

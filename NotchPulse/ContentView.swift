@@ -410,7 +410,9 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive {
-                                        self.vm.close()
+                                        withAnimation(self.animationSpring) {
+                                            self.vm.close()
+                                        }
                                     }
                                 }
                             }
@@ -479,7 +481,9 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !SpotlightTourManager.shared.isActive {
-                                        self.vm.close()
+                                        withAnimation(self.animationSpring) {
+                                            self.vm.close()
+                                        }
                                     }
                                 }
                             }
@@ -547,7 +551,9 @@ struct ContentView: View {
                 // Never auto-close during onboarding tour
                 guard !SpotlightTourManager.shared.isActive else { return }
                 if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                    vm.close()
+                    withAnimation(self.animationSpring) {
+                        self.vm.close()
+                    }
                 }
             }
         }
@@ -914,7 +920,9 @@ struct ContentView: View {
                     // Never auto-close while the onboarding tour is active
                     guard !SpotlightTourManager.shared.isActive else { return }
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
-                        self.vm.close()
+                        withAnimation(self.animationSpring) {
+                            self.vm.close()
+                        }
                     }
                 }
             }
@@ -988,7 +996,9 @@ struct ContentView: View {
             }
             if !SharingStateManager.shared.preventNotchClose { 
                 gestureProgress = .zero
-                vm.close()
+                withAnimation(animationSpring) {
+                    vm.close()
+                }
             }
 
             if Defaults[.enableHaptics] {

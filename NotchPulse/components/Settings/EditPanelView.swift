@@ -17,7 +17,7 @@ struct EditPanelView: View {
                     .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Button {
-                    exit(0)
+                    NSApp.keyWindow?.orderOut(nil)
                 } label: {
                     Label(loc("Close"), systemImage: "xmark")
                 }

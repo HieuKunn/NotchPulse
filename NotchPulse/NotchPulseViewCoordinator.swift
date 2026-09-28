@@ -163,7 +163,7 @@ class NotchPulseViewCoordinator: ObservableObject {
         XPCHelperClient.shared.startMonitoringAccessibilityAuthorization(every: 2.0)
 
         Task { @MainActor in
-            helloAnimationRunning = firstLaunch
+            helloAnimationRunning = false
 
             if Defaults[.hudReplacement] {
                 // Retry a few times to allow the XPC helper connection to warm up before checking authorization.

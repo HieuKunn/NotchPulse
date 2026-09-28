@@ -495,15 +495,11 @@ struct NotchHomeView: View {
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
-        Group {
-            if !coordinator.firstLaunch {
-                GeometryReader { geo in
-                    mainContent(totalWidth: geo.size.width)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                }
-                .frame(minHeight: 148, maxHeight: .infinity, alignment: .top)
-            }
+        GeometryReader { geo in
+            mainContent(totalWidth: geo.size.width)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .frame(minHeight: 148, maxHeight: .infinity, alignment: .top)
         .transition(.opacity)
     }
 

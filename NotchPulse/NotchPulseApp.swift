@@ -996,12 +996,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.title = "Onboarding"
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
+            window.isRestorable = false
+            window.isReleasedWhenClosed = false
+            window.identifier = NSUserInterfaceItemIdentifier("OnboardingWindow")
             window.contentView = NSHostingView(
                 rootView: OnboardingView(
                     step: step,
                     onFinish: {
                         window.orderOut(nil)
-                        window.close()
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -1010,7 +1012,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     },
                     onOpenSettings: {
                         window.orderOut(nil)
-                        window.close()
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -1019,8 +1020,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         SettingsWindowController.shared.showWindow()
                     }
                 ))
-            window.isRestorable = false
-            window.identifier = NSUserInterfaceItemIdentifier("OnboardingWindow")
 
             // Ensure closing the onboarding window keeps the app and notch open
             NotificationCenter.default.addObserver(
