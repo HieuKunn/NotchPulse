@@ -802,67 +802,66 @@ a {
 
 /* Individual Node Placements (Evenly Distributed & Random-Feel Staggered Constellation) */
 
-/* --- Upper Tier (Top Perimeter) --- */
+/* Left Wing (Evenly Spaced 6 Nodes) */
 .node-faceid {
-  top: 3%;
+  top: 6%;
   left: 2%;
 }
 
 .node-display {
-  top: 2%;
-  left: 21%;
+  top: 20%;
+  left: 22%;
 }
 
 .node-lunar {
-  top: 2%;
-  right: 21%;
+  top: 38%;
+  left: 4%;
 }
 
-.node-ddc {
-  top: 3%;
-  right: 2%;
-}
-
-/* --- Middle Tier (Outer Left & Right Flanks) --- */
 .node-stats {
-  top: 27%;
-  left: 1.5%;
+  top: 56%;
+  left: 20%;
 }
 
 .node-battery {
-  top: 52%;
-  left: 3.5%;
+  top: 72%;
+  left: 3%;
 }
 
 .node-lockscreen {
-  top: 76%;
-  left: 2%;
+  top: 86%;
+  left: 22%;
 }
 
+/* Right Wing (Evenly Spaced 6 Nodes) */
 .node-island {
-  top: 27%;
-  right: 1.5%;
-}
-
-.node-lyrics {
-  top: 52%;
-  right: 3.5%;
-}
-
-.node-shelf {
-  top: 76%;
+  top: 6%;
   right: 2%;
 }
 
-/* --- Lower Tier (Bottom Perimeter) --- */
-.node-clipboard {
-  bottom: 2%;
-  left: 24%;
+.node-ddc {
+  top: 20%;
+  right: 22%;
+}
+
+.node-shelf {
+  top: 38%;
+  right: 4%;
+}
+
+.node-lyrics {
+  top: 56%;
+  right: 20%;
 }
 
 .node-fps {
-  bottom: 2%;
-  right: 24%;
+  top: 72%;
+  right: 3%;
+}
+
+.node-clipboard {
+  top: 86%;
+  right: 22%;
 }
 
 @keyframes floatDrift {
