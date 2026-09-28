@@ -64,12 +64,19 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         notchSize = getClosedNotchSize(screenUUID: screenUUID)
         closedNotchSize = notchSize
 
-        Publishers.CombineLatest3($dropZoneTargeting, $dragDetectorTargeting, $generalDropTargeting)
-            .map { shelf, drag, general in
-                shelf || drag || general
-            }
-            .assign(to: \.anyDropZoneTargeting, on: self)
-            .store(in: &cancellables)
+        // Only actual shelf drop-zones and the drag-detector trigger anyDropZoneTargeting.
+        // generalDropTargeting (dragging app windows near the notch) is intentionally excluded
+        // so that moving app windows close to the notch never opens the shelf.
+        Publishers.MergeMany(
+            $dropZoneTargeting.map { _ in () },
+            $dragDetectorTargeting.map { _ in () }
+        )
+        .map { [weak self] _ -> Bool in
+            guard let self = self else { return false }
+            return self.dropZoneTargeting || self.dragDetectorTargeting
+        }
+        .assign(to: \.anyDropZoneTargeting, on: self)
+        .store(in: &cancellables)
 
         NotificationCenter.default.publisher(for: .notchDidOpen)
             .receive(on: DispatchQueue.main)

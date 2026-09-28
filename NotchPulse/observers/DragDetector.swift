@@ -135,22 +135,21 @@ final class DragDetector {
 
         recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 900ms (natural human gesture window)
-        let cutoff = currentTime - 0.90
+        // Keep samples from the last 400ms — forces the shake to be genuinely fast
+        let cutoff = currentTime - 0.40
         recentSamples.removeAll { $0.time < cutoff }
 
-        guard recentSamples.count >= 3 else { return }
+        guard recentSamples.count >= 4 else { return }
 
-        // Detect direction reversals (swings) on horizontal (X) or vertical/diagonal (Y) axis with at least 7.0pt travel
+        // Require at least 28pt per swing (≈ 1cm travel) so slow lazy sweeps don't trigger.
+        // Only the horizontal axis counts — left/right shake intent.
         let xs = recentSamples.map { $0.x }
-        let ys = recentSamples.map { $0.y }
-        let minSwing: CGFloat = 7.0
+        let minSwing: CGFloat = 28.0
 
         let revX = countAxisReversals(values: xs, minSwing: minSwing)
-        let revY = countAxisReversals(values: ys, minSwing: minSwing)
 
-        // 2 or more reversals in 900ms on either axis signifies a deliberate rapid shake
-        if revX >= 2 || revY >= 2 {
+        // Need 3 reversals (left→right→left→right) within 400ms — unmistakably deliberate
+        if revX >= 3 {
             lastShakeTriggerTime = currentTime
             recentSamples.removeAll()
             onShakeDetected?()

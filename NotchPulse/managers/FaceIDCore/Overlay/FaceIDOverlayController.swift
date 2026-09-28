@@ -430,7 +430,7 @@ final class FaceIDOverlayController {
         }
 
         switch phase {
-        case .closed, .failure, .collapsing:
+        case .closed, .failure:
             routeToCameraScreen()
             resolveTask?.cancel(); resolveTask = nil
             scanTimeoutTask?.cancel(); scanTimeoutTask = nil
@@ -464,7 +464,7 @@ final class FaceIDOverlayController {
             if NotchPulseLockMonitor.isScreenActuallyLocked() {
                 routeToCameraScreen()
             }
-        case .success, .onboarding:
+        case .success, .onboarding, .collapsing:
             break
         }
     }

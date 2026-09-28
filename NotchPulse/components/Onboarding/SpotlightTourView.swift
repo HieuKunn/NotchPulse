@@ -651,7 +651,50 @@ final class SpotlightTourManager: ObservableObject {
                 }
             }
         }
+
+        // After vm.open() the notchSize is set to the real open dimensions — use those to
+        // compute the spotlight cutout so the ring matches the actual rendered notch exactly.
+        updateCutoutRectFromLiveVM(step: step, targetVM: targetVM)
     }
+
+    /// Compute the spotlight cutout rect by reading the live notch dimensions from `targetVM`
+    /// after `open()` has been called. This ensures the highlight ring is always pixel-accurate
+    /// regardless of user width/height settings or custom open height overrides.
+    @MainActor
+    private func updateCutoutRectFromLiveVM(step: SpotlightTourStep, targetVM: NotchPulseViewModel) {
+        guard let screen = activeScreen else { return }
+        let screenSize = screen.frame.size
+
+        // The open notch width comes directly from the VM (set by open() -> openNotchWidth).
+        // Add padding so the spotlight ring fits smoothly around the outer edge of the expanded notch.
+        let notchWidth = targetVM.notchSize.width
+        let ringPad: CGFloat = 12       // Generous padding around the open notch edges
+        let ringWidth = notchWidth + ringPad * 2
+
+        // Height: use the VM's effective open height (respects customOpenHeight overrides like
+        // calendar's 240pt or clipboard's 250pt). For the faceID closed-notch step use 80pt.
+        let notchHeight: CGFloat
+        if step == .faceIDLock {
+            notchHeight = 80
+        } else {
+            notchHeight = targetVM.customOpenHeight ?? targetVM.notchSize.height
+        }
+        
+        // Extend slightly above top of screen (-10) so top edge of ring merges cleanly off-screen,
+        // matching notch top attachment.
+        let yOffset: CGFloat = -10
+        let ringHeight = notchHeight + ringPad + abs(yOffset)
+
+        // Cutout X is centered on screen (same as the notch window centering logic).
+        let x = (screenSize.width - ringWidth) / 2
+        let y: CGFloat = yOffset
+
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+            self.currentCutoutRect = CGRect(x: x, y: y, width: ringWidth, height: ringHeight)
+            self.currentCornerRadius = step == .faceIDLock ? 18 : 32
+        }
+    }
+
 
     func hideTour() {
         backdropWindow?.orderOut(nil)

@@ -35,6 +35,14 @@ struct FaceIDOnboardingNotchView: View {
         .id(controller.step)
         .frame(width: controller.panelSize.width, height: controller.panelSize.height)
         .transition(stepTransition)
+        .overlay(alignment: .topTrailing) {
+            if controller.step != .enroll && controller.step != .complete {
+                EnrollmentCloseButton {
+                    controller.dismiss()
+                }
+                .padding(FaceIDMetrics.enrollCloseButtonEdgePadding)
+            }
+        }
     }
 
     private var stepTransition: AnyTransition {

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import AppKit
 
 enum OnboardingStep {
     case welcome
@@ -177,6 +178,86 @@ struct OnboardingView: View {
             }
         }
         .frame(width: 400, height: 600)
+        .onAppear {
+            // Open notch immediately when onboarding appears so user sees the context
+            updateNotchLiveUI(for: step)
+        }
+        .onChange(of: step) { _, newStep in
+            updateNotchLiveUI(for: newStep)
+        }
+    }
+
+    // MARK: - Notch Live UI Sync
+
+    /// Mirror the current onboarding step in the live Notch UI so the user sees
+    /// what they're enabling while they go through the permission screens.
+    @MainActor
+    private func updateNotchLiveUI(for step: OnboardingStep) {
+        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+        let coordinator = NotchPulseViewCoordinator.shared
+        let allVMs = [appDelegate.vm] + Array(appDelegate.viewModels.values)
+
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            switch step {
+            case .welcome:
+                // Notch stays closed during the welcome splash — don't disrupt it
+                break
+
+            case .cameraPermission:
+                // Camera → show home (FaceID / camera mirror lives here)
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
+
+            case .calendarPermission:
+                // Calendar permission → open Notch and expand the calendar view
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
+
+            case .remindersPermission:
+                // Reminders live in the same Calendar area
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = true
+                for vm in allVMs {
+                    vm.customOpenHeight = 240
+                    vm.open()
+                }
+
+            case .accessibilityPermission:
+                // Accessibility → home
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
+
+            case .musicPermission:
+                // Music → home (music player is the centerpiece of the home view)
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
+
+            case .finished:
+                // Keep notch open on the home tab so user can immediately interact
+                coordinator.currentView = .home
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                for vm in allVMs {
+                    vm.customOpenHeight = nil
+                    vm.open()
+                }
+            }
+        }
     }
 
     // MARK: - Permission Request Logic
@@ -197,3 +278,4 @@ struct OnboardingView: View {
         _ = await XPCHelperClient.shared.ensureAccessibilityAuthorization(promptIfNeeded: true)
     }
 }
+

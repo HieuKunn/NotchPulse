@@ -358,7 +358,7 @@ struct ContentView: View {
                     .onHover { hovering in
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
-                            if hovering && faceIDOverlay.phase != .onboarding {
+                            if hovering && faceIDOverlay.phase != .onboarding && faceIDOverlay.phase != .collapsing {
                                 FaceIDOverlayController.shared.activate()
                             }
                             return
@@ -538,13 +538,9 @@ struct ContentView: View {
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
-            // If notch is closed, NEVER auto-open shelf on drag/hover! Shelf only opens via shake gesture.
-            if isTargeted && vm.notchState == .open {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    coordinator.currentView = .shelf
-                }
-                return
-            }
+            // Shelf only opens via shake gesture — dragging near the open notch no longer
+            // auto-switches to the shelf tab.
+            if isTargeted { return }
 
             anyDropDebounceTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(800))
@@ -856,6 +852,9 @@ struct ContentView: View {
             return true
         }
         guard isFaceIDActive else { return false }
+        if faceIDOverlay.phase == .collapsing {
+            return false
+        }
         return true
     }
 
@@ -915,8 +914,9 @@ struct ContentView: View {
                         self.isHovering = false
                     }
                     
-                    // Never auto-close while the onboarding tour is active
-                    guard !SpotlightTourManager.shared.isActive else { return }
+                    // Never auto-close while the onboarding tour or first-launch onboarding window is active
+                    guard !SpotlightTourManager.shared.isActive,
+                          !coordinator.firstLaunch else { return }
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close()
                     }

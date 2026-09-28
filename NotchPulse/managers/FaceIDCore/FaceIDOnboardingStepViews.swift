@@ -300,7 +300,7 @@ struct EnrollStepView: View {
     }
 }
 
-private struct EnrollmentCloseButton: View {
+struct EnrollmentCloseButton: View {
     let action: () -> Void
     @State private var isHovering = false
 
