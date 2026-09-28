@@ -17,6 +17,10 @@
 	<string>NotchPulse needs permission to control Spotify and Apple Music to display synchronized track info and real-time lyrics.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>NotchPulse uses the camera for secure Face ID unlock and guided face enrollment.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>NotchPulse uses Bluetooth to detect wireless headphones and display battery HUD.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>NotchPulse uses Bluetooth to detect wireless headphones and display battery status.</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict/>

@@ -22,11 +22,13 @@ final class BluetoothHeadphoneManager: NSObject {
 
     override init() {
         super.init()
-        setupListeners()
+        DispatchQueue.main.async { [weak self] in
+            self?.setupListeners()
+        }
     }
 
     func setupListeners() {
-        // 1. Listen for IOBluetooth device connection events
+        // 1. Listen for IOBluetooth device connection events (safely guarded)
         connectNotification = IOBluetoothDevice.register(
             forConnectNotifications: self,
             selector: #selector(deviceConnectedNotification(_:device:))
