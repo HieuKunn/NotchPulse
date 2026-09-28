@@ -12,6 +12,7 @@
 //  4. Git tag & push: git push origin main --tags
 //
 
+import AppKit
 import AVFoundation
 import Combine
 import Defaults
