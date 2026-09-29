@@ -254,10 +254,7 @@ final class NotchPulseFaceUnlockCoordinator {
         }
     }
 
-    /// `generation` is what makes overlapping cycles safe: `Task.cancel()` is cooperative, so a superseded cycle still runs to the
-    /// end of this function, and its global side effects (`camera.stop()` etc.) could otherwise land on the newer cycle instead
-    /// of itself. This was a real bug — a superseded `camera.stop()` queued behind the newer cycle's `startRunning()` made the
-    /// camera visibly switch on then die mid-warm-up, leaving the surviving cycle polling a dead session and never unlocking.
+    private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
         let showsUI = self.showsUI
