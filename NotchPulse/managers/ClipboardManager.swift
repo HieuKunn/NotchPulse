@@ -137,8 +137,8 @@ final class ClipboardManager: ObservableObject {
             guard let self = self else { return }
             self.stopMonitoring()
 
-            // Run timer in .common mode so event tracking or modals don't pause it
-            let timer = Timer(timeInterval: 0.4, repeats: true) { [weak self] _ in
+            // Run timer in .common mode at 0.2s interval so it catches copies with zero perceived delay
+            let timer = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
             RunLoop.main.add(timer, forMode: .common)
@@ -146,6 +146,16 @@ final class ClipboardManager: ObservableObject {
 
             // Check immediately on startup
             self.checkForChanges()
+        }
+    }
+
+    func checkImmediately() {
+        if Thread.isMainThread {
+            self.checkForChanges()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.checkForChanges()
+            }
         }
     }
 
@@ -269,23 +279,30 @@ final class ClipboardManager: ObservableObject {
     }
 
     private func insertItem(_ item: ClipboardItem) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            // Remove any identical content string or duplicate ID
-            self.history.removeAll { existing in
-                if existing.id == item.id { return true }
-                if let newContent = item.contentString, let existingContent = existing.contentString {
-                    return newContent == existingContent
-                }
-                if item.isImage && existing.isImage, let d1 = item.imageData, let d2 = existing.imageData {
-                    return d1 == d2
-                }
-                return false
+        if Thread.isMainThread {
+            applyInsertion(item)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.applyInsertion(item)
             }
-            self.history.insert(item, at: 0)
-            self.trimHistory()
-            self.saveHistory()
         }
+    }
+
+    private func applyInsertion(_ item: ClipboardItem) {
+        // Remove any identical content string or duplicate ID
+        self.history.removeAll { existing in
+            if existing.id == item.id { return true }
+            if let newContent = item.contentString, let existingContent = existing.contentString {
+                return newContent == existingContent
+            }
+            if item.isImage && existing.isImage, let d1 = item.imageData, let d2 = existing.imageData {
+                return d1 == d2
+            }
+            return false
+        }
+        self.history.insert(item, at: 0)
+        self.trimHistory()
+        self.saveHistory()
     }
 
     private func trimHistory() {

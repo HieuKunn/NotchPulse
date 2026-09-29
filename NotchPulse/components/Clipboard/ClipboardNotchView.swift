@@ -83,6 +83,9 @@ struct ClipboardNotchView: View {
         .onHover { isHovering in
             vm.isHoveringClipboard = isHovering
         }
+        .onAppear {
+            clipboardManager.checkImmediately()
+        }
     }
 }
 

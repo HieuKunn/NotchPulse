@@ -845,6 +845,7 @@ struct ContentView: View {
     }
 
     private func doOpen() {
+        ClipboardManager.shared.checkImmediately()
         vm.open()
     }
 
