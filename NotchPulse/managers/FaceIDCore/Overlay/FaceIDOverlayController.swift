@@ -326,8 +326,10 @@ final class FaceIDOverlayController {
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
 
         geometry = windowController.currentGeometry
-        content = .onboarding(controller)
-        phase = .onboarding
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            content = .onboarding(controller)
+            phase = .onboarding
+        }
         routeToCameraScreen()
         isPillDocked = true
         windowController.show()
