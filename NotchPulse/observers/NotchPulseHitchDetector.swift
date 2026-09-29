@@ -63,9 +63,28 @@ final class NotchPulseHitchDetector {
     private func tick() {
         let now = ProcessInfo.processInfo.systemUptime
         let scheduled = lastScheduledFire < 0 ? now : lastScheduledFire + interval
-        lastScheduledFire = scheduled
 
         let late = now - scheduled
+
+        // BIG STALL handling: after a multi-second main-thread block the schedule can
+        // never catch up (each fire only advances the schedule by one interval), which
+        // used to report the stale lateness FOREVER and drowned out later data.
+        // Report the stall ONCE with its true duration, then re-anchor to now.
+        if late > 2.0 {
+            let context = contextProvider?() ?? "unknown"
+            let stallStart = scheduled
+            let hitch = Hitch(at: stallStart - processStart, lateBy: late, context: context)
+            recentHitches.append(hitch)
+            if recentHitches.count > 100 {
+                recentHitches.removeFirst(recentHitches.count - 100)
+            }
+            NSLog("🛑 NotchPulse BIG STALL %.1f s (main thread blocked, context: %@) — schedule re-anchored", late, context)
+            lastLoggedAt = now
+            lastScheduledFire = now
+            return
+        }
+
+        lastScheduledFire = scheduled
         guard late > hitchThreshold else { return }
 
         let context = contextProvider?() ?? "unknown"

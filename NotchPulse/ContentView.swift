@@ -997,8 +997,15 @@ struct ContentView: View {
         let topOffset = (isDynamicIsland && screen.safeAreaInsets.top == 0) ? dynamicIslandTopOffset : 0
         
         let pad = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 6.0
-        let width = currentNotchWidth + (pad * 2.0)
-        let height = currentNotchHeight + pad + topOffset
+        // BUGFIX: use the PHYSICAL notch dimensions when closed. currentNotchWidth is
+        // the live chin width, which balloons to 260-460px while music is playing —
+        // the imagined hover rect then covered twice the visible notch and the
+        // auto-close path silently refused to fire ("cursor left the notch but it
+        // never closes").
+        let baseWidth = vm.notchState == .open ? currentNotchWidth : vm.closedNotchSize.width
+        let baseHeight = vm.notchState == .open ? currentNotchHeight : vm.closedNotchSize.height
+        let width = baseWidth + (pad * 2.0)
+        let height = baseHeight + pad + topOffset
         
         let notchRect = CGRect(
             x: screenFrame.midX - (width / 2.0),
@@ -1064,26 +1071,28 @@ struct ContentView: View {
         } else {
             hoverTask?.cancel()
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(300))
-                guard !Task.isCancelled else { return }
-                
-                await MainActor.run {
-                    // Critical: Do NOT close if mouse is still physically inside the open notch's rectangle
-                    if self.isMousePhysicallyInsideNotch() {
-                        return
-                    }
-                    if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar {
-                        return
-                    }
-                    // Do not close notch if mouse button is currently held down (e.g. dragging or right-click context menu active)
-                    if NSEvent.pressedMouseButtons != 0 {
-                        return
-                    }
+                // Keep re-checking every 300ms while the cursor sits inside the open
+                // notch rectangle. The old code RETURNED on the first in-rect check, so
+                // a single early "still inside" left the notch open forever with no
+                // further exit event to retry ("mouse left the notch but it won't close").
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
                     
-                    self.isHovering = false
-                    
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
-                        self.vm.close(targetClosedWidth: self.baseChinWidth)
+                    await MainActor.run {
+                        // Critical: Do NOT close if mouse is still physically inside the open notch's rectangle
+                        if self.isMousePhysicallyInsideNotch() { return }
+                        if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar { return }
+                        // Do not close notch if mouse button is currently held down (e.g. dragging or right-click context menu active)
+                        if NSEvent.pressedMouseButtons != 0 { return }
+                        
+                        self.isHovering = false
+                        
+                        if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
+                            self.vm.close(targetClosedWidth: self.baseChinWidth)
+                        }
+                        // Done — either closed or blocked by a pin/popover; stop looping.
+                        self.hoverTask?.cancel()
                     }
                 }
             }
