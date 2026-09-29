@@ -27,7 +27,7 @@ final class DragDetector {
     private var mouseMonitor: Any?
     private var localMouseMonitor: Any?
 
-    private var lastKnownIdlePasteboardCount: Int = -1
+    private var lastConsumedPasteboardCount: Int = -1
     private var mouseDownPasteboardCount: Int?
     private var dragStartLocation: CGPoint?
     private var isContentDragging: Bool = false {
@@ -57,7 +57,7 @@ final class DragDetector {
     init(regionProvider: @escaping () -> CGRect, screenFrameProvider: (() -> CGRect?)? = nil) {
         self.regionProvider = regionProvider
         self.screenFrameProvider = screenFrameProvider
-        self.lastKnownIdlePasteboardCount = dragPasteboard.changeCount
+        self.lastConsumedPasteboardCount = dragPasteboard.changeCount
     }
 
     // MARK: - Private Helpers
@@ -100,6 +100,16 @@ final class DragDetector {
         }
 
         // 3. File promise receivers (used by Dock stacks, Mail attachments, and Photos exports)
+        let promiseTypes: Set<String> = Set(NSFilePromiseReceiver.readableDraggedTypes.map { $0.rawValue }).union([
+            "com.apple.NSFilePromiseItemMetaData",
+            "dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu",
+            "com.apple.pasteboard.promised-file-content-type",
+            "com.apple.pasteboard.promised-file-url",
+            "Apple promised file pasteboard type"
+        ])
+        if types.contains(where: { promiseTypes.contains($0.rawValue) }) {
+            return true
+        }
         if dragPasteboard.canReadObject(forClasses: [NSFilePromiseReceiver.self], options: nil) {
             return true
         }
@@ -112,11 +122,12 @@ final class DragDetector {
             "NSFilenamesPboardType",                       // legacy Finder drag
             "com.apple.dock.item",                         // macOS Dock stack items (Downloads, etc.)
             "com.apple.dock.drag-item",
-            "Apple promised file pasteboard type",         // Promised files from Dock or Mail
-            "com.apple.pasteboard.promised-file-url",
-            "com.apple.pasteboard.promised-file-content-type",
             "com.apple.mac.install-source-container",      // .pkg, .dmg installer drags
             "com.apple.cocoa.pasteboard.findernode",
+            "public.folder",
+            "public.directory",
+            "public.item",
+            "public.data",
             "public.image",                                // Any image dragged from browser/photos
             "public.png",
             "public.jpeg",
@@ -126,8 +137,17 @@ final class DragDetector {
         for type in types {
             let raw = type.rawValue
             if recognizedTypes.contains(raw) { return true }
-            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("dock") || raw.contains("image")) {
+            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("dock") || raw.contains("image") || raw.contains("item")) {
                 return true
+            }
+        }
+
+        // 5. UTType conformance check
+        for type in types {
+            if let ut = UTType(type.rawValue) {
+                if ut.conforms(to: .fileURL) || ut.conforms(to: .image) {
+                    return true
+                }
             }
         }
 
@@ -248,7 +268,6 @@ final class DragDetector {
                 return
             }
 
-            lastKnownIdlePasteboardCount = currentPbCount
             recentSamples.removeAll()
             dragStartLocation = nil
             mouseDownPasteboardCount = nil
@@ -256,6 +275,8 @@ final class DragDetector {
             // Reset when mouse button is confirmed released.
             if isContentDragging {
                 isContentDragging = false
+                // Mark this pasteboard session as consumed so old content on drag pasteboard doesn't trigger on text select
+                lastConsumedPasteboardCount = currentPbCount
                 onDragEnded?()
             }
 
@@ -301,10 +322,9 @@ final class DragDetector {
         let hasMovedSufficiently = dragDistance >= 6.0
 
         // Detect if active drag session:
-        // Pasteboard changeCount changed with valid drag content AND mouse moved >= 6pt
-        let isPasteboardChanged = (lastKnownIdlePasteboardCount >= 0 && currentPbCount != lastKnownIdlePasteboardCount) ||
-                                  (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
-        let isNewDragOperation = isPasteboardChanged && hasValidDragContent() && hasMovedSufficiently
+        // Pasteboard has fresh unconsumed content with valid drag content AND mouse moved >= 6pt
+        let isFreshPasteboard = (lastConsumedPasteboardCount < 0) || (currentPbCount != lastConsumedPasteboardCount)
+        let isNewDragOperation = isFreshPasteboard && hasValidDragContent() && hasMovedSufficiently
 
         if isContentDragging || isNewDragOperation {
             isContentDragging = true
@@ -352,7 +372,7 @@ final class DragDetector {
         recentSamples.removeAll()
         dragStartLocation = nil
         mouseDownPasteboardCount = nil
-        lastKnownIdlePasteboardCount = dragPasteboard.changeCount
+        lastConsumedPasteboardCount = dragPasteboard.changeCount
     }
 
     deinit {

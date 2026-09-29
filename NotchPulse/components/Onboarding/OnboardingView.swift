@@ -148,7 +148,7 @@ struct OnboardingView: View {
                             .foregroundColor(.secondary.opacity(0.7))
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .help("Đóng (Notch vẫn mở)")
+                    .help(loc("Close (Notch stays open)"))
                     .padding(14)
 
                     Spacer()
@@ -161,7 +161,7 @@ struct OnboardingView: View {
                             }
                         }) {
                             HStack(spacing: 4) {
-                                Text("Bỏ qua tất cả")
+                                Text(loc("Skip All"))
                                 Image(systemName: "forward.fill")
                             }
                             .font(.system(size: 11, weight: .medium))

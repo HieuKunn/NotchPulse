@@ -406,13 +406,14 @@ struct ContentView: View {
                             }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
-                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
+                                guard !SpotlightTourManager.shared.isActive else { return }
                                 await MainActor.run {
-                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                                         self.vm.close()
                                     }
                                 }
@@ -475,13 +476,14 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.isBatteryPopoverActive) {
-                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
+                                guard !SpotlightTourManager.shared.isActive else { return }
                                 await MainActor.run {
-                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                                         self.vm.close()
                                     }
                                 }
@@ -490,7 +492,7 @@ struct ContentView: View {
                     }
                     .sensoryFeedback(.alignment, trigger: haptics)
                     .contextMenu {
-                        Button("Settings") {
+                        Button(loc("Settings")) {
                             DispatchQueue.main.async {
                                 SettingsWindowController.shared.showWindow()
                             }
@@ -499,11 +501,11 @@ struct ContentView: View {
                         
                         Divider()
                         
-                        Menu("Notch Width (\(Int(notchOpenWidth))px)") {
-                            Button("Compact (580px)") { notchOpenWidth = 580 }
-                            Button("Standard (740px)") { notchOpenWidth = 740 }
-                            Button("Wide (860px)") { notchOpenWidth = 860 }
-                            Button("Extra Wide (940px)") { notchOpenWidth = 940 }
+                        Menu("\(loc("Notch Width")) (\(Int(notchOpenWidth))px)") {
+                            Button(loc("Compact (580px)")) { notchOpenWidth = 580 }
+                            Button(loc("Standard (740px)")) { notchOpenWidth = 740 }
+                            Button(loc("Wide (860px)")) { notchOpenWidth = 860 }
+                            Button(loc("Extra Wide (940px)")) { notchOpenWidth = 940 }
                         }
                     }
                 if vm.chinHeight > 0 {
@@ -547,7 +549,7 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
 
                 vm.dropEvent = false
-                if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                     self.vm.close()
                 }
             }
@@ -905,13 +907,14 @@ struct ContentView: View {
             hoverTask = Task {
                 try? await Task.sleep(for: .milliseconds(250))
                 guard !Task.isCancelled else { return }
+                guard !SpotlightTourManager.shared.isActive else { return }
                 
                 await MainActor.run {
                     withAnimation(animationSpring) {
                         self.isHovering = false
                     }
                     
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
+                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close()
                     }
                 }
@@ -984,7 +987,7 @@ struct ContentView: View {
             withAnimation(animationSpring) {
                 isHovering = false
             }
-            if !SharingStateManager.shared.preventNotchClose { 
+            if !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive { 
                 gestureProgress = .zero
                 vm.close()
             }

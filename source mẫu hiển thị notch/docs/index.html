@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark" translate="no" class="notranslate">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google" content="notranslate">
+  <title>NotchPulse — The Ultimate Dynamic Island &amp; Notch Companion for macOS</title>
+  <meta name="description" content="NotchPulse transforms your MacBook notch into a fluid, 120Hz ProMotion interactive Dynamic Island with Face ID, live lyrics, hardware HUD, and system telemetry.">
+  <meta name="keywords" content="NotchPulse, notchpulse hieukunn, macos dynamic island, macbook notch app, HieuKunn">
+  <meta name="author" content="HieuKunn (Kun Nguyen)">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="canonical" href="https://notchpulse-app.web.app/">
+  <link rel="icon" type="image/png" href="assets/logo_clean.png">
+  
+  <!-- Fonts: Space Mono, Pixelify Sans, Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Preload Critical Above-The-Fold Images -->
+  <link rel="preload" as="image" href="assets/cozy_bg.webp" type="image/webp" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/logo_clean.png">
+  
+  <link rel="stylesheet" href="style.css?v=37">
+</head>
+<body>
+
+  <!-- High-Performance Fixed Background Layer (Zero-Latency Local Rendering, GPU Isolated) -->
+  <div class="site-bg" style="background-image: url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABQODxIPDRQSEBIXFRQYHjIhHhwcHj0sLiQySUBMS0dARkVQWnNiUFVtVkVGZIhlbXd7gYKBTmCNl4x9lnN+gXz/2wBDARUXFx4aHjshITt8U0ZTfHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHz/wAARCAASACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCSHXTKojeJFyed/KgYzWha6jbt8oVQ2eiOOfwNcfHt4yxHHYkitWziVmXbH5keST8oGD7E1zyN0dU88SJuYlR74H86zZtVtIslmUgcKdxIpklptXcY5XXrgOD/ADrIvEtlk3TxXIHrgDH4YqVqOyRSsVDTKGAIweo/2a6vTo4xCCEUHc3OPeiirkJGgCSDk1VkRdrjaMfSiioBH//Z'); background-size: cover; background-position: center;" aria-hidden="true">
+    <picture>
+      <source srcset="assets/cozy_bg.webp" type="image/webp">
+      <img src="assets/cozy_bg.jpg" alt="" class="site-bg-img" fetchpriority="high" decoding="sync" width="1376" height="768">
+    </picture>
+    <div class="site-bg-overlay"></div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar" id="navbar">
+    <div class="container nav-container">
+      <a href="#" class="nav-brand">
+        <img src="assets/logo_clean.png" alt="NotchPulse Logo" class="nav-logo" width="32" height="32">
+        <span>NotchPulse</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features" class="nav-link" data-i18n="nav.features">Features</a></li>
+        <li><a href="#interactive-demo" class="nav-link" data-i18n="nav.demo">Live Demo</a></li>
+        <li><a href="#reviews" class="nav-link" data-i18n="nav.reviews">Reviews</a></li>
+        <li><a href="#creator" class="nav-link" data-i18n="nav.creator">Creator</a></li>
+        <li><a href="#download" class="nav-link" data-i18n="nav.download">Download</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Apple-style Language Switcher Popover -->
+        <div class="lang-dropdown-wrapper" id="langDropdownWrapper">
+          <button class="btn-pill lang-toggle-btn" id="langToggle" aria-label="Select language" aria-haspopup="true" aria-expanded="false">
+            <span class="lang-flag" id="langFlag">🇻🇳</span>
+            <span class="lang-label" id="langLabel">VI</span>
+            <svg class="lang-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="lang-dropdown-menu" id="langMenu" role="menu">
+            <button class="lang-menu-item" data-lang="vi" role="menuitem">
+              <span class="lang-menu-flag">🇻🇳</span>
+              <span class="lang-menu-name">Tiếng Việt</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="en" role="menuitem">
+              <span class="lang-menu-flag">🇺🇸</span>
+              <span class="lang-menu-name">English</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="de" role="menuitem">
+              <span class="lang-menu-flag">🇩🇪</span>
+              <span class="lang-menu-name">Deutsch</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="ja" role="menuitem">
+              <span class="lang-menu-flag">🇯🇵</span>
+              <span class="lang-menu-name">日本語</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="zh-TW" role="menuitem">
+              <span class="lang-menu-flag">🇹🇼</span>
+              <span class="lang-menu-name">繁體中文</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="zh-CN" role="menuitem">
+              <span class="lang-menu-flag">🇨🇳</span>
+              <span class="lang-menu-name">简体中文</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="es" role="menuitem">
+              <span class="lang-menu-flag">🇪🇸</span>
+              <span class="lang-menu-name">Español</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Download CTA in Nav -->
+        <a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg" class="btn-pill btn-download-sm" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="nav.get">Get App (DMG)</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section (Instantly visible above the fold) -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-tag-badge">
+        <span>✨</span>
+        <span data-i18n="hero.badge">NotchPulse v4.6.6 Released</span>
+      </div>
+
+      <h1 class="hero-title">
+        <span class="hero-title-main" data-i18n="hero.titleMain">MacBook Notch,</span>
+        <span class="hero-title-accent" data-i18n="hero.titleAccent">Reimagined.</span>
+      </h1>
+
+      <p class="hero-subtitle" data-i18n="hero.subtitle">
+        Transform your MacBook camera notch into a fluid, 120Hz ProMotion interactive Dynamic Island. Native Apple Silicon performance with Biometric Face ID, real-time lyrics, and smart hardware HUDs.
+      </p>
+
+      <!-- Action Buttons Centered -->
+      <div class="hero-cta-group">
+        <a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg" class="btn-primary" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="hero.downloadBtn">Download NotchPulse.dmg (v4.6.6) &rarr;</span>
+        </a>
+
+        <!-- Copyable Homebrew command -->
+        <div class="brew-copy-box" id="copyBrewCmd" title="Click to copy Homebrew install command">
+          <code>brew install --cask notchpulse</code>
+          <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </div>
+      </div>
+
+      <!-- Organic Floating Nodes & Dynamic Notch Stage -->
+      <div id="interactive-demo" style="position: relative; top: -70px;"></div>
+      <div class="floating-stage" id="floatingStage">
+        
+        <!-- Center Floating Dynamic Notch -->
+        <div class="stage-notch-wrapper">
+          <div class="stage-notch">
+            <div class="stage-notch-left">
+              <span class="pulse-dot"></span>
+              <span class="notch-song" data-i18n="hero.notchSong">Midnight Pulse — Lofi Waves</span>
+            </div>
+            <div class="stage-notch-center">
+              <div class="lens-cutout"></div>
+            </div>
+            <div class="stage-notch-right">
+              <div class="mini-eq">
+                <span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scattered Floating Interactive Nodes -->
+        <div class="float-node node-faceid" style="--delay: 0s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 8V6a2 2 0 0 1 2-2h2"/>
+              <path d="M4 16v2a2 2 0 0 0 2 2h2"/>
+              <path d="M16 4h2a2 2 0 0 1 2 2v2"/>
+              <path d="M16 20h2a2 2 0 0 0 2-2v-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+              <path d="M12 11v3"/>
+              <path d="M9 16a4 4 0 0 0 6 0"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.faceidTitle">Face ID Verified</strong>
+            <span data-i18n="chip.faceidSub">On-Device Neural Engine</span>
+          </div>
+        </div>
+
+        <div class="float-node node-ddc" style="--delay: 1.2s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2"/>
+              <path d="M12 20v2"/>
+              <path d="M4.93 4.93l1.41 1.41"/>
+              <path d="M17.66 17.66l1.41 1.41"/>
+              <path d="M2 12h2"/>
+              <path d="M20 12h2"/>
+              <path d="M6.34 17.66l-1.41 1.41"/>
+              <path d="M19.07 4.93l-1.41 1.41"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.ddcTitle">DDC Display Control</strong>
+            <span data-i18n="chip.ddcSub">Dell UltraSharp 4K • 82%</span>
+          </div>
+        </div>
+
+        <div class="float-node node-battery" style="--delay: 2.1s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.batteryTitle">98W MagSafe Active</strong>
+            <span data-i18n="chip.batterySub">Smart 80% Limit Protected</span>
+          </div>
+        </div>
+
+        <div class="float-node node-shelf" style="--delay: 0.8s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.shelfTitle">Notch Shelf Ready</strong>
+            <span data-i18n="chip.shelfSub">Drag &amp; Drop to Hold Files</span>
+          </div>
+        </div>
+
+        <div class="float-node node-fps" style="--delay: 1.6s;">
+          <span class="node-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l1.912 5.885a2 2 0 0 0 1.203 1.203L21 12l-5.885 1.912a2 2 0 0 0-1.203 1.203L12 21l-1.912-5.885a2 2 0 0 0-1.203-1.203L3 12l5.885-1.912a2 2 0 0 0 1.203-1.203L12 3z"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.fpsTitle">120Hz ProMotion</strong>
+            <span data-i18n="chip.fpsSub">0% CPU Idle Overhead</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Bento Grid Feature Showcase Section -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header fade-in-section">
+        <span class="section-tag" data-i18n="features.tag">Engineered for macOS</span>
+        <h2 class="section-title" data-i18n="features.title">Supercharge Your MacBook Notch</h2>
+        <p class="section-subtitle" data-i18n="features.subtitle">
+          Built natively in Swift with 0% CPU overhead at idle. Experience smooth 120Hz ProMotion animations, biometric conveniences, and smart desktop tools.
+        </p>
+      </div>
+
+      <!-- Bento Grid Layout -->
+      <div class="bento-grid">
+        
+        <!-- Bento 1 (Large 8-col): Biometric Face ID -->
+        <div class="bento-card bento-col-8 fade-in-section">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m0 6v4a2 2 0 0 0 2 2h4m6 0h4a2 2 0 0 0 2-2v-4m0-6V5a2 2 0 0 0-2-2h-4"/><circle cx="12" cy="12" r="3"/><path d="M12 9v1"/><path d="M12 14v1"/></svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat1.title">Biometric Face ID Recognition</h3>
+            <p class="bento-desc" data-i18n="feat1.desc">
+              Brings iOS-grade facial recognition to your Mac. Continuously senses your presence, previews camera status smoothly, and unlocks protected apps with privacy-first on-device Apple Vision processing.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div style="display: flex; align-items: center; gap: 20px;">
+              <div class="faceid-scanner-anim" style="margin-bottom: 0;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3m0-8V5a2 2 0 0 0-2-2h-3"/>
+                  <circle cx="9" cy="9" r="1.2" fill="currentColor"/>
+                  <circle cx="15" cy="9" r="1.2" fill="currentColor"/>
+                  <path d="M12 11v2"/>
+                  <path d="M8.5 15.5c1.8 1.8 5.2 1.8 7 0"/>
+                </svg>
+              </div>
+              <div>
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 1rem; letter-spacing: -0.01em;" data-i18n="bento.faceidVerified">Neural Face Mesh Active</div>
+                <div style="font-size: 0.82rem; color: var(--accent-bronze); margin-top: 3px; font-weight: 500;" data-i18n="bento.faceidSub">512D Vector Embedding • On-Device Apple Vision</div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;" data-i18n="bento.faceidHandshake">Lock Screen to Active Desktop Zero-Lag Handshake</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 2 (4-col): 120Hz ProMotion Dual Mode -->
+        <div class="bento-card bento-col-4 fade-in-section delay-1">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat2.title">120Hz ProMotion Dual Mode</h3>
+            <p class="bento-desc" data-i18n="feat2.desc">
+              Fluidly morphs between native MacBook Notch profile and a centered floating Dynamic Island on external Studio Displays.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div style="text-align: center;">
+              <div style="display: inline-block; padding: 5px 16px; background: rgba(141, 84, 40, 0.1); border: 1px solid rgba(141, 84, 40, 0.2); border-radius: 980px; font-weight: 600; font-size: 0.84rem; color: var(--accent-caramel); margin-bottom: 6px;">120 FPS ProMotion</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);" data-i18n="bento.springPhysics">Spring Physics (response: 0.38s)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 3 (4-col): Notch Shelf & Staging Dock -->
+        <div class="bento-card bento-col-4 fade-in-section">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat4.title">Notch Shelf & Quick Drop</h3>
+            <p class="bento-desc" data-i18n="feat4.desc">
+              Drag files, links, or screenshots directly into the notch bezel to hold them temporarily across workspaces and apps.
+            </p>
+          </div>
+
+          <div class="bento-preview-box shelf-notch-preview-box">
+            <div class="notch-shelf-ui">
+              <!-- Notch Top Mini Bar -->
+              <div class="notch-shelf-topbar">
+                <div class="notch-shelf-tabs">
+                  <span class="notch-tab-btn" title="Home">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  </span>
+                  <span class="notch-tab-btn active" title="Shelf">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                  </span>
+                  <span class="notch-tab-btn" title="System Monitor">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                  </span>
+                </div>
+                <div class="notch-shelf-tools">
+                  <span class="notch-tool-btn" title="Webcam indicator">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><circle cx="12" cy="10" r="7"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+                  </span>
+                  <span class="notch-tool-btn" title="Settings">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Main Zones -->
+              <div class="notch-shelf-zones">
+                <!-- AirDrop Zone -->
+                <div class="notch-shelf-zone airdrop-zone">
+                  <div class="airdrop-circle-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                      <polyline points="16 6 12 2 8 6"/>
+                      <line x1="12" y1="2" x2="12" y2="15"/>
+                    </svg>
+                  </div>
+                  <span class="airdrop-title">AirDrop</span>
+                </div>
+
+                <!-- Drop Area Zone -->
+                <div class="notch-shelf-zone drop-target-zone">
+                  <div class="drop-target-content">
+                    <div class="drop-target-icon">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      </svg>
+                    </div>
+                    <span class="drop-target-label" data-i18n="shelf.dropText">Drop files here</span>
+                  </div>
+                  <div class="shelf-pin-badge" title="Pin Shelf">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="17" x2="12" y2="22"/>
+                      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.76V6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 4 (Large 8-col): Real-Time Synced Lyrics -->
+        <div class="bento-card bento-col-8 fade-in-section delay-1">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat3.title">Live Synced Lyrics</h3>
+            <p class="bento-desc" data-i18n="feat3.desc">
+              Live word-by-word streaming lyrics for Spotify and Apple Music directly over the notch. Scrub tracks, seek timestamps, or expand into fullscreen lyric mode with vibrant album artwork.
+            </p>
+          </div>
+
+          <div class="bento-preview-box" style="justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div class="vinyl-disc">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
+                  <circle cx="12" cy="12" r="7" stroke="rgba(255,235,220,0.3)" stroke-width="1"/>
+                  <circle cx="12" cy="12" r="4" stroke="rgba(255,235,220,0.35)" stroke-width="1"/>
+                  <circle cx="12" cy="12" r="2" fill="#D4C7BA"/>
+                </svg>
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #fff; font-size: 1rem;">Echoes of Calm</div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">Pulse Audio &amp; Friends</div>
+              </div>
+            </div>
+
+            <!-- Dynamic Equalizer Animation -->
+            <div class="equalizer-container">
+              <div class="eq-bar"></div>
+              <div class="eq-bar"></div>
+              <div class="eq-bar"></div>
+              <div class="eq-bar"></div>
+              <div class="eq-bar"></div>
+            </div>
+
+            <div class="lyrics-quote-pill" data-i18n="bento.songLyrics">
+              "Drifting through the calm, soundscapes in the night..."
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 5 (6-col): Hardware DDC Controls -->
+        <div class="bento-card bento-col-6 fade-in-section">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat5.title">Hardware DDC External Display HUD</h3>
+            <p class="bento-desc" data-i18n="feat5.desc">
+              Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with native Apple keyboard shortcuts.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="ddc-slider-row">
+              <div class="ddc-info-row">
+                <span class="ddc-label">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+                  <span data-i18n="bento.ddcBrightness">Dell UltraSharp 4K Brightness</span>
+                </span>
+                <span class="ddc-pct">82%</span>
+              </div>
+              <div class="ddc-slider-bar"><div class="ddc-fill-brightness"></div></div>
+
+              <div class="ddc-info-row" style="margin-top: 6px;">
+                <span class="ddc-label">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  <span data-i18n="bento.ddcVolume">Built-in Audio Volume</span>
+                </span>
+                <span class="ddc-pct">65%</span>
+              </div>
+              <div class="ddc-slider-bar"><div class="ddc-fill-volume"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 6 (6-col): Live CPU, RAM & GPU System Monitor -->
+        <div class="bento-card bento-col-6 fade-in-section delay-1">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat6.title">Live CPU, RAM & GPU System Monitor</h3>
+            <p class="bento-desc" data-i18n="feat6.desc">
+              Real-time hardware telemetry directly inside the notch. Track Apple Silicon unified memory pressure, CPU core clusters, and GPU load with 0% idle overhead.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="telemetry-grid-preview">
+              <!-- CPU Telemetry -->
+              <div class="telemetry-pill">
+                <div class="telemetry-pill-head">
+                  <span class="telemetry-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                    <span>CPU</span>
+                  </span>
+                  <span class="telemetry-pct">14.5%</span>
+                </div>
+                <div class="telemetry-track">
+                  <div class="telemetry-bar" style="width: 14.5%;"></div>
+                </div>
+                <div class="telemetry-sub" data-i18n="bento.cpuCores">8 Cores Active</div>
+              </div>
+
+              <!-- RAM Telemetry -->
+              <div class="telemetry-pill">
+                <div class="telemetry-pill-head">
+                  <span class="telemetry-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="10" y1="18" x2="10" y2="21"/><line x1="14" y1="18" x2="14" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
+                    <span>RAM</span>
+                  </span>
+                  <span class="telemetry-pct">64%</span>
+                </div>
+                <div class="telemetry-track">
+                  <div class="telemetry-bar" style="width: 64%;"></div>
+                </div>
+                <div class="telemetry-sub" data-i18n="bento.ramUsage">10.3 / 16 GB Active</div>
+              </div>
+
+              <!-- GPU Telemetry -->
+              <div class="telemetry-pill">
+                <div class="telemetry-pill-head">
+                  <span class="telemetry-label">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    <span>GPU</span>
+                  </span>
+                  <span class="telemetry-pct">8.2%</span>
+                </div>
+                <div class="telemetry-track">
+                  <div class="telemetry-bar" style="width: 8.2%;"></div>
+                </div>
+                <div class="telemetry-sub" data-i18n="bento.gpuFps">120 FPS Metal Pro</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials & Reviews Section (Diverse Ratings & Multilingual) -->
+  <section class="section" id="reviews">
+    <div class="container">
+      <div class="section-header fade-in-section">
+        <span class="section-tag" data-i18n="reviews.tag">Global Community</span>
+        <h2 class="section-title" data-i18n="reviews.title">Loved by Developers Worldwide</h2>
+        <p class="section-subtitle" data-i18n="reviews.subtitle">
+          Real feedback from Mac engineers, designers, and creators across the globe with diverse ratings.
+        </p>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="testimonials-filter-bar fade-in-section">
+        <button class="filter-btn active" data-filter="all" data-i18n="reviews.all">All Reviews (4.8 ★)</button>
+        <button class="filter-btn" data-filter="5" data-i18n="reviews.five">5 Stars</button>
+        <button class="filter-btn" data-filter="4.5" data-i18n="reviews.fourPointFive">4.5 Stars</button>
+        <button class="filter-btn" data-filter="4" data-i18n="reviews.four">4 Stars</button>
+        <button class="filter-btn" data-filter="3.5" data-i18n="reviews.threePointFive">3.5 Stars</button>
+      </div>
+
+      <!-- Testimonials Grid -->
+      <div class="testimonials-grid" id="testimonialsGrid">
+        
+        <!-- Review 1: 5 stars (Vietnamese - Saigon) -->
+        <div class="testimonial-card fade-in-section" data-rating="5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★★</div>
+              <span class="lang-badge">🇻🇳 Tiếng Việt</span>
+            </div>
+            <p class="testimonial-quote">
+              "Tốc độ Swift native mượt tuyệt đối. RAM ăn chưa tới 25MB và CPU luôn 0.0% khi idle. Cảm giác như tính năng chính chủ Apple mà macOS đáng lẽ phải có từ lâu!"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #a855f7; color: #fff;">MT</div>
+            <div>
+              <div class="author-name">Minh Trí Nguyễn</div>
+              <div class="author-role">iOS Developer & macOS Enthusiast</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 2: 5 stars (English - US) -->
+        <div class="testimonial-card fade-in-section delay-1" data-rating="5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★★</div>
+              <span class="lang-badge">🇺🇸 English</span>
+            </div>
+            <p class="testimonial-quote">
+              "I used to hate the notch on my MacBook Pro M3 Max. NotchPulse made it the most satisfying part of macOS. The synced lyrics and Face ID scanner are insanely smooth!"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #38bdf8; color: #000;">AL</div>
+            <div>
+              <div class="author-name">Alexandre Laurent</div>
+              <div class="author-role">Staff Frontend Engineer @ Stripe</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 3: 5 stars (Japanese - Tokyo) -->
+        <div class="testimonial-card fade-in-section delay-2" data-rating="5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★★</div>
+              <span class="lang-badge">🇯🇵 日本語</span>
+            </div>
+            <p class="testimonial-quote">
+              "MacBook Proのノッチが完全に生まれ変わりました！Spotifyのリアルタイム歌詞表示とFace IDの生体認証アニメーションが美しすぎて手放せません。"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #ef4444; color: #fff;">KT</div>
+            <div>
+              <div class="author-name">Kenji Takahashi (高橋 健二)</div>
+              <div class="author-role">Tech Lead @ Mercari, Tokyo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 4: 4.5 stars (German - Berlin) -->
+        <div class="testimonial-card fade-in-section" data-rating="4.5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★½</div>
+              <span class="lang-badge">🇩🇪 Deutsch</span>
+            </div>
+            <p class="testimonial-quote">
+              "Unglaublich flüssige 120Hz ProMotion Animationen. Kaum CPU-Verbrauch im Leerlauf und die DDC-Steuerung für externe 4K-Monitore funktioniert einfach perfekt."
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #f59e0b; color: #000;">MW</div>
+            <div>
+              <div class="author-name">Markus Weber</div>
+              <div class="author-role">macOS Systems Architect, Berlin</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 5: 4 stars (French - Paris) -->
+        <div class="testimonial-card fade-in-section delay-1" data-rating="4">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★★☆</div>
+              <span class="lang-badge">🇫🇷 Français</span>
+            </div>
+            <p class="testimonial-quote">
+              "L'intégration du Notch Shelf pour déposer temporairement des fichiers est une idée de génie. L'interface sombre est superbe sur écran Liquid Retina XDR."
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #ec4899; color: #fff;">CD</div>
+            <div>
+              <div class="author-name">Camille Dubois</div>
+              <div class="author-role">Product Designer @ Datadog Paris</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 6: 3.5 stars (English - London, Constructive feedback) -->
+        <div class="testimonial-card fade-in-section delay-2" data-rating="3.5">
+          <div>
+            <div class="testimonial-header-row">
+              <div class="testimonial-stars">★★★½☆</div>
+              <span class="lang-badge">🇬🇧 English</span>
+            </div>
+            <p class="testimonial-quote">
+              "Brilliant core concept and buttery 120Hz springs. Multi-monitor support works great now in v4.5. Would gladly bump to 5 stars if v5.0 adds support for custom plugin extensions!"
+            </p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar" style="background: #64748b; color: #fff;">DH</div>
+            <div>
+              <div class="author-name">David Harrison</div>
+              <div class="author-role">Senior Audio Engineer, London</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Creator Section -->
+  <section class="section" id="creator">
+    <div class="container">
+      <div class="creator-card fade-in-section">
+        <!-- Author photo with instant WebP & async decode -->
+        <picture>
+          <source srcset="assets/author_portrait.webp" type="image/webp">
+          <img src="assets/author_portrait.jpg" 
+               alt="Kun Nguyen Portrait" 
+               class="creator-portrait" 
+               width="170" 
+               height="170" 
+               loading="lazy" 
+               decoding="async">
+        </picture>
+
+        <!-- Info & Bio -->
+        <div class="creator-info">
+          <span class="creator-role-tag" data-i18n="creator.tag">Meet The Creator</span>
+          <h3 class="creator-name">Kun Nguyen <span style="font-weight: 400; font-size: 1.1rem; color: var(--text-muted);">(HieuKun)</span></h3>
+          <p class="creator-bio" data-i18n="creator.bio">
+            ITM student with a deep passion for system design and native macOS architectures. Built NotchPulse from scratch to explore human-computer interaction and make the MacBook notch genuinely delightful and functional.
+          </p>
+
+          <!-- Social Links from KUN.md -->
+          <div class="creator-social-links">
+            <a href="https://www.facebook.com/hieukunng/" class="social-btn" target="_blank" rel="noopener">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              <span>Facebook</span>
+            </a>
+
+            <a href="https://www.instagram.com/hkul_ng/" class="social-btn" target="_blank" rel="noopener">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              <span>Instagram</span>
+            </a>
+
+            <a href="https://www.linkedin.com/in/kun-nguyen-%E9%98%AE%E5%BE%B7%E5%AD%9D-261311407/" class="social-btn" target="_blank" rel="noopener">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              <span>LinkedIn</span>
+            </a>
+
+            <a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone" class="social-btn" target="_blank" rel="noopener">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partner / Friend Showcase: Hani Learning (Hugo) -->
+      <div class="hugo-showcase-container fade-in-section delay-1">
+        <div class="hugo-card-image-wrap">
+          <a href="https://hanilearning.site/" target="_blank" rel="noopener" title="Ghé thăm website Hani Learning của Đỗ Mạnh Hùng (Hugo)">
+            <picture>
+              <source srcset="assets/hugo_hani.webp" type="image/webp">
+              <img src="assets/hugo_hani.png" 
+                   alt="Đỗ Mạnh Hùng (Hugo) — Hani Learning" 
+                   class="hugo-card-img" 
+                   width="1024" 
+                   height="449" 
+                   loading="lazy" 
+                   decoding="async">
+            </picture>
+          </a>
+        </div>
+        <div class="hugo-action-bar">
+          <div class="hugo-action-text">
+            <span class="hugo-badge" data-i18n="hugo.tag">Dự Án Bạn Bè • Học Tiếng Trung Hani</span>
+            <span class="hugo-sub" data-i18n="hugo.sub">Website học tiếng Trung hiện đại do Đỗ Mạnh Hùng (Hugo) sáng lập</span>
+          </div>
+          <a href="https://hanilearning.site/" target="_blank" rel="noopener" class="btn-primary btn-hani-cta" id="btnHaniPromo">
+            <span class="btn-hani-icon">🎁</span>
+            <span data-i18n="hugo.btn">Đăng ký nhận 2000 xu Hani</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download & Installation Section -->
+  <section class="section" id="download">
+    <div class="container" style="text-align: center;">
+      <div class="section-header fade-in-section" style="margin-bottom: 40px;">
+        <span class="section-tag" data-i18n="install.tag">Ready to Elevate Your Mac?</span>
+        <h2 class="section-title" data-i18n="install.title">Get NotchPulse Today</h2>
+        <p class="section-subtitle" data-i18n="install.subtitle">
+          Compatible with macOS 14.0+ Sonoma and macOS 15 Sequoia. Optimized for all Mac devices (Apple Silicon & Intel Macs).
+        </p>
+      </div>
+
+      <div class="hero-cta-group fade-in-section">
+        <a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg" class="btn-primary" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="install.btnDmg">Download NotchPulse.dmg</span>
+        </a>
+
+        <div class="brew-copy-box" id="copyBrewCmdFooter" title="Click to copy Homebrew install command">
+          <code>brew install --cask notchpulse</code>
+          <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="assets/logo_clean.png" alt="NotchPulse" style="width: 24px; height: 24px; border-radius: 6px;">
+        <span data-i18n="footer.rights">© 2026 NotchPulse by Kun Nguyen (HieuKun). All rights reserved.</span>
+      </div>
+
+      <ul class="footer-links">
+        <li><a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases" target="_blank" rel="noopener" data-i18n="footer.releases">Releases</a></li>
+        <li><a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/issues" target="_blank" rel="noopener" data-i18n="footer.support">Support</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- Toast for Copy notification -->
+  <div class="toast-container" id="copyToast">
+    <span>✓</span>
+    <span id="toastMsg" data-i18n="toast.copied">Command copied to clipboard!</span>
+  </div>
+
+  <!-- Main JavaScript File -->
+  <script src="main.js?v=37"></script>
+
+  <!-- Service Worker Cleanup: Ensures standard Cmd+R always loads latest release without stale cache -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          keys.forEach(key => caches.delete(key));
+        });
+      }
+    }
+  </script>
+</body>
+</html>

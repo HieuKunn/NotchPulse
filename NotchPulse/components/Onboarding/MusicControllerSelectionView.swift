@@ -26,12 +26,12 @@ struct MusicControllerSelectionView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("Choose a Music Source")
+            Text(loc("Choose a Music Source"))
                 .font(.title)
                 .fontWeight(.bold)
                 .padding(.top, 24)
 
-            Text("Select the music source you want to use. You can change this later in the app settings.")
+            Text(loc("Select the music source you want to use. You can change this later in the app settings."))
                 .multilineTextAlignment(.center)
                 .font(.body)
                 .foregroundColor(.secondary)
@@ -56,7 +56,7 @@ struct MusicControllerSelectionView: View {
 
 //            Spacer()
 
-            Button("Continue", action: {
+            Button(loc("Continue"), action: {
                 self.mediaController = self.selectedMediaController
                 NotificationCenter.default.post(
                     name: Notification.Name.mediaControllerChanged,
@@ -88,11 +88,11 @@ struct ControllerOptionView: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(controller.rawValue)
+                Text(loc(controller.rawValue))
                     .font(.headline)
                     .fontWeight(.semibold)
 
-                Text(controller.description)
+                Text(loc(controller.description))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 

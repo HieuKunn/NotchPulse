@@ -134,7 +134,7 @@ struct InlineHUD: View {
                             }
                         })
                         if (type == .volume && value.isZero) {
-                            Text("muted")
+                            Text(loc("muted"))
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.gray)

@@ -20,7 +20,7 @@ struct IntroStepView: View {
                 Text("NotchPulse")
                     .font(FaceIDTheme.Font.title)
                     .foregroundStyle(FaceIDTheme.textPrimary)
-                Text("Face Unlock for Mac")
+                Text(loc("Face Unlock for Mac"))
                     .font(FaceIDTheme.Font.button)
                     .foregroundStyle(FaceIDTheme.textSecondary)
 
@@ -72,7 +72,7 @@ struct PermissionsStepView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Permissions")
+            Text(loc("Permissions"))
                 .font(FaceIDTheme.Font.title)
                 .foregroundStyle(FaceIDTheme.textPrimary)
                 .padding(.leading, 4)
@@ -121,13 +121,13 @@ struct SecurityNoticeStepView: View {
                 .padding(.top, 6)
                 .padding(.leading, 4)
 
-            Text("NotchPulse is not as secure as Apple's FaceID or TouchID.")
+            Text(loc("NotchPulse is not as secure as Apple's FaceID or TouchID."))
                 .font(FaceIDTheme.Font.title)
                 .foregroundStyle(FaceIDTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 4)
 
-            Text("It uses your Mac's standard webcam and is designed for convenience, not high-security authentication.")
+            Text(loc("It uses your Mac's standard webcam and is designed for convenience, not high-security authentication."))
                 .font(FaceIDTheme.Font.passwordCaption)
                 .foregroundStyle(FaceIDTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -166,12 +166,12 @@ struct PreSetupStepView: View {
         VStack(spacing: 2) {
             HStack(alignment: .top, spacing: 2) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Set up Face\nRecognition")
+                    Text(loc("Set up Face Recognition"))
                         .font(FaceIDTheme.Font.title)
                         .foregroundStyle(FaceIDTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Follow the directions\nshown on the screen")
+                    Text(loc("Follow the directions shown on the screen"))
                         .font(FaceIDTheme.Font.button)
                         .foregroundStyle(FaceIDTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -279,7 +279,7 @@ struct EnrollStepView: View {
     }
 
     private var instructionLabel: some View {
-        Text(controller.enrollmentInstruction)
+        Text(loc(controller.enrollmentInstruction))
             .font(FaceIDTheme.Font.instruction)
             .foregroundStyle(.white)
             .multilineTextAlignment(.center)
@@ -317,7 +317,7 @@ struct EnrollmentCloseButton: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
-        .accessibilityLabel("Close")
+        .accessibilityLabel(loc("Close"))
     }
 }
 
@@ -354,12 +354,12 @@ struct NameStepView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Name this face")
+            Text(loc("Name this face"))
                 .font(FaceIDTheme.Font.title)
                 .foregroundStyle(FaceIDTheme.textPrimary)
                 .padding(.leading, 4)
 
-            Text("Used to tell enrolled faces apart when more than one person is set up on this Mac.")
+            Text(loc("Used to tell enrolled faces apart when more than one person is set up on this Mac."))
                 .font(FaceIDTheme.Font.passwordCaption)
                 .foregroundStyle(FaceIDTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -402,12 +402,12 @@ struct PasswordStepView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Enter your password")
+            Text(loc("Enter your password"))
                 .font(FaceIDTheme.Font.title)
                 .foregroundStyle(FaceIDTheme.textPrimary)
                 .padding(.leading, 4)
 
-            Text("Your password is required to unlock your Mac. It is encrypted and securely stored on your device. NotchPulse works entirely offline, so your password never leaves your Mac.")
+            Text(loc("Your password is required to unlock your Mac. It is encrypted and securely stored on your device. NotchPulse works entirely offline, so your password never leaves your Mac."))
                 .font(FaceIDTheme.Font.passwordCaption)
                 .foregroundStyle(FaceIDTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -452,7 +452,7 @@ struct PasswordStepView: View {
 struct CompleteStepView: View {
     var body: some View {
         HStack(spacing: 12) {
-            Text("You're all set")
+            Text(loc("You're all set"))
                 .font(FaceIDTheme.Font.title)
                 .foregroundStyle(FaceIDTheme.textPrimary)
             Spacer(minLength: 4)

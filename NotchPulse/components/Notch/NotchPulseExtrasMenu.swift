@@ -63,7 +63,7 @@ struct NotchPulseExtrasMenu : View {
                 VStack(spacing: 8) {
                     Image(systemName: "gear").resizable()
                         .aspectRatio(contentMode: .fit).frame(width:20)
-                    Text("Settings").font(.body)
+                    Text(loc("Settings")).font(.body)
                 }
             }
         }

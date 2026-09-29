@@ -29,7 +29,7 @@ struct WelcomeView: View {
                     Text("NotchPulse")
                         .font(.system(.largeTitle, design: .default))
                         .fontWeight(.semibold)
-                    Text("Welcome")
+                    Text(loc("Welcome"))
                         .font(.title)
                         .foregroundStyle(.secondary)
                         .padding(.bottom, 30)
@@ -53,7 +53,7 @@ struct WelcomeView: View {
                     Button {
                         onGetStarted?()
                     } label: {
-                        Text("Get started")
+                        Text(loc("Get started"))
                             .padding(.horizontal, 20)
                             .padding(.vertical, 6)
                     }

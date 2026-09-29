@@ -20,7 +20,7 @@ struct RecognitionSettingsPage: View {
         VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
             SettingsGroup {
                 SettingsSteppedSliderRowContent(
-                    title: "Match confidence",
+                    title: loc("Match confidence"),
                     valueLabel: matchConfidenceLevel.title,
                     index: matchConfidenceIndex,
                     stopCount: MatchConfidenceLevel.allCases.count
@@ -29,7 +29,7 @@ struct RecognitionSettingsPage: View {
                 SettingsGroupDivider()
 
                 SettingsSteppedSliderRowContent(
-                    title: "Detection distance",
+                    title: loc("Detection distance"),
                     valueLabel: detectionDistanceLevel.title,
                     index: detectionDistanceIndex,
                     stopCount: DetectionDistanceLevel.allCases.count
@@ -37,11 +37,11 @@ struct RecognitionSettingsPage: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                SettingsSectionTitle(text: "Liveness")
+                SettingsSectionTitle(text: loc("Liveness"))
                 SettingsGroup {
                     SettingsRowContent(
-                        title: "Liveness detection",
-                        info: "Checks that you're a live person, not a photo. May increase unlock time."
+                        title: loc("Liveness detection"),
+                        info: loc("Checks that you're a live person, not a photo. May increase unlock time.")
                     ) {
                         NotchPulseToggle(isOn: $settings.livenessChecksEnabled)
                     }
@@ -92,11 +92,11 @@ private enum MatchConfidenceLevel: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .lessStrict: return "Less strict"
-        case .moderate: return "Moderate"
-        case .standard: return "Default"
-        case .strict: return "Strict"
-        case .moreStrict: return "More strict"
+        case .lessStrict: return loc("Less strict")
+        case .moderate: return loc("Moderate")
+        case .standard: return loc("Default")
+        case .strict: return loc("Strict")
+        case .moreStrict: return loc("More strict")
         }
     }
 
@@ -131,9 +131,9 @@ private enum DetectionDistanceLevel: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .close: return "Close"
-        case .standard: return "Default"
-        case .far: return "Far"
+        case .close: return loc("Close")
+        case .standard: return loc("Default")
+        case .far: return loc("Far")
         }
     }
 

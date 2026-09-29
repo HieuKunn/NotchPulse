@@ -39,20 +39,20 @@ struct DynamicNotchApp: App {
 
     var body: some Scene {
         MenuBarExtra("NotchPulse", systemImage: "teddybear.fill", isInserted: $showMenuBarIcon) {
-            Button("Settings") {
+            Button(loc("Settings")) {
                 DispatchQueue.main.async {
                     SettingsWindowController.shared.showWindow()
                 }
             }
             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
             
-            Menu("Notch Width (\(Int(Defaults[.notchOpenWidth]))px)") {
-                Button("Compact (580px)") { Defaults[.notchOpenWidth] = 580 }
-                Button("Standard (740px)") { Defaults[.notchOpenWidth] = 740 }
-                Button("Wide (860px)") { Defaults[.notchOpenWidth] = 860 }
-                Button("Extra Wide (940px)") { Defaults[.notchOpenWidth] = 940 }
+            Menu("\(loc("Notch Width")) (\(Int(Defaults[.notchOpenWidth]))px)") {
+                Button(loc("Compact (580px)")) { Defaults[.notchOpenWidth] = 580 }
+                Button(loc("Standard (740px)")) { Defaults[.notchOpenWidth] = 740 }
+                Button(loc("Wide (860px)")) { Defaults[.notchOpenWidth] = 860 }
+                Button(loc("Extra Wide (940px)")) { Defaults[.notchOpenWidth] = 940 }
                 Divider()
-                Button("Custom Dimensions...") {
+                Button(loc("Custom Dimensions...")) {
                     DispatchQueue.main.async {
                         SettingsWindowController.shared.showWindow()
                     }
@@ -61,10 +61,10 @@ struct DynamicNotchApp: App {
             
             CheckForUpdatesView(updater: updaterController.updater)
             Divider()
-            Button("Restart NotchPulse") {
+            Button(loc("Restart NotchPulse")) {
                 ApplicationRelauncher.restart()
             }
-            Button("Quit", role: .destructive) {
+            Button(loc("Quit"), role: .destructive) {
                 appDelegate.isUserInitiatedQuit = true
                 appDelegate.quitApplication()
             }
@@ -501,7 +501,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor
-    private func updateFaceIDCameraWindow() {
+    func updateFaceIDCameraWindow() {
         let isLockScreen = NotchPulseLockMonitor.isScreenActuallyLocked()
         let canRouteForLockScreen = !isLockScreen || FaceIDOverlayController.shared.isHoverTriggeredOnLockScreen
         let isFaceIDScanning = canRouteForLockScreen && (FaceIDOverlayController.shared.phase == .scanning
@@ -509,6 +509,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             || FaceIDOverlayController.shared.phase == .failure
             || FaceIDOverlayController.shared.phase == .onboarding
             || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed && FaceIDOverlayController.shared.phase != .collapsing))
+
+        if isLockScreen && isFaceIDScanning {
+            if let skyWindow = self.window as? NotchPulseSkyLightWindow {
+                skyWindow.enableSkyLight()
+                skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                skyWindow.alphaValue = 1.0
+                skyWindow.orderFrontRegardless()
+            }
+            for skyWindow in self.windows.values.compactMap({ $0 as? NotchPulseSkyLightWindow }) {
+                skyWindow.enableSkyLight()
+                skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                skyWindow.alphaValue = 1.0
+                skyWindow.orderFrontRegardless()
+            }
+        }
 
         guard isFaceIDScanning,
               !Defaults[.showOnAllDisplays],
@@ -534,6 +549,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if let window = faceIDCameraWindow, faceIDCameraVM != nil {
             positionWindow(window, on: camScreen, changeAlpha: false)
+            window.alphaValue = 1.0
+            if isLockScreen {
+                (window as? NotchPulseSkyLightWindow)?.enableSkyLight()
+                window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+            }
             window.orderFrontRegardless()
         }
     }

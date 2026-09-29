@@ -21,11 +21,11 @@ struct OnboardingFinishView: View {
                 .foregroundColor(.effectiveAccent)
                 .padding()
 
-            Text("You're All Set!")
+            Text(loc("You're All Set!"))
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            Text("You can now enjoy the app. If you want to tweak things further, you can always visit the settings.")
+            Text(loc("You can now enjoy the app. If you want to tweak things further, you can always visit the settings."))
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -43,7 +43,7 @@ struct OnboardingFinishView: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles.tv.fill")
-                        Text("Bắt đầu Hướng dẫn Spotlight (Interactive Tour)")
+                        Text(loc("Start Interactive Spotlight Tour"))
                     }
                     .font(.system(size: 14, weight: .semibold))
                     .padding(.horizontal, 16)
@@ -54,12 +54,12 @@ struct OnboardingFinishView: View {
                 .controlSize(.large)
 
                 Button(action: onOpenSettings) {
-                    Label("Customize in Settings", systemImage: "gear")
+                    Label(loc("Customize in Settings"), systemImage: "gear")
                         .controlSize(.large)
                 }
                 .controlSize(.large)
 
-                Button("Finish", action: onFinish)
+                Button(loc("Finish"), action: onFinish)
                     .buttonStyle(.bordered)
                     .controlSize(.large)
             }

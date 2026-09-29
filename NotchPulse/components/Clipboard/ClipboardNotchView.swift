@@ -16,11 +16,11 @@ struct ClipboardNotchView: View {
         VStack(spacing: 8) {
             // Header
             HStack {
-                Text("Clipboard History")
+                Text(loc("Clipboard History"))
                     .font(.headline)
                     .foregroundStyle(.white)
                 Spacer()
-                Text("\(clipboardManager.history.count) items")
+                Text("\(clipboardManager.history.count) \(loc("items"))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 
@@ -41,7 +41,7 @@ struct ClipboardNotchView: View {
                     Image(systemName: "doc.on.clipboard")
                         .font(.system(size: 32))
                         .foregroundStyle(.secondary.opacity(0.5))
-                    Text("Clipboard is empty.")
+                    Text(loc("Clipboard is empty."))
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
@@ -247,7 +247,7 @@ struct ClipboardRowView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 11, weight: .bold))
-                    Text("Copied")
+                    Text(loc("Copied"))
                         .font(.system(size: 11, weight: .semibold))
                 }
                 .foregroundStyle(Color.green)

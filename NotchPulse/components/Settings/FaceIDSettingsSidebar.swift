@@ -90,8 +90,8 @@ struct FaceIDSettingsSidebar: View {
     }
 
     private var sessionLockLabel: String {
-        if pocController.isSessionUnlocked { return "Session unlocked" }
-        return isUnlocking ? "Authenticating…" : "Session locked"
+        if pocController.isSessionUnlocked { return loc("Session unlocked") }
+        return isUnlocking ? loc("Authenticating…") : loc("Session locked")
     }
 
     private func toggleSession() {

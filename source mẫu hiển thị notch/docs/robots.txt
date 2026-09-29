@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://notchpulse-app.web.app/sitemap.xml

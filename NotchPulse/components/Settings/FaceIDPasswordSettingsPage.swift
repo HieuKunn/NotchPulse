@@ -59,7 +59,7 @@ struct PasswordSettingsPage: View {
     private var unlockedState: some View {
         VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
             SettingsGroup {
-                SettingsRowContent(title: "Password encrypted") {
+                SettingsRowContent(title: loc("Password encrypted")) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(SettingsMetrics.textSecondary)
@@ -67,16 +67,16 @@ struct PasswordSettingsPage: View {
 
                 SettingsGroupDivider()
 
-                SettingsRowContent(title: "Change password") {
-                    SettingsPrimaryButton(title: "Change", compact: true) {
+                SettingsRowContent(title: loc("Change password")) {
+                    SettingsPrimaryButton(title: loc("Change"), compact: true) {
                         FaceIDEnrollmentController.startPasswordOnly()
                     }
                 }
 
                 SettingsGroupDivider()
 
-                SettingsRowContent(title: "Remove password") {
-                    HoldToConfirmButton(title: "Remove", action: removePassword)
+                SettingsRowContent(title: loc("Remove password")) {
+                    HoldToConfirmButton(title: loc("Remove"), action: removePassword)
                 }
             }
 

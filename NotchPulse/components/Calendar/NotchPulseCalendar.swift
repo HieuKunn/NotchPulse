@@ -729,7 +729,7 @@ struct FullMonthCalendarGrid<TrailingContent: View>: View {
             }
 
             if showLunarCalendar {
-                Text("Note: This calendar is for quick reference only; timezone offsets and lunar calculations may result in up to ~98% accuracy across all days.")
+                Text(loc("Note: This calendar is for quick reference only; timezone offsets and lunar calculations may result in up to ~98% accuracy across all days."))
                     .font(.system(size: 8, weight: .regular, design: .rounded))
                     .foregroundColor(Color(white: 0.45))
                     .multilineTextAlignment(.center)
@@ -797,7 +797,7 @@ struct DayEventsPanelView: View {
                     Image(systemName: "calendar.badge.checkmark")
                         .font(.system(size: 20))
                         .foregroundColor(Color(white: 0.4))
-                    Text("No events")
+                    Text(loc("No events"))
                         .font(.caption)
                         .foregroundColor(Color(white: 0.5))
                 }
@@ -1093,10 +1093,10 @@ struct EmptyEventsView: View {
             Image(systemName: "calendar.badge.checkmark")
                 .font(.title)
                 .foregroundColor(Color(white: 0.65))
-            Text(Calendar.current.isDateInToday(selectedDate) ? "No events today" : "No events")
+            Text(Calendar.current.isDateInToday(selectedDate) ? loc("No events today") : loc("No events"))
                 .font(.subheadline)
                 .foregroundColor(.white)
-            Text("Enjoy your free time!")
+            Text(loc("Enjoy your free time!"))
                 .font(.caption)
                 .foregroundColor(Color(white: 0.65))
         }
@@ -1256,7 +1256,7 @@ struct EventRowItemView: View {
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 4) {
                     if event.isAllDay {
-                        Text("All-day")
+                        Text(loc("All-day"))
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
@@ -1312,7 +1312,7 @@ struct EventRowItemView: View {
             
             VStack(alignment: .trailing, spacing: 2) {
                 if event.isAllDay {
-                    Text("All-day")
+                    Text(loc("All-day"))
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.white)

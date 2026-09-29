@@ -27,27 +27,27 @@ struct FaceIDSettingsView: View {
                 }
 
                 // 1. Face Unlock
-                SettingsSectionTitle(text: "Face Unlock")
+                SettingsSectionTitle(text: loc("Face Unlock"))
                 FaceIDUnlockOptionsPage()
 
                 // 2. Enrolled Faces
-                SettingsSectionTitle(text: "Enrolled Faces")
+                SettingsSectionTitle(text: loc("Enrolled Faces"))
                 YourFaceSettingsPage()
 
                 // 3. Password & Security
-                SettingsSectionTitle(text: "Password & Security")
+                SettingsSectionTitle(text: loc("Password & Security"))
                 PasswordSettingsPage()
 
                 // 4. Camera
-                SettingsSectionTitle(text: "Camera")
+                SettingsSectionTitle(text: loc("Camera"))
                 CameraSettingsPage()
 
                 // 5. Recognition & Liveness
-                SettingsSectionTitle(text: "Recognition")
+                SettingsSectionTitle(text: loc("Recognition"))
                 RecognitionSettingsPage()
 
                 // 6. Lock Screen Media Player
-                SettingsSectionTitle(text: "Lock Screen Media Player")
+                SettingsSectionTitle(text: loc("Lock Screen Media Player"))
                 lockScreenMediaPlayerSection
             }
             .padding(.horizontal, SettingsMetrics.contentHorizontalPadding)
@@ -71,13 +71,13 @@ struct FaceIDSettingsView: View {
 
     private var lockScreenMediaPlayerSection: some View {
         SettingsGroup {
-            SettingsRowContent(title: "Show Media Player on Lock Screen") {
+            SettingsRowContent(title: loc("Show Media Player on Lock Screen")) {
                 Defaults.Toggle(key: .enableLockScreenPlayer) {
                     Text("")
                 }
             }
             SettingsGroupDivider()
-            SettingsRowContent(title: "Show Real-time Synced Lyrics") {
+            SettingsRowContent(title: loc("Show Real-time Synced Lyrics")) {
                 Defaults.Toggle(key: .lockScreenPlayerShowLyrics) {
                     Text("")
                 }

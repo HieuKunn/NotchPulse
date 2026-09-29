@@ -6,6 +6,7 @@
 //  Supports Compact Card & Full-Screen Immersive Lyrics Modes
 //
 
+import AppKit
 import Combine
 import Defaults
 import SwiftUI
@@ -18,7 +19,7 @@ struct LockScreenMediaView: View {
     private let lyricsTimer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             if windowController.isWindowVisible {
                 if windowController.isFullScreen {
                     fullScreenPlayerView
@@ -27,6 +28,11 @@ struct LockScreenMediaView: View {
                     compactPlayerView
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
+            }
+            
+            // Hover trigger zone for Face ID when media is enlarged on lock screen
+            if windowController.isWindowVisible && windowController.isFullScreen {
+                notchHoverTriggerZone
             }
         }
         .animation(.spring(response: 0.65, dampingFraction: 0.82, blendDuration: 0), value: windowController.isFullScreen)
@@ -50,6 +56,55 @@ struct LockScreenMediaView: View {
                 if activeLyricIndex != idx {
                     activeLyricIndex = idx
                 }
+            }
+        }
+    }
+    
+    // =========================================================================
+    // MARK: - Notch Hover Trigger Zone for Face ID Activation
+    // =========================================================================
+    @ViewBuilder
+    private var notchHoverTriggerZone: some View {
+        GeometryReader { geo in
+            let notchWidth: CGFloat = 260
+            let notchHeight: CGFloat = 50
+            
+            Color.black.opacity(0.0001)
+                .frame(width: notchWidth, height: notchHeight)
+                .contentShape(Rectangle())
+                .position(x: geo.size.width / 2, y: notchHeight / 2)
+                .onHover { hovering in
+                    handleNotchHover(hovering)
+                }
+                .onTapGesture {
+                    triggerFaceIDActivation(force: true)
+                }
+        }
+        .ignoresSafeArea()
+    }
+    
+    private func handleNotchHover(_ hovering: Bool) {
+        guard NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled else { return }
+        FaceIDOverlayController.shared.setHovering(hovering)
+        if hovering {
+            triggerFaceIDActivation(force: false)
+        }
+    }
+    
+    private func triggerFaceIDActivation(force: Bool) {
+        guard NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled else { return }
+        let phase = FaceIDOverlayController.shared.phase
+        guard phase != .scanning, phase != .success, phase != .collapsing, phase != .onboarding else { return }
+        
+        FaceIDOverlayController.shared.activate(force: force)
+        
+        DispatchQueue.main.async {
+            let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared
+            appDelegate?.updateFaceIDCameraWindow()
+            if Defaults[.showOnAllDisplays] {
+                appDelegate?.windows.values.forEach { $0.orderFrontRegardless() }
+            } else {
+                appDelegate?.window?.orderFrontRegardless()
             }
         }
     }

@@ -1,4 +1,4 @@
-## 🚀 What's New in NotchPulse v5.0 (Build 201)
+## 🚀 What's New in NotchPulse v5.0
 
 ### 📋 Clipboard Manager
 - Integrated **Clipboard History** tab directly on the Notch bar.

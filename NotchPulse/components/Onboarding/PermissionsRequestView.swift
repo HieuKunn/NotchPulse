@@ -24,11 +24,11 @@ struct PermissionRequestView: View {
                 .foregroundColor(.effectiveAccent)
                 .padding(.top, 32)
 
-            Text(title)
+            Text(loc(title))
                 .font(.title)
                 .fontWeight(.semibold)
 
-            Text(description)
+            Text(loc(description))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
@@ -36,7 +36,7 @@ struct PermissionRequestView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "lock.shield")
                         .foregroundColor(.secondary)
-                    Text(privacyNote)
+                    Text(loc(privacyNote))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
@@ -46,9 +46,9 @@ struct PermissionRequestView: View {
             }
 
             HStack {
-                Button("Not Now") { onSkip() }
+                Button(loc("Not Now")) { onSkip() }
                     .buttonStyle(.bordered)
-                Button("Allow Access") { onAllow() }
+                Button(loc("Allow Access")) { onAllow() }
                     .buttonStyle(.borderedProminent)
             }
             .padding(.top, 10)

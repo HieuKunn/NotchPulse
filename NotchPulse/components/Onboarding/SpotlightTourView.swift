@@ -406,23 +406,25 @@ struct SpotlightBackdropView: View {
     var body: some View {
         GeometryReader { _ in
             ZStack {
-                // 1. Dark Overlay with Cutout (Even-Odd hole punch)
-                SpotlightCutoutShape(
-                    targetRect: manager.currentCutoutRect,
-                    cornerRadius: manager.currentCornerRadius
-                )
-                .fill(Color.black.opacity(0.75), style: FillStyle(eoFill: true))
-                .animation(.spring(response: 0.38, dampingFraction: 0.82), value: manager.currentCutoutRect)
-                .ignoresSafeArea()
-
-                // 2. Bright Glowing Pure White Frame around target
-                RoundedRectangle(cornerRadius: manager.currentCornerRadius, style: .continuous)
-                    .stroke(Color.white, lineWidth: 2.5)
-                    .shadow(color: Color.white.opacity(0.85), radius: 8)
-                    .shadow(color: Color.white.opacity(0.4), radius: 18)
-                    .frame(width: max(0, manager.currentCutoutRect.width), height: max(0, manager.currentCutoutRect.height))
-                    .position(x: manager.currentCutoutRect.midX, y: manager.currentCutoutRect.midY)
+                if manager.currentCutoutRect.width > 0 && manager.currentCutoutRect.height > 0 {
+                    // 1. Dark Overlay with Cutout (Even-Odd hole punch)
+                    SpotlightCutoutShape(
+                        targetRect: manager.currentCutoutRect,
+                        cornerRadius: manager.currentCornerRadius
+                    )
+                    .fill(Color.black.opacity(0.75), style: FillStyle(eoFill: true))
                     .animation(.spring(response: 0.38, dampingFraction: 0.82), value: manager.currentCutoutRect)
+                    .ignoresSafeArea()
+
+                    // 2. Bright Glowing Pure White Frame around target
+                    RoundedRectangle(cornerRadius: manager.currentCornerRadius, style: .continuous)
+                        .stroke(Color.white, lineWidth: 2.5)
+                        .shadow(color: Color.white.opacity(0.85), radius: 8)
+                        .shadow(color: Color.white.opacity(0.4), radius: 18)
+                        .frame(width: max(0, manager.currentCutoutRect.width), height: max(0, manager.currentCutoutRect.height))
+                        .position(x: manager.currentCutoutRect.midX, y: manager.currentCutoutRect.midY)
+                        .animation(.spring(response: 0.38, dampingFraction: 0.82), value: manager.currentCutoutRect)
+                }
             }
         }
     }
@@ -718,8 +720,13 @@ final class SpotlightTourManager: ObservableObject {
     @Published var isActive: Bool = false
 
     @Published var currentStepIndex: Int = 0
-    @Published var currentCutoutRect: CGRect = .zero
-    @Published var currentCornerRadius: CGFloat = 22
+    @Published var currentCutoutRect: CGRect = {
+        let screen = NSScreen.main?.frame.size ?? CGSize(width: 1440, height: 900)
+        let width: CGFloat = 740
+        let height: CGFloat = 190
+        return CGRect(x: (screen.width - width) / 2, y: 0, width: width, height: height)
+    }()
+    @Published var currentCornerRadius: CGFloat = 26
     @Published var language: AppLanguage = .english
 
     var currentStep: SpotlightTourStep {
@@ -894,13 +901,14 @@ final class SpotlightTourManager: ObservableObject {
     }
 
     private func updateLiveUIState(for step: SpotlightTourStep) {
-        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+        guard let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared else { return }
         let coordinator = NotchPulseViewCoordinator.shared
         coordinator.firstLaunch = false
         coordinator.alwaysShowTabs = true
         Defaults[.notchPulseShelf] = true
         Defaults[.enableClipboardManager] = true
         Defaults[.showCalendar] = true
+        SharingStateManager.shared.preventNotchClose = true
 
         let targetVM: NotchPulseViewModel
         if Defaults[.showOnAllDisplays] {
@@ -916,79 +924,88 @@ final class SpotlightTourManager: ObservableObject {
             targetVM = appDelegate.vm
         }
 
-        // Smoothly switch tab pages without colliding with notch open animation
+        // Collect all active view models so every display's notch responds synchronously
+        var allVMs: [NotchPulseViewModel] = [appDelegate.vm]
+        for vm in appDelegate.viewModels.values {
+            if !allVMs.contains(where: { $0 === vm }) {
+                allVMs.append(vm)
+            }
+        }
+
+        let targetView: NotchViews
+        let isFullMonth: Bool
+        let customHeight: CGFloat?
+
         switch step {
         case .notchHover:
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .home
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = nil
-            targetVM.open()
+            targetView = .home
+            isFullMonth = false
+            customHeight = nil
 
         case .shakeToShelf:
             Defaults[.notchPulseShelf] = true
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .shelf
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = nil
-            targetVM.open()
+            targetView = .shelf
+            isFullMonth = false
+            customHeight = nil
 
         case .musicPlayer:
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .home
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = nil
-            targetVM.open()
+            targetView = .home
+            isFullMonth = false
+            customHeight = nil
 
         case .calendarExpand:
             Defaults[.showCalendar] = true
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .home
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = nil
-            targetVM.open()
+            targetView = .home
+            isFullMonth = false
+            customHeight = nil
 
         case .calendarFullMonth:
             Defaults[.showCalendar] = true
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .home
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = true
-            targetVM.customOpenHeight = 240
-            targetVM.open()
+            targetView = .home
+            isFullMonth = true
+            customHeight = 240
 
         case .clipboardManager:
             Defaults[.enableClipboardManager] = true
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .clipboard
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = 250
-            targetVM.open()
+            targetView = .clipboard
+            isFullMonth = false
+            customHeight = 250
 
         case .faceIDLock:
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .home
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = nil
-            targetVM.open()
+            targetView = .home
+            isFullMonth = false
+            customHeight = nil
 
         case .menuBarSettings:
-            withAnimation(.smooth(duration: 0.28)) {
-                coordinator.currentView = .home
-            }
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = nil
-            targetVM.open()
+            targetView = .home
+            isFullMonth = false
+            customHeight = nil
         }
 
-        // After vm.open() the notchSize is set to the real open dimensions — use those to
-        // compute the spotlight cutout so the ring matches the actual rendered notch exactly.
+        // 1. Smoothly switch tabs & calendar full month state
+        withAnimation(.smooth(duration: 0.28)) {
+            coordinator.currentView = targetView
+        }
+        CalendarStateViewModel.shared.isFullMonthExpanded = isFullMonth
+
+        // 2. Open live Notch across all displays and apply target custom open height
+        for vm in allVMs {
+            vm.customOpenHeight = customHeight
+            withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+                vm.notchSize = openNotchSize
+                vm.notchState = .open
+            }
+            MusicManager.shared.isUIActive = true
+            MusicManager.shared.forceUpdate()
+        }
+
+        // 3. Bring Notch windows front so they are visible and interactable
+        appDelegate.window?.orderFrontRegardless()
+        for win in appDelegate.windows.values {
+            win.orderFrontRegardless()
+        }
+
+        // 4. After opening live Notch, compute the spotlight cutout accurately
         updateCutoutRectFromLiveVM(step: step, targetVM: targetVM)
     }
 

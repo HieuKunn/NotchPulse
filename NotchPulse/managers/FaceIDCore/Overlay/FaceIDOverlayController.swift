@@ -413,17 +413,19 @@ final class FaceIDOverlayController {
 
     /// Hover-driven activation: wakes from a closed/armed state, or retries from a held
     /// failure frame. No-op during scanning/success/collapsing.
-    func activate() {
-        // Gated here rather than in `updateInteractivity()` so the cosmetic hover bump
-        // stays unaffected — only the retry itself is removed.
-        guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
+    func activate(force: Bool = false) {
+        if !force {
+            // Gated here rather than in `updateInteractivity()` so the cosmetic hover bump
+            // stays unaffected — only the retry itself is removed.
+            guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
 
-        // If armed very recently (e.g. screen just locked or woke up and cursor happened to be at the notch),
-        // ignore accidental initial hover for 0.5s to prevent premature auto-scan upon locking!
-        if let armedAt {
-            let elapsed = ContinuousClock.now - armedAt
-            if elapsed < .milliseconds(500) {
-                return
+            // If armed very recently (e.g. screen just locked or woke up and cursor happened to be at the notch),
+            // ignore accidental initial hover for 0.5s to prevent premature auto-scan upon locking!
+            if let armedAt {
+                let elapsed = ContinuousClock.now - armedAt
+                if elapsed < .milliseconds(500) {
+                    return
+                }
             }
         }
 

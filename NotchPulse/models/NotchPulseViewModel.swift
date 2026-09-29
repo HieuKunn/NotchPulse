@@ -86,6 +86,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 guard let self = self else { return }
+                guard !SpotlightTourManager.shared.isActive else { return }
                 guard !SharingStateManager.shared.preventNotchClose else { return }
                 guard let activeVM = notification.object as? NotchPulseViewModel else { return }
                 // Rule: Only 1 notch open at any time across all displays!
@@ -249,8 +250,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     func close(force: Bool = false) {
         self.customOpenHeight = nil
-        // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen)
-        if !force && SharingStateManager.shared.preventNotchClose {
+        // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen), or during tour
+        if !force && (SharingStateManager.shared.preventNotchClose || SpotlightTourManager.shared.isActive) {
             return
         }
         withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
@@ -283,8 +284,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             self.webcamManager.stopSession()
         }
 
-        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf (always reset if forced, except when close is prevented)
-        if !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned)) {
+        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf (always reset if forced, except when close is prevented or spotlight tour is active)
+        if !SpotlightTourManager.shared.isActive && !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned)) {
             coordinator.currentView = .home
         }
     }

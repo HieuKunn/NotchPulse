@@ -250,7 +250,7 @@ struct NotchWidthLivePreview: View {
             )
             
             HStack {
-                Text("560 px (Compact)")
+                Text(loc("560 px (Compact)"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -258,12 +258,12 @@ struct NotchWidthLivePreview: View {
                     Circle()
                         .fill(Color.green)
                         .frame(width: 6, height: 6)
-                    Text("Live preview active on Notch")
+                    Text(loc("Live preview active on Notch"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("960 px (Extra Wide)")
+                Text(loc("960 px (Extra Wide)"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -905,7 +905,7 @@ struct HUD: View {
             Section {
                 Picker(loc("Option key behaviour"), selection: $optionKeyAction) {
                     ForEach(OptionKeyAction.allCases) { opt in
-                        Text(opt.rawValue).tag(opt)
+                        Text(loc(opt.rawValue)).tag(opt)
                     }
                 }
                 
@@ -1164,7 +1164,7 @@ struct Media: View {
                 Toggle(loc("Show sneak peek on playback changes"), isOn: $enableSneakPeek)
                 Picker(loc("Sneak Peek Style"), selection: $sneakPeekStyles) {
                     ForEach(SneakPeekStyle.allCases) { style in
-                        Text(style.rawValue).tag(style)
+                        Text(loc(style.rawValue)).tag(style)
                     }
                 }
                 HStack {
@@ -1622,7 +1622,7 @@ struct Appearance: View {
                 }
                 Picker(loc("Slider color"), selection: $sliderColor) {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
-                        Text(option.rawValue)
+                        Text(loc(option.rawValue))
                     }
                 }
             } header: {

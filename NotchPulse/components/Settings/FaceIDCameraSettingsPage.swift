@@ -22,11 +22,11 @@ struct CameraSettingsPage: View {
     private var unlockedState: some View {
         VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
             SettingsGroup {
-                cameraPicker(title: "Default", selection: $settings.defaultCameraID)
+                cameraPicker(title: loc("Default"), selection: $settings.defaultCameraID)
                 SettingsGroupDivider()
-                cameraPicker(title: "Built-in display", selection: $settings.builtInDisplayCameraID)
+                cameraPicker(title: loc("Built-in display"), selection: $settings.builtInDisplayCameraID)
                 SettingsGroupDivider()
-                cameraPicker(title: "External display", selection: $settings.externalDisplayCameraID)
+                cameraPicker(title: loc("External display"), selection: $settings.externalDisplayCameraID)
             }
         }
     }

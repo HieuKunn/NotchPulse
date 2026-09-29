@@ -25,7 +25,7 @@ struct PillButton: View {
 
     var body: some View {
         let button = Button(action: action) {
-            Text(title)
+            Text(loc(title))
                 .font(FaceIDTheme.Font.button)
                 .foregroundStyle(FaceIDTheme.textPrimary)
                 .frame(width: width, height: FaceIDMetrics.pillButtonHeight)
@@ -63,10 +63,10 @@ struct PermissionRow: View {
                 .frame(width: FaceIDMetrics.statusDotSize, height: FaceIDMetrics.statusDotSize)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(title)
+                Text(loc(title))
                     .font(FaceIDTheme.Font.rowTitle)
                     .foregroundStyle(FaceIDTheme.textPrimary)
-                Text(detail)
+                Text(loc(detail))
                     .font(FaceIDTheme.Font.rowDetail)
                     .foregroundStyle(FaceIDTheme.textDetail)
                     .lineLimit(1)
@@ -76,7 +76,7 @@ struct PermissionRow: View {
             Spacer(minLength: 4)
 
             Button(action: grant) {
-                Text(granted ? "Granted" : "Grant")
+                Text(granted ? loc("Granted") : loc("Grant"))
                     .font(FaceIDTheme.Font.grantLabel)
                     .foregroundStyle(FaceIDTheme.textPrimary)
                     .frame(width: FaceIDMetrics.grantButtonSize.width, height: FaceIDMetrics.grantButtonSize.height)
@@ -104,7 +104,7 @@ struct PillSecureField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        SecureField("", text: $text, prompt: Text(placeholder).foregroundStyle(FaceIDTheme.placeholder))
+        SecureField("", text: $text, prompt: Text(loc(placeholder)).foregroundStyle(FaceIDTheme.placeholder))
             .textFieldStyle(.plain)
             .font(FaceIDTheme.Font.passwordPlaceholder)
             .foregroundStyle(FaceIDTheme.textPrimary)
@@ -129,7 +129,7 @@ struct PillTextField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        TextField("", text: $text, prompt: Text(placeholder).foregroundStyle(FaceIDTheme.placeholder))
+        TextField("", text: $text, prompt: Text(loc(placeholder)).foregroundStyle(FaceIDTheme.placeholder))
             .textFieldStyle(.plain)
             .font(FaceIDTheme.Font.passwordPlaceholder)
             .foregroundStyle(FaceIDTheme.textPrimary)
