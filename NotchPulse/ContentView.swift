@@ -31,6 +31,11 @@ struct ContentView: View {
     /// open plays the same "frame first, content after" sequence.
     @State private var isContentRevealed: Bool = false
     @State private var contentRevealTask: Task<Void, Never>?
+    /// Same staged choreography for the FaceID panel: content fades in shortly after
+    /// the panel starts expanding, and fades OUT at the start of a collapse so it
+    /// never rides the shrinking silhouette.
+    @State private var faceIDRevealContent: Bool = false
+    @State private var faceIDRevealTask: Task<Void, Never>?
     @State private var anyDropDebounceTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
@@ -409,6 +414,27 @@ struct ContentView: View {
                                 }
                             }
                         }
+                        // Staged FaceID choreography driven purely by phase changes:
+                        // collapse → fade content out immediately (frame follows); any
+                        // visible phase → fade content in after a short beat so it lands
+                        // near the end of the expansion spring.
+                        faceIDRevealTask?.cancel()
+                        switch newPhase {
+                        case .collapsing:
+                            withAnimation(.easeOut(duration: 0.12)) {
+                                faceIDRevealContent = false
+                            }
+                        case .closed:
+                            faceIDRevealContent = false
+                        case .scanning, .success, .failure, .onboarding:
+                            faceIDRevealTask = Task {
+                                try? await Task.sleep(for: .milliseconds(120))
+                                guard !Task.isCancelled else { return }
+                                withAnimation(.easeIn(duration: 0.18)) {
+                                    faceIDRevealContent = true
+                                }
+                            }
+                        }
                     }
                     // Failsafe hover-activation while Face ID is armed on the lock screen:
                     // SwiftUI `.onHover` tracking silently MISSES enter events on
@@ -538,6 +564,12 @@ struct ContentView: View {
                         // open notch never stays an empty black frame.
                         if vm.notchState == .open && !isContentRevealed && contentRevealTask == nil {
                             isContentRevealed = true
+                        }
+                        // FaceID reveal safety: if this view was (re)created mid-panel
+                        // (phase already visible), onChange never fired — reveal now so
+                        // the panel never stays an empty silhouette.
+                        if isFaceIDContentVisible && !faceIDRevealContent && faceIDRevealTask == nil {
+                            faceIDRevealContent = true
                         }
                     }
                     .onChange(of: notchOpenWidth) { _, newWidth in
@@ -676,6 +708,14 @@ struct ContentView: View {
 
                         if isFaceIDContentVisible {
                             FaceIDContentView()
+                                // Staged reveal, FaceID edition (mirrors the notch open/close
+                                // choreography): while the panel EXPANDS the content fades in
+                                // after a short beat; when it DROPS DOWN/collapses the content
+                                // fades out FIRST so text/visuals never ride the shrinking
+                                // silhouette. Opacity-only — geometry and phase timing stay
+                                // owned by FaceIDOverlayController (which guards against
+                                // mid-collapse video teardown black flashes).
+                                .opacity(faceIDRevealContent ? 1 : 0)
                         }
                     }
 
