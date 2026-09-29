@@ -1072,6 +1072,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         quitApplication()
     }
 
+    /// Re-opens the standard permission-flow onboarding window on demand (Settings →
+    /// "Review setup"). Purely a window presentation — never touches notch state or
+    /// settings, so it cannot regress notch interactions the way the old tour did.
+    func showOnboardingReview() {
+        showOnboardingWindow(step: .welcome)
+    }
+
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
         if onboardingWindowController == nil {
             let window = NSWindow(

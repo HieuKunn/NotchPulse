@@ -629,6 +629,29 @@ struct GeneralSettings: View {
 
     var body: some View {
         Form {
+            Section {
+                Button(action: {
+                    (NSApp.delegate as? AppDelegate)?.showOnboardingReview()
+                }) {
+                    HStack {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(loc("Review setup"))
+                                .font(.system(size: 13, weight: .semibold))
+                            Text(loc("Replay the welcome & permission walkthrough in its own window — the notch stays untouched."))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+
             styleSection
             dimensionsSection
             systemFeaturesSection
