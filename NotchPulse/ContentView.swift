@@ -854,6 +854,26 @@ struct ContentView: View {
         return true
     }
 
+    private func isMousePhysicallyInsideNotch() -> Bool {
+        let mouseLoc = NSEvent.mouseLocation
+        guard let screen = currentScreen else { return false }
+        let screenFrame = screen.frame
+        let isDynamicIsland = notchStyle == .dynamicIsland
+        let topOffset = (isDynamicIsland && screen.safeAreaInsets.top == 0) ? dynamicIslandTopOffset : 0
+        
+        let pad = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 6.0
+        let width = currentNotchWidth + (pad * 2.0)
+        let height = currentNotchHeight + pad + topOffset
+        
+        let notchRect = CGRect(
+            x: screenFrame.midX - (width / 2.0),
+            y: screenFrame.maxY - height,
+            width: width,
+            height: height
+        )
+        return notchRect.contains(mouseLoc)
+    }
+
     private func handleHover(_ hovering: Bool) {
         if isFaceIDActive || faceIDOverlay.phase != .closed || NotchPulseLockMonitor.isScreenActuallyLocked() { return }
         if vm.hideOnClosed { return }
@@ -901,10 +921,6 @@ struct ContentView: View {
                 }
             }
         } else {
-            // If mouse is still detected in global radar (when extended hover area is enabled), do not cancel or unhover prematurely
-            if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar { return }
-            guard isHovering else { return }
-            
             hoverTask?.cancel()
             hoverTask = Task {
                 try? await Task.sleep(for: .milliseconds(300))
@@ -912,11 +928,17 @@ struct ContentView: View {
                 guard !SpotlightTourManager.shared.isActive else { return }
                 
                 await MainActor.run {
-                    if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar { return }
-                    
+                    // Critical: Do NOT close if mouse is still physically inside the open notch's rectangle
+                    if self.isMousePhysicallyInsideNotch() {
+                        return
+                    }
+                    if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar {
+                        return
+                    }
                     // Do not close notch if mouse button is currently held down (e.g. dragging or right-click context menu active)
-                    let isMousePressed = (NSEvent.pressedMouseButtons != 0)
-                    if isMousePressed { return }
+                    if NSEvent.pressedMouseButtons != 0 {
+                        return
+                    }
                     
                     self.isHovering = false
                     

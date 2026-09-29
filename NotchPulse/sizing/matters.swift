@@ -48,9 +48,10 @@ enum MusicPlayerImageSizes {
 }
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
+    let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
     // Default notch size, to avoid using optionals
-    var notchHeight: CGFloat = Defaults[.nonNotchHeight]
-    var notchWidth: CGFloat = 185
+    var notchHeight: CGFloat = isDynamicIsland ? 32 : Defaults[.nonNotchHeight]
+    var notchWidth: CGFloat = isDynamicIsland ? 80 : 185
 
     var selectedScreen = NSScreen.main
 
@@ -64,22 +65,24 @@ enum MusicPlayerImageSizes {
         if let topLeftNotchpadding: CGFloat = screen.auxiliaryTopLeftArea?.width,
            let topRightNotchpadding: CGFloat = screen.auxiliaryTopRightArea?.width
         {
-            notchWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
+            notchWidth = isDynamicIsland ? 80 : (screen.frame.width - topLeftNotchpadding - topRightNotchpadding)
         }
 
         // Check if the Mac has a notch
         if screen.safeAreaInsets.top > 0 {
             // This is a display WITH a notch - use notch height settings
-            notchHeight = Defaults[.notchHeight]
-            if Defaults[.notchHeightMode] == .matchRealNotchSize {
-                notchHeight = screen.safeAreaInsets.top
-            } else if Defaults[.notchHeightMode] == .matchMenuBar {
-                notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
+            notchHeight = isDynamicIsland ? 32 : Defaults[.notchHeight]
+            if !isDynamicIsland {
+                if Defaults[.notchHeightMode] == .matchRealNotchSize {
+                    notchHeight = screen.safeAreaInsets.top
+                } else if Defaults[.notchHeightMode] == .matchMenuBar {
+                    notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
+                }
             }
         } else {
             // This is a display WITHOUT a notch - use non-notch height settings
-            notchHeight = Defaults[.nonNotchHeight]
-            if Defaults[.nonNotchHeightMode] == .matchMenuBar {
+            notchHeight = isDynamicIsland ? 32 : Defaults[.nonNotchHeight]
+            if !isDynamicIsland && Defaults[.nonNotchHeightMode] == .matchMenuBar {
                 notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
             }
         }
