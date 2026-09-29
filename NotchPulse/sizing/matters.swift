@@ -33,57 +33,60 @@ enum MusicPlayerImageSizes {
     static let size = (opened: CGSize(width: 90, height: 90), closed: CGSize(width: 20, height: 20))
 }
 
-@MainActor func getScreenFrame(_ screenUUID: String? = nil) -> CGRect? {
-    var selectedScreen = NSScreen.main
+@MainActor func resolveScreen(screenUUID: String? = nil) -> NSScreen? {
+    if let uuid = screenUUID, let screen = NSScreen.screen(withUUID: uuid) {
+        return screen
+    }
+    let coordinator = NotchPulseViewCoordinator.shared
+    if let prefUUID = coordinator.preferredScreenUUID, let screen = NSScreen.screen(withUUID: prefUUID) {
+        return screen
+    }
+    if let selScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
+        return selScreen
+    }
+    // Prefer built-in display or display with physical notch
+    if let builtInWithNotch = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) {
+        return builtInWithNotch
+    }
+    return NSScreen.main ?? NSScreen.screens.first
+}
 
-    if let uuid = screenUUID {
-        selectedScreen = NSScreen.screen(withUUID: uuid)
-    }
-    
-    if let screen = selectedScreen {
-        return screen.frame
-    }
-    
-    return nil
+@MainActor func getScreenFrame(_ screenUUID: String? = nil) -> CGRect? {
+    return resolveScreen(screenUUID: screenUUID)?.frame
 }
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
     let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-    // Default notch size, to avoid using optionals
+    let screen = resolveScreen(screenUUID: screenUUID)
+    
     var notchHeight: CGFloat = isDynamicIsland ? 32 : Defaults[.nonNotchHeight]
     var notchWidth: CGFloat = isDynamicIsland ? 80 : 185
 
-    var selectedScreen = NSScreen.main
-
-    if let uuid = screenUUID {
-        selectedScreen = NSScreen.screen(withUUID: uuid)
-    }
-
-    // Check if the screen is available
-    if let screen = selectedScreen {
+    if let screen = screen {
         // Calculate and set the exact width of the notch
         if let topLeftNotchpadding: CGFloat = screen.auxiliaryTopLeftArea?.width,
            let topRightNotchpadding: CGFloat = screen.auxiliaryTopRightArea?.width
         {
-            notchWidth = isDynamicIsland ? 80 : (screen.frame.width - topLeftNotchpadding - topRightNotchpadding)
+            let physicalWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
+            notchWidth = isDynamicIsland ? 80 : max(150, physicalWidth)
         }
 
         // Check if the Mac has a notch
         if screen.safeAreaInsets.top > 0 {
-            // This is a display WITH a notch - use notch height settings
             notchHeight = isDynamicIsland ? 32 : Defaults[.notchHeight]
             if !isDynamicIsland {
                 if Defaults[.notchHeightMode] == .matchRealNotchSize {
                     notchHeight = screen.safeAreaInsets.top
                 } else if Defaults[.notchHeightMode] == .matchMenuBar {
-                    notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
+                    let menuBarH = screen.frame.maxY - screen.visibleFrame.maxY
+                    notchHeight = menuBarH > 0 ? menuBarH : screen.safeAreaInsets.top
                 }
             }
         } else {
-            // This is a display WITHOUT a notch - use non-notch height settings
             notchHeight = isDynamicIsland ? 32 : Defaults[.nonNotchHeight]
             if !isDynamicIsland && Defaults[.nonNotchHeightMode] == .matchMenuBar {
-                notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
+                let menuBarH = screen.frame.maxY - screen.visibleFrame.maxY
+                notchHeight = menuBarH > 0 ? menuBarH : Defaults[.nonNotchHeight]
             }
         }
     }
