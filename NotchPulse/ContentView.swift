@@ -964,8 +964,13 @@ struct ContentView: View {
 
     private func doOpen() {
         vm.open(fromWidth: currentNotchWidth)
+        // Post-open housekeeping runs AFTER the open spring settles (~420ms), not at
+        // +120ms mid-flight: the pasteboard IPC and media fetch used to land on the
+        // main thread during the animation — exactly the work the inline HUD never
+        // has, which is why the HUD's expansion feels smoother. Same standard: zero
+        // main-thread work inside the animation window.
         Task(priority: .utility) {
-            try? await Task.sleep(for: .milliseconds(120))
+            try? await Task.sleep(for: .milliseconds(500))
             ClipboardManager.shared.checkImmediately()
         }
     }

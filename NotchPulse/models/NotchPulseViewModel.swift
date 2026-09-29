@@ -253,9 +253,11 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         }
         
         MusicManager.shared.isUIActive = true
-        // Fetch music state asynchronously in background after initial 120Hz frame render
+        // Fetch music state AFTER the open spring settles (~420ms), not at +120ms
+        // mid-flight — media queries on the main thread during the animation are work
+        // the inline HUD never does, which is why its expansion feels smoother.
         Task(priority: .utility) {
-            try? await Task.sleep(for: .milliseconds(120))
+            try? await Task.sleep(for: .milliseconds(500))
             await MainActor.run {
                 MusicManager.shared.forceUpdate()
             }
