@@ -80,7 +80,6 @@ struct AlbumArtView: View {
                 : MusicPlayerImageSizes.cornerRadiusInset.closed,
             style: .continuous
         )
-        .aspectRatio(imageAspectRatio, contentMode: .fit)
         .frame(width: size, height: size)
         .foregroundColor(Color.black.opacity(0.4))
         .allowsHitTesting(false)
@@ -89,7 +88,11 @@ struct AlbumArtView: View {
     private var albumArtImage: some View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
-            .aspectRatio(imageAspectRatio, contentMode: .fit)
+            // Fill the square frame instead of fitting: non-square artwork (e.g. YouTube
+            // Music thumbnails) previously letterboxed into black bars with a white
+            // border drawn around the empty frame. Filling crops the overflow instead —
+            // only the image is shown, no frame, no border.
+            .scaledToFill()
             .frame(width: size, height: size)
             .clipped()
             .clipShape(
@@ -99,15 +102,6 @@ struct AlbumArtView: View {
                         : MusicPlayerImageSizes.cornerRadiusInset.closed,
                     style: .continuous
                 )
-            )
-            .overlay(
-                RoundedRectangle(
-                    cornerRadius: Defaults[.cornerRadiusScaling]
-                        ? MusicPlayerImageSizes.cornerRadiusInset.opened
-                        : MusicPlayerImageSizes.cornerRadiusInset.closed,
-                    style: .continuous
-                )
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
             )
             .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
     }
