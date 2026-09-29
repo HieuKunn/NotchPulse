@@ -56,7 +56,7 @@ struct TabSelectionView: View {
                 vm.customOpenHeight = nil
             }
         }
-        withAnimation(.smooth) {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
             coordinator.currentView = tabView
         }
     }

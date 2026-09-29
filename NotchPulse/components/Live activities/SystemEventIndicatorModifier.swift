@@ -130,7 +130,7 @@ struct DraggableProgressBar: View {
                             Color.clear,
                             radius: 8, x: 3)
                         .opacity(value.isZero ? 0 : 1)
-                        .animation(isDragging ? nil : .smooth(duration: 0.18), value: value)
+                        .animation(isDragging ? nil : .interactiveSpring(response: 0.18, dampingFraction: 0.85), value: value)
                 }
                 .gesture(
                     DragGesture(minimumDistance: 0)

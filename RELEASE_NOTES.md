@@ -1,4 +1,4 @@
-## 🚀 What's New in NotchPulse v5.1
+## 🚀 What's New in NotchPulse v5.0
 
 ### 🤝 Smart Shake & File Shelf
 - **Universal Drag Support**: Easily drop files from macOS Dock stacks, downloads fans, Finder folders, and desktop items directly into the Notch Shelf.

@@ -17,7 +17,8 @@ struct TabButton: View {
         Button(action: onClick) {
             Image(systemName: icon)
                 .padding(.horizontal, 15)
-                .contentShape(Capsule())
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
     }

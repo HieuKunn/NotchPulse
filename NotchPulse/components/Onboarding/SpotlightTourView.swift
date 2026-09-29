@@ -150,7 +150,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "Di chuột vào khu vực Notch ở góc trên giữa màn hình để mở rộng bảng điều khiển nhanh. Rời chuột 250ms Notch sẽ tự thu gọn mượt mà."
             case .shakeToShelf:
-                return "Khi bạn đang nắm/kéo (drag) một file, hình ảnh hoặc đoạn văn bản, hãy lắc nhẹ chuột trái phải nhanh 4 lần liên tục. Khay lưu tạm Notch Shelf sẽ lập tức bung ra hứng file!"
+                return "Khi bạn đang nắm/kéo (drag) một file, hình ảnh hoặc đoạn văn bản trong Finder, hãy lắc nhẹ chuột trái phải nhanh 4 lần liên tục. Khay lưu tạm Notch Shelf sẽ lập tức bung ra hứng file!"
             case .musicPlayer:
                 return "Click vào Bìa Album để mở nhanh App nhạc tương ứng. Click vào Tên bài hát hoặc biểu tượng Micro để mở Lời bài hát cuộn theo thời gian thực (Synced Lyrics)."
             case .calendarExpand:
@@ -169,7 +169,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "將滑鼠懸停在螢幕頂部中央的瀏海區域即可展開快捷控制面板。移開滑鼠 250 毫秒後瀏海將自動平滑收合。"
             case .shakeToShelf:
-                return "當您正在拖曳檔案、圖片或文字片段時，快速左右晃動滑鼠 4 次，Notch 暫存架便會立即彈出承接您的檔案！"
+                return "當您正在 Finder 拖曳檔案、圖片或文字片段時，快速左右晃動滑鼠 4 次，Notch 暫存架便會立即彈出承接您的檔案！"
             case .musicPlayer:
                 return "點擊專輯封面可快速切換至對應音樂 App。點擊歌曲名稱或麥克風圖示即可開啟即時捲動歌詞 (Synced Lyrics)。"
             case .calendarExpand:
@@ -188,7 +188,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "将鼠标悬停在屏幕顶部中央的刘海区域即可展开快捷控制面板。移开鼠标 250 毫秒后刘海将自动平滑收起。"
             case .shakeToShelf:
-                return "当您正在拖拽文件、图片或文本片段时，快速左右晃动鼠标 4 次，Notch 暂存架便会立即弹出承接您的文件！"
+                return "当您正在 Finder 拖拽文件、图片或文本片段时，快速左右晃动鼠标 4 次，Notch 暂存架便会立即弹出承接您的文件！"
             case .musicPlayer:
                 return "点击专辑封面可快速切换至对应音乐 App。点击歌曲名称或麦克风图标即可开启实时滚动歌词 (Synced Lyrics)。"
             case .calendarExpand:
@@ -207,7 +207,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "画面上部中央のノッチにカーソルを合わせるとクイックコントロールが展開します。カーソルを離して250ミリ秒後に自動でスムーズに格納されます。"
             case .shakeToShelf:
-                return "ファイル、画像、テキストをドラッグ中にマウスを素早く左右に4回振ると、Notch Shelf が即座に開いてファイルを受け取ります！"
+                return "Finder でファイル、画像、テキストをドラッグ中にマウスを素早く左右に4回振ると、Notch Shelf が即座に開いてファイルを受け取ります！"
             case .musicPlayer:
                 return "アルバムアートをクリックして音楽アプリを開きます。曲名または歌詞アイコンをクリックすると、リアルタイム同期歌詞が表示されます。"
             case .calendarExpand:
@@ -226,7 +226,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "Bewegen Sie den Mauszeiger über die Notch oben in der Mitte des Bildschirms, um die Schnellsteuerung zu öffnen. Nach 250 ms ohne Maus schließt sie sich automatisch sanft."
             case .shakeToShelf:
-                return "Während Sie eine Datei, ein Bild oder einen Text ziehen, schütteln Sie die Maus viermal schnell nach links und rechts. Das Notch Shelf öffnet sich sofort!"
+                return "Während Sie eine Datei, ein Bild oder einen Text im Finder ziehen, schütteln Sie die Maus viermal schnell nach links und rechts. Das Notch Shelf öffnet sich sofort!"
             case .musicPlayer:
                 return "Klicken Sie auf das Album-Cover, um die Musik-App zu öffnen. Klicken Sie auf den Songtitel für synchron mitlaufende Songtexte."
             case .calendarExpand:
@@ -245,7 +245,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "Survolez l'encoche en haut au centre de votre écran pour afficher les commandes rapides. Éloignez la souris pendant 250 ms pour la refermer en douceur."
             case .shakeToShelf:
-                return "Pendant le glissement d'un fichier, d'une image ou d'un texte, secouez rapidement la souris de gauche à droite 4 fois. Le Shelf s'ouvrira immédiatement !"
+                return "Pendant le glissement d'un fichier, d'une image ou d'un texte dans votre Finder, secouez rapidement la souris de gauche à droite 4 fois. Le Shelf s'ouvrira immédiatement !"
             case .musicPlayer:
                 return "Cliquez sur la pochette pour ouvrir l'app musicale. Cliquez sur le titre pour afficher les paroles défilantes en temps réel."
             case .calendarExpand:
@@ -264,7 +264,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "Pase el cursor sobre el Notch en la parte superior central de la pantalla para desplegar los controles rápidos. Al retirar el cursor durante 250 ms se cerrará suavemente."
             case .shakeToShelf:
-                return "Mientras arrastra cualquier archivo, imagen o texto, mueva el ratón rápidamente de izquierda a derecha 4 veces seguidas. ¡El Shelf se abrirá al instante!"
+                return "Mientras arrastra cualquier archivo, imagen o texto en su Finder, mueva el ratón rápidamente de izquierda a derecha 4 veces seguidas. ¡El Shelf se abrirá al instante!"
             case .musicPlayer:
                 return "Haga clic en la carátula para abrir la app de música. Haga clic en el título para ver las letras sincronizadas en tiempo real."
             case .calendarExpand:
@@ -283,7 +283,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "مرر المؤشر فوق النوتش في أعلى منتصف الشاشة لتوسيع عناصر التحكم السريعة. سيتراجع النوتش بسلاسة بعد إبعاد المؤشر بـ 250 مللي ثانية."
             case .shakeToShelf:
-                return "أثناء سحب أي ملف أو صورة أو نص، هز الفأرة بسرعة يميناً ويساراً 4 مرات متتالية، وسيفتح رف Notch فوراً لالتقاط ملفك!"
+                return "أثناء سحب أي ملف أو صورة أو نص في Finder، هز الفأرة بسرعة يميناً ويساراً 4 مرات متتالية، وسيفتح رف Notch فوراً لالتقاط ملفك!"
             case .musicPlayer:
                 return "انقر فوق غلاف الألبوم لفتح تطبيق الموسيقى النشط. انقر فوق اسم الأغنية لعرض كلمات الأغاني المتزامنة في الوقت الفعلي."
             case .calendarExpand:
@@ -302,7 +302,7 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             case .notchHover:
                 return "Hover your cursor over the Notch at the top center of your screen to expand the quick controls. Move mouse away for 250ms to smoothly auto-close."
             case .shakeToShelf:
-                return "While dragging any file, image, or text snippet, quickly shake your mouse left and right 4 times in a row. The Notch Shelf will immediately pop open to catch your file!"
+                return "While dragging any file, image, or text snippet in your Finder, quickly shake your mouse left and right 4 times in a row. The Notch Shelf will immediately pop open to catch your file!"
             case .musicPlayer:
                 return "Click the Album Art to jump directly into the active music app. Click the song title or lyrics icon to view real-time synced scrolling lyrics."
             case .calendarExpand:
@@ -899,8 +899,14 @@ final class SpotlightTourManager: ObservableObject {
         let topY = cutoutBottom + 16
         let constrainedTopY = min(screenSize.height - cardHeight - padding, topY)
 
-        let appKitY = screenOrigin.y + (screenSize.height - constrainedTopY - cardHeight)
-        let appKitX = screenOrigin.x + x
+        var appKitY = screenOrigin.y + (screenSize.height - constrainedTopY - cardHeight)
+        var appKitX = screenOrigin.x + x
+        
+        if step == .menuBarSettings {
+            // For step 8, position the tooltip card cleanly to the right of the open notch.
+            appKitX = screenOrigin.x + (screenSize.width / 2) + 210 + padding
+            appKitY = screenOrigin.y + (screenSize.height - cardHeight - 80)
+        }
 
         return NSRect(x: appKitX, y: appKitY, width: cardWidth, height: cardHeight)
     }

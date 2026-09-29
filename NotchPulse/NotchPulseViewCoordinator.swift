@@ -223,7 +223,7 @@ class NotchPulseViewCoordinator: ObservableObject {
             }
         }
         Task { @MainActor in
-            withAnimation(.smooth) {
+            withAnimation(.interactiveSpring(response: 0.18, dampingFraction: 0.85)) {
                 self.sneakPeek.show = status
                 self.sneakPeek.type = type
                 self.sneakPeek.value = value

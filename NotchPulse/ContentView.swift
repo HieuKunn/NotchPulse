@@ -265,16 +265,15 @@ struct ContentView: View {
         isBottomRowHUDActive || isBottomRowMusicActive
     }
     private var currentNotchWidth: CGFloat {
-        isFaceIDActive ? targetFaceIDSize.width : (vm.notchState == .open ? notchOpenWidth : computedChinWidth)
+        isFaceIDActive ? targetFaceIDSize.width : max(vm.notchSize.width, computedChinWidth)
     }
     private var currentNotchHeight: CGFloat {
         if isFaceIDActive {
             return targetFaceIDSize.height
         }
-        if vm.notchState == .open {
-            return vm.customOpenHeight ?? vm.notchSize.height
-        }
-        return isBottomRowActive ? baseClosedHeight + bottomRowHUDHeight : baseClosedHeight
+        let heightFromState = vm.customOpenHeight ?? vm.notchSize.height
+        let minHeight = isBottomRowActive ? baseClosedHeight + bottomRowHUDHeight : baseClosedHeight
+        return max(heightFromState, minHeight)
     }
     private var gestureScale: CGFloat {
         guard gestureProgress != 0 else { return 1.0 }
@@ -350,6 +349,7 @@ struct ContentView: View {
                             .animation(faceIDAnimation, value: isFaceIDActive)
                             .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
+                            .animation(animationSpring, value: vm.notchState)
                     }
                     .onHover { hovering in
                         if shouldHandleFaceIDHover(hovering: hovering) {
@@ -362,13 +362,13 @@ struct ContentView: View {
 
                         handleHover(hovering)
                     }
-                    .conditionalModifier(!isFaceIDContentActive) { view in
+                    .conditionalModifier(!isFaceIDContentActive && vm.notchState == .closed) { view in
                         view.onTapGesture {
                             if shouldHandleFaceIDTap() {
                                 FaceIDOverlayController.shared.activate()
                                 return
                             }
-                            if !NotchPulseLockMonitor.isScreenActuallyLocked() && vm.notchState == .closed {
+                            if !NotchPulseLockMonitor.isScreenActuallyLocked() {
                                 doOpen()
                             }
                         }
@@ -657,7 +657,7 @@ struct ContentView: View {
                     }
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-                .animation(.smooth(duration: 0.28), value: coordinator.currentView)
+                .animation(.spring(response: 0.25, dampingFraction: 0.85), value: coordinator.currentView)
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)

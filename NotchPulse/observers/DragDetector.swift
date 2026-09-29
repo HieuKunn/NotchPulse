@@ -193,8 +193,10 @@ final class DragDetector {
                 }
             }
         }
-
-        return false
+        // If we reached here, it's not explicitly blacklisted as a tab/window.
+        // It could be a custom app drag (like Docker) or an unknown format.
+        // Since the user performed a deliberate shake, and it has some valid drag types, allow it.
+        return true
     }
 
     func startMonitoring() {
