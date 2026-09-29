@@ -362,6 +362,11 @@ struct ContentView: View {
                     .animation(.smooth(duration: 0.35), value: coordinator.expandingView.show)
                     .animation(faceIDAnimation, value: faceIDOverlay.phase)
                     .animation(.smooth, value: gestureProgress)
+                    // Music start/stop and metadata changes silently recompute baseChinWidth
+                    // (the closed notch silhouette). Without a scoped spring on that input,
+                    // the width change lands in an unanimated transaction and the notch
+                    // visibly snaps/jerks during normal use.
+                    .animation(NotchPulseViewModel.notchSpring, value: baseChinWidth)
                 
                 applyHitShape(mainLayout)
                     .onHover { hovering in
@@ -400,6 +405,30 @@ struct ContentView: View {
                             }
                         }
                     }
+                    // Failsafe hover-activation while Face ID is armed on the lock screen:
+                    // SwiftUI `.onHover` tracking silently MISSES enter events on
+                    // SkyLight-delegated windows, so hovering the notch sometimes did
+                    // nothing until the user clicked (a real event always arrives). This
+                    // lightweight poll runs ONLY while locked + armed, and edge-triggers
+                    // on the cursor entering the notch region — driving the exact same
+                    // activation path as hover/click, immune to missed tracking events.
+                    .task(id: faceIDOverlay.isArmed) {
+                        guard faceIDOverlay.isArmed else { return }
+                        var wasInside = isMousePhysicallyInsideNotch()
+                        while !Task.isCancelled,
+                              faceIDOverlay.isArmed,
+                              NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            try? await Task.sleep(for: .milliseconds(150))
+                            guard !Task.isCancelled else { return }
+                            let isInside = isMousePhysicallyInsideNotch()
+                            let phase = faceIDOverlay.phase
+                            if isInside && !wasInside && (phase == .closed || phase == .failure) {
+                                FaceIDOverlayController.shared.setHovering(true)
+                                FaceIDOverlayController.shared.activate()
+                            }
+                            wasInside = isInside
+                        }
+                    }
                     .conditionalModifier(Defaults[.enableGestures] && !isFaceIDActive) { view in
                         view
                             .panGesture(direction: .down) { translation, phase in
@@ -413,14 +442,13 @@ struct ContentView: View {
                             }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
-                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                        if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
-                                guard !SpotlightTourManager.shared.isActive else { return }
                                 await MainActor.run {
-                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                                    if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                                         self.vm.close()
                                     }
                                 }
@@ -430,6 +458,19 @@ struct ContentView: View {
                     .onChange(of: vm.notchState) { _, newState in
                         if newState == .closed && isHovering {
                             isHovering = false
+                        }
+                    }
+                    .onChange(of: coordinator.sneakPeek.show) { _, showing in
+                        // When a HUD/sneak-peek disappears while the cursor is parked on
+                        // the notch, SwiftUI often delivers NO fresh enter event (nothing
+                        // changed from its tracking perspective), so the notch never
+                        // opened until the user clicked or moved away and back.
+                        // Re-evaluate physically: cursor genuinely inside → open via the
+                        // normal hover path (honors minimumHoverDuration and guards).
+                        if !showing, vm.notchState == .closed, !vm.hideOnClosed {
+                            if isMousePhysicallyInsideNotch() {
+                                handleHover(true)
+                            }
                         }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
@@ -479,14 +520,13 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.isBatteryPopoverActive) {
-                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                             hoverTask?.cancel()
                             hoverTask = Task {
                                 try? await Task.sleep(for: .milliseconds(100))
                                 guard !Task.isCancelled else { return }
-                                guard !SpotlightTourManager.shared.isActive else { return }
                                 await MainActor.run {
-                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                                    if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                                         self.vm.close()
                                     }
                                 }
@@ -530,6 +570,12 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .environmentObject(vm)
         .onChange(of: vm.isHoveringFromRadar) { _, isRadarHovering in
+            // BUGFIX: this handler previously fired unconditionally — whenever the
+            // DragDetector radar toggled, the notch processed hover even with
+            // "open on hover" or "extend hover area" disabled, and a stale radar
+            // flag (set before the setting was turned off) kept the notch open and
+            // blocked every auto-close path. Gate strictly on BOTH settings.
+            guard Defaults[.openNotchOnHover] && Defaults[.extendHoverArea] else { return }
             if vm.hideOnClosed { return }
             handleHover(isRadarHovering)
         }
@@ -553,7 +599,7 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
 
                 vm.dropEvent = false
-                if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                if !self.isHovering && !vm.isHoveringFromRadar && !vm.dragDetectorTargeting && !vm.anyDropZoneTargeting && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
                     self.vm.close()
                 }
             }
@@ -893,8 +939,14 @@ struct ContentView: View {
         if vm.hideOnClosed { return }
         
         if hovering {
-            // If already hovering and open task is active, let it proceed without restart
-            if isHovering { return }
+            // Dedupe only when the hover state matches physical reality. If an EXIT
+            // event was ever missed (cursor stationary while the window was hidden or
+            // an overlay stole tracking), `isHovering` stayed true and every later
+            // re-enter was silently swallowed — the notch then only opened via click
+            // (tap doesn't depend on hover state). If the flag is stuck but the cursor
+            // is physically OUTSIDE the notch, this enter is real: heal and proceed.
+            if isHovering && isMousePhysicallyInsideNotch() { return }
+            isHovering = false
             
             // If the user is dragging an app window or holding the mouse button down, NEVER open the closed notch on hover
             let isMouseHeld = (NSEvent.pressedMouseButtons != 0)
@@ -939,7 +991,6 @@ struct ContentView: View {
             hoverTask = Task {
                 try? await Task.sleep(for: .milliseconds(300))
                 guard !Task.isCancelled else { return }
-                guard !SpotlightTourManager.shared.isActive else { return }
                 
                 await MainActor.run {
                     // Critical: Do NOT close if mouse is still physically inside the open notch's rectangle
@@ -956,7 +1007,7 @@ struct ContentView: View {
                     
                     self.isHovering = false
                     
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
+                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close(targetClosedWidth: self.baseChinWidth)
                     }
                 }
@@ -1027,7 +1078,7 @@ struct ContentView: View {
             withAnimation(animationSpring) {
                 isHovering = false
             }
-            if !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive { 
+            if !SharingStateManager.shared.preventNotchClose { 
                 gestureProgress = .zero
                 vm.close(targetClosedWidth: baseChinWidth)
             }

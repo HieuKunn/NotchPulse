@@ -35,24 +35,6 @@ struct OnboardingFinishView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                Button(action: {
-                    onFinish()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        SpotlightTourManager.shared.showTour()
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "sparkles.tv.fill")
-                        Text(loc("Start Interactive Spotlight Tour"))
-                    }
-                    .font(.system(size: 14, weight: .semibold))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.cyan)
-                .controlSize(.large)
-
                 Button(action: onOpenSettings) {
                     Label(loc("Customize in Settings"), systemImage: "gear")
                         .controlSize(.large)

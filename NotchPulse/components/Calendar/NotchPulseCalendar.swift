@@ -1062,9 +1062,6 @@ struct CalendarView: View {
             mode = .dayDetail
             vm.customOpenHeight = 285
         }
-        if SpotlightTourManager.shared.isActive && SpotlightTourManager.shared.currentStep == .calendarExpand {
-            SpotlightTourManager.shared.nextStep()
-        }
         Task { @MainActor in
             await calendarManager.updateCurrentDate(selectedDate)
         }

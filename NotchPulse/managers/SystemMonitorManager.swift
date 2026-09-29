@@ -324,10 +324,23 @@ public class SystemMonitorManager: ObservableObject {
     }
 
     // MARK: - Top Processes Fetch
+    /// Two independent `ps` passes: CPU-sorted (`-r`) and memory-sorted (`-m`). The old
+    /// implementation only scanned the 20 highest-CPU processes for the RAM list too, so
+    /// the true memory hogs (idle but huge apps) never appeared.
     private func fetchTopProcesses() -> (cpu: [MonitorProcessItem], ram: [MonitorProcessItem]) {
+        let cpuList = fetchProcessesSorted(by: "-r", limit: 8) { cpu, rssMB in
+            cpu > 0.1 ? String(format: "%.1f%%", cpu) : nil
+        }
+        let ramList = fetchProcessesSorted(by: "-m", limit: 8) { _, rssMB in
+            rssMB >= 1024.0 ? String(format: "%.1f GB", rssMB / 1024.0) : String(format: "%.0f MB", rssMB)
+        }
+        return (cpuList, ramList)
+    }
+
+    private func fetchProcessesSorted(by sortFlag: String, limit: Int, valueFor: (_ cpu: Double, _ rssMB: Double) -> String?) -> [MonitorProcessItem] {
         let task = Process()
         task.launchPath = "/bin/ps"
-        task.arguments = ["-Aceo", "%cpu,rss,comm", "-r"]
+        task.arguments = ["-Aceo", "%cpu,rss,comm", sortFlag]
 
         let pipe = Pipe()
         task.standardOutput = pipe
@@ -335,48 +348,33 @@ public class SystemMonitorManager: ObservableObject {
 
         do {
             try task.run()
-            task.waitUntilExit()
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            task.waitUntilExit()
             if let output = String(data: data, encoding: .utf8) {
                 var lines = output.components(separatedBy: "\n")
                 if !lines.isEmpty { lines.removeFirst() } // Remove header
-                
-                var cpuList: [MonitorProcessItem] = []
-                var ramList: [(name: String, rssMB: Double)] = []
 
-                for line in lines.prefix(20) {
+                var items: [MonitorProcessItem] = []
+                for line in lines {
                     let parts = line.trimmingCharacters(in: .whitespaces)
                         .components(separatedBy: .whitespaces)
                         .filter { !$0.isEmpty }
                     guard parts.count >= 3,
                           let cpuVal = Double(parts[0]),
                           let rssKB = Double(parts[1]) else { continue }
-                    
-                    let fullPath = parts[2...].joined(separator: " ")
-                    let name = (fullPath as NSString).lastPathComponent
 
-                    if cpuList.count < 3 && cpuVal > 0.1 {
-                        cpuList.append(MonitorProcessItem(name: name, value: String(format: "%.1f%%", cpuVal)))
-                    }
+                    let name = (parts[2...].joined(separator: " ") as NSString).lastPathComponent
+                    guard let valueStr = valueFor(cpuVal, rssKB / 1024.0) else { continue }
 
-                    let mb = rssKB / 1024.0
-                    ramList.append((name: name, rssMB: mb))
+                    items.append(MonitorProcessItem(name: name, value: valueStr))
+                    if items.count >= limit { break }
                 }
-
-                ramList.sort { $0.rssMB > $1.rssMB }
-                let finalRam = ramList.prefix(3).map { item -> MonitorProcessItem in
-                    let valStr = item.rssMB > 1024.0
-                        ? String(format: "%.1f GB", item.rssMB / 1024.0)
-                        : String(format: "%.0f MB", item.rssMB)
-                    return MonitorProcessItem(name: item.name, value: valStr)
-                }
-
-                return (cpuList, finalRam)
+                return items
             }
         } catch {
             // Fallback empty
         }
 
-        return ([], [])
+        return []
     }
 }

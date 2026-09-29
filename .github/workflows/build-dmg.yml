@@ -10,6 +10,10 @@ on:
         description: 'Tạo GitHub Release (nhập tag ví dụ v2.9.4.8, bắt buộc)'
         required: true
         default: 'v2.9.4.8'
+      beta_mode:
+        description: 'BETA: chỉ build DMG kiểm chứng (artifact trong tab Actions) — KHÔNG publish release, KHÔNG đụng appcast. Nhập true để bật.'
+        required: false
+        default: 'false'
 
 jobs:
   build:
@@ -177,7 +181,18 @@ jobs:
           echo "Đã đóng gói xong:"
           ls -lh release_out/
 
+      - name: Upload Test Build Artifacts (Beta Mode)
+        if: ${{ github.event.inputs.beta_mode == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: NotchPulse-test-build
+          path: |
+            release_out/NotchPulse.dmg
+            release_out/NotchPulse.app.zip
+          retention-days: 14
+
       - name: Generate Sparkle Appcast
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
@@ -234,6 +249,7 @@ jobs:
           fi
           
       - name: Commit and Push Appcast to Local Repo
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
         run: |
           if [ -f "appcast.xml" ]; then
             git config --global user.name "github-actions[bot]"
@@ -243,6 +259,7 @@ jobs:
           fi
 
       - name: Prepare Release Notes
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
         run: |
           TAG="v2.9.4.8"
           if [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
@@ -267,6 +284,7 @@ jobs:
           fi
 
       - name: Sync Web & Release Metadata to Public Distribution Repository
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
         env:
           PUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN || secrets.GITHUB_TOKEN }}
           PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
@@ -304,6 +322,7 @@ jobs:
           cd ..
 
       - name: Publish Release to Public Distribution Repository
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN }}
           PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
@@ -330,6 +349,7 @@ jobs:
           fi
 
       - name: Create or Update Local GitHub Release
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

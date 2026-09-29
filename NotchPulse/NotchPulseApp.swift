@@ -299,6 +299,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             detector.stopMonitoring()
         }
         dragDetectors.removeAll()
+
+        // BUGFIX: a radar-detector teardown previously left vm.isHoveringFromRadar
+        // stuck at `true` (the internal flag reset never reached the view model),
+        // which held the notch open and blocked every auto-close path until relaunch.
+        vm.isHoveringFromRadar = false
+        for targetVM in viewModels.values {
+            targetVM.isHoveringFromRadar = false
+        }
     }
 
     private func setupDragDetectors() {
@@ -379,7 +387,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         
-        detector.onShakeDetected = { [weak self] in
+        // Shared shelf-open path: used by BOTH the shake gesture and the deterministic
+        // file-drag proximity (hovering a real file drag at the notch opens the shelf,
+        // which is the only reliable path for Dock-stack drags like pulling a download
+        // out of the Dock). Auto-closes if nothing is dropped within the delay.
+        let openShelfForDrag: () -> Void = { [weak self] in
             Task { @MainActor in
                 guard let self = self else { return }
                 let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
@@ -390,7 +402,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 }
 
-                // If user shakes to open the shelf but does not drop into the notch within the configured delay, auto-close (unless close is prevented)
+                // If the user opens the shelf but does not drop into the notch within the configured delay, auto-close (unless close is prevented)
                 self.shakeAutoCloseTasks[uuid]?.cancel()
                 let waitDuration = Defaults[.shakeAutoCloseDelay]
                 self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
@@ -398,7 +410,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     guard !Task.isCancelled, let self = self else { return }
                     guard !SharingStateManager.shared.preventNotchClose else { return }
                     let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
-                    if !vm.dropZoneTargeting && !vm.generalDropTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
+                    // The countdown must NEVER close the shelf while the user is actively
+                    // holding a dragged item over it (shelf/share drop targeting) — only
+                    // when nothing was dropped within the delay.
+                    if !vm.dropZoneTargeting && !vm.generalDropTargeting && !vm.shelfDropTargeting && !vm.shareDropTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
                         vm.close()
                         if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
                             self.coordinator.currentView = .home
@@ -407,6 +422,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        detector.onShakeDetected = openShelfForDrag
+        detector.onFileDragNearNotch = openShelfForDrag
 
         detector.onDragEnded = { [weak self] in
             Task { @MainActor in
@@ -870,6 +888,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         previousScreens = NSScreen.screens
+
+        // Animation-jank diagnosis: measure main-thread hitches and tag them with a
+        // notch-state snapshot so user-reported "not smooth" reports come with data.
+        NotchPulseHitchDetector.shared.contextProvider = { [weak self] in
+            guard let self else { return "app (no state)" }
+            let vm = self.vm
+            return String(
+                format: "notch=%@ chin=%.0f faceID=%@ sneak=%d view=%@",
+                String(describing: vm.notchState),
+                vm.closedNotchSize.width,
+                String(describing: FaceIDOverlayController.shared.phase),
+                self.coordinator.sneakPeek.show ? 1 : 0,
+                String(describing: self.coordinator.currentView)
+            )
+        }
+        NotchPulseHitchDetector.shared.start()
     }
 
     func playWelcomeSound() {

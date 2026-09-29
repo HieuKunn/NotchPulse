@@ -253,6 +253,22 @@ final class FaceIDOverlayController {
         }
     }
 
+    /// Re-anchors the scanning timeout to NOW with the user's full window. The unlock
+    /// coordinator calls this once the camera is actually producing frames — the timeout
+    /// scheduled in `beginScanning()` starts BEFORE the multi-second camera cold start
+    /// after a wake, which used to consume the whole scan window and made the notch
+    /// snap away "immediately" on the first activation after an idle period.
+    func restartScanTimeout() {
+        guard phase == .scanning else { return }
+        scanTimeoutTask?.cancel()
+        scanTimeoutTask = Task { @MainActor [weak self] in
+            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+            try? await Task.sleep(for: duration)
+            guard let self, !Task.isCancelled, self.phase == .scanning else { return }
+            await self.collapse()
+        }
+    }
+
     // MARK: - Window priming (first show only)
 
     /// On the very first show, `present()`/`presentOnboarding()` would otherwise render

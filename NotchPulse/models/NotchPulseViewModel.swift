@@ -86,7 +86,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 guard let self = self else { return }
-                guard !SpotlightTourManager.shared.isActive else { return }
                 guard !SharingStateManager.shared.preventNotchClose else { return }
                 guard let activeVM = notification.object as? NotchPulseViewModel else { return }
                 // Rule: Only 1 notch open at any time across all displays!
@@ -268,8 +267,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     func close(force: Bool = false, targetClosedWidth: CGFloat? = nil) {
         self.customOpenHeight = nil
-        // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen), or during tour
-        if !force && (SharingStateManager.shared.preventNotchClose || SpotlightTourManager.shared.isActive) {
+        // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen)
+        if !force && SharingStateManager.shared.preventNotchClose {
             return
         }
         guard force || notchState != .closed else { return }
@@ -307,7 +306,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
         // Reset currentView to .home on close quietly after the collapse completes (350ms),
         // preventing internal tab-switch animations from clashing with the notch collapse animation
-        if !SpotlightTourManager.shared.isActive && !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned)) {
+        if !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned)) {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(350))
                 guard let self = self, self.notchState == .closed else { return }

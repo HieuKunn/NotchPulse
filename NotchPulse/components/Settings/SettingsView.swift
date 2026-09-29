@@ -629,29 +629,6 @@ struct GeneralSettings: View {
 
     var body: some View {
         Form {
-            Section {
-                Button(action: {
-                    SpotlightTourManager.shared.showTour(useAppLanguage: true)
-                }) {
-                    HStack {
-                        Image(systemName: "sparkles.tv.fill")
-                            .foregroundColor(.white)
-                            .font(.system(size: 16))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(loc("Interactive Spotlight Tour"))
-                                .font(.system(size: 13, weight: .semibold))
-                            Text(loc("Walk through interactive guides for Notch, Shelf, Music, Calendar & Settings"))
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-
             styleSection
             dimensionsSection
             systemFeaturesSection
@@ -996,6 +973,10 @@ struct SystemMonitorSettingsView: View {
     @Default(.systemMonitorShowProcesses) var showProcesses
     @ObservedObject var monitor = SystemMonitorManager.shared
 
+    private enum MonitorMetric { case cpu, ram }
+    @State private var expandedMetric: MonitorMetric?
+    @State private var copiedReport: Bool = false
+
     var body: some View {
         Form {
             Section {
@@ -1038,61 +1019,109 @@ struct SystemMonitorSettingsView: View {
             Section {
                 VStack(spacing: 12) {
                     HStack(spacing: 16) {
-                        // Mini CPU
-                        HStack(spacing: 8) {
-                            Image(systemName: "cpu")
-                                .foregroundStyle(.blue)
-                            VStack(alignment: .leading) {
-                                Text(loc("CPU"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(String(format: "%.0f%%", monitor.cpuTotal))
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                            }
-                        }
+                        // Mini CPU — click to expand the per-app CPU list (largest first)
+                        MonitorTileButton(
+                            icon: "cpu",
+                            tint: .blue,
+                            title: loc("CPU"),
+                            value: String(format: "%.0f%%", monitor.cpuTotal),
+                            subtitle: nil,
+                            isExpanded: expandedMetric == .cpu,
+                            action: { expandedMetric = (expandedMetric == .cpu) ? nil : .cpu }
+                        )
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                         Divider()
 
-                        // Mini RAM
-                        HStack(spacing: 8) {
-                            Image(systemName: "memorychip")
-                                .foregroundStyle(.green)
-                            VStack(alignment: .leading) {
-                                Text(loc("RAM"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(String(format: "%.1f / %.0f GB", monitor.ramUsedGB, monitor.ramTotalGB))
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                                Text("\(loc("Swap")): \(monitor.swapUsedFormatted)")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                        // Mini RAM — click to expand the per-app memory list (largest first)
+                        MonitorTileButton(
+                            icon: "memorychip",
+                            tint: .green,
+                            title: loc("RAM"),
+                            value: String(format: "%.1f / %.0f GB", monitor.ramUsedGB, monitor.ramTotalGB),
+                            subtitle: "\(loc("Swap")): \(monitor.swapUsedFormatted)",
+                            isExpanded: expandedMetric == .ram,
+                            action: { expandedMetric = (expandedMetric == .ram) ? nil : .ram }
+                        )
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                         Divider()
 
-                        // Mini GPU
-                        HStack(spacing: 8) {
-                            Image(systemName: "display")
-                                .foregroundStyle(.purple)
-                            VStack(alignment: .leading) {
-                                Text(loc("GPU"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(String(format: "%.0f%%", monitor.gpuUsage))
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                            }
-                        }
+                        // Mini GPU — macOS only exposes a SYSTEM-WIDE GPU load to third-party
+                        // apps (per-app GPU data is private), so this tile is informational
+                        // only and does not expand.
+                        MonitorTileButton(
+                            icon: "display",
+                            tint: .purple,
+                            title: loc("GPU"),
+                            value: String(format: "%.0f%%", monitor.gpuUsage),
+                            subtitle: nil,
+                            isExpanded: false,
+                            action: {}
+                        )
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.vertical, 4)
+
+                    if showProcesses, expandedMetric == .cpu {
+                        MonitorProcessList(
+                            title: loc("CPU"), icon: "cpu", tint: .blue,
+                            items: monitor.topCpuProcesses,
+                            emptyText: loc("No processes using CPU right now")
+                        )
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    if showProcesses, expandedMetric == .ram {
+                        MonitorProcessList(
+                            title: loc("RAM"), icon: "memorychip", tint: .green,
+                            items: monitor.topRamProcesses,
+                            emptyText: loc("No processes using memory right now")
+                        )
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
+                .animation(.smooth(duration: 0.22), value: expandedMetric)
             } header: {
                 Text(loc("Live Preview"))
             }
             .disabled(!enableSystemMonitor)
+
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(loc("Animation jank report"))
+                        .font(.headline)
+                    Text(loc("If the notch ever feels laggy or jerky, click the button below and send the copied text — it shows exactly what the app was doing during each stall, with no guessing."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Button {
+                            let report = NotchPulseHitchDetector.shared.dumpRecent()
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(report, forType: .string)
+                            copiedReport = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                copiedReport = false
+                            }
+                        } label: {
+                            Label(
+                                copiedReport ? loc("Copied! Now paste it in the chat") : loc("Copy jank report"),
+                                systemImage: copiedReport ? "checkmark.circle.fill" : "doc.on.clipboard"
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+                        if !NotchPulseHitchDetector.shared.recentHitches.isEmpty {
+                            Text(loc("\(NotchPulseHitchDetector.shared.recentHitches.count) stalls recorded"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text(loc("Diagnostics"))
+            }
         }
         .scrollContentBackground(.hidden)
         .hideScrollbar()
@@ -1102,7 +1131,112 @@ struct SystemMonitorSettingsView: View {
         }
         .onDisappear {
             monitor.stopMonitoring()
+            expandedMetric = nil
         }
+    }
+}
+
+/// Clickable metric tile — expands into the per-app process list (Activity Monitor style).
+private struct MonitorTileButton: View {
+    let icon: String
+    let tint: Color
+    let title: String
+    let value: String
+    let subtitle: String?
+    let isExpanded: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .foregroundStyle(tint)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 3) {
+                        Text(title)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if isExpanded {
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    Text(value)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Top-consumers list, sorted largest → smallest, refreshed live by SystemMonitorManager.
+private struct MonitorProcessList: View {
+    let title: String
+    let icon: String
+    let tint: Color
+    let items: [MonitorProcessItem]
+    let emptyText: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10))
+                    .foregroundStyle(tint)
+                Text(loc("Top apps by \(title)"))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(loc("largest first"))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            if items.isEmpty {
+                Text(emptyText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            } else {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    HStack(spacing: 8) {
+                        Text("\(index + 1).")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 22, alignment: .leading)
+                        Text(item.name)
+                            .font(.system(size: 12, weight: .medium))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 12)
+                        Text(item.value)
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(tint)
+                            .monospacedDigit()
+                    }
+                    .padding(.vertical, 1)
+                }
+            }
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.primary.opacity(0.04))
+        )
     }
 }
 
@@ -1477,6 +1611,7 @@ struct Shelf: View {
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
     @Default(.shakeAutoCloseDelay) var shakeAutoCloseDelay
+    @Default(.shelfDragOpenPadding) var shelfDragOpenPadding
     @StateObject private var quickShareService = QuickShareService.shared
 
     private var selectedProvider: QuickShareProvider? {
@@ -1505,13 +1640,25 @@ struct Shelf: View {
 
                 Slider(value: $shakeAutoCloseDelay, in: 2...20, step: 1) {
                     HStack {
-                        Text(loc("Close delay after shake"))
+                        Text(loc("Shelf auto-close delay"))
                         Spacer()
                         Text("\(Int(shakeAutoCloseDelay))s")
                             .foregroundStyle(.secondary)
                     }
                 }
-                Text(loc("When shaking to open the shelf while dragging a file, it will automatically close after this duration if you do not drop the file into the shelf."))
+                Text(loc("After the shelf opens — by shaking while dragging a file, or by hovering the dragged file near the notch — it closes automatically after this many seconds if you do not drop anything. While you keep holding the file over the shelf, it never closes."))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Slider(value: $shelfDragOpenPadding, in: 0...240, step: 10) {
+                    HStack {
+                        Text(loc("File-drag open area"))
+                        Spacer()
+                        Text(shelfDragOpenPadding == 0 ? loc("Off") : "+\(Int(shelfDragOpenPadding))px")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text(loc("While dragging a file, hovering this close to the notch opens the shelf instantly — no shake needed. Lets you drag files straight out of the Dock (e.g. the Downloads stack) into the shelf. Set to 0 to require the shake gesture instead."))
                     .font(.caption)
                     .foregroundColor(.secondary)
 

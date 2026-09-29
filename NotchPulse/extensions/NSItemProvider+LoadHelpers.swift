@@ -87,6 +87,66 @@ extension NSItemProvider {
         return nil
     }
 
+    /// Materializes file promises (Dock stacks like Downloads, browser downloads, Mail
+    /// attachments) by asking the source to hand over the real file IN PLACE — resolves
+    /// to the original URL (e.g. ~/Downloads/x.zip) when the sender supports it.
+    func extractInPlaceFilePromise() async -> URL? {
+        for identifier in filePromiseCandidateTypes() {
+            if let url = await inPlaceFileURL(typeIdentifier: identifier) {
+                return url
+            }
+        }
+        return nil
+    }
+
+    /// Fallback for file promises that can NOT be resolved in place: the system writes
+    /// the promised bytes to memory and we store them as a temporary shelf file.
+    func extractFilePromiseData() async -> Data? {
+        for identifier in filePromiseCandidateTypes() {
+            if let data = await fileRepresentationData(typeIdentifier: identifier) {
+                return data
+            }
+        }
+        return nil
+    }
+
+    /// Types worth attempting promise materialization on: concretely-typed items
+    /// (archives, images, documents…) while excluding URLs and text, which the
+    /// cheaper extractors already handled.
+    private func filePromiseCandidateTypes() -> [String] {
+        registeredTypeIdentifiers.filter { identifier in
+            guard let ut = UTType(identifier) else { return false }
+            return ut.conforms(to: .item)
+                && !ut.conforms(to: .url)
+                && !ut.conforms(to: .plainText)
+                && ut != .fileURL
+        }
+    }
+
+    private func inPlaceFileURL(typeIdentifier: String) async -> URL? {
+        await withCheckedContinuation { (cont: CheckedContinuation<URL?, Never>) in
+            let accepted = loadInPlaceFileRepresentation(forTypeIdentifier: typeIdentifier) { url, _, error in
+                cont.resume(returning: (error == nil) ? url : nil)
+            }
+            // Per AppKit docs the completion handler never fires when this returns false.
+            if !accepted {
+                cont.resume(returning: nil)
+            }
+        }
+    }
+
+    private func fileRepresentationData(typeIdentifier: String) async -> Data? {
+        await withCheckedContinuation { (cont: CheckedContinuation<Data?, Never>) in
+            let accepted = loadFileRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
+                // The handed-out Data is only guaranteed inside this handler — take a copy.
+                cont.resume(returning: data.map { Data($0) })
+            }
+            if !accepted {
+                cont.resume(returning: nil)
+            }
+        }
+    }
+
     func extractText() async -> String? {
         let textTypes = [UTType.utf8PlainText.identifier, UTType.plainText.identifier]
 

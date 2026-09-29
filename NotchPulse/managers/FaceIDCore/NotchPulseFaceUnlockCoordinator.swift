@@ -147,6 +147,14 @@ final class NotchPulseFaceUnlockCoordinator {
 
         hasArmedForCurrentLock = true
         lastArmedAt = .now
+        // ML readiness guarantee: the ArcFace model is normally loaded once at app
+        // launch and kept resident in RAM forever (unload is a deliberate no-op).
+        // If that launch-time load FAILED (memory pressure, compile hiccup) it stayed
+        // dead silently and the first unlock attempt paid the multi-second load while
+        // the user hovered. warmUp() is idempotent — cheap dummy inference when
+        // already resident, a load+compile retry when not — so firing it on every
+        // lock/wake keeps the model ready 24/7 regardless of launch-time failures.
+        ArcFaceEmbedder.warmUp()
         Task { [weak self] in
             // Brief 30ms buffer past login window's entrance so overlay attaches cleanly
             try? await Task.sleep(nanoseconds: 30_000_000)
@@ -280,6 +288,13 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
+        // The camera is now producing frames — anchor the overlay's timeout HERE, not at
+        // beginScanning(), so the multi-second cold start never eats the user's scan
+        // window (first activation after wake used to time out before scanning began).
+        if showsUI {
+            FaceIDOverlayController.shared.restartScanTimeout()
+        }
+
         let outcome = await observeScanWindow(
             deadline: Date().addingTimeInterval(scanWindowDuration),
             requireOverlayScanning: showsUI
@@ -300,8 +315,18 @@ final class NotchPulseFaceUnlockCoordinator {
         case .consistentlyWrongFace, .spoofSuspected, .noResolution:
             statusMessage = "Hover the notch to try again."
             if showsUI {
-                await FaceIDOverlayController.shared.collapse()
-                scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
+                if FaceIDOverlayController.shared.phase == .scanning {
+                    // A genuine timeout (no face found / face consistently rejected) now
+                    // plays the failure video asset instead of snapping the notch away
+                    // silently — the video previously only ran on the camera-error path.
+                    FaceIDOverlayController.shared.finish(success: false)
+                    // finish() holds the failure frame then collapses by itself; retry
+                    // after that sequence. The retry task re-checks phase == .closed.
+                    scheduleAutoRetryIfEnabled(after: .seconds(5))
+                } else {
+                    await FaceIDOverlayController.shared.collapse()
+                    scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
+                }
             } else {
                 scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
             }
@@ -354,14 +379,30 @@ final class NotchPulseFaceUnlockCoordinator {
         let cameraWarmupDuration: Duration = .milliseconds(1200)
         var processedFramesCount = 0
 
-        while Date() < deadline, !Task.isCancelled,
+        // The user's scan window must measure FACE-SCANNING time, not camera boot time.
+        // Wait up to 10s for the very first frame WITHOUT counting it against the
+        // window, then re-anchor the deadline from the first real frame.
+        let windowDuration = deadline.timeIntervalSinceNow
+        let firstFrameCap = Date().addingTimeInterval(10)
+        var effectiveDeadline = deadline
+        var firstFrameSeen = false
+
+        while Date() < effectiveDeadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
             guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
 
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
+                if !firstFrameSeen {
+                    if Date() > firstFrameCap { return .noResolution }
+                    effectiveDeadline = Date().addingTimeInterval(windowDuration)
+                }
                 // 20ms keeps the liveness window's sample count high while staying close to the camera's native ~33ms cadence.
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
+            }
+            if !firstFrameSeen {
+                firstFrameSeen = true
+                effectiveDeadline = Date().addingTimeInterval(windowDuration)
             }
             lastProcessedFrameID = frame.id
 
