@@ -346,11 +346,11 @@ public class SystemMonitorManager: ObservableObject {
     }
 
     private func fetchInstantaneousTopCPU(limit: Int) -> [MonitorProcessItem] {
-        let now = Date().timeIntervalSinceReferenceDate
-        let pidCount = proc_listallpids(nil, 0)
+        let now: TimeInterval = Date().timeIntervalSinceReferenceDate
+        let pidCount = Int(proc_listallpids(nil, 0))
         guard pidCount > 0 else { return [] }
         var pids = [pid_t](repeating: 0, count: pidCount + 64)
-        let written = proc_listallpids(&pids, Int32(MemoryLayout<pid_t>.size * pids.count))
+        let written = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size)))
         guard written > 0 else { return [] }
 
         var freshSamples: [pid_t: CpuUsageSample] = [:]
@@ -361,22 +361,21 @@ public class SystemMonitorManager: ObservableObject {
             let pid = pids[index]
             guard pid > 0 else { continue }
             var info = rusage_info_current()
-            let status = withUnsafeMutablePointer(to: &info) {
-                $0.withMemoryRebound(to: rusage_info_t.self, capacity: 1) {
-                    proc_pid_rusage(pid, RUSAGE_INFO_CURRENT, $0)
-                }
+            let status = withUnsafeMutableBytes(of: &info) { rawBuffer in
+                proc_pid_rusage(pid, RUSAGE_INFO_CURRENT, rawBuffer.bindMemory(to: rusage_info_t?.self).baseAddress)
             }
             guard status == 0 else { continue }
-            let totalNs = info.ri_user_time &+ info.ri_system_time
+            let totalNs: UInt64 = info.ri_user_time &+ info.ri_system_time
             freshSamples[pid] = CpuUsageSample(cpuNs: totalNs, at: now)
 
             guard let previous = cpuSamples[pid] else { continue }
-            let deltaWall = now - previous.at
+            let deltaWall: TimeInterval = now - previous.at
             // First observation, or monitoring resumed after a long pause — no valid
             // delta yet; this pass just seeds the baseline.
             guard deltaWall > 0.5, deltaWall < 10 else { continue }
-            let deltaCpu = Double(totalNs &- previous.cpuNs) / 1_000_000_000.0
-            let pct = max(0.0, (deltaCpu / deltaWall) * 100.0)
+            let deltaCpu: TimeInterval = TimeInterval(totalNs &- previous.cpuNs) / 1_000_000_000.0
+            guard deltaCpu > 0 else { continue }
+            let pct: Double = (deltaCpu / deltaWall) * 100.0
             guard pct > 0.05 else { continue }
 
             var nameBuffer = [CChar](repeating: 0, count: 2048)
