@@ -14,4 +14,8 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, ObservableObject {
             self.latestVersionString = item.displayVersionString
         }
     }
+
+    func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
+        AppDelegate.shared?.isUserInitiatedQuit = true
+    }
 }

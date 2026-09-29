@@ -116,15 +116,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if isUserInitiatedQuit {
-            quitApplication()
+            cleanupForTermination()
             return .terminateNow
         }
         return .terminateCancel
     }
 
     @MainActor
-    func quitApplication() {
-        guard isUserInitiatedQuit else { return }
+    func cleanupForTermination() {
         NSApplication.shared.windows.forEach { $0.orderOut(nil) }
         cleanupWindows()
         cleanupDragDetectors()
@@ -132,7 +131,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         LockScreenFaceIDWindow.shared.orderOut(nil)
         LockScreenMediaWindow.shared.orderOut(nil)
         MusicManager.shared.destroy()
-        exit(0)
+    }
+
+    @MainActor
+    func quitApplication() {
+        guard isUserInitiatedQuit else { return }
+        cleanupForTermination()
+        NSApplication.shared.terminate(nil)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
