@@ -160,6 +160,10 @@ typealias SparklineView = AppleActivityGraphView
 struct StatsView: View {
     @ObservedObject var monitor = SystemMonitorManager.shared
     @Default(.systemMonitorShowProcesses) var showProcesses
+    @EnvironmentObject var vm: NotchPulseViewModel
+
+    private enum ExpandedMetric { case cpu, ram }
+    @State private var expandedMetric: ExpandedMetric?
 
     var body: some View {
         GeometryReader { geo in
@@ -174,26 +178,66 @@ struct StatsView: View {
             // GPU: 40% of 2/3 (= 26.67% of total)
             let gpuWidth = ramGpuWidth * 0.40
 
-            HStack(spacing: spacing) {
-                cpuCard
-                    .frame(width: cpuWidth)
+            VStack(spacing: 10) {
+                HStack(spacing: spacing) {
+                    cpuCard
+                        .frame(width: cpuWidth)
 
-                ramCard
-                    .frame(width: ramWidth)
+                    ramCard
+                        .frame(width: ramWidth)
 
-                gpuCard
-                    .frame(width: gpuWidth)
+                    gpuCard
+                        .frame(width: gpuWidth)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if showProcesses, expandedMetric == .cpu {
+                    StatsProcessList(
+                        icon: "cpu", tint: .blue,
+                        items: monitor.topCpuProcesses,
+                        emptyText: loc("No processes using CPU right now")
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                if showProcesses, expandedMetric == .ram {
+                    StatsProcessList(
+                        icon: "memorychip", tint: .green,
+                        items: monitor.topRamProcesses,
+                        emptyText: loc("No processes using memory right now")
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
+            .animation(.smooth(duration: 0.25), value: expandedMetric)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        .onChange(of: expandedMetric) { _, metric in
+            // Stretch/shrink the notch height through the same animated
+            // customOpenHeight channel the calendar full-month uses.
+            withAnimation(NotchPulseViewModel.notchSpring) {
+                vm.customOpenHeight = metric == nil ? nil : 350
+            }
+        }
         .onAppear {
             monitor.startMonitoring()
         }
         .onDisappear {
             monitor.stopMonitoring()
+            if expandedMetric != nil {
+                expandedMetric = nil
+                withAnimation(NotchPulseViewModel.notchSpring) {
+                    vm.customOpenHeight = nil
+                }
+            }
         }
+    }
+
+    private func toggleMetric(_ metric: ExpandedMetric) {
+        guard showProcesses else { return }
+        expandedMetric = (expandedMetric == metric) ? nil : metric
     }
 
     // MARK: - CPU Card
@@ -296,6 +340,10 @@ struct StatsView: View {
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        // Activity-Monitor-style tap target: clicking the CPU card expands the notch
+        // height and reveals the per-app list (top 8, largest first). Tap again to collapse.
+        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .onTapGesture { toggleMetric(.cpu) }
     }
 
     // MARK: - RAM Card
@@ -424,6 +472,9 @@ struct StatsView: View {
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        // Same tap-to-expand behavior as the CPU card, for the per-app memory list.
+        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .onTapGesture { toggleMetric(.ram) }
     }
 
     // MARK: - GPU Card
@@ -524,6 +575,63 @@ struct StatsView: View {
 
 #Preview {
     StatsView()
+        .environmentObject(NotchPulseViewModel())
         .frame(width: 640, height: 160)
         .background(Color.black)
+}
+
+/// Per-app list shown under the CPU/RAM cards when a card is tapped —
+/// identical data to the Settings page, sorted largest first.
+private struct StatsProcessList: View {
+    let icon: String
+    let tint: Color
+    let items: [MonitorProcessItem]
+    let emptyText: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 9))
+                    .foregroundStyle(tint)
+                Text(loc("Top apps"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(loc("largest first"))
+                    .font(.system(size: 9))
+                    .foregroundStyle(.tertiary)
+            }
+
+            if items.isEmpty {
+                Text(emptyText)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 3)
+            } else {
+                // 8 items fit the 350pt expanded notch height; two columns keep the
+                // rows short so wide process names never truncate aggressively.
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 4) {
+                    ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                        HStack(spacing: 6) {
+                            Text("\(index + 1).")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                            Text(item.name)
+                                .font(.system(size: 10, weight: .medium))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Spacer(minLength: 6)
+                            Text(item.value)
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundStyle(tint)
+                                .monospacedDigit()
+                        }
+                    }
+                }
+            }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35)))
+    }
 }
