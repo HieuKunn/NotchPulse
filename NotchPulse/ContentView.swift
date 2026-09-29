@@ -320,8 +320,6 @@ struct ContentView: View {
                                     .padding(.horizontal, topCornerRadius)
                             }
                     }
-                    .animation(animationSpring, value: vm.notchSize)
-                    .animation(animationSpring, value: vm.notchState)
                     .shadow(
                         color: isDynamicIsland
                             ? .black.opacity(0.65)
