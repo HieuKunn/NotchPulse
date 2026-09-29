@@ -230,7 +230,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         guard let frame = getScreenFrame(screenUUID) else { return false }
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
         let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
-        let currentWidth = notchState == .open ? openNotchWidth : (isDynamicIsland ? 210 : closedNotchSize.width)
+        let currentWidth = notchState == .open ? openNotchWidth : (isDynamicIsland ? 80 : closedNotchSize.width)
         let currentHeight = notchState == .open ? (customOpenHeight ?? openNotchSize.height) : (isDynamicIsland ? 32 : closedNotchSize.height)
         
         let baseY = frame.maxY - currentHeight - topOffset
@@ -240,8 +240,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     // MARK: - Canonical Notch Animation
-    public static let notchSpring = Animation.spring(response: 0.44, dampingFraction: 0.70, blendDuration: 0)
-    public static let notchCloseSpring = Animation.spring(response: 0.40, dampingFraction: 0.95, blendDuration: 0)
+    public static let notchSpring = Animation.spring(response: 0.42, dampingFraction: 0.80, blendDuration: 0)
+    public static let notchCloseSpring = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
 
     func open(fromWidth: CGFloat? = nil) {
         guard notchState != .open else { return }
