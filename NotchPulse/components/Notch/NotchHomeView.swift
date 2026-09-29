@@ -19,16 +19,17 @@ struct MusicPlayerView: View {
 
     private var artSize: CGFloat {
         if let width = allocatedWidth {
-            // Adaptive album art sizing from 82px to 110px based on allocated column width
-            return min(110, max(82, (width - 24) * 0.30))
+            // Adaptive album art sizing from 82px to 104px based on allocated column width
+            return min(104, max(82, (width - 24) * 0.30))
         }
-        return 110
+        return 104
     }
 
     var body: some View {
-        let controlsWidth = allocatedWidth.map { max(140, $0 - artSize - 10) }
-        HStack(alignment: .center, spacing: 10) {
+        let controlsWidth = allocatedWidth.map { max(140, $0 - artSize - 14) }
+        HStack(alignment: .center, spacing: 12) {
             AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace, size: artSize)
+                .padding(.leading, 8)
                 .padding(.vertical, 2)
             MusicControlsView(allocatedWidth: controlsWidth)
                 .compositingGroup()
@@ -41,7 +42,7 @@ struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var vm: NotchPulseViewModel
     let albumArtNamespace: Namespace.ID
-    var size: CGFloat = 110
+    var size: CGFloat = 104
 
     private var imageAspectRatio: CGFloat {
         let imgSize = musicManager.albumArt.size
@@ -50,32 +51,7 @@ struct AlbumArtView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            if Defaults[.lightingEffect] && musicManager.isPlaying {
-                albumArtBackground
-            }
-            albumArtButton
-        }
-    }
-
-    private var albumArtBackground: some View {
-        Image(nsImage: musicManager.albumArt)
-            .resizable()
-            .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(width: size, height: size)
-            .clipped()
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: Defaults[.cornerRadiusScaling]
-                        ? MusicPlayerImageSizes.cornerRadiusInset.opened
-                        : MusicPlayerImageSizes.cornerRadiusInset.closed,
-                    style: .continuous
-                )
-            )
-            .scaleEffect(x: 1.3, y: 1.4)
-            .rotationEffect(.degrees(92))
-            .blur(radius: 40)
-            .opacity(musicManager.isPlaying ? 0.5 : 0)
+        albumArtButton
     }
 
     private var albumArtButton: some View {
@@ -83,15 +59,17 @@ struct AlbumArtView: View {
             Button {
                 musicManager.openMusicApp()
             } label: {
-                ZStack(alignment:.bottomTrailing) {
+                ZStack(alignment: .bottomTrailing) {
                     albumArtImage
                     appIconOverlay
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            .scaleEffect(musicManager.isPlaying ? 1 : 0.85)
+            .scaleEffect(musicManager.isPlaying ? 1 : 0.88)
             
-            albumArtDarkOverlay
+            if !musicManager.isPlaying {
+                albumArtDarkOverlay
+            }
         }
     }
 
@@ -102,12 +80,10 @@ struct AlbumArtView: View {
                 : MusicPlayerImageSizes.cornerRadiusInset.closed,
             style: .continuous
         )
-            .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(width: size, height: size)
-            .foregroundColor(Color.black)
-            .opacity(musicManager.isPlaying ? 0 : 0.8)
-            .blur(radius: 50)
-            .allowsHitTesting(false)
+        .aspectRatio(imageAspectRatio, contentMode: .fit)
+        .frame(width: size, height: size)
+        .foregroundColor(Color.black.opacity(0.4))
+        .allowsHitTesting(false)
     }
 
     private var albumArtImage: some View {
@@ -125,6 +101,16 @@ struct AlbumArtView: View {
                     style: .continuous
                 )
             )
+            .overlay(
+                RoundedRectangle(
+                    cornerRadius: Defaults[.cornerRadiusScaling]
+                        ? MusicPlayerImageSizes.cornerRadiusInset.opened
+                        : MusicPlayerImageSizes.cornerRadiusInset.closed,
+                    style: .continuous
+                )
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+            )
+            .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
     }
 
     @ViewBuilder
@@ -135,7 +121,7 @@ struct AlbumArtView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: iconSize, height: iconSize)
-                .offset(x: 8, y: 8)
+                .offset(x: 6, y: 6)
                 .transition(.scale.combined(with: .opacity))
                 .zIndex(2)
         }
@@ -499,8 +485,8 @@ struct NotchHomeView: View {
         let isCalendarFullPage = isCalendarVisible && vm.customOpenHeight != nil
 
         // Balanced horizontal margin to prevent corner clipping and match Dynamic Island margins
-        let horizontalPadding: CGFloat = 22
-        let spacing: CGFloat = 14
+        let horizontalPadding: CGFloat = 26
+        let spacing: CGFloat = 16
         let baseWidth = totalWidth > 0 ? totalWidth : notchOpenWidth
         let availableWidth = max(280, baseWidth - (horizontalPadding * 2))
 

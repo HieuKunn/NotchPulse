@@ -339,33 +339,33 @@ final class FaceIDEnrollmentController {
     private let samplesPerPose = 2
     /// Consecutive matching frames required before a capture fires — debounces a lucky
     /// frame near a pose boundary.
-    private let requiredMatchStreak = 2
+    private let requiredMatchStreak = 1
     /// Wait this long after yaw/pitch matches before samples count, so the user has
     /// settled into the turn rather than being captured mid-motion.
-    private let poseHoldDuration: Duration = .milliseconds(320)
+    private let poseHoldDuration: Duration = .milliseconds(200)
     /// Permissive floor for Vision's capture-quality score (no fixed universal cutoff) —
     /// better to accept a mediocre sample than stall the whole flow.
-    private let qualityFloor: Float = 0.15
+    private let qualityFloor: Float = 0.10
     /// Brief hold to let camera auto-exposure settle without feeling unresponsive.
-    private let initialCaptureDelay: Duration = .milliseconds(600)
+    private let initialCaptureDelay: Duration = .milliseconds(200)
     /// Enrollment wants a closer face than unlock's bystander cutoff — sitting back in a
     /// chair is still enough to unlock, but too far for a reliable template.
     private var enrollmentMinimumFaceWidth: Float {
-        max(NotchPulseFaceRecognitionPipeline.minimumProminentFaceWidth, 0.16)
+        0.11
     }
 
     // Pose-matching bands, in radians. Yaw: left turn is positive, matching the mirrored
     // preview. Pitch's sign is the opposite of the initial guess — see `pitchMatches` below.
-    private let yawInnerThreshold: Float = 0.22
-    private let yawCenterTolerance: Float = 0.28
+    private let yawInnerThreshold: Float = 0.20
+    private let yawCenterTolerance: Float = 0.35
     private let yawOuterCap: Float = 1.3
-    private let pitchInnerThreshold: Float = 0.18
-    private let pitchCenterTolerance: Float = 0.25
+    private let pitchInnerThreshold: Float = 0.16
+    private let pitchCenterTolerance: Float = 0.32
     private let pitchOuterCap: Float = 1.0
     /// If a pose takes longer than this, matching bands widen by `stallWidenFactor` so an
     /// unusual camera angle can't permanently strand the user.
-    private let stallTimeout: Duration = .seconds(8)
-    private let stallWidenFactor: Float = 1.35
+    private let stallTimeout: Duration = .seconds(5)
+    private let stallWidenFactor: Float = 1.45
 
     private(set) var currentPoseIndex = 0
     private(set) var capturedForCurrentPose = 0

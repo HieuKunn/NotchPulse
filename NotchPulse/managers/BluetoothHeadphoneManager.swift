@@ -46,7 +46,12 @@ final class BluetoothHeadphoneManager: NSObject {
         let minor = device.deviceClassMinor
         let major = device.deviceClassMajor
         // Audio major class is 4 (Audio/Video), minor 1 (Wearable Headset), 2 (Handsfree), 6 (Headphones)
-        let isAudio = major == 4 || name.lowercased().contains("airpods") || name.lowercased().contains("buds") || name.lowercased().contains("headphone")
+        let lower = name.lowercased()
+        let isAudio = major == 4 || minor == 1 || minor == 2 || minor == 6
+            || lower.contains("airpod") || lower.contains("bud") || lower.contains("headphone")
+            || lower.contains("headset") || lower.contains("beat") || lower.contains("bose")
+            || lower.contains("sony") || lower.contains("jbl") || lower.contains("sennheiser")
+            || lower.contains("marshall") || lower.contains("audio") || lower.contains("speaker")
         
         guard isAudio else { return }
 
@@ -153,10 +158,11 @@ final class BluetoothHeadphoneManager: NSObject {
 
     @MainActor
     func checkAndDisplayBatteryHUD(forDeviceNamed targetName: String, address: String) async {
+        guard Defaults[.hudReplacement] else { return }
         let (batteryPercent, icon) = await fetchBatteryInfo(forDeviceNamed: targetName, targetAddress: address)
-        guard let battery = batteryPercent else { return }
+        let batteryVal = batteryPercent ?? 100
 
-        let normalizedValue = max(0.0, min(1.0, CGFloat(battery) / 100.0))
+        let normalizedValue = max(0.01, min(1.0, CGFloat(batteryVal) / 100.0))
         NotchPulseViewCoordinator.shared.toggleSneakPeek(
             status: true,
             type: .battery,
