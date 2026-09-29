@@ -87,56 +87,6 @@ extension NSItemProvider {
         return nil
     }
 
-    /// Materializes file promises (browser downloads, Mail attachments, some Dock
-    /// sources) by asking the sender to hand over the real file IN PLACE — resolves to
-    /// the original URL (e.g. ~/Downloads/x.zip) when the sender supports it. Dock
-    /// stacks of existing files usually provide plain file URLs instead, which the
-    /// cheaper extractors above already handle.
-    func extractInPlaceFilePromise() async -> URL? {
-        for identifier in filePromiseCandidateTypes() {
-            if let url = await inPlaceFileURL(typeIdentifier: identifier) {
-                return url
-            }
-        }
-        return nil
-    }
-
-    /// Types worth attempting promise materialization on: concretely-typed items
-    /// (archives, images, documents…) while excluding URLs and text, which the
-    /// cheaper extractors already handled.
-    private func filePromiseCandidateTypes() -> [String] {
-        registeredTypeIdentifiers.filter { identifier in
-            guard let ut = UTType(identifier) else { return false }
-            return ut.conforms(to: .item)
-                && !ut.conforms(to: .url)
-                && !ut.conforms(to: .plainText)
-                && ut != .fileURL
-        }
-    }
-
-    private func inPlaceFileURL(typeIdentifier: String) async -> URL? {
-        await withCheckedContinuation { (cont: CheckedContinuation<URL?, Never>) in
-            // Returns an NSProgress, not a Bool — the handler is always invoked once.
-            _ = loadInPlaceFileRepresentation(forTypeIdentifier: typeIdentifier) { (url: URL?, isInPlace: Bool, error: Error?) in
-                if let url, error == nil {
-                    cont.resume(returning: url)
-                } else {
-                    cont.resume(returning: nil)
-                }
-            }
-        }
-    }
-
-    private func fileRepresentationData(typeIdentifier: String) async -> Data? {
-        await withCheckedContinuation { (cont: CheckedContinuation<Data?, Never>) in
-            // Returns an NSProgress — explicit parameter types pin the correct overload.
-            _ = loadFileRepresentation(forTypeIdentifier: typeIdentifier) { (data: Data?, uti: String) in
-                // The handed-out Data is only guaranteed inside this handler — take a copy.
-                cont.resume(returning: data.map { Data($0) })
-            }
-        }
-    }
-
     func extractText() async -> String? {
         let textTypes = [UTType.utf8PlainText.identifier, UTType.plainText.identifier]
 

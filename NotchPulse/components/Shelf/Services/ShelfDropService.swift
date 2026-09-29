@@ -71,6 +71,11 @@ struct ShelfDropService {
         
         return nil
     }
+
+    // NOTE: Pure file-promise drags (some Dock-stack sources) are NOT additionally
+    // materialized here — an earlier attempt to add loadInPlaceFileRepresentation
+    // failed to compile against the deployment SDK and was reverted. Sources exposing
+    // real file URLs (Finder, Desktop, most Dock stacks) are fully supported above.
     
     private static func createBookmark(for url: URL) -> Data? {
         return (try? Bookmark(url: url))?.data
