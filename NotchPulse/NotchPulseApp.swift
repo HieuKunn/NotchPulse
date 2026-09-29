@@ -904,6 +904,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             )
         }
         NotchPulseHitchDetector.shared.start()
+
+        // First-open UI warm-up: the FIRST time the notch opens after launch, SwiftUI
+        // builds the entire open-state view tree (music, calendar, clipboard, shelf...)
+        // and fetches first data in one 1.5-2s main-thread stall that runs DURING the
+        // user's first open animation — measured hitches of ~1700ms at notch=open.
+        // Opening+closing invisibly shortly after launch pays that cost once while the
+        // user isn't watching, so every real open afterwards animates smoothly.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(6))
+            guard let self, !self.isUserInitiatedQuit else { return }
+            let vm = self.vm
+            guard vm.notchState == .closed, !SharingStateManager.shared.preventNotchClose else { return }
+            vm.open()
+            try? await Task.sleep(for: .milliseconds(650))
+            guard vm.notchState == .open, !SharingStateManager.shared.preventNotchClose else { return }
+            withAnimation(NotchPulseViewModel.notchCloseSpring) {
+                vm.close()
+            }
+        }
     }
 
     func playWelcomeSound() {
