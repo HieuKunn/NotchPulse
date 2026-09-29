@@ -765,7 +765,13 @@ struct ContentView: View {
                       .fixedSize(horizontal: false, vertical: true)
               }
               .zIndex(2)
-            if vm.notchState == .open && !isFaceIDActive {
+            if !isFaceIDActive {
+                // HUD-mechanism open/close: the tab content is mounted PERMANENTLY and
+                // laid out at its open size inside this fixed envelope. The expanding
+                // notch frame simply REVEALS it (clipped) — no subtree teardown on
+                // close, no insertion + relayout on open, which is exactly why the
+                // inline HUD's expand/collapse feels friction-free. Stats stays
+                // open-gated because mounting it starts resource polling.
                 Group {
                     switch coordinator.currentView {
                     case .home:
@@ -775,21 +781,26 @@ struct ContentView: View {
                         ShelfView()
                             .id(NotchViews.shelf)
                     case .stats:
-                        StatsView()
-                            .id(NotchViews.stats)
+                        if vm.notchState == .open {
+                            StatsView()
+                                .id(NotchViews.stats)
+                        }
                     case .clipboard:
                         ClipboardNotchView()
                             .environmentObject(vm)
                             .id(NotchViews.clipboard)
                     }
                 }
+                .frame(
+                    width: openNotchWidth,
+                    height: vm.customOpenHeight ?? openNotchSize.height,
+                    alignment: .top
+                )
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
                 .transition(.opacity)
                 .zIndex(1)
                 // Staged reveal (Apple-style): the black silhouette springs open FIRST,
-                // content fades in near the end. Any residual main-thread cost of the
-                // first content build is hidden inside the black frame instead of
-                // freezing the expanding silhouette mid-animation.
+                // content fades in near the end — while the frame reveal does the rest.
                 .allowsHitTesting(vm.notchState == .open && isContentRevealed)
                 .opacity(
                     (isContentRevealed ? 1.0 : 0.0)
