@@ -125,24 +125,23 @@ extension NSItemProvider {
 
     private func inPlaceFileURL(typeIdentifier: String) async -> URL? {
         await withCheckedContinuation { (cont: CheckedContinuation<URL?, Never>) in
-            let accepted = loadInPlaceFileRepresentation(forTypeIdentifier: typeIdentifier) { url, _, error in
-                cont.resume(returning: (error == nil) ? url : nil)
-            }
-            // Per AppKit docs the completion handler never fires when this returns false.
-            if !accepted {
-                cont.resume(returning: nil)
+            // Returns an NSProgress, not a Bool — the handler is always invoked once.
+            _ = loadInPlaceFileRepresentation(forTypeIdentifier: typeIdentifier) { (url: URL?, isInPlace: Bool, error: Error?) in
+                if let url, error == nil {
+                    cont.resume(returning: url)
+                } else {
+                    cont.resume(returning: nil)
+                }
             }
         }
     }
 
     private func fileRepresentationData(typeIdentifier: String) async -> Data? {
         await withCheckedContinuation { (cont: CheckedContinuation<Data?, Never>) in
-            let accepted = loadFileRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
+            // Returns an NSProgress — explicit parameter types pin the correct overload.
+            _ = loadFileRepresentation(forTypeIdentifier: typeIdentifier) { (data: Data?, uti: String) in
                 // The handed-out Data is only guaranteed inside this handler — take a copy.
                 cont.resume(returning: data.map { Data($0) })
-            }
-            if !accepted {
-                cont.resume(returning: nil)
             }
         }
     }
