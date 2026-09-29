@@ -26,6 +26,11 @@ struct ContentView: View {
     @ObservedObject var volumeManager = VolumeManager.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
+    /// Staged reveal: false while the black silhouette is springing open, true once
+    /// content fades in near the end of the open animation. Reset on close so every
+    /// open plays the same "frame first, content after" sequence.
+    @State private var isContentRevealed: Bool = false
+    @State private var contentRevealTask: Task<Void, Never>?
     @State private var anyDropDebounceTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
@@ -459,6 +464,22 @@ struct ContentView: View {
                         if newState == .closed && isHovering {
                             isHovering = false
                         }
+                        // Stage the reveal on open: black frame leads, content fades
+                        // in ~150ms later (near the end of the spring). Reset instantly
+                        // on close so the next open plays the sequence again.
+                        contentRevealTask?.cancel()
+                        if newState == .open {
+                            isContentRevealed = false
+                            contentRevealTask = Task {
+                                try? await Task.sleep(for: .milliseconds(150))
+                                guard !Task.isCancelled else { return }
+                                withAnimation(.easeIn(duration: 0.18)) {
+                                    isContentRevealed = true
+                                }
+                            }
+                        } else {
+                            isContentRevealed = false
+                        }
                     }
                     .onChange(of: coordinator.sneakPeek.show) { _, showing in
                         // When a HUD/sneak-peek disappears while the cursor is parked on
@@ -510,6 +531,13 @@ struct ContentView: View {
                     .onAppear {
                         if NotchPulseLockMonitor.isScreenActuallyLocked() {
                             handleScreenLock()
+                        }
+                        // Reveal safety: if this view was (re)created while the notch is
+                        // ALREADY open (display change, view re-init), onChange(of:
+                        // notchState) never fired — reveal content immediately so the
+                        // open notch never stays an empty black frame.
+                        if vm.notchState == .open && !isContentRevealed && contentRevealTask == nil {
+                            isContentRevealed = true
                         }
                     }
                     .onChange(of: notchOpenWidth) { _, newWidth in
@@ -718,8 +746,15 @@ struct ContentView: View {
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
                 .transition(.opacity)
                 .zIndex(1)
-                .allowsHitTesting(vm.notchState == .open)
-                .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
+                // Staged reveal (Apple-style): the black silhouette springs open FIRST,
+                // content fades in near the end. Any residual main-thread cost of the
+                // first content build is hidden inside the black frame instead of
+                // freezing the expanding silhouette mid-animation.
+                .allowsHitTesting(vm.notchState == .open && isContentRevealed)
+                .opacity(
+                    (isContentRevealed ? 1.0 : 0.0)
+                        * (gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
+                )
             }
         }
         .padding(.bottom, 8)
