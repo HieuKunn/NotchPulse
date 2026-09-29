@@ -993,7 +993,7 @@ final class SpotlightTourManager: ObservableObject {
             vm.customOpenHeight = customHeight
             withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
                 vm.notchSize = openNotchSize
-                vm.notchState = .open
+                vm.open()
             }
             MusicManager.shared.isUIActive = true
             MusicManager.shared.forceUpdate()

@@ -28,6 +28,7 @@ final class DragDetector {
     private var localMouseMonitor: Any?
 
     private var lastConsumedPasteboardCount: Int = -1
+    private var lastKnownIdlePasteboardCount: Int = -1
     private var mouseDownPasteboardCount: Int?
     private var dragStartLocation: CGPoint?
     private var isContentDragging: Bool = false {
@@ -100,7 +101,7 @@ final class DragDetector {
         }
 
         // 3. File promise receivers (used by Dock stacks, Mail attachments, and Photos exports)
-        let promiseTypes: Set<String> = Set(NSFilePromiseReceiver.readableDraggedTypes.map { $0.rawValue }).union([
+        let promiseTypes: Set<String> = Set(NSFilePromiseReceiver.readableDraggedTypes.map { String($0) }).union([
             "com.apple.NSFilePromiseItemMetaData",
             "dyn.ah62d4rv4gu8yc6durvwwa3xmrvw1gkdusm1044pxqyuha2pxsvw0e55bsmwca7d3sbwu",
             "com.apple.pasteboard.promised-file-content-type",
