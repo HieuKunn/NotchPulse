@@ -193,6 +193,10 @@ struct ContentView: View {
         let isDynamicIsland = notchStyle == .dynamicIsland
         let defaultClosedWidth: CGFloat = isDynamicIsland ? 80 : vm.closedNotchSize.width
 
+        if vm.hideOnClosed && vm.notchState == .closed {
+            return 0
+        }
+
         if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
             return defaultClosedWidth
         }
@@ -240,7 +244,8 @@ struct ContentView: View {
 
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
     private var baseClosedHeight: CGFloat {
-        isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
+        if vm.hideOnClosed { return 0 }
+        return isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
     }
     private var islandRadius: CGFloat {
         if isFaceIDActive && isFaceIDContentVisible {
@@ -264,11 +269,20 @@ struct ContentView: View {
         isBottomRowHUDActive || isBottomRowMusicActive
     }
     private var currentNotchWidth: CGFloat {
-        isFaceIDActive ? targetFaceIDSize.width : max(vm.notchSize.width, computedChinWidth)
+        if isFaceIDActive {
+            return targetFaceIDSize.width
+        }
+        if vm.notchState == .closed && vm.hideOnClosed {
+            return 0
+        }
+        return max(vm.notchSize.width, computedChinWidth)
     }
     private var currentNotchHeight: CGFloat {
         if isFaceIDActive {
             return targetFaceIDSize.height
+        }
+        if vm.notchState == .closed && vm.hideOnClosed {
+            return 0
         }
         let heightFromState = vm.customOpenHeight ?? vm.notchSize.height
         let minHeight = isBottomRowActive ? baseClosedHeight + bottomRowHUDHeight : baseClosedHeight
@@ -299,6 +313,7 @@ struct ContentView: View {
                         alignment: .top
                     )
                     .clipped()
+                    .opacity(vm.notchState == .closed && vm.hideOnClosed && !isFaceIDActive ? 0 : 1)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view
@@ -343,10 +358,12 @@ struct ContentView: View {
                             return
                         }
 
+                        if vm.hideOnClosed { return }
                         handleHover(hovering)
                     }
                     .conditionalModifier(!isFaceIDContentActive && vm.notchState == .closed) { view in
                         view.onTapGesture {
+                            if vm.hideOnClosed { return }
                             if shouldHandleFaceIDTap() {
                                 FaceIDOverlayController.shared.activate()
                                 return
@@ -497,6 +514,7 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .environmentObject(vm)
         .onChange(of: vm.isHoveringFromRadar) { _, isRadarHovering in
+            if vm.hideOnClosed { return }
             handleHover(isRadarHovering)
         }
         .onChange(of: coordinator.currentView) { _, newView in
@@ -847,6 +865,7 @@ struct ContentView: View {
 
     private func handleHover(_ hovering: Bool) {
         if isFaceIDActive || faceIDOverlay.phase != .closed || NotchPulseLockMonitor.isScreenActuallyLocked() { return }
+        if vm.hideOnClosed { return }
         
         if hovering {
             // If already hovering and open task is active, let it proceed without restart
@@ -865,6 +884,7 @@ struct ContentView: View {
             }
             
             guard vm.notchState == .closed,
+                  !vm.hideOnClosed,
                   !coordinator.sneakPeek.show,
                   Defaults[.openNotchOnHover] else { return }
             
@@ -880,6 +900,7 @@ struct ContentView: View {
                     let stillPressed = (NSEvent.pressedMouseButtons != 0)
                     guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
                           self.vm.notchState == .closed,
+                          !self.vm.hideOnClosed,
                           (self.isHovering || self.vm.isHoveringFromRadar),
                           !self.coordinator.sneakPeek.show,
                           !stillPressed else { return }

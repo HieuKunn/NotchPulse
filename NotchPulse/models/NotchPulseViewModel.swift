@@ -133,6 +133,9 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             .sink { [weak self] shouldHide in
                 withAnimation(.smooth) {
                     self?.hideOnClosed = shouldHide
+                    if shouldHide && self?.notchState == .open {
+                        self?.close(force: true)
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -140,9 +143,10 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     // Computed property for effective notch height
     var effectiveClosedNotchHeight: CGFloat {
-        let currentScreen = screenUUID.flatMap { NSScreen.screen(withUUID: $0) }
-        let noNotchAndFullscreen = hideOnClosed && (currentScreen?.safeAreaInsets.top ?? 0 <= 0 || currentScreen == nil)
-        return noNotchAndFullscreen ? 0 : closedNotchSize.height
+        if hideOnClosed {
+            return 0
+        }
+        return closedNotchSize.height
     }
 
     var chinHeight: CGFloat {
@@ -222,6 +226,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
     
     func isMouseHovering(position: NSPoint = NSEvent.mouseLocation) -> Bool {
+        if hideOnClosed && notchState == .closed { return false }
         guard let frame = getScreenFrame(screenUUID) else { return false }
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
         let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0

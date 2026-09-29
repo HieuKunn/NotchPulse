@@ -202,6 +202,8 @@ final class FullscreenMediaDetector: ObservableObject {
     @Published var fullscreenStatus: [String: Bool] = [:]
     
     private var monitorTask: Task<Void, Never>?
+    private var lastSpaces: [FullScreenMonitor.SpaceInfo] = []
+    private var cancellables = Set<AnyCancellable>()
     
     private init() {
         startMonitoring()
@@ -215,9 +217,18 @@ final class FullscreenMediaDetector: ObservableObject {
         monitorTask = Task { @MainActor in
             let stream = await FullScreenMonitor.shared.spaceChanges()
             for await spaces in stream {
-                updateStatus(with: spaces)
+                self.lastSpaces = spaces
+                self.updateStatus(with: spaces)
             }
         }
+
+        Defaults.publisher(.hideNotchOption)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.updateStatus(with: self.lastSpaces)
+            }
+            .store(in: &cancellables)
     }
     
     private func updateStatus(with spaces: [FullScreenMonitor.SpaceInfo]) {
@@ -226,10 +237,17 @@ final class FullscreenMediaDetector: ObservableObject {
         for space in spaces {
             if let uuid = space.screenUUID {
                 let shouldDetect: Bool
-                if Defaults[.hideNotchOption] == .nowPlayingOnly, let musicSourceBundle = MusicManager.shared.bundleIdentifier  {
-                    shouldDetect = space.runningApps.contains(musicSourceBundle)
-                } else {
+                switch Defaults[.hideNotchOption] {
+                case .always:
                     shouldDetect = true
+                case .nowPlayingOnly:
+                    if let musicSourceBundle = MusicManager.shared.bundleIdentifier {
+                        shouldDetect = space.runningApps.contains(musicSourceBundle)
+                    } else {
+                        shouldDetect = false
+                    }
+                case .never:
+                    shouldDetect = false
                 }
                 newStatus[uuid] = shouldDetect
             }

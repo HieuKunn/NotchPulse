@@ -345,7 +345,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
 
                 let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
-                if currentTargetVM.notchState == .open {
+                if currentTargetVM.hideOnClosed && currentTargetVM.notchState == .closed {
+                    return .zero
+                } else if currentTargetVM.notchState == .open {
                     let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
                     let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
                     return CGRect(
