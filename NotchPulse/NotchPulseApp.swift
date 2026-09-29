@@ -354,12 +354,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         x: currentFrame.midX - (openWidth / 2 + padding),
                         y: currentFrame.maxY - (openHeight + padding + topOffset),
                         width: openWidth + (padding * 2),
-                        height: openHeight + padding + topOffset + 15
+                        height: openHeight + padding + topOffset
                     )
                 } else {
                     let closedSize = currentTargetVM.closedNotchSize
-                    let baseWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
-                    let baseHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                    let baseWidth: CGFloat = isDynamicIsland ? 80.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                    let baseHeight: CGFloat = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
                     let closedWidth = baseWidth + (padding * 2)
                     let closedHeight = baseHeight + padding
                     // Confine closed notch hover bounds strictly to physical notch / island (extended by padding if active).

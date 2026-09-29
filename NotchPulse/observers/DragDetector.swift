@@ -346,8 +346,8 @@ final class DragDetector {
                 onDragEnded?()
             }
 
-            // Hover radar: Runs whenever open-on-hover or extended hover area is enabled
-            let shouldRunHoverRadar = Defaults[.openNotchOnHover] || Defaults[.extendHoverArea]
+            // Hover radar: Runs when open-on-hover is enabled with extended hover area
+            let shouldRunHoverRadar = Defaults[.openNotchOnHover] && Defaults[.extendHoverArea]
             if shouldRunHoverRadar {
                 let mouseLocation = NSEvent.mouseLocation
                 let hoverRegion = regionProvider()

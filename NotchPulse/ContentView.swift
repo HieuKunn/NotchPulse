@@ -743,7 +743,6 @@ struct ContentView: View {
                     )
                 )
                 .padding(.leading, 11)
-                .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
 
             Rectangle()
                 .fill(.black)
@@ -800,7 +799,6 @@ struct ContentView: View {
                                 : Color.gray.gradient
                         )
                         .frame(width: 50, alignment: .center)
-                        .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
                         .mask {
                             AudioSpectrumView(isPlaying: $musicManager.isPlaying)
                                 .frame(width: 16, height: 12)
@@ -829,6 +827,7 @@ struct ContentView: View {
     private func doOpen() {
         vm.open(fromWidth: currentNotchWidth)
         Task(priority: .utility) {
+            try? await Task.sleep(for: .milliseconds(120))
             ClipboardManager.shared.checkImmediately()
         }
     }
@@ -887,10 +886,11 @@ struct ContentView: View {
                 
                 await MainActor.run {
                     let stillPressed = (NSEvent.pressedMouseButtons != 0)
+                    let isHoverValid = self.isHovering || (Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar)
                     guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
                           self.vm.notchState == .closed,
                           !self.vm.hideOnClosed,
-                          (self.isHovering || self.vm.isHoveringFromRadar),
+                          isHoverValid,
                           !self.coordinator.sneakPeek.show,
                           !stillPressed else { return }
                     
@@ -898,8 +898,8 @@ struct ContentView: View {
                 }
             }
         } else {
-            // If mouse is still detected in global radar, do not cancel or unhover prematurely
-            if self.vm.isHoveringFromRadar { return }
+            // If mouse is still detected in global radar (when extended hover area is enabled), do not cancel or unhover prematurely
+            if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar { return }
             guard isHovering else { return }
             
             hoverTask?.cancel()
@@ -909,10 +909,10 @@ struct ContentView: View {
                 guard !SpotlightTourManager.shared.isActive else { return }
                 
                 await MainActor.run {
-                    if self.vm.isHoveringFromRadar { return }
+                    if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar { return }
                     self.isHovering = false
                     
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
+                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close(targetClosedWidth: self.baseChinWidth)
                     }
                 }

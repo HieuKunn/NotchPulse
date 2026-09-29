@@ -91,7 +91,6 @@ struct AlbumArtView: View {
             .resizable()
             .aspectRatio(imageAspectRatio, contentMode: .fit)
             .frame(width: size, height: size)
-            .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
             .clipped()
             .clipShape(
                 RoundedRectangle(

@@ -1,16 +1,12 @@
-## 🚀 What's New in NotchPulse v5.0 (Build 217)
+## 🚀 What's New in NotchPulse v5.0 (Build 218)
 
-### 🌊 Ultra-Fluid Apple-Grade Notch Motion
-- **Natural Jet Black Spring Physics**: The Notch expands and closes with solid `#000000` background across every frame, tuned with Apple-grade spring physics for ProMotion 120Hz displays.
-- **Refined Media Player Layout**: Streamlined Album Art layout with optimized padding to ensure artwork never touches the left notch bezel, while removing heavy GPU blur layers for peak performance.
+### 🌊 Ultra-Fluid Bouncy Notch Motion
+- **Apple-Grade Spring Physics**: The Notch expands and closes with elastic Apple-grade spring physics for ProMotion 120Hz displays.
+- **Refined Media Artwork Handling**: Album artwork stays steady and rock-solid during expansion without distracting morphing, while the Notch frame itself expands smoothly and elastically.
 
-### 🔒 Lightning-Fast Face ID & Responsive Setup
-- **Instant Setup Capture**: Optimized face distance and posture thresholds (`0.12` min face width), resolving setup stalls on "Look straight at the camera" so enrollment finishes smoothly in seconds.
-- **Instant Concurrent Wake**: Face ID blooms open immediately on hover with zero initial stutter.
+### 🎯 Precise Hover Detection
+- **Pixel-Perfect Hover Bounds**: When Extended Hover Area is disabled, hover detection relies strictly on the exact physical Notch/Island boundaries, eliminating accidental triggers before the cursor touches the Notch.
+- **Configurable Hover Padding**: Extended Hover Area sensitivity range activates cleanly when enabled to smoothly open the Notch as your cursor approaches.
 
-### 🎧 Bluetooth & Device HUD Interception
-- **Seamless Bluetooth Connection HUD**: Custom Bluetooth HUD now reliably triggers whenever any wireless headphones or audio devices connect, replacing default macOS system popups.
-
-### 🤝 Smart Shake & File Shelf
-- **Full macOS Dock & Finder Support**: Drag files and folders directly into the Notch Shelf from Dock, Finder, or Desktop.
-- **Responsive Shake Recognition**: Natural 3-stroke left-and-right shakes trigger the Shelf instantly.
+### ⚡ Performance & Async Pipeline
+- **Zero-Stutter Opening Frame**: Background media and clipboard updates are offloaded smoothly to ensure zero dropped frames on notch expansion.

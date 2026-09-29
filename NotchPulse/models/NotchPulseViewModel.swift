@@ -240,8 +240,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     // MARK: - Canonical Notch Animation
-    public static let notchSpring = Animation.spring(response: 0.48, dampingFraction: 0.68, blendDuration: 0)
-    public static let notchCloseSpring = Animation.spring(response: 0.45, dampingFraction: 0.98, blendDuration: 0)
+    public static let notchSpring = Animation.spring(response: 0.44, dampingFraction: 0.70, blendDuration: 0)
+    public static let notchCloseSpring = Animation.spring(response: 0.40, dampingFraction: 0.95, blendDuration: 0)
 
     func open(fromWidth: CGFloat? = nil) {
         guard notchState != .open else { return }
@@ -251,9 +251,12 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         }
         
         MusicManager.shared.isUIActive = true
-        // Fetch music state asynchronously so it does not stall the initial 120Hz opening frame
-        Task { @MainActor in
-            MusicManager.shared.forceUpdate()
+        // Fetch music state asynchronously in background after initial 120Hz frame render
+        Task(priority: .utility) {
+            try? await Task.sleep(for: .milliseconds(120))
+            await MainActor.run {
+                MusicManager.shared.forceUpdate()
+            }
         }
 
         // Rule: Only 1 notch open at any time across all displays!
@@ -290,7 +293,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         if !LockScreenMediaWindow.shared.isWindowVisible {
             MusicManager.shared.isUIActive = false
         }
-        Task {
+        Task(priority: .background) {
             await ThumbnailService.shared.clearCache()
         }
 
