@@ -578,13 +578,10 @@ struct ContentView: View {
                                     NotchPulseHeader()
                                         .frame(height: max(24, vm.effectiveClosedNotchHeight))
                                         .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
-                                        .transition(.opacity)
                                 } else {
                                     Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: baseClosedHeight)
-                                        .transition(.opacity)
                                 }
                             }
-                            .transition(.opacity)
                         }
 
                         if isFaceIDContentVisible {
@@ -657,7 +654,6 @@ struct ContentView: View {
                     }
                 }
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
-                .transition(.opacity)
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)

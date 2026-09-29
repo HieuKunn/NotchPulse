@@ -486,7 +486,6 @@ struct NotchHomeView: View {
         mainContent(totalWidth: targetOpenWidth)
             .frame(width: targetOpenWidth)
             .frame(minHeight: 148, maxHeight: .infinity, alignment: .top)
-            .transition(.opacity)
     }
 
     private var shouldShowCamera: Bool {
