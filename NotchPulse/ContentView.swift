@@ -78,9 +78,9 @@ struct ContentView: View {
     private var isFaceIDContentVisible: Bool {
         guard isFaceIDActive else { return false }
         switch faceIDOverlay.phase {
-        case .scanning, .success, .failure, .onboarding:
+        case .scanning, .success, .failure, .onboarding, .collapsing:
             return true
-        case .closed, .collapsing:
+        case .closed:
             return false
         }
     }
@@ -301,13 +301,6 @@ struct ContentView: View {
                     .conditionalModifier(isFaceIDActive) { view in
                         view.clipped()
                     }
-                    .padding(
-                        .horizontal,
-                        (vm.notchState == .open)
-                        ? (isDynamicIsland ? 0 : topCornerRadius)
-                        : 0
-                    )
-                    .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view
