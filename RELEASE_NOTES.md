@@ -1,12 +1,13 @@
-## 🚀 What's New in NotchPulse v5.0 (Build 218)
+## 🚀 What's New in NotchPulse v5.0 (Build 219)
 
-### 🌊 Ultra-Fluid Bouncy Notch Motion
-- **Apple-Grade Spring Physics**: The Notch expands and closes with elastic Apple-grade spring physics for ProMotion 120Hz displays.
-- **Refined Media Artwork Handling**: Album artwork stays steady and rock-solid during expansion without distracting morphing, while the Notch frame itself expands smoothly and elastically.
+### 🌊 Ultra-Fluid 120Hz Spring Motion
+- **ProMotion Motion Curves**: The Notch expands and closes with responsive Apple-grade spring physics (`response: 0.42, dampingFraction: 0.80`), eliminating jitter and frame popping.
+- **Fluid Face ID & Onboarding Expansions**: Face ID verification overlays and setup guide windows glide smoothly out of the Notch without sudden visual jumps.
 
-### 🎯 Precise Hover Detection
-- **Pixel-Perfect Hover Bounds**: When Extended Hover Area is disabled, hover detection relies strictly on the exact physical Notch/Island boundaries, eliminating accidental triggers before the cursor touches the Notch.
-- **Configurable Hover Padding**: Extended Hover Area sensitivity range activates cleanly when enabled to smoothly open the Notch as your cursor approaches.
+### 🎯 Rock-Solid Hover & Hit-Testing
+- **Zero Flickering Inside Notch**: The Notch stays open while your cursor moves across buttons, sliders, and controls inside the open view.
+- **Strict Physical Bounds**: When Extended Hover Area is turned off, hover detection binds strictly to the exact Notch shape, preventing accidental early triggers.
+- **Context Menu Stability**: Right-clicking the Notch to access Settings or customize Notch Width keeps the Notch open.
 
-### ⚡ Performance & Async Pipeline
-- **Zero-Stutter Opening Frame**: Background media and clipboard updates are offloaded smoothly to ensure zero dropped frames on notch expansion.
+### ⚡ Performance & Background Pipeline
+- **Zero Dropped Frames**: Music metadata updates and clipboard synchronization run asynchronously in the background to ensure a 120 FPS expansion frame.
