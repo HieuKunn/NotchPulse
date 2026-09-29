@@ -429,7 +429,9 @@ struct WheelPicker: View {
         .safeAreaPadding(.horizontal)
         .sensoryFeedback(.alignment, trigger: haptics)
         .onAppear {
-            scrollToToday(config: config)
+            DispatchQueue.main.async {
+                scrollToToday(config: config)
+            }
         }
         .onChange(of: scrollPosition) { _, newPosition in
             guard let newIndex = newPosition else { return }

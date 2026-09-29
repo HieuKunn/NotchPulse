@@ -51,7 +51,7 @@ struct AlbumArtView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            if Defaults[.lightingEffect] {
+            if Defaults[.lightingEffect] && musicManager.isPlaying {
                 albumArtBackground
             }
             albumArtButton
@@ -147,7 +147,6 @@ struct MusicControlsView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var webcamManager = WebcamManager.shared
     var allocatedWidth: CGFloat? = nil
-    @State private var measuredWidth: CGFloat = 200
     @State private var sliderValue: Double = 0
     @State private var dragging: Bool = false
     @State private var lastDragged: Date = .distantPast
@@ -155,7 +154,7 @@ struct MusicControlsView: View {
     @Default(.musicControlSlotLimit) private var slotLimit
 
     private var currentWidth: CGFloat {
-        allocatedWidth ?? max(120, measuredWidth)
+        allocatedWidth ?? 200
     }
 
     var body: some View {
@@ -167,17 +166,6 @@ struct MusicControlsView: View {
         .padding(.leading, 2)
         .buttonStyle(PlainButtonStyle())
         .frame(maxHeight: .infinity, alignment: .center)
-        .background(
-            GeometryReader { proxy in
-                Color.clear
-                    .onAppear {
-                        measuredWidth = proxy.size.width
-                    }
-                    .onChange(of: proxy.size.width) { _, newWidth in
-                        measuredWidth = newWidth
-                    }
-            }
-        )
     }
 
     private func songInfo(width: CGFloat) -> some View {
@@ -494,12 +482,10 @@ struct NotchHomeView: View {
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
-        GeometryReader { geo in
-            mainContent(totalWidth: geo.size.width)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-        .frame(minHeight: 148, maxHeight: .infinity, alignment: .top)
-        .transition(.opacity)
+        let targetOpenWidth = max(minNotchWidth, min(maxNotchWidth, CGFloat(notchOpenWidth)))
+        mainContent(totalWidth: targetOpenWidth)
+            .frame(width: targetOpenWidth, minHeight: 148, maxHeight: .infinity, alignment: .top)
+            .transition(.opacity)
     }
 
     private var shouldShowCamera: Bool {

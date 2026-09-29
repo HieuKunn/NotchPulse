@@ -72,7 +72,10 @@ struct MarqueeText: View {
                 .background(backgroundColor)
                 .modifier(MeasureSizeModifier())
                 .onPreferenceChange(SizePreferenceKey.self) { size in
-                    self.textSize = CGSize(width: size.width / 2, height: NSFont.preferredFont(forTextStyle: nsFont).pointSize)
+                    let newWidth = size.width / 2
+                    let newHeight = NSFont.preferredFont(forTextStyle: nsFont).pointSize
+                    guard abs(newWidth - self.textSize.width) > 1.0 || abs(newHeight - self.textSize.height) > 1.0 else { return }
+                    self.textSize = CGSize(width: newWidth, height: newHeight)
                     self.animate = false
                     self.offset = 0
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.01){

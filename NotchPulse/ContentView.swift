@@ -578,10 +578,7 @@ struct ContentView: View {
                                     NotchPulseHeader()
                                         .frame(height: max(24, vm.effectiveClosedNotchHeight))
                                         .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
-                                        .transition(.asymmetric(
-                                            insertion: .opacity.combined(with: .scale(scale: 0.90, anchor: .top)),
-                                            removal: .opacity.combined(with: .scale(scale: 0.84, anchor: .top))
-                                        ))
+                                        .transition(.opacity)
                                 } else {
                                     Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: baseClosedHeight)
                                         .transition(.opacity)
@@ -660,11 +657,7 @@ struct ContentView: View {
                     }
                 }
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.86, anchor: .top)),
-                    removal: .opacity.combined(with: .scale(scale: 0.80, anchor: .top))
-                ))
-                .animation(.spring(response: 0.25, dampingFraction: 0.85), value: coordinator.currentView)
+                .transition(.opacity)
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)

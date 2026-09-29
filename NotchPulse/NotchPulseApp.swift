@@ -488,10 +488,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.disableSkyLight()
         }
 
-        window.contentView = NSHostingView(
+        let hostingView = NSHostingView(
             rootView: ContentView()
                 .environmentObject(viewModel)
         )
+        hostingView.wantsLayer = true
+        hostingView.layer?.drawsAsynchronously = true
+        window.contentView = hostingView
 
         window.orderFrontRegardless()
         NotchSpaceManager.shared.notchSpace.windows.insert(window)
@@ -850,10 +853,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             playWelcomeSound()
         } else if isUpdate {
-            // App was updated to a new version: automatically display Spotlight Tour
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                SpotlightTourManager.shared.showTour()
-            }
+            // App was updated to a new version: spotlight tour can be viewed via Settings
         } else if MusicManager.shared.isNowPlayingDeprecated
             && Defaults[.mediaController] == .nowPlaying
         {
