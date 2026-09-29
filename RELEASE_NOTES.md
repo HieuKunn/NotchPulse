@@ -1,23 +1,19 @@
-## 🚀 What's New in NotchPulse v5.0 (Build 213)
-
-### 🖥️ Fullscreen Intelligence & Precision Hiding
-- **Smart Fullscreen Detection**: When "Hide for all apps" or "Hide for Now Playing only" is active, NotchPulse automatically and seamlessly conceals itself in fullscreen mode.
-- **Hover Expand Prevention**: Prevented accidental notch expansion and hover activation while working or watching media in fullscreen applications.
-- **Clean Island Concealment**: Dynamic Island and simulated notch overlays now completely fade and collapse to zero height when fullscreen hiding is active.
+## 🚀 What's New in NotchPulse v5.0 (Build 214)
 
 ### 🌊 Ultra-Fluid Apple-Grade Notch Motion
-- **Natural Bloom & Collapse**: The Notch expands outward and seamlessly collapses inward with authentic Apple-like spring physics, eliminating visual hitches or abrupt layout jumps.
-- **Continuous Width Dynamics**: Seamlessly transitions between compact media states and the fully expanded dashboard without momentary width drops or snapping.
-- **Strict Frame Clipping & Scaling**: Content scales organically into and out of the camera notch, creating a unified 120Hz ProMotion experience.
+- **Natural Bloom & Collapse**: The Notch expands outward and collapses inward with authentic Apple-like spring physics (`response: 0.45, damping: 0.72`), completely eliminating visual hitches or abrupt layout jumps.
+- **Zero-Stall Rendering**: Removed offscreen rasterization bottlenecks to deliver silky smooth 120Hz ProMotion animations across all open/close transitions.
+- **Balanced Header Insets**: Adjusted tab and setting icon padding inward, preventing icons from touching or clipping into curved notch and island borders.
 
-### 🔒 Refined Face ID Expansion & Unlocking
-- **Smooth Choreographed Motion**: Staggered slide-in and lateral expansion creates a polished, natural unlocking experience.
-- **Clean State Transitions**: Smoothly holds the success and failure indicators before gently collapsing into rest.
+### 🔒 Lightning-Fast Face ID & Frictionless Enrollment
+- **Instant Concurrent Wake**: Face ID interface now blooms open instantly on hover while camera and AI models warm up concurrently in the background with zero initial stutter.
+- **Effortless Guided Setup**: Relaxed pose angle tolerances and shortened capture delays so the "Look straight at the camera" setup step catches faces naturally in under a second.
+- **Multi-Point Alignment Support**: Seamlessly enrolls faces even under uneven lighting or when wearing glasses.
 
 ### 🤝 Smart Shake & File Shelf
-- **Universal Drag Support**: Easily drop files from macOS Dock stacks, downloads fans, Finder folders, and desktop items directly into the Notch Shelf.
-- **Accidental Shake Prevention**: Fine-tuned shake gesture recognition to require intentional shakes, preventing accidental shelf openings while casually moving files across windows.
+- **Full macOS Dock & Finder Support**: Effortlessly drag files and folders from Dock stacks, Downloads fans, Finder, or Desktop into the Notch Shelf.
+- **Responsive Shake Recognition**: Natural 3-stroke left-and-right shakes now trigger the Shelf instantly with refined sensitivity.
 
-### 📅 Interactive Calendar & Full Month View
-- **Seamless Full Month Expansion**: Click directly on the Month & Year header to instantly open the complete 30-day calendar grid with Lunar dates and schedule details.
-- **Optimized Full-Height Display**: Expanded view coverage to comfortably display all dates and upcoming events without cropping.
+### 🖥️ Fullscreen Intelligence
+- **Smart Concealment**: Automatically conceals the Notch and Dynamic Island when applications go fullscreen.
+- **Hover Expand Suppression**: Prevents accidental hover triggers while working or watching media in fullscreen applications.

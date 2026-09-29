@@ -31,7 +31,6 @@ struct MusicPlayerView: View {
             AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace, size: artSize)
                 .padding(.vertical, 2)
             MusicControlsView(allocatedWidth: controlsWidth)
-                .drawingGroup()
                 .compositingGroup()
         }
         .frame(maxHeight: .infinity, alignment: .center)
@@ -57,7 +56,6 @@ struct AlbumArtView: View {
             }
             albumArtButton
         }
-        .drawingGroup()
     }
 
     private var albumArtBackground: some View {

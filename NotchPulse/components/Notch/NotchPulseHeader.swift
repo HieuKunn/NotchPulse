@@ -13,6 +13,15 @@ struct NotchPulseHeader: View {
 
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @StateObject var tvm = ShelfStateViewModel.shared
+
+    private var isDynamicIsland: Bool {
+        Defaults[.notchStyle] == .dynamicIsland
+    }
+
+    private var headerInset: CGFloat {
+        isDynamicIsland ? 22 : max(22, cornerRadiusInsets.opened.top + 4)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             HStack {
@@ -22,13 +31,12 @@ struct NotchPulseHeader: View {
                     EmptyView()
                 }
             }
-            .padding(.leading, 12)
+            .padding(.leading, headerInset)
             .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(vm.notchState == .closed ? 0 : 1)
             .zIndex(2)
 
             if vm.notchState == .open {
-                let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
                 let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
                 if !isDynamicIsland && (activeScreen?.safeAreaInsets.top ?? 0 > 0) {
                     Rectangle()
@@ -96,7 +104,7 @@ struct NotchPulseHeader: View {
             }
             .animation(.smooth(duration: 0.22), value: coordinator.sneakPeek.show)
             .font(.system(.headline, design: .rounded))
-            .padding(.trailing, 12)
+            .padding(.trailing, headerInset)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .opacity(vm.notchState == .closed ? 0 : 1)
             .zIndex(2)

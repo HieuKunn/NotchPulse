@@ -258,10 +258,15 @@ final class NotchPulseFaceUnlockCoordinator {
     /// end of this function, and its global side effects (`camera.stop()` etc.) could otherwise land on the newer cycle instead
     /// of itself. This was a real bug — a superseded `camera.stop()` queued behind the newer cycle's `startRunning()` made the
     /// camera visibly switch on then die mid-warm-up, leaving the surviving cycle polling a dead session and never unlocking.
-    private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
-        // Pre-warm ArcFace CoreML model concurrently while camera hardware starts up
+        let showsUI = self.showsUI
+        if showsUI {
+            FaceIDOverlayController.shared.beginScanning()
+        }
+        statusMessage = "Looking for your face…"
+
+        // Pre-warm ArcFace CoreML model concurrently while camera hardware starts up and UI blooms open
         async let modelWarmup: Void = ArcFaceEmbedder.prepare()
         async let cameraStart: Void = camera.start()
         _ = await (modelWarmup, cameraStart)
@@ -272,14 +277,11 @@ final class NotchPulseFaceUnlockCoordinator {
         if let error = camera.errorMessage {
             statusMessage = error
             camera.stop()
+            if showsUI {
+                FaceIDOverlayController.shared.finish(success: false)
+            }
             return
         }
-
-        let showsUI = self.showsUI
-        if showsUI {
-            FaceIDOverlayController.shared.beginScanning()
-        }
-        statusMessage = "Looking for your face…"
 
         let outcome = await observeScanWindow(
             deadline: Date().addingTimeInterval(scanWindowDuration),

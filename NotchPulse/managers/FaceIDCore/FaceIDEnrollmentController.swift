@@ -339,34 +339,33 @@ final class FaceIDEnrollmentController {
     private let samplesPerPose = 2
     /// Consecutive matching frames required before a capture fires — debounces a lucky
     /// frame near a pose boundary.
-    private let requiredMatchStreak = 3
+    private let requiredMatchStreak = 2
     /// Wait this long after yaw/pitch matches before samples count, so the user has
     /// settled into the turn rather than being captured mid-motion.
-    private let poseHoldDuration: Duration = .milliseconds(500)
+    private let poseHoldDuration: Duration = .milliseconds(320)
     /// Permissive floor for Vision's capture-quality score (no fixed universal cutoff) —
     /// better to accept a mediocre sample than stall the whole flow.
-    private let qualityFloor: Float = 0.2
-    /// Hold off accepting captures this long once the camera comes up, so the first
-    /// samples aren't taken mid-blink. Detection still runs during this window.
-    private let initialCaptureDelay: Duration = .seconds(1.5)
+    private let qualityFloor: Float = 0.15
+    /// Brief hold to let camera auto-exposure settle without feeling unresponsive.
+    private let initialCaptureDelay: Duration = .milliseconds(600)
     /// Enrollment wants a closer face than unlock's bystander cutoff — sitting back in a
     /// chair is still enough to unlock, but too far for a reliable template.
     private var enrollmentMinimumFaceWidth: Float {
-        max(NotchPulseFaceRecognitionPipeline.minimumProminentFaceWidth, 0.2)
+        max(NotchPulseFaceRecognitionPipeline.minimumProminentFaceWidth, 0.16)
     }
 
     // Pose-matching bands, in radians. Yaw: left turn is positive, matching the mirrored
     // preview. Pitch's sign is the opposite of the initial guess — see `pitchMatches` below.
-    private let yawInnerThreshold: Float = 0.25
-    private let yawCenterTolerance: Float = 0.18
-    private let yawOuterCap: Float = 1.2
-    private let pitchInnerThreshold: Float = 0.20
-    private let pitchCenterTolerance: Float = 0.15
-    private let pitchOuterCap: Float = 0.9
+    private let yawInnerThreshold: Float = 0.22
+    private let yawCenterTolerance: Float = 0.28
+    private let yawOuterCap: Float = 1.3
+    private let pitchInnerThreshold: Float = 0.18
+    private let pitchCenterTolerance: Float = 0.25
+    private let pitchOuterCap: Float = 1.0
     /// If a pose takes longer than this, matching bands widen by `stallWidenFactor` so an
     /// unusual camera angle can't permanently strand the user.
-    private let stallTimeout: Duration = .seconds(12)
-    private let stallWidenFactor: Float = 1.25
+    private let stallTimeout: Duration = .seconds(8)
+    private let stallWidenFactor: Float = 1.35
 
     private(set) var currentPoseIndex = 0
     private(set) var capturedForCurrentPose = 0
@@ -799,9 +798,8 @@ final class FaceIDEnrollmentController {
         }
 
         let qualityOK = result.quality.map { $0 >= qualityFloor } ?? true
-        // Only a 5-point alignment is reliably canonical; a 2-point/padded-crop fallback
-        // isn't accepted toward enrollment.
-        let alignmentOK = result.alignmentTier == .fivePoint
+        // Allow canonical 5-point alignment or robust 2-point alignment
+        let alignmentOK = result.alignmentTier == .fivePoint || result.alignmentTier == .twoPoint
         let widened = ContinuousClock.now - poseStartedAt > stallTimeout
         let poseOK = poseMatches(yaw: yaw, pitch: pitch, pose: pose, widened: widened)
         guard qualityOK, alignmentOK, !isTooFar, poseOK else {

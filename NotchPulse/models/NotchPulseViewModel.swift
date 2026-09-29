@@ -240,12 +240,13 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     // MARK: - Canonical Notch Animation
-    public static let notchSpring = Animation.spring(response: 0.35, dampingFraction: 0.76, blendDuration: 0)
+    public static let notchSpring = Animation.spring(response: 0.45, dampingFraction: 0.72, blendDuration: 0)
+    public static let notchCloseSpring = Animation.spring(response: 0.42, dampingFraction: 0.96, blendDuration: 0)
 
     func open(fromWidth: CGFloat? = nil) {
         guard notchState != .open else { return }
         if let fromWidth = fromWidth, fromWidth > self.notchSize.width {
-            self.notchSize.width = fromWidth
+            self.notchSize = CGSize(width: fromWidth, height: self.notchSize.height)
         }
         withAnimation(Self.notchSpring) {
             self.notchSize = openNotchSize
@@ -271,7 +272,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         guard force || notchState != .closed else { return }
         let closed = getClosedNotchSize(screenUUID: self.screenUUID)
         let targetWidth = targetClosedWidth ?? closed.width
-        withAnimation(Self.notchSpring) {
+        withAnimation(Self.notchCloseSpring) {
             self.notchSize = CGSize(width: targetWidth, height: closed.height)
             self.closedNotchSize = closed
             self.notchState = .closed

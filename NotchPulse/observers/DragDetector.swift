@@ -72,13 +72,10 @@ final class DragDetector {
                CGEventSource.buttonState(.hidSystemState, button: .left)
     }
 
-    /// Determines if a drag-and-drop session is active and fresh (not stale leftover pasteboard content from an earlier operation).
+    /// Determines if a drag-and-drop session is active with available payload types.
     private func isPasteboardSessionActive() -> Bool {
-        let currentPbCount = dragPasteboard.changeCount
-        let isFresh = (Self.globalLastConsumedPasteboardCount < 0) ||
-                      (currentPbCount != Self.globalLastConsumedPasteboardCount) ||
-                      (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
-        return isFresh
+        guard let types = dragPasteboard.types, !types.isEmpty else { return false }
+        return true
     }
 
     /// Checks if the drag pasteboard contains actual file, folder, image, or droppable items (strictly excluding tabs and app windows).
@@ -242,38 +239,38 @@ final class DragDetector {
 
         recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 0.75s (fast intentional shake only, prevents casual left-right browsing from triggering)
-        let cutoff = currentTime - 0.75
+        // Keep samples from the last 0.85s
+        let cutoff = currentTime - 0.85
         recentSamples.removeAll { $0.time < cutoff }
 
-        guard recentSamples.count >= 5 else { return }
+        guard recentSamples.count >= 4 else { return }
 
-        // Require at least 16pt per swing to rule out slight jitter or minor curves
+        // Require at least 12pt per swing to rule out minor jitter
         let xs = recentSamples.map { $0.x }
-        let minSwing: CGFloat = 16.0
+        let minSwing: CGFloat = 12.0
 
         let revX = countAxisReversals(values: xs, minSwing: minSwing)
 
-        // Require at least 3 horizontal direction reversals (4 fast continuous strokes: L⇄R⇄L⇄R)
-        guard revX >= 3 else { return }
+        // Require at least 2 horizontal direction reversals (3 strokes: Left ➔ Right ➔ Left or Right ➔ Left ➔ Right)
+        guard revX >= 2 else { return }
 
         // Velocity & duration check:
-        // Ensure the reversals happened rapidly enough (minimum horizontal speed)
+        // Ensure the reversals happened rapidly enough
         guard let firstSample = recentSamples.first else { return }
         let elapsed = currentTime - firstSample.time
-        guard elapsed >= 0.18 && elapsed <= 0.75 else { return }
+        guard elapsed >= 0.12 && elapsed <= 0.85 else { return }
 
         var totalXTravel: CGFloat = 0
         for i in 1..<recentSamples.count {
             totalXTravel += abs(recentSamples[i].x - recentSamples[i-1].x)
         }
         let horizontalSpeed = totalXTravel / CGFloat(elapsed)
-        // User must shake at a brisk speed (>= 180 pt/s) to distinguish from casual mouse movement
-        guard horizontalSpeed >= 180.0 else { return }
+        // User must shake at an intentional speed (>= 120 pt/s) to distinguish from casual mouse movement
+        guard horizontalSpeed >= 120.0 else { return }
 
         // Check if this is an actual file/folder/droppable item drag!
-        // Reject window dragging, browser tabs, text selection, and stale pasteboards.
-        guard isPasteboardSessionActive() && hasValidDragContent() else {
+        // Reject window dragging, browser tabs, text selection.
+        guard hasValidDragContent() else {
             // Not a valid file/folder drag! Clear samples so it doesn't fire for non-files.
             recentSamples.removeAll()
             return
