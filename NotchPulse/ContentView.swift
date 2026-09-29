@@ -1016,84 +1016,52 @@ struct ContentView: View {
         return notchRect.contains(mouseLoc)
     }
 
+    /// Single source of truth for hover: the PHYSICAL cursor position.
+    /// Enter only opens when the cursor is inside the real notch rect (never the wide
+    /// music chin — rapid passes over the live activity used to open the notch without
+    /// touching it); exit closes only when the cursor has really left it.
     private func handleHover(_ hovering: Bool) {
-        if isFaceIDActive || faceIDOverlay.phase != .closed || NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-        if vm.hideOnClosed { return }
-        
+        guard !isFaceIDActive, faceIDOverlay.phase == .closed,
+              !NotchPulseLockMonitor.isScreenActuallyLocked(),
+              !vm.hideOnClosed else { return }
+        hoverTask?.cancel()
+
         if hovering {
-            // Dedupe only when the hover state matches physical reality. If an EXIT
-            // event was ever missed (cursor stationary while the window was hidden or
-            // an overlay stole tracking), `isHovering` stayed true and every later
-            // re-enter was silently swallowed — the notch then only opened via click
-            // (tap doesn't depend on hover state). If the flag is stuck but the cursor
-            // is physically OUTSIDE the notch, this enter is real: heal and proceed.
-            if isHovering && isMousePhysicallyInsideNotch() { return }
-            isHovering = false
-            
-            // If the user is dragging an app window or holding the mouse button down, NEVER open the closed notch on hover
-            let isMouseHeld = (NSEvent.pressedMouseButtons != 0)
-            if vm.notchState == .closed && isMouseHeld {
-                return
-            }
+            guard vm.notchState == .closed,
+                  isMousePhysicallyInsideNotch(),
+                  !coordinator.sneakPeek.show,
+                  Defaults[.openNotchOnHover],
+                  NSEvent.pressedMouseButtons == 0 else { return }
 
             isHovering = true
-            
-            if vm.notchState == .closed && Defaults[.enableHaptics] {
-                haptics.toggle()
-            }
-            
-            guard vm.notchState == .closed,
-                  !vm.hideOnClosed,
-                  !coordinator.sneakPeek.show,
-                  Defaults[.openNotchOnHover] else { return }
-            
-            hoverTask?.cancel()
+            if Defaults[.enableHaptics] { haptics.toggle() }
+
             hoverTask = Task {
                 let duration = Defaults[.minimumHoverDuration]
-                if duration > 0 {
-                    try? await Task.sleep(for: .seconds(duration))
-                }
-                guard !Task.isCancelled else { return }
-                
-                await MainActor.run {
-                    let stillPressed = (NSEvent.pressedMouseButtons != 0)
-                    let isHoverValid = self.isHovering || (Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar)
-                    guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
-                          self.vm.notchState == .closed,
-                          !self.vm.hideOnClosed,
-                          isHoverValid,
-                          !self.coordinator.sneakPeek.show,
-                          !stillPressed else { return }
-                    
-                    self.doOpen()
-                }
+                if duration > 0 { try? await Task.sleep(for: .seconds(duration)) }
+                guard !Task.isCancelled,
+                      isMousePhysicallyInsideNotch(),
+                      vm.notchState == .closed,
+                      NSEvent.pressedMouseButtons == 0 else { return }
+                doOpen()
             }
         } else {
-            hoverTask?.cancel()
+            guard vm.notchState == .open else {
+                isHovering = false
+                return
+            }
             hoverTask = Task {
-                // Keep re-checking every 300ms while the cursor sits inside the open
-                // notch rectangle. The old code RETURNED on the first in-rect check, so
-                // a single early "still inside" left the notch open forever with no
-                // further exit event to retry ("mouse left the notch but it won't close").
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    guard !Task.isCancelled else { return }
-                    
-                    await MainActor.run {
-                        // Critical: Do NOT close if mouse is still physically inside the open notch's rectangle
-                        if self.isMousePhysicallyInsideNotch() { return }
-                        if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar { return }
-                        // Do not close notch if mouse button is currently held down (e.g. dragging or right-click context menu active)
-                        if NSEvent.pressedMouseButtons != 0 { return }
-                        
-                        self.isHovering = false
-                        
-                        if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
-                            self.vm.close(targetClosedWidth: self.baseChinWidth)
-                        }
-                        // Done — either closed or blocked by a pin/popover; stop looping.
-                        self.hoverTask?.cancel()
-                    }
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled,
+                      !isMousePhysicallyInsideNotch(),
+                      !(Defaults[.extendHoverArea] && vm.isHoveringFromRadar),
+                      NSEvent.pressedMouseButtons == 0 else { return }
+
+                isHovering = false
+                if !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose,
+                   !ShelfStateViewModel.shared.isPinned, !CalendarStateViewModel.shared.isPinned,
+                   !vm.dragDetectorTargeting, !vm.anyDropZoneTargeting {
+                    vm.close(targetClosedWidth: baseChinWidth)
                 }
             }
         }
