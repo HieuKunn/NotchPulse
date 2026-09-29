@@ -565,14 +565,12 @@ struct NotchHomeView: View {
                     .frame(width: cameraWidth)
                     .scaledToFit()
                     .opacity(vm.notchState == .closed ? 0 : 1)
-                    .blur(radius: vm.notchState == .closed ? 20 : 0)
                     .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.76, blendDuration: 0), value: shouldShowCamera)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .padding(.horizontal, horizontalPadding)
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
-        .blur(radius: vm.notchState == .closed ? 30 : 0)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCalendarFullPage)
     }
 }

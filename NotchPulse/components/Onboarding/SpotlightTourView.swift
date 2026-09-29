@@ -956,20 +956,20 @@ final class SpotlightTourManager: ObservableObject {
         case .calendarExpand:
             Defaults[.showCalendar] = true
             targetView = .home
-            isFullMonth = false
-            customHeight = nil
+            isFullMonth = true
+            customHeight = 270
 
         case .calendarFullMonth:
             Defaults[.showCalendar] = true
             targetView = .home
             isFullMonth = true
-            customHeight = 240
+            customHeight = 270
 
         case .clipboardManager:
             Defaults[.enableClipboardManager] = true
             targetView = .clipboard
             isFullMonth = false
-            customHeight = 250
+            customHeight = 260
 
         case .faceIDLock:
             targetView = .home

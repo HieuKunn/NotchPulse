@@ -603,6 +603,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsWindowController.shared.setUpdaterController(updater, viewModel: self.vm)
         }
 
+        // Start clipboard monitoring immediately at app launch
+        _ = ClipboardManager.shared
+
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil
         ) { [weak self] _ in

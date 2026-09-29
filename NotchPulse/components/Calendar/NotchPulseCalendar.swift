@@ -840,9 +840,7 @@ struct CalendarView: View {
             switch mode {
             case .normal:
                 normalModeView
-            case .fullMonth:
-                fullMonthModeView
-            case .dayDetail:
+            case .fullMonth, .dayDetail:
                 dayDetailModeView
             }
         }
@@ -861,8 +859,8 @@ struct CalendarView: View {
         .onChange(of: CalendarStateViewModel.shared.isFullMonthExpanded) { _, expanded in
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 if expanded {
-                    mode = .fullMonth
-                    vm.customOpenHeight = 240
+                    mode = .dayDetail
+                    vm.customOpenHeight = 270
                 } else if mode == .fullMonth || mode == .dayDetail {
                     mode = .normal
                     vm.customOpenHeight = nil
@@ -912,8 +910,7 @@ struct CalendarView: View {
     private var frameHeight: CGFloat {
         switch mode {
         case .normal: return 148
-        case .fullMonth: return 240
-        case .dayDetail: return 240
+        case .fullMonth, .dayDetail: return 270
         }
     }
 
@@ -1048,7 +1045,7 @@ struct CalendarView: View {
                 .frame(width: rightW, alignment: .topLeading)
             }
         }
-        .frame(height: 240, alignment: .top)
+        .frame(height: 270, alignment: .top)
         .padding(.horizontal, 14)
         .padding(.top, 4)
         .padding(.bottom, 8)

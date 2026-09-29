@@ -351,6 +351,8 @@ struct ContentView: View {
                             .animation(animationSpring, value: currentNotchWidth)
                             .animation(animationSpring, value: currentNotchHeight)
                             .animation(animationSpring, value: islandRadius)
+                            .animation(animationSpring, value: topCornerRadius)
+                            .animation(animationSpring, value: bottomCornerRadius)
                             .animation(faceIDAnimation, value: isFaceIDActive)
                             .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)

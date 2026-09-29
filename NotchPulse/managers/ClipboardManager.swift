@@ -97,11 +97,17 @@ final class ClipboardManager: ObservableObject {
     private var pollTimer: Timer?
     private let pasteboard = NSPasteboard.general
     private var lastChangeCount: Int = -1
+    private let storageKey = "NotchPulse_SavedClipboardHistory"
+    private var cancellables = Set<AnyCancellable>()
 
     private init() {
-        self.lastChangeCount = pasteboard.changeCount
+        loadHistory()
+        self.lastChangeCount = pasteboard.changeCount - 1
         if isEnabled {
             startMonitoring()
+            if history.isEmpty {
+                checkForChanges()
+            }
         }
         
         // Listen to default changes
@@ -126,17 +132,20 @@ final class ClipboardManager: ObservableObject {
             .store(in: &cancellables)
     }
 
-    private var cancellables = Set<AnyCancellable>()
-
     func startMonitoring() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.stopMonitoring()
-            self.lastChangeCount = self.pasteboard.changeCount
 
-            self.pollTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+            // Run timer in .common mode so event tracking or modals don't pause it
+            let timer = Timer(timeInterval: 0.4, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
+            RunLoop.main.add(timer, forMode: .common)
+            self.pollTimer = timer
+
+            // Check immediately on startup
+            self.checkForChanges()
         }
     }
 
@@ -153,7 +162,78 @@ final class ClipboardManager: ObservableObject {
         guard currentCount != lastChangeCount else { return }
         lastChangeCount = currentCount
 
-        // 1. Check Image FIRST (Check if pasteboard contains raw image types or NSImage)
+        // 1. Check File URLs first
+        if let fileURLs = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
+           let firstURL = fileURLs.first {
+            let urlString = firstURL.absoluteString
+            if history.first?.urlString == urlString || history.first?.contentString == firstURL.path {
+                return
+            }
+            let newItem = ClipboardItem(
+                id: UUID(),
+                type: .file,
+                contentString: firstURL.path,
+                urlString: urlString,
+                imageData: nil,
+                timestamp: Date()
+            )
+            insertItem(newItem)
+            return
+        }
+
+        // 2. Check Web / Network URLs
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
+           let firstURL = urls.first, !firstURL.isFileURL {
+            let urlString = firstURL.absoluteString
+            if history.first?.urlString == urlString || history.first?.contentString == urlString {
+                return
+            }
+            let newItem = ClipboardItem(
+                id: UUID(),
+                type: .url,
+                contentString: urlString,
+                urlString: urlString,
+                imageData: nil,
+                timestamp: Date()
+            )
+            insertItem(newItem)
+            return
+        }
+
+        // 3. Check Text / String
+        let rawString = pasteboard.string(forType: .string)
+            ?? pasteboard.string(forType: NSPasteboard.PasteboardType("public.utf8-plain-text"))
+            ?? pasteboard.string(forType: NSPasteboard.PasteboardType("NSStringPboardType"))
+
+        if let string = rawString, !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if history.first?.contentString == string {
+                return
+            }
+
+            var itemType: ClipboardType = .text
+            var urlStr: String? = nil
+            let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let url = URL(string: trimmed), let scheme = url.scheme, ["http", "https", "ftp"].contains(scheme.lowercased()) {
+                itemType = .url
+                urlStr = trimmed
+            } else if trimmed.hasPrefix("file://"), let fileURL = URL(string: trimmed) {
+                itemType = .file
+                urlStr = trimmed
+            }
+
+            let newItem = ClipboardItem(
+                id: UUID(),
+                type: itemType,
+                contentString: string,
+                urlString: urlStr,
+                imageData: nil,
+                timestamp: Date()
+            )
+            insertItem(newItem)
+            return
+        }
+
+        // 4. Check Raw Image
         let imageTypes: [NSPasteboard.PasteboardType] = [
             .png,
             .tiff,
@@ -161,17 +241,15 @@ final class ClipboardManager: ObservableObject {
             NSPasteboard.PasteboardType("public.png"),
             NSPasteboard.PasteboardType("public.tiff")
         ]
-        
         let hasImageTypes = pasteboard.types?.contains(where: { imageTypes.contains($0) }) ?? false
         let canInitImage = NSImage.canInit(with: pasteboard)
 
-        if hasImageTypes || (canInitImage && pasteboard.data(forType: .string) == nil) {
+        if hasImageTypes || canInitImage {
             if let image = NSImage(pasteboard: pasteboard),
                let tiff = image.tiffRepresentation,
                let bitmap = NSBitmapImageRep(data: tiff),
                let pngData = bitmap.representation(using: .png, properties: [:]) {
 
-                // Avoid duplicate image if identical data
                 if history.first?.imageData == pngData {
                     return
                 }
@@ -184,72 +262,29 @@ final class ClipboardManager: ObservableObject {
                     imageData: pngData,
                     timestamp: Date()
                 )
-
-                DispatchQueue.main.async {
-                    self.history.insert(newItem, at: 0)
-                    self.trimHistory()
-                }
+                insertItem(newItem)
                 return
             }
         }
+    }
 
-        // 2. Check File URL or Web URL
-        if let url = NSURL(from: pasteboard) as URL? {
-            let urlString = url.absoluteString
-            if !urlString.isEmpty {
-                let isFile = url.isFileURL
-                let itemType: ClipboardType = isFile ? .file : .url
-
-                // Avoid duplicate url at top
-                if history.first?.urlString == urlString || history.first?.contentString == urlString {
-                    return
+    private func insertItem(_ item: ClipboardItem) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            // Remove any identical content string or duplicate ID
+            self.history.removeAll { existing in
+                if existing.id == item.id { return true }
+                if let newContent = item.contentString, let existingContent = existing.contentString {
+                    return newContent == existingContent
                 }
-
-                let newItem = ClipboardItem(
-                    id: UUID(),
-                    type: itemType,
-                    contentString: urlString,
-                    urlString: urlString,
-                    imageData: nil,
-                    timestamp: Date()
-                )
-
-                DispatchQueue.main.async {
-                    self.history.insert(newItem, at: 0)
-                    self.trimHistory()
+                if item.isImage && existing.isImage, let d1 = item.imageData, let d2 = existing.imageData {
+                    return d1 == d2
                 }
-                return
+                return false
             }
-        }
-
-        // 3. Check Text / String
-        if let string = pasteboard.string(forType: .string), !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            var itemType: ClipboardType = .text
-            var urlStr: String? = nil
-            if let url = URL(string: string), let scheme = url.scheme, ["http", "https", "ftp", "file"].contains(scheme.lowercased()) {
-                itemType = url.isFileURL ? .file : .url
-                urlStr = string
-            }
-
-            // Avoid duplicate text at top
-            if history.first?.contentString == string {
-                return
-            }
-
-            let newItem = ClipboardItem(
-                id: UUID(),
-                type: itemType,
-                contentString: string,
-                urlString: urlStr,
-                imageData: nil,
-                timestamp: Date()
-            )
-
-            DispatchQueue.main.async {
-                self.history.insert(newItem, at: 0)
-                self.trimHistory()
-            }
-            return
+            self.history.insert(item, at: 0)
+            self.trimHistory()
+            self.saveHistory()
         }
     }
 
@@ -260,11 +295,30 @@ final class ClipboardManager: ObservableObject {
         }
     }
 
+    private func saveHistory() {
+        let itemsToSave = Array(history.prefix(30)).map { item in
+            // Exclude huge images from UserDefaults (> 1MB)
+            if let data = item.imageData, data.count > 1_000_000 {
+                return ClipboardItem(id: item.id, type: item.type, contentString: item.contentString, urlString: item.urlString, imageData: nil, timestamp: item.timestamp)
+            }
+            return item
+        }
+        if let data = try? JSONEncoder().encode(itemsToSave) {
+            UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+
+    private func loadHistory() {
+        if let data = UserDefaults.standard.data(forKey: storageKey),
+           let items = try? JSONDecoder().decode([ClipboardItem].self, from: data) {
+            self.history = items
+        }
+    }
+
     func copyToPasteboard(_ item: ClipboardItem) {
         pasteboard.clearContents()
         
         if item.isImage, let data = item.imageData, let image = NSImage(data: data) {
-            // Write NSImage object AND raw PNG data so all macOS apps (Slack, Word, Photoshop, Preview, Finder, Notes) can paste it
             pasteboard.writeObjects([image])
             pasteboard.setData(data, forType: .png)
             pasteboard.setData(data, forType: NSPasteboard.PasteboardType("public.png"))
@@ -288,5 +342,6 @@ final class ClipboardManager: ObservableObject {
 
     func clearHistory() {
         history.removeAll()
+        UserDefaults.standard.removeObject(forKey: storageKey)
     }
 }
