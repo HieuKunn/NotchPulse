@@ -41,22 +41,14 @@ struct ShelfDropService {
             return nil
         }
 
-        // File promises (dragging a file OUT of a Dock stack like Downloads, browser
-        // downloads, Mail attachments) carry no direct file URL — the payload must be
-        // materialized first. In-place resolution keeps the ORIGINAL file (e.g. still
-        // inside ~/Downloads) so dragging it out of the shelf later behaves exactly
-        // like dragging the Finder file.
+        // File promises (browser downloads, Mail attachments, some Dock sources) carry
+        // no direct file URL — the payload must be materialized first. In-place
+        // resolution keeps the ORIGINAL file (e.g. still inside ~/Downloads) so dragging
+        // it out of the shelf later behaves exactly like dragging the Finder file.
         if let promisedURL = await provider.extractInPlaceFilePromise() {
             if let bookmark = createBookmark(for: promisedURL) {
                 return await ShelfItem(kind: .file(bookmark: bookmark), isTemporary: false)
             }
-        }
-        if let promiseData = await provider.extractFilePromiseData() {
-            if let tempDataURL = await TemporaryFileStorageService.shared.createTempFile(for: .data(promiseData, suggestedName: provider.suggestedName)),
-               let bookmark = createBookmark(for: tempDataURL) {
-                return await ShelfItem(kind: .file(bookmark: bookmark), isTemporary: true)
-            }
-            return nil
         }
         
         if let text = await provider.extractText() {

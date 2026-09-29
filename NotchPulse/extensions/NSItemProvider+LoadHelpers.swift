@@ -87,24 +87,15 @@ extension NSItemProvider {
         return nil
     }
 
-    /// Materializes file promises (Dock stacks like Downloads, browser downloads, Mail
-    /// attachments) by asking the source to hand over the real file IN PLACE — resolves
-    /// to the original URL (e.g. ~/Downloads/x.zip) when the sender supports it.
+    /// Materializes file promises (browser downloads, Mail attachments, some Dock
+    /// sources) by asking the sender to hand over the real file IN PLACE — resolves to
+    /// the original URL (e.g. ~/Downloads/x.zip) when the sender supports it. Dock
+    /// stacks of existing files usually provide plain file URLs instead, which the
+    /// cheaper extractors above already handle.
     func extractInPlaceFilePromise() async -> URL? {
         for identifier in filePromiseCandidateTypes() {
             if let url = await inPlaceFileURL(typeIdentifier: identifier) {
                 return url
-            }
-        }
-        return nil
-    }
-
-    /// Fallback for file promises that can NOT be resolved in place: the system writes
-    /// the promised bytes to memory and we store them as a temporary shelf file.
-    func extractFilePromiseData() async -> Data? {
-        for identifier in filePromiseCandidateTypes() {
-            if let data = await fileRepresentationData(typeIdentifier: identifier) {
-                return data
             }
         }
         return nil
