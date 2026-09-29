@@ -350,8 +350,6 @@ struct ContentView: View {
                         .bottom,
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
                     )
-                    .animation(vm.notchState == .open ? animationSpring : NotchPulseViewModel.notchCloseSpring, value: vm.notchState)
-                    .animation(.smooth, value: gestureProgress)
                 
                 applyHitShape(mainLayout)
                     .onHover { hovering in
@@ -659,11 +657,7 @@ struct ContentView: View {
                     }
                 }
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
-                .transition(
-                    .scale(scale: 0.85, anchor: .top)
-                    .combined(with: .opacity)
-                    .animation(.smooth(duration: 0.35))
-                )
+                .transition(.opacity)
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
