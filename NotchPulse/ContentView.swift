@@ -275,6 +275,9 @@ struct ContentView: View {
         if vm.notchState == .closed && vm.hideOnClosed {
             return 0
         }
+        if vm.notchState == .closed {
+            return computedChinWidth
+        }
         return max(vm.notchSize.width, computedChinWidth)
     }
     private var currentNotchHeight: CGFloat {
@@ -904,12 +907,17 @@ struct ContentView: View {
             
             hoverTask?.cancel()
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(250))
+                try? await Task.sleep(for: .milliseconds(300))
                 guard !Task.isCancelled else { return }
                 guard !SpotlightTourManager.shared.isActive else { return }
                 
                 await MainActor.run {
                     if Defaults[.extendHoverArea] && self.vm.isHoveringFromRadar { return }
+                    
+                    // Do not close notch if mouse button is currently held down (e.g. dragging or right-click context menu active)
+                    let isMousePressed = (NSEvent.pressedMouseButtons != 0)
+                    if isMousePressed { return }
+                    
                     self.isHovering = false
                     
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
