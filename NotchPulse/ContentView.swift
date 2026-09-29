@@ -60,8 +60,7 @@ struct ContentView: View {
     }
 
     private var isFaceIDActive: Bool {
-        let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked())
-        if isSessionActive || faceIDOverlay.phase != .closed {
+        if faceIDOverlay.isPresenting || faceIDOverlay.phase != .closed {
             let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
             if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
                let targetUUID = targetScreen.displayUUID {
@@ -344,13 +343,6 @@ struct ContentView: View {
                     )
                 
                 applyHitShape(mainLayout)
-                    .conditionalModifier(true) { view in
-                        return view
-                            .animation(faceIDAnimation, value: isFaceIDActive)
-                            .animation(faceIDAnimation, value: targetFaceIDSize)
-                            .animation(.smooth, value: gestureProgress)
-                            .animation(animationSpring, value: vm.notchState)
-                    }
                     .onHover { hovering in
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
@@ -511,7 +503,6 @@ struct ContentView: View {
             y: gestureScale,
             anchor: .top
         )
-        .animation(.smooth, value: gestureProgress)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
         .onChange(of: vm.isHoveringFromRadar) { _, isRadarHovering in
@@ -695,7 +686,6 @@ struct ContentView: View {
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)
         .clipped()
-        .animation(faceIDAnimation, value: targetFaceIDSize)
         .contentShape(Rectangle())
         .onTapGesture {
             FaceIDOverlayController.shared.activate()
