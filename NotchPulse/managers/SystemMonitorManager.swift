@@ -324,17 +324,74 @@ public class SystemMonitorManager: ObservableObject {
     }
 
     // MARK: - Top Processes Fetch
-    /// Two independent `ps` passes: CPU-sorted (`-r`) and memory-sorted (`-m`). The old
-    /// implementation only scanned the 20 highest-CPU processes for the RAM list too, so
-    /// the true memory hogs (idle but huge apps) never appeared.
+
+    /// CPU list uses instantaneous per-process deltas via proc_pid_rusage — the same
+    /// measurement Activity Monitor's "% CPU" column shows. `ps %cpu` is a LIFETIME
+    /// decaying average: heavy usage weeks ago (e.g. the old 25ms poll bug) inflated
+    /// the number forever ("NotchPulse 48%" next to a 21% system total), while
+    /// Activity Monitor showed the truthful 1.4%. RSS (memory) is instantaneous in
+    /// `ps`, so the RAM list stays ps-sorted.
+    private struct CpuUsageSample {
+        let cpuNs: UInt64
+        let at: TimeInterval
+    }
+    private var cpuSamples: [pid_t: CpuUsageSample] = [:]
+
     private func fetchTopProcesses() -> (cpu: [MonitorProcessItem], ram: [MonitorProcessItem]) {
-        let cpuList = fetchProcessesSorted(by: "-r", limit: 8) { cpu, rssMB in
-            cpu > 0.1 ? String(format: "%.1f%%", cpu) : nil
-        }
+        let cpuList = fetchInstantaneousTopCPU(limit: 8)
         let ramList = fetchProcessesSorted(by: "-m", limit: 8) { _, rssMB in
             rssMB >= 1024.0 ? String(format: "%.1f GB", rssMB / 1024.0) : String(format: "%.0f MB", rssMB)
         }
         return (cpuList, ramList)
+    }
+
+    private func fetchInstantaneousTopCPU(limit: Int) -> [MonitorProcessItem] {
+        let now = Date().timeIntervalSinceReferenceDate
+        let pidCount = proc_listallpids(nil, 0)
+        guard pidCount > 0 else { return [] }
+        var pids = [pid_t](repeating: 0, count: pidCount + 64)
+        let written = proc_listallpids(&pids, Int32(MemoryLayout<pid_t>.size * pids.count))
+        guard written > 0 else { return [] }
+
+        var freshSamples: [pid_t: CpuUsageSample] = [:]
+        freshSamples.reserveCapacity(written)
+        var entries: [(name: String, pct: Double)] = []
+
+        for index in 0..<written {
+            let pid = pids[index]
+            guard pid > 0 else { continue }
+            var info = rusage_info_current()
+            let status = withUnsafeMutablePointer(to: &info) {
+                $0.withMemoryRebound(to: rusage_info_t.self, capacity: 1) {
+                    proc_pid_rusage(pid, RUSAGE_INFO_CURRENT, $0)
+                }
+            }
+            guard status == 0 else { continue }
+            let totalNs = info.ri_user_time &+ info.ri_system_time
+            freshSamples[pid] = CpuUsageSample(cpuNs: totalNs, at: now)
+
+            guard let previous = cpuSamples[pid] else { continue }
+            let deltaWall = now - previous.at
+            // First observation, or monitoring resumed after a long pause — no valid
+            // delta yet; this pass just seeds the baseline.
+            guard deltaWall > 0.5, deltaWall < 10 else { continue }
+            let deltaCpu = Double(totalNs &- previous.cpuNs) / 1_000_000_000.0
+            let pct = max(0.0, (deltaCpu / deltaWall) * 100.0)
+            guard pct > 0.05 else { continue }
+
+            var nameBuffer = [CChar](repeating: 0, count: 2048)
+            proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
+            let name = String(cString: nameBuffer)
+            guard !name.isEmpty else { continue }
+            entries.append((name: name, pct: pct))
+        }
+
+        cpuSamples = freshSamples
+
+        return entries
+            .sorted { $0.pct > $1.pct }
+            .prefix(limit)
+            .map { MonitorProcessItem(name: $0.name, value: String(format: "%.1f%%", $0.pct)) }
     }
 
     private func fetchProcessesSorted(by sortFlag: String, limit: Int, valueFor: (_ cpu: Double, _ rssMB: Double) -> String?) -> [MonitorProcessItem] {
