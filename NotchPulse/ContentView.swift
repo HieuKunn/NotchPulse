@@ -320,6 +320,8 @@ struct ContentView: View {
                                     .padding(.horizontal, topCornerRadius)
                             }
                     }
+                    .animation(animationSpring, value: vm.notchSize)
+                    .animation(animationSpring, value: vm.notchState)
                     .shadow(
                         color: isDynamicIsland
                             ? .black.opacity(0.65)
@@ -640,6 +642,7 @@ struct ContentView: View {
                             .id(NotchViews.clipboard)
                     }
                 }
+                .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
                 .animation(.spring(response: 0.25, dampingFraction: 0.85), value: coordinator.currentView)
                 .zIndex(1)
@@ -647,6 +650,7 @@ struct ContentView: View {
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
             }
         }
+        .padding(.bottom, 8)
         .conditionalModifier(vm.notchState == .open) { view in
             view.onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
         }
