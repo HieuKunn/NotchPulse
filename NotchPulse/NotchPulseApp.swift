@@ -492,8 +492,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             rootView: ContentView()
                 .environmentObject(viewModel)
         )
-        hostingView.wantsLayer = true
-        hostingView.layer?.drawsAsynchronously = true
         window.contentView = hostingView
 
         window.orderFrontRegardless()
@@ -892,6 +890,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor func screenConfigurationDidChange() {
         NSScreenUUIDCache.shared.rebuildCache()
+        NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
         let currentScreens = NSScreen.screens
 
         let screensChanged =

@@ -135,11 +135,25 @@ final class NotchPulseLockMonitor {
         eventCount += 1
     }
 
+    /// Cached authoritative lock state, refreshed at most once per 250ms.
+    /// `isScreenActuallyLocked()` is read from SwiftUI `body` (ContentView checks it
+    /// dozens of times per evaluation), and `CGSessionCopyCurrentDictionary()` is a
+    /// window-server round trip — calling it per read stalls frame pacing during
+    /// the notch's spring animation.
+    private static let cacheLock = NSLock()
+    nonisolated(unsafe) private static var cachedLockState: Bool = false
+    nonisolated(unsafe) private static var cachedLockTimestamp: TimeInterval = -10
+
     /// Authoritative lock state from the CoreGraphics session server, not a spoofable notification. Fails closed if unavailable.
     nonisolated static func isScreenActuallyLocked() -> Bool {
-        guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
-            return false
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - cachedLockTimestamp > 0.25 {
+            let dict = CGSessionCopyCurrentDictionary() as? [String: Any]
+            cachedLockState = (dict?["CGSSessionScreenIsLocked"] as? Bool) ?? false
+            cachedLockTimestamp = now
         }
-        return (dict["CGSSessionScreenIsLocked"] as? Bool) ?? false
+        return cachedLockState
     }
 }

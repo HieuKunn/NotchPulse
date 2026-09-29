@@ -218,8 +218,10 @@ struct FaceIDOverlayGeometry {
     /// display, falling back to NotchPulse's active display or physical notch display.
     @MainActor
     static func preferredScreen() -> NSScreen? {
-        let activeDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-        if let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: activeDevice) {
+        // Cached camera→screen UUID lookup: this runs per animation frame while the
+        // overlay is visible, and the uncached camera scan stalls the main thread.
+        if let camUUID = NotchPulseCameraDeviceCatalog.cachedTargetScreenUUID(),
+           let camScreen = NSScreen.screen(withUUID: camUUID) {
             return camScreen
         }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,

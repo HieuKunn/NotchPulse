@@ -215,13 +215,22 @@ final class NotchPulseFaceIDSettings {
     /// Device `uniqueID`s, not device objects — devices can disconnect/
     /// reconnect between launches, but their unique ID is stable.
     var defaultCameraID: String? {
-        didSet { defaults.set(defaultCameraID, forKey: Key.defaultCameraID) }
+        didSet {
+            defaults.set(defaultCameraID, forKey: Key.defaultCameraID)
+            NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
+        }
     }
     var builtInDisplayCameraID: String? {
-        didSet { defaults.set(builtInDisplayCameraID, forKey: Key.builtInDisplayCameraID) }
+        didSet {
+            defaults.set(builtInDisplayCameraID, forKey: Key.builtInDisplayCameraID)
+            NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
+        }
     }
     var externalDisplayCameraID: String? {
-        didSet { defaults.set(externalDisplayCameraID, forKey: Key.externalDisplayCameraID) }
+        didSet {
+            defaults.set(externalDisplayCameraID, forKey: Key.externalDisplayCameraID)
+            NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
+        }
     }
 
     /// Gates first-run onboarding — `AppDelegate` shows it instead of the

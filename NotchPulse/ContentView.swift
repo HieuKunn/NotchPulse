@@ -61,9 +61,7 @@ struct ContentView: View {
 
     private var isFaceIDActive: Bool {
         if faceIDOverlay.isPresenting || faceIDOverlay.phase != .closed {
-            let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-            if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-               let targetUUID = targetScreen.displayUUID {
+            if let targetUUID = NotchPulseCameraDeviceCatalog.cachedTargetScreenUUID() {
                 let currentUUID = vm.screenUUID ?? currentScreen?.displayUUID ?? coordinator.selectedScreenUUID
                 return currentUUID == targetUUID
             }
@@ -276,7 +274,13 @@ struct ContentView: View {
         if vm.notchState == .closed && vm.hideOnClosed {
             return 0
         }
-        return vm.notchSize.width
+        // Closed: bind the silhouette to the live chin width (inline HUD / music live
+        // activity / face) so it grows with content. Open: notchSize wins and chin width
+        // is always smaller, so max() stays continuous — no interpolation jumps.
+        if vm.notchState == .closed {
+            return computedChinWidth
+        }
+        return max(vm.notchSize.width, computedChinWidth)
     }
     private var currentNotchHeight: CGFloat {
         if isFaceIDActive {
@@ -348,6 +352,16 @@ struct ContentView: View {
                         .bottom,
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
                     )
+                    // Canonical value-scoped springs (mirrors boring.notch baseline).
+                    // Re-applying the animation on EVERY commit where the tracked value
+                    // changes keeps the spring alive even when unrelated state changes
+                    // flush a non-animated transaction mid-flight — without these, the
+                    // notch/FaceID panel snaps open instantly instead of easing frame by frame.
+                    .animation(vm.notchState == .open ? animationSpring : NotchPulseViewModel.notchCloseSpring, value: vm.notchState)
+                    .animation(.smooth(duration: 0.35), value: coordinator.sneakPeek.show)
+                    .animation(.smooth(duration: 0.35), value: coordinator.expandingView.show)
+                    .animation(faceIDAnimation, value: faceIDOverlay.phase)
+                    .animation(.smooth, value: gestureProgress)
                 
                 applyHitShape(mainLayout)
                     .onHover { hovering in
@@ -512,6 +526,7 @@ struct ContentView: View {
             y: gestureScale,
             anchor: .top
         )
+        .animation(.smooth, value: gestureProgress)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
         .onChange(of: vm.isHoveringFromRadar) { _, isRadarHovering in

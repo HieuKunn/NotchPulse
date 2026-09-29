@@ -1000,10 +1000,14 @@ final class SpotlightTourManager: ObservableObject {
         }
         CalendarStateViewModel.shared.isFullMonthExpanded = isFullMonth
 
-        // 2. In subsequent steps, only update custom open height if the notch is active
+        // 2. In subsequent steps, only update custom open height if the notch is active.
+        // Animated: customOpenHeight drives currentNotchHeight in ContentView, and an
+        // unanimated commit here makes the notch snap to the new height between steps.
         if step != .notchHover {
             for vm in allVMs {
-                vm.customOpenHeight = customHeight
+                withAnimation(NotchPulseViewModel.notchSpring) {
+                    vm.customOpenHeight = customHeight
+                }
             }
         }
 

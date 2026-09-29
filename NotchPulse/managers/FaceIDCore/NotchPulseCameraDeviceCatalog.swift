@@ -53,6 +53,30 @@ enum NotchPulseCameraDeviceCatalog {
             ?? AVCaptureDevice.default(for: .video)
     }
 
+    /// Cached camera→screen UUID, invalidated when displays change.
+    /// `targetScreen(for:)` is called from `ContentView.isFaceIDActive` on EVERY body
+    /// evaluation, and the camera scan + screen matching is far too expensive to run
+    /// per frame — it stalls the main thread during the notch's spring animation.
+    @MainActor
+    private static var cachedTargetScreenUUID: String?? = nil
+
+    /// Cheap cached accessor for view-body use: returns the camera screen's display UUID
+    /// (nil if unknown), re-resolving only when displays change or the first time.
+    @MainActor
+    static func cachedTargetScreenUUID() -> String? {
+        if let cached = cachedTargetScreenUUID { return cached }
+        let resolved = targetScreen(for: resolvedDevice())?.displayUUID
+        cachedTargetScreenUUID = .some(resolved)
+        return resolved
+    }
+
+    /// Invalidate the camera-screen cache — call on display connect/disconnect and
+    /// whenever the user changes the camera preference.
+    @MainActor
+    static func invalidateTargetScreenCache() {
+        cachedTargetScreenUUID = nil
+    }
+
     /// Finds which screen physically corresponds to the camera being used for Face ID
     @MainActor
     static func targetScreen(for device: AVCaptureDevice?) -> NSScreen? {
