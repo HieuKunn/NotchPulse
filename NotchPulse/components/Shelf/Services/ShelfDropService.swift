@@ -41,16 +41,11 @@ struct ShelfDropService {
             return nil
         }
 
-        // File promises (browser downloads, Mail attachments, some Dock sources) carry
-        // no direct file URL — the payload must be materialized first. In-place
-        // resolution keeps the ORIGINAL file (e.g. still inside ~/Downloads) so dragging
-        // it out of the shelf later behaves exactly like dragging the Finder file.
-        if let promisedURL = await provider.extractInPlaceFilePromise() {
-            if let bookmark = createBookmark(for: promisedURL) {
-                return await ShelfItem(kind: .file(bookmark: bookmark), isTemporary: false)
-            }
-        }
-        
+        // NOTE: Pure file-promise drags (some Dock-stack sources) are NOT additionally
+        // materialized here — an attempt to add loadInPlaceFileRepresentation failed to
+        // compile against the deployment SDK and was reverted. Sources exposing real
+        // file URLs (Finder, Desktop, most Dock stacks) are fully supported above.
+
         if let text = await provider.extractText() {
             return await ShelfItem(kind: .text(string: text), isTemporary: false)
         }
