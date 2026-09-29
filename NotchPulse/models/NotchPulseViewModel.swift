@@ -245,6 +245,9 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     func open(fromWidth: CGFloat? = nil) {
         guard notchState != .open else { return }
+        let initialClosedSize = getClosedNotchSize(screenUUID: self.screenUUID)
+        let startingWidth = fromWidth ?? self.notchSize.width
+        self.notchSize = CGSize(width: startingWidth, height: initialClosedSize.height)
         withAnimation(Self.notchSpring) {
             self.notchSize = openNotchSize
             self.notchState = .open

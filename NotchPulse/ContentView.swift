@@ -64,7 +64,8 @@ struct ContentView: View {
             let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
             if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
                let targetUUID = targetScreen.displayUUID {
-                return vm.screenUUID == targetUUID
+                let currentUUID = vm.screenUUID ?? currentScreen?.displayUUID ?? coordinator.selectedScreenUUID
+                return currentUUID == targetUUID
             }
             return true
         }
@@ -275,10 +276,7 @@ struct ContentView: View {
         if vm.notchState == .closed && vm.hideOnClosed {
             return 0
         }
-        if vm.notchState == .closed {
-            return computedChinWidth
-        }
-        return max(vm.notchSize.width, computedChinWidth)
+        return vm.notchSize.width
     }
     private var currentNotchHeight: CGFloat {
         if isFaceIDActive {
