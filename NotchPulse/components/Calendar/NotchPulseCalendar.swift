@@ -860,7 +860,7 @@ struct CalendarView: View {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 if expanded {
                     mode = .dayDetail
-                    vm.customOpenHeight = 270
+                    vm.customOpenHeight = 285
                 } else if mode == .fullMonth || mode == .dayDetail {
                     mode = .normal
                     vm.customOpenHeight = nil
@@ -1055,9 +1055,13 @@ struct CalendarView: View {
     private func enterFullMonth() {
         displayedDate = selectedDate
         CalendarStateViewModel.shared.isPinned = true
+        CalendarStateViewModel.shared.isFullMonthExpanded = true
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             mode = .dayDetail
-            vm.customOpenHeight = 270
+            vm.customOpenHeight = 285
+        }
+        if SpotlightTourManager.shared.isActive && SpotlightTourManager.shared.currentStep == .calendarExpand {
+            SpotlightTourManager.shared.nextStep()
         }
         Task { @MainActor in
             await calendarManager.updateCurrentDate(selectedDate)

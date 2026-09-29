@@ -234,15 +234,21 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         return position.y >= (baseY - 10) && position.y <= frame.maxY && position.x >= baseX && position.x <= baseX + currentWidth
     }
 
+    // MARK: - Canonical Notch Animation
+    public static let notchSpring = Animation.spring(response: 0.36, dampingFraction: 0.82, blendDuration: 0)
+
     func open() {
-        withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+        guard notchState != .open else { return }
+        withAnimation(Self.notchSpring) {
             self.notchSize = openNotchSize
             self.notchState = .open
         }
         
         MusicManager.shared.isUIActive = true
-        // Force music information update when notch is opened
-        MusicManager.shared.forceUpdate()
+        // Fetch music state asynchronously so it does not stall the initial 120Hz opening frame
+        Task { @MainActor in
+            MusicManager.shared.forceUpdate()
+        }
 
         // Rule: Only 1 notch open at any time across all displays!
         NotificationCenter.default.post(name: .notchDidOpen, object: self)
@@ -254,7 +260,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         if !force && (SharingStateManager.shared.preventNotchClose || SpotlightTourManager.shared.isActive) {
             return
         }
-        withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+        guard force || notchState != .closed else { return }
+        withAnimation(Self.notchSpring) {
             self.notchSize = getClosedNotchSize(screenUUID: self.screenUUID)
             self.closedNotchSize = self.notchSize
             self.notchState = .closed

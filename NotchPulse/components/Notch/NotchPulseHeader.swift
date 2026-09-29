@@ -25,7 +25,6 @@ struct NotchPulseHeader: View {
             .padding(.leading, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(vm.notchState == .closed ? 0 : 1)
-            .blur(radius: vm.notchState == .closed ? 20 : 0)
             .zIndex(2)
 
             if vm.notchState == .open {
@@ -44,9 +43,7 @@ struct NotchPulseHeader: View {
                         .frame(width: vm.closedNotchSize.width)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                vm.close()
-                            }
+                            vm.close()
                         }
                 }
             }
@@ -102,7 +99,6 @@ struct NotchPulseHeader: View {
             .padding(.trailing, 12)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .opacity(vm.notchState == .closed ? 0 : 1)
-            .blur(radius: vm.notchState == .closed ? 20 : 0)
             .zIndex(2)
         }
         .foregroundColor(.gray)

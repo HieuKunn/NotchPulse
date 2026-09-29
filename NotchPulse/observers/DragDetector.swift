@@ -27,7 +27,7 @@ final class DragDetector {
     private var mouseMonitor: Any?
     private var localMouseMonitor: Any?
 
-    private var lastConsumedPasteboardCount: Int = -1
+    private static var globalLastConsumedPasteboardCount: Int = -1
     private var lastKnownIdlePasteboardCount: Int = -1
     private var mouseDownPasteboardCount: Int?
     private var dragStartLocation: CGPoint?
@@ -58,7 +58,9 @@ final class DragDetector {
     init(regionProvider: @escaping () -> CGRect, screenFrameProvider: (() -> CGRect?)? = nil) {
         self.regionProvider = regionProvider
         self.screenFrameProvider = screenFrameProvider
-        self.lastConsumedPasteboardCount = dragPasteboard.changeCount
+        if Self.globalLastConsumedPasteboardCount < 0 {
+            Self.globalLastConsumedPasteboardCount = dragPasteboard.changeCount
+        }
     }
 
     // MARK: - Private Helpers
@@ -70,6 +72,15 @@ final class DragDetector {
                CGEventSource.buttonState(.hidSystemState, button: .left)
     }
 
+    /// Determines if a drag-and-drop session is active and fresh (not stale leftover pasteboard content from an earlier operation).
+    private func isPasteboardSessionActive() -> Bool {
+        let currentPbCount = dragPasteboard.changeCount
+        let isFresh = (Self.globalLastConsumedPasteboardCount < 0) ||
+                      (currentPbCount != Self.globalLastConsumedPasteboardCount) ||
+                      (mouseDownPasteboardCount != nil && currentPbCount != mouseDownPasteboardCount)
+        return isFresh
+    }
+
     /// Checks if the drag pasteboard contains actual file, folder, image, or droppable items (strictly excluding tabs and app windows).
     private func hasValidDragContent() -> Bool {
         guard let types = dragPasteboard.types, !types.isEmpty else {
@@ -77,26 +88,36 @@ final class DragDetector {
         }
 
         // 1. Blacklist browser tabs, window dragging, and app UI elements
+        let tabAndWindowKeywords = [
+            "window-drag",
+            "windowdrag",
+            ".tab",
+            "tab-drag"
+        ]
         let tabAndWindowTypes: Set<String> = [
             "org.chromium.drag-type.tab",
-            "com.google.Chrome.tab",
-            "company.thebrowser.Arc.tab",
-            "com.apple.Safari.tab",
-            "com.apple.Safari.tab-drag",
+            "com.google.chrome.tab",
+            "company.thebrowser.arc.tab",
+            "com.apple.safari.tab",
+            "com.apple.safari.tab-drag",
             "application/x-moz-tabbrowser-tab",
             "com.apple.tab-drag",
             "com.apple.window-drag",
-            "com.apple.NSWindow.drag"
+            "com.apple.nswindow.drag",
+            "com.apple.dock.windowdrag"
         ]
         for type in types {
-            let raw = type.rawValue
-            if tabAndWindowTypes.contains(raw) || raw.contains(".tab") || raw.contains("tab-drag") || raw.contains("window-drag") {
+            let raw = type.rawValue.lowercased()
+            if tabAndWindowTypes.contains(raw) || tabAndWindowKeywords.contains(where: { raw.contains($0) }) {
                 return false
             }
         }
 
         // 2. High-priority check: Can the pasteboard provide actual file:// URLs?
         if dragPasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) {
+            return true
+        }
+        if dragPasteboard.canReadObject(forClasses: [NSURL.self], options: nil) {
             return true
         }
 
@@ -120,15 +141,17 @@ final class DragDetector {
             NSPasteboard.PasteboardType.fileURL.rawValue,   // file://… URLs ("public.file-url")
             "public.file-url",
             "com.apple.finder.node",                       // Finder items (files, folders)
-            "NSFilenamesPboardType",                       // legacy Finder drag
+            "com.apple.cocoa.pasteboard.findernode",
+            "NSFilenamesPboardType",                       // legacy Finder drag and Dock stacks
             "com.apple.dock.item",                         // macOS Dock stack items (Downloads, etc.)
             "com.apple.dock.drag-item",
+            "com.apple.dock.stack",
             "com.apple.mac.install-source-container",      // .pkg, .dmg installer drags
-            "com.apple.cocoa.pasteboard.findernode",
             "public.folder",
             "public.directory",
             "public.item",
             "public.data",
+            "public.content",
             "public.image",                                // Any image dragged from browser/photos
             "public.png",
             "public.jpeg",
@@ -138,7 +161,8 @@ final class DragDetector {
         for type in types {
             let raw = type.rawValue
             if recognizedTypes.contains(raw) { return true }
-            if raw.hasPrefix("dyn.") && (raw.contains("file") || raw.contains("finder") || raw.contains("dock") || raw.contains("image") || raw.contains("item")) {
+            let lower = raw.lowercased()
+            if lower.contains("file") || lower.contains("finder") || lower.contains("dock") || lower.contains("image") {
                 return true
             }
         }
@@ -146,7 +170,25 @@ final class DragDetector {
         // 5. UTType conformance check
         for type in types {
             if let ut = UTType(type.rawValue) {
-                if ut.conforms(to: .fileURL) || ut.conforms(to: .image) {
+                if ut.conforms(to: .fileURL) || ut.conforms(to: .folder) || ut.conforms(to: .directory) || ut.conforms(to: .image) || ut.conforms(to: .archive) {
+                    return true
+                }
+            }
+        }
+
+        // 6. Pasteboard items inspection
+        if let items = dragPasteboard.pasteboardItems {
+            for item in items {
+                if item.string(forType: .fileURL) != nil {
+                    return true
+                }
+                if item.propertyList(forType: NSPasteboard.PasteboardType("NSFilenamesPboardType")) != nil {
+                    return true
+                }
+                if item.types.contains(where: {
+                    let r = $0.rawValue.lowercased()
+                    return r.contains("file") || r.contains("dock") || r.contains("finder")
+                }) {
                     return true
                 }
             }
@@ -188,9 +230,6 @@ final class DragDetector {
     }
 
     private func checkShakeGesture(currentPoint: CGPoint, currentTime: TimeInterval) {
-        // ONLY detect shake-to-shelf when ACTUALLY dragging droppable content!
-        guard isContentDragging else { return }
-
         // Rule: Shake must ONLY trigger on the display where the cursor actually is (in multi-display mode)!
         if let screenFrame = screenFrameProvider?() {
             guard screenFrame.insetBy(dx: -20, dy: -20).contains(currentPoint) else { return }
@@ -201,27 +240,54 @@ final class DragDetector {
 
         recentSamples.append(MouseSample(x: currentPoint.x, y: currentPoint.y, time: currentTime))
 
-        // Keep samples from the last 1.8s (natural fast continuous shake)
-        let cutoff = currentTime - 1.8
+        // Keep samples from the last 0.75s (fast intentional shake only, prevents casual left-right browsing from triggering)
+        let cutoff = currentTime - 0.75
         recentSamples.removeAll { $0.time < cutoff }
 
-        guard recentSamples.count >= 4 else { return }
+        guard recentSamples.count >= 5 else { return }
 
-        // Require at least 12pt per swing
+        // Require at least 16pt per swing to rule out slight jitter or minor curves
         let xs = recentSamples.map { $0.x }
-        let ys = recentSamples.map { $0.y }
-        let minSwing: CGFloat = 12.0
+        let minSwing: CGFloat = 16.0
 
         let revX = countAxisReversals(values: xs, minSwing: minSwing)
-        let revY = countAxisReversals(values: ys, minSwing: minSwing)
-        let maxReversals = max(revX, revY)
 
-        // Require 3 direction reversals (4 fast continuous strokes: L→R→L→R or R→L→R→L)
-        if maxReversals >= 3 {
-            lastShakeTriggerTime = currentTime
-            recentSamples.removeAll()
-            onShakeDetected?()
+        // Require at least 3 horizontal direction reversals (4 fast continuous strokes: L⇄R⇄L⇄R)
+        guard revX >= 3 else { return }
+
+        // Velocity & duration check:
+        // Ensure the reversals happened rapidly enough (minimum horizontal speed)
+        guard let firstSample = recentSamples.first else { return }
+        let elapsed = currentTime - firstSample.time
+        guard elapsed >= 0.18 && elapsed <= 0.75 else { return }
+
+        var totalXTravel: CGFloat = 0
+        for i in 1..<recentSamples.count {
+            totalXTravel += abs(recentSamples[i].x - recentSamples[i-1].x)
         }
+        let horizontalSpeed = totalXTravel / CGFloat(elapsed)
+        // User must shake at a brisk speed (>= 180 pt/s) to distinguish from casual mouse movement
+        guard horizontalSpeed >= 180.0 else { return }
+
+        // Check if this is an actual file/folder/droppable item drag!
+        // Reject window dragging, browser tabs, text selection, and stale pasteboards.
+        guard isPasteboardSessionActive() && hasValidDragContent() else {
+            // Not a valid file/folder drag! Clear samples so it doesn't fire for non-files.
+            recentSamples.removeAll()
+            return
+        }
+
+        lastShakeTriggerTime = currentTime
+        recentSamples.removeAll()
+        isContentDragging = true
+
+        // Disengage hover radar so radar doesn't fight shelf open
+        if isHoveringFromRadar {
+            isHoveringFromRadar = false
+            onGlobalHoverStateChanged?(false)
+        }
+
+        onShakeDetected?()
     }
 
     private func countAxisReversals(values: [CGFloat], minSwing: CGFloat) -> Int {
@@ -277,12 +343,12 @@ final class DragDetector {
             if isContentDragging {
                 isContentDragging = false
                 // Mark this pasteboard session as consumed so old content on drag pasteboard doesn't trigger on text select
-                lastConsumedPasteboardCount = currentPbCount
+                Self.globalLastConsumedPasteboardCount = currentPbCount
                 onDragEnded?()
             }
 
-            // Hover radar: Only runs when extended hover area is explicitly enabled
-            let shouldRunHoverRadar = Defaults[.extendHoverArea]
+            // Hover radar: Runs whenever open-on-hover or extended hover area is enabled
+            let shouldRunHoverRadar = Defaults[.openNotchOnHover] || Defaults[.extendHoverArea]
             if shouldRunHoverRadar {
                 let mouseLocation = NSEvent.mouseLocation
                 let hoverRegion = regionProvider()
@@ -322,18 +388,17 @@ final class DragDetector {
         // 6 points is sufficient to distinguish an intentional drag from a static click
         let hasMovedSufficiently = dragDistance >= 6.0
 
-        // Detect if active drag session:
-        // Pasteboard has fresh unconsumed content with valid drag content AND mouse moved >= 6pt
-        let isFreshPasteboard = (lastConsumedPasteboardCount < 0) || (currentPbCount != lastConsumedPasteboardCount)
-        let isNewDragOperation = isFreshPasteboard && hasValidDragContent() && hasMovedSufficiently
+        if hasMovedSufficiently {
+            // Continuously collect shake samples while mouse is dragged!
+            // When 4 strokes are detected, checkShakeGesture verifies whether this is an active file/folder drag.
+            checkShakeGesture(currentPoint: mouseLocation, currentTime: now)
+        }
 
-        if isContentDragging || isNewDragOperation {
+        let isActivelyDraggingPayload = isPasteboardSessionActive() && hasValidDragContent() && hasMovedSufficiently
+
+        if isContentDragging || isActivelyDraggingPayload {
             isContentDragging = true
             onDragMove?(mouseLocation)
-
-            // ONLY detect shake-to-shelf when ACTUALLY dragging a file or droppable content!
-            // No proximity/hover drag tracking — shelf only opens on deliberate left-right shake!
-            checkShakeGesture(currentPoint: mouseLocation, currentTime: now)
 
             // While actively dragging files, disengage hover radar
             if isHoveringFromRadar {
@@ -373,7 +438,7 @@ final class DragDetector {
         recentSamples.removeAll()
         dragStartLocation = nil
         mouseDownPasteboardCount = nil
-        lastConsumedPasteboardCount = dragPasteboard.changeCount
+        Self.globalLastConsumedPasteboardCount = dragPasteboard.changeCount
     }
 
     deinit {

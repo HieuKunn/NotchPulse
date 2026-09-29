@@ -43,8 +43,8 @@ struct ContentView: View {
     @Default(.expandedDragDetection) var expandedDragDetection: Bool
     @Default(.dragDetectionPadding) var dragDetectionPadding: Double
 
-    // Shared interactive spring for movement/resizing to avoid conflicting animations
-    private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+    // Shared canonical spring for movement/resizing
+    private var animationSpring: Animation { NotchPulseViewModel.notchSpring }
     private let openAnimation = Animation.spring(response: FaceIDOverlayGeometry.openSpringResponse, dampingFraction: FaceIDOverlayGeometry.openSpringDamping, blendDuration: 0)
     private let closeAnimation = Animation.spring(response: FaceIDOverlayGeometry.closeSpringResponse, dampingFraction: FaceIDOverlayGeometry.closeSpringDamping, blendDuration: 0)
     private var faceIDAnimation: Animation {
@@ -344,15 +344,9 @@ struct ContentView: View {
                         vm.effectiveClosedNotchHeight == 0 ? 10 : 0
                     )
                 
-                mainLayout
+                applyHitShape(mainLayout)
                     .conditionalModifier(true) { view in
                         return view
-                            .animation(animationSpring, value: vm.notchState)
-                            .animation(animationSpring, value: currentNotchWidth)
-                            .animation(animationSpring, value: currentNotchHeight)
-                            .animation(animationSpring, value: islandRadius)
-                            .animation(animationSpring, value: topCornerRadius)
-                            .animation(animationSpring, value: bottomCornerRadius)
                             .animation(faceIDAnimation, value: isFaceIDActive)
                             .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
@@ -366,22 +360,18 @@ struct ContentView: View {
                             return
                         }
 
-                        // Ignore standard view-based hover only if extendHoverArea radar is active to prevent conflicts
-                        if Defaults[.extendHoverArea] { return }
-
                         handleHover(hovering)
                     }
                     .conditionalModifier(!isFaceIDContentActive) { view in
-                        applyHitShape(view)
-                            .onTapGesture {
-                                if shouldHandleFaceIDTap() {
-                                    FaceIDOverlayController.shared.activate()
-                                    return
-                                }
-                                if !NotchPulseLockMonitor.isScreenActuallyLocked() && vm.notchState == .closed {
-                                    doOpen()
-                                }
+                        view.onTapGesture {
+                            if shouldHandleFaceIDTap() {
+                                FaceIDOverlayController.shared.activate()
+                                return
                             }
+                            if !NotchPulseLockMonitor.isScreenActuallyLocked() && vm.notchState == .closed {
+                                doOpen()
+                            }
+                        }
                     }
                     .onChange(of: faceIDOverlay.phase) { _, newPhase in
                         if newPhase == .onboarding {
@@ -424,15 +414,11 @@ struct ContentView: View {
                     }
                     .onChange(of: vm.notchState) { _, newState in
                         if newState == .closed && isHovering {
-                            withAnimation {
-                                isHovering = false
-                            }
+                            isHovering = false
                         }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
-                        withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
-                            vm.close()
-                        }
+                        vm.close()
                     }
                     .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screenIsLocked"))) { _ in
                         handleScreenLock()
@@ -870,18 +856,18 @@ struct ContentView: View {
 
     private func handleHover(_ hovering: Bool) {
         if isFaceIDActive || faceIDOverlay.phase != .closed || NotchPulseLockMonitor.isScreenActuallyLocked() { return }
-        hoverTask?.cancel()
         
         if hovering {
+            // If already hovering and open task is active, let it proceed without restart
+            if isHovering { return }
+            
             // If the user is dragging an app window or holding the mouse button down, NEVER open the closed notch on hover
-            let isMouseHeld = (NSEvent.pressedMouseButtons != 0) || CGEventSource.buttonState(.combinedSessionState, button: .left)
+            let isMouseHeld = (NSEvent.pressedMouseButtons != 0)
             if vm.notchState == .closed && isMouseHeld {
                 return
             }
 
-            withAnimation(animationSpring) {
-                isHovering = true
-            }
+            isHovering = true
             
             if vm.notchState == .closed && Defaults[.enableHaptics] {
                 haptics.toggle()
@@ -891,15 +877,19 @@ struct ContentView: View {
                   !coordinator.sneakPeek.show,
                   Defaults[.openNotchOnHover] else { return }
             
+            hoverTask?.cancel()
             hoverTask = Task {
-                try? await Task.sleep(for: .seconds(Defaults[.minimumHoverDuration]))
+                let duration = Defaults[.minimumHoverDuration]
+                if duration > 0 {
+                    try? await Task.sleep(for: .seconds(duration))
+                }
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
-                    let stillPressed = (NSEvent.pressedMouseButtons != 0) || CGEventSource.buttonState(.combinedSessionState, button: .left)
+                    let stillPressed = (NSEvent.pressedMouseButtons != 0)
                     guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
                           self.vm.notchState == .closed,
-                          self.isHovering,
+                          (self.isHovering || self.vm.isHoveringFromRadar),
                           !self.coordinator.sneakPeek.show,
                           !stillPressed else { return }
                     
@@ -907,15 +897,19 @@ struct ContentView: View {
                 }
             }
         } else {
+            // If mouse is still detected in global radar, do not cancel or unhover prematurely
+            if self.vm.isHoveringFromRadar { return }
+            guard isHovering else { return }
+            
+            hoverTask?.cancel()
             hoverTask = Task {
                 try? await Task.sleep(for: .milliseconds(250))
                 guard !Task.isCancelled else { return }
                 guard !SpotlightTourManager.shared.isActive else { return }
                 
                 await MainActor.run {
-                    withAnimation(animationSpring) {
-                        self.isHovering = false
-                    }
+                    if self.vm.isHoveringFromRadar { return }
+                    self.isHovering = false
                     
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
                         self.vm.close()
@@ -932,9 +926,7 @@ struct ContentView: View {
         SharingStateManager.shared.preventNotchClose = false
         ShelfStateViewModel.shared.isPinned = false
         CalendarStateViewModel.shared.isPinned = false
-        withAnimation(animationSpring) {
-            vm.close(force: true)
-        }
+        vm.close(force: true)
     }
 
     // MARK: - Gesture Handling

@@ -355,17 +355,17 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
 
         case .calendarExpand:
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
-            let height: CGFloat = 240
+            let height: CGFloat = 195
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .calendarFullMonth:
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
-            let height: CGFloat = 265
+            let height: CGFloat = 290
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .clipboardManager:
             let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
-            let height: CGFloat = 250
+            let height: CGFloat = 195
             return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
 
         case .faceIDLock:
@@ -374,9 +374,10 @@ enum SpotlightTourStep: Int, CaseIterable, Identifiable {
             return CGRect(x: (screenWidth - width) / 2, y: 0, width: width, height: height)
 
         case .menuBarSettings:
-            let openWidth = CGFloat(Defaults[.notchOpenWidth]) + 20
-            let height: CGFloat = 175
-            return CGRect(x: (screenWidth - openWidth) / 2, y: 0, width: openWidth, height: height)
+            let openWidth = CGFloat(Defaults[.notchOpenWidth])
+            let notchRight = (screenWidth + openWidth) / 2
+            let size: CGFloat = 42
+            return CGRect(x: notchRight - 48, y: 2, width: size, height: size)
         }
     }
 }
@@ -886,7 +887,11 @@ final class SpotlightTourManager: ObservableObject {
         let x = (screenSize.width - cardWidth) / 2
 
         let cutoutBottom: CGFloat
-        if currentCutoutRect != .zero {
+        if step == .menuBarSettings {
+            // For step 8, the notch is open (~190pt tall) while the spotlight cutout highlights only the gear icon (~42pt).
+            // Position the tooltip card cleanly below the open notch.
+            cutoutBottom = 205
+        } else if currentCutoutRect != .zero {
             cutoutBottom = currentCutoutRect.maxY
         } else {
             cutoutBottom = 210
@@ -956,20 +961,20 @@ final class SpotlightTourManager: ObservableObject {
         case .calendarExpand:
             Defaults[.showCalendar] = true
             targetView = .home
-            isFullMonth = true
-            customHeight = 270
+            isFullMonth = false
+            customHeight = nil
 
         case .calendarFullMonth:
             Defaults[.showCalendar] = true
             targetView = .home
             isFullMonth = true
-            customHeight = 270
+            customHeight = 285
 
         case .clipboardManager:
             Defaults[.enableClipboardManager] = true
             targetView = .clipboard
             isFullMonth = false
-            customHeight = 260
+            customHeight = nil
 
         case .faceIDLock:
             targetView = .home
@@ -977,6 +982,7 @@ final class SpotlightTourManager: ObservableObject {
             customHeight = nil
 
         case .menuBarSettings:
+            Defaults[.settingsIconInNotch] = true
             targetView = .home
             isFullMonth = false
             customHeight = nil
@@ -988,15 +994,11 @@ final class SpotlightTourManager: ObservableObject {
         }
         CalendarStateViewModel.shared.isFullMonthExpanded = isFullMonth
 
-        // 2. Open live Notch across all displays and apply target custom open height
-        for vm in allVMs {
-            vm.customOpenHeight = customHeight
-            withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
-                vm.notchSize = openNotchSize
-                vm.open()
+        // 2. In subsequent steps, only update custom open height if the notch is active
+        if step != .notchHover {
+            for vm in allVMs {
+                vm.customOpenHeight = customHeight
             }
-            MusicManager.shared.isUIActive = true
-            MusicManager.shared.forceUpdate()
         }
 
         // 3. Bring Notch windows front so they are visible and interactable
@@ -1028,15 +1030,38 @@ final class SpotlightTourManager: ObservableObject {
         let screenSize = screen.frame.size
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
         let openWidth = max(minNotchWidth, min(maxNotchWidth, CGFloat(Defaults[.notchOpenWidth])))
-        
+
+        if targetVM.notchState == .closed || step == .notchHover {
+            let closedSize = targetVM.closedNotchSize
+            let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+            let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+            let pad: CGFloat = 6
+            let width = closedWidth + pad * 2
+            let height = closedHeight + pad * 2
+            let x = (screenSize.width - width) / 2
+            let topOffset = (isDynamicIsland && screen.safeAreaInsets.top <= 0) ? Defaults[.dynamicIslandTopOffset] : 0
+            let y = isDynamicIsland ? (topOffset - pad) : -10
+            return (CGRect(x: x, y: y, width: width, height: height), isDynamicIsland ? 20 : 12)
+        }
+
+        // STEP 8: Only highlight the Gear icon (settings button) at top-right inside open Notch!
+        if step == .menuBarSettings {
+            let notchRight = (screenSize.width + openWidth) / 2
+            let size: CGFloat = 42
+            let gearX = notchRight - 12 - 30 - 6
+            let topOffset = (isDynamicIsland && screen.safeAreaInsets.top <= 0) ? Defaults[.dynamicIslandTopOffset] : 0
+            let gearY = topOffset + (isDynamicIsland ? 2 : 1)
+            return (CGRect(x: gearX, y: gearY, width: size, height: size), 14)
+        }
+
         // In standard notch mode, ContentView adds horizontal padding: 2 * 19 = 38
         let notchTotalWidth = isDynamicIsland ? openWidth : (openWidth + 38)
         
         let notchContentHeight: CGFloat
         if step == .calendarFullMonth {
-            notchContentHeight = 240
+            notchContentHeight = 285
         } else if step == .clipboardManager {
-            notchContentHeight = 250
+            notchContentHeight = 185
         } else {
             notchContentHeight = targetVM.customOpenHeight ?? openNotchSize.height
         }
@@ -1103,19 +1128,18 @@ final class SpotlightTourManager: ObservableObject {
         coordinator.alwaysShowTabs = false
         coordinator.firstLaunch = false
         coordinator.currentView = .home
+        CalendarStateViewModel.shared.isPinned = false
         CalendarStateViewModel.shared.isFullMonthExpanded = false
         SharingStateManager.shared.preventNotchClose = false
 
-        // Keep the active Notch OPEN after closing tour so user can start using it immediately!
-        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
-        let targetVM: NotchPulseViewModel
-        if let activeUUID = self.activeScreen?.displayUUID,
-           let vm = appDelegate.viewModels[activeUUID] {
-            targetVM = vm
-        } else {
-            targetVM = appDelegate.vm
+        // Automatically tuck and close Notch smoothly on all displays
+        guard let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared else { return }
+        appDelegate.vm.customOpenHeight = nil
+        appDelegate.vm.close()
+
+        for vm in appDelegate.viewModels.values {
+            vm.customOpenHeight = nil
+            vm.close()
         }
-        targetVM.customOpenHeight = nil
-        targetVM.open()
     }
 }

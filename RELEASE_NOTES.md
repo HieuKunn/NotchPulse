@@ -1,20 +1,16 @@
-## 🚀 What's New in NotchPulse v5.0
+## 🚀 What's New in NotchPulse v5.1
 
-### 📋 Clipboard Manager
-- Integrated **Clipboard History** tab directly on the Notch bar.
-- Automatically keeps track of copied text, images, web links, and file items.
-- Supports 1-click copying back to pasteboard, item count badge, and clearing history.
+### 🤝 Smart Shake & File Shelf
+- **Universal Drag Support**: Easily drop files from macOS Dock stacks, downloads fans, Finder folders, and desktop items directly into the Notch Shelf.
+- **Accidental Shake Prevention**: Fine-tuned shake gesture recognition to require intentional, brisk left-and-right shakes, preventing accidental shelf openings while casually moving files across windows.
 
-### 📅 Lunar Calendar Support
-- Native Lunar Calendar date integration inside the Calendar Notch tab.
+### 📅 Interactive Calendar & Full Month View
+- **Seamless Full Month Expansion**: Click directly on the Month & Year header to instantly open the complete 30-day calendar grid with Lunar dates and schedule details.
+- **Optimized Full-Height Display**: Expanded view coverage to comfortably display all dates and upcoming events without cropping.
 
-### 🎧 Bluetooth Headphone Telemetry
-- Automatic detection of connected Bluetooth headphones and AirPods with battery percentage HUD indicator.
+### 📋 Streamlined Clipboard Manager
+- **Refined Shelf Dimensions**: Optimized clipboard card layout to cleanly fit copied items without empty space.
 
-### 🤝 Enhanced Shelf & Drop Zone Highlighting
-- **Isolated Target Stroke**: Hovering files over either AirDrop/QuickShare or the "Drop files here" shelf panel now accurately highlights only the active target zone.
-- Kept smooth Notch expansion during multi-zone file drags.
-
-### ✨ Interactive Spotlight Tour & Localization
-- Comprehensive 9-language support across the Interactive Tour and Settings UI.
-- Automated tab switching to preview features live as you step through the onboarding guide.
+### ✨ Enhanced Onboarding & Controls
+- **Precision Spotlight Highlighting**: The interactive guide now precisely spotlights the Settings gear icon.
+- **Fluid Automatic Transitions**: Completing or closing the onboarding guide automatically tucks the Notch back into its sleek resting state with smooth 120Hz ProMotion animation.

@@ -57,6 +57,7 @@ struct AlbumArtView: View {
             }
             albumArtButton
         }
+        .drawingGroup()
     }
 
     private var albumArtBackground: some View {

@@ -89,7 +89,7 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, 8)
+            .padding(.leading, 14)
             .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
@@ -154,7 +154,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, 8)
+            .padding(.trailing, 14)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -206,26 +206,26 @@ struct InlineHUD: View {
     static func leftColumnWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .brightness:
-            return 130
+            return 138
         case .backlight:
-            return 110
+            return 118
         case .mic:
-            return 75
+            return 82
         case .battery:
-            return 36
+            return 44
         default:
-            return 100
+            return 108
         }
     }
 
     static func rightColumnWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .mic:
-            return 70
+            return 78
         case .battery:
-            return 36
+            return 44
         default:
-            return 105
+            return 112
         }
     }
 
@@ -237,7 +237,7 @@ struct InlineHUD: View {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
-        let padding: CGFloat = isDynamicIsland ? 14 : 16
+        let padding: CGFloat = isDynamicIsland ? 16 : 20
         return left + center + right + padding
     }
 }

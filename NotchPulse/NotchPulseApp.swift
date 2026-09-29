@@ -356,10 +356,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     )
                 } else {
                     let closedSize = currentTargetVM.closedNotchSize
-                    let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
-                    let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
-                    // Confine closed notch hover bounds strictly to the physical notch / island.
-                    // Absolutely no lateral or downward bleeding to prevent false triggers over browser tabs.
+                    let baseWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                    let baseHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                    let closedWidth = baseWidth + (padding * 2)
+                    let closedHeight = baseHeight + padding
+                    // Confine closed notch hover bounds strictly to physical notch / island (extended by padding if active).
                     return CGRect(
                         x: currentFrame.midX - (closedWidth / 2),
                         y: currentFrame.maxY - (closedHeight + topOffset),
@@ -678,30 +679,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] notification in
             guard let self = self else { return }
             let width = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                // Rule: Only 1 notch active at a time! Only preview on the screen containing mouse cursor.
-                let mouseLocation = NSEvent.mouseLocation
-                let activeScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
-                let activeVM: NotchPulseViewModel
-                if Defaults[.showOnAllDisplays], let uuid = activeScreen?.displayUUID, let sub = self.viewModels[uuid] {
-                    activeVM = sub
-                } else {
-                    activeVM = self.vm
-                }
-                activeVM.open()
-                activeVM.notchSize = CGSize(width: width, height: openNotchSize.height)
+            // Rule: Only 1 notch active at a time! Only preview on the screen containing mouse cursor.
+            let mouseLocation = NSEvent.mouseLocation
+            let activeScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
+            let activeVM: NotchPulseViewModel
+            if Defaults[.showOnAllDisplays], let uuid = activeScreen?.displayUUID, let sub = self.viewModels[uuid] {
+                activeVM = sub
+            } else {
+                activeVM = self.vm
             }
+            activeVM.notchSize = CGSize(width: width, height: openNotchSize.height)
+            activeVM.open()
         }
 
         NotificationCenter.default.addObserver(
             forName: Notification.Name.closeNotchPreview, object: nil, queue: .main
         ) { [weak self] _ in
             guard let self = self else { return }
-            withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
-                self.vm.close()
-                for (_, subVm) in self.viewModels {
-                    subVm.close()
-                }
+            self.vm.close()
+            for (_, subVm) in self.viewModels {
+                subVm.close()
             }
         }
 
@@ -1043,18 +1040,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         window.orderOut(nil)
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
-                        self.vm.open()
+                        self.coordinator.currentView = .home
+                        self.vm.customOpenHeight = nil
+                        self.vm.close()
+                        for vm in self.viewModels.values {
+                            vm.customOpenHeight = nil
+                            vm.close()
+                        }
                     },
                     onOpenSettings: {
                         window.orderOut(nil)
                         self.onboardingWindowController = nil
                         self.coordinator.firstLaunch = false
-                        self.vm.open()
+                        self.coordinator.currentView = .home
+                        self.vm.customOpenHeight = nil
+                        self.vm.close()
+                        for vm in self.viewModels.values {
+                            vm.customOpenHeight = nil
+                            vm.close()
+                        }
                         SettingsWindowController.shared.showWindow()
                     }
                 ))
 
-            // Ensure closing the onboarding window keeps the app and notch open
+            // Ensure closing the onboarding window dismisses controller cleanly
             NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification,
                 object: window,
@@ -1063,7 +1072,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self = self else { return }
                 self.onboardingWindowController = nil
                 self.coordinator.firstLaunch = false
-                self.vm.open()
+                self.coordinator.currentView = .home
+                self.vm.customOpenHeight = nil
+                self.vm.close()
+                for vm in self.viewModels.values {
+                    vm.customOpenHeight = nil
+                    vm.close()
+                }
             }
 
             onboardingWindowController = NSWindowController(window: window)
