@@ -235,10 +235,13 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     // MARK: - Canonical Notch Animation
-    public static let notchSpring = Animation.spring(response: 0.36, dampingFraction: 0.82, blendDuration: 0)
+    public static let notchSpring = Animation.spring(response: 0.35, dampingFraction: 0.76, blendDuration: 0)
 
-    func open() {
+    func open(fromWidth: CGFloat? = nil) {
         guard notchState != .open else { return }
+        if let fromWidth = fromWidth, fromWidth > self.notchSize.width {
+            self.notchSize.width = fromWidth
+        }
         withAnimation(Self.notchSpring) {
             self.notchSize = openNotchSize
             self.notchState = .open
@@ -254,16 +257,18 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         NotificationCenter.default.post(name: .notchDidOpen, object: self)
     }
 
-    func close(force: Bool = false) {
+    func close(force: Bool = false, targetClosedWidth: CGFloat? = nil) {
         self.customOpenHeight = nil
         // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen), or during tour
         if !force && (SharingStateManager.shared.preventNotchClose || SpotlightTourManager.shared.isActive) {
             return
         }
         guard force || notchState != .closed else { return }
+        let closed = getClosedNotchSize(screenUUID: self.screenUUID)
+        let targetWidth = targetClosedWidth ?? closed.width
         withAnimation(Self.notchSpring) {
-            self.notchSize = getClosedNotchSize(screenUUID: self.screenUUID)
-            self.closedNotchSize = self.notchSize
+            self.notchSize = CGSize(width: targetWidth, height: closed.height)
+            self.closedNotchSize = closed
             self.notchState = .closed
         }
         self.isBatteryPopoverActive = false
@@ -291,9 +296,14 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             self.webcamManager.stopSession()
         }
 
-        // Reset currentView to .home on close unless user enabled openLastTabByDefault or pinned Shelf (always reset if forced, except when close is prevented or spotlight tour is active)
+        // Reset currentView to .home on close quietly after the collapse completes (350ms),
+        // preventing internal tab-switch animations from clashing with the notch collapse animation
         if !SpotlightTourManager.shared.isActive && !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned)) {
-            coordinator.currentView = .home
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(350))
+                guard let self = self, self.notchState == .closed else { return }
+                self.coordinator.currentView = .home
+            }
         }
     }
 

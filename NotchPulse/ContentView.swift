@@ -200,18 +200,18 @@ struct ContentView: View {
         var chinWidth: CGFloat = defaultClosedWidth
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
-            && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
+            && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
-        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type != .music && (Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery) && vm.notchState == .closed {
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type != .music && (Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery) {
             chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
         // NOTE: ĐẢM BẢO TOÀN BỘ UI CỦA DYNAMIC ISLAND VÀ NOTCH PHẢI GIỐNG HỆT NHAU TRỪ KHI NGƯỜI DÙNG YÊU CẦU SỬA
-        } else if coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
+        } else if coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery {
             chinWidth = max(isDynamicIsland ? 220 : vm.closedNotchSize.width, 220) + gestureProgress
-        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed && !vm.hideOnClosed {
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && !vm.hideOnClosed {
             chinWidth = max(isDynamicIsland ? 260 : (vm.closedNotchSize.width + 40), 260) + gestureProgress
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
-            && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
+            && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
@@ -220,7 +220,7 @@ struct ContentView: View {
             if coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
                 chinWidth = max(chinWidth, (isDynamicIsland ? 440 : 460) + gestureProgress)
             }
-        } else if !coordinator.expandingView.show && vm.notchState == .closed
+        } else if !coordinator.expandingView.show
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
             && !vm.hideOnClosed
         {
@@ -298,9 +298,7 @@ struct ContentView: View {
                         height: currentNotchHeight,
                         alignment: .top
                     )
-                    .conditionalModifier(isFaceIDActive) { view in
-                        view.clipped()
-                    }
+                    .clipped()
                     .background(.black)
                     .conditionalModifier(isDynamicIsland) { view in
                         view
@@ -550,19 +548,22 @@ struct ContentView: View {
                             Group {
                                 if (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) && coordinator.sneakPeek.show && (Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery) && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                     InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
-                                        .transition(.opacity)
+                                        .transition(.opacity.combined(with: .scale(scale: 0.75, anchor: .center)))
                                 } else if !isBottomRowActive && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen]) {
                                     MusicLiveActivity()
                                         .frame(alignment: .center)
-                                        .transition(.opacity)
+                                        .transition(.opacity.combined(with: .scale(scale: 0.75, anchor: .center)))
                                 } else if !isBottomRowActive && !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed && (!NotchPulseLockMonitor.isScreenActuallyLocked() || Defaults[.showOnLockScreen])  {
                                     NotchPulseFaceAnimation()
-                                        .transition(.opacity)
+                                        .transition(.opacity.combined(with: .scale(scale: 0.75, anchor: .center)))
                                 } else if vm.notchState == .open {
                                     NotchPulseHeader()
                                         .frame(height: max(24, vm.effectiveClosedNotchHeight))
                                         .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
-                                        .transition(.opacity)
+                                        .transition(.asymmetric(
+                                            insertion: .opacity.combined(with: .scale(scale: 0.90, anchor: .top)),
+                                            removal: .opacity.combined(with: .scale(scale: 0.84, anchor: .top))
+                                        ))
                                 } else {
                                     Rectangle().fill(.clear).frame(width: (notchStyle == .dynamicIsland) ? 80 : vm.closedNotchSize.width, height: baseClosedHeight)
                                         .transition(.opacity)
@@ -641,7 +642,10 @@ struct ContentView: View {
                     }
                 }
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
-                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.86, anchor: .top)),
+                    removal: .opacity.combined(with: .scale(scale: 0.80, anchor: .top))
+                ))
                 .animation(.spring(response: 0.25, dampingFraction: 0.85), value: coordinator.currentView)
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
@@ -816,8 +820,10 @@ struct ContentView: View {
     }
 
     private func doOpen() {
-        ClipboardManager.shared.checkImmediately()
-        vm.open()
+        vm.open(fromWidth: currentNotchWidth)
+        Task(priority: .utility) {
+            ClipboardManager.shared.checkImmediately()
+        }
     }
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
@@ -897,7 +903,7 @@ struct ContentView: View {
                     self.isHovering = false
                     
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !self.vm.isHoveringFromRadar && !self.vm.dragDetectorTargeting && !self.vm.anyDropZoneTargeting {
-                        self.vm.close()
+                        self.vm.close(targetClosedWidth: self.baseChinWidth)
                     }
                 }
             }
@@ -969,7 +975,7 @@ struct ContentView: View {
             }
             if !SharingStateManager.shared.preventNotchClose && !SpotlightTourManager.shared.isActive { 
                 gestureProgress = .zero
-                vm.close()
+                vm.close(targetClosedWidth: baseChinWidth)
             }
 
             if Defaults[.enableHaptics] {
