@@ -484,7 +484,8 @@ struct NotchHomeView: View {
     var body: some View {
         let targetOpenWidth = max(minNotchWidth, min(maxNotchWidth, CGFloat(notchOpenWidth)))
         mainContent(totalWidth: targetOpenWidth)
-            .frame(width: targetOpenWidth, minHeight: 148, maxHeight: .infinity, alignment: .top)
+            .frame(width: targetOpenWidth)
+            .frame(minHeight: 148, maxHeight: .infinity, alignment: .top)
             .transition(.opacity)
     }
 
