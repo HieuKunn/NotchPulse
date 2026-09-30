@@ -1081,14 +1081,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if onboardingWindowController == nil || onboardingWindowController?.window == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
-                styleMask: [.titled, .closable, .fullSizeContentView],
+                styleMask: (step == .featureTour) ? [.borderless, .fullSizeContentView] : [.titled, .closable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
-            window.center()
-            window.title = "Onboarding"
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
+            if step == .featureTour {
+                window.backgroundColor = .clear
+                window.isOpaque = false
+                window.hasShadow = false
+                if let screen = NSScreen.main {
+                    let width: CGFloat = 360
+                    let height: CGFloat = 160
+                    let yPos = screen.frame.maxY - 250
+                    window.setFrame(NSRect(x: screen.frame.midX - (width/2), y: yPos, width: width, height: height), display: true)
+                }
+            } else {
+                window.center()
+                window.title = "Onboarding"
+                window.titlebarAppearsTransparent = true
+                window.titleVisibility = .hidden
+            }
             window.isRestorable = false
             window.isReleasedWhenClosed = false
             window.identifier = NSUserInterfaceItemIdentifier("OnboardingWindow")

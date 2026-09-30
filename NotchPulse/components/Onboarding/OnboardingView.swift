@@ -24,8 +24,18 @@ private let calendarService = CalendarService()
 
 struct OnboardingView: View {
     @State var step: OnboardingStep = .welcome
+    var isReviewOnly: Bool = false
+    @EnvironmentObject var coordinator: NotchPulseViewCoordinator
+    @EnvironmentObject var vm: NotchPulseViewModel
     let onFinish: () -> Void
     let onOpenSettings: () -> Void
+
+    init(step: OnboardingStep = .welcome, onFinish: @escaping () -> Void, onOpenSettings: @escaping () -> Void) {
+        self._step = State(initialValue: step)
+        self.isReviewOnly = (step == .featureTour)
+        self.onFinish = onFinish
+        self.onOpenSettings = onOpenSettings
+    }
 
     var body: some View {
         ZStack {
@@ -138,9 +148,13 @@ struct OnboardingView: View {
 
             case .featureTour:
                 FeatureTourView(onFinish: {
-                    withAnimation(.easeInOut(duration: 0.6)) {
-                        NotchPulseViewCoordinator.shared.firstLaunch = false
-                        step = .finished
+                    NotchPulseViewCoordinator.shared.firstLaunch = false
+                    if isReviewOnly {
+                        onFinish()
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            step = .finished
+                        }
                     }
                 })
                 .transition(.opacity)
@@ -149,41 +163,43 @@ struct OnboardingView: View {
                 OnboardingFinishView(onFinish: onFinish, onOpenSettings: onOpenSettings)
             }
 
-            VStack {
-                HStack {
-                    Button(action: onFinish) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.secondary.opacity(0.7))
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .help(loc("Close (Notch stays open)"))
-                    .padding(14)
-
-                    Spacer()
-
-                    if step != .finished && step != .welcome {
-                        Button(action: {
-                            NotchPulseViewCoordinator.shared.firstLaunch = false
-                            withAnimation(.easeInOut(duration: 0.4)) {
-                                step = .finished
-                            }
-                        }) {
-                            HStack(spacing: 4) {
-                                Text(loc("Skip All"))
-                                Image(systemName: "forward.fill")
-                            }
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Capsule().fill(Color.primary.opacity(0.08)))
+            if step != .featureTour {
+                VStack {
+                    HStack {
+                        Button(action: onFinish) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.secondary.opacity(0.7))
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .help(loc("Close (Notch stays open)"))
                         .padding(14)
+
+                        Spacer()
+
+                        if step != .finished && step != .welcome {
+                            Button(action: {
+                                NotchPulseViewCoordinator.shared.firstLaunch = false
+                                withAnimation(.easeInOut(duration: 0.4)) {
+                                    step = .finished
+                                }
+                            }) {
+                                HStack(spacing: 4) {
+                                    Text(loc("Skip All"))
+                                    Image(systemName: "forward.fill")
+                                }
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Capsule().fill(Color.primary.opacity(0.08)))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(14)
+                        }
                     }
+                    Spacer()
                 }
-                Spacer()
             }
         }
         .frame(width: step == .featureTour ? nil : 400, height: step == .featureTour ? nil : 600)
