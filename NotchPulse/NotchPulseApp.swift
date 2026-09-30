@@ -135,11 +135,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if isUserInitiatedQuit {
-            cleanupForTermination()
-            return .terminateNow
-        }
-        return .terminateCancel
+        cleanupForTermination()
+        return .terminateNow
     }
 
     @MainActor
@@ -155,7 +152,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     func quitApplication() {
-        guard isUserInitiatedQuit else { return }
+        isUserInitiatedQuit = true
         cleanupForTermination()
         NSApplication.shared.terminate(nil)
     }

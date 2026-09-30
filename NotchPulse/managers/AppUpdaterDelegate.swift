@@ -16,6 +16,9 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, ObservableObject {
     }
 
     func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
-        AppDelegate.shared?.isUserInitiatedQuit = true
+        DispatchQueue.main.async {
+            AppDelegate.shared?.isUserInitiatedQuit = true
+            AppDelegate.shared?.cleanupForTermination()
+        }
     }
 }
