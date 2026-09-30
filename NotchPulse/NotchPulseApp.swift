@@ -1079,23 +1079,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
         if onboardingWindowController == nil || onboardingWindowController?.window == nil {
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
-                styleMask: (step == .featureTour) ? [.borderless, .fullSizeContentView] : [.titled, .closable, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
+            let window: NSWindow
             if step == .featureTour {
+                let screen = NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+                window = NSWindow(
+                    contentRect: screen.frame,
+                    styleMask: [.borderless, .fullSizeContentView],
+                    backing: .buffered,
+                    defer: false
+                )
                 window.backgroundColor = .clear
                 window.isOpaque = false
                 window.hasShadow = false
-                if let screen = NSScreen.main {
-                    let width: CGFloat = 360
-                    let height: CGFloat = 160
-                    let yPos = screen.frame.maxY - 250
-                    window.setFrame(NSRect(x: screen.frame.midX - (width/2), y: yPos, width: width, height: height), display: true)
-                }
+                window.level = .floating
+                window.ignoresMouseEvents = false
+                window.setFrame(screen.frame, display: true)
             } else {
+                window = NSWindow(
+                    contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
+                    styleMask: [.titled, .closable, .fullSizeContentView],
+                    backing: .buffered,
+                    defer: false
+                )
                 window.center()
                 window.title = "Onboarding"
                 window.titlebarAppearsTransparent = true
@@ -1114,9 +1119,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         self.coordinator.firstLaunch = false
                         self.coordinator.currentView = .home
                         self.vm.customOpenHeight = nil
+                        self.vm.featureTourTarget = nil
                         self.vm.close()
                         for vm in self.viewModels.values {
                             vm.customOpenHeight = nil
+                            vm.featureTourTarget = nil
                             vm.close()
                         }
                     },
@@ -1126,9 +1133,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         self.coordinator.firstLaunch = false
                         self.coordinator.currentView = .home
                         self.vm.customOpenHeight = nil
+                        self.vm.featureTourTarget = nil
                         self.vm.close()
                         for vm in self.viewModels.values {
                             vm.customOpenHeight = nil
+                            vm.featureTourTarget = nil
                             vm.close()
                         }
                         SettingsWindowController.shared.showWindow()
@@ -1150,9 +1159,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.coordinator.firstLaunch = false
                 self.coordinator.currentView = .home
                 self.vm.customOpenHeight = nil
+                self.vm.featureTourTarget = nil
                 self.vm.close()
                 for vm in self.viewModels.values {
                     vm.customOpenHeight = nil
+                    vm.featureTourTarget = nil
                     vm.close()
                 }
             }

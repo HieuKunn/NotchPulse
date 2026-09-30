@@ -107,11 +107,11 @@ struct ContentView: View {
         let isDynamicIsland = notchStyle == .dynamicIsland
         let controller = faceIDOverlay
 
-        // When closed or collapsing, target the computed chin width so the notch fluidly pulls up into inline/media content!
+        // When closed or collapsing, target standard closed width and base height first so vertical retraction happens cleanly!
         if controller.phase == .closed || controller.phase == .collapsing {
             let baseHeight = (isDynamicIsland && !hasPhysicalNotch) ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
             return CGSize(
-                width: baseChinWidth,
+                width: vm.closedNotchSize.width,
                 height: baseHeight
             )
         }
@@ -128,7 +128,7 @@ struct ContentView: View {
                 )
             } else {
                 return CGSize(
-                    width: vm.closedNotchSize.width + FaceIDOverlayGeometry.minimalNotchFlankWidth * 2,
+                    width: vm.closedNotchSize.width,
                     height: max(vm.effectiveClosedNotchHeight, FaceIDOverlayGeometry.minimalPillOpenHeight) + FaceIDOverlayGeometry.minimalNotchHeightBump
                 )
             }
@@ -138,7 +138,7 @@ struct ContentView: View {
             return FaceIDOverlayGeometry.pillOpenSize
         } else {
             return CGSize(
-                width: max(vm.closedNotchSize.width, FaceIDOverlayGeometry.notchOpenSize.width + FaceIDOverlayGeometry.openTopRadius * 2),
+                width: vm.closedNotchSize.width,
                 height: FaceIDOverlayGeometry.notchOpenSize.height
             )
         }
@@ -189,6 +189,11 @@ struct ContentView: View {
     }
 
     private var baseChinWidth: CGFloat {
+        // When screen is locked or waking from sleep, strictly stay at physical notch / closed island width without expanding for inline/media
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            return vm.closedNotchSize.width
+        }
+
         let isDynamicIsland = notchStyle == .dynamicIsland
         var chinWidth: CGFloat = vm.closedNotchSize.width // Always match notch width like the user requested
 
@@ -669,7 +674,7 @@ struct ContentView: View {
                     .padding(.horizontal, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 18 : 20)
                     .padding(.top, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 12 : 16)
                     .padding(.bottom, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 14 : 16)
-                    .scaleEffect(1.0)
+                    .scaleEffect(0.80)
             }
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)

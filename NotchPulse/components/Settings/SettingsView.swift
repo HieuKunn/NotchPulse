@@ -638,9 +638,9 @@ struct GeneralSettings: View {
                             .foregroundColor(.white)
                             .font(.system(size: 16))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(loc("Review setup"))
+                            Text(loc("What's New & Feature Tour"))
                                 .font(.system(size: 13, weight: .semibold))
-                            Text(loc("Replay the welcome & permission walkthrough in its own window — the notch stays untouched."))
+                            Text(loc("Interactive Spotlight walkthrough highlighting all Notch features."))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
