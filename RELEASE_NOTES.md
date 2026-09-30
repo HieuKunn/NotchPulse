@@ -1,4 +1,4 @@
-## 🚀 What's New in NotchPulse v5.0 (Build 221)
+## 🚀 What's New in NotchPulse v5.0 
 
 ### 🌊 Buttery-Smooth Notch, Face ID & Onboarding Motion
 - **Spring Animation Restored**: Re-anchored value-scoped `.animation` springs on the notch frame (matching the boring.notch baseline) so open/close always eases frame-by-frame instead of snapping open instantly when other state changes mid-flight.

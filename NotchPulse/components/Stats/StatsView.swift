@@ -177,11 +177,8 @@ struct StatsView: View {
             let ramWidth = ramGpuWidth * 0.60
             // GPU: 40% of 2/3 (= 26.67% of total)
             let gpuWidth = ramGpuWidth * 0.40
-            // The CPU/RAM/GPU cards keep their collapsed-envelope size forever
-            // (openNotchSize.height minus this view's 8pt top + 8pt bottom padding).
-            // The extra height that comes with customOpenHeight=350 belongs entirely
-            // to the per-app list underneath — cards never stretch vertically.
-            let cardRowHeight = openNotchSize.height - 16
+            // Compact card row that fits comfortably within the 148pt content envelope
+            let cardRowHeight: CGFloat = 136
 
             VStack(spacing: 10) {
                 HStack(spacing: spacing) {
@@ -220,8 +217,8 @@ struct StatsView: View {
             .animation(.smooth(duration: 0.25), value: expandedMetric)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 4)
         .onChange(of: expandedMetric) { _, metric in
             // Stretch/shrink the notch height through the same animated
             // customOpenHeight channel the calendar full-month uses.

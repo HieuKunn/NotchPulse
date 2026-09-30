@@ -1107,7 +1107,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
-        if onboardingWindowController == nil {
+        if onboardingWindowController == nil || onboardingWindowController?.window == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
                 styleMask: [.titled, .closable, .fullSizeContentView],

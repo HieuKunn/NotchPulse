@@ -70,8 +70,8 @@ struct FaceIDOverlayGeometry {
     // MARK: - Panel open/close springs matching Glance
     //
     // Shared by both styles. Opening overshoots slightly; closing is critically damped.
-    static let openSpringResponse: Double = 0.45
-    static let openSpringDamping: Double = 0.7
+    static let openSpringResponse: Double = 0.42
+    static let openSpringDamping: Double = 0.80
     static let closeSpringResponse: Double = 0.45
     static let closeSpringDamping: Double = 1.0
 

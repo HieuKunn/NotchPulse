@@ -13,11 +13,11 @@ struct ClipboardNotchView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             // Header
             HStack {
                 Text(loc("Clipboard History"))
-                    .font(.headline)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
                 Spacer()
                 Text("\(clipboardManager.history.count) \(loc("items"))")
@@ -28,13 +28,14 @@ struct ClipboardNotchView: View {
                     clipboardManager.clearHistory()
                 }) {
                     Image(systemName: "trash")
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .disabled(clipboardManager.history.isEmpty)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.horizontal, 2)
+            .padding(.top, 4)
 
             if clipboardManager.history.isEmpty {
                 VStack(spacing: 12) {
@@ -80,6 +81,8 @@ struct ClipboardNotchView: View {
                 }
             }
         }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 4)
         .onHover { isHovering in
             vm.isHoveringClipboard = isHovering
         }

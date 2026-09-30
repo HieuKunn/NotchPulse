@@ -26,8 +26,9 @@ struct ShelfView: View {
                     handleDrop(providers: providers)
                 }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 4)
+        .frame(height: 140)
         .onChange(of: isShelfTargeted) { _, targeted in
             vm.shelfDropTargeting = targeted
         }
@@ -78,7 +79,7 @@ struct ShelfView: View {
             )
             .overlay {
                 content
-                    .padding()
+                    .padding(10)
             }
             .overlay(alignment: .bottomTrailing) {
                 pinButton

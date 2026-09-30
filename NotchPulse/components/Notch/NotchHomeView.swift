@@ -477,8 +477,8 @@ struct NotchHomeView: View {
         let isCameraVisible = shouldShowCamera
         let isCalendarFullPage = isCalendarVisible && vm.customOpenHeight != nil
 
-        // Balanced horizontal margin to prevent corner clipping and match Dynamic Island margins
-        let horizontalPadding: CGFloat = 26
+        // Unified horizontal margin across all tabs
+        let horizontalPadding: CGFloat = 20
         let spacing: CGFloat = 16
         let baseWidth = totalWidth > 0 ? totalWidth : notchOpenWidth
         let availableWidth = max(280, baseWidth - (horizontalPadding * 2))
