@@ -994,11 +994,22 @@ struct HUD: View {
 struct SystemMonitorSettingsView: View {
     @Default(.enableSystemMonitor) var enableSystemMonitor
     @Default(.systemMonitorShowProcesses) var showProcesses
-    @ObservedObject var monitor = SystemMonitorManager.shared
 
     private enum MonitorMetric { case cpu, ram }
     @State private var expandedMetric: MonitorMetric?
     @State private var copiedReport: Bool = false
+
+    private let sampleCpuProcesses = [
+        MonitorProcessItem(name: "WindowServer", value: "6.8%"),
+        MonitorProcessItem(name: "NotchPulse", value: "2.1%"),
+        MonitorProcessItem(name: "Safari", value: "1.4%")
+    ]
+
+    private let sampleRamProcesses = [
+        MonitorProcessItem(name: "Xcode", value: "2.4 GB"),
+        MonitorProcessItem(name: "Safari", value: "1.1 GB"),
+        MonitorProcessItem(name: "WindowServer", value: "480 MB")
+    ]
 
     var body: some View {
         Form {
@@ -1047,7 +1058,7 @@ struct SystemMonitorSettingsView: View {
                             icon: "cpu",
                             tint: .blue,
                             title: loc("CPU"),
-                            value: String(format: "%.0f%%", monitor.cpuTotal),
+                            value: "14%",
                             subtitle: nil,
                             isExpanded: expandedMetric == .cpu,
                             action: { expandedMetric = (expandedMetric == .cpu) ? nil : .cpu }
@@ -1061,8 +1072,8 @@ struct SystemMonitorSettingsView: View {
                             icon: "memorychip",
                             tint: .green,
                             title: loc("RAM"),
-                            value: String(format: "%.1f / %.0f GB", monitor.ramUsedGB, monitor.ramTotalGB),
-                            subtitle: "\(loc("Swap")): \(monitor.swapUsedFormatted)",
+                            value: "8.4 / 16 GB",
+                            subtitle: "\(loc("Swap")): 0 MB",
                             isExpanded: expandedMetric == .ram,
                             action: { expandedMetric = (expandedMetric == .ram) ? nil : .ram }
                         )
@@ -1070,14 +1081,12 @@ struct SystemMonitorSettingsView: View {
 
                         Divider()
 
-                        // Mini GPU — macOS only exposes a SYSTEM-WIDE GPU load to third-party
-                        // apps (per-app GPU data is private), so this tile is informational
-                        // only and does not expand.
+                        // Mini GPU
                         MonitorTileButton(
                             icon: "display",
                             tint: .purple,
                             title: loc("GPU"),
-                            value: String(format: "%.0f%%", monitor.gpuUsage),
+                            value: "18%",
                             subtitle: nil,
                             isExpanded: false,
                             action: {}
@@ -1089,7 +1098,7 @@ struct SystemMonitorSettingsView: View {
                     if showProcesses, expandedMetric == .cpu {
                         MonitorProcessList(
                             title: loc("CPU"), icon: "cpu", tint: .blue,
-                            items: monitor.topCpuProcesses,
+                            items: sampleCpuProcesses,
                             emptyText: loc("No processes using CPU right now")
                         )
                         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1098,7 +1107,7 @@ struct SystemMonitorSettingsView: View {
                     if showProcesses, expandedMetric == .ram {
                         MonitorProcessList(
                             title: loc("RAM"), icon: "memorychip", tint: .green,
-                            items: monitor.topRamProcesses,
+                            items: sampleRamProcesses,
                             emptyText: loc("No processes using memory right now")
                         )
                         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1106,7 +1115,7 @@ struct SystemMonitorSettingsView: View {
                 }
                 .animation(.smooth(duration: 0.22), value: expandedMetric)
             } header: {
-                Text(loc("Live Preview"))
+                Text(loc("Preview"))
             }
             .disabled(!enableSystemMonitor)
 
@@ -1149,11 +1158,7 @@ struct SystemMonitorSettingsView: View {
         .scrollContentBackground(.hidden)
         .hideScrollbar()
         .accentColor(.effectiveAccent)
-        .onAppear {
-            monitor.startMonitoring()
-        }
         .onDisappear {
-            monitor.stopMonitoring()
             expandedMetric = nil
         }
     }
@@ -1561,6 +1566,7 @@ func lighterColor(from nsColor: NSColor, amount: CGFloat = 0.14) -> Color {
 
 struct About: View {
     @State private var showBuildNumber: Bool = false
+    @State private var copiedEmail: Bool = false
     let updaterController: SPUStandardUpdaterController
     @Environment(\.openWindow) var openWindow
     var body: some View {
@@ -1593,6 +1599,44 @@ struct About: View {
                 }
 
                 UpdaterSettingsView(updater: updaterController.updater)
+
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(loc("Report bugs or share feature ideas directly with the creator."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        HStack {
+                            Text("hieukunngauz298@gmail.com")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundColor(.primary)
+                                .textSelection(.enabled)
+                            
+                            Spacer()
+                            
+                            Button {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString("hieukunngauz298@gmail.com", forType: .string)
+                                copiedEmail = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    copiedEmail = false
+                                }
+                            } label: {
+                                Label(
+                                    copiedEmail ? loc("Copied") : loc("Copy Email"),
+                                    systemImage: copiedEmail ? "checkmark.circle.fill" : "doc.on.clipboard"
+                                )
+                                .font(.system(size: 11, weight: .medium))
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                } header: {
+                    Text(loc("Feedback & Feature Requests"))
+                }
 
                 HStack(spacing: 30) {
                     Spacer(minLength: 0)

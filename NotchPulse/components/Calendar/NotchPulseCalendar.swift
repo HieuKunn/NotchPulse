@@ -895,6 +895,9 @@ struct CalendarView: View {
                 mode = .normal
                 CalendarStateViewModel.shared.isPinned = false
                 vm.customOpenHeight = nil
+            } else if CalendarStateViewModel.shared.isFullMonthExpanded {
+                mode = .dayDetail
+                vm.customOpenHeight = 285
             }
             Task {
                 await calendarManager.updateCurrentDate(Date.now)

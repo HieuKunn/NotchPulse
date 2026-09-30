@@ -22,6 +22,7 @@ struct SpotlightCutoutShape: Shape {
     var notchRect: CGRect
     var cornerRadius: CGFloat = 20
     var isDynamicIsland: Bool = false
+    var isFullRounded: Bool = false
     
     var animatableData: AnimatablePair<CGRect.AnimatableData, CGFloat> {
         get { AnimatablePair(notchRect.animatableData, cornerRadius) }
@@ -36,7 +37,7 @@ struct SpotlightCutoutShape: Shape {
         path.addRect(rect)
         
         let cutout: Path
-        if isDynamicIsland {
+        if isFullRounded || isDynamicIsland {
             cutout = Path(roundedRect: notchRect, cornerRadius: cornerRadius)
         } else {
             cutout = Path(
@@ -140,28 +141,37 @@ struct FeatureTourView: View {
             let spotlightHeight = openHeight + 14
             let topOffset: CGFloat = isDynamicIsland ? 12 : 0
             
-            let notchRect = CGRect(
-                x: centerX - (spotlightWidth / 2),
-                y: topOffset,
-                width: spotlightWidth,
-                height: spotlightHeight
-            )
+            let isGearTarget = currentStep.target == "settingsGear"
+            let gearBoxSize: CGFloat = 38
+            let headerInset: CGFloat = isDynamicIsland ? 22 : 22
+            let gearBoxX = centerX + (openWidth / 2) - headerInset - 30
+            let gearBoxY = topOffset + 4
+            
+            let notchRect = isGearTarget
+                ? CGRect(x: gearBoxX, y: gearBoxY, width: gearBoxSize, height: gearBoxSize)
+                : CGRect(x: centerX - (spotlightWidth / 2), y: topOffset, width: spotlightWidth, height: spotlightHeight)
+            
+            let currentCornerRadius: CGFloat = isGearTarget ? 10 : (isDynamicIsland ? 28 : 22)
+            
+            let cardX = isGearTarget ? min(screenWidth - 210, max(210, gearBoxX - 100)) : centerX
+            let cardY = isGearTarget ? (topOffset + openHeight + 14 + 110) : (topOffset + spotlightHeight + 14 + 110)
             
             ZStack(alignment: .top) {
                 // Dimmed background with spotlight cutout
                 SpotlightCutoutShape(
                     notchRect: notchRect,
-                    cornerRadius: isDynamicIsland ? 28 : 22,
-                    isDynamicIsland: isDynamicIsland
+                    cornerRadius: currentCornerRadius,
+                    isDynamicIsland: isDynamicIsland,
+                    isFullRounded: isGearTarget
                 )
                 .fill(Color.black.opacity(0.68), style: FillStyle(eoFill: true))
                 .ignoresSafeArea()
                 
-                // Highlight Clean Border around the open notch area
+                // Highlight Clean Border around the open area
                 Group {
-                    if isDynamicIsland {
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+                    if isGearTarget || isDynamicIsland {
+                        RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
+                            .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
                             .shadow(color: Color.black.opacity(0.4), radius: 10)
                     } else {
                         UnevenRoundedRectangle(
@@ -176,13 +186,13 @@ struct FeatureTourView: View {
                         .shadow(color: Color.black.opacity(0.4), radius: 10)
                     }
                 }
-                .frame(width: spotlightWidth, height: spotlightHeight)
-                .position(x: centerX, y: topOffset + (spotlightHeight / 2))
+                .frame(width: notchRect.width, height: notchRect.height)
+                .position(x: notchRect.midX, y: notchRect.midY)
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: currentStepIndex)
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: openHeight)
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: openWidth)
                 
-                // Small Side / Below Floating Instruction Card
+                // Small Floating Instruction Card
                 VStack(spacing: 0) {
                     // Upward pointer arrow
                     Image(systemName: "arrowtriangle.up.fill")
@@ -196,8 +206,8 @@ struct FeatureTourView: View {
                 }
                 .frame(width: 380)
                 .position(
-                    x: centerX,
-                    y: topOffset + spotlightHeight + 14 + 110
+                    x: cardX,
+                    y: cardY
                 )
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: currentStepIndex)
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: openHeight)
@@ -344,8 +354,10 @@ struct FeatureTourView: View {
             coordinator.currentView = currentStep.viewType
             vm.featureTourTarget = currentStep.target
             if currentStep.target == "calendar" {
+                CalendarStateViewModel.shared.isFullMonthExpanded = true
                 vm.customOpenHeight = 285
             } else {
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
                 vm.customOpenHeight = nil
             }
             vm.open()
@@ -353,6 +365,7 @@ struct FeatureTourView: View {
     }
     
     private func teardownNotch() {
+        CalendarStateViewModel.shared.isFullMonthExpanded = false
         coordinator.currentView = .home
         vm.featureTourTarget = nil
         vm.customOpenHeight = nil
