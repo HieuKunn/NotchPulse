@@ -831,22 +831,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
 
-        let isFirstInstall = coordinator.firstLaunch
-        let isUpdate = isAppUpdated()
-
-        if isFirstInstall {
-            DispatchQueue.main.async {
-                self.showOnboardingWindow()
-            }
-            playWelcomeSound()
-        } else if isUpdate {
-            // App was updated to a new version: spotlight tour can be viewed via Settings
-        } else if MusicManager.shared.isNowPlayingDeprecated
-            && Defaults[.mediaController] == .nowPlaying
-        {
-            DispatchQueue.main.async {
-                self.showOnboardingWindow(step: .musicPermission)
-            }
+        if coordinator.firstLaunch {
+            coordinator.firstLaunch = false
         }
 
         // NotchPulse 2.0: Initialize Face ID & Lock Screen Observer

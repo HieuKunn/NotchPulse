@@ -228,7 +228,7 @@ struct StatsView: View {
         }
         .onChange(of: expandedMetric) { _, metric in
             withAnimation(NotchPulseViewModel.notchSpring) {
-                vm.customOpenHeight = metric == nil ? nil : 288
+                vm.customOpenHeight = metric == nil ? nil : 320
             }
         }
         .onAppear {
