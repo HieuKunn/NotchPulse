@@ -194,7 +194,8 @@ struct StatsView: View {
                     gpuCard
                         .frame(width: gpuWidth, height: cardRowHeight)
                 }
-                .frame(maxWidth: .infinity, height: cardRowHeight)
+                .frame(maxWidth: .infinity)
+                .frame(height: cardRowHeight)
 
                 if showProcesses, expandedMetric == .cpu {
                     StatsProcessList(
