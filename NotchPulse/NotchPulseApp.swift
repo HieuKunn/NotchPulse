@@ -40,7 +40,7 @@ struct DynamicNotchApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("NotchPulse", systemImage: "sparkles", isInserted: $showMenuBarIcon) {
+        MenuBarExtra(isInserted: $showMenuBarIcon) {
             Button(loc("Settings")) {
                 DispatchQueue.main.async {
                     SettingsWindowController.shared.showWindow()
@@ -71,6 +71,8 @@ struct DynamicNotchApp: App {
                 appDelegate.quitApplication()
             }
             .keyboardShortcut(KeyEquivalent("q"), modifiers: .command)
+        } label: {
+            Image(systemName: "teddybear.fill")
         }
     }
 }
