@@ -421,19 +421,34 @@ public class SystemMonitorManager: ObservableObject {
             let deltaCpu: TimeInterval = TimeInterval(totalNs &- previous.cpuNs) / 1_000_000_000.0
             guard deltaCpu > 0 else { continue }
             let pct: Double = (deltaCpu / deltaWall) * 100.0
-            guard pct > 0.05 else { continue }
 
             var nameBuffer = [CChar](repeating: 0, count: 2048)
             proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
             let name = String(cString: nameBuffer)
             guard !name.isEmpty else { continue }
-            entries.append((name: name, pct: pct))
+            entries.append((name: name, pct: max(0.1, pct)))
         }
 
         cpuSamples = freshSamples
 
-        return entries
-            .sorted { $0.pct > $1.pct }
+        var sortedEntries = entries.sorted { $0.pct > $1.pct }
+        
+        // If system is nearly idle and fewer than limit processes showed active delta,
+        // fill with running processes with 0.1% baseline so the UI always has 8 items
+        if sortedEntries.count < limit {
+            for index in 0..<written {
+                let pid = pids[index]
+                guard pid > 0 else { continue }
+                var nameBuffer = [CChar](repeating: 0, count: 2048)
+                proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
+                let name = String(cString: nameBuffer)
+                guard !name.isEmpty, !sortedEntries.contains(where: { $0.name == name }) else { continue }
+                sortedEntries.append((name: name, pct: 0.1))
+                if sortedEntries.count >= limit { break }
+            }
+        }
+
+        return sortedEntries
             .prefix(limit)
             .map { MonitorProcessItem(name: $0.name, value: String(format: "%.1f%%", $0.pct)) }
     }

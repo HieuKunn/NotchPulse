@@ -199,11 +199,11 @@ struct StatsView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: cardRowHeight)
 
-                // Top 8 Highest Consuming Processes List
+                // 8 Highest Consuming Processes List
                 if showProcesses, expandedMetric == .cpu {
                     StatsProcessList(
                         icon: "cpu", tint: .blue,
-                        title: loc("Top 8 Apps — Highest CPU"),
+                        title: loc("Highest CPU Usage"),
                         items: monitor.topCpuProcesses,
                         emptyText: loc("No processes using CPU right now")
                     )
@@ -214,7 +214,7 @@ struct StatsView: View {
                 if showProcesses, expandedMetric == .ram {
                     StatsProcessList(
                         icon: "memorychip", tint: .green,
-                        title: loc("Top 8 Apps — Highest Memory"),
+                        title: loc("Highest Memory Usage"),
                         items: monitor.topRamProcesses,
                         emptyText: loc("No processes using memory right now")
                     )
@@ -609,9 +609,6 @@ private struct StatsProcessList: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.9))
                 Spacer()
-                Text(loc("largest first"))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
             }
 
             if items.isEmpty {
