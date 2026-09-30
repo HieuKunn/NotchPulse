@@ -16,6 +16,7 @@ enum OnboardingStep {
     case remindersPermission
     case accessibilityPermission
     case musicPermission
+    case featureTour
     case finished
 }
 
@@ -129,11 +130,19 @@ struct OnboardingView: View {
                 MusicControllerSelectionView(
                     onContinue: {
                         withAnimation(.easeInOut(duration: 0.6)) {
-                            NotchPulseViewCoordinator.shared.firstLaunch = false
-                            step = .finished
+                            step = .featureTour
                         }
                     }
                 )
+                .transition(.opacity)
+
+            case .featureTour:
+                FeatureTourView(onFinish: {
+                    withAnimation(.easeInOut(duration: 0.6)) {
+                        NotchPulseViewCoordinator.shared.firstLaunch = false
+                        step = .finished
+                    }
+                })
                 .transition(.opacity)
 
             case .finished:

@@ -644,8 +644,7 @@ struct ContentView: View {
             // Open Content Layer (persists through isClosing so it collapses with the shell as a unified block)
             if !isFaceIDActive && (vm.notchState == .open || isClosing) {
                 openContentView
-                    .opacity(isClosing ? 0.0 : (gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0))
-                    .animation(.easeOut(duration: 0.22), value: isClosing)
+                    .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                     .allowsHitTesting(vm.notchState == .open && !isClosing)
             }
 
@@ -682,6 +681,7 @@ struct ContentView: View {
                         .id(NotchViews.clipboard)
                 }
             }
+            .padding(.horizontal, 16)
             .frame(
                 width: openNotchWidth,
                 height: vm.customOpenHeight.map { $0 - max(24, vm.effectiveClosedNotchHeight) - 8 } ?? 148,
@@ -809,8 +809,6 @@ struct ContentView: View {
             }
         }
         .frame(width: faceIDOpenSize.width, height: faceIDOpenSize.height, alignment: .top)
-        .opacity(controller.phase == .collapsing ? 0.0 : 1.0)
-        .animation(.easeOut(duration: 0.25), value: controller.phase == .collapsing)
         .clipped()
         .contentShape(Rectangle())
         .onTapGesture {
@@ -998,7 +996,7 @@ struct ContentView: View {
         // auto-close path silently refused to fire ("cursor left the notch but it
         // never closes").
         let baseWidth = (vm.notchState == .open || isClosing) ? currentNotchWidth : vm.closedNotchSize.width
-        let baseHeight = (vm.notchState == .open || isClosing) ? currentNotchHeight : vm.closedNotchSize.height
+        let baseHeight = (vm.notchState == .open || isClosing) ? currentNotchHeight : baseClosedHeight
         let width = baseWidth + (pad * 2.0)
         let height = baseHeight + pad + topOffset
         

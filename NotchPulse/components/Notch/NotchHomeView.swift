@@ -477,11 +477,11 @@ struct NotchHomeView: View {
         let isCameraVisible = shouldShowCamera
         let isCalendarFullPage = isCalendarVisible && vm.customOpenHeight != nil
 
-        // Unified horizontal margin across all tabs
-        let horizontalPadding: CGFloat = 20
+        // Unified horizontal margin across all tabs handled by ContentView
+        let horizontalPadding: CGFloat = 0
         let spacing: CGFloat = 16
         let baseWidth = totalWidth > 0 ? totalWidth : notchOpenWidth
-        let availableWidth = max(280, baseWidth - (horizontalPadding * 2))
+        let availableWidth = max(280, baseWidth - 32)
 
         let (mediaWidth, calendarWidth, cameraWidth): (CGFloat, CGFloat, CGFloat) = {
             // Calendar full page: media and camera are hidden

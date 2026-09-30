@@ -217,7 +217,6 @@ struct StatsView: View {
             .animation(.smooth(duration: 0.25), value: expandedMetric)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 20)
         .padding(.vertical, 4)
         .onChange(of: expandedMetric) { _, metric in
             // Stretch/shrink the notch height through the same animated

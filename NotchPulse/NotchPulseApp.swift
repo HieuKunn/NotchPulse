@@ -1083,7 +1083,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// to the front; the policy reverts when the window closes via the standard
     /// accessory-policy restore in the onboarding teardown path.
     func showOnboardingReview() {
-        showOnboardingWindow(step: .welcome)
+        showOnboardingWindow(step: .featureTour)
     }
 
     /// Runs the actual window-ordering work on the next main-queue tick so callers
@@ -1150,7 +1150,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         }
                         SettingsWindowController.shared.showWindow()
                     }
-                ))
+                )
+                .environmentObject(self.coordinator)
+                .environmentObject(self.vm)
+            )
 
             // Ensure closing the onboarding window dismisses controller cleanly
             NotificationCenter.default.addObserver(

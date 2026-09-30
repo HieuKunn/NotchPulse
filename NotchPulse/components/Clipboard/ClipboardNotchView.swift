@@ -81,7 +81,6 @@ struct ClipboardNotchView: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
         .padding(.bottom, 4)
         .onHover { isHovering in
             vm.isHoveringClipboard = isHovering
