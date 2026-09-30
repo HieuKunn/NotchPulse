@@ -157,12 +157,12 @@ struct FeatureTourView: View {
                 .fill(Color.black.opacity(0.68), style: FillStyle(eoFill: true))
                 .ignoresSafeArea()
                 
-                // Highlight Glowing Border around the open notch area
+                // Highlight Clean Border around the open notch area
                 Group {
                     if isDynamicIsland {
                         RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .stroke(currentStep.tabColor.opacity(0.85), lineWidth: 2)
-                            .shadow(color: currentStep.tabColor.opacity(0.6), radius: 16)
+                            .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+                            .shadow(color: Color.black.opacity(0.4), radius: 10)
                     } else {
                         UnevenRoundedRectangle(
                             cornerRadii: .init(
@@ -172,8 +172,8 @@ struct FeatureTourView: View {
                                 topTrailing: 0
                             )
                         )
-                        .stroke(currentStep.tabColor.opacity(0.85), lineWidth: 2)
-                        .shadow(color: currentStep.tabColor.opacity(0.6), radius: 16)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+                        .shadow(color: Color.black.opacity(0.4), radius: 10)
                     }
                 }
                 .frame(width: spotlightWidth, height: spotlightHeight)
@@ -187,8 +187,8 @@ struct FeatureTourView: View {
                     // Upward pointer arrow
                     Image(systemName: "arrowtriangle.up.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(currentStep.tabColor)
-                        .shadow(color: currentStep.tabColor.opacity(0.6), radius: 6, y: -2)
+                        .foregroundColor(Color.white.opacity(0.96))
+                        .shadow(color: Color.black.opacity(0.2), radius: 4, y: -2)
                         .zIndex(3)
                     
                     instructionCard
@@ -219,24 +219,23 @@ struct FeatureTourView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(currentStep.tabColor.opacity(0.18))
+                        .fill(Color.black.opacity(0.08))
                         .frame(width: 44, height: 44)
                     
                     Image(systemName: currentStep.icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(currentStep.tabColor)
-                        .symbolEffect(.bounce, value: currentStepIndex)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.black)
                 }
                 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(loc(currentStep.title))
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .id("title_\(currentStepIndex)_\(appLanguage.rawValue)")
                     
                     Text(loc("Step %d of %d", currentStepIndex + 1, steps.count))
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(Color.black.opacity(0.6))
                 }
                 
                 Spacer()
@@ -247,7 +246,7 @@ struct FeatureTourView: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(Color.black.opacity(0.45))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -255,7 +254,7 @@ struct FeatureTourView: View {
             // Description
             Text(loc(currentStep.description))
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(Color.black.opacity(0.85))
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -267,7 +266,7 @@ struct FeatureTourView: View {
                 HStack(spacing: 5) {
                     ForEach(0..<steps.count, id: \.self) { index in
                         Capsule()
-                            .fill(index == currentStepIndex ? currentStep.tabColor : Color.white.opacity(0.25))
+                            .fill(index == currentStepIndex ? Color.black : Color.black.opacity(0.2))
                             .frame(width: index == currentStepIndex ? 16 : 6, height: 6)
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStepIndex)
                     }
@@ -282,10 +281,10 @@ struct FeatureTourView: View {
                     }) {
                         Text(loc("Back"))
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.75))
+                            .foregroundColor(Color.black.opacity(0.75))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Capsule().fill(Color.white.opacity(0.1)))
+                            .background(Capsule().fill(Color.black.opacity(0.08)))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -310,21 +309,21 @@ struct FeatureTourView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
-                    .background(Capsule().fill(currentStep.tabColor))
+                    .background(Capsule().fill(Color.black))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(18)
         .background(
-            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.96))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
                 )
         )
-        .shadow(color: .black.opacity(0.4), radius: 24, x: 0, y: 12)
+        .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 12)
     }
     
     private func repositionWindow() {
@@ -345,7 +344,7 @@ struct FeatureTourView: View {
             coordinator.currentView = currentStep.viewType
             vm.featureTourTarget = currentStep.target
             if currentStep.target == "calendar" {
-                vm.customOpenHeight = 350
+                vm.customOpenHeight = 285
             } else {
                 vm.customOpenHeight = nil
             }

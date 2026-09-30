@@ -831,8 +831,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
 
-        if coordinator.firstLaunch {
-            coordinator.firstLaunch = false
+        let isFirstInstall = coordinator.firstLaunch
+
+        if isFirstInstall {
+            DispatchQueue.main.async {
+                self.showOnboardingWindow()
+            }
+            playWelcomeSound()
         }
 
         // NotchPulse 2.0: Initialize Face ID & Lock Screen Observer

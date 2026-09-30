@@ -140,7 +140,7 @@ struct OnboardingView: View {
                 MusicControllerSelectionView(
                     onContinue: {
                         withAnimation(.easeInOut(duration: 0.6)) {
-                            step = .featureTour
+                            step = .finished
                         }
                     }
                 )
