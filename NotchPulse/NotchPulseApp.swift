@@ -97,9 +97,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
+    var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
     private var currentViewObserver: AnyCancellable?
     private var faceIDCameraWindow: NSWindow?
     private var faceIDCameraVM: NotchPulseViewModel?
+
+    func resetAllDropAndDragTargeting() {
+        for vm in viewModels.values {
+            vm.dragDetectorTargeting = false
+            vm.generalDropTargeting = false
+            vm.dropZoneTargeting = false
+            vm.shareDropTargeting = false
+            vm.shelfDropTargeting = false
+            vm.anyDropZoneTargeting = false
+        }
+        vm.dragDetectorTargeting = false
+        vm.generalDropTargeting = false
+        vm.dropZoneTargeting = false
+        vm.shareDropTargeting = false
+        vm.shelfDropTargeting = false
+        vm.anyDropZoneTargeting = false
+    }
 
     static weak var shared: AppDelegate?
     var isUserInitiatedQuit: Bool = false

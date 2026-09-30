@@ -10,6 +10,9 @@ import Defaults
 import SwiftUI
 
 class NotchPulseViewModel: NSObject, ObservableObject {
+    static let notchSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8)
+    static let notchCloseSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8)
+
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @ObservedObject var detector = FullscreenMediaDetector.shared
 
