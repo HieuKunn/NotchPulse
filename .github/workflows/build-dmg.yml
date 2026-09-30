@@ -169,7 +169,7 @@ jobs:
           codesign --verify --deep --strict --verbose=4 dmg_staging/NotchPulse.app
           
           # Nén file .app dạng zip với ditto (không đính kèm tag thuộc tính ẩn)
-          ditto --noattributetag --norsrc -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
+          ditto --noextattr --norsrc -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
 
           # Tạo symlink Applications để người dùng kéo thả
           ln -s /Applications dmg_staging/Applications
