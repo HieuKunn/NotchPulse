@@ -39,6 +39,13 @@ final class NotchPulseHitchDetector {
     private let interval: TimeInterval = 1.0 / 30.0
     /// 20ms late means animation frames were dropped at 60Hz+ — a real hitch.
     private let hitchThreshold: TimeInterval = 0.020
+    /// A main-thread block longer than this can never be caught up by a 30Hz
+    /// schedule: each late fire only advances the schedule by one interval, so
+    /// without re-anchoring a single 1s stall used to be re-reported ("hitch
+    /// 1065 ms") thirty times per second until something bigger came along.
+    /// Anything past this threshold is reported ONCE with its true duration,
+    /// then the schedule re-anchors to now.
+    private let stallReanchorThreshold: TimeInterval = 0.5
     private let processStart = ProcessInfo.processInfo.systemUptime
 
     private init() {}
@@ -66,11 +73,12 @@ final class NotchPulseHitchDetector {
 
         let late = now - scheduled
 
-        // BIG STALL handling: after a multi-second main-thread block the schedule can
-        // never catch up (each fire only advances the schedule by one interval), which
-        // used to report the stale lateness FOREVER and drowned out later data.
-        // Report the stall ONCE with its true duration, then re-anchor to now.
-        if late > 2.0 {
+        // BIG STALL handling: after a main-thread block longer than
+        // stallReanchorThreshold the schedule can never catch up (each fire only
+        // advances the schedule by one interval), which used to report the stale
+        // lateness FOREVER and drowned out later data. Report the stall ONCE with
+        // its true duration, then re-anchor to now.
+        if late > stallReanchorThreshold {
             let context = contextProvider?() ?? "unknown"
             let stallStart = scheduled
             let hitch = Hitch(at: stallStart - processStart, lateBy: late, context: context)

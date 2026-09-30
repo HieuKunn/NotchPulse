@@ -239,8 +239,10 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     // MARK: - Canonical Notch Animation
-    public static let notchSpring = Animation.spring(response: 0.42, dampingFraction: 0.80, blendDuration: 0)
-    public static let notchCloseSpring = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+    // Slightly slower, heavier springs so the silhouette reads as a deliberate
+    // mechanical expansion instead of a snap (user feedback: "mở quá nhanh").
+    public static let notchSpring = Animation.spring(response: 0.5, dampingFraction: 0.85, blendDuration: 0)
+    public static let notchCloseSpring = Animation.spring(response: 0.5, dampingFraction: 1.0, blendDuration: 0)
 
     func open(fromWidth: CGFloat? = nil) {
         guard notchState != .open else { return }

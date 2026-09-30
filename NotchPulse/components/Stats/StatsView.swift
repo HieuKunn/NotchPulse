@@ -177,19 +177,24 @@ struct StatsView: View {
             let ramWidth = ramGpuWidth * 0.60
             // GPU: 40% of 2/3 (= 26.67% of total)
             let gpuWidth = ramGpuWidth * 0.40
+            // The CPU/RAM/GPU cards keep their collapsed-envelope size forever
+            // (openNotchSize.height minus this view's 8pt top + 8pt bottom padding).
+            // The extra height that comes with customOpenHeight=350 belongs entirely
+            // to the per-app list underneath — cards never stretch vertically.
+            let cardRowHeight = openNotchSize.height - 16
 
             VStack(spacing: 10) {
                 HStack(spacing: spacing) {
                     cpuCard
-                        .frame(width: cpuWidth)
+                        .frame(width: cpuWidth, height: cardRowHeight)
 
                     ramCard
-                        .frame(width: ramWidth)
+                        .frame(width: ramWidth, height: cardRowHeight)
 
                     gpuCard
-                        .frame(width: gpuWidth)
+                        .frame(width: gpuWidth, height: cardRowHeight)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, height: cardRowHeight)
 
                 if showProcesses, expandedMetric == .cpu {
                     StatsProcessList(
@@ -197,6 +202,7 @@ struct StatsView: View {
                         items: monitor.topCpuProcesses,
                         emptyText: loc("No processes using CPU right now")
                     )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
@@ -206,6 +212,7 @@ struct StatsView: View {
                         items: monitor.topRamProcesses,
                         emptyText: loc("No processes using memory right now")
                     )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }

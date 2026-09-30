@@ -25,12 +25,26 @@ struct ContentView: View {
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
     @State private var hoverTask: Task<Void, Never>?
+    /// Independent cursor-presence poll. The physical-rect poll in handleHover only
+    /// starts after an onHover(enter) event, but SwiftUI can silently stop delivering
+    /// enter events after the closed silhouette reshapes (music chin grows/shrinks),
+    /// leaving hover-to-open dead while the cursor is sitting right on the notch.
+    /// This loop starts from app launch and fires the open whenever the cursor is
+    /// physically inside the notch rect while closed — no enter event required.
+    @State private var hoverPresenceTask: Task<Void, Never>?
+    /// Dwell countdown anchor for openFromHoverIfPhysicallyInside: set when the
+    /// cursor is first detected inside the physical notch rect, cleared whenever a
+    /// check finds it outside. Not a timer — the presence poll advances it.
+    @State private var hoverDwellDeadline: ContinuousClock.Instant?
     @State private var isHovering: Bool = false
     /// Staged reveal: false while the black silhouette is springing open, true once
     /// content fades in near the end of the open animation. Reset on close so every
     /// open plays the same "frame first, content after" sequence.
     @State private var isContentRevealed: Bool = false
     @State private var contentRevealTask: Task<Void, Never>?
+    /// Keeps the open-state tab content mounted through the closing animation so
+    /// the collapsing black frame swallows REAL content instead of an empty box.
+    @State private var contentLingerOnClose: Bool = false
     /// Same staged choreography for the FaceID panel: content fades in shortly after
     /// the panel starts expanding, and fades OUT at the start of a collapse so it
     /// never rides the shrinking silhouette.
@@ -391,6 +405,9 @@ struct ContentView: View {
                         if vm.hideOnClosed { return }
                         handleHover(hovering)
                     }
+                    // Event-independent hover watchdog: survives SwiftUI silently
+                    // dropping enter events when the closed silhouette reshapes.
+                    .task { startHoverPresencePoll() }
                     .conditionalModifier(!isFaceIDContentActive && vm.notchState == .closed) { view in
                         view.onTapGesture {
                             if vm.hideOnClosed { return }
@@ -414,26 +431,20 @@ struct ContentView: View {
                                 }
                             }
                         }
-                        // Staged FaceID choreography driven purely by phase changes:
-                        // collapse → fade content out immediately (frame follows); any
-                        // visible phase → fade content in after a short beat so it lands
-                        // near the end of the expansion spring.
+                        // FaceID content is clipped by the panel silhouette (same
+                        // mechanism as the notch content), so the static unlock image
+                        // can appear the instant the phase becomes visible — the old
+                        // 120ms delay + 0.18s fade left the panel as a pure black box
+                        // during the whole drop-down (user: "vẫn để nguyên màu đen").
                         faceIDRevealTask?.cancel()
+                        faceIDRevealTask = nil
                         switch newPhase {
-                        case .collapsing:
-                            withAnimation(.easeOut(duration: 0.12)) {
-                                faceIDRevealContent = false
-                            }
                         case .closed:
                             faceIDRevealContent = false
+                        case .collapsing:
+                            faceIDRevealContent = false
                         case .scanning, .success, .failure, .onboarding:
-                            faceIDRevealTask = Task {
-                                try? await Task.sleep(for: .milliseconds(120))
-                                guard !Task.isCancelled else { return }
-                                withAnimation(.easeIn(duration: 0.18)) {
-                                    faceIDRevealContent = true
-                                }
-                            }
+                            faceIDRevealContent = true
                         }
                     }
                     // Failsafe hover-activation while Face ID is armed on the lock screen:
@@ -490,21 +501,24 @@ struct ContentView: View {
                         if newState == .closed && isHovering {
                             isHovering = false
                         }
-                        // Stage the reveal on open: black frame leads, content fades
-                        // in ~150ms later (near the end of the spring). Reset instantly
-                        // on close so the next open plays the sequence again.
+                        // Content reveal is now handled entirely by the shape clip on
+                        // the content group (clipped to the same animated silhouette the
+                        // black frame draws). The flag stays as a hit-testing gate only:
+                        // enabled the moment the notch opens, disabled the moment it
+                        // starts closing.
                         contentRevealTask?.cancel()
+                        contentRevealTask = nil
+                        isContentRevealed = (newState == .open)
                         if newState == .open {
-                            isContentRevealed = false
-                            contentRevealTask = Task {
-                                try? await Task.sleep(for: .milliseconds(150))
-                                guard !Task.isCancelled else { return }
-                                withAnimation(.easeIn(duration: 0.18)) {
-                                    isContentRevealed = true
-                                }
-                            }
+                            contentLingerOnClose = true
                         } else {
-                            isContentRevealed = false
+                            // Keep real content visible inside the collapsing silhouette
+                            // for the whole close spring (~500ms), then drop it.
+                            contentRevealTask = Task {
+                                try? await Task.sleep(for: .milliseconds(650))
+                                guard !Task.isCancelled else { return }
+                                contentLingerOnClose = false
+                            }
                         }
                     }
                     .onChange(of: coordinator.sneakPeek.show) { _, showing in
@@ -708,14 +722,48 @@ struct ContentView: View {
 
                         if isFaceIDContentVisible {
                             FaceIDContentView()
-                                // Staged reveal, FaceID edition (mirrors the notch open/close
-                                // choreography): while the panel EXPANDS the content fades in
-                                // after a short beat; when it DROPS DOWN/collapses the content
-                                // fades out FIRST so text/visuals never ride the shrinking
-                                // silhouette. Opacity-only — geometry and phase timing stay
-                                // owned by FaceIDOverlayController (which guards against
-                                // mid-collapse video teardown black flashes).
+                                // Clipped by the panel silhouette — the static unlock image
+                                // is visible the instant the panel is on screen (reveal flag
+                                // now flips with the phase itself, no 120ms delay + fade).
                                 .opacity(faceIDRevealContent ? 1 : 0)
+                        }
+
+                        // Open-state tab content lives INSIDE the black silhouette so
+                        // the expanding black frame mechanically UNCOVERS it (and the
+                        // collapsing frame swallows it back) — the silhouette's own
+                        // .clipped() bounds are the reveal mask. Zero opacity fades:
+                        // the old sibling-with-cross-fade used to look like a
+                        // translucent ghost floating over the desktop. The closed-state
+                        // views above stay on top (ZStack order) so the closed
+                        // silhouette never shows open content bleeding through.
+                        if (vm.notchState != .closed || contentLingerOnClose) && !isFaceIDContentVisible {
+                            Group {
+                                switch coordinator.currentView {
+                                case .home:
+                                    NotchHomeView(albumArtNamespace: albumArtNamespace)
+                                        .id(NotchViews.home)
+                                case .shelf:
+                                    ShelfView()
+                                        .id(NotchViews.shelf)
+                                case .stats:
+                                    if vm.notchState == .open {
+                                        StatsView()
+                                            .id(NotchViews.stats)
+                                    }
+                                case .clipboard:
+                                    ClipboardNotchView()
+                                        .environmentObject(vm)
+                                        .id(NotchViews.clipboard)
+                                }
+                            }
+                            .frame(
+                                width: openNotchWidth,
+                                height: vm.customOpenHeight ?? openNotchSize.height,
+                                alignment: .top
+                            )
+                            .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .allowsHitTesting(vm.notchState == .open)
                         }
                     }
 
@@ -765,48 +813,6 @@ struct ContentView: View {
                       .fixedSize(horizontal: false, vertical: true)
               }
               .zIndex(2)
-            if !isFaceIDActive {
-                // HUD-mechanism open/close: the tab content is mounted PERMANENTLY and
-                // laid out at its open size inside this fixed envelope. The expanding
-                // notch frame simply REVEALS it (clipped) — no subtree teardown on
-                // close, no insertion + relayout on open, which is exactly why the
-                // inline HUD's expand/collapse feels friction-free. Stats stays
-                // open-gated because mounting it starts resource polling.
-                Group {
-                    switch coordinator.currentView {
-                    case .home:
-                        NotchHomeView(albumArtNamespace: albumArtNamespace)
-                            .id(NotchViews.home)
-                    case .shelf:
-                        ShelfView()
-                            .id(NotchViews.shelf)
-                    case .stats:
-                        if vm.notchState == .open {
-                            StatsView()
-                                .id(NotchViews.stats)
-                        }
-                    case .clipboard:
-                        ClipboardNotchView()
-                            .environmentObject(vm)
-                            .id(NotchViews.clipboard)
-                    }
-                }
-                .frame(
-                    width: openNotchWidth,
-                    height: vm.customOpenHeight ?? openNotchSize.height,
-                    alignment: .top
-                )
-                .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
-                .transition(.opacity)
-                .zIndex(1)
-                // Staged reveal (Apple-style): the black silhouette springs open FIRST,
-                // content fades in near the end — while the frame reveal does the rest.
-                .allowsHitTesting(vm.notchState == .open && isContentRevealed)
-                .opacity(
-                    (isContentRevealed ? 1.0 : 0.0)
-                        * (gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
-                )
-            }
         }
         .padding(.bottom, 8)
         .conditionalModifier(vm.notchState == .open) { view in
@@ -1038,6 +1044,102 @@ struct ContentView: View {
             height: height
         )
         return notchRect.contains(mouseLoc)
+    }
+
+    /// Independent cursor-presence watchdog: opens the notch whenever the cursor is
+    /// physically inside the notch rect while closed, WITHOUT needing an onHover(enter)
+    /// event. Covers the dead-hover failure mode where SwiftUI silently stops
+    /// delivering enter events after the closed silhouette reshapes (music chin
+    /// grows/shrinks, HUD shows/hides) — the event-gated poll in handleHover never
+    /// starts in that state, and hover-to-open feels broken. Dwell and pressed-button
+    /// rules match the event-gated path exactly, and both paths funnel through
+    /// openFromHoverIfPhysicallyInside so whichever fires first wins.
+    private func startHoverPresencePoll() {
+        hoverPresenceTask?.cancel()
+        hoverPresenceTask = Task {
+            // Re-check every 110ms, forever. The check itself is trivial (one
+            // NSEvent.mouseLocation + rect math), so the steady-state cost is nil.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(110))
+                guard !Task.isCancelled else { return }
+                if vm.notchState == .closed {
+                    openFromHoverIfPhysicallyInside()
+                } else {
+                    // Drop any armed dwell countdown — it belongs to the entry that
+                    // already ended (event path opened first, notch was dismissed by
+                    // click, …). Keeping it would let the NEXT entry open instantly
+                    // with no dwell.
+                    hoverDwellDeadline = nil
+                    if vm.notchState == .open {
+                        // Enter events dying usually means exit events die too — without
+                        // this, a presence-opened notch would never close on mouse-leave.
+                        closeFromHoverIfCursorLeft()
+                    }
+                }
+            }
+        }
+    }
+
+    /// Shared hover-open entry: opens from hover only when every hover-open rule
+    /// passes. Both the event-gated poll (handleHover) and the presence watchdog
+    /// call this, so duplicates are impossible — the first caller flips
+    /// vm.notchState to .open and every later call no-ops on the guard.
+    private func openFromHoverIfPhysicallyInside() {
+        guard vm.notchState == .closed,
+              !isFaceIDActive, faceIDOverlay.phase == .closed,
+              !NotchPulseLockMonitor.isScreenActuallyLocked(),
+              !vm.hideOnClosed,
+              !coordinator.sneakPeek.show,
+              Defaults[.openNotchOnHover],
+              NSEvent.pressedMouseButtons == 0,
+              isMousePhysicallyInsideNotch() else {
+            hoverDwellDeadline = nil
+            return
+        }
+
+        let dwell = Defaults[.minimumHoverDuration]
+        guard dwell > 0 else {
+            hoverDwellDeadline = nil
+            doOpen(enforcePhysicalRect: true)
+            return
+        }
+
+        // Dwell armed on first detection, re-armed whenever the cursor leaves
+        // (the guard above clears the deadline). The presence poll re-calls this
+        // every 110ms, so the countdown advances in 110ms quanta — indistinguishable
+        // from a timer at these dwell lengths and immune to task bookkeeping.
+        let now = ContinuousClock.now
+        guard let deadline = hoverDwellDeadline else {
+            hoverDwellDeadline = now + .seconds(dwell)
+            return
+        }
+        if now >= deadline {
+            hoverDwellDeadline = nil
+            // Match the event path: the auto-close guards elsewhere in this view
+            // (sneak-peek dismissal, gesture end) only spare the notch while
+            // isHovering is true, and the shadow depends on it too.
+            isHovering = true
+            if Defaults[.enableHaptics] { haptics.toggle() }
+            doOpen(enforcePhysicalRect: true)
+        }
+    }
+
+    /// Presence-watchdog close: mirrors the exit branch of handleHover for the case
+    /// where exit events never fire. Same guards, same close targets.
+    private func closeFromHoverIfCursorLeft() {
+        guard !isFaceIDActive, faceIDOverlay.phase == .closed,
+              !NotchPulseLockMonitor.isScreenActuallyLocked(),
+              !vm.hideOnClosed,
+              NSEvent.pressedMouseButtons == 0,
+              !isMousePhysicallyInsideNotch(),
+              !(Defaults[.extendHoverArea] && vm.isHoveringFromRadar) else { return }
+
+        if !vm.isBatteryPopoverActive, !SharingStateManager.shared.preventNotchClose,
+           !ShelfStateViewModel.shared.isPinned, !CalendarStateViewModel.shared.isPinned,
+           !vm.dragDetectorTargeting, !vm.anyDropZoneTargeting {
+            isHovering = false
+            vm.close(targetClosedWidth: baseChinWidth)
+        }
     }
 
     /// Single source of truth for hover: the PHYSICAL cursor position.

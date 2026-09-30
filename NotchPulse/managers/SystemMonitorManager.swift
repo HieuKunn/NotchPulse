@@ -83,7 +83,13 @@ public class SystemMonitorManager: ObservableObject {
             self.isMonitoring = true
             
             if self.timer == nil {
-                self.updateMetrics() // Immediate update
+                // The very first refresh must NOT run on the main thread: updateMetrics
+                // forks /bin/ps -A and walks every pid via proc_pid_rusage, which stalls
+                // the main loop for ~1s (HitchDetector: repeated "hitch 1065 ms").
+                // Kick it to the utility queue like every timer-driven refresh.
+                self.queue.async {
+                    self.updateMetrics()
+                }
                 self.timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
                     self?.queue.async {
                         self?.updateMetrics()
