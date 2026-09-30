@@ -27,86 +27,78 @@ struct NotchPulseHeader: View {
             HStack {
                 if Defaults[.enableSystemMonitor] || Defaults[.notchPulseShelf] || coordinator.alwaysShowTabs {
                     TabSelectionView()
-                } else if vm.notchState == .open {
-                    EmptyView()
                 }
             }
             .padding(.leading, headerInset)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .opacity(vm.notchState == .closed ? 0 : 1)
             .zIndex(2)
 
-            if vm.notchState == .open {
-                let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
-                if !isDynamicIsland && (activeScreen?.safeAreaInsets.top ?? 0 > 0) {
-                    Rectangle()
-                        .fill(.black)
-                        .frame(width: vm.closedNotchSize.width)
-                        .mask {
-                            NotchShape()
-                        }
-                } else {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(width: vm.closedNotchSize.width)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            vm.close()
-                        }
-                }
+            let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
+            if !isDynamicIsland && (activeScreen?.safeAreaInsets.top ?? 0 > 0) {
+                Rectangle()
+                    .fill(.black)
+                    .frame(width: vm.closedNotchSize.width)
+                    .mask {
+                        NotchShape()
+                    }
+            } else {
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(width: vm.closedNotchSize.width)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        vm.close()
+                    }
             }
 
             HStack(spacing: 6) {
-                if vm.notchState == .open {
-                    if isHUDType(coordinator.sneakPeek.type) && coordinator.sneakPeek.show && Defaults[.showOpenNotchHUD] {
-                        OpenNotchHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon)
-                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    } else {
-                        HStack(spacing: 6) {
-                            if Defaults[.showMirror] {
-                                Button(action: {
-                                    vm.toggleCameraPreview()
-                                }) {
-                                    Capsule()
-                                        .fill(.black)
-                                        .frame(width: 30, height: 30)
-                                        .overlay {
-                                            Image(systemName: "web.camera")
-                                                .foregroundColor(.white)
-                                                .padding()
-                                                .imageScale(.medium)
-                                        }
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                            if Defaults[.settingsIconInNotch] {
-                                Button(action: {
-                                    DispatchQueue.main.async {
-                                        SettingsWindowController.shared.showWindow()
-                                    }
-                                }) {
-                                    Capsule()
-                                        .fill(.black)
-                                        .frame(width: 30, height: 30)
-                                        .overlay {
-                                            Image(systemName: "gear")
-                                                .foregroundColor(.white)
-                                                .padding()
-                                                .imageScale(.medium)
-                                        }
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
+                if isHUDType(coordinator.sneakPeek.type) && coordinator.sneakPeek.show && Defaults[.showOpenNotchHUD] {
+                    OpenNotchHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon)
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                } else {
+                    HStack(spacing: 6) {
+                        if Defaults[.showMirror] {
+                            Button(action: {
+                                vm.toggleCameraPreview()
+                            }) {
+                                Capsule()
+                                    .fill(.black)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        Image(systemName: "web.camera")
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .imageScale(.medium)
+                                    }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        if Defaults[.settingsIconInNotch] {
+                            Button(action: {
+                                DispatchQueue.main.async {
+                                    SettingsWindowController.shared.showWindow()
+                                }
+                            }) {
+                                Capsule()
+                                    .fill(.black)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        Image(systemName: "gear")
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .imageScale(.medium)
+                                    }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
             }
             .animation(.smooth(duration: 0.22), value: coordinator.sneakPeek.show)
             .font(.system(.headline, design: .rounded))
             .padding(.trailing, headerInset)
             .frame(maxWidth: .infinity, alignment: .trailing)
-            .opacity(vm.notchState == .closed ? 0 : 1)
             .zIndex(2)
         }
         .foregroundColor(.gray)

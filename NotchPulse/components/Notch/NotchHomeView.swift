@@ -108,7 +108,7 @@ struct AlbumArtView: View {
 
     @ViewBuilder
     private var appIconOverlay: some View {
-        if vm.notchState == .open && !musicManager.usingAppIconForArtwork {
+        if !musicManager.usingAppIconForArtwork {
             let iconSize: CGFloat = max(22, size * 0.27)
             AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
                 .resizable()
@@ -528,7 +528,6 @@ struct NotchHomeView: View {
                 CameraPreviewView(webcamManager: webcamManager)
                     .frame(width: cameraWidth)
                     .scaledToFit()
-                    .opacity(vm.notchState == .closed ? 0 : 1)
                     .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.76, blendDuration: 0), value: shouldShowCamera)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
