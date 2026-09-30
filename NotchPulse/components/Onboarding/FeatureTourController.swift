@@ -54,7 +54,6 @@ final class FeatureTourController: NSObject {
         window.identifier = NSUserInterfaceItemIdentifier("FeatureTourWindow")
 
         let coordinator = NotchPulseViewCoordinator.shared
-        let vm = (AppDelegate.shared?.vm) ?? NotchPulseViewModel()
 
         window.contentView = NSHostingView(
             rootView: FeatureTourView(onFinish: { [weak self] in
