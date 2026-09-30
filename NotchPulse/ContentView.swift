@@ -973,7 +973,15 @@ struct ContentView: View {
         )
     }
 
-    private func doOpen() {
+    /// `enforcePhysicalRect` is for hover-driven opens only: a hover-ENTER can be
+    /// delivered while the closed silhouette is still mid-shrink (or while it is the
+    /// wide music chin), so the cursor may be far outside the physical notch. Click
+    /// and swipe opens deliberately skip the gate — tapping the visible black shape
+    /// should open it regardless of how wide the chin currently is.
+    private func doOpen(enforcePhysicalRect: Bool = false) {
+        if enforcePhysicalRect && vm.notchState == .closed && !isMousePhysicallyInsideNotch() {
+            return
+        }
         vm.open(fromWidth: currentNotchWidth)
         // Post-open housekeeping runs AFTER the open spring settles (~420ms), not at
         // +120ms mid-flight: the pasteboard IPC and media fetch used to land on the
@@ -1044,7 +1052,6 @@ struct ContentView: View {
 
         if hovering {
             guard vm.notchState == .closed,
-                  isMousePhysicallyInsideNotch(),
                   !coordinator.sneakPeek.show,
                   Defaults[.openNotchOnHover],
                   NSEvent.pressedMouseButtons == 0 else { return }
@@ -1053,13 +1060,35 @@ struct ContentView: View {
             if Defaults[.enableHaptics] { haptics.toggle() }
 
             hoverTask = Task {
-                let duration = Defaults[.minimumHoverDuration]
-                if duration > 0 { try? await Task.sleep(for: .seconds(duration)) }
-                guard !Task.isCancelled,
-                      isMousePhysicallyInsideNotch(),
+                // SwiftUI fires onHover(enter) EXACTLY ONCE — at the boundary of the
+                // current closed silhouette. When music is playing that silhouette is
+                // the wide live-activity chin (hundreds of px wider than the physical
+                // notch), so the single enter event lands far from the notch and the
+                // physical-rect gate rejects it; no further event fires while the
+                // cursor keeps moving inward, and hover-to-open went dead whenever
+                // music (or any wide HUD) was showing. While the cursor sits on the
+                // closed silhouette, POLL for it actually reaching the physical notch
+                // rect and open the moment it does — same pattern as the FaceID
+                // armed-lock-screen poll. Leaving the silhouette fires exit, which
+                // cancels this loop via the hoverTask?.cancel() above.
+                let dwell = Defaults[.minimumHoverDuration]
+                let deadline = ContinuousClock.now + .seconds(max(2.0, dwell + 1.0))
+                while !Task.isCancelled,
                       vm.notchState == .closed,
-                      NSEvent.pressedMouseButtons == 0 else { return }
-                doOpen()
+                      !coordinator.sneakPeek.show,
+                      NSEvent.pressedMouseButtons == 0,
+                      ContinuousClock.now < deadline {
+                    if isMousePhysicallyInsideNotch() {
+                        if dwell > 0 { try? await Task.sleep(for: .seconds(dwell)) }
+                        guard !Task.isCancelled,
+                              isMousePhysicallyInsideNotch(),
+                              vm.notchState == .closed,
+                              NSEvent.pressedMouseButtons == 0 else { return }
+                        doOpen(enforcePhysicalRect: true)
+                        return
+                    }
+                    try? await Task.sleep(for: .milliseconds(90))
+                }
             }
         } else {
             guard vm.notchState == .open else {

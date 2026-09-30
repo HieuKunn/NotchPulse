@@ -104,12 +104,16 @@ struct FaceIDScanAnimationView: View {
 
     var body: some View {
         ZStack {
-            // Layer 1: Always-present static face image at 0ms
+            // Layer 1: static face image at 0ms — stays visible until the video has
+            // actually rendered a frame. The old blind 0.15s fallback declared the
+            // video "ready" before any frame decoded, faded this out anyway, and
+            // exposed the black panel (the "square black box with no image" report).
             FaceIDStaticImageView()
                 .opacity((isVideoReady && media.videoResourceName != nil) ? 0 : 1)
                 .animation(.easeInOut(duration: 0.15), value: isVideoReady)
 
-            // Layer 2: Video playback layer when resource is available
+            // Layer 2: video fades in on top only once it has actually rendered a
+            // frame (onReady fires from isReadyForDisplay — see the host view).
             if let resource = media.videoResourceName {
                 FaceIDVideoPlayerRepresentable(
                     resourceName: resource,
@@ -157,6 +161,7 @@ final class FaceIDVideoPlayerHostView: NSView {
     private let playerLayer = AVPlayerLayer()
     private var currentResourceName: String?
     private var readyObservation: NSKeyValueObservation?
+    private var readyPollToken: UUID?
     private var loopObserver: NSObjectProtocol?
     private var fallbackItem: DispatchWorkItem?
 
@@ -227,6 +232,7 @@ final class FaceIDVideoPlayerHostView: NSView {
         let notifyReady: () -> Void = { [weak self] in
             DispatchQueue.main.async {
                 self?.fallbackItem?.cancel()
+                self?.readyPollToken = nil
                 self?.onReady?()
                 self?.readyObservation = nil
             }
@@ -237,9 +243,30 @@ final class FaceIDVideoPlayerHostView: NSView {
             notifyReady()
         }
 
-        let fallback = DispatchWorkItem { notifyReady() }
-        fallbackItem = fallback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: fallback)
+        // Readiness poll replacing the old blind 0.15s fallback. That fallback fired
+        // unconditionally — it reported "ready" while the player had not decoded a
+        // single frame, so callers faded the static image out and exposed the black
+        // panel (the report: "FaceID opens with no image, just a black square").
+        // Only an actual isReadyForDisplay flips the video in now; until then the
+        // static image underneath stays visible. Gives up after ~4s rather than
+        // hiding the image.
+        let token = UUID()
+        readyPollToken = token
+        var pollAttempts = 0
+        func pollReadiness() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard let self, self.readyPollToken == token else { return }
+                if self.playerLayer.isReadyForDisplay {
+                    notifyReady()
+                } else if pollAttempts < 40 {
+                    pollAttempts += 1
+                    pollReadiness()
+                }
+                // After ~4s: leave the static image visible — never hide it for a
+                // video that cannot render.
+            }
+        }
+        pollReadiness()
 
         newPlayer.seek(to: .zero)
         newPlayer.play()
@@ -251,6 +278,7 @@ final class FaceIDVideoPlayerHostView: NSView {
             loopObserver = nil
         }
         readyObservation = nil
+        readyPollToken = nil
         fallbackItem?.cancel()
         player?.pause()
         player = nil

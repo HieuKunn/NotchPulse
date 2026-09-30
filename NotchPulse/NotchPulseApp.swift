@@ -1075,8 +1075,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Re-opens the standard permission-flow onboarding window on demand (Settings →
     /// "Review setup"). Purely a window presentation — never touches notch state or
     /// settings, so it cannot regress notch interactions the way the old tour did.
+    ///
+    /// NotchPulse runs as an .accessory (menu bar) app and .accessory apps cannot
+    /// receive key focus while another app (System Settings, Finder…) is active —
+    /// `makeKeyAndOrderFront` silently does nothing there. Temporarily switching to
+    /// .regular (like SettingsWindowController does) lets the window actually come
+    /// to the front; the policy reverts when the window closes via the standard
+    /// accessory-policy restore in the onboarding teardown path.
     func showOnboardingReview() {
         showOnboardingWindow(step: .welcome)
+    }
+
+    /// Runs the actual window-ordering work on the next main-queue tick so callers
+    /// inside SwiftUI button actions (which run mid-update) are safe.
+    ///
+    /// NotchPulse runs as an .accessory (menu bar) app, and .accessory apps cannot
+    /// become active while another app is frontmost — `makeKeyAndOrderFront` from an
+    /// inactive accessory app is silently ignored by macOS, which is why the Review
+    /// setup button appeared to do nothing. Temporarily switching to .regular (the
+    /// same approach SettingsWindowController uses) lets the window actually take
+    /// focus; the policy is restored to .accessory when the onboarding window
+    /// closes, via the teardown paths inside showOnboardingWindow.
+    private func presentOnboardingWindowToFront() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.onboardingWindowController?.window else { return }
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+        }
     }
 
     private func showOnboardingWindow(step: OnboardingStep = .welcome) {
@@ -1100,6 +1127,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     onFinish: {
                         window.orderOut(nil)
                         self.onboardingWindowController = nil
+                        NSApp.setActivationPolicy(.accessory)
                         self.coordinator.firstLaunch = false
                         self.coordinator.currentView = .home
                         self.vm.customOpenHeight = nil
@@ -1132,6 +1160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             ) { [weak self] _ in
                 guard let self = self else { return }
                 self.onboardingWindowController = nil
+                NSApp.setActivationPolicy(.accessory)
                 self.coordinator.firstLaunch = false
                 self.coordinator.currentView = .home
                 self.vm.customOpenHeight = nil
@@ -1145,9 +1174,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onboardingWindowController = NSWindowController(window: window)
         }
 
-//        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        onboardingWindowController?.window?.makeKeyAndOrderFront(nil)
-        onboardingWindowController?.window?.orderFrontRegardless()
+        presentOnboardingWindowToFront()
     }
 }
