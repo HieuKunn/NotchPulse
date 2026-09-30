@@ -9,10 +9,11 @@
 import SwiftUI
 import AVFoundation
 import AppKit
+import ImageIO
 
 /// Which media the overlay is showing. `.idle` is a still image (the first
-/// frame of the success video) so the transition into a playing video is
-/// seamless.
+/// frame of the success video or unlockstatic asset) so the transition into a
+/// playing video is seamless with zero black flashes.
 enum FaceIDScanMedia: Equatable {
     case idle
     case scanning
@@ -52,6 +53,7 @@ final class FaceIDScanAnimationHostView: NSView {
             _ = firstFrame(for: "idleanimation")
             _ = firstFrame(for: "unlockanimation")
             _ = firstFrame(for: "unsuccessfulunlockanimation")
+            _ = loadStaticCGImage()
         }
     }
 
@@ -88,9 +90,10 @@ final class FaceIDScanAnimationHostView: NSView {
         stillImageLayer.contentsGravity = .resizeAspect
         stillImageLayer.masksToBounds = true
         stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        if let still = Self.loadStillFromBundle()?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+        if let still = Self.loadStaticCGImage() {
             stillImageLayer.contents = still
         }
+        stillImageLayer.isHidden = false
         root.addSublayer(stillImageLayer)
 
         playerLayer.videoGravity = .resizeAspect
@@ -153,6 +156,9 @@ final class FaceIDScanAnimationHostView: NSView {
         guard let resource = media.videoResourceName else {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
+            if let staticImg = Self.loadStaticCGImage() {
+                stillImageLayer.contents = staticImg
+            }
             stillImageLayer.isHidden = false
             playerLayer.isHidden = true
             CATransaction.commit()
@@ -168,7 +174,7 @@ final class FaceIDScanAnimationHostView: NSView {
         // Keep backdrop frame while immediately unhiding player layer so video starts with zero delay
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        if let frame = Self.firstFrame(for: resource) {
+        if let frame = Self.firstFrame(for: resource) ?? Self.loadStaticCGImage() {
             stillImageLayer.contents = frame
         }
         stillImageLayer.isHidden = false
@@ -221,16 +227,28 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = nil
     }
 
-    /// The asset lives in Resources/ rather than an asset catalog, so
-    /// `NSImage(named:)` won't find it — load by URL instead.
-    private static func loadStillFromBundle() -> NSImage? {
-        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png"),
-           let img = NSImage(contentsOf: url), img.isValid && img.size.width > 0 {
-            return img
+    /// Direct hardware-accelerated ImageIO decoding across PNG, PDF, TIFF, JPG and Asset Catalog
+    private static func loadStaticCGImage() -> CGImage? {
+        let extensions = ["png", "tiff", "pdf", "jpg"]
+        for ext in extensions {
+            if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: ext) as CFURL?,
+               let source = CGImageSourceCreateWithURL(url, nil),
+               let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+                return cgImage
+            }
         }
-        if let img = NSImage(named: "unlockstatic"), img.isValid && img.size.width > 0 {
-            return img
+        
+        if let image = NSImage(named: "unlockstatic"),
+           let tiffData = image.tiffRepresentation,
+           let source = CGImageSourceCreateWithData(tiffData as CFData, nil),
+           let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            return cgImage
         }
+        
+        if let frame = firstFrame(for: "idleanimation") ?? firstFrame(for: "unlockanimation") {
+            return frame
+        }
+
         return nil
     }
 }
