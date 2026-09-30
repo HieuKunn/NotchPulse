@@ -132,11 +132,18 @@ jobs:
 
       - name: Create DMG & ZIP Packages
         run: |
+          export COPYFILE_DISABLE=1
+          export COPY_EXTENDED_ATTRIBUTES_DISABLE=true
+
           mkdir -p release_out
           mkdir -p dmg_staging
 
           # Copy .app vào thư mục staging và đặt tên là NotchPulse.app
           cp -R build/Build/Products/Release/NotchPulse.app dmg_staging/NotchPulse.app
+
+          # Xóa các file ẩn AppleDouble (._*) làm hỏng chữ ký khoá bảo mật macOS
+          find dmg_staging/NotchPulse.app -name "._*" -delete
+          dot_clean -m dmg_staging/NotchPulse.app || true
 
           KEYCHAIN_ARG=""
           if [ -n "$KEYCHAIN_PATH" ] && [ "$SIGN_IDENTITY" != "-" ]; then
@@ -155,11 +162,14 @@ jobs:
           fi
           codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
 
+          # Xóa lại lần cuối phòng ngừa codesign tạo lại file ẩn
+          find dmg_staging/NotchPulse.app -name "._*" -delete
+
           # Xác minh cấu trúc chữ ký hợp lệ
           codesign --verify --deep --strict --verbose=4 dmg_staging/NotchPulse.app
           
-          # Nén file .app dạng zip với ditto (giữ nguyên quyền và resource macOS)
-          ditto -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
+          # Nén file .app dạng zip với ditto (không đính kèm tag thuộc tính ẩn)
+          ditto --noattributetag --norsrc -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip
 
           # Tạo symlink Applications để người dùng kéo thả
           ln -s /Applications dmg_staging/Applications
