@@ -216,6 +216,19 @@ struct OnboardingView: View {
         .frame(width: step == .featureTour ? nil : 400, height: step == .featureTour ? nil : 600)
     }
 
+    private var targetScreen: NSScreen {
+        if let preferred = coordinator.preferredScreenUUID.flatMap({ NSScreen.screen(withUUID: $0) }) {
+            return preferred
+        }
+        if let selected = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
+            return selected
+        }
+        if let physicalNotchScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) {
+            return physicalNotchScreen
+        }
+        return NSScreen.main ?? NSScreen.screens.first!
+    }
+
     private func restoreStandardOnboardingWindow() {
         CalendarStateViewModel.shared.isFullMonthExpanded = false
         coordinator.currentView = .home
@@ -234,12 +247,10 @@ struct OnboardingView: View {
         
         let windowWidth: CGFloat = 400
         let windowHeight: CGFloat = 600
-        if let screen = NSScreen.main ?? NSScreen.screens.first {
-            let screenRect = screen.visibleFrame
-            let x = screenRect.origin.x + (screenRect.width - windowWidth) / 2
-            let y = screenRect.origin.y + (screenRect.height - windowHeight) / 2
-            window.setFrame(NSRect(x: x, y: y, width: windowWidth, height: windowHeight), display: true, animate: true)
-        }
+        let screenRect = targetScreen.visibleFrame
+        let x = screenRect.origin.x + (screenRect.width - windowWidth) / 2
+        let y = screenRect.origin.y + (screenRect.height - windowHeight) / 2
+        window.setFrame(NSRect(x: x, y: y, width: windowWidth, height: windowHeight), display: true, animate: true)
     }
 
     // MARK: - Permission Request Logic

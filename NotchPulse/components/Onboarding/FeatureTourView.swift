@@ -64,9 +64,22 @@ struct FeatureTourView: View {
     @EnvironmentObject var coordinator: NotchPulseViewCoordinator
     @EnvironmentObject var vm: NotchPulseViewModel
     
+    private var targetScreen: NSScreen {
+        if let preferred = coordinator.preferredScreenUUID.flatMap({ NSScreen.screen(withUUID: $0) }) {
+            return preferred
+        }
+        if let selected = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
+            return selected
+        }
+        if let physicalNotchScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) {
+            return physicalNotchScreen
+        }
+        return NSScreen.main ?? NSScreen.screens.first!
+    }
+    
     private var hasPhysicalNotch: Bool {
-        let screen = NSScreen.main ?? NSScreen.screens.first
-        return (screen?.safeAreaInsets.top ?? 0) > 0 || screen?.auxiliaryTopLeftArea != nil
+        let screen = targetScreen
+        return screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
     }
     
     private var isDynamicIsland: Bool {
@@ -344,9 +357,8 @@ struct FeatureTourView: View {
         window.hasShadow = false
         window.level = .floating
         
-        if let screen = NSScreen.main ?? NSScreen.screens.first {
-            window.setFrame(screen.frame, display: true, animate: true)
-        }
+        let screen = targetScreen
+        window.setFrame(screen.frame, display: true, animate: true)
     }
     
     private func updateNotch() {
