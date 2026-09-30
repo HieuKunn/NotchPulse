@@ -11,7 +11,7 @@ import AVFoundation
 import AppKit
 
 /// Which media the overlay is showing. `.idle` is a still image (the first
-/// frame of the success video) so the transition into a playing video is
+/// frame of the success video or unlockstatic asset) so the transition into a playing video is
 /// seamless.
 enum FaceIDScanMedia: Equatable {
     case idle
@@ -27,7 +27,65 @@ enum FaceIDScanMedia: Equatable {
     }
 }
 
-struct FaceIDScanAnimationView: NSViewRepresentable {
+struct FaceIDScanAnimationView: View {
+    let media: FaceIDScanMedia
+
+    var body: some View {
+        ZStack {
+            // 1. Static asset: Guaranteed to display instantly upon waking/opening
+            FaceIDStaticAssetView()
+                .opacity(media == .idle ? 1.0 : 0.0)
+
+            // 2. Dynamic Video Player: Plays outcome video on success / failure
+            if media != .idle {
+                FaceIDScanVideoPlayerView(media: media)
+                    .transition(.opacity)
+            }
+        }
+    }
+}
+
+// MARK: - Instant Static Asset View
+struct FaceIDStaticAssetView: View {
+    var body: some View {
+        if let image = Self.loadStaticImage() {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+        } else if let cgFrame = FaceIDScanAnimationHostView.loadStillCGImage() {
+            Image(decorative: cgFrame, scale: 1.0)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: "faceid")
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.white)
+        }
+    }
+
+    private static func loadStaticImage() -> NSImage? {
+        if let image = NSImage(named: "unlockstatic") {
+            return image
+        }
+        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "pdf"),
+           let image = NSImage(contentsOf: url) {
+            return image
+        }
+        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            return image
+        }
+        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "tiff"),
+           let image = NSImage(contentsOf: url) {
+            return image
+        }
+        return nil
+    }
+}
+
+// MARK: - Representable Video Player
+struct FaceIDScanVideoPlayerView: NSViewRepresentable {
     let media: FaceIDScanMedia
 
     func makeNSView(context: Context) -> FaceIDScanAnimationHostView {
@@ -44,7 +102,7 @@ struct FaceIDScanAnimationView: NSViewRepresentable {
 final class FaceIDScanAnimationHostView: NSView {
     private static var firstFrameCache: [String: CGImage] = [:]
 
-    private static func firstFrame(for resourceName: String) -> CGImage? {
+    static func firstFrame(for resourceName: String) -> CGImage? {
         if let cached = firstFrameCache[resourceName] { return cached }
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
         let asset = AVURLAsset(url: url)
@@ -93,6 +151,20 @@ final class FaceIDScanAnimationHostView: NSView {
 
     override func layout() {
         super.layout()
+        updateLayerFrames()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        updateLayerFrames()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateLayerFrames()
+    }
+
+    private func updateLayerFrames() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         playerLayer.frame = bounds
@@ -147,8 +219,6 @@ final class FaceIDScanAnimationHostView: NSView {
         // real decode time and produced a black-frame flash.
         let reveal: () -> Void = { [weak self] in
             guard let self else { return }
-            // Without disabling implicit actions, toggling `isHidden` cross-fades both
-            // layers over CALayer's default duration instead of swapping instantly.
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             self.playerLayer.isHidden = false
@@ -163,11 +233,9 @@ final class FaceIDScanAnimationHostView: NSView {
                 self?.readyObservation = nil
             }
         }
-        // Safety net only — if isReadyForDisplay never fires for some
-        // reason, don't get stuck on the still forever.
         let fallback = DispatchWorkItem { reveal() }
         fallbackRevealWorkItem = fallback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: fallback)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: fallback)
 
         newPlayer.seek(to: .zero)
         newPlayer.play()
@@ -181,7 +249,12 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = nil
     }
 
-    private static func loadStillCGImage() -> CGImage? {
+    static func loadStillCGImage() -> CGImage? {
+        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "pdf") as CFURL?,
+           let source = CGImageSourceCreateWithURL(url, nil),
+           let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            return cgImage
+        }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
