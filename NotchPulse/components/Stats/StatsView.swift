@@ -167,8 +167,9 @@ struct StatsView: View {
 
     var body: some View {
         GeometryReader { geo in
+            let horizontalMargin: CGFloat = 16
             let spacing: CGFloat = 10
-            let availableWidth = max(0, geo.size.width - (spacing * 2))
+            let availableWidth = max(0, geo.size.width - (horizontalMargin * 2) - (spacing * 2))
             // CPU: 1/3 (33.33%)
             let cpuWidth = availableWidth * (1.0 / 3.0)
             // RAM + GPU: 2/3 (66.67%)
@@ -214,6 +215,7 @@ struct StatsView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
+            .padding(.horizontal, horizontalMargin)
             .animation(.smooth(duration: 0.25), value: expandedMetric)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

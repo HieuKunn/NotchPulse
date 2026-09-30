@@ -2,17 +2,17 @@
 //  FaceIDScanAnimationView.swift
 //  NotchPulse
 //
-//  Plays a scan animation once and holds its final frame — looping when scanning.
-//  Uses SwiftUI native static image rendering for instant 0ms display on drop-down,
-//  with AVPlayerLayer video playback overlaid when media animation is active.
+//  Plays a scan animation once and holds its final frame — deliberately not
+//  looping, since each video ends on a meaningful resolved state.
 //
 
 import SwiftUI
 import AVFoundation
 import AppKit
 
-/// Which media the overlay is showing. `.idle` is a still image (unlockstatic)
-/// so the transition into a playing video is seamless with zero black flashes.
+/// Which media the overlay is showing. `.idle` is a still image (the first
+/// frame of the success video) so the transition into a playing video is
+/// seamless.
 enum FaceIDScanMedia: Equatable {
     case idle
     case scanning
@@ -29,154 +29,78 @@ enum FaceIDScanMedia: Equatable {
     }
 }
 
-/// Thread-safe provider ensuring unlockstatic image is always loaded and cached
-/// from any available format (Asset catalog, PNG, TIFF, PDF, JPEG, video frame, or SF Symbol).
-@MainActor
-final class FaceIDStaticImageProvider {
-    static let shared = FaceIDStaticImageProvider()
-
-    let image: NSImage?
-
-    private init() {
-        // 1. Asset catalog named "unlockstatic"
-        if let img = NSImage(named: "unlockstatic"), img.isValid && img.size.width > 0 {
-            self.image = img
-            return
-        }
-
-        // 2. Direct bundle resources across common image formats
-        let extensions = ["png", "tiff", "tif", "pdf", "jpg", "jpeg"]
-        for ext in extensions {
-            if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: ext),
-               let img = NSImage(contentsOf: url), img.isValid && img.size.width > 0 {
-                self.image = img
-                return
-            }
-        }
-
-        // 3. Extract first frame from bundled animation videos
-        for videoName in ["idleanimation", "unlockanimation"] {
-            if let url = Bundle.main.url(forResource: videoName, withExtension: "mp4") {
-                let asset = AVURLAsset(url: url)
-                let generator = AVAssetImageGenerator(asset: asset)
-                generator.appliesPreferredTrackTransform = true
-                if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
-                    let img = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
-                    self.image = img
-                    return
-                }
-            }
-        }
-
-        // 4. Built-in system SF Symbol fallback
-        if let symbol = NSImage(systemSymbolName: "faceid", accessibilityDescription: "Face ID") {
-            self.image = symbol
-            return
-        }
-
-        self.image = nil
-    }
-}
-
-/// Native SwiftUI static image view guaranteed to paint at frame 0 (0ms)
-/// without waiting for CoreAnimation layer compositing or video player init.
-struct FaceIDStaticImageView: View {
-    var body: some View {
-        if let nsImage = FaceIDStaticImageProvider.shared.image {
-            Image(nsImage: nsImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            Image(systemName: "faceid")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .foregroundStyle(.white)
-        }
-    }
-}
-
-/// SwiftUI View presenting Face ID media: static face at 0ms, followed by
-/// smooth cross-fade to video playback (idle looping, success, or failure).
-struct FaceIDScanAnimationView: View {
+struct FaceIDScanAnimationView: NSViewRepresentable {
     let media: FaceIDScanMedia
 
-    @State private var isVideoReady = false
-
-    var body: some View {
-        ZStack {
-            // Layer 1: static face image at 0ms — stays visible until the video has
-            // actually rendered a frame. The old blind 0.15s fallback declared the
-            // video "ready" before any frame decoded, faded this out anyway, and
-            // exposed the black panel (the "square black box with no image" report).
-            FaceIDStaticImageView()
-                .opacity((isVideoReady && media.videoResourceName != nil) ? 0 : 1)
-                .animation(.easeInOut(duration: 0.15), value: isVideoReady)
-
-            // Layer 2: video fades in on top only once it has actually rendered a
-            // frame (onReady fires from isReadyForDisplay — see the host view).
-            if let resource = media.videoResourceName {
-                FaceIDVideoPlayerRepresentable(
-                    resourceName: resource,
-                    isScanning: media == .scanning,
-                    onReady: {
-                        isVideoReady = true
-                    }
-                )
-                .opacity(isVideoReady ? 1 : 0)
-                .animation(.easeInOut(duration: 0.15), value: isVideoReady)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: media) { _, newMedia in
-            if newMedia.videoResourceName == nil {
-                isVideoReady = false
-            }
-        }
-    }
-}
-
-/// NSViewRepresentable wrapping AVPlayerLayer for seamless video display
-struct FaceIDVideoPlayerRepresentable: NSViewRepresentable {
-    let resourceName: String
-    let isScanning: Bool
-    let onReady: () -> Void
-
-    func makeNSView(context: Context) -> FaceIDVideoPlayerHostView {
-        let view = FaceIDVideoPlayerHostView()
-        view.onReady = onReady
-        view.loadVideo(named: resourceName, isScanning: isScanning)
+    func makeNSView(context: Context) -> FaceIDScanAnimationHostView {
+        let view = FaceIDScanAnimationHostView()
+        view.apply(media: media)
         return view
     }
 
-    func updateNSView(_ nsView: FaceIDVideoPlayerHostView, context: Context) {
-        nsView.onReady = onReady
-        nsView.loadVideo(named: resourceName, isScanning: isScanning)
+    func updateNSView(_ nsView: FaceIDScanAnimationHostView, context: Context) {
+        nsView.apply(media: media)
         nsView.updateLayerFrames()
     }
 }
 
-final class FaceIDVideoPlayerHostView: NSView {
-    var onReady: (() -> Void)?
+final class FaceIDScanAnimationHostView: NSView {
+    private static var firstFrameCache: [String: CGImage] = [:]
+
+    static func prewarm() {
+        Task.detached(priority: .utility) {
+            _ = firstFrame(for: "idleanimation")
+            _ = firstFrame(for: "unlockanimation")
+            _ = firstFrame(for: "unsuccessfulunlockanimation")
+        }
+    }
+
+    private static func firstFrame(for resourceName: String) -> CGImage? {
+        if let cached = firstFrameCache[resourceName] { return cached }
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
+            firstFrameCache[resourceName] = cgImage
+            return cgImage
+        }
+        return nil
+    }
+
     private var player: AVPlayer?
     private let playerLayer = AVPlayerLayer()
-    private var currentResourceName: String?
+    private let stillImageLayer = CALayer()
+    private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
-    private var readyPollToken: UUID?
     private var loopObserver: NSObjectProtocol?
-    private var fallbackItem: DispatchWorkItem?
 
     override init(frame frameRect: NSRect) {
-        let initialRect = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
-        super.init(frame: initialRect)
+        let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
+        super.init(frame: defaultFrame)
         wantsLayer = true
         let root = CALayer()
         root.masksToBounds = true
         layer = root
 
+        stillImageLayer.contentsGravity = .resizeAspect
+        stillImageLayer.masksToBounds = true
+        stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        if let still = Self.loadStillFromBundle()?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            stillImageLayer.contents = still
+        }
+        root.addSublayer(stillImageLayer)
+
         playerLayer.videoGravity = .resizeAspect
         playerLayer.masksToBounds = true
+        playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        playerLayer.isHidden = true
         root.addSublayer(playerLayer)
+
         updateLayerFrames()
+        Self.prewarm()
     }
 
     required init?(coder: NSCoder) {
@@ -193,29 +117,71 @@ final class FaceIDVideoPlayerHostView: NSView {
         updateLayerFrames()
     }
 
+    override func resizeSubviews(withOldSize oldSize: NSSize) {
+        super.resizeSubviews(withOldSize: oldSize)
+        updateLayerFrames()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateLayerFrames()
+        if window != nil, let player = player, currentMedia == .scanning, player.timeControlStatus != .playing {
+            player.play()
+        }
+    }
+
     func updateLayerFrames() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        playerLayer.frame = bounds
+        let rect = bounds.size.width > 0 ? bounds : NSRect(x: 0, y: 0, width: 140, height: 135)
+        playerLayer.frame = rect
+        stillImageLayer.frame = rect
         CATransaction.commit()
     }
 
-    func loadVideo(named name: String, isScanning: Bool) {
+    func apply(media: FaceIDScanMedia) {
         updateLayerFrames()
-        guard name != currentResourceName else { return }
-        currentResourceName = name
-        teardownPlayer()
+        if media == currentMedia {
+            if media == .scanning, let player = player, player.timeControlStatus != .playing {
+                player.play()
+            }
+            return
+        }
+        currentMedia = media
+        readyObservation = nil
 
-        guard let url = Bundle.main.url(forResource: name, withExtension: "mp4") else {
+        guard let resource = media.videoResourceName else {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            stillImageLayer.isHidden = false
+            playerLayer.isHidden = true
+            CATransaction.commit()
+            teardownPlayer()
             return
         }
 
+        guard let url = Bundle.main.url(forResource: resource, withExtension: "mp4") else {
+            assertionFailure("\(resource).mp4 missing from bundle — check NotchPulse/Resources/")
+            return
+        }
+
+        // Keep backdrop frame while immediately unhiding player layer so video starts with zero delay
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if let frame = Self.firstFrame(for: resource) {
+            stillImageLayer.contents = frame
+        }
+        stillImageLayer.isHidden = false
+        playerLayer.isHidden = false
+        CATransaction.commit()
+
+        teardownPlayer()
         let item = AVPlayerItem(url: url)
         let newPlayer = AVPlayer(playerItem: item)
         newPlayer.isMuted = true
         newPlayer.actionAtItemEnd = .none
 
-        if isScanning {
+        if media == .scanning {
             loopObserver = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
                 object: item,
@@ -229,63 +195,42 @@ final class FaceIDVideoPlayerHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
-        let notifyReady: () -> Void = { [weak self] in
+        readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
+            guard change.newValue == true else { return }
             DispatchQueue.main.async {
-                self?.fallbackItem?.cancel()
-                self?.readyPollToken = nil
-                self?.onReady?()
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                self?.stillImageLayer.isHidden = true
+                CATransaction.commit()
                 self?.readyObservation = nil
             }
         }
 
-        readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { _, change in
-            guard change.newValue == true else { return }
-            notifyReady()
-        }
-
-        // Readiness poll replacing the old blind 0.15s fallback. That fallback fired
-        // unconditionally — it reported "ready" while the player had not decoded a
-        // single frame, so callers faded the static image out and exposed the black
-        // panel (the report: "FaceID opens with no image, just a black square").
-        // Only an actual isReadyForDisplay flips the video in now; until then the
-        // static image underneath stays visible. Gives up after ~4s rather than
-        // hiding the image.
-        let token = UUID()
-        readyPollToken = token
-        var pollAttempts = 0
-        func pollReadiness() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                guard let self, self.readyPollToken == token else { return }
-                if self.playerLayer.isReadyForDisplay {
-                    notifyReady()
-                } else if pollAttempts < 40 {
-                    pollAttempts += 1
-                    pollReadiness()
-                }
-                // After ~4s: leave the static image visible — never hide it for a
-                // video that cannot render.
-            }
-        }
-        pollReadiness()
-
-        newPlayer.seek(to: .zero)
+        newPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
         newPlayer.play()
     }
 
     private func teardownPlayer() {
+        readyObservation = nil
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
             loopObserver = nil
         }
-        readyObservation = nil
-        readyPollToken = nil
-        fallbackItem?.cancel()
         player?.pause()
         player = nil
         playerLayer.player = nil
     }
 
-    deinit {
-        teardownPlayer()
+    /// The asset lives in Resources/ rather than an asset catalog, so
+    /// `NSImage(named:)` won't find it — load by URL instead.
+    private static func loadStillFromBundle() -> NSImage? {
+        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png"),
+           let img = NSImage(contentsOf: url), img.isValid && img.size.width > 0 {
+            return img
+        }
+        if let img = NSImage(named: "unlockstatic"), img.isValid && img.size.width > 0 {
+            return img
+        }
+        return nil
     }
 }
