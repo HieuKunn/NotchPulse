@@ -202,8 +202,7 @@ struct StatsView: View {
                 // 8 Highest Consuming Processes List
                 if showProcesses, expandedMetric == .cpu {
                     StatsProcessList(
-                        icon: "cpu", tint: .blue,
-                        title: loc("Highest CPU Usage"),
+                        tint: .blue,
                         items: monitor.topCpuProcesses,
                         emptyText: loc("No processes using CPU right now")
                     )
@@ -213,8 +212,7 @@ struct StatsView: View {
 
                 if showProcesses, expandedMetric == .ram {
                     StatsProcessList(
-                        icon: "memorychip", tint: .green,
-                        title: loc("Highest Memory Usage"),
+                        tint: .green,
                         items: monitor.topRamProcesses,
                         emptyText: loc("No processes using memory right now")
                     )
@@ -593,31 +591,20 @@ struct StatsView: View {
 /// displays the top 8 processes consuming the most CPU or Memory (Activity Monitor style),
 /// perfectly filling the expanded notch height without leaving empty space.
 private struct StatsProcessList: View {
-    let icon: String
     let tint: Color
-    var title: String = loc("Top apps")
     let items: [MonitorProcessItem]
     let emptyText: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(tint)
-                Text(title)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-                Spacer()
-            }
-
+        Group {
             if items.isEmpty {
                 Text(emptyText)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.vertical, 16)
             } else {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 5) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 6) {
                     ForEach(Array(items.prefix(8).enumerated()), id: \.offset) { index, item in
                         HStack(spacing: 6) {
                             Text("\(index + 1).")
@@ -626,7 +613,7 @@ private struct StatsProcessList: View {
                                 .frame(width: 18, alignment: .leading)
                             Text(item.name)
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.9))
+                                .foregroundStyle(.white.opacity(0.92))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                             Spacer(minLength: 6)
@@ -635,14 +622,14 @@ private struct StatsProcessList: View {
                                 .foregroundStyle(tint)
                                 .monospacedDigit()
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4.5)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.05)))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6.5)
+                        .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.06)))
                     }
                 }
             }
         }
-        .padding(12)
+        .padding(10)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.42)))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
