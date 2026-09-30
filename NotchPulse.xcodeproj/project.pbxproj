@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		00F5A59EDEF40C44ACAA05B8 /* NotchPulseFaceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */; };
 		0152AAE85AAC764E2898AF1C /* FeatureTourView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA1B2CCE41EDFBB9BFA5DD4 /* FeatureTourView.swift */; };
+		F1D200542ED0000100000001 /* FeatureTourController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200552ED0000100000001 /* FeatureTourController.swift */; };
 		06E0CC5B63D38C4AC96E9439 /* FaceIDOnboardingControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */; };
 		07091DD5105732B2E5354ED8 /* FaceIDYourFaceSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85C12921DFB812E651BDC87 /* FaceIDYourFaceSettingsPage.swift */; };
 		0B981D52721C7741CBBAA007 /* FaceIDMinimalUnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DEF060F7197B05866F7137 /* FaceIDMinimalUnlockView.swift */; };
@@ -399,6 +400,7 @@
 		4543B173B40F16A7D04EBC21 /* NotchPulsePOCController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulsePOCController.swift; sourceTree = "<group>"; };
 		4E35170142CBABC92F6E5B68 /* FaceIDOverlayController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOverlayController.swift; sourceTree = "<group>"; };
 		4FA1B2CCE41EDFBB9BFA5DD4 /* FeatureTourView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeatureTourView.swift; sourceTree = "<group>"; };
+		F1D200552ED0000100000001 /* FeatureTourController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeatureTourController.swift; sourceTree = "<group>"; };
 		507266DA2C908E2E00A2D00D /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
 		50B5FEFA534C2DFF5BD32667 /* NotchPulseFaceUnlockCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceUnlockCoordinator.swift; sourceTree = "<group>"; };
 		523C6C0F6EAC452DE1EE0F48 /* FaceIDOnboardingStepViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingStepViews.swift; sourceTree = "<group>"; };
@@ -937,6 +939,7 @@
 				11CFC65A2E097E9D00748C80 /* WelcomeView.swift */,
 				B141C2402CA5F53E00AC8CC8 /* SparkleView.swift */,
 				4FA1B2CCE41EDFBB9BFA5DD4 /* FeatureTourView.swift */,
+				F1D200552ED0000100000001 /* FeatureTourController.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -1447,6 +1450,7 @@
 				F336F53951E9E06D48E20329 /* FaceIDOverlayGeometry.swift in Sources */,
 				A354AB15C4DF819FB5AE62CB /* FaceIDOverlayView.swift in Sources */,
 				0152AAE85AAC764E2898AF1C /* FeatureTourView.swift in Sources */,
+				F1D200542ED0000100000001 /* FeatureTourController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

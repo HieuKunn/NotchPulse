@@ -1054,7 +1054,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// to the front; the policy reverts when the window closes via the standard
     /// accessory-policy restore in the onboarding teardown path.
     func showOnboardingReview() {
-        showOnboardingWindow(step: .featureTour)
+        FeatureTourController.shared.startTour()
+    }
+
+    func showFeatureTour() {
+        FeatureTourController.shared.startTour()
     }
 
     /// Runs the actual window-ordering work on the next main-queue tick so callers

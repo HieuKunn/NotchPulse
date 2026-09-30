@@ -631,7 +631,7 @@ struct GeneralSettings: View {
         Form {
             Section {
                 Button(action: {
-                    (AppDelegate.shared ?? (NSApp.delegate as? AppDelegate))?.showOnboardingReview()
+                    FeatureTourController.shared.startTour()
                 }) {
                     HStack {
                         Image(systemName: "sparkles")

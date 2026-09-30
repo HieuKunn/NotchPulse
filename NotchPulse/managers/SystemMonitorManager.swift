@@ -344,8 +344,16 @@ public class SystemMonitorManager: ObservableObject {
     private var cpuSamples: [pid_t: CpuUsageSample] = [:]
 
     private func fetchTopProcesses() -> (cpu: [MonitorProcessItem], ram: [MonitorProcessItem]) {
-        let cpuList = fetchInstantaneousTopCPU(limit: 8)
-        let ramList = fetchProcessesSorted(by: "-m", limit: 8) { _, rssMB in
+        var cpuList = fetchInstantaneousTopCPU(limit: 10)
+        if cpuList.count < 6 {
+            let fallbackCpu = fetchProcessesSorted(by: "-r", limit: 10) { cpu, _ in
+                String(format: "%.1f%%", cpu)
+            }
+            if fallbackCpu.count > cpuList.count {
+                cpuList = fallbackCpu
+            }
+        }
+        let ramList = fetchProcessesSorted(by: "-m", limit: 10) { _, rssMB in
             rssMB >= 1024.0 ? String(format: "%.1f GB", rssMB / 1024.0) : String(format: "%.0f MB", rssMB)
         }
         return (cpuList, ramList)

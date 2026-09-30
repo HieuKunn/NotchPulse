@@ -27,28 +27,28 @@ struct AppleActivityGraphView: View {
 
             ZStack {
                 // macOS Activity Monitor dark container background
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.black.opacity(0.40))
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.black.opacity(0.45))
 
-                // Apple-style horizontal reference grid line (at referenceFraction, e.g. 50% for CPU/GPU or 75% for Memory threshold)
+                // Apple-style horizontal reference grid line
                 Path { path in
                     let yRef = h * CGFloat(1.0 - referenceFraction)
                     path.move(to: CGPoint(x: 0, y: yRef))
                     path.addLine(to: CGPoint(x: w, y: yRef))
                 }
-                .stroke(Color.white.opacity(0.20), lineWidth: 0.8)
+                .stroke(Color.white.opacity(0.18), lineWidth: 0.8)
 
                 if showCeilingGuide {
                     Path { path in
                         path.move(to: CGPoint(x: 0, y: 1.5))
                         path.addLine(to: CGPoint(x: w, y: 1.5))
                     }
-                    .stroke(Color.white.opacity(0.14), lineWidth: 0.8)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
                 }
 
-                // If secondaryData is provided (e.g. System CPU load) -> Stacked chart like Activity Monitor
+                // Stacked chart if secondaryData is provided
                 if let sec = secondaryData, sec.count == data.count {
-                    // Total CPU fill (User + System) in primary color (Blue)
+                    // Total CPU fill in primary color
                     Path { path in
                         guard !data.isEmpty else { return }
                         path.move(to: CGPoint(x: 0, y: h))
@@ -63,13 +63,13 @@ struct AppleActivityGraphView: View {
                     }
                     .fill(
                         LinearGradient(
-                            colors: [color.opacity(0.56), color.opacity(0.30)],
+                            colors: [color.opacity(0.56), color.opacity(0.28)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
 
-                    // System CPU fill in secondary color (Red/Orange) at the bottom
+                    // System CPU fill in secondary color
                     Path { path in
                         guard !sec.isEmpty else { return }
                         path.move(to: CGPoint(x: 0, y: h))
@@ -84,13 +84,13 @@ struct AppleActivityGraphView: View {
                     }
                     .fill(
                         LinearGradient(
-                            colors: [secondaryColor.opacity(0.65), secondaryColor.opacity(0.38)],
+                            colors: [secondaryColor.opacity(0.65), secondaryColor.opacity(0.35)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
 
-                    // System stroke line (Orange/Red)
+                    // System stroke line
                     Path { path in
                         guard !sec.isEmpty else { return }
                         for (i, val) in sec.enumerated() {
@@ -102,7 +102,7 @@ struct AppleActivityGraphView: View {
                     }
                     .stroke(secondaryColor.opacity(0.95), style: StrokeStyle(lineWidth: 1.0, lineCap: .round, lineJoin: .round))
 
-                    // Total CPU stroke line (Blue)
+                    // Total CPU stroke line
                     Path { path in
                         guard !data.isEmpty else { return }
                         for (i, val) in data.enumerated() {
@@ -114,7 +114,7 @@ struct AppleActivityGraphView: View {
                     }
                     .stroke(color, style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
                 } else {
-                    // Single series (RAM Memory Pressure or GPU) - Solid Activity Monitor aesthetic
+                    // Single series (RAM Memory Pressure or GPU)
                     Path { path in
                         guard !data.isEmpty else { return }
                         path.move(to: CGPoint(x: 0, y: h))
@@ -129,8 +129,8 @@ struct AppleActivityGraphView: View {
                     }
                     .fill(
                         isSolidFill
-                            ? LinearGradient(colors: [color.opacity(0.85), color.opacity(0.70)], startPoint: .top, endPoint: .bottom)
-                            : LinearGradient(colors: [color.opacity(0.58), color.opacity(0.32)], startPoint: .top, endPoint: .bottom)
+                            ? LinearGradient(colors: [color.opacity(0.85), color.opacity(0.68)], startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [color.opacity(0.58), color.opacity(0.30)], startPoint: .top, endPoint: .bottom)
                     )
 
                     // Line stroke
@@ -146,10 +146,10 @@ struct AppleActivityGraphView: View {
                     .stroke(color, style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
             .overlay(
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
         }
     }
@@ -167,7 +167,7 @@ struct StatsView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let horizontalMargin: CGFloat = 24
+            let horizontalMargin: CGFloat = 20
             let spacing: CGFloat = 10
             let availableWidth = max(0, geo.size.width - (horizontalMargin * 2) - (spacing * 2))
             // CPU: 1/3 (33.33%)
@@ -178,18 +178,20 @@ struct StatsView: View {
             let ramWidth = ramGpuWidth * 0.60
             // GPU: 40% of 2/3 (= 26.67% of total)
             let gpuWidth = ramGpuWidth * 0.40
-            // Compact card row that fits comfortably within the content envelope
-            let cardRowHeight: CGFloat = 118
+            
+            // In standard view, height fills the open notch cleanly (~144pt)
+            let isExpanded = expandedMetric != nil
+            let cardRowHeight: CGFloat = isExpanded ? 100 : 144
 
             VStack(spacing: 8) {
                 HStack(spacing: spacing) {
-                    cpuCard
+                    cpuCard(isCompact: isExpanded)
                         .frame(width: cpuWidth, height: cardRowHeight)
 
-                    ramCard
+                    ramCard(isCompact: isExpanded)
                         .frame(width: ramWidth, height: cardRowHeight)
 
-                    gpuCard
+                    gpuCard(isCompact: isExpanded)
                         .frame(width: gpuWidth, height: cardRowHeight)
                 }
                 .frame(maxWidth: .infinity)
@@ -216,16 +218,14 @@ struct StatsView: View {
                 }
             }
             .padding(.horizontal, horizontalMargin)
-            .padding(.top, 4)
-            .padding(.bottom, 8)
+            .padding(.top, 2)
+            .padding(.bottom, 6)
             .animation(.smooth(duration: 0.25), value: expandedMetric)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onChange(of: expandedMetric) { _, metric in
-            // Stretch/shrink the notch height through the same animated
-            // customOpenHeight channel the calendar full-month uses.
             withAnimation(NotchPulseViewModel.notchSpring) {
-                vm.customOpenHeight = metric == nil ? nil : 350
+                vm.customOpenHeight = metric == nil ? nil : 340
             }
         }
         .onAppear {
@@ -248,29 +248,29 @@ struct StatsView: View {
     }
 
     // MARK: - CPU Card
-    private var cpuCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
+    private func cpuCard(isCompact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: isCompact ? 4 : 7) {
             // Header
             HStack(alignment: .center, spacing: 6) {
                 Image(systemName: "cpu")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 22, height: 22)
                     .background(Color.blue.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 Text("CPU")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
 
                 Spacer()
 
                 Text(String(format: "%.0f%%", monitor.cpuTotal))
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(.blue)
             }
 
-            // Apple Activity Monitor Graph (User stacked with System)
+            // Apple Activity Monitor Graph
             AppleActivityGraphView(
                 data: monitor.cpuHistory,
                 secondaryData: monitor.cpuSystemHistory,
@@ -278,7 +278,7 @@ struct StatsView: View {
                 secondaryColor: .orange,
                 maxVal: 100.0
             )
-            .frame(height: 28)
+            .frame(height: isCompact ? 22 : 34)
 
             // Segmented Bar (User | System | Idle)
             GeometryReader { geo in
@@ -294,67 +294,65 @@ struct StatsView: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 4)
+            .frame(height: 5)
 
             // Breakdown Labels
             HStack(spacing: 6) {
                 HStack(spacing: 3) {
                     Circle().fill(Color.blue).frame(width: 5, height: 5)
                     Text(String(format: "U:%.0f%%", monitor.cpuUser))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
                 HStack(spacing: 3) {
                     Circle().fill(Color.orange).frame(width: 5, height: 5)
                     Text(String(format: "S:%.0f%%", monitor.cpuSystem))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
                 HStack(spacing: 3) {
                     Circle().fill(Color.gray).frame(width: 5, height: 5)
                     Text(String(format: "I:%.0f%%", monitor.cpuIdle))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
             }
 
-            // Top Process
-            if showProcesses, let topProc = monitor.topCpuProcesses.first {
+            // Top Process preview
+            if !isCompact, showProcesses, let topProc = monitor.topCpuProcesses.first {
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 8))
+                        .font(.system(size: 9))
                         .foregroundStyle(.orange)
                     Text(topProc.name)
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                     Spacer()
                     Text(topProc.value)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.orange)
                 }
                 .padding(.horizontal, 6)
-                .padding(.vertical, 3)
+                .padding(.vertical, 3.5)
                 .background(Color.white.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.38))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(expandedMetric == .cpu ? Color.blue.opacity(0.8) : Color.white.opacity(0.12), lineWidth: expandedMetric == .cpu ? 1.5 : 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        // Activity-Monitor-style tap target: clicking the CPU card expands the notch
-        // height and reveals the per-app list (top 8, largest first). Tap again to collapse.
         .contentShape(RoundedRectangle(cornerRadius: 12))
         .onTapGesture { toggleMetric(.cpu) }
     }
 
     // MARK: - RAM Card
-    private var ramCard: some View {
+    private func ramCard(isCompact: Bool) -> some View {
         let pressureColor: Color = {
             switch monitor.ramPressure {
             case "Critical": return .red
@@ -363,42 +361,42 @@ struct StatsView: View {
             }
         }()
 
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: isCompact ? 4 : 7) {
             // Header
             HStack(alignment: .center, spacing: 6) {
                 Image(systemName: "memorychip")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 22, height: 22)
                     .background(Color.green.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 Text("RAM")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
 
-                // Pressure Pill (Synchronized with native macOS memory pressure)
+                // Pressure Pill
                 HStack(spacing: 3) {
                     Circle()
                         .fill(pressureColor)
                         .frame(width: 4, height: 4)
                     Text(monitor.ramPressure)
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(pressureColor)
                 }
-                .padding(.horizontal, 4)
-                .padding(.vertical, 1.5)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
                 .background(Color.white.opacity(0.06))
                 .clipShape(Capsule())
 
                 Spacer()
 
                 Text(String(format: "%.1f GB", monitor.ramUsedGB))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(pressureColor)
             }
 
-            // Apple Activity Monitor Memory Pressure Graph (Threshold line at 75%, solid fill)
+            // Apple Activity Monitor Memory Pressure Graph
             AppleActivityGraphView(
                 data: monitor.ramHistory,
                 color: pressureColor,
@@ -406,7 +404,7 @@ struct StatsView: View {
                 referenceFraction: 0.75,
                 isSolidFill: true
             )
-            .frame(height: 28)
+            .frame(height: isCompact ? 22 : 34)
 
             // Segmented Bar (App | Wired | Compressed | Free)
             GeometryReader { geo in
@@ -425,85 +423,84 @@ struct StatsView: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 4)
+            .frame(height: 5)
 
-            // Breakdown Labels (App | Wired | Swap)
+            // Breakdown Labels
             HStack(spacing: 6) {
                 HStack(spacing: 3) {
                     Circle().fill(Color.green).frame(width: 5, height: 5)
                     Text(String(format: "App:%.1fG", monitor.ramAppGB))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
                 HStack(spacing: 3) {
                     Circle().fill(Color.orange).frame(width: 5, height: 5)
                     Text(String(format: "Wired:%.1fG", monitor.ramWiredGB))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 HStack(spacing: 3) {
                     Circle().fill(monitor.swapUsedMB > 0 ? Color.purple : Color.gray.opacity(0.6)).frame(width: 5, height: 5)
                     Text("Swap:\(monitor.swapUsedFormatted)")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(monitor.swapUsedMB > 500 ? Color.orange : .secondary)
                 }
             }
 
-            // Top Process
-            if showProcesses, let topProc = monitor.topRamProcesses.first {
+            // Top Process preview
+            if !isCompact, showProcesses, let topProc = monitor.topRamProcesses.first {
                 HStack(spacing: 4) {
                     Image(systemName: "app.badge.fill")
-                        .font(.system(size: 8))
+                        .font(.system(size: 9))
                         .foregroundStyle(.green)
                     Text(topProc.name)
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                     Spacer()
                     Text(topProc.value)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.green)
                 }
                 .padding(.horizontal, 6)
-                .padding(.vertical, 3)
+                .padding(.vertical, 3.5)
                 .background(Color.white.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.38))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(expandedMetric == .ram ? Color.green.opacity(0.8) : Color.white.opacity(0.12), lineWidth: expandedMetric == .ram ? 1.5 : 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        // Same tap-to-expand behavior as the CPU card, for the per-app memory list.
         .contentShape(RoundedRectangle(cornerRadius: 12))
         .onTapGesture { toggleMetric(.ram) }
     }
 
     // MARK: - GPU Card
-    private var gpuCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
+    private func gpuCard(isCompact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: isCompact ? 4 : 7) {
             // Header
             HStack(alignment: .center, spacing: 6) {
                 Image(systemName: "display")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 22, height: 22)
                     .background(Color.purple.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 Text("GPU")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
 
                 Spacer()
 
                 Text(String(format: "%.0f%%", monitor.gpuUsage))
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(.purple)
             }
 
@@ -513,7 +510,7 @@ struct StatsView: View {
                 color: .purple,
                 maxVal: 100.0
             )
-            .frame(height: 28)
+            .frame(height: isCompact ? 22 : 34)
 
             // Progress Bar
             GeometryReader { geo in
@@ -532,49 +529,51 @@ struct StatsView: View {
                     .frame(width: usageW)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 5)
 
             // GPU Model & Status
             HStack {
                 Text(monitor.gpuModel)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer()
                 Text("Metal 3")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.purple.opacity(0.8))
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1.5)
-                    .background(Color.purple.opacity(0.15))
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.purple.opacity(0.9))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.purple.opacity(0.18))
                     .clipShape(Capsule())
             }
 
             // Additional Info
-            HStack(spacing: 4) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.yellow)
-                Text(loc("Hardware Acceleration"))
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Spacer()
-                Text(loc("Active"))
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.green)
+            if !isCompact {
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.yellow)
+                    Text(loc("Hardware Acceleration"))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(loc("Active"))
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.green)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3.5)
+                .background(Color.white.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Color.white.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 5))
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.38))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -588,7 +587,7 @@ struct StatsView: View {
 }
 
 /// Per-app list shown under the CPU/RAM cards when a card is tapped —
-/// identical data to the Settings page, sorted largest first.
+/// displays top 10 processes with 2 columns, filling the expanded notch height evenly.
 private struct StatsProcessList: View {
     let icon: String
     let tint: Color
@@ -596,49 +595,55 @@ private struct StatsProcessList: View {
     let emptyText: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 5) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 9))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(tint)
                 Text(loc("Top apps"))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text(loc("largest first"))
-                    .font(.system(size: 9))
+                    .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
 
             if items.isEmpty {
                 Text(emptyText)
-                    .font(.system(size: 10))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, 6)
             } else {
-                // 8 items fit the 350pt expanded notch height; two columns keep the
-                // rows short so wide process names never truncate aggressively.
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 4) {
-                    ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)], spacing: 6) {
+                    ForEach(Array(items.prefix(10).enumerated()), id: \.offset) { index, item in
                         HStack(spacing: 6) {
                             Text("\(index + 1).")
-                                .font(.system(size: 9, design: .monospaced))
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.tertiary)
+                                .frame(width: 18, alignment: .leading)
                             Text(item.name)
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                             Spacer(minLength: 6)
                             Text(item.value)
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundStyle(tint)
                                 .monospacedDigit()
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.04)))
                     }
                 }
             }
         }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.35)))
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.40)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
     }
 }

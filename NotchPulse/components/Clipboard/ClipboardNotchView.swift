@@ -67,7 +67,7 @@ struct ClipboardNotchView: View {
                         }
                     )
                 }
-                .frame(maxHeight: 120)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onAppear {
                     if clipboardManager.history.count <= 3 {
                         vm.clipboardScrolledToBottom = true
@@ -82,9 +82,10 @@ struct ClipboardNotchView: View {
                 }
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 4)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onHover { isHovering in
             vm.isHoveringClipboard = isHovering
         }

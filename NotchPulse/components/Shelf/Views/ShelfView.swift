@@ -1,5 +1,5 @@
 //
-//  ShelfItemView.swift
+//  ShelfView.swift
 //  NotchPulse
 //
 //  Created by Alexander on 2025-09-24.
@@ -19,17 +19,19 @@ struct ShelfView: View {
     var body: some View {
         HStack(spacing: 12) {
             FileShareView()
-                .aspectRatio(1, contentMode: .fit)
+                .frame(width: 130)
+                .frame(maxHeight: .infinity)
                 .environmentObject(vm)
             panel
+                .frame(maxHeight: .infinity)
                 .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $isShelfTargeted) { providers in
                     handleDrop(providers: providers)
                 }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 4)
-        .padding(.bottom, 8)
-        .frame(height: 120)
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: isShelfTargeted) { _, targeted in
             vm.shelfDropTargeting = targeted
         }
@@ -80,11 +82,11 @@ struct ShelfView: View {
             )
             .overlay {
                 content
-                    .padding(10)
+                    .padding(12)
             }
             .overlay(alignment: .bottomTrailing) {
                 pinButton
-                    .padding(8)
+                    .padding(10)
             }
             .transaction { transaction in
                 transaction.animation = vm.animation
@@ -103,16 +105,16 @@ struct ShelfView: View {
             }
         } label: {
             Image(systemName: tvm.isPinned ? "pin.fill" : "pin")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(tvm.isPinned ? Color.green : Color.white.opacity(0.65))
                 .rotationEffect(.degrees(tvm.isPinned ? 0 : 45))
-                .frame(width: 24, height: 24)
+                .frame(width: 26, height: 26)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .fill(tvm.isPinned ? Color.green.opacity(0.22) : Color.white.opacity(0.08))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .stroke(tvm.isPinned ? Color.green.opacity(0.7) : Color.white.opacity(0.12), lineWidth: 1)
                 )
         }
@@ -123,18 +125,20 @@ struct ShelfView: View {
     var content: some View {
         Group {
             if tvm.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "tray.and.arrow.down")
-                        .symbolVariant(.fill)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white, .gray)
-                        .imageScale(.large)
+                VStack(spacing: 8) {
+                    Image(systemName: "tray.and.arrow.down.fill")
+                        .font(.system(size: 32, weight: .light))
+                        .foregroundStyle(
+                            isShelfTargeted ? Color.accentColor : Color.white.opacity(0.75)
+                        )
+                        .scaleEffect(isShelfTargeted ? 1.1 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isShelfTargeted)
                     
                     Text(loc("Drop files here"))
-                        .foregroundStyle(.gray)
-                        .font(.system(.title3, design: .rounded))
-                        .fontWeight(.medium)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView(.horizontal) {
                     HStack(spacing: spacing) {
@@ -143,8 +147,8 @@ struct ShelfView: View {
                                 .environmentObject(quickLookService)
                         }
                     }
+                    .padding(.horizontal, 4)
                 }
-                .padding(-spacing)
                 .scrollIndicators(.never)
                 .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $isShelfTargeted) { providers in
                     handleDrop(providers: providers)

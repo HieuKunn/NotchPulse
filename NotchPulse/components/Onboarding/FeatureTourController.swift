@@ -1,0 +1,82 @@
+//
+//  FeatureTourController.swift
+//  NotchPulse
+//
+//  Created for NotchPulse - Spotlight Feature Tour & What's New Presenter
+//
+
+import AppKit
+import SwiftUI
+
+@MainActor
+final class FeatureTourController: NSObject {
+    static let shared = FeatureTourController()
+
+    private var tourWindow: NSWindow?
+
+    override private init() {
+        super.init()
+    }
+
+    func startTour() {
+        // Tear down any existing tour window
+        if let existing = tourWindow {
+            existing.orderOut(nil)
+            tourWindow = nil
+        }
+
+        let screen = NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+        let window = NSWindow(
+            contentRect: screen.frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = false
+        window.level = .floating
+        window.ignoresMouseEvents = false
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.setFrame(screen.frame, display: true)
+        window.isReleasedWhenClosed = false
+        window.identifier = NSUserInterfaceItemIdentifier("FeatureTourWindow")
+
+        let coordinator = NotchPulseViewCoordinator.shared
+        let vm = (AppDelegate.shared?.vm) ?? NotchPulseViewModel()
+
+        window.contentView = NSHostingView(
+            rootView: FeatureTourView(onFinish: { [weak self] in
+                self?.dismissTour()
+            })
+            .environmentObject(coordinator)
+            .environmentObject(vm)
+        )
+
+        self.tourWindow = window
+
+        // Bring to front
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+    }
+
+    func dismissTour() {
+        tourWindow?.orderOut(nil)
+        tourWindow = nil
+
+        let coordinator = NotchPulseViewCoordinator.shared
+        let vm = (AppDelegate.shared?.vm) ?? NotchPulseViewModel()
+
+        coordinator.firstLaunch = false
+        coordinator.currentView = .home
+        vm.customOpenHeight = nil
+        vm.featureTourTarget = nil
+        vm.close()
+        for subVm in (AppDelegate.shared?.viewModels.values ?? []) {
+            subVm.customOpenHeight = nil
+            subVm.featureTourTarget = nil
+            subVm.close()
+        }
+    }
+}
