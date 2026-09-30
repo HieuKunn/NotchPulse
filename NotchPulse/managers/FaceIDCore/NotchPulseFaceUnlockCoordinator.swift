@@ -69,6 +69,12 @@ final class NotchPulseFaceUnlockCoordinator {
         self.matchThreshold = NotchPulseFaceIDSettings.shared.matchThreshold
         spaceKeyMonitor.onSpaceKeyDown = { [weak self] in self?.handleSpaceKeyPress() }
         observeLockAndWakeEvents()
+        
+        Task { @MainActor [weak self] in
+            if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                self?.evaluateTrigger()
+            }
+        }
     }
 
     /// Re-subscribes on every change — `withObservationTracking` only fires once per registration.
@@ -89,14 +95,35 @@ final class NotchPulseFaceUnlockCoordinator {
                     return
                 }
                 // Brief settle delay: CGSession's reported state can lag the true state right after wake.
-                try? await Task.sleep(nanoseconds: 120_000_000)
+                try? await Task.sleep(nanoseconds: 100_000_000)
                 self.evaluateTrigger()
             }
         }
     }
 
     private func evaluateTrigger() {
+        NotchPulseLockMonitor.invalidateLockCache()
+        let isWake = (lockMonitor.wakeEventCount > lastHandledWakeCount) || (lockMonitor.lastEvent == .wake)
+
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
+            if isWake {
+                // WindowServer lock state dictionary may take a few moments to update on wake
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    for _ in 0..<5 {
+                        try? await Task.sleep(nanoseconds: 120_000_000)
+                        NotchPulseLockMonitor.invalidateLockCache()
+                        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            self.evaluateTrigger()
+                            return
+                        }
+                    }
+                    self.hasArmedForCurrentLock = false
+                    self.hasAutoRetriedForCurrentLock = false
+                    self.disarmOverlay()
+                }
+                return
+            }
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
             disarmOverlay()
@@ -107,13 +134,10 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
-        // `.wake` (sleep, display sleep, screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
-        let isWake = (lockMonitor.wakeEventCount > lastHandledWakeCount) || (lockMonitor.lastEvent == .wake)
+        // `.wake` (sleep, display sleep, screensaver stopping, lid open) is an explicit "let me back in," so clear the one-shot guard.
         if isWake {
             lastHandledWakeCount = lockMonitor.wakeEventCount
-            if !isWithinRecentArmBurst {
-                hasArmedForCurrentLock = false
-            }
+            hasArmedForCurrentLock = false
         }
 
         // Runs before the hasArmedForCurrentLock guard — the space monitor's lifetime is tied to "locked + opted in," not to whether a scan already ran.

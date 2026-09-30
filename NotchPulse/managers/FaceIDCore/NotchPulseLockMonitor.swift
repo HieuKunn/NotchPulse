@@ -121,16 +121,20 @@ final class NotchPulseLockMonitor {
 
     private func recordSleep(kind: LockEventKind) {
         isSleeping = true
+        Self.invalidateLockCache()
         record(kind)
     }
 
     private func recordWake() {
         isSleeping = false
         wakeEventCount += 1
+        Self.invalidateLockCache()
+        isScreenLocked = Self.isScreenActuallyLocked()
         record(.wake)
     }
 
     private func record(_ kind: LockEventKind) {
+        Self.invalidateLockCache()
         lastEvent = kind
         eventCount += 1
     }
@@ -143,6 +147,12 @@ final class NotchPulseLockMonitor {
     private static let cacheLock = NSLock()
     nonisolated(unsafe) private static var cachedLockState: Bool = false
     nonisolated(unsafe) private static var cachedLockTimestamp: TimeInterval = -10
+
+    nonisolated static func invalidateLockCache() {
+        cacheLock.lock()
+        cachedLockTimestamp = -10
+        cacheLock.unlock()
+    }
 
     /// Authoritative lock state from the CoreGraphics session server, not a spoofable notification. Fails closed if unavailable.
     nonisolated static func isScreenActuallyLocked() -> Bool {
