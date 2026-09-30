@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Defaults
 
 struct NotchPulseLargeButtons: View {
     var action: () -> Void
@@ -29,6 +30,7 @@ struct NotchPulseLargeButtons: View {
 
 struct NotchPulseExtrasMenu : View {
     @ObservedObject var vm: NotchPulseViewModel
+    @Default(.appLanguage) var appLanguage: AppLanguage
     
     var body: some View {
         VStack{
@@ -38,6 +40,7 @@ struct NotchPulseExtrasMenu : View {
                 close
             }
         }
+        .id(appLanguage.rawValue)
     }
     
     var github: some View {
@@ -48,7 +51,7 @@ struct NotchPulseExtrasMenu : View {
                 }
             },
             icon: Image(.github),
-            title: "Checkout"
+            title: loc("Checkout")
         )
     }
     
@@ -78,7 +81,7 @@ struct NotchPulseExtrasMenu : View {
                 }
             },
             icon: Image(systemName: "arrow.down.forward.and.arrow.up.backward"),
-            title: "Hide"
+            title: loc("Hide")
         )
     }
     
@@ -93,7 +96,7 @@ struct NotchPulseExtrasMenu : View {
                 }
             },
             icon: Image(systemName: "xmark"),
-            title: "Exit"
+            title: loc("Exit")
         )
     }
 }

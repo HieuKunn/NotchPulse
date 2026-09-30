@@ -35,6 +35,7 @@ struct ContentView: View {
     @Namespace var albumArtNamespace
 
     @Default(.useMusicVisualizer) var useMusicVisualizer
+    @Default(.appLanguage) var appLanguage
 
     @Default(.showNotHumanFace) var showNotHumanFace
     @Default(.notchStyle) var notchStyle

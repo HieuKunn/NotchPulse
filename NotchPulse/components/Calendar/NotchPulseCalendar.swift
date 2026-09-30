@@ -539,7 +539,7 @@ struct CalendarPinButton: View {
                 )
         }
         .buttonStyle(.plain)
-        .help(state.isPinned ? "Unpin Calendar (Close on hover exit)" : "Pin Calendar (Keep open when hovering out)")
+        .help(state.isPinned ? loc("Unpin Calendar (Close on hover exit)") : loc("Pin Calendar (Keep open when hovering out)"))
     }
 }
 
@@ -870,16 +870,16 @@ struct CalendarView: View {
             }
         }
         .onChange(of: coordinator.currentView) { _, newView in
-            if newView != .home {
-                mode = .normal
-                CalendarStateViewModel.shared.isPinned = false
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    vm.customOpenHeight = nil
-                }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            mode = .normal
+            CalendarStateViewModel.shared.isPinned = false
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                vm.customOpenHeight = nil
             }
         }
         .onChange(of: vm.notchState) { _, newState in
             if newState == .closed {
+                CalendarStateViewModel.shared.isFullMonthExpanded = false
                 mode = .normal
                 CalendarStateViewModel.shared.isPinned = false
                 vm.customOpenHeight = nil
@@ -891,14 +891,10 @@ struct CalendarView: View {
             }
         }
         .onAppear {
-            if coordinator.currentView != .home {
-                mode = .normal
-                CalendarStateViewModel.shared.isPinned = false
-                vm.customOpenHeight = nil
-            } else if CalendarStateViewModel.shared.isFullMonthExpanded {
-                mode = .dayDetail
-                vm.customOpenHeight = 285
-            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            mode = .normal
+            CalendarStateViewModel.shared.isPinned = false
+            vm.customOpenHeight = nil
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
@@ -906,6 +902,7 @@ struct CalendarView: View {
             }
         }
         .onDisappear {
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
             mode = .normal
             CalendarStateViewModel.shared.isPinned = false
             vm.customOpenHeight = nil
@@ -1079,6 +1076,7 @@ struct CalendarView: View {
 
     private func exitFullPage() {
         CalendarStateViewModel.shared.isPinned = false
+        CalendarStateViewModel.shared.isFullMonthExpanded = false
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             mode = .normal
             vm.customOpenHeight = nil

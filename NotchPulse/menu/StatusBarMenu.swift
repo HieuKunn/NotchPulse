@@ -17,7 +17,7 @@ class NotchPulseStatusMenu: NSMenu {
         
         // Set up the menu
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitAction), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: loc("Quit"), action: #selector(quitAction), keyEquivalent: "q"))
         statusItem.menu = menu
     }
 

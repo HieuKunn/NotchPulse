@@ -88,7 +88,7 @@ struct FileShareView: View {
                     .animation(.spring(response: 0.36, dampingFraction: 0.7), value: isTargeted)
                 }
 
-                Text(selectedProvider.id)
+                Text(loc(selectedProvider.id))
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
 

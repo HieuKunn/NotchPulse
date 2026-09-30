@@ -119,7 +119,7 @@ struct ShelfView: View {
                 )
         }
         .buttonStyle(.plain)
-        .help(tvm.isPinned ? "Unpin Shelf (Close on hover exit)" : "Pin Shelf (Keep open when hovering out)")
+        .help(tvm.isPinned ? loc("Unpin Shelf (Close on hover exit)") : loc("Pin Shelf (Keep open when hovering out)"))
     }
 
     var content: some View {

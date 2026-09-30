@@ -243,6 +243,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     func open() {
+        CalendarStateViewModel.shared.isFullMonthExpanded = false
         self.notchSize = openNotchSize
         self.notchState = .open
         
@@ -254,6 +255,10 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     func close(force: Bool = false) {
+        // Keep notch open during feature tour unless forced (e.g. dismissing tour)
+        if !force && FeatureTourController.shared.isTourActive {
+            return
+        }
         self.customOpenHeight = nil
         // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen)
         if !force && SharingStateManager.shared.preventNotchClose {

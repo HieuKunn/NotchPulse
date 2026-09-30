@@ -18,6 +18,7 @@ final class CheckForUpdatesViewModel: ObservableObject {
 }
 
 struct CheckForUpdatesView: View {
+    @Default(.appLanguage) var appLanguage: AppLanguage
     @ObservedObject private var checkForUpdatesViewModel: CheckForUpdatesViewModel
     private let updater: SPUUpdater
     

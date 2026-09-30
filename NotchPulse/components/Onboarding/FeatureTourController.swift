@@ -12,6 +12,7 @@ import SwiftUI
 final class FeatureTourController: NSObject {
     static let shared = FeatureTourController()
 
+    public private(set) var isTourActive: Bool = false
     private var tourWindow: NSWindow?
 
     override private init() {
@@ -19,6 +20,16 @@ final class FeatureTourController: NSObject {
     }
 
     func startTour() {
+        isTourActive = true
+        // Open the notch and ensure it stays open
+        let vm = (AppDelegate.shared?.vm) ?? NotchPulseViewModel()
+        vm.open()
+        if let viewModels = AppDelegate.shared?.viewModels {
+            for subVm in viewModels.values {
+                subVm.open()
+            }
+        }
+
         // Tear down any existing tour window
         if let existing = tourWindow {
             existing.orderOut(nil)
@@ -62,6 +73,7 @@ final class FeatureTourController: NSObject {
     }
 
     func dismissTour() {
+        isTourActive = false
         tourWindow?.orderOut(nil)
         tourWindow = nil
 
@@ -70,14 +82,15 @@ final class FeatureTourController: NSObject {
 
         coordinator.firstLaunch = false
         coordinator.currentView = .home
+        CalendarStateViewModel.shared.isFullMonthExpanded = false
         vm.customOpenHeight = nil
         vm.featureTourTarget = nil
-        vm.close()
+        vm.close(force: true)
         if let viewModels = AppDelegate.shared?.viewModels {
             for subVm in viewModels.values {
                 subVm.customOpenHeight = nil
                 subVm.featureTourTarget = nil
-                subVm.close()
+                subVm.close(force: true)
             }
         }
     }

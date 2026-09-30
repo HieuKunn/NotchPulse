@@ -25,6 +25,8 @@ import SwiftUI
 struct DynamicNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Default(.menubarIcon) var showMenuBarIcon
+    @Default(.appLanguage) var appLanguage
+    @Default(.notchOpenWidth) var notchOpenWidth
     @Environment(\.openWindow) var openWindow
 
     let updaterController: SPUStandardUpdaterController
@@ -46,7 +48,7 @@ struct DynamicNotchApp: App {
             }
             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
             
-            Menu("\(loc("Notch Width")) (\(Int(Defaults[.notchOpenWidth]))px)") {
+            Menu("\(loc("Notch Width")) (\(Int(notchOpenWidth))px)") {
                 Button(loc("Compact (580px)")) { Defaults[.notchOpenWidth] = 580 }
                 Button(loc("Standard (740px)")) { Defaults[.notchOpenWidth] = 740 }
                 Button(loc("Wide (860px)")) { Defaults[.notchOpenWidth] = 860 }
