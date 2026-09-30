@@ -344,19 +344,50 @@ public class SystemMonitorManager: ObservableObject {
     private var cpuSamples: [pid_t: CpuUsageSample] = [:]
 
     private func fetchTopProcesses() -> (cpu: [MonitorProcessItem], ram: [MonitorProcessItem]) {
-        var cpuList = fetchInstantaneousTopCPU(limit: 10)
-        if cpuList.count < 6 {
-            let fallbackCpu = fetchProcessesSorted(by: "-r", limit: 10) { cpu, _ in
-                String(format: "%.1f%%", cpu)
-            }
-            if fallbackCpu.count > cpuList.count {
-                cpuList = fallbackCpu
-            }
-        }
-        let ramList = fetchProcessesSorted(by: "-m", limit: 10) { _, rssMB in
-            rssMB >= 1024.0 ? String(format: "%.1f GB", rssMB / 1024.0) : String(format: "%.0f MB", rssMB)
-        }
+        let cpuList = fetchInstantaneousTopCPU(limit: 10)
+        let ramList = fetchInstantaneousTopRAM(limit: 10)
         return (cpuList, ramList)
+    }
+
+    private func fetchInstantaneousTopRAM(limit: Int) -> [MonitorProcessItem] {
+        let pidCount = Int(proc_listallpids(nil, 0))
+        guard pidCount > 0 else { return [] }
+        var pids = [pid_t](repeating: 0, count: pidCount + 64)
+        let written = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size)))
+        guard written > 0 else { return [] }
+
+        var entries: [(name: String, rssMB: Double)] = []
+        entries.reserveCapacity(written)
+
+        for index in 0..<written {
+            let pid = pids[index]
+            guard pid > 0 else { continue }
+
+            var taskInfo = proc_taskinfo()
+            let size = Int32(MemoryLayout<proc_taskinfo>.stride)
+            let result = proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &taskInfo, size)
+            guard result == size else { continue }
+
+            let rssMB = Double(taskInfo.pti_resident_size) / (1024.0 * 1024.0)
+            guard rssMB > 1.0 else { continue }
+
+            var nameBuffer = [CChar](repeating: 0, count: 2048)
+            proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
+            let name = String(cString: nameBuffer)
+            guard !name.isEmpty else { continue }
+
+            entries.append((name: name, rssMB: rssMB))
+        }
+
+        return entries
+            .sorted { $0.rssMB > $1.rssMB }
+            .prefix(limit)
+            .map { entry in
+                let formatted = entry.rssMB >= 1024.0 
+                    ? String(format: "%.1f GB", entry.rssMB / 1024.0) 
+                    : String(format: "%.0f MB", entry.rssMB)
+                return MonitorProcessItem(name: entry.name, value: formatted)
+            }
     }
 
     private func fetchInstantaneousTopCPU(limit: Int) -> [MonitorProcessItem] {
@@ -405,46 +436,5 @@ public class SystemMonitorManager: ObservableObject {
             .sorted { $0.pct > $1.pct }
             .prefix(limit)
             .map { MonitorProcessItem(name: $0.name, value: String(format: "%.1f%%", $0.pct)) }
-    }
-
-    private func fetchProcessesSorted(by sortFlag: String, limit: Int, valueFor: (_ cpu: Double, _ rssMB: Double) -> String?) -> [MonitorProcessItem] {
-        let task = Process()
-        task.launchPath = "/bin/ps"
-        task.arguments = ["-Aceo", "%cpu,rss,comm", sortFlag]
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = FileHandle.nullDevice
-
-        do {
-            try task.run()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            task.waitUntilExit()
-            if let output = String(data: data, encoding: .utf8) {
-                var lines = output.components(separatedBy: "\n")
-                if !lines.isEmpty { lines.removeFirst() } // Remove header
-
-                var items: [MonitorProcessItem] = []
-                for line in lines {
-                    let parts = line.trimmingCharacters(in: .whitespaces)
-                        .components(separatedBy: .whitespaces)
-                        .filter { !$0.isEmpty }
-                    guard parts.count >= 3,
-                          let cpuVal = Double(parts[0]),
-                          let rssKB = Double(parts[1]) else { continue }
-
-                    let name = (parts[2...].joined(separator: " ") as NSString).lastPathComponent
-                    guard let valueStr = valueFor(cpuVal, rssKB / 1024.0) else { continue }
-
-                    items.append(MonitorProcessItem(name: name, value: valueStr))
-                    if items.count >= limit { break }
-                }
-                return items
-            }
-        } catch {
-            // Fallback empty
-        }
-
-        return []
     }
 }

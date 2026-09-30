@@ -55,9 +55,7 @@ struct ContentView: View {
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
 
-    private var faceIDOverlay: FaceIDOverlayController {
-        FaceIDOverlayController.shared
-    }
+    @ObservedObject private var faceIDOverlay = FaceIDOverlayController.shared
 
     private var isFaceIDActive: Bool {
         let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked())
@@ -304,9 +302,9 @@ struct ContentView: View {
                         .horizontal,
                         (vm.notchState == .open)
                         ? 10
-                        : (isDynamicIsland
-                            ? (isFaceIDContentVisible ? 0 : 12)
-                            : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
+                        : ((NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDContentVisible)
+                            ? 0
+                            : (isDynamicIsland ? 12 : cornerRadiusInsets.closed.bottom))
                     )
                     .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)

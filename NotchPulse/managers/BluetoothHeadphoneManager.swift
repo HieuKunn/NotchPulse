@@ -15,6 +15,9 @@ import IOKit.ps
 final class BluetoothHeadphoneManager: NSObject {
     static let shared = BluetoothHeadphoneManager()
 
+    private static var cachedProfilerData: [[String: [String: Any]]]? = nil
+    private static var lastProfilerQuery: Date = .distantPast
+
     private var connectNotification: IOBluetoothUserNotification?
     private var lastTriggerTime: Date = .distantPast
     private var lastConnectedDeviceAddress: String = ""
@@ -208,20 +211,33 @@ final class BluetoothHeadphoneManager: NSObject {
                     }
                 }
 
-                // 2. Query system_profiler SPBluetoothDataType
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
-                process.arguments = ["SPBluetoothDataType", "-json"]
-                let pipe = Pipe()
-                process.standardOutput = pipe
-                try? process.run()
-                process.waitUntilExit()
+                // 2. Query system_profiler SPBluetoothDataType with TTL Cache to prevent CPU spikes
+                let now = Date()
+                var connectedDevices: [[String: [String: Any]]]? = nil
+                
+                if let cached = Self.cachedProfilerData, now.timeIntervalSince(Self.lastProfilerQuery) < 60.0 {
+                    connectedDevices = cached
+                } else {
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+                    process.arguments = ["SPBluetoothDataType", "-json"]
+                    let pipe = Pipe()
+                    process.standardOutput = pipe
+                    try? process.run()
+                    process.waitUntilExit()
 
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let spList = json["SPBluetoothDataType"] as? [[String: Any]],
-                      let first = spList.first,
-                      let connected = first["device_connected"] as? [[String: [String: Any]]] else {
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let spList = json["SPBluetoothDataType"] as? [[String: Any]],
+                       let first = spList.first,
+                       let connected = first["device_connected"] as? [[String: [String: Any]]] {
+                        connectedDevices = connected
+                        Self.cachedProfilerData = connected
+                        Self.lastProfilerQuery = now
+                    }
+                }
+
+                guard let connected = connectedDevices else {
                     continuation.resume(returning: (nil, icon))
                     return
                 }
