@@ -42,6 +42,7 @@ This document outlines the core rules, architectural guidelines, and release pro
 ---
 
 ## 3. Layout Standards & Multi-Monitor Support
+- **⚠️ Notch & Dynamic Island Style Parity (REQUIRED):** By default, Notch and Dynamic Island styles MUST always render identical internal views, contents, layout metrics, tabs, and components unless specifically requested otherwise by the user. Do not artificially shrink or alter internal views, headers, or tab layouts for Dynamic Island.
 - **Percentage-Based Sizing:** Use dynamic, screen-relative dimensions rather than rigid hardcoded pixel values for responsive UI components (Lyrics, Media View).
 - **Display Awareness:**
   - Built-in MacBook Display: Dynamically adapt UI around the camera Notch geometry.

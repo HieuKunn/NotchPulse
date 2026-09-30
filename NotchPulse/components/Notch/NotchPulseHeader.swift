@@ -4,6 +4,9 @@
 //
 //  Created by Harsh Vardhan  Goswami  on 04/08/24.
 //
+//  ⚠️ [UI Policy Rule]: Notch and Dynamic Island styles MUST always render identical internal views,
+//  contents, layout metrics, tabs, and components unless specifically requested otherwise by the user.
+//
 
 import Defaults
 import SwiftUI
@@ -19,7 +22,7 @@ struct NotchPulseHeader: View {
     }
 
     private var headerInset: CGFloat {
-        isDynamicIsland ? 22 : max(22, cornerRadiusInsets.opened.top + 4)
+        max(22, cornerRadiusInsets.opened.top + 4)
     }
 
     var body: some View {
