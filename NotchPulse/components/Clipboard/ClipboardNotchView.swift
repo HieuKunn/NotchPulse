@@ -59,14 +59,15 @@ struct ClipboardNotchView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 12)
+                    .padding(.horizontal, 4)
+                    .padding(.bottom, 6)
                     .background(
                         ClipboardScrollWheelHelper { isAtBottom in
                             vm.clipboardScrolledToBottom = isAtBottom
                         }
                     )
                 }
+                .frame(maxHeight: 120)
                 .onAppear {
                     if clipboardManager.history.count <= 3 {
                         vm.clipboardScrolledToBottom = true
@@ -81,8 +82,9 @@ struct ClipboardNotchView: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 4)
+        .padding(.horizontal, 24)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
         .onHover { isHovering in
             vm.isHoveringClipboard = isHovering
         }

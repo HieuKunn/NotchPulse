@@ -666,11 +666,10 @@ struct ContentView: View {
                 )
             } else {
                 FaceIDScanAnimationView(media: controller.media)
-                    .padding(.leading, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingLeading : FaceIDOverlayGeometry.notchContentPaddingLeading)
-                    .padding(.trailing, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
-                    .padding(.top, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
-                    .padding(.bottom, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
-                    .scaleEffect(0.80)
+                    .padding(.horizontal, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 18 : 20)
+                    .padding(.top, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 12 : 16)
+                    .padding(.bottom, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? 14 : 16)
+                    .scaleEffect(1.0)
             }
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)

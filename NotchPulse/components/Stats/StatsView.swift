@@ -167,7 +167,7 @@ struct StatsView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let horizontalMargin: CGFloat = 16
+            let horizontalMargin: CGFloat = 24
             let spacing: CGFloat = 10
             let availableWidth = max(0, geo.size.width - (horizontalMargin * 2) - (spacing * 2))
             // CPU: 1/3 (33.33%)
@@ -178,10 +178,10 @@ struct StatsView: View {
             let ramWidth = ramGpuWidth * 0.60
             // GPU: 40% of 2/3 (= 26.67% of total)
             let gpuWidth = ramGpuWidth * 0.40
-            // Compact card row that fits comfortably within the 148pt content envelope
-            let cardRowHeight: CGFloat = 136
+            // Compact card row that fits comfortably within the content envelope
+            let cardRowHeight: CGFloat = 118
 
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 HStack(spacing: spacing) {
                     cpuCard
                         .frame(width: cpuWidth, height: cardRowHeight)
@@ -216,10 +216,11 @@ struct StatsView: View {
                 }
             }
             .padding(.horizontal, horizontalMargin)
+            .padding(.top, 4)
+            .padding(.bottom, 8)
             .animation(.smooth(duration: 0.25), value: expandedMetric)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.vertical, 4)
         .onChange(of: expandedMetric) { _, metric in
             // Stretch/shrink the notch height through the same animated
             // customOpenHeight channel the calendar full-month uses.

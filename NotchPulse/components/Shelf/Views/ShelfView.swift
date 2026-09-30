@@ -26,9 +26,10 @@ struct ShelfView: View {
                     handleDrop(providers: providers)
                 }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 4)
-        .frame(height: 140)
+        .padding(.horizontal, 24)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
+        .frame(height: 120)
         .onChange(of: isShelfTargeted) { _, targeted in
             vm.shelfDropTargeting = targeted
         }
