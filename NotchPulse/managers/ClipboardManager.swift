@@ -226,7 +226,7 @@ final class ClipboardManager: ObservableObject {
             if let url = URL(string: trimmed), let scheme = url.scheme, ["http", "https", "ftp"].contains(scheme.lowercased()) {
                 itemType = .url
                 urlStr = trimmed
-            } else if trimmed.hasPrefix("file://"), let fileURL = URL(string: trimmed) {
+            } else if trimmed.hasPrefix("file://"), URL(string: trimmed) != nil {
                 itemType = .file
                 urlStr = trimmed
             }

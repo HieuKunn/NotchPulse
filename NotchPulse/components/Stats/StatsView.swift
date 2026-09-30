@@ -23,6 +23,7 @@ struct AppleActivityGraphView: View {
             let w = geo.size.width
             let h = geo.size.height
             let count = max(1, data.count)
+            let step = count > 1 ? w / CGFloat(count - 1) : w
 
 
             ZStack {
