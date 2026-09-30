@@ -68,7 +68,6 @@ final class FeatureTourController: NSObject {
         let coordinator = NotchPulseViewCoordinator.shared
         let vm = (AppDelegate.shared?.vm) ?? NotchPulseViewModel()
 
-        CalendarStateViewModel.shared.isFullMonthExpanded = false
         coordinator.firstLaunch = false
         coordinator.currentView = .home
         vm.customOpenHeight = nil
