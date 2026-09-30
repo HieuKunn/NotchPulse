@@ -29,13 +29,13 @@ struct InlineHUD: View {
                                 Image(systemName: SpeakerSymbol(value))
                                     .contentTransition(.interpolate)
                                     .symbolVariant(value > 0 ? .none : .slash)
-                                    .frame(width: 20, height: 15, alignment: .leading)
+                                    .frame(width: 18, height: 15, alignment: .leading)
                             } else {
                                 Image(systemName: icon)
                                     .contentTransition(.interpolate)
                                     .opacity(value.isZero ? 0.6 : 1)
                                     .scaleEffect(value.isZero ? 0.85 : 1)
-                                    .frame(width: 20, height: 15, alignment: .leading)
+                                    .frame(width: 18, height: 15, alignment: .leading)
                             }
                         case .brightness:
                             Button(action: {
@@ -43,24 +43,24 @@ struct InlineHUD: View {
                             }) {
                                 Image(systemName: icon.isEmpty ? (brightnessManager.isCurrentBuiltin ? BrightnessSymbol(value) : "display") : icon)
                                     .contentTransition(.interpolate)
-                                    .frame(width: 20, height: 15, alignment: .center)
+                                    .frame(width: 18, height: 15, alignment: .center)
                             }
                             .buttonStyle(PlainButtonStyle())
                         case .backlight:
                             Image(systemName: value > 0.5 ? "light.max" : "light.min")
                                 .contentTransition(.interpolate)
-                                .frame(width: 20, height: 15, alignment: .center)
+                                .frame(width: 18, height: 15, alignment: .center)
                         case .mic:
                             Image(systemName: "mic")
                                 .symbolRenderingMode(.hierarchical)
                                 .symbolVariant(value > 0 ? .none : .slash)
                                 .contentTransition(.interpolate)
-                                .frame(width: 20, height: 15, alignment: .center)
+                                .frame(width: 18, height: 15, alignment: .center)
                         case .battery:
                             Image(systemName: icon.isEmpty ? "headphones" : icon)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 13, weight: .semibold))
                                 .contentTransition(.interpolate)
-                                .frame(width: 20, height: 16, alignment: .center)
+                                .frame(width: 18, height: 16, alignment: .center)
                         default:
                             EmptyView()
                     }
@@ -73,8 +73,7 @@ struct InlineHUD: View {
                         brightnessManager.toggleTargetDisplay()
                     }) {
                         Text(Type2Name(type))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.system(size: 12, weight: .medium))
                             .lineLimit(1)
                             .allowsTightening(true)
                             .contentTransition(.numericText())
@@ -82,21 +81,20 @@ struct InlineHUD: View {
                     .buttonStyle(PlainButtonStyle())
                 } else if type != .battery {
                     Text(Type2Name(type))
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(.system(size: 12, weight: .medium))
                         .lineLimit(1)
                         .allowsTightening(true)
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, 14)
+            .padding(.leading, 10)
             .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
                 .fill(.black)
                 .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width))
             
-            HStack {
+            HStack(spacing: 5) {
                 if (type == .battery) {
                     ZStack {
                         Circle()
@@ -104,7 +102,7 @@ struct InlineHUD: View {
                         Circle()
                             .trim(from: 0, to: max(0.01, min(1.0, value)))
                             .stroke(
-                                Color.green,
+                                value < 0.2 ? Color.red : (value < 0.4 ? Color.yellow : Color.green),
                                 style: StrokeStyle(lineWidth: 2.2, lineCap: .round)
                             )
                             .rotationEffect(.degrees(-90))
@@ -118,6 +116,7 @@ struct InlineHUD: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                 } else if (type == .mic) {
                     Text(value.isZero ? "muted" : "unmuted")
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.gray)
                         .lineLimit(1)
                         .allowsTightening(true)
@@ -125,7 +124,7 @@ struct InlineHUD: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .contentTransition(.interpolate)
                 } else {
-                    HStack {
+                    HStack(spacing: 5) {
                         DraggableProgressBar(value: $value, onChange: { v in
                             if type == .volume {
                                 VolumeManager.shared.setAbsolute(Float32(v))
@@ -133,28 +132,30 @@ struct InlineHUD: View {
                                 BrightnessManager.shared.setAbsolute(value: Float32(v))
                             }
                         })
+                        .frame(width: 44)
+                        
                         if (type == .volume && value.isZero) {
                             Text(loc("muted"))
-                                .font(.caption)
-                                .fontWeight(.medium)
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                                 .allowsTightening(true)
                                 .multilineTextAlignment(.trailing)
+                                .frame(minWidth: 26, alignment: .trailing)
                         } else if Defaults[.showClosedNotchHUDPercentage] {
                             Text("\(Int(value * 100))%")
-                                .font(.caption)
-                                .fontWeight(.medium)
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                                 .allowsTightening(true)
                                 .contentTransition(.numericText())
                                 .multilineTextAlignment(.trailing)
+                                .frame(minWidth: 26, alignment: .trailing)
                         }
                     }
                 }
             }
-            .padding(.trailing, 14)
+            .padding(.trailing, 10)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -206,38 +207,42 @@ struct InlineHUD: View {
     static func leftColumnWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .brightness:
-            return 98
+            return 78
         case .backlight:
-            return 88
+            return 78
         case .mic:
-            return 64
+            return 56
         case .battery:
-            return 38
+            return 32
         default:
-            return 88
+            return 74
         }
     }
 
     static func rightColumnWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .mic:
-            return 64
+            return 56
         case .battery:
-            return 38
+            return 32
         default:
-            return 94
+            return 78
         }
     }
 
     static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
-        max(0, closedNotchWidth - 12)
+        if isDynamicIsland {
+            return 14
+        } else {
+            return max(0, closedNotchWidth - 16)
+        }
     }
 
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
-        let padding: CGFloat = isDynamicIsland ? 12 : 14
+        let padding: CGFloat = isDynamicIsland ? 16 : 20
         return left + center + right + padding
     }
 }

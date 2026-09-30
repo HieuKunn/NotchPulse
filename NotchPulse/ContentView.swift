@@ -62,12 +62,16 @@ struct ContentView: View {
     private var isFaceIDActive: Bool {
         let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked())
         if isSessionActive || faceIDOverlay.phase != .closed {
-            if Defaults[.showOnAllDisplays] {
-                let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-                if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-                   let targetUUID = targetScreen.displayUUID {
-                    return vm.screenUUID == targetUUID
-                }
+            let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+            if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
+               let targetUUID = targetScreen.displayUUID {
+                let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
+                return thisScreenUUID == targetUUID
+            }
+            if let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }),
+               let targetUUID = builtInScreen.displayUUID {
+                let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
+                return thisScreenUUID == targetUUID
             }
             return true
         }
@@ -201,7 +205,7 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
-        } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
+        } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && vm.notchState == .closed {
             chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
