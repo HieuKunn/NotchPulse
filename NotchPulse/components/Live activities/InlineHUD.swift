@@ -206,38 +206,38 @@ struct InlineHUD: View {
     static func leftColumnWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .brightness:
-            return 138
+            return 98
         case .backlight:
-            return 118
+            return 88
         case .mic:
-            return 82
+            return 64
         case .battery:
-            return 44
+            return 38
         default:
-            return 108
+            return 88
         }
     }
 
     static func rightColumnWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .mic:
-            return 78
+            return 64
         case .battery:
-            return 44
+            return 38
         default:
-            return 112
+            return 94
         }
     }
 
     static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
-        max(0, closedNotchWidth - 24)
+        max(0, closedNotchWidth - 12)
     }
 
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
-        let padding: CGFloat = isDynamicIsland ? 16 : 20
+        let padding: CGFloat = isDynamicIsland ? 12 : 14
         return left + center + right + padding
     }
 }

@@ -73,10 +73,12 @@ final class FeatureTourController: NSObject {
         vm.customOpenHeight = nil
         vm.featureTourTarget = nil
         vm.close()
-        for subVm in (AppDelegate.shared?.viewModels.values ?? []) {
-            subVm.customOpenHeight = nil
-            subVm.featureTourTarget = nil
-            subVm.close()
+        if let viewModels = AppDelegate.shared?.viewModels {
+            for subVm in viewModels.values {
+                subVm.customOpenHeight = nil
+                subVm.featureTourTarget = nil
+                subVm.close()
+            }
         }
     }
 }

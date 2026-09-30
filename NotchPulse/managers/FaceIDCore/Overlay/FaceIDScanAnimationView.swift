@@ -53,7 +53,9 @@ final class FaceIDScanAnimationHostView: NSView {
             _ = firstFrame(for: "idleanimation")
             _ = firstFrame(for: "unlockanimation")
             _ = firstFrame(for: "unsuccessfulunlockanimation")
-            _ = loadStaticCGImage()
+            await MainActor.run {
+                _ = loadStaticCGImage()
+            }
         }
     }
 
