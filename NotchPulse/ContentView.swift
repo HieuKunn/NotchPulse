@@ -55,7 +55,9 @@ struct ContentView: View {
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
 
-    @ObservedObject private var faceIDOverlay = FaceIDOverlayController.shared
+    private var faceIDOverlay: FaceIDOverlayController {
+        FaceIDOverlayController.shared
+    }
 
     private var isFaceIDActive: Bool {
         let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked())
