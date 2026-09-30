@@ -37,7 +37,7 @@ final class VolumeManager: NSObject, ObservableObject {
     @MainActor func increase(stepDivisor: Float = 1.0) {
         let divisor = max(stepDivisor, 0.25)
         let delta = step / Float32(divisor)
-        let current = readVolumeInternal() ?? rawVolume
+        let current = rawVolume
         let target = max(0, min(1, current + delta))
         setAbsolute(target)
         NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(target))
@@ -46,7 +46,7 @@ final class VolumeManager: NSObject, ObservableObject {
     @MainActor func decrease(stepDivisor: Float = 1.0) {
         let divisor = max(stepDivisor, 0.25)
         let delta = step / Float32(divisor)
-        let current = readVolumeInternal() ?? rawVolume
+        let current = rawVolume
         let target = max(0, min(1, current - delta))
         setAbsolute(target)
         NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(target))
@@ -75,10 +75,7 @@ final class VolumeManager: NSObject, ObservableObject {
 
     func adjustRelative(delta: Float32) {
         if isMutedInternal() { toggleMuteInternal() }
-        guard let current = readVolumeInternal() else {
-            fetchCurrentVolume()
-            return
-        }
+        let current = rawVolume
         let target = max(0, min(1, current + delta))
         writeVolumeInternal(target)  
         publish(volume: target, muted: isMutedInternal(), touchDate: true)
@@ -134,14 +131,21 @@ final class VolumeManager: NSObject, ObservableObject {
         if !volumes.isEmpty {
             let avg = max(0, min(1, volumes.reduce(0, +) / Float32(volumes.count)))
             DispatchQueue.main.async {
+                let isRecentLocalChange = Date().timeIntervalSince(self.lastChangeAt) < 0.35
                 if self.rawVolume != avg {  
-                    if self.didInitialFetch {
+                    if self.didInitialFetch && !isRecentLocalChange {
                         self.lastChangeAt = Date()
+                        NotchPulseViewCoordinator.shared.toggleSneakPeek(
+                            status: true,
+                            type: .volume,
+                            value: CGFloat(avg)
+                        )
                     }
                 }
-                self.rawVolume = avg
+                if !isRecentLocalChange {
+                    self.rawVolume = avg
+                }
                 self.didInitialFetch = true
-
             }
         }
 

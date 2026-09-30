@@ -140,7 +140,7 @@ struct OnboardingView: View {
                 MusicControllerSelectionView(
                     onContinue: {
                         withAnimation(.easeInOut(duration: 0.6)) {
-                            step = .finished
+                            step = .featureTour
                         }
                     }
                 )
@@ -149,6 +149,7 @@ struct OnboardingView: View {
             case .featureTour:
                 FeatureTourView(onFinish: {
                     NotchPulseViewCoordinator.shared.firstLaunch = false
+                    restoreStandardOnboardingWindow()
                     if isReviewOnly {
                         onFinish()
                     } else {
@@ -160,13 +161,22 @@ struct OnboardingView: View {
                 .transition(.opacity)
 
             case .finished:
-                OnboardingFinishView(onFinish: onFinish, onOpenSettings: onOpenSettings)
+                OnboardingFinishView(onFinish: {
+                    restoreStandardOnboardingWindow()
+                    onFinish()
+                }, onOpenSettings: {
+                    restoreStandardOnboardingWindow()
+                    onOpenSettings()
+                })
             }
 
             if step != .featureTour {
                 VStack {
                     HStack {
-                        Button(action: onFinish) {
+                        Button(action: {
+                            restoreStandardOnboardingWindow()
+                            onFinish()
+                        }) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.secondary.opacity(0.7))
@@ -180,6 +190,7 @@ struct OnboardingView: View {
                         if step != .finished && step != .welcome {
                             Button(action: {
                                 NotchPulseViewCoordinator.shared.firstLaunch = false
+                                restoreStandardOnboardingWindow()
                                 withAnimation(.easeInOut(duration: 0.4)) {
                                     step = .finished
                                 }
@@ -203,6 +214,32 @@ struct OnboardingView: View {
             }
         }
         .frame(width: step == .featureTour ? nil : 400, height: step == .featureTour ? nil : 600)
+    }
+
+    private func restoreStandardOnboardingWindow() {
+        CalendarStateViewModel.shared.isFullMonthExpanded = false
+        coordinator.currentView = .home
+        vm.featureTourTarget = nil
+        vm.customOpenHeight = nil
+        vm.close()
+        
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "OnboardingWindow" }) else { return }
+        window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = true
+        window.level = .normal
+        
+        let windowWidth: CGFloat = 400
+        let windowHeight: CGFloat = 600
+        if let screen = NSScreen.main ?? NSScreen.screens.first {
+            let screenRect = screen.visibleFrame
+            let x = screenRect.origin.x + (screenRect.width - windowWidth) / 2
+            let y = screenRect.origin.y + (screenRect.height - windowHeight) / 2
+            window.setFrame(NSRect(x: x, y: y, width: windowWidth, height: windowHeight), display: true, animate: true)
+        }
     }
 
     // MARK: - Permission Request Logic
