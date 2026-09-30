@@ -90,6 +90,12 @@ struct NotchPulseHeader: View {
                                     }
                             }
                             .buttonStyle(PlainButtonStyle())
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.gray, lineWidth: vm.featureTourTarget == "settingsGear" ? 2 : 0)
+                                    .shadow(color: Color.gray.opacity(vm.featureTourTarget == "settingsGear" ? 0.8 : 0), radius: vm.featureTourTarget == "settingsGear" ? 8 : 0)
+                                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: vm.featureTourTarget)
+                            )
                         }
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))

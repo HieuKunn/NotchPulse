@@ -940,6 +940,13 @@ struct CalendarView: View {
                 }
                 .buttonStyle(.plain)
                 .frame(minWidth: 54, alignment: .leading)
+                .padding(4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.red, lineWidth: vm.featureTourTarget == "calendar" ? 2 : 0)
+                        .shadow(color: Color.red.opacity(vm.featureTourTarget == "calendar" ? 0.8 : 0), radius: vm.featureTourTarget == "calendar" ? 8 : 0)
+                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: vm.featureTourTarget)
+                )
 
                 ZStack(alignment: .top) {
                     WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())

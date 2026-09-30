@@ -186,7 +186,7 @@ struct OnboardingView: View {
                 Spacer()
             }
         }
-        .frame(width: 400, height: 600)
+        .frame(width: step == .featureTour ? nil : 400, height: step == .featureTour ? nil : 600)
     }
 
     // MARK: - Permission Request Logic

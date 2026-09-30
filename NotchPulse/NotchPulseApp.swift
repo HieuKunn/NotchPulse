@@ -96,9 +96,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
-    private var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
+    private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
     private var currentViewObserver: AnyCancellable?
-    private var shelfWindows: [String: ShelfDropZoneWindow] = [:]
     private var faceIDCameraWindow: NSWindow?
     private var faceIDCameraVM: NotchPulseViewModel?
 
@@ -171,11 +170,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         isScreenLocked = true
 
         collapseAllNotches(force: true)
-
-        shelfWindows.values.forEach { window in
-            window.orderOut(nil)
-        }
-        shelfWindows.removeAll() // Tear down Ghost Windows to avoid interfering with lock screen, but keep Radar awake for Face ID
         
         let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
         if !shouldKeepWindow {
@@ -289,31 +283,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func cleanupDragDetectors() {
-        shakeAutoCloseTasks.values.forEach { $0.cancel() }
-        shakeAutoCloseTasks.removeAll()
-        shelfWindows.values.forEach { window in
-            window.orderOut(nil)
-        }
-        shelfWindows.removeAll()
+        dragExitDebounceTasks.values.forEach { $0.cancel() }
+        dragExitDebounceTasks.removeAll()
         dragDetectors.values.forEach { detector in
             detector.stopMonitoring()
         }
         dragDetectors.removeAll()
-
-        // BUGFIX: a radar-detector teardown previously left vm.isHoveringFromRadar
-        // stuck at `true` (the internal flag reset never reached the view model),
-        // which held the notch open and blocked every auto-close path until relaunch.
-        vm.isHoveringFromRadar = false
-        for targetVM in viewModels.values {
-            targetVM.isHoveringFromRadar = false
-        }
     }
 
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        // ALWAYS setup radar if Shelf, extendHoverArea, or openNotchOnHover is enabled!
-        guard Defaults[.notchPulseShelf] || Defaults[.extendHoverArea] || Defaults[.openNotchOnHover] else { return }
+        guard Defaults[.expandedDragDetection] else { return }
 
         if Defaults[.showOnAllDisplays] {
             for screen in NSScreen.screens {
@@ -336,106 +317,55 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectorForScreen(_ screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
-        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-
-        // SETUP LIGHTWEIGHT RADAR FOR HOVER DETECTION
-        // Uses pure coordinate monitoring (NSEvent.mouseLocation) with ZERO physical windows or overlays.
-        // Clicks to underlying tabs, links, and buttons remain 100% unobstructed.
-        let detector = DragDetector(
-            regionProvider: { [weak self] in
-                guard let self = self else { return .zero }
-                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
-                let currentScreen = NSScreen.screen(withUUID: uuid) ?? screen
-                let currentFrame = currentScreen.frame
-                
-                let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-                let hasPhysicalNotch = currentScreen.safeAreaInsets.top > 0 || currentScreen.auxiliaryTopLeftArea != nil
-                let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
-
-                let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
-                if currentTargetVM.hideOnClosed && currentTargetVM.notchState == .closed {
-                    return .zero
-                } else if currentTargetVM.notchState == .open {
-                    let openWidth = max(currentTargetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                    let openHeight = max(currentTargetVM.customOpenHeight ?? currentTargetVM.notchSize.height, openNotchSize.height)
-                    return CGRect(
-                        x: currentFrame.midX - (openWidth / 2 + padding),
-                        y: currentFrame.maxY - (openHeight + padding + topOffset),
-                        width: openWidth + (padding * 2),
-                        height: openHeight + padding + topOffset
-                    )
-                } else {
-                    let closedSize = currentTargetVM.closedNotchSize
-                    let baseWidth: CGFloat = isDynamicIsland ? 80.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
-                    let baseHeight: CGFloat = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
-                    let closedWidth = baseWidth + (padding * 2)
-                    let closedHeight = baseHeight + padding
-                    // Confine closed notch hover bounds strictly to physical notch / island (extended by padding if active).
-                    return CGRect(
-                        x: currentFrame.midX - (closedWidth / 2),
-                        y: currentFrame.maxY - (closedHeight + topOffset),
-                        width: closedWidth,
-                        height: closedHeight + topOffset
-                    )
-                }
-            },
-            screenFrameProvider: { [weak self] in
-                // If not in multi-display mode, allow shake anywhere across all connected displays
-                guard Defaults[.showOnAllDisplays] else { return nil }
-                guard let self = self else { return screen.frame }
-                return (NSScreen.screen(withUUID: uuid) ?? screen).frame
+        let detector = DragDetector { [weak self] in
+            guard let self = self else { return .zero }
+            let screenFrame = screen.frame
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            let padding = CGFloat(Defaults[.dragDetectionPadding])
+            
+            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+            let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
+            let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
+            
+            if targetVM.notchState == .open {
+                // When open, the region covers the ENTIRE open shelf plus expansion padding
+                let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
+                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
+                return CGRect(
+                    x: screenFrame.midX - (openWidth / 2 + padding),
+                    y: screenFrame.maxY - (openHeight + padding + topOffset),
+                    width: openWidth + (padding * 2),
+                    height: openHeight + padding + topOffset + 30
+                )
+            } else {
+                // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
+                let closedSize = targetVM.closedNotchSize
+                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                return CGRect(
+                    x: screenFrame.midX - (closedWidth / 2 + padding),
+                    y: screenFrame.maxY - (closedHeight + padding + topOffset),
+                    width: closedWidth + (padding * 2),
+                    height: closedHeight + padding + topOffset + 30
+                )
             }
-        )
+        }
         
-        // Shared shelf-open path: used by BOTH the shake gesture and the deterministic
-        // file-drag proximity (hovering a real file drag at the notch opens the shelf,
-        // which is the only reliable path for Dock-stack drags like pulling a download
-        // out of the Dock). Auto-closes if nothing is dropped within the delay.
-        let openShelfForDrag: () -> Void = { [weak self] in
+        detector.onDragEntersNotchRegion = { [weak self] in
             Task { @MainActor in
-                guard let self = self else { return }
-                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
-                currentTargetVM.customOpenHeight = nil
-                self.coordinator.currentView = .shelf
-                currentTargetVM.open()
-                if Defaults[.enableHaptics] {
-                    NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-                }
-
-                // If the user opens the shelf but does not drop into the notch within the configured delay, auto-close (unless close is prevented)
-                self.shakeAutoCloseTasks[uuid]?.cancel()
-                let waitDuration = Defaults[.shakeAutoCloseDelay]
-                self.shakeAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(Int(waitDuration * 1000)))
-                    guard !Task.isCancelled, let self = self else { return }
-                    guard !SharingStateManager.shared.preventNotchClose else { return }
-                    let vm = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? targetVM
-                    // The countdown must NEVER close the shelf while the user is actively
-                    // holding a dragged item over it (shelf/share drop targeting) — only
-                    // when nothing was dropped within the delay.
-                    if !vm.dropZoneTargeting && !vm.generalDropTargeting && !vm.shelfDropTargeting && !vm.shareDropTargeting && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && vm.notchState == .open {
-                        vm.close()
-                        if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
-                            self.coordinator.currentView = .home
-                        }
-                    }
-                }
+                self?.handleDragEntersNotchRegion(onScreen: screen)
             }
         }
 
-        detector.onShakeDetected = openShelfForDrag
-        detector.onFileDragNearNotch = openShelfForDrag
+        detector.onDragExitsNotchRegion = { [weak self] in
+            Task { @MainActor in
+                self?.handleDragExitsNotchRegion(onScreen: screen)
+            }
+        }
 
         detector.onDragEnded = { [weak self] in
             Task { @MainActor in
                 self?.handleDragEnded(onScreen: screen)
-            }
-        }
-        detector.onGlobalHoverStateChanged = { [weak self] (hovering: Bool) in
-            Task { @MainActor in
-                guard let self = self else { return }
-                let currentTargetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-                currentTargetVM.isHoveringFromRadar = hovering
             }
         }
         
@@ -443,52 +373,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         detector.startMonitoring()
     }
 
-    @MainActor
-    func resetAllDropAndDragTargeting() {
-        vm.dragDetectorTargeting = false
-        vm.dropZoneTargeting = false
-        vm.generalDropTargeting = false
-        vm.anyDropZoneTargeting = false
-        vm.dropEvent = false
-        for targetVM in viewModels.values {
-            targetVM.dragDetectorTargeting = false
-            targetVM.dropZoneTargeting = false
-            targetVM.generalDropTargeting = false
-            targetVM.anyDropZoneTargeting = false
-            targetVM.dropEvent = false
+    private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
+        guard let uuid = screen.displayUUID else { return }
+        
+        dragExitDebounceTasks[uuid]?.cancel()
+        dragExitDebounceTasks[uuid] = nil
+        
+        SharingStateManager.shared.preventNotchClose = true
+        
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
+                viewModel.open()
+            } else {
+                vm.open()
+            }
+            coordinator.currentView = .shelf
+        }
+    }
+
+    private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
+        guard let uuid = screen.displayUUID else { return }
+        
+        dragExitDebounceTasks[uuid]?.cancel()
+        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled, let self = self else { return }
+            
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
+            
+            SharingStateManager.shared.preventNotchClose = false
+            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
+                targetVM.close()
+            }
         }
     }
 
     private func handleDragEnded(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
-        shakeAutoCloseTasks[uuid]?.cancel()
-        shakeAutoCloseTasks[uuid] = nil
-        
-        resetAllDropAndDragTargeting()
-        guard !SharingStateManager.shared.preventNotchClose else { return }
-        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-        
-        // Check if mouse is still hovering over open notch window
-        let mouseLocation = NSEvent.mouseLocation
-        let screenFrame = screen.frame
-        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-        let topOffset = (isDynamicIsland && screen.safeAreaInsets.top == 0) ? Defaults[.dynamicIslandTopOffset] : 0
-        let openWidth = max(targetVM.notchSize.width, CGFloat(Defaults[.notchOpenWidth]))
-        let openHeight = max(targetVM.customOpenHeight ?? targetVM.notchSize.height, 190.0)
-        let openNotchRect = CGRect(
-            x: screenFrame.midX - openWidth / 2,
-            y: screenFrame.maxY - (openHeight + topOffset),
-            width: openWidth,
-            height: openHeight + topOffset
-        )
-        
-        let isMouseOverOpenNotch = openNotchRect.contains(mouseLocation)
-        
-        if !isMouseOverOpenNotch && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
-            targetVM.close()
-            if !self.coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned {
-                self.coordinator.currentView = .home
+        dragExitDebounceTasks[uuid]?.cancel()
+        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled, let self = self else { return }
+            
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
+            
+            SharingStateManager.shared.preventNotchClose = false
+            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
+                targetVM.close()
             }
         }
     }

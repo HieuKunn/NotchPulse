@@ -27,7 +27,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var dropEvent: Bool = false
     @Published var anyDropZoneTargeting: Bool = false
     @Published var isCurrentlyDraggingGlobal: Bool = false
-    @Published var isHoveringFromRadar: Bool = false
     @Published var customOpenHeight: CGFloat? = nil
     var cancellables: Set<AnyCancellable> = []
     
@@ -38,6 +37,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var isHoveringClipboard: Bool = false
     @Published var clipboardScrolledToBottom: Bool = true
     @Published var isBatteryPopoverActive: Bool = false
+    
+    @Published var featureTourTarget: String? = nil
 
     @Published var screenUUID: String?
 
@@ -238,49 +239,27 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         return position.y >= (baseY - 10) && position.y <= frame.maxY && position.x >= baseX && position.x <= baseX + currentWidth
     }
 
-    // MARK: - Canonical Notch Animation
-    public static let notchSpring = Animation.spring(response: 0.42, dampingFraction: 0.80, blendDuration: 0)
-    public static let notchCloseSpring = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
-
-    func open(fromWidth: CGFloat? = nil) {
-        guard notchState != .open else { return }
-        if let fromWidth = fromWidth {
-            self.notchSize = CGSize(width: fromWidth, height: self.closedNotchSize.height)
-        }
-        withAnimation(Self.notchSpring) {
-            self.notchSize = openNotchSize
-            self.notchState = .open
-        }
+    func open() {
+        self.notchSize = openNotchSize
+        self.notchState = .open
         
         MusicManager.shared.isUIActive = true
-        // Fetch music state AFTER the open spring settles (~420ms), not at +120ms
-        // mid-flight — media queries on the main thread during the animation are work
-        // the inline HUD never does, which is why its expansion feels smoother.
-        Task(priority: .utility) {
-            try? await Task.sleep(for: .milliseconds(500))
-            await MainActor.run {
-                MusicManager.shared.forceUpdate()
-            }
-        }
+        MusicManager.shared.forceUpdate()
 
         // Rule: Only 1 notch open at any time across all displays!
         NotificationCenter.default.post(name: .notchDidOpen, object: self)
     }
 
-    func close(force: Bool = false, targetClosedWidth: CGFloat? = nil) {
+    func close(force: Bool = false) {
         self.customOpenHeight = nil
         // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen)
         if !force && SharingStateManager.shared.preventNotchClose {
             return
         }
         guard force || notchState != .closed else { return }
-        let closed = getClosedNotchSize(screenUUID: self.screenUUID)
-        let targetWidth = targetClosedWidth ?? closed.width
-        withAnimation(Self.notchCloseSpring) {
-            self.notchSize = CGSize(width: targetWidth, height: closed.height)
-            self.closedNotchSize = closed
-            self.notchState = .closed
-        }
+        self.notchSize = getClosedNotchSize(screenUUID: self.screenUUID)
+        self.closedNotchSize = self.notchSize
+        self.notchState = .closed
         self.isBatteryPopoverActive = false
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
@@ -290,7 +269,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.generalDropTargeting = false
         self.anyDropZoneTargeting = false
         self.dropEvent = false
-        self.isHoveringFromRadar = false
         self.isHoveringClipboard = false
         self.clipboardScrolledToBottom = true
 

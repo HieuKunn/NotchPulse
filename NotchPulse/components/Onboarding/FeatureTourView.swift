@@ -13,6 +13,7 @@ struct FeatureTourStep {
     let icon: String
     let tabColor: Color
     let viewType: NotchViews
+    let target: String?
 }
 
 struct FeatureTourView: View {
@@ -28,28 +29,48 @@ struct FeatureTourView: View {
             description: "Your command center. Control your music, view live lyrics, and access FaceID unlock natively from the Notch.",
             icon: "play.circle.fill",
             tabColor: .pink,
-            viewType: .home
+            viewType: .home,
+            target: "notch"
+        ),
+        FeatureTourStep(
+            title: "Calendar Expansion",
+            description: "Click on the Month & Year header to instantly expand your full-month calendar and view details.",
+            icon: "calendar",
+            tabColor: .red,
+            viewType: .home,
+            target: "calendar"
         ),
         FeatureTourStep(
             title: "Notch Shelf",
             description: "Drag and drop files, images, or links directly into the notch. Keep them handy and share them anywhere.",
             icon: "tray.full.fill",
             tabColor: .blue,
-            viewType: .shelf
+            viewType: .shelf,
+            target: "shelf"
         ),
         FeatureTourStep(
             title: "System Stats",
             description: "Monitor your Mac's health in real-time. View live CPU, Memory, and GPU usage graphs directly in your status bar.",
             icon: "chart.xyaxis.line",
             tabColor: .green,
-            viewType: .stats
+            viewType: .stats,
+            target: "stats"
         ),
         FeatureTourStep(
             title: "Clipboard Manager",
             description: "Never lose a copied item again. Quickly access your clipboard history with a single hover.",
             icon: "doc.on.clipboard.fill",
             tabColor: .orange,
-            viewType: .clipboard
+            viewType: .clipboard,
+            target: "clipboard"
+        ),
+        FeatureTourStep(
+            title: "Settings & Options",
+            description: "Click the gear icon in the Notch header to open settings and customize NotchPulse to your liking.",
+            icon: "gear",
+            tabColor: .gray,
+            viewType: .home,
+            target: "settingsGear"
         )
     ]
     
@@ -59,70 +80,60 @@ struct FeatureTourView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            ZStack {
-                currentStep.tabColor.opacity(0.15)
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 16) {
+            // A simple pointer to the notch!
+            Image(systemName: "arrowtriangle.up.fill")
+                .font(.system(size: 24))
+                .foregroundColor(currentStep.tabColor)
+                .shadow(color: currentStep.tabColor.opacity(0.5), radius: 5, x: 0, y: -2)
+                .padding(.top, -14)
+                .zIndex(2)
+
+            VStack(spacing: 16) {
+                HStack(spacing: 16) {
                     Image(systemName: currentStep.icon)
-                        .font(.system(size: 60, weight: .light))
+                        .font(.system(size: 32, weight: .light))
                         .foregroundColor(currentStep.tabColor)
-                        .shadow(color: currentStep.tabColor.opacity(0.5), radius: 10, x: 0, y: 5)
                         .symbolEffect(.bounce, value: currentStepIndex)
                     
-                    Text(loc(currentStep.title))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .id("title_\(currentStepIndex)")
-                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(loc(currentStep.title))
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .id("title_\(currentStepIndex)")
+                            .transition(.opacity)
+                        
+                        Text(loc(currentStep.description))
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .id("desc_\(currentStepIndex)")
+                            .transition(.opacity)
+                    }
+                    Spacer()
                 }
-                .padding(.top, 40)
-                .padding(.bottom, 30)
-            }
-            .frame(height: 240)
-            
-            // Content
-            VStack(spacing: 24) {
-                Text(loc(currentStep.description))
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(6)
-                    .padding(.horizontal, 32)
-                    .id("desc_\(currentStepIndex)")
-                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
                 
-                Spacer()
-                
-                // Indicators
                 HStack(spacing: 8) {
                     ForEach(0..<steps.count, id: \.self) { index in
                         Circle()
                             .fill(index == currentStepIndex ? steps[index].tabColor : Color.secondary.opacity(0.3))
-                            .frame(width: index == currentStepIndex ? 10 : 8, height: index == currentStepIndex ? 10 : 8)
+                            .frame(width: index == currentStepIndex ? 8 : 6, height: index == currentStepIndex ? 8 : 6)
                             .animation(.spring(), value: currentStepIndex)
                     }
-                }
-                .padding(.bottom, 16)
-                
-                // Buttons
-                HStack(spacing: 16) {
+                    Spacer()
+                    
                     if currentStepIndex > 0 {
-                        Button(action: {
+                        Button("Back") {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                 currentStepIndex -= 1
                                 updateNotch()
                             }
-                        }) {
-                            Text(loc("Back"))
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(.primary)
-                                .frame(width: 100)
-                                .padding(.vertical, 12)
-                                .background(Capsule().fill(Color.secondary.opacity(0.1)))
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 12, weight: .medium))
                     }
                     
                     Button(action: {
@@ -135,36 +146,55 @@ struct FeatureTourView: View {
                             onFinish()
                         }
                     }) {
-                        Text(currentStepIndex < steps.count - 1 ? loc("Next") : loc("Get Started"))
-                            .font(.system(size: 15, weight: .semibold))
+                        Text(currentStepIndex < steps.count - 1 ? "Next" : "Finish")
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: currentStepIndex < steps.count - 1 ? 140 : 200)
-                            .padding(.vertical, 12)
-                            .background(
-                                Capsule()
-                                    .fill(currentStep.tabColor)
-                                    .shadow(color: currentStep.tabColor.opacity(0.4), radius: 8, x: 0, y: 4)
-                            )
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(currentStep.tabColor))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
-                .padding(.bottom, 32)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
             }
-            .padding(.top, 32)
+            .background(
+                VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.1), lineWidth: 1))
+            )
+            .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
         }
-        .frame(width: 440, height: 540)
-        .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
+        .frame(width: 360)
+        .padding(.top, 10)
         .onAppear {
+            repositionWindow()
             updateNotch()
         }
         .onDisappear {
+            vm.featureTourTarget = nil
             vm.close()
         }
     }
     
+    private func repositionWindow() {
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "OnboardingWindow" }) else { return }
+        window.styleMask = [.borderless, .fullSizeContentView]
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = false
+        
+        if let screen = NSScreen.main {
+            let width: CGFloat = 360
+            let height: CGFloat = 160
+            let yPos = screen.frame.maxY - 250
+            window.setFrame(NSRect(x: screen.frame.midX - (width/2), y: yPos, width: width, height: height), display: true, animate: true)
+        }
+    }
+    
     private func updateNotch() {
-        // Force the notch to open and show the corresponding tab to demonstrate!
         coordinator.currentView = currentStep.viewType
+        vm.featureTourTarget = currentStep.target
         vm.open()
     }
 }
