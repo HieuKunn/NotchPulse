@@ -159,21 +159,13 @@ final class ScanAnimationHostView: NSView {
             CATransaction.setDisableActions(true)
             stillImageLayer.contents = frame
             stillImageLayer.isHidden = false
+            playerLayer.isHidden = true
             CATransaction.commit()
         }
 
         guard let url = Bundle.main.url(forResource: resource, withExtension: "mp4") else {
             return
         }
-
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        if let frame = Self.firstFrame(for: resource) ?? Self.loadStaticCGImage() {
-            stillImageLayer.contents = frame
-        }
-        stillImageLayer.isHidden = false
-        playerLayer.isHidden = false
-        CATransaction.commit()
 
         teardownPlayer()
         let item = AVPlayerItem(url: url)
@@ -195,16 +187,27 @@ final class ScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
+        let reveal: () -> Void = { [weak self] in
+            guard let self else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            self.playerLayer.isHidden = false
+            self.stillImageLayer.isHidden = true
+            CATransaction.commit()
+        }
+
         readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
             guard change.newValue == true else { return }
             DispatchQueue.main.async {
-                CATransaction.begin()
-                CATransaction.setDisableActions(true)
-                self?.stillImageLayer.isHidden = true
-                CATransaction.commit()
+                self?.fallbackRevealWorkItem?.cancel()
+                reveal()
                 self?.readyObservation = nil
             }
         }
+
+        let fallback = DispatchWorkItem { reveal() }
+        fallbackRevealWorkItem = fallback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: fallback)
 
         newPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
         newPlayer.play()

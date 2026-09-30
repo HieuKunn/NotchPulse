@@ -155,18 +155,20 @@ struct FeatureTourView: View {
             let topOffset: CGFloat = isDynamicIsland ? 12 : 0
             
             let isGearTarget = currentStep.target == "settingsGear"
-            let gearBoxSize: CGFloat = 38
+            let gearBoxSize: CGFloat = 36
             let headerInset: CGFloat = isDynamicIsland ? 22 : 22
-            let gearBoxX = centerX + (openWidth / 2) - headerInset - 30
-            let gearBoxY = topOffset + 4
+            let gearCenterX = centerX + (openWidth / 2) - headerInset - 15
+            let gearCenterY = topOffset + 18
+            let gearBoxX = gearCenterX - (gearBoxSize / 2)
+            let gearBoxY = gearCenterY - (gearBoxSize / 2)
             
             let notchRect = isGearTarget
                 ? CGRect(x: gearBoxX, y: gearBoxY, width: gearBoxSize, height: gearBoxSize)
                 : CGRect(x: centerX - (spotlightWidth / 2), y: topOffset, width: spotlightWidth, height: spotlightHeight)
             
-            let currentCornerRadius: CGFloat = isGearTarget ? 10 : (isDynamicIsland ? 28 : 22)
+            let currentCornerRadius: CGFloat = isGearTarget ? 18 : (isDynamicIsland ? 28 : 22)
             
-            let cardX = isGearTarget ? min(screenWidth - 210, max(210, gearBoxX - 100)) : centerX
+            let cardX = isGearTarget ? min(screenWidth - 200, gearCenterX) : centerX
             let cardY = isGearTarget ? (topOffset + openHeight + 14 + 110) : (topOffset + spotlightHeight + 14 + 110)
             
             ZStack(alignment: .top) {
@@ -365,13 +367,8 @@ struct FeatureTourView: View {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
             coordinator.currentView = currentStep.viewType
             vm.featureTourTarget = currentStep.target
-            if currentStep.target == "calendar" {
-                CalendarStateViewModel.shared.isFullMonthExpanded = true
-                vm.customOpenHeight = 285
-            } else {
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
-                vm.customOpenHeight = nil
-            }
+            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            vm.customOpenHeight = nil
             vm.open()
         }
     }

@@ -81,12 +81,6 @@ struct TabSelectionView: View {
                 .frame(height: 26)
                 .foregroundStyle(isSelected ? Color.white : Color.gray)
                 .background(tabBackground(isSelected: isSelected))
-                .overlay(
-                    Capsule()
-                        .stroke(Color.accentColor, lineWidth: isSpotlight ? 2 : 0)
-                        .shadow(color: Color.accentColor.opacity(isSpotlight ? 0.8 : 0), radius: isSpotlight ? 8 : 0)
-                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isSpotlight)
-                )
             }
         }
         .clipShape(Capsule())

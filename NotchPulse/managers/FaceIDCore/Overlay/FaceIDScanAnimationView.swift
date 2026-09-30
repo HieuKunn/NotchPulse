@@ -42,6 +42,23 @@ struct FaceIDScanAnimationView: NSViewRepresentable {
 }
 
 final class FaceIDScanAnimationHostView: NSView {
+    private static var firstFrameCache: [String: CGImage] = [:]
+
+    private static func firstFrame(for resourceName: String) -> CGImage? {
+        if let cached = firstFrameCache[resourceName] { return cached }
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
+            firstFrameCache[resourceName] = cgImage
+            return cgImage
+        }
+        return nil
+    }
+
     private var player: AVPlayer?
     private let playerLayer = AVPlayerLayer()
     private let stillImageLayer = CALayer()
@@ -52,17 +69,22 @@ final class FaceIDScanAnimationHostView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer = CALayer()
+        let root = CALayer()
+        root.masksToBounds = true
+        layer = root
 
         stillImageLayer.contentsGravity = .resizeAspect
-        if let still = Self.loadStillFromBundle() {
+        stillImageLayer.masksToBounds = true
+        if let still = Self.loadStillCGImage() {
             stillImageLayer.contents = still
         }
-        layer?.addSublayer(stillImageLayer)
+        stillImageLayer.isHidden = false
+        root.addSublayer(stillImageLayer)
 
         playerLayer.videoGravity = .resizeAspect
+        playerLayer.masksToBounds = true
         playerLayer.isHidden = true
-        layer?.addSublayer(playerLayer)
+        root.addSublayer(playerLayer)
     }
 
     required init?(coder: NSCoder) {
@@ -88,10 +110,22 @@ final class FaceIDScanAnimationHostView: NSView {
             teardownPlayer()
             CATransaction.begin()
             CATransaction.setDisableActions(true)
+            if let still = Self.loadStillCGImage() {
+                stillImageLayer.contents = still
+            }
             playerLayer.isHidden = true
             stillImageLayer.isHidden = false
             CATransaction.commit()
             return
+        }
+
+        if let frame = Self.firstFrame(for: resource) ?? Self.loadStillCGImage() {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            stillImageLayer.contents = frame
+            stillImageLayer.isHidden = false
+            playerLayer.isHidden = true
+            CATransaction.commit()
         }
 
         guard let url = Bundle.main.url(forResource: resource, withExtension: "mp4") else {
@@ -133,7 +167,7 @@ final class FaceIDScanAnimationHostView: NSView {
         // reason, don't get stuck on the still forever.
         let fallback = DispatchWorkItem { reveal() }
         fallbackRevealWorkItem = fallback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: fallback)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: fallback)
 
         newPlayer.seek(to: .zero)
         newPlayer.play()
@@ -147,13 +181,21 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = nil
     }
 
-    /// The asset lives in Resources/ rather than an asset catalog, so
-    /// `NSImage(named:)` won't find it — load by URL instead.
-    private static func loadStillFromBundle() -> NSImage? {
-        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png"),
-           let image = NSImage(contentsOf: url) {
-            return image
+    private static func loadStillCGImage() -> CGImage? {
+        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png") as CFURL?,
+           let source = CGImageSourceCreateWithURL(url, nil),
+           let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            return cgImage
         }
-        return NSImage(named: "unlockstatic")
+        if let image = NSImage(named: "unlockstatic") {
+            var rect = CGRect(origin: .zero, size: image.size)
+            if let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
+                return cgImage
+            }
+        }
+        if let frame = firstFrame(for: "idleanimation") ?? firstFrame(for: "unlockanimation") {
+            return frame
+        }
+        return nil
     }
 }
