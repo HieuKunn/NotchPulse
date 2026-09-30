@@ -370,7 +370,7 @@ struct ContentView: View {
                         handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
-                            if hovering && faceIDOverlay.phase != .onboarding {
+                            if hovering && faceIDOverlay.phase != .onboarding && NotchPulseLockMonitor.isScreenActuallyLocked() {
                                 FaceIDOverlayController.shared.activate()
                             }
                         }
@@ -895,17 +895,21 @@ struct ContentView: View {
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
         if isFaceIDActive { return true }
-        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
-        if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-            return faceIDOverlay.isArmed || NotchPulseFaceUnlockCoordinator.shared.lockMonitor.isScreenLocked
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+                return faceIDOverlay.isArmed || NotchPulseFaceUnlockCoordinator.shared.lockMonitor.isScreenLocked
+            }
+            return true
         }
         return false
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
-        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
         if isFaceIDActive { return true }
-        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed { return true }
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed { return true }
+            return true
+        }
         return false
     }
 
