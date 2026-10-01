@@ -147,8 +147,8 @@ struct ContentView: View {
         if isDynamicIsland {
             return FaceIDOverlayGeometry.pillOpenSize
         } else {
-            let width: CGFloat = vm.closedNotchSize.width
-            let height: CGFloat = 142
+            let width: CGFloat = vm.closedNotchSize.width + (topCornerRadius * 2)
+            let height: CGFloat = 190
             return CGSize(
                 width: width,
                 height: height

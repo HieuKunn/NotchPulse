@@ -238,13 +238,25 @@ struct FaceIDOverlayView: View {
                 pulseOpacity: scanPulseOpacity
             )
         } else {
-            FaceIDScanAnimationView(media: controller.media)
-                .padding(.leading, scanContentPaddingLeading)
-                .padding(.trailing, scanContentPaddingTrailing)
+            ZStack(alignment: .center) {
+                // Instant vector Apple Face ID Smiley icon rendering from frame 0 (never black)
+                AppleFaceIDGlyphView(
+                    isScanning: isScanning,
+                    isSuccess: controller.phase == .success,
+                    isFailure: controller.phase == .failure,
+                    size: 56
+                )
                 .padding(.top, scanContentPaddingTop)
-                .padding(.bottom, scanContentPaddingBottom)
-                .scaleEffect(isScanning ? (0.80 * scanPulseScale) : 0.80)
-                .opacity(isScanning ? scanPulseOpacity : 1.0)
+                .opacity(visualIsExpanded ? 1.0 : 0.0)
+
+                FaceIDScanAnimationView(media: controller.media)
+                    .padding(.leading, scanContentPaddingLeading)
+                    .padding(.trailing, scanContentPaddingTrailing)
+                    .padding(.top, scanContentPaddingTop)
+                    .padding(.bottom, scanContentPaddingBottom)
+                    .scaleEffect(isScanning ? (0.85 * scanPulseScale) : 0.85)
+                    .opacity(isScanning ? scanPulseOpacity : 1.0)
+            }
         }
     }
 
