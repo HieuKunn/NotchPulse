@@ -997,7 +997,6 @@ struct SystemMonitorSettingsView: View {
 
     private enum MonitorMetric { case cpu, ram }
     @State private var expandedMetric: MonitorMetric?
-    @State private var copiedReport: Bool = false
 
     private let sampleCpuProcesses = [
         MonitorProcessItem(name: "WindowServer", value: "6.8%"),
@@ -1118,42 +1117,6 @@ struct SystemMonitorSettingsView: View {
                 Text(loc("Preview"))
             }
             .disabled(!enableSystemMonitor)
-
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(loc("Animation jank report"))
-                        .font(.headline)
-                    Text(loc("If the notch ever feels laggy or jerky, click the button below and send the copied text — it shows exactly what the app was doing during each stall, with no guessing."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack {
-                        Button {
-                            let report = NotchPulseHitchDetector.shared.dumpRecent()
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(report, forType: .string)
-                            copiedReport = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                copiedReport = false
-                            }
-                        } label: {
-                            Label(
-                                copiedReport ? loc("Copied! Now paste it in the chat") : loc("Copy jank report"),
-                                systemImage: copiedReport ? "checkmark.circle.fill" : "doc.on.clipboard"
-                            )
-                        }
-                        .buttonStyle(.borderedProminent)
-                        if !NotchPulseHitchDetector.shared.recentHitches.isEmpty {
-                            Text(loc("\(NotchPulseHitchDetector.shared.recentHitches.count) stalls recorded"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .padding(.vertical, 4)
-            } header: {
-                Text(loc("Diagnostics"))
-            }
         }
         .scrollContentBackground(.hidden)
         .hideScrollbar()

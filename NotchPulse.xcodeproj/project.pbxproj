@@ -71,7 +71,6 @@
 		11CFC6612E097F6800748C80 /* PermissionsRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */; };
 		11CFC6632E09918400748C80 /* MusicControllerSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6622E09917B00748C80 /* MusicControllerSelectionView.swift */; };
 		11CFC6652E09C7B300748C80 /* OnboardingFinishView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFC6642E09C7B300748C80 /* OnboardingFinishView.swift */; };
-		11CFCA102E097F2F00748C80 /* NotchPulseHitchDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CFCA112E097F2F00748C80 /* NotchPulseHitchDetector.swift */; };
 		11D58EA22E760AE100FA8377 /* ImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D58EA12E760AE100FA8377 /* ImageService.swift */; };
 		11EFCD702E8E92D600D0B974 /* ShelfItemViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EFCD6F2E8E92D600D0B974 /* ShelfItemViewModel.swift */; };
 		11F747CE2EC75CEA00F841DB /* DragPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F747CD2EC75CEA00F841DB /* DragPreviewView.swift */; };
@@ -337,7 +336,6 @@
 		11CFC6602E097F6800748C80 /* PermissionsRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsRequestView.swift; sourceTree = "<group>"; };
 		11CFC6622E09917B00748C80 /* MusicControllerSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicControllerSelectionView.swift; sourceTree = "<group>"; };
 		11CFC6642E09C7B300748C80 /* OnboardingFinishView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFinishView.swift; sourceTree = "<group>"; };
-		11CFCA112E097F2F00748C80 /* NotchPulseHitchDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPulseHitchDetector.swift; sourceTree = "<group>"; };
 		11D58EA12E760AE100FA8377 /* ImageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageService.swift; sourceTree = "<group>"; };
 		11EFCD6F2E8E92D600D0B974 /* ShelfItemViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItemViewModel.swift; sourceTree = "<group>"; };
 		11F747CD2EC75CEA00F841DB /* DragPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragPreviewView.swift; sourceTree = "<group>"; };
@@ -686,7 +684,6 @@
 				F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */,
 				F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */,
 				111BE9942ECF2DEF0079DD4E /* DragDetector.swift */,
-				11CFCA112E097F2F00748C80 /* NotchPulseHitchDetector.swift */,
 				D1427EE773FE4158AC14BEC3 /* ShelfDropZoneWindow.swift */,
 				B1A78C812C8BA08100BD51B0 /* FullscreenMediaDetection.swift */,
 				5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */,
@@ -1286,7 +1283,6 @@
 				14D570C02C5EA5870011E668 /* AnimatedFace.swift in Sources */,
 				B1D6FD432C6603730015F173 /* SoftwareUpdater.swift in Sources */,
 				111BE9952ECF2DF40079DD4E /* DragDetector.swift in Sources */,
-				11CFCA102E097F2F00748C80 /* NotchPulseHitchDetector.swift in Sources */,
 				DFFDFC505F834EB59D426BA5 /* ShelfDropZoneWindow.swift in Sources */,
 				B1D365D02C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift in Sources */,
 				1194E87C2EA19E09009C82D6 /* ImageProcessingService.swift in Sources */,

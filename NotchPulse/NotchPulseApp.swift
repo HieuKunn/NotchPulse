@@ -855,22 +855,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         previousScreens = NSScreen.screens
 
-        // Animation-jank diagnosis: measure main-thread hitches and tag them with a
-        // notch-state snapshot so user-reported "not smooth" reports come with data.
-        NotchPulseHitchDetector.shared.contextProvider = { [weak self] in
-            guard let self else { return "app (no state)" }
-            let vm = self.vm
-            return String(
-                format: "notch=%@ chin=%.0f faceID=%@ sneak=%d view=%@",
-                String(describing: vm.notchState),
-                vm.closedNotchSize.width,
-                String(describing: FaceIDOverlayController.shared.phase),
-                self.coordinator.sneakPeek.show ? 1 : 0,
-                String(describing: self.coordinator.currentView)
-            )
-        }
-        NotchPulseHitchDetector.shared.start()
-
         // First-open UI warm-up: the FIRST time the notch opens after launch, SwiftUI
         // builds the entire open-state view tree (music, calendar, clipboard, shelf...)
         // and fetches first data in one 1.5-2s main-thread stall that runs DURING the
