@@ -147,10 +147,9 @@ struct ContentView: View {
         if isDynamicIsland && !hasPhysicalNotch {
             return FaceIDOverlayGeometry.pillOpenSize
         } else {
-            let openBodyWidth = max(FaceIDOverlayGeometry.notchOpenSize.width, vm.closedNotchSize.width)
-            let totalWidth = openBodyWidth + (topCornerRadius * 2)
+            let width: CGFloat = hasPhysicalNotch ? vm.closedNotchSize.width : max(FaceIDOverlayGeometry.notchOpenSize.width, vm.closedNotchSize.width)
             return CGSize(
-                width: totalWidth,
+                width: width,
                 height: FaceIDOverlayGeometry.notchOpenSize.height
             )
         }
@@ -166,7 +165,7 @@ struct ContentView: View {
             if isMinimalScan {
                 return FaceIDOverlayGeometry.minimalNotchTopRadius
             }
-            return FaceIDOverlayGeometry.openTopRadius
+            return hasPhysicalNotch ? cornerRadiusInsets.closed.top : FaceIDOverlayGeometry.openTopRadius
         }
         return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
                  ? cornerRadiusInsets.opened.top
@@ -311,12 +310,12 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
-                        ? (isDynamicIsland ? 5 : 10)
+                        ? 10
                         : ((NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDContentVisible)
                             ? 0
                             : (isDynamicIsland ? 12 : cornerRadiusInsets.closed.bottom))
                     )
-                    .padding(.horizontal, (vm.notchState == .open) ? (isDynamicIsland ? 2 : 4) : 0)
+                    .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland && !hasPhysicalNotch) { view in
@@ -335,12 +334,6 @@ struct ContentView: View {
                                     .fill(.black)
                                     .frame(height: 1)
                                     .padding(.horizontal, topCornerRadius)
-                            }
-                            .overlay {
-                                if isDynamicIsland && vm.notchState == .open {
-                                    currentNotchShape
-                                        .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
-                                }
                             }
                     }
                     .shadow(
@@ -724,13 +717,21 @@ struct ContentView: View {
                     pulseOpacity: isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0
                 )
             } else {
-                FaceIDScanAnimationView(media: controller.media)
-                    .padding(.leading, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingLeading : FaceIDOverlayGeometry.notchContentPaddingLeading)
-                    .padding(.trailing, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
-                    .padding(.top, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
-                    .padding(.bottom, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
-                    .scaleEffect(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseScale : 1.0)
-                    .opacity(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0)
+                ZStack {
+                    if let still = FaceIDScanAnimationHostView.loadStillCGImage() {
+                        Image(decorative: still, scale: 1.0)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    }
+                    FaceIDScanAnimationView(media: controller.media)
+                }
+                .padding(.leading, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingLeading : FaceIDOverlayGeometry.notchContentPaddingLeading)
+                .padding(.trailing, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
+                .padding(.top, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
+                .padding(.bottom, (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
+                .scaleEffect(0.80)
+                .scaleEffect(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseScale : 1.0)
+                .opacity(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0)
             }
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)

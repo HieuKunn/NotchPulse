@@ -75,6 +75,7 @@ final class FaceIDScanAnimationHostView: NSView {
     private let stillImageLayer = CALayer()
     private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
+    private var fallbackRevealWorkItem: DispatchWorkItem?
     private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
@@ -91,6 +92,7 @@ final class FaceIDScanAnimationHostView: NSView {
         if let still = Self.loadStillCGImage() {
             stillImageLayer.contents = still
         }
+        stillImageLayer.isHidden = false
         root.addSublayer(stillImageLayer)
 
         playerLayer.videoGravity = .resizeAspect
@@ -153,6 +155,8 @@ final class FaceIDScanAnimationHostView: NSView {
         }
         currentMedia = media
         readyObservation = nil
+        fallbackRevealWorkItem?.cancel()
+        fallbackRevealWorkItem = nil
 
         guard let resource = media.videoResourceName else {
             CATransaction.begin()
@@ -172,14 +176,14 @@ final class FaceIDScanAnimationHostView: NSView {
             return
         }
 
-        // Keep backdrop frame while immediately unhiding player layer so video starts with zero delay
+        // Keep backdrop frame immediately visible while player prepares in background
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if let frame = Self.firstFrame(for: resource) ?? Self.loadStillCGImage() {
             stillImageLayer.contents = frame
         }
         stillImageLayer.isHidden = false
-        playerLayer.isHidden = false
+        playerLayer.isHidden = true
         CATransaction.commit()
 
         teardownPlayer()
@@ -202,16 +206,27 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = newPlayer
         player = newPlayer
 
+        let reveal: () -> Void = { [weak self] in
+            guard let self = self else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            self.playerLayer.isHidden = false
+            self.stillImageLayer.isHidden = true
+            CATransaction.commit()
+        }
+
         readyObservation = playerLayer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, change in
             guard change.newValue == true else { return }
             DispatchQueue.main.async {
-                CATransaction.begin()
-                CATransaction.setDisableActions(true)
-                self?.stillImageLayer.isHidden = true
-                CATransaction.commit()
+                self?.fallbackRevealWorkItem?.cancel()
+                reveal()
                 self?.readyObservation = nil
             }
         }
+
+        let fallback = DispatchWorkItem { reveal() }
+        fallbackRevealWorkItem = fallback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: fallback)
 
         newPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
         newPlayer.play()
@@ -219,6 +234,8 @@ final class FaceIDScanAnimationHostView: NSView {
 
     private func teardownPlayer() {
         readyObservation = nil
+        fallbackRevealWorkItem?.cancel()
+        fallbackRevealWorkItem = nil
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
             loopObserver = nil
@@ -228,29 +245,38 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.player = nil
     }
 
+    private static var cachedStillCGImage: CGImage?
+
     static func loadStillCGImage() -> CGImage? {
+        if let cached = cachedStillCGImage { return cached }
+
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            cachedStillCGImage = cgImage
             return cgImage
         }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "pdf") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            cachedStillCGImage = cgImage
             return cgImage
         }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "tiff") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            cachedStillCGImage = cgImage
             return cgImage
         }
         if let image = NSImage(named: "unlockstatic") {
             var rect = CGRect(origin: .zero, size: image.size)
             if let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
+                cachedStillCGImage = cgImage
                 return cgImage
             }
         }
         if let frame = firstFrame(for: "idleanimation") ?? firstFrame(for: "unlockanimation") {
+            cachedStillCGImage = frame
             return frame
         }
         return nil

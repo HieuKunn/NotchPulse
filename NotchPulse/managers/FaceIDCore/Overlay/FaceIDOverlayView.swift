@@ -85,7 +85,7 @@ struct FaceIDOverlayView: View {
 
     private var scanOpenSize: CGSize {
         if style == .notch || controller.geometry.isPhysicalNotch {
-            let width = max(closedBodySize.width, FaceIDOverlayGeometry.notchOpenSize.width)
+            let width = controller.geometry.isPhysicalNotch ? closedBodySize.width : max(closedBodySize.width, FaceIDOverlayGeometry.notchOpenSize.width)
             return CGSize(width: width, height: FaceIDOverlayGeometry.notchOpenSize.height)
         } else {
             let width = max(closedBodySize.width, FaceIDOverlayGeometry.pillOpenSize.width)
@@ -238,13 +238,21 @@ struct FaceIDOverlayView: View {
                 pulseOpacity: scanPulseOpacity
             )
         } else {
-            FaceIDScanAnimationView(media: controller.media)
-                .padding(.leading, scanContentPaddingLeading)
-                .padding(.trailing, scanContentPaddingTrailing)
-                .padding(.top, scanContentPaddingTop)
-                .padding(.bottom, scanContentPaddingBottom)
-                .scaleEffect(isScanning ? scanPulseScale : 1.0)
-                .opacity(isScanning ? scanPulseOpacity : 1.0)
+            ZStack {
+                if let still = FaceIDScanAnimationHostView.loadStillCGImage() {
+                    Image(decorative: still, scale: 1.0)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                }
+                FaceIDScanAnimationView(media: controller.media)
+            }
+            .padding(.leading, scanContentPaddingLeading)
+            .padding(.trailing, scanContentPaddingTrailing)
+            .padding(.top, scanContentPaddingTop)
+            .padding(.bottom, scanContentPaddingBottom)
+            .scaleEffect(0.80)
+            .scaleEffect(isScanning ? scanPulseScale : 1.0)
+            .opacity(isScanning ? scanPulseOpacity : 1.0)
         }
     }
 
