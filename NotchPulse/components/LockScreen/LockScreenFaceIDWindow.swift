@@ -15,13 +15,13 @@ import SwiftUI
 final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content> {
     var onHoverChanged: ((Bool) -> Void)?
     var onClicked: (() -> Void)?
-    var notchClosedSize: CGSize = CGSize(width: 185, height: 38)
+    var notchClosedSize: CGSize = CGSize(width: 172, height: 38)
     private var trackingArea: NSTrackingArea?
 
     private func currentActiveRect() -> NSRect {
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 135 : notchClosedSize.height
-        let targetWidth: CGFloat = isExpanded ? 140 : notchClosedSize.width
+        let targetHeight: CGFloat = isExpanded ? 142 : notchClosedSize.height
+        let targetWidth: CGFloat = notchClosedSize.width
         // In NSHostingView (isFlipped == true), y = 0 is the top edge (the notch), not bounds.height!
         let y: CGFloat = isFlipped ? 0 : (bounds.height - targetHeight)
         return NSRect(
@@ -270,16 +270,13 @@ struct LockScreenFaceIDPillView: View {
         if hasPhysicalNotch {
             return CGSize(width: physicalNotchWidth, height: notchHardwareHeight)
         } else {
-            return CGSize(width: 140, height: max(32, notchHardwareHeight))
+            return CGSize(width: 172, height: max(32, notchHardwareHeight))
         }
     }
     
     private var openBodySize: CGSize {
-        if hasPhysicalNotch {
-            return CGSize(width: max(physicalNotchWidth, 140), height: 142)
-        } else {
-            return CGSize(width: 140, height: 135)
-        }
+        let width = hasPhysicalNotch ? physicalNotchWidth : 172
+        return CGSize(width: width, height: 142)
     }
     
     private var topRadius: CGFloat {
@@ -312,7 +309,7 @@ struct LockScreenFaceIDPillView: View {
                 applyNotchClip(
                     ZStack(alignment: .center) {
                         ScanAnimationView(media: scanMedia)
-                            .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? FaceIDOverlayGeometry.notchContentPaddingTop : 0)
+                            .padding(.top, FaceIDOverlayGeometry.notchContentPaddingTop)
                             .scaleEffect(0.80)
                             .opacity(isExpanded ? 1.0 : 0.0)
                     }
