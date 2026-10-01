@@ -311,12 +311,12 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
-                        ? 10
+                        ? (isDynamicIsland ? 5 : 10)
                         : ((NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDContentVisible)
                             ? 0
                             : (isDynamicIsland ? 12 : cornerRadiusInsets.closed.bottom))
                     )
-                    .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
+                    .padding(.horizontal, (vm.notchState == .open) ? (isDynamicIsland ? 2 : 4) : 0)
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland && !hasPhysicalNotch) { view in

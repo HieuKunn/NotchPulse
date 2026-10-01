@@ -232,7 +232,7 @@ final class FaceIDOverlayController {
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         geometry = windowController.currentGeometry
         activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-        content = .scan(.idle)
+        content = .scan(.scanning)
         updateInteractivity()
 
         scanTimeoutTask = Task { @MainActor [weak self] in
@@ -296,7 +296,7 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         
-        content = .scan(.idle)
+        content = .scan(.scanning)
         withAnimation(FaceIDOverlayGeometry.springAnimation) {
             phase = .scanning
         }
@@ -447,7 +447,7 @@ final class FaceIDOverlayController {
             resolveTask?.cancel(); resolveTask = nil
             scanTimeoutTask?.cancel(); scanTimeoutTask = nil
             activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-            content = .scan(.idle)
+            content = .scan(.scanning)
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 phase = .scanning
             }
