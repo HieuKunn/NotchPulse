@@ -15,13 +15,14 @@ import SwiftUI
 final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content> {
     var onHoverChanged: ((Bool) -> Void)?
     var onClicked: (() -> Void)?
-    var notchClosedSize: CGSize = CGSize(width: 185, height: 38)
+    var notchClosedSize: CGSize = CGSize(width: 165, height: 38)
     private var trackingArea: NSTrackingArea?
 
     private func currentActiveRect() -> NSRect {
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
-        let targetHeight: CGFloat = isExpanded ? 190 : notchClosedSize.height
-        let targetWidth: CGFloat = isExpanded ? max(220, notchClosedSize.width) : notchClosedSize.width
+        let isMinimal = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle == .minimal
+        let targetHeight: CGFloat = (isExpanded && !isMinimal) ? 180 : notchClosedSize.height
+        let targetWidth: CGFloat = isExpanded ? (isMinimal ? max(232, notchClosedSize.width + 148) : notchClosedSize.width) : notchClosedSize.width
         // In NSHostingView (isFlipped == true), y = 0 is the top edge (the notch), not bounds.height!
         let y: CGFloat = isFlipped ? 0 : (bounds.height - targetHeight)
         return NSRect(
@@ -170,7 +171,7 @@ final class LockScreenFaceIDWindow: NSPanel {
             physicalNotchWidth: closedSize.width,
             notchStyle: notchStyle
         ))
-        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? max(185, closedSize.width) : 140, height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
+        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? max(165, closedSize.width) : 165, height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
@@ -243,7 +244,7 @@ struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
-    var physicalNotchWidth: CGFloat = 185
+    var physicalNotchWidth: CGFloat = 165
     var notchStyle: NotchStyle = .notch
     
     @State private var isHovered: Bool = false
@@ -265,20 +266,34 @@ struct LockScreenFaceIDPillView: View {
         }
     }
     
+    private var isMinimalScan: Bool {
+        NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle == .minimal
+    }
+    
     //  Native NotchPulse Face ID biometric implementation.
     private var closedBodySize: CGSize {
-        let width = max(185, physicalNotchWidth)
+        let width = max(165, physicalNotchWidth)
         let height = max(32, notchHardwareHeight)
         return CGSize(width: width, height: height)
     }
     
     private var openBodySize: CGSize {
-        let width = max(220, max(185, physicalNotchWidth))
-        return CGSize(width: width, height: 190)
+        if isMinimalScan {
+            if notchStyle == .dynamicIsland {
+                return CGSize(width: max(232, physicalNotchWidth + 60), height: closedBodySize.height)
+            } else {
+                return CGSize(width: physicalNotchWidth + 148, height: closedBodySize.height)
+            }
+        }
+        let width = max(165, physicalNotchWidth)
+        return CGSize(width: width, height: 180)
     }
     
     private var topRadius: CGFloat {
         if isExpanded {
+            if isMinimalScan {
+                return hasPhysicalNotch ? 10 : (closedBodySize.height / 2)
+            }
             return hasPhysicalNotch ? 19 : 26
         } else {
             return hasPhysicalNotch ? 6 : (closedBodySize.height / 2)
@@ -287,6 +302,9 @@ struct LockScreenFaceIDPillView: View {
     
     private var bottomRadius: CGFloat {
         if isExpanded {
+            if isMinimalScan {
+                return hasPhysicalNotch ? 16 : (closedBodySize.height / 2)
+            }
             return hasPhysicalNotch ? 24 : 26
         } else {
             return hasPhysicalNotch ? 14 : (closedBodySize.height / 2)
@@ -307,13 +325,28 @@ struct LockScreenFaceIDPillView: View {
                 // ARCHITECTURAL RULE: ScanAnimationView must ALWAYS stay on the top-most layer
                 // with zIndex(999) so the Face ID glyph & animation render directly over the notch.
                 applyNotchClip(
-                    ScanAnimationView(media: scanMedia)
-                        .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
-                        .scaleEffect(0.85)
-                        .opacity(isExpanded ? 1.0 : 0.0)
-                        .zIndex(999)
-                        .frame(width: currentSize.width, height: currentSize.height)
-                        .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
+                    Group {
+                        if isMinimalScan {
+                            FaceIDMinimalUnlockView(
+                                media: scanMedia.asFaceIDScanMedia,
+                                isUnlocked: faceIDManager.lastUnlockSuccess,
+                                edgeInset: notchStyle == .dynamicIsland ? 14 : 24,
+                                lockIconSize: notchStyle == .dynamicIsland ? 14 : 15,
+                                mediaWidth: 22,
+                                mediaVerticalInset: 0,
+                                pulseScale: isScanPulseDimmed ? 0.97 : 1.0,
+                                pulseOpacity: isScanPulseDimmed ? 0.65 : 1.0
+                            )
+                        } else {
+                            ScanAnimationView(media: scanMedia)
+                                .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
+                                .scaleEffect(0.80)
+                        }
+                    }
+                    .opacity(isExpanded ? 1.0 : 0.0)
+                    .zIndex(999)
+                    .frame(width: currentSize.width, height: currentSize.height)
+                    .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
                 )
                 .overlay(
                     Group {
@@ -380,6 +413,17 @@ struct LockScreenFaceIDPillView: View {
             .repeatForever(autoreverses: true)
         ) {
             isScanPulseDimmed = true
+        }
+    }
+}
+
+extension ScanMedia {
+    var asFaceIDScanMedia: FaceIDScanMedia {
+        switch self {
+        case .idle: return .idle
+        case .scanning: return .scanning
+        case .success: return .success
+        case .failure: return .failure
         }
     }
 }

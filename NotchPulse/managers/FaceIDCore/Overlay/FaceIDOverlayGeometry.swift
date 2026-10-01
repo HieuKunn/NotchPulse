@@ -26,7 +26,7 @@ struct FaceIDOverlayGeometry {
     }
 
     /// Fixed footprint of expanded scan-mode content in notch style.
-    static let notchOpenSize = CGSize(width: 220, height: 190)
+    static let notchOpenSize = CGSize(width: 165, height: 180)
 
     /// Corner radii matching Glance & Apple notch curvature.
     static let closedTopRadius: CGFloat = 8
@@ -46,7 +46,7 @@ struct FaceIDOverlayGeometry {
     static let pillClosedSize = CGSize(width: 165, height: 38)
 
     /// Expanded footprint matching Glance pill open size
-    static let pillOpenSize = CGSize(width: 220, height: 190)
+    static let pillOpenSize = CGSize(width: 165, height: 180)
 
     /// Pinned to NotchPulse's active dynamic island top offset, with a min gap so it floats.
     static var pillTopGap: CGFloat { max(Defaults[.dynamicIslandTopOffset], 10) }
@@ -94,11 +94,11 @@ struct FaceIDOverlayGeometry {
     // without expanding vertically downwards.
 
     /// Total notch body width is `geometry.closedSize.width + 2 * this`.
-    static let minimalNotchFlankWidth: CGFloat = 68
+    static let minimalNotchFlankWidth: CGFloat = 74
 
     /// Pill dimensions: wide enough so lock glyph and face animation are well-spaced,
     /// with height matching standard closed island height (no downward expansion).
-    static let minimalPillOpenWidth: CGFloat = 220
+    static let minimalPillOpenWidth: CGFloat = 232
     static let minimalPillOpenHeight: CGFloat = 32
 
     /// Zero extra height — strictly inline, widening sideways only.
@@ -109,7 +109,7 @@ struct FaceIDOverlayGeometry {
     static let minimalNotchBottomRadius: CGFloat = 16
 
     /// In notch style the flare already occupies `topRadius` of this margin.
-    static let minimalContentEdgeInset: CGFloat = 8
+    static let minimalContentEdgeInset: CGFloat = 14
 
     /// Point size of the lock glyph, pill style (and the shared fallback).
     static let minimalLockIconSize: CGFloat = 14
