@@ -359,7 +359,7 @@ struct LockScreenFaceIDPillView: View {
                     scanContent
                         .opacity(isExpanded ? 1.0 : 0.0)
                         .zIndex(999)
-                        .frame(width: currentSize.width, height: currentSize.height)
+                        .frame(width: currentSize.width, height: currentSize.height, alignment: isMinimalScan ? .center : .top)
                         .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
                 )
                 .overlay(pillOverlayBorder)

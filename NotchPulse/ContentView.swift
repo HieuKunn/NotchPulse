@@ -781,7 +781,7 @@ struct ContentView: View {
                     .opacity(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0)
             }
         }
-        .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height, alignment: .top)
+        .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height, alignment: isMinimalScan ? .center : .top)
         .clipped()
         .contentShape(Rectangle())
         .onTapGesture {

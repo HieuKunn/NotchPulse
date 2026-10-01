@@ -27,14 +27,12 @@ struct FaceIDMinimalUnlockView: View {
                 Image(systemName: isUnlocked ? "lock.open.fill" : "lock.fill")
                     .font(.system(size: lockIconSize, weight: .semibold))
                     .foregroundStyle(FaceIDTheme.textPrimary)
-                    // The explicit `.animation` below is required: the phase change that flips
-                    // `isUnlocked` isn't itself wrapped in an animation transaction.
                     .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
                     .animation(
                         .smooth(duration: FaceIDOverlayGeometry.minimalLockAnimationDuration),
                         value: isUnlocked
                     )
-                    .frame(width: mediaWidth)
+                    .frame(width: mediaWidth, height: mediaWidth, alignment: .center)
             } else {
                 Image(systemName: isUnlocked ? "lock.open.fill" : "lock.fill")
                     .font(.system(size: lockIconSize, weight: .semibold))
@@ -44,19 +42,20 @@ struct FaceIDMinimalUnlockView: View {
                         .smooth(duration: FaceIDOverlayGeometry.minimalLockAnimationDuration),
                         value: isUnlocked
                     )
-                    .frame(width: mediaWidth)
+                    .frame(width: mediaWidth, height: mediaWidth, alignment: .center)
             }
 
             Spacer(minLength: 0)
 
             FaceIDScanAnimationView(media: media)
                 .padding(.vertical, mediaVerticalInset)
-                .frame(width: mediaWidth, height: mediaWidth)
+                .frame(width: mediaWidth, height: mediaWidth, alignment: .center)
                 // Scoped to the video alone — the lock icon on the left
                 // must stay steady while this breathes.
                 .scaleEffect(pulseScale)
                 .opacity(pulseOpacity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(.horizontal, edgeInset)
     }
 }
