@@ -62,10 +62,10 @@ struct FaceIDOverlayGeometry {
     static let pillOffscreenSlack: CGFloat = 20
 
     /// Pill's equivalent of `notchContentPadding*` calibrated to physical notch proportion.
-    static let pillContentPaddingTop: CGFloat = 32
-    static let pillContentPaddingLeading: CGFloat = 32
-    static let pillContentPaddingTrailing: CGFloat = 32
-    static let pillContentPaddingBottom: CGFloat = 32
+    static let pillContentPaddingTop: CGFloat = 8
+    static let pillContentPaddingLeading: CGFloat = 0
+    static let pillContentPaddingTrailing: CGFloat = 0
+    static let pillContentPaddingBottom: CGFloat = 8
 
     // MARK: - Panel open/close springs matching Glance
     //
@@ -150,10 +150,10 @@ struct FaceIDOverlayGeometry {
     static let scanPulseStartDelay: Double = 0.6
 
     /// Notch-style padding around scan-mode content matching Glance.
-    static let notchContentPaddingTop: CGFloat = 26
-    static let notchContentPaddingLeading: CGFloat = 40
-    static let notchContentPaddingTrailing: CGFloat = 40
-    static let notchContentPaddingBottom: CGFloat = 30
+    static let notchContentPaddingTop: CGFloat = 8
+    static let notchContentPaddingLeading: CGFloat = 0
+    static let notchContentPaddingTrailing: CGFloat = 0
+    static let notchContentPaddingBottom: CGFloat = 8
 
     /// Cosmetic size bump applied on hover in FaceIDOverlayView. Included here so the
     /// fixed window has margin for it instead of clipping.

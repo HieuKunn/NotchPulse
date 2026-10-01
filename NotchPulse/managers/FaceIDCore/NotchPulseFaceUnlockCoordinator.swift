@@ -338,21 +338,24 @@ final class NotchPulseFaceUnlockCoordinator {
             if showsUI {
                 FaceIDOverlayController.shared.finish(success: true)
             }
-        case .consistentlyWrongFace, .spoofSuspected, .noResolution:
-            statusMessage = "Hover the notch to try again."
+        case .consistentlyWrongFace, .spoofSuspected:
+            statusMessage = "Face not recognized. Hover to try again."
             if showsUI {
                 if FaceIDOverlayController.shared.phase == .scanning {
-                    // A genuine timeout (no face found / face consistently rejected) now
-                    // plays the failure video asset instead of snapping the notch away
-                    // silently — the video previously only ran on the camera-error path.
                     FaceIDOverlayController.shared.finish(success: false)
-                    // finish() holds the failure frame then collapses by itself; retry
-                    // after that sequence. The retry task re-checks phase == .closed.
                     scheduleAutoRetryIfEnabled(after: .seconds(5))
                 } else {
                     await FaceIDOverlayController.shared.collapse()
                     scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
                 }
+            } else {
+                scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
+            }
+        case .noResolution:
+            statusMessage = "Hover the notch to try again."
+            if showsUI {
+                await FaceIDOverlayController.shared.collapse()
+                scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
             } else {
                 scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
             }
@@ -413,9 +416,19 @@ final class NotchPulseFaceUnlockCoordinator {
         var effectiveDeadline = deadline
         var firstFrameSeen = false
 
+        var sawWrongFace = false
+
         while Date() < effectiveDeadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
             guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
+
+            // Midway into scan duration, show the looking-around searching animation if still scanning
+            let remaining = effectiveDeadline.timeIntervalSinceNow
+            if remaining < windowDuration * 0.60 && showsUI {
+                await MainActor.run {
+                    FaceIDOverlayController.shared.showSearchingAnimation()
+                }
+            }
 
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
                 if !firstFrameSeen {
@@ -502,11 +515,14 @@ final class NotchPulseFaceUnlockCoordinator {
                 }
             } else {
                 consecutiveMatchedFrames = 0
+                if isQualityAcceptable {
+                    sawWrongFace = true
+                }
             }
 
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 
-        return .noResolution
+        return sawWrongFace ? .consistentlyWrongFace : .noResolution
     }
 }

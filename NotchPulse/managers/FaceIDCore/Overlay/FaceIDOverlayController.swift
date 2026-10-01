@@ -231,24 +231,24 @@ final class FaceIDOverlayController {
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         geometry = windowController.currentGeometry
-        // Display still face image (unlockstatic.png) immediately without any delay or black frame
+        // Display still face image (unlockstatic) immediately and hold it for the whole scan duration
         content = .scan(.idle)
         updateInteractivity()
 
-        // Transition smoothly to scanning video once spring expansion settles
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(400))
-            guard let self, self.phase == .scanning, case .scan(.idle) = self.content else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
-                self.content = .scan(.scanning)
-            }
-        }
-
+        // Safety fallback timeout in case coordinator hangs
         scanTimeoutTask = Task { @MainActor [weak self] in
-            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
             try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            await self.collapse()
+            self.finish(success: false)
+        }
+    }
+
+    /// Transitions smoothly from static image to searching / looking around animation
+    func showSearchingAnimation() {
+        guard phase == .scanning, case .scan(.idle) = content else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            content = .scan(.scanning)
         }
     }
 
@@ -261,10 +261,10 @@ final class FaceIDOverlayController {
         guard phase == .scanning else { return }
         scanTimeoutTask?.cancel()
         scanTimeoutTask = Task { @MainActor [weak self] in
-            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
             try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            await self.collapse()
+            self.finish(success: false)
         }
     }
 
@@ -314,19 +314,11 @@ final class FaceIDOverlayController {
         windowController.displaySynchronously()
         updateInteractivity()
 
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(400))
-            guard let self, self.phase == .scanning, case .scan(.idle) = self.content else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
-                self.content = .scan(.scanning)
-            }
-        }
-
         scanTimeoutTask = Task { @MainActor [weak self] in
-            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+            let duration = self?.scanTimeoutDuration ?? .seconds(5)
             try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            await self.collapse()
+            self.finish(success: false)
         }
     }
 
@@ -464,17 +456,17 @@ final class FaceIDOverlayController {
             resolveTask?.cancel(); resolveTask = nil
             scanTimeoutTask?.cancel(); scanTimeoutTask = nil
             activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-            content = .scan(.scanning)
+            content = .scan(.idle)
             withAnimation(FaceIDOverlayGeometry.springAnimation) {
                 phase = .scanning
             }
             updateInteractivity()
 
             scanTimeoutTask = Task { @MainActor [weak self] in
-                let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
+                let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
                 try? await Task.sleep(for: duration)
                 guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-                await self.collapse()
+                self.finish(success: false)
             }
 
             if let onActivate = self.onActivate {
