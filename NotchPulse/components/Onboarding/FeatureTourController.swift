@@ -7,6 +7,7 @@
 
 import AppKit
 import SwiftUI
+import Defaults
 
 final class PassthroughTourHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? {
