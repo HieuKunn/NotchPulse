@@ -62,7 +62,9 @@ struct ContentView: View {
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
 
-    @ObservedObject private var faceIDOverlay = FaceIDOverlayController.shared
+    private var faceIDOverlay: FaceIDOverlayController {
+        FaceIDOverlayController.shared
+    }
     @State private var isFaceIDSettlingAfterClose: Bool = false
 
     private var isFaceIDActive: Bool {
@@ -317,62 +319,66 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var mainNotchContainer: some View {
+        let isIsland = isDynamicIsland
+        NotchLayout()
+            .frame(
+                width: currentNotchWidth,
+                height: currentNotchHeight,
+                alignment: .top
+            )
+            .padding(
+                .horizontal,
+                (vm.notchState == .open)
+                ? (isIsland ? 5 : 10)
+                : ((isFaceIDActive || isFaceIDSettlingAfterClose || NotchPulseLockMonitor.isScreenActuallyLocked())
+                    ? 0
+                    : (isIsland ? 6 : 4))
+            )
+            .padding(.horizontal, (vm.notchState == .open) ? (isIsland ? 2 : 4) : 0)
+            .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
+            .background(.black)
+            .conditionalModifier(isIsland) { view in
+                view
+                    .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                    }
+                    .contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+            }
+            .conditionalModifier(!isIsland) { view in
+                view
+                    .clipShape(currentNotchShape)
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(.black)
+                            .frame(height: 1)
+                            .padding(.horizontal, topCornerRadius)
+                    }
+                    .contentShape(currentNotchShape)
+            }
+            .shadow(
+                color: isIsland
+                    ? .black.opacity(0.65)
+                    : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
+                        ? .black.opacity(0.7) : .clear),
+                radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
+                x: 0,
+                y: isIsland ? 4 : 0
+            )
+            .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
+            .padding(
+                .bottom,
+                vm.effectiveClosedNotchHeight == 0 ? 10 : 0
+            )
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
-                let mainLayout = NotchLayout()
-                    .frame(
-                        width: currentNotchWidth,
-                        height: currentNotchHeight,
-                        alignment: .top
-                    )
-                    .padding(
-                        .horizontal,
-                        (vm.notchState == .open)
-                        ? (isDynamicIsland ? 5 : 10)
-                        : ((isFaceIDActive || isFaceIDSettlingAfterClose || NotchPulseLockMonitor.isScreenActuallyLocked())
-                            ? 0
-                            : (isDynamicIsland ? 6 : 4))
-                    )
-                    .padding(.horizontal, (vm.notchState == .open) ? (isDynamicIsland ? 2 : 4) : 0)
-                    .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
-                    .background(.black)
-                    .conditionalModifier(isDynamicIsland) { view in
-                        view
-                            .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
-                            }
-                            .contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
-                    }
-                    .conditionalModifier(!isDynamicIsland) { view in
-                        view
-                            .clipShape(currentNotchShape)
-                            .overlay(alignment: .top) {
-                                Rectangle()
-                                    .fill(.black)
-                                    .frame(height: 1)
-                                    .padding(.horizontal, topCornerRadius)
-                            }
-                            .contentShape(currentNotchShape)
-                    }
-                    .shadow(
-                        color: isDynamicIsland
-                            ? .black.opacity(0.65)
-                            : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
-                                ? .black.opacity(0.7) : .clear),
-                        radius: isDynamicIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
-                        x: 0,
-                        y: isDynamicIsland ? 4 : 0
-                    )
-                    .padding(.top, isDynamicIsland ? dynamicIslandTopOffset : 0)
-                    .padding(
-                        .bottom,
-                        vm.effectiveClosedNotchHeight == 0 ? 10 : 0
-                    )
-                
-                mainLayout
+                mainNotchContainer
                     .animation(animationSpring, value: vm.notchState)
                     .animation(animationSpring, value: currentNotchWidth)
                     .animation(animationSpring, value: currentNotchHeight)
@@ -918,23 +924,20 @@ struct ContentView: View {
     // MARK: - Hover Management
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
-        if isFaceIDActive { return true }
         if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
-        if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-            return faceIDOverlay.isArmed || NotchPulseFaceUnlockCoordinator.shared.lockMonitor.isScreenLocked
-        }
+        if isFaceIDActive && (faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .failure) { return true }
         return false
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
         if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
-        if isFaceIDActive { return true }
-        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed { return true }
+        if isFaceIDActive && (faceIDOverlay.phase == .failure || faceIDOverlay.phase == .scanning) { return true }
         return false
     }
 
     private func handleHover(_ hovering: Bool) {
-        if coordinator.firstLaunch || isFaceIDActive { return }
+        if coordinator.firstLaunch { return }
+        if isFaceIDActive && (faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .onboarding) { return }
         hoverTask?.cancel()
         
         if hovering {

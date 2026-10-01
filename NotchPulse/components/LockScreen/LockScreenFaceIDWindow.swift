@@ -317,6 +317,37 @@ struct LockScreenFaceIDPillView: View {
         return CGSize(width: body.width + flare, height: body.height)
     }
     
+    @ViewBuilder
+    private var scanContent: some View {
+        if isMinimalScan {
+            FaceIDMinimalUnlockView(
+                media: scanMedia.asFaceIDScanMedia,
+                isUnlocked: faceIDManager.lastUnlockSuccess,
+                edgeInset: notchStyle == .dynamicIsland ? 14 : 24,
+                lockIconSize: notchStyle == .dynamicIsland ? 14 : 15,
+                mediaWidth: 22,
+                mediaVerticalInset: 0,
+                pulseScale: isScanPulseDimmed ? 0.97 : 1.0,
+                pulseOpacity: isScanPulseDimmed ? 0.65 : 1.0
+            )
+        } else {
+            ScanAnimationView(media: scanMedia)
+                .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
+                .scaleEffect(0.80)
+        }
+    }
+
+    @ViewBuilder
+    private var pillOverlayBorder: some View {
+        if notchStyle == .dynamicIsland {
+            RoundedRectangle(cornerRadius: bottomRadius, style: .continuous)
+                .stroke(
+                    faceIDManager.lastUnlockSuccess ? Color.green.opacity(0.8) : Color.blue.opacity(isHovered ? 0.8 : 0.4),
+                    lineWidth: isHovered ? 1.5 : 1.0
+                )
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Button {
@@ -325,40 +356,13 @@ struct LockScreenFaceIDPillView: View {
                 // ARCHITECTURAL RULE: ScanAnimationView must ALWAYS stay on the top-most layer
                 // with zIndex(999) so the Face ID glyph & animation render directly over the notch.
                 applyNotchClip(
-                    Group {
-                        if isMinimalScan {
-                            FaceIDMinimalUnlockView(
-                                media: scanMedia.asFaceIDScanMedia,
-                                isUnlocked: faceIDManager.lastUnlockSuccess,
-                                edgeInset: notchStyle == .dynamicIsland ? 14 : 24,
-                                lockIconSize: notchStyle == .dynamicIsland ? 14 : 15,
-                                mediaWidth: 22,
-                                mediaVerticalInset: 0,
-                                pulseScale: isScanPulseDimmed ? 0.97 : 1.0,
-                                pulseOpacity: isScanPulseDimmed ? 0.65 : 1.0
-                            )
-                        } else {
-                            ScanAnimationView(media: scanMedia)
-                                .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
-                                .scaleEffect(0.80)
-                        }
-                    }
-                    .opacity(isExpanded ? 1.0 : 0.0)
-                    .zIndex(999)
-                    .frame(width: currentSize.width, height: currentSize.height)
-                    .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
+                    scanContent
+                        .opacity(isExpanded ? 1.0 : 0.0)
+                        .zIndex(999)
+                        .frame(width: currentSize.width, height: currentSize.height)
+                        .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
                 )
-                .overlay(
-                    Group {
-                        if notchStyle == .dynamicIsland {
-                            RoundedRectangle(cornerRadius: bottomRadius, style: .continuous)
-                                .stroke(
-                                    faceIDManager.lastUnlockSuccess ? Color.green.opacity(0.8) : Color.blue.opacity(isHovered ? 0.8 : 0.4),
-                                    lineWidth: isHovered ? 1.5 : 1.0
-                                )
-                        }
-                    }
-                )
+                .overlay(pillOverlayBorder)
                 .shadow(
                     color: Color.black.opacity(isExpanded ? (isHovered ? 0.65 : 0.45) : 0),
                     radius: 12,

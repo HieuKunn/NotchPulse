@@ -71,7 +71,7 @@ final class FaceIDOverlayController {
     private(set) var isPresenting = false
 
     var isSessionActive: Bool {
-        isArmed || isPresenting || phase != .closed
+        (isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || isPresenting || phase != .closed
     }
 
     /// Pill style only: whether the pill is parked on screen at rest vs. off-screen.
