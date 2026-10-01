@@ -1088,7 +1088,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.backgroundColor = .clear
                 window.isOpaque = false
                 window.hasShadow = false
-                window.level = .floating
+                window.level = .mainMenu + 2
                 window.ignoresMouseEvents = false
                 window.setFrame(screen.frame, display: true)
             } else {
@@ -1106,7 +1106,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.isRestorable = false
             window.isReleasedWhenClosed = false
             window.identifier = NSUserInterfaceItemIdentifier("OnboardingWindow")
-            window.contentView = NSHostingView(
+            window.contentView = PassthroughTourHostingView(
                 rootView: OnboardingView(
                     step: step,
                     onFinish: {

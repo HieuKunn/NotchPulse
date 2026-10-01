@@ -936,7 +936,7 @@ struct ContentView: View {
     }
 
     private func handleHover(_ hovering: Bool) {
-        if coordinator.firstLaunch { return }
+        if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
         if isFaceIDActive && (faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .onboarding) { return }
         hoverTask?.cancel()
         
@@ -981,7 +981,7 @@ struct ContentView: View {
                         self.isHovering = false
                     }
                     
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive {
                         self.vm.close()
                     }
                 }

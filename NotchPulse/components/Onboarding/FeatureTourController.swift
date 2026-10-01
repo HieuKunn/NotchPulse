@@ -8,11 +8,25 @@
 import AppKit
 import SwiftUI
 
+final class PassthroughTourHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        if FeatureTourController.shared.isTourActive, let cardRect = FeatureTourController.shared.interactiveCardRect {
+            let expandedCardRect = cardRect.insetBy(dx: -4, dy: -4)
+            if expandedCardRect.contains(point) {
+                return super.hitTest(point)
+            }
+            return nil
+        }
+        return super.hitTest(point)
+    }
+}
+
 @MainActor
 final class FeatureTourController: NSObject {
     static let shared = FeatureTourController()
 
-    public private(set) var isTourActive: Bool = false
+    public var isTourActive: Bool = false
+    public var interactiveCardRect: CGRect?
     private var tourWindow: NSWindow?
 
     override private init() {
@@ -46,7 +60,7 @@ final class FeatureTourController: NSObject {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
+        window.level = .mainMenu + 2
         window.ignoresMouseEvents = false
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.setFrame(screen.frame, display: true)
@@ -55,7 +69,7 @@ final class FeatureTourController: NSObject {
 
         let coordinator = NotchPulseViewCoordinator.shared
 
-        window.contentView = NSHostingView(
+        window.contentView = PassthroughTourHostingView(
             rootView: FeatureTourView(onFinish: { [weak self] in
                 self?.dismissTour()
             })
@@ -73,6 +87,7 @@ final class FeatureTourController: NSObject {
 
     func dismissTour() {
         isTourActive = false
+        interactiveCardRect = nil
         tourWindow?.orderOut(nil)
         tourWindow = nil
 

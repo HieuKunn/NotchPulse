@@ -220,6 +220,17 @@ struct FeatureTourView: View {
                         .padding(.top, -4)
                 }
                 .frame(width: 380)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear {
+                                FeatureTourController.shared.interactiveCardRect = geo.frame(in: .global)
+                            }
+                            .onChange(of: geo.frame(in: .global)) { _, newFrame in
+                                FeatureTourController.shared.interactiveCardRect = newFrame
+                            }
+                    }
+                )
                 .position(
                     x: cardX,
                     y: cardY
@@ -230,10 +241,13 @@ struct FeatureTourView: View {
         }
         .id("\(appLanguage.rawValue)")
         .onAppear {
+            FeatureTourController.shared.isTourActive = true
             repositionWindow()
             updateNotch()
         }
         .onDisappear {
+            FeatureTourController.shared.isTourActive = false
+            FeatureTourController.shared.interactiveCardRect = nil
             teardownNotch()
         }
     }
@@ -357,13 +371,14 @@ struct FeatureTourView: View {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
+        window.level = .mainMenu + 2
         
         let screen = targetScreen
         window.setFrame(screen.frame, display: true, animate: true)
     }
     
     private func updateNotch() {
+        FeatureTourController.shared.isTourActive = true
         withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
             coordinator.currentView = currentStep.viewType
             vm.featureTourTarget = currentStep.target
@@ -371,13 +386,28 @@ struct FeatureTourView: View {
             vm.customOpenHeight = nil
             vm.open()
         }
+        if let viewModels = AppDelegate.shared?.viewModels {
+            for subVm in viewModels.values {
+                subVm.featureTourTarget = currentStep.target
+                subVm.open()
+            }
+        }
     }
     
     private func teardownNotch() {
+        FeatureTourController.shared.isTourActive = false
+        FeatureTourController.shared.interactiveCardRect = nil
         CalendarStateViewModel.shared.isFullMonthExpanded = false
         coordinator.currentView = .home
         vm.featureTourTarget = nil
         vm.customOpenHeight = nil
-        vm.close()
+        vm.close(force: true)
+        if let viewModels = AppDelegate.shared?.viewModels {
+            for subVm in viewModels.values {
+                subVm.customOpenHeight = nil
+                subVm.featureTourTarget = nil
+                subVm.close(force: true)
+            }
+        }
     }
 }
