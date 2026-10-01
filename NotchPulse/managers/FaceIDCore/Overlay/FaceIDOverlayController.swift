@@ -477,6 +477,7 @@ final class FaceIDOverlayController {
 
         switch phase {
         case .closed, .failure:
+            isPresenting = true
             routeToCameraScreen()
             resolveTask?.cancel(); resolveTask = nil
             scanTimeoutTask?.cancel(); scanTimeoutTask = nil
