@@ -207,7 +207,7 @@ struct ContentView: View {
             if case .onboarding(let controller) = faceIDOverlay.content {
                 return controller.panelBottomRadius
             }
-            return isDynamicIsland ? FaceIDOverlayGeometry.pillOpenCornerRadius : cornerRadiusInsets.opened.bottom
+            return isDynamicIsland ? FaceIDOverlayGeometry.pillOpenCornerRadius : FaceIDOverlayGeometry.openBottomRadius
         }
         return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
             ? cornerRadiusInsets.opened.bottom

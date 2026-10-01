@@ -305,7 +305,7 @@ struct LockScreenFaceIDPillView: View {
             if isMinimalScan {
                 return hasPhysicalNotch ? 16 : (closedBodySize.height / 2)
             }
-            return hasPhysicalNotch ? 24 : 26
+            return hasPhysicalNotch ? FaceIDOverlayGeometry.openBottomRadius : FaceIDOverlayGeometry.pillOpenCornerRadius
         } else {
             return hasPhysicalNotch ? 14 : (closedBodySize.height / 2)
         }

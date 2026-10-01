@@ -168,8 +168,8 @@ struct FeatureTourView: View {
             
             let currentCornerRadius: CGFloat = isGearTarget ? 18 : (isDynamicIsland ? 28 : 22)
             
-            let cardX = isGearTarget ? min(screenWidth - 200, max(200, gearCenterX - 40)) : centerX
-            let cardY = isGearTarget ? (gearBoxY + gearBoxSize + 18 + 105) : (topOffset + spotlightHeight + 14 + 110)
+            let cardX = isGearTarget ? min(screenWidth - 210, max(210, centerX + (openWidth / 2) - 160)) : centerX
+            let cardY = topOffset + spotlightHeight + 14 + 110
             
             ZStack(alignment: .top) {
                 // Dimmed background with spotlight cutout

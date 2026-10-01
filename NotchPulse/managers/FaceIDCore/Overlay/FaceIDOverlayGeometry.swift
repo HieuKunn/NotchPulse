@@ -32,7 +32,7 @@ struct FaceIDOverlayGeometry {
     static let closedTopRadius: CGFloat = 8
     static let closedBottomRadius: CGFloat = 12
     static let openTopRadius: CGFloat = 16
-    static let openBottomRadius: CGFloat = 60
+    static let openBottomRadius: CGFloat = 42
 
     /// A shape drawn in a rect of width `w` has a visible body of `w - 2 * topRadius`;
     /// zero in pill style, which has no flare.
