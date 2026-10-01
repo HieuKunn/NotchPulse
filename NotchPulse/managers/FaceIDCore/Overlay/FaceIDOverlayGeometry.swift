@@ -42,8 +42,8 @@ struct FaceIDOverlayGeometry {
 
     // MARK: - Pill style (Dynamic Island)
 
-    /// Resting capsule size matching Glance pill closed size
-    static let pillClosedSize = CGSize(width: 80, height: 24)
+    /// Resting capsule size matching closed notch dimensions for style parity
+    static let pillClosedSize = CGSize(width: 185, height: 38)
 
     /// Expanded footprint matching Glance pill open size
     static let pillOpenSize = CGSize(width: 220, height: 190)
@@ -67,12 +67,12 @@ struct FaceIDOverlayGeometry {
     static let pillContentPaddingTrailing: CGFloat = 0
     static let pillContentPaddingBottom: CGFloat = 8
 
-    // MARK: - Panel open/close springs matching Glance
+    // MARK: - Panel open/close springs
     //
     // Shared by both styles. Opening overshoots slightly; closing is critically damped.
-    static let openSpringResponse: Double = 0.42
+    static let openSpringResponse: Double = 0.38
     static let openSpringDamping: Double = 0.80
-    static let closeSpringResponse: Double = 0.45
+    static let closeSpringResponse: Double = 0.38
     static let closeSpringDamping: Double = 1.0
 
     // MARK: - Pill enter/exit choreography
@@ -82,10 +82,10 @@ struct FaceIDOverlayGeometry {
 
     /// Ease-out rather than a spring — a straight-line move, not a bouncy resize.
     static let pillSlideDuration: Double = 0.25
-    /// Expansion starts this long after the slide begins.
-    static let pillEnterExpansionDelay: Double = 0.16
-    /// Slide starts this long after the shrink begins.
-    static let pillExitSlideDelay: Double = 0.18
+    /// Immediate expansion with no artificial delay
+    static let pillEnterExpansionDelay: Double = 0.0
+    /// Immediate slide with no artificial delay
+    static let pillExitSlideDelay: Double = 0.0
 
     // MARK: - Minimal unlock style (Inline FaceID)
     //
@@ -206,7 +206,7 @@ struct FaceIDOverlayGeometry {
         let isNotchStyle = Defaults[.notchStyle] == .notch
         let screenUUID = screen.displayUUID
         let isPhysical = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
-        let closedSize = isNotchStyle ? getClosedNotchSize(screenUUID: screenUUID) : pillClosedSize
+        let closedSize = getClosedNotchSize(screenUUID: screenUUID)
 
         return FaceIDOverlayGeometry(
             closedSize: closedSize,

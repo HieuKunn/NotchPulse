@@ -84,20 +84,22 @@ final class ScanAnimationHostView: NSView {
         rootLayer.masksToBounds = true
         layer = rootLayer
 
-        stillImageLayer.contentsGravity = .resizeAspect
-        stillImageLayer.masksToBounds = true
-        stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        if let initialFrame = Self.firstFrame(for: "idleanimation") ?? Self.loadStaticCGImage() {
-            stillImageLayer.contents = initialFrame
-        }
-        stillImageLayer.isHidden = false
-        rootLayer.addSublayer(stillImageLayer)
-
         playerLayer.videoGravity = .resizeAspect
         playerLayer.masksToBounds = true
         playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         playerLayer.isHidden = true
+        playerLayer.zPosition = 0
         rootLayer.addSublayer(playerLayer)
+
+        stillImageLayer.contentsGravity = .resizeAspect
+        stillImageLayer.masksToBounds = true
+        stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        if let initialFrame = Self.loadStaticCGImage() ?? Self.firstFrame(for: "idleanimation") {
+            stillImageLayer.contents = initialFrame
+        }
+        stillImageLayer.isHidden = false
+        stillImageLayer.zPosition = 100
+        rootLayer.addSublayer(stillImageLayer)
 
         updateLayerFrames()
         Self.prewarm()
@@ -159,7 +161,9 @@ final class ScanAnimationHostView: NSView {
                 stillImageLayer.contents = staticImg
             }
             playerLayer.isHidden = true
+            playerLayer.zPosition = 0
             stillImageLayer.isHidden = false
+            stillImageLayer.zPosition = 100
             CATransaction.commit()
             return
         }
@@ -169,7 +173,9 @@ final class ScanAnimationHostView: NSView {
             CATransaction.setDisableActions(true)
             stillImageLayer.contents = frame
             stillImageLayer.isHidden = false
+            stillImageLayer.zPosition = 100
             playerLayer.isHidden = true
+            playerLayer.zPosition = 0
             CATransaction.commit()
         }
 
@@ -201,8 +207,10 @@ final class ScanAnimationHostView: NSView {
             guard let self else { return }
             CATransaction.begin()
             CATransaction.setDisableActions(true)
+            self.playerLayer.zPosition = 100
             self.playerLayer.isHidden = false
             self.stillImageLayer.isHidden = true
+            self.stillImageLayer.zPosition = 0
             CATransaction.commit()
         }
 
@@ -233,6 +241,8 @@ final class ScanAnimationHostView: NSView {
         player?.pause()
         player = nil
         playerLayer.player = nil
+        playerLayer.isHidden = true
+        playerLayer.zPosition = 0
     }
 
     private static func loadStaticCGImage() -> CGImage? {

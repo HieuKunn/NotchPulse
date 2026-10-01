@@ -21,7 +21,7 @@ final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content>
     private func currentActiveRect() -> NSRect {
         let isExpanded = FaceIDManager.shared.isScanning || FaceIDManager.shared.lastUnlockSuccess
         let targetHeight: CGFloat = isExpanded ? 190 : notchClosedSize.height
-        let targetWidth: CGFloat = isExpanded ? max(185, notchClosedSize.width) : notchClosedSize.width
+        let targetWidth: CGFloat = isExpanded ? max(220, notchClosedSize.width) : notchClosedSize.width
         // In NSHostingView (isFlipped == true), y = 0 is the top edge (the notch), not bounds.height!
         let y: CGFloat = isFlipped ? 0 : (bounds.height - targetHeight)
         return NSRect(
@@ -267,19 +267,14 @@ struct LockScreenFaceIDPillView: View {
     
     //  Native NotchPulse Face ID biometric implementation.
     private var closedBodySize: CGSize {
-        if hasPhysicalNotch {
-            return CGSize(width: max(185, physicalNotchWidth), height: notchHardwareHeight)
-        } else {
-            return CGSize(width: 140, height: max(32, notchHardwareHeight))
-        }
+        let width = max(185, physicalNotchWidth)
+        let height = max(32, notchHardwareHeight)
+        return CGSize(width: width, height: height)
     }
     
     private var openBodySize: CGSize {
-        if hasPhysicalNotch {
-            return CGSize(width: max(185, physicalNotchWidth), height: 190)
-        } else {
-            return CGSize(width: 220, height: 190)
-        }
+        let width = max(220, max(185, physicalNotchWidth))
+        return CGSize(width: width, height: 190)
     }
     
     private var topRadius: CGFloat {
@@ -310,24 +305,13 @@ struct LockScreenFaceIDPillView: View {
                 triggerScan()
             } label: {
                 applyNotchClip(
-                    ZStack(alignment: .center) {
-                        // Instant vector Apple Face ID Smiley icon rendering from frame 0 (never black)
-                        AppleFaceIDGlyphView(
-                            isScanning: isHovered || faceIDManager.isScanning,
-                            isSuccess: faceIDManager.lastUnlockSuccess,
-                            isFailure: faceIDManager.statusMessage == "Face Not Recognized",
-                            size: 56
-                        )
+                    ScanAnimationView(media: scanMedia)
                         .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
+                        .scaleEffect(0.85)
                         .opacity(isExpanded ? 1.0 : 0.0)
-
-                        ScanAnimationView(media: scanMedia)
-                            .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
-                            .scaleEffect(0.85)
-                            .opacity(isExpanded ? 1.0 : 0.0)
-                    }
-                    .frame(width: currentSize.width, height: currentSize.height)
-                    .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
+                        .zIndex(999)
+                        .frame(width: currentSize.width, height: currentSize.height)
+                        .background((notchStyle == .notch && hasPhysicalNotch) ? (isExpanded ? Color.black : Color.clear) : Color.black)
                 )
                 .overlay(
                     Group {

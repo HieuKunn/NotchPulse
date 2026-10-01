@@ -86,6 +86,13 @@ final class FaceIDScanAnimationHostView: NSView {
         root.masksToBounds = true
         layer = root
 
+        playerLayer.videoGravity = .resizeAspect
+        playerLayer.masksToBounds = true
+        playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        playerLayer.isHidden = true
+        playerLayer.zPosition = 0
+        root.addSublayer(playerLayer)
+
         stillImageLayer.contentsGravity = .resizeAspect
         stillImageLayer.masksToBounds = true
         stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
@@ -93,13 +100,8 @@ final class FaceIDScanAnimationHostView: NSView {
             stillImageLayer.contents = still
         }
         stillImageLayer.isHidden = false
+        stillImageLayer.zPosition = 100
         root.addSublayer(stillImageLayer)
-
-        playerLayer.videoGravity = .resizeAspect
-        playerLayer.masksToBounds = true
-        playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        playerLayer.isHidden = true
-        root.addSublayer(playerLayer)
 
         updateLayerFrames()
         Self.prewarm()
@@ -165,7 +167,9 @@ final class FaceIDScanAnimationHostView: NSView {
                 stillImageLayer.contents = still
             }
             stillImageLayer.isHidden = false
+            stillImageLayer.zPosition = 100
             playerLayer.isHidden = true
+            playerLayer.zPosition = 0
             CATransaction.commit()
             teardownPlayer()
             return
@@ -176,14 +180,16 @@ final class FaceIDScanAnimationHostView: NSView {
             return
         }
 
-        // Keep unlockstatic backdrop immediately visible while player prepares in background
+        // Keep unlockstatic backdrop immediately visible on the topmost layer while player prepares in background
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if let still = Self.loadStillCGImage() {
             stillImageLayer.contents = still
         }
         stillImageLayer.isHidden = false
+        stillImageLayer.zPosition = 100
         playerLayer.isHidden = true
+        playerLayer.zPosition = 0
         CATransaction.commit()
 
         teardownPlayer()
@@ -210,8 +216,10 @@ final class FaceIDScanAnimationHostView: NSView {
             guard let self = self else { return }
             CATransaction.begin()
             CATransaction.setDisableActions(true)
+            self.playerLayer.zPosition = 100
             self.playerLayer.isHidden = false
             self.stillImageLayer.isHidden = true
+            self.stillImageLayer.zPosition = 0
             CATransaction.commit()
         }
 
@@ -250,6 +258,8 @@ final class FaceIDScanAnimationHostView: NSView {
         player?.pause()
         player = nil
         playerLayer.player = nil
+        playerLayer.isHidden = true
+        playerLayer.zPosition = 0
     }
 
     private static var cachedStillCGImage: CGImage?

@@ -145,9 +145,9 @@ struct ContentView: View {
         }
 
         if isDynamicIsland {
-            return FaceIDOverlayGeometry.pillOpenSize
+            return CGSize(width: max(220, vm.closedNotchSize.width), height: 190)
         } else {
-            let width: CGFloat = vm.closedNotchSize.width + (topCornerRadius * 2)
+            let width: CGFloat = max(220, vm.closedNotchSize.width + (topCornerRadius * 2))
             let height: CGFloat = 190
             return CGSize(
                 width: width,
@@ -297,7 +297,6 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            dragDetector
             VStack(spacing: 0) {
                 let mainLayout = NotchLayout()
                     .frame(
@@ -326,6 +325,7 @@ struct ContentView: View {
                                 RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
                                     .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
                             }
+                            .contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
                     }
                     .conditionalModifier(!isDynamicIsland) { view in
                         view
@@ -336,6 +336,7 @@ struct ContentView: View {
                                     .frame(height: 1)
                                     .padding(.horizontal, topCornerRadius)
                             }
+                            .contentShape(currentNotchShape)
                     }
                     .shadow(
                         color: isDynamicIsland
@@ -592,7 +593,7 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
-                } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] {
+                } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] && !isFaceIDActive {
                     Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: vm.effectiveClosedNotchHeight)
                 } else {
                     ZStack {
@@ -622,11 +623,12 @@ struct ContentView: View {
 
                         if isFaceIDContentActive {
                             FaceIDContentView()
+                                .zIndex(999)
                                 .transition(.opacity)
                         }
                     }
 
-                    if coordinator.sneakPeek.show {
+                    if coordinator.sneakPeek.show && !isFaceIDActive {
                         if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
                             SystemEventIndicatorModifier(
                                 eventType: $coordinator.sneakPeek.type,
@@ -717,29 +719,14 @@ struct ContentView: View {
                     pulseOpacity: isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0
                 )
             } else {
-                ZStack {
-                    // Vector glyph renders from frame 0 (no decode wait) so the expanded
-                    // panel never shows as a plain black rectangle before the still/video arrives.
-                    AppleFaceIDGlyphView(
-                        isScanning: faceIDOverlay.phase == .scanning,
-                        isSuccess: faceIDOverlay.phase == .success,
-                        isFailure: faceIDOverlay.phase == .failure,
-                        size: 56
-                    )
-                    if let still = FaceIDScanAnimationHostView.loadStillCGImage() {
-                        Image(decorative: still, scale: 1.0)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    }
-                    FaceIDScanAnimationView(media: controller.media)
-                }
-                .padding(.leading, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingLeading : FaceIDOverlayGeometry.notchContentPaddingLeading)
-                .padding(.trailing, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
-                .padding(.top, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
-                .padding(.bottom, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
-                .scaleEffect(0.80)
-                .scaleEffect(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseScale : 1.0)
-                .opacity(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0)
+                FaceIDScanAnimationView(media: controller.media)
+                    .padding(.leading, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingLeading : FaceIDOverlayGeometry.notchContentPaddingLeading)
+                    .padding(.trailing, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
+                    .padding(.top, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
+                    .padding(.bottom, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
+                    .scaleEffect(0.85)
+                    .scaleEffect(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseScale : 1.0)
+                    .opacity(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0)
             }
         }
         .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)
@@ -875,26 +862,6 @@ struct ContentView: View {
             height: liveHeight,
             alignment: .center
         )
-    }
-
-    @ViewBuilder
-    var dragDetector: some View {
-        if Defaults[.notchPulseShelf] && vm.notchState == .closed {
-            let padding = expandedDragDetection ? CGFloat(dragDetectionPadding) : 0
-            Color.black.opacity(0.001)
-                .frame(
-                    width: currentNotchWidth + (padding * 2),
-                    height: currentNotchHeight + padding + (isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0)
-                )
-                .contentShape(Rectangle())
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
-                    vm.dropEvent = true
-                    ShelfStateViewModel.shared.load(providers)
-                    return true
-                }
-        } else {
-            EmptyView()
-        }
     }
 
     private func doOpen() {
