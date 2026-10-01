@@ -377,20 +377,23 @@ struct FeatureTourView: View {
         window.setFrame(screen.frame, display: true, animate: true)
     }
     
+    private var activeVM: NotchPulseViewModel {
+        let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared
+        if Defaults[.showOnAllDisplays], let uuid = targetScreen.displayUUID, let sub = appDelegate?.viewModels[uuid] {
+            return sub
+        }
+        return appDelegate?.vm ?? vm
+    }
+
     private func updateNotch() {
         FeatureTourController.shared.isTourActive = true
+        let targetVM = activeVM
         withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
             coordinator.currentView = currentStep.viewType
-            vm.featureTourTarget = currentStep.target
+            targetVM.featureTourTarget = currentStep.target
             CalendarStateViewModel.shared.isFullMonthExpanded = false
-            vm.customOpenHeight = nil
-            vm.open()
-        }
-        if let viewModels = AppDelegate.shared?.viewModels {
-            for subVm in viewModels.values {
-                subVm.featureTourTarget = currentStep.target
-                subVm.open()
-            }
+            targetVM.customOpenHeight = nil
+            targetVM.open()
         }
     }
     
@@ -399,15 +402,9 @@ struct FeatureTourView: View {
         FeatureTourController.shared.interactiveCardRect = nil
         CalendarStateViewModel.shared.isFullMonthExpanded = false
         coordinator.currentView = .home
-        vm.featureTourTarget = nil
-        vm.customOpenHeight = nil
-        vm.close(force: true)
-        if let viewModels = AppDelegate.shared?.viewModels {
-            for subVm in viewModels.values {
-                subVm.customOpenHeight = nil
-                subVm.featureTourTarget = nil
-                subVm.close(force: true)
-            }
-        }
+        let targetVM = activeVM
+        targetVM.featureTourTarget = nil
+        targetVM.customOpenHeight = nil
+        targetVM.close(force: true)
     }
 }

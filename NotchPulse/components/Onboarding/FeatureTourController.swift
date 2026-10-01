@@ -10,14 +10,19 @@ import SwiftUI
 
 final class PassthroughTourHostingView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? {
-        if FeatureTourController.shared.isTourActive, let cardRect = FeatureTourController.shared.interactiveCardRect {
-            let expandedCardRect = cardRect.insetBy(dx: -4, dy: -4)
-            if expandedCardRect.contains(point) {
-                return super.hitTest(point)
-            }
+        guard FeatureTourController.shared.isTourActive else {
+            return super.hitTest(point)
+        }
+        guard let cardRect = FeatureTourController.shared.interactiveCardRect else {
             return nil
         }
-        return super.hitTest(point)
+        // point in hitTest is in window / superview coordinates. Convert to local flipped coordinates:
+        let localPoint = self.convert(point, from: self.superview)
+        let expandedCardRect = cardRect.insetBy(dx: -12, dy: -12)
+        if expandedCardRect.contains(localPoint) {
+            return super.hitTest(point)
+        }
+        return nil
     }
 }
 
@@ -35,14 +40,19 @@ final class FeatureTourController: NSObject {
 
     func startTour() {
         isTourActive = true
-        // Open the notch and ensure it stays open
-        let vm = (AppDelegate.shared?.vm) ?? NotchPulseViewModel()
-        vm.open()
-        if let viewModels = AppDelegate.shared?.viewModels {
-            for subVm in viewModels.values {
-                subVm.open()
-            }
+        let coordinator = NotchPulseViewCoordinator.shared
+        coordinator.firstLaunch = false
+
+        let targetScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) ?? NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+        let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared
+        let targetVM: NotchPulseViewModel
+        if Defaults[.showOnAllDisplays], let uuid = targetScreen.displayUUID, let sub = appDelegate?.viewModels[uuid] {
+            targetVM = sub
+        } else {
+            targetVM = appDelegate?.vm ?? NotchPulseViewModel()
         }
+
+        targetVM.open()
 
         // Tear down any existing tour window
         if let existing = tourWindow {
@@ -50,7 +60,7 @@ final class FeatureTourController: NSObject {
             tourWindow = nil
         }
 
-        let screen = NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+        let screen = targetScreen
         let window = NSWindow(
             contentRect: screen.frame,
             styleMask: [.borderless, .fullSizeContentView],
@@ -67,14 +77,12 @@ final class FeatureTourController: NSObject {
         window.isReleasedWhenClosed = false
         window.identifier = NSUserInterfaceItemIdentifier("FeatureTourWindow")
 
-        let coordinator = NotchPulseViewCoordinator.shared
-
         window.contentView = PassthroughTourHostingView(
             rootView: FeatureTourView(onFinish: { [weak self] in
                 self?.dismissTour()
             })
             .environmentObject(coordinator)
-            .environmentObject(vm)
+            .environmentObject(targetVM)
         )
 
         self.tourWindow = window
@@ -92,20 +100,22 @@ final class FeatureTourController: NSObject {
         tourWindow = nil
 
         let coordinator = NotchPulseViewCoordinator.shared
-        let vm = (AppDelegate.shared?.vm) ?? NotchPulseViewModel()
+        let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared
 
         coordinator.firstLaunch = false
         coordinator.currentView = .home
         CalendarStateViewModel.shared.isFullMonthExpanded = false
-        vm.customOpenHeight = nil
-        vm.featureTourTarget = nil
-        vm.close(force: true)
-        if let viewModels = AppDelegate.shared?.viewModels {
-            for subVm in viewModels.values {
-                subVm.customOpenHeight = nil
-                subVm.featureTourTarget = nil
-                subVm.close(force: true)
-            }
+        
+        let targetScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) ?? NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
+        let targetVM: NotchPulseViewModel
+        if Defaults[.showOnAllDisplays], let uuid = targetScreen.displayUUID, let sub = appDelegate?.viewModels[uuid] {
+            targetVM = sub
+        } else {
+            targetVM = appDelegate?.vm ?? NotchPulseViewModel()
         }
+
+        targetVM.customOpenHeight = nil
+        targetVM.featureTourTarget = nil
+        targetVM.close(force: true)
     }
 }

@@ -242,7 +242,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 20) + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 32) + gestureProgress
             if isDynamicIsland && coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
                 chinWidth = max(chinWidth, 440 + gestureProgress)
             }
@@ -252,7 +252,7 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 20) + gestureProgress
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 32) + gestureProgress
         }
         return chinWidth
     }
@@ -833,6 +833,7 @@ struct ContentView: View {
                         style: .continuous
                     )
                 )
+                .padding(.leading, isDynamicIsland ? 0 : 5)
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
 
             Rectangle()
@@ -878,7 +879,7 @@ struct ContentView: View {
                         && coordinator.expandingView.type == .music
                         && Defaults[.sneakPeekStyles] == .inline)
                         ? (isDynamicIsland ? 360 : 380)
-                        : (vm.closedNotchSize.width + (isDynamicIsland ? 12 : 8))
+                        : (vm.closedNotchSize.width + (isDynamicIsland ? 12 : 12))
                 )
 
             HStack {
@@ -900,6 +901,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .padding(.trailing, isDynamicIsland ? 0 : 5)
             .frame(
                 width: max(
                     0,

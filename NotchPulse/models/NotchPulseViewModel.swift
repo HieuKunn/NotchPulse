@@ -94,7 +94,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
                 guard let activeVM = notification.object as? NotchPulseViewModel else { return }
                 // Rule: Only 1 notch open at any time across all displays!
                 // If another display's notch opened, this notch must close immediately and unpin.
-                if self !== activeVM && self.notchState == .open {
+                if self !== activeVM && self.notchState == .open && !FeatureTourController.shared.isTourActive {
                     ShelfStateViewModel.shared.isPinned = false
                     CalendarStateViewModel.shared.isPinned = false
                     SharingStateManager.shared.preventNotchClose = false
