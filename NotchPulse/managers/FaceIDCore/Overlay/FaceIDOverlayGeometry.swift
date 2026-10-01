@@ -26,7 +26,7 @@ struct FaceIDOverlayGeometry {
     }
 
     /// Fixed footprint of expanded scan-mode content in notch style.
-    static let notchOpenSize = CGSize(width: 220, height: 200)
+    static let notchOpenSize = CGSize(width: 260, height: 200)
 
     /// Corner radii matching Glance & Apple notch curvature.
     static let closedTopRadius: CGFloat = 8
@@ -46,10 +46,10 @@ struct FaceIDOverlayGeometry {
     static let pillClosedSize = CGSize(width: 80, height: 24)
 
     /// Expanded footprint matching Glance pill open size
-    static let pillOpenSize = CGSize(width: 180, height: 180)
+    static let pillOpenSize = CGSize(width: 240, height: 240)
 
-    /// Pinned to NotchPulse's active dynamic island top offset.
-    static var pillTopGap: CGFloat { Defaults[.dynamicIslandTopOffset] }
+    /// Pinned to NotchPulse's active dynamic island top offset, with a min gap so it floats.
+    static var pillTopGap: CGFloat { max(Defaults[.dynamicIslandTopOffset], 10) }
 
     /// Continuous corner radius matching Apple notch curvature.
     static let pillOpenCornerRadius: CGFloat = 48

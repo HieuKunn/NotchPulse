@@ -56,7 +56,6 @@ struct FaceIDMinimalUnlockView: View {
                 // must stay steady while this breathes.
                 .scaleEffect(pulseScale)
                 .opacity(pulseOpacity)
-                .padding(.trailing, 4)
         }
         .padding(.horizontal, edgeInset)
     }
