@@ -47,8 +47,8 @@ final class MediaKeyInterceptor {
     func start(promptIfNeeded: Bool = false) async {
         guard eventTap == nil else { return }
         
-        // Ensure HUD replacement is enabled
-        guard Defaults[.hudReplacement] else {
+        // Ensure HUD replacement or inline HUD is enabled
+        guard Defaults[.hudReplacement] || Defaults[.inlineHUD] else {
             stop()
             return
         }

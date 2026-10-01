@@ -231,9 +231,18 @@ final class FaceIDOverlayController {
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         geometry = windowController.currentGeometry
-        activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-        content = .scan(.scanning)
+        // Display still face image (unlockstatic.png) immediately without any delay or black frame
+        content = .scan(.idle)
         updateInteractivity()
+
+        // Transition smoothly to scanning video once spring expansion settles
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard let self, self.phase == .scanning, case .scan(.idle) = self.content else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                self.content = .scan(.scanning)
+            }
+        }
 
         scanTimeoutTask = Task { @MainActor [weak self] in
             let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)
@@ -296,7 +305,7 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         
-        content = .scan(.scanning)
+        content = .scan(.idle)
         withAnimation(FaceIDOverlayGeometry.springAnimation) {
             phase = .scanning
         }
@@ -304,6 +313,14 @@ final class FaceIDOverlayController {
         windowController.show()
         windowController.displaySynchronously()
         updateInteractivity()
+
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard let self, self.phase == .scanning, case .scan(.idle) = self.content else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                self.content = .scan(.scanning)
+            }
+        }
 
         scanTimeoutTask = Task { @MainActor [weak self] in
             let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .milliseconds(800)

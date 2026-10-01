@@ -22,7 +22,7 @@ struct NotchPulseHeader: View {
     }
 
     private var headerInset: CGFloat {
-        max(22, cornerRadiusInsets.opened.top + 4)
+        isDynamicIsland ? max(11, (cornerRadiusInsets.opened.top + 4) / 2) : max(22, cornerRadiusInsets.opened.top + 4)
     }
 
     var body: some View {

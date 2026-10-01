@@ -129,35 +129,38 @@ class NotchPulseViewCoordinator: ObservableObject {
             queue: .main
         ) { _ in
             Task { @MainActor in
-                if Defaults[.hudReplacement] {
+                if Defaults[.hudReplacement] || Defaults[.inlineHUD] {
                     await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
                 }
             }
         }
 
-        // Observe changes to hudReplacement
-        hudReplacementCancellable = Defaults.publisher(.hudReplacement)
-            .sink { [weak self] change in
-                Task { @MainActor in
-                    guard let self = self else { return }
+        // Observe changes to hudReplacement or inlineHUD
+        hudReplacementCancellable = Publishers.Merge(
+            Defaults.publisher(.hudReplacement).map { _ in () },
+            Defaults.publisher(.inlineHUD).map { _ in () }
+        )
+        .sink { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self else { return }
 
-                    self.hudEnableTask?.cancel()
-                    self.hudEnableTask = nil
+                self.hudEnableTask?.cancel()
+                self.hudEnableTask = nil
 
-                    if change.newValue {
-                        self.hudEnableTask = Task { @MainActor in
-                            let granted = await XPCHelperClient.shared.ensureAccessibilityAuthorization(promptIfNeeded: true)
-                            if Task.isCancelled { return }
+                if Defaults[.hudReplacement] || Defaults[.inlineHUD] {
+                    self.hudEnableTask = Task { @MainActor in
+                        let granted = await XPCHelperClient.shared.ensureAccessibilityAuthorization(promptIfNeeded: true)
+                        if Task.isCancelled { return }
 
-                            if granted {
-                                await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
-                            }
+                        if granted {
+                            await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
                         }
-                    } else {
-                        MediaKeyInterceptor.shared.stop()
                     }
+                } else {
+                    MediaKeyInterceptor.shared.stop()
                 }
             }
+        }
 
         // Start background accessibility monitoring so when permission is granted, HUD automatically connects
         XPCHelperClient.shared.startMonitoringAccessibilityAuthorization(every: 2.0)
@@ -165,7 +168,7 @@ class NotchPulseViewCoordinator: ObservableObject {
         Task { @MainActor in
             helloAnimationRunning = false
 
-            if Defaults[.hudReplacement] {
+            if Defaults[.hudReplacement] || Defaults[.inlineHUD] {
                 // Retry a few times to allow the XPC helper connection to warm up before checking authorization.
                 for _ in 0..<8 {
                     let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
@@ -216,9 +219,9 @@ class NotchPulseViewCoordinator: ObservableObject {
         icon: String = ""
     ) {
         sneakPeekDuration = duration
-        if type != .music {
-            // close()
-            if !Defaults[.hudReplacement] {
+        if status && type != .music {
+            // Allow HUD display if either hudReplacement or inlineHUD is enabled
+            if !Defaults[.hudReplacement] && !Defaults[.inlineHUD] {
                 return
             }
         }

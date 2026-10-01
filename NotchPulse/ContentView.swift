@@ -148,9 +148,10 @@ struct ContentView: View {
             return FaceIDOverlayGeometry.pillOpenSize
         } else {
             let width: CGFloat = hasPhysicalNotch ? vm.closedNotchSize.width : max(FaceIDOverlayGeometry.notchOpenSize.width, vm.closedNotchSize.width)
+            let height: CGFloat = max(vm.customOpenHeight ?? vm.notchSize.height, openNotchSize.height)
             return CGSize(
                 width: width,
-                height: FaceIDOverlayGeometry.notchOpenSize.height
+                height: height
             )
         }
     }
@@ -185,7 +186,7 @@ struct ContentView: View {
             if case .onboarding(let controller) = faceIDOverlay.content {
                 return controller.panelBottomRadius
             }
-            return FaceIDOverlayGeometry.openBottomRadius
+            return (notchStyle == .dynamicIsland && !hasPhysicalNotch) ? FaceIDOverlayGeometry.pillOpenCornerRadius : cornerRadiusInsets.opened.bottom
         }
         return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
             ? cornerRadiusInsets.opened.bottom
@@ -310,12 +311,12 @@ struct ContentView: View {
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
-                        ? 10
+                        ? (isDynamicIsland ? 5 : 10)
                         : ((NotchPulseLockMonitor.isScreenActuallyLocked() || isFaceIDContentVisible)
                             ? 0
-                            : (isDynamicIsland ? 12 : cornerRadiusInsets.closed.bottom))
+                            : (isDynamicIsland ? 6 : cornerRadiusInsets.closed.bottom))
                     )
-                    .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
+                    .padding(.horizontal, (vm.notchState == .open) ? (isDynamicIsland ? 2 : 4) : 0)
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
                     .background(.black)
                     .conditionalModifier(isDynamicIsland && !hasPhysicalNotch) { view in
@@ -621,7 +622,6 @@ struct ContentView: View {
 
                         if isFaceIDContentActive {
                             FaceIDContentView()
-                                .opacity(isFaceIDContentVisible ? 1 : 0)
                                 .transition(.opacity)
                         }
                     }

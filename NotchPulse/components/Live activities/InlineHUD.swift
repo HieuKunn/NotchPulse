@@ -231,7 +231,7 @@ struct InlineHUD: View {
     }
 
     static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
-        if isDynamicIsland && closedNotchWidth <= 185 {
+        if isDynamicIsland {
             return 14
         } else {
             return max(0, closedNotchWidth - 16)

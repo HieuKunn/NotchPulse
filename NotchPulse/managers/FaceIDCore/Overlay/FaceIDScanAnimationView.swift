@@ -176,11 +176,11 @@ final class FaceIDScanAnimationHostView: NSView {
             return
         }
 
-        // Keep backdrop frame immediately visible while player prepares in background
+        // Keep unlockstatic backdrop immediately visible while player prepares in background
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        if let frame = Self.firstFrame(for: resource) ?? Self.loadStillCGImage() {
-            stillImageLayer.contents = frame
+        if let still = Self.loadStillCGImage() {
+            stillImageLayer.contents = still
         }
         stillImageLayer.isHidden = false
         playerLayer.isHidden = true
@@ -224,9 +224,12 @@ final class FaceIDScanAnimationHostView: NSView {
             }
         }
 
-        let fallback = DispatchWorkItem { reveal() }
+        let fallback = DispatchWorkItem { [weak self] in
+            guard let self = self, self.playerLayer.isReadyForDisplay else { return }
+            reveal()
+        }
         fallbackRevealWorkItem = fallback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: fallback)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: fallback)
 
         newPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
         newPlayer.play()
@@ -250,6 +253,13 @@ final class FaceIDScanAnimationHostView: NSView {
     static func loadStillCGImage() -> CGImage? {
         if let cached = cachedStillCGImage { return cached }
 
+        if let image = NSImage(named: "unlockstatic") {
+            var rect = CGRect(origin: .zero, size: image.size)
+            if let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
+                cachedStillCGImage = cgImage
+                return cgImage
+            }
+        }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
@@ -267,17 +277,6 @@ final class FaceIDScanAnimationHostView: NSView {
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
             cachedStillCGImage = cgImage
             return cgImage
-        }
-        if let image = NSImage(named: "unlockstatic") {
-            var rect = CGRect(origin: .zero, size: image.size)
-            if let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
-                cachedStillCGImage = cgImage
-                return cgImage
-            }
-        }
-        if let frame = firstFrame(for: "idleanimation") ?? firstFrame(for: "unlockanimation") {
-            cachedStillCGImage = frame
-            return frame
         }
         return nil
     }

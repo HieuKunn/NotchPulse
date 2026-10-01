@@ -172,7 +172,8 @@ struct StatsView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let horizontalMargin: CGFloat = 20
+            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+            let horizontalMargin: CGFloat = isDynamicIsland ? 10 : 20
             let spacing: CGFloat = 10
             let availableWidth = max(0, geo.size.width - (horizontalMargin * 2) - (spacing * 2))
             // CPU: 1/3 (33.33%)

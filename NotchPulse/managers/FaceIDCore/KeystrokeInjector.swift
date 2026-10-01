@@ -47,11 +47,28 @@ enum KeystrokeInjector {
             throw KeystrokeError.eventCreationFailed
         }
         let source = CGEventSource(stateID: .hidSystemState)
+
+        // Ensure lock screen password field is awakened and focused!
+        // When macOS is showing the lock screen clock/screensaver, the password input field is not active.
+        // Tapping space wakes the lock screen UI and brings keyboard focus to the password prompt.
+        try? postKey(0x31 /* Space */, source: source)
+        Thread.sleep(forTimeInterval: 0.16) // Allow macOS lock screen to transition & focus the password box
+
         try clearFocusedField(source: source)
+        Thread.sleep(forTimeInterval: 0.04)
+
         for char in text {
             try postUnicode(String(char), source: source)
         }
+        Thread.sleep(forTimeInterval: 0.02)
         try postReturn(source: source)
+    }
+
+    /// Public method to awaken and focus the lock screen password field in advance when Face ID arms or scans
+    nonisolated static func wakeLockScreenPasswordField() {
+        guard isAccessibilityTrusted() else { return }
+        let source = CGEventSource(stateID: .hidSystemState)
+        try? postKey(0x31 /* Space */, source: source)
     }
 
     /// Wipes anything already typed into the focused field (e.g. a stray keypress
@@ -63,6 +80,9 @@ enum KeystrokeInjector {
         let delete: CGKeyCode = 0x33
         try postKey(rightArrow, flags: .maskCommand, source: source)
         try postKey(delete, flags: .maskCommand, source: source)
+        for _ in 0..<3 {
+            try? postKey(delete, source: source)
+        }
     }
 
     /// Posts a virtual key down/up, wrapped in a real ⌘ down/up when `flags`

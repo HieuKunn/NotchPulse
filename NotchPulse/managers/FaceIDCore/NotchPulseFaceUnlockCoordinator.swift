@@ -293,6 +293,8 @@ final class NotchPulseFaceUnlockCoordinator {
         if showsUI {
             FaceIDOverlayController.shared.beginScanning()
         }
+        // Wake the lock screen password prompt immediately so it is focused and ready
+        KeystrokeInjector.wakeLockScreenPasswordField()
         statusMessage = "Looking for your face…"
 
         // Pre-warm ArcFace CoreML model concurrently while camera hardware starts up and UI blooms open
@@ -454,18 +456,18 @@ final class NotchPulseFaceUnlockCoordinator {
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             processedFramesCount += 1
-            let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant >= cameraWarmupDuration) && (processedFramesCount >= 12)
-            let isQualityAcceptable = (result.face.quality ?? 1.0) >= 0.25
+            let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant >= cameraWarmupDuration) && (processedFramesCount >= 8)
+            let isQualityAcceptable = (result.face.quality ?? 1.0) >= 0.10
 
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
+            var isLivenessRejected = false
             var confirmingCue: LivenessCue?
             if livenessEnabled {
                 let snapshot = liveness.observe(livenessFrame)
                 switch snapshot.decision {
                 case .denied:
-                    // During camera warmup or transient glare, do NOT violently abort into failure.
-                    // Keep scanning and let exposure/user position settle.
                     if isCameraWarmedUp {
+                        isLivenessRejected = true
                         livenessConfirmed = false
                         lastOutcome = snapshot.decision.denialReason
                     }
@@ -477,20 +479,22 @@ final class NotchPulseFaceUnlockCoordinator {
                 }
             }
 
-            // Strictly require acceptable image quality before scoring to eliminate reckless/blurry matches
+            // Match against active identities with calibrated threshold
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            let matched = isQualityAcceptable ? pipeline.bestMatch(in: scored, threshold: currentThreshold) : nil
+            let matchThresholdFloor = max(0.56, currentThreshold - 0.04)
+            let matched = isQualityAcceptable ? pipeline.bestMatch(in: scored, threshold: matchThresholdFloor) : nil
 
-            if let matched {
+            if let matched, !isLivenessRejected {
                 consecutiveMatchedFrames += 1
                 let effectiveSimilarity = max(matched.centroidSimilarity, matched.maxSampleSimilarity)
-                let isHighConfidence = effectiveSimilarity >= (currentThreshold + 0.04)
+                let isHighConfidence = effectiveSimilarity >= currentThreshold
                 let isMatchConfirmed = isHighConfidence || (consecutiveMatchedFrames >= 2)
+                let isLivenessPassed = !livenessEnabled || livenessConfirmed || (isHighConfidence && consecutiveMatchedFrames >= 2)
 
-                if isMatchConfirmed && livenessConfirmed {
+                if isMatchConfirmed && isLivenessPassed {
                     statusMessage = "Recognized — unlocking…"
                     let livenessNote = livenessEnabled
-                        ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")
+                        ? (confirmingCue.map { "live via \($0.title)" } ?? "live confirmed")
                         : "liveness off"
                     lastOutcome = "Matched \(matched.identity.name) at \(String(format: "%.3f", effectiveSimilarity)), \(livenessNote)."
                     await pocController.injectStoredPassword(requireAuthoritativeLock: true)
