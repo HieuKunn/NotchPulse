@@ -49,7 +49,7 @@ struct ContentView: View {
 
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
     private let openAnimation = Animation.spring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
-    private let closeAnimation = Animation.spring(response: 0.38, dampingFraction: 1.0, blendDuration: 0)
+    private let closeAnimation = Animation.spring(response: 0.38, dampingFraction: 0.84, blendDuration: 0)
     private var faceIDAnimation: Animation {
         let isFaceIDOpening = isFaceIDActive && faceIDOverlay.phase != .collapsing && faceIDOverlay.phase != .closed
         return isFaceIDOpening ? openAnimation : closeAnimation
@@ -139,24 +139,27 @@ struct ContentView: View {
         if isMinimalScan {
             if isDynamicIsland {
                 return CGSize(
-                    width: FaceIDOverlayGeometry.minimalPillOpenWidth,
+                    width: max(FaceIDOverlayGeometry.minimalPillOpenWidth, baseChinWidth),
                     height: FaceIDOverlayGeometry.minimalPillOpenHeight
                 )
             } else {
                 let topR = FaceIDOverlayGeometry.minimalNotchTopRadius
                 return CGSize(
-                    width: vm.closedNotchSize.width + (topR * 2) + (FaceIDOverlayGeometry.minimalNotchFlankWidth * 2),
+                    width: max(vm.closedNotchSize.width + (topR * 2) + (FaceIDOverlayGeometry.minimalNotchFlankWidth * 2), baseChinWidth),
                     height: max(vm.effectiveClosedNotchHeight, FaceIDOverlayGeometry.minimalPillOpenHeight) + FaceIDOverlayGeometry.minimalNotchHeightBump
                 )
             }
         }
 
         if isDynamicIsland {
-            return CGSize(width: max(220, vm.closedNotchSize.width), height: 190)
+            return CGSize(
+                width: max(220, max(vm.closedNotchSize.width, baseChinWidth)),
+                height: 190
+            )
         } else {
             let topR = hasPhysicalNotch ? cornerRadiusInsets.closed.top : FaceIDOverlayGeometry.openTopRadius
             return CGSize(
-                width: max(220, vm.closedNotchSize.width + (topR * 2)),
+                width: max(220, max(vm.closedNotchSize.width + (topR * 2), baseChinWidth)),
                 height: 190
             )
         }
@@ -165,7 +168,7 @@ struct ContentView: View {
     private var targetFaceIDSize: CGSize {
         if !visualIsFaceIDExpanded {
             return CGSize(
-                width: vm.closedNotchSize.width,
+                width: baseChinWidth,
                 height: baseClosedHeight
             )
         }
@@ -323,9 +326,6 @@ struct ContentView: View {
                         height: currentNotchHeight,
                         alignment: .top
                     )
-                    .conditionalModifier(isFaceIDActive) { view in
-                        view.clipped()
-                    }
                     .padding(
                         .horizontal,
                         (vm.notchState == .open)
@@ -373,12 +373,13 @@ struct ContentView: View {
                     )
                 
                 mainLayout
-                    .conditionalModifier(true) { view in
-                        return view
-                            .animation(animationSpring, value: vm.notchState)
-                            .animation(animationSpring, value: computedChinWidth)
-                            .animation(.smooth, value: gestureProgress)
-                    }
+                    .animation(animationSpring, value: vm.notchState)
+                    .animation(animationSpring, value: currentNotchWidth)
+                    .animation(animationSpring, value: currentNotchHeight)
+                    .animation(animationSpring, value: islandRadius)
+                    .animation(animationSpring, value: topCornerRadius)
+                    .animation(animationSpring, value: bottomCornerRadius)
+                    .animation(.smooth, value: gestureProgress)
                     .onHover { hovering in
                         handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
@@ -388,17 +389,20 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .conditionalModifier(!isFaceIDContentActive) { view in
-                        applyHitShape(view)
-                            .onTapGesture {
-                                if shouldHandleFaceIDTap() {
-                                    FaceIDOverlayController.shared.activate()
-                                    return
-                                }
-                                if vm.notchState == .closed {
-                                    doOpen()
-                                }
+                    .onTapGesture {
+                        guard !isFaceIDContentActive else {
+                            if shouldHandleFaceIDTap() {
+                                FaceIDOverlayController.shared.activate()
                             }
+                            return
+                        }
+                        if shouldHandleFaceIDTap() {
+                            FaceIDOverlayController.shared.activate()
+                            return
+                        }
+                        if vm.notchState == .closed {
+                            doOpen()
+                        }
                     }
                     .onAppear {
                         visualIsFaceIDExpanded = targetIsFaceIDExpanded
@@ -420,15 +424,17 @@ struct ContentView: View {
                     .onChange(of: isFaceIDActive) { _, _ in
                         updateFaceIDExpansion()
                     }
-                    .conditionalModifier(Defaults[.enableGestures] && !isFaceIDActive) { view in
+                    .conditionalModifier(Defaults[.enableGestures]) { view in
                         view
                             .panGesture(direction: .down) { translation, phase in
+                                guard !isFaceIDActive else { return }
                                 handleDownGesture(translation: translation, phase: phase)
                             }
                     }
-                    .conditionalModifier(Defaults[.closeGestureEnabled] && Defaults[.enableGestures] && !isFaceIDActive) { view in
+                    .conditionalModifier(Defaults[.closeGestureEnabled] && Defaults[.enableGestures]) { view in
                         view
                             .panGesture(direction: .up) { translation, phase in
+                                guard !isFaceIDActive else { return }
                                 handleUpGesture(translation: translation, phase: phase)
                             }
                     }
@@ -641,6 +647,8 @@ struct ContentView: View {
                             }
                         }
                         .opacity(isFaceIDActive ? (isFaceIDContentVisible ? 0 : 1) : 1)
+                        .scaleEffect(isFaceIDActive ? (isFaceIDContentVisible ? 0.8 : 1.0) : 1.0)
+                        .animation(.easeInOut(duration: 0.28), value: isFaceIDContentVisible)
 
                         // ARCHITECTURAL RULE: FaceIDContentView must ALWAYS remain on the top-most layer
                         // with zIndex(999) inside NotchLayout ZStack so HUDs and header elements do not draw over it.
@@ -648,7 +656,8 @@ struct ContentView: View {
                             FaceIDContentView()
                                 .zIndex(999)
                                 .opacity(isFaceIDContentVisible ? 1 : 0)
-                                .scaleEffect(isFaceIDContentVisible ? 1.0 : 0.65, anchor: .top)
+                                .scaleEffect(isFaceIDContentVisible ? 1.0 : 0.8, anchor: .top)
+                                .animation(.easeInOut(duration: 0.24), value: isFaceIDContentVisible)
                                 .transition(.opacity)
                         }
                     }

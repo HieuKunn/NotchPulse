@@ -73,7 +73,7 @@ struct FaceIDOverlayGeometry {
     static let openSpringResponse: Double = 0.38
     static let openSpringDamping: Double = 0.80
     static let closeSpringResponse: Double = 0.38
-    static let closeSpringDamping: Double = 1.0
+    static let closeSpringDamping: Double = 0.84
 
     // MARK: - Pill enter/exit choreography
     //
