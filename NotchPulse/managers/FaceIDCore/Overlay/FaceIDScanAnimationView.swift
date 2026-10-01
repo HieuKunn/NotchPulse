@@ -224,8 +224,12 @@ final class FaceIDScanAnimationHostView: NSView {
             }
         }
 
+        // Unconditional fallback: if the KVO on isReadyForDisplay already fired before the
+        // observer was attached (player pre-warmed while the view wasn't in a visible window,
+        // so the flag never rises again), a guarded fallback would never reveal and the
+        // overlay would stay stuck on the still image forever.
         let fallback = DispatchWorkItem { [weak self] in
-            guard let self = self, self.playerLayer.isReadyForDisplay else { return }
+            guard let self = self else { return }
             reveal()
         }
         fallbackRevealWorkItem = fallback
@@ -253,30 +257,37 @@ final class FaceIDScanAnimationHostView: NSView {
     static func loadStillCGImage() -> CGImage? {
         if let cached = cachedStillCGImage { return cached }
 
+        // Last-resort fallback chain mirrors ScanAnimationView: if every unlockstatic
+        // variant fails to decode, fall back to the first frame of the pre-warmed
+        // videos so the panel never renders as a plain black rectangle.
+        func cache(_ image: CGImage) -> CGImage {
+            cachedStillCGImage = image
+            return image
+        }
+
         if let image = NSImage(named: "unlockstatic") {
             var rect = CGRect(origin: .zero, size: image.size)
             if let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
-                cachedStillCGImage = cgImage
-                return cgImage
+                return cache(cgImage)
             }
         }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "png") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
-            cachedStillCGImage = cgImage
-            return cgImage
+            return cache(cgImage)
         }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "pdf") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
-            cachedStillCGImage = cgImage
-            return cgImage
+            return cache(cgImage)
         }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "tiff") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
-            cachedStillCGImage = cgImage
-            return cgImage
+            return cache(cgImage)
+        }
+        if let frame = Self.firstFrame(for: "idleanimation") ?? Self.firstFrame(for: "unlockanimation") {
+            return cache(frame)
         }
         return nil
     }

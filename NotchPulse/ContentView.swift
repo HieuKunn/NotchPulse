@@ -718,6 +718,14 @@ struct ContentView: View {
                 )
             } else {
                 ZStack {
+                    // Vector glyph renders from frame 0 (no decode wait) so the expanded
+                    // panel never shows as a plain black rectangle before the still/video arrives.
+                    AppleFaceIDGlyphView(
+                        isScanning: faceIDOverlay.phase == .scanning,
+                        isSuccess: faceIDOverlay.phase == .success,
+                        isFailure: faceIDOverlay.phase == .failure,
+                        size: 56
+                    )
                     if let still = FaceIDScanAnimationHostView.loadStillCGImage() {
                         Image(decorative: still, scale: 1.0)
                             .resizable()
