@@ -63,3 +63,10 @@ This document outlines the core rules, architectural guidelines, and release pro
 - **Verify Dangling References (REQUIRED):** When removing features, deprecating modules, or modifying core structures, you MUST perform a deep `grep_search` across the entire codebase (`*.swift`) for any related symbols, variables, or enum cases.
 - **Do Not Rely Only on Project File Cleanup:** Removing source files from `project.pbxproj` is not enough. You must proactively find and delete dangling references in other components (e.g., `@ObservedObject` references, dead enum cases) BEFORE pushing a release tag to prevent CI build failures.
 - **Check Unused Async Results:** Ensure no new compiler warnings (e.g., unused results from `async` functions) are introduced, silencing them with `_ = ` if necessary.
+
+---
+
+## 6. Localization & Dictionary Literal Safety (CRITICAL CRASH PREVENTION)
+- **NO Duplicate Keys in Dictionary Literals:** In Swift, initializing dictionary literals with duplicate keys (e.g. `[String: String]`) causes a runtime static initialization trap (`fatalError` / `EXC_BREAKPOINT` / `SIGTRAP`), causing the app to crash immediately upon launch.
+- **Audit `AppLocalization.swift` Before Release:** Always verify that dictionary keys in `AppLocalization.swift` are strictly unique per language dictionary before committing or releasing.
+

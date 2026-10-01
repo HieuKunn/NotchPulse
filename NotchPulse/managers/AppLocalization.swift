@@ -4,6 +4,11 @@
 //
 //  Created by Alexander on 2025-11-20.
 //
+//  ⚠️ CRITICAL SAFETY RULE:
+//  DO NOT ADD DUPLICATE KEYS TO ANY DICTIONARY LITERAL BELOW.
+//  Swift dictionary literals with duplicate keys cause a fatal runtime crash (EXC_BREAKPOINT / SIGTRAP)
+//  during static initialization when the app launches!
+//
 
 import SwiftUI
 import Defaults
