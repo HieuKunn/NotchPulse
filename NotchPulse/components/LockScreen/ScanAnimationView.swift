@@ -44,6 +44,15 @@ struct ScanAnimationView: NSViewRepresentable {
 final class ScanAnimationHostView: NSView {
     private static var firstFrameCache: [String: CGImage] = [:]
 
+    static func prewarm() {
+        Task.detached(priority: .userInitiated) {
+            _ = firstFrame(for: "idleanimation")
+            _ = firstFrame(for: "unlockanimation")
+            _ = firstFrame(for: "unsuccessfulunlockanimation")
+            _ = loadStaticCGImage()
+        }
+    }
+
     private static func firstFrame(for resourceName: String) -> CGImage? {
         if let cached = firstFrameCache[resourceName] { return cached }
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
@@ -78,7 +87,7 @@ final class ScanAnimationHostView: NSView {
         stillImageLayer.contentsGravity = .resizeAspect
         stillImageLayer.masksToBounds = true
         stillImageLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        if let initialFrame = Self.loadStaticCGImage() {
+        if let initialFrame = Self.firstFrame(for: "idleanimation") ?? Self.loadStaticCGImage() {
             stillImageLayer.contents = initialFrame
         }
         stillImageLayer.isHidden = false
@@ -91,6 +100,7 @@ final class ScanAnimationHostView: NSView {
         rootLayer.addSublayer(playerLayer)
 
         updateLayerFrames()
+        Self.prewarm()
     }
 
     required init?(coder: NSCoder) {

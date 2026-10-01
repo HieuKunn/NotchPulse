@@ -37,6 +37,10 @@ struct DynamicNotchApp: App {
 
         // Initialize the settings window controller with the updater controller
         SettingsWindowController.shared.setUpdaterController(updaterController)
+        
+        // Pre-warm Face ID initial static frame cache for zero-delay rendering from frame 0
+        ScanAnimationHostView.prewarm()
+        FaceIDScanAnimationHostView.prewarm()
     }
 
     var body: some Scene {
