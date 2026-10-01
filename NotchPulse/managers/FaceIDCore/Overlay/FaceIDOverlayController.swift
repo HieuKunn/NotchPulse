@@ -105,7 +105,7 @@ final class FaceIDOverlayController {
     }
     /// Long enough for the closing spring to fully settle before the window is
     /// hidden/left closed — collapsing state too early made the window visibly pop away.
-    let collapseAnimationDuration: Duration = .milliseconds(420)
+    let collapseAnimationDuration: Duration = .milliseconds(600)
 
     private init() {
         windowController.contentView = NSHostingView(rootView: FaceIDOverlayView(controller: self))
@@ -219,9 +219,6 @@ final class FaceIDOverlayController {
     /// Shows the idle still first; after 2.5s switches to looking around animation;
     /// auto-collapses silently (no failure animation) after `scanTimeoutDuration` if no face is found.
     func beginScanning() {
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
-            phase = .scanning
-        }
         // CRITICAL RULE: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
         // thì mới chuyển sang bên màn hình có camera. KHÔNG ĐƯỢC ĐỔI LOGIC NÀY!
         // (DO NOT CHANGE: Only route to camera screen at lock screen if triggered by hover!)
@@ -233,7 +230,25 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         // Display still face image (unlockstatic) immediately and hold it for the whole scan duration
         content = .scan(.idle)
-        updateInteractivity()
+
+        if !isArmed && !isPresenting && phase == .closed {
+            isPresenting = true
+            isPillDocked = true
+            windowController.show()
+            windowController.displaySynchronously()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                guard let self else { return }
+                withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                    self.phase = .scanning
+                }
+                self.updateInteractivity()
+            }
+        } else {
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                phase = .scanning
+            }
+            updateInteractivity()
+        }
 
         // Safety fallback timeout in case coordinator hangs
         scanTimeoutTask = Task { @MainActor [weak self] in
@@ -306,13 +321,18 @@ final class FaceIDOverlayController {
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         
         content = .scan(.idle)
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
-            phase = .scanning
-        }
+        phase = .closed
         isPillDocked = true
         windowController.show()
         windowController.displaySynchronously()
-        updateInteractivity()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self else { return }
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                self.phase = .scanning
+            }
+            self.updateInteractivity()
+        }
 
         scanTimeoutTask = Task { @MainActor [weak self] in
             let duration = self?.scanTimeoutDuration ?? .seconds(5)
@@ -334,15 +354,20 @@ final class FaceIDOverlayController {
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
 
         geometry = windowController.currentGeometry
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
-            content = .onboarding(controller)
-            phase = .onboarding
-        }
+        content = .onboarding(controller)
+        phase = .closed
         routeToCameraScreen()
         isPillDocked = true
         windowController.show()
         windowController.displaySynchronously()
-        updateInteractivity()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self else { return }
+            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+                self.phase = .onboarding
+            }
+            self.updateInteractivity()
+        }
     }
 
     /// Gracefully shrinks the onboarding panel away and hides the window; guarded by
@@ -354,7 +379,7 @@ final class FaceIDOverlayController {
         }
         // Drop key/interactivity now, not inside the Task: first-run completion opens
         // Settings this same turn, and a still-key overlay would leave it inactive.
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+        withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
             phase = .collapsing
         }
         updateInteractivity()
@@ -370,7 +395,7 @@ final class FaceIDOverlayController {
                 return
             }
             self.content = .scan(.idle)
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
                 self.phase = .closed
             }
             self.isPresenting = false

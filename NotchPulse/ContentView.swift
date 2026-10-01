@@ -48,8 +48,8 @@ struct ContentView: View {
     @Default(.dragDetectionPadding) var dragDetectionPadding: Double
 
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
-    private let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
-    private let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
+    private let openAnimation = Animation.spring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+    private let closeAnimation = Animation.spring(response: 0.38, dampingFraction: 1.0, blendDuration: 0)
     private var faceIDAnimation: Animation {
         let isFaceIDOpening = isFaceIDActive && faceIDOverlay.phase != .collapsing && faceIDOverlay.phase != .closed
         return isFaceIDOpening ? openAnimation : closeAnimation
@@ -357,9 +357,9 @@ struct ContentView: View {
                     .conditionalModifier(true) { view in
                         return view
                             .animation(animationSpring, value: vm.notchState)
-                            .animation(animationSpring, value: currentNotchWidth)
-                            .animation(animationSpring, value: currentNotchHeight)
-                            .animation(animationSpring, value: islandRadius)
+                            .animation(isFaceIDActive ? faceIDAnimation : animationSpring, value: currentNotchWidth)
+                            .animation(isFaceIDActive ? faceIDAnimation : animationSpring, value: currentNotchHeight)
+                            .animation(isFaceIDActive ? faceIDAnimation : animationSpring, value: islandRadius)
                             .animation(faceIDAnimation, value: isFaceIDActive)
                             .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
@@ -368,7 +368,7 @@ struct ContentView: View {
                         handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
-                            if hovering && faceIDOverlay.phase != .onboarding && NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            if hovering && faceIDOverlay.phase != .onboarding {
                                 FaceIDOverlayController.shared.activate()
                             }
                         }
@@ -619,13 +619,15 @@ struct ContentView: View {
                             }
                         }
                         .opacity(isFaceIDContentVisible ? 0 : 1)
-                        .animation(.easeInOut(duration: 0.28), value: isFaceIDContentVisible)
+                        .animation(faceIDAnimation, value: isFaceIDContentVisible)
 
                         // ARCHITECTURAL RULE: FaceIDContentView must ALWAYS remain on the top-most layer
                         // with zIndex(999) inside NotchLayout ZStack so HUDs and header elements do not draw over it.
                         if isFaceIDContentActive {
                             FaceIDContentView()
                                 .zIndex(999)
+                                .opacity(isFaceIDContentVisible ? 1 : 0)
+                                .animation(faceIDAnimation, value: isFaceIDContentVisible)
                                 .transition(.opacity)
                         }
                     }
@@ -731,7 +733,7 @@ struct ContentView: View {
                     .opacity(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0)
             }
         }
-        .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height)
+        .frame(width: targetFaceIDSize.width, height: targetFaceIDSize.height, alignment: .top)
         .clipped()
         .animation(faceIDAnimation, value: targetFaceIDSize)
         .contentShape(Rectangle())
@@ -876,21 +878,17 @@ struct ContentView: View {
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
         if isFaceIDActive { return true }
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-            if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-                return faceIDOverlay.isArmed || NotchPulseFaceUnlockCoordinator.shared.lockMonitor.isScreenLocked
-            }
-            return true
+        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
+        if hovering && NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+            return faceIDOverlay.isArmed || NotchPulseFaceUnlockCoordinator.shared.lockMonitor.isScreenLocked
         }
         return false
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
         if isFaceIDActive { return true }
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed { return true }
-            return true
-        }
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled && faceIDOverlay.isArmed { return true }
         return false
     }
 

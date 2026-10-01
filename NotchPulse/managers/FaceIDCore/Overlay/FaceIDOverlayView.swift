@@ -164,11 +164,15 @@ struct FaceIDOverlayView: View {
     /// where the top edge sits.
     private var verticalOffset: CGFloat {
         guard style == .pill else { return 0 }
+        guard visualIsPositioned else {
+            return -(closedBodySize.height + FaceIDOverlayGeometry.pillOffscreenSlack)
+        }
         return FaceIDOverlayGeometry.pillTopGap
     }
 
+    /// So it resolves into focus as it slides down, rather than snapping in.
     private var panelBlur: CGFloat {
-        0
+        style == .pill && !visualIsPositioned ? FaceIDOverlayGeometry.pillEnterBlur : 0
     }
 
     private var scanContentPaddingTop: CGFloat {
@@ -261,8 +265,12 @@ struct FaceIDOverlayView: View {
                 }
             }
             .zIndex(999)
-            // Content renders immediately in lock-step with expansion
-            .opacity(targetIsExpanded ? 1 : 0)
+            // Content dissolves (blur + fade) as the panel shrinks, rather than being
+            // abruptly clipped by the collapsing shape. Rides the animation already
+            // active on `visualIsExpanded` — no separate `.animation` needed.
+            .blur(radius: visualIsExpanded ? 0 : 40)
+            .opacity(visualIsExpanded ? 1 : 0)
+            .scaleEffect(visualIsExpanded ? 1 : 0.3)
             .environment(\.notchPanelStyle, style)
         }
         .frame(width: currentSize.width, height: currentSize.height)
@@ -322,17 +330,9 @@ struct FaceIDOverlayView: View {
             controller.activate()
         }
         .onAppear {
-            // Smooth drop-down transition: start from closed height and expand with spring animation
-            if targetIsExpanded {
-                visualIsExpanded = false
-                visualIsPositioned = true
-                withAnimation(expansionAnimation(entering: true)) {
-                    visualIsExpanded = true
-                }
-            } else {
-                visualIsExpanded = false
-                visualIsPositioned = targetIsPositioned
-            }
+            // Sync without animating — nothing to animate from on first appearance.
+            visualIsExpanded = targetIsExpanded
+            visualIsPositioned = targetIsPositioned
             updateScanPulse()
             updateMinimalLock()
         }
@@ -369,16 +369,48 @@ struct FaceIDOverlayView: View {
 
     private static let interactiveCoordinateSpace = "NotchOverlayRoot"
 
+    /// Staggers the two when both need to change (see file header for why this uses
+    /// real Task.sleep delays rather than Animation.delay()).
     private func scheduleChoreography() {
         let wantExpanded = targetIsExpanded
+        let wantPositioned = targetIsPositioned
         choreographyTask?.cancel()
         choreographyTask = nil
 
-        guard wantExpanded != visualIsExpanded else { return }
+        let expandedChanging = wantExpanded != visualIsExpanded
+        let positionedChanging = wantPositioned != visualIsPositioned
+        guard expandedChanging || positionedChanging else { return }
 
-        withAnimation(expansionAnimation(entering: wantExpanded)) {
-            visualIsExpanded = wantExpanded
-            visualIsPositioned = true
+        guard expandedChanging && positionedChanging else {
+            // Only one property is moving — no partner to stagger against.
+            if expandedChanging {
+                withAnimation(expansionAnimation(entering: wantExpanded)) { visualIsExpanded = wantExpanded }
+            } else {
+                withAnimation(slideAnimation) { visualIsPositioned = wantPositioned }
+            }
+            return
+        }
+
+        if wantExpanded {
+            // Entering: slide leads immediately, expansion trails after a real delay.
+            withAnimation(slideAnimation) { visualIsPositioned = wantPositioned }
+            let delay = FaceIDOverlayGeometry.pillEnterExpansionDelay
+            let animation = expansionAnimation(entering: true)
+            choreographyTask = Task {
+                try? await Task.sleep(for: .seconds(delay))
+                guard !Task.isCancelled else { return }
+                withAnimation(animation) { self.visualIsExpanded = wantExpanded }
+            }
+        } else {
+            // Exiting: shrink leads immediately, slide trails after a real delay.
+            withAnimation(expansionAnimation(entering: false)) { visualIsExpanded = wantExpanded }
+            let delay = FaceIDOverlayGeometry.pillExitSlideDelay
+            let animation = slideAnimation
+            choreographyTask = Task {
+                try? await Task.sleep(for: .seconds(delay))
+                guard !Task.isCancelled else { return }
+                withAnimation(animation) { self.visualIsPositioned = wantPositioned }
+            }
         }
     }
 

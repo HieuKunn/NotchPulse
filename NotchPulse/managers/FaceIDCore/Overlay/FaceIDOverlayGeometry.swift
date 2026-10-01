@@ -82,10 +82,10 @@ struct FaceIDOverlayGeometry {
 
     /// Ease-out rather than a spring — a straight-line move, not a bouncy resize.
     static let pillSlideDuration: Double = 0.25
-    /// Immediate expansion with no artificial delay
-    static let pillEnterExpansionDelay: Double = 0.0
-    /// Immediate slide with no artificial delay
-    static let pillExitSlideDelay: Double = 0.0
+    /// Expansion starts this long after the slide begins.
+    static let pillEnterExpansionDelay: Double = 0.16
+    /// Slide starts this long after the shrink begins.
+    static let pillExitSlideDelay: Double = 0.18
 
     // MARK: - Minimal unlock style (Inline FaceID)
     //
