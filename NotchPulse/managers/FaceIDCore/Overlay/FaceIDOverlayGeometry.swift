@@ -43,7 +43,7 @@ struct FaceIDOverlayGeometry {
     // MARK: - Pill style (Dynamic Island)
 
     /// Resting capsule size matching closed notch dimensions for style parity
-    static let pillClosedSize = CGSize(width: 185, height: 38)
+    static let pillClosedSize = CGSize(width: 165, height: 38)
 
     /// Expanded footprint matching Glance pill open size
     static let pillOpenSize = CGSize(width: 220, height: 190)

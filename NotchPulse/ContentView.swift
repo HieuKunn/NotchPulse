@@ -332,7 +332,7 @@ struct ContentView: View {
                         ? (isDynamicIsland ? 5 : 10)
                         : (NotchPulseLockMonitor.isScreenActuallyLocked()
                             ? 0
-                            : (isDynamicIsland ? 6 : cornerRadiusInsets.closed.bottom))
+                            : (isDynamicIsland ? 6 : 4))
                     )
                     .padding(.horizontal, (vm.notchState == .open) ? (isDynamicIsland ? 2 : 4) : 0)
                     .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
@@ -622,7 +622,7 @@ struct ContentView: View {
                     .padding(.top, 40)
                     Spacer()
                 } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] && !isFaceIDActive {
-                    Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: vm.effectiveClosedNotchHeight)
+                    Rectangle().fill(.clear).frame(width: max(165, vm.closedNotchSize.width) - 20, height: vm.effectiveClosedNotchHeight)
                 } else {
                     ZStack {
                         Group {
@@ -642,7 +642,7 @@ struct ContentView: View {
                                     .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                     .transition(.opacity)
                             } else {
-                                Rectangle().fill(.clear).frame(width: max(185, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
+                                Rectangle().fill(.clear).frame(width: max(165, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
                                     .transition(.opacity)
                             }
                         }
