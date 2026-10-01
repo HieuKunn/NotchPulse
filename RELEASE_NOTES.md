@@ -14,6 +14,7 @@
 
 ### 🔒 Next-Gen Face ID Motion & Natural Scaling
 - **Full Notch Proportions**: The Face ID drop-down matches your MacBook's physical notch width, perfectly presenting the face icon and scan animation at an 80% natural scale.
+- **Top-Most Layer Face ID Rendering**: Guaranteed Face ID static previews and scan animations render on the top-most visual layer, eliminating any overlapping elements or black screen covers on wake.
 - **Instant Static Preview**: Zero black-screen delay on wake — the face illustration renders instantly the moment the panel drops down.
 - **Intelligent Multi-Phase Scan Lifecycle**:
   - Displays the static face during early scanning.
