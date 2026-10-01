@@ -250,6 +250,8 @@ struct FaceIDOverlayView: View {
 
     var body: some View {
         ZStack {
+            // ARCHITECTURAL RULE: Face ID scan content must ALWAYS remain on the top-most layer
+            // with zIndex(999) so no background shapes, HUDs, or overlays obscure the biometric scan.
             Group {
                 if let onboardingController {
                     // Onboarding's step views fill `panelSize` themselves — no shared padding here.
@@ -320,9 +322,17 @@ struct FaceIDOverlayView: View {
             controller.activate()
         }
         .onAppear {
-            // Sync without animating — nothing to animate from on first appearance.
-            visualIsExpanded = targetIsExpanded
-            visualIsPositioned = targetIsPositioned
+            // Smooth drop-down transition: start from closed height and expand with spring animation
+            if targetIsExpanded {
+                visualIsExpanded = false
+                visualIsPositioned = true
+                withAnimation(expansionAnimation(entering: true)) {
+                    visualIsExpanded = true
+                }
+            } else {
+                visualIsExpanded = false
+                visualIsPositioned = targetIsPositioned
+            }
             updateScanPulse()
             updateMinimalLock()
         }

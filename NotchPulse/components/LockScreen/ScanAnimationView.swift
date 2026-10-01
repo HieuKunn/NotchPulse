@@ -84,6 +84,10 @@ final class ScanAnimationHostView: NSView {
         rootLayer.masksToBounds = true
         layer = rootLayer
 
+        // ARCHITECTURAL RULE: Layer ordering is critical.
+        // playerLayer is added first (bottom layer, zPosition = 0).
+        // stillImageLayer is added last (top-most layer, zPosition = 100).
+        // This ensures the static face image renders instantly from frame 0 with zero black screen/flicker.
         playerLayer.videoGravity = .resizeAspect
         playerLayer.masksToBounds = true
         playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]

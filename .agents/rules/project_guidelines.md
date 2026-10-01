@@ -53,6 +53,11 @@ This document outlines the core rules, architectural guidelines, and release pro
 
 ## 4. Lock Screen & FaceID Window
 - When returning to the Lock Screen during an active session: Prioritize hover-to-wake / hover-to-authenticate for Face ID rather than requiring a button click.
+- **Top-Most Layer Face ID Rendering (CRITICAL ARCHITECTURAL RULE):**
+  - Face ID static previews and scan animations (`stillImageLayer`, `FaceIDScanAnimationView`, `ScanAnimationView`, `FaceIDContentView`) MUST ALWAYS be placed on the absolute top-most layer of the hierarchy.
+  - In Core Animation (`FaceIDScanAnimationHostView` / `ScanAnimationHostView`), `playerLayer` is added first (`zPosition = 0`) and `stillImageLayer` is added last (`zPosition = 100`). During idle/prep, `stillImageLayer` remains on top (`zPosition = 100`) so no black screen or video layer obscures the face.
+  - In SwiftUI views (`ContentView.swift`, `FaceIDOverlayView.swift`, `LockScreenFaceIDWindow.swift`), Face ID views must always have explicit `.zIndex(999)` so no HUD or background elements render over Face ID.
+  - Drop-down expansion on Face ID activation must always animate smoothly using `.spring(response: 0.38, dampingFraction: 0.8)` starting from closed height to open height.
 - **Lyrics Behavior on Lock Screen:**
   - Upon track change, immediately reset and scroll lyrics to the beginning of the song (line 0 / top) without waiting for the first lyric timestamp.
   - When expanding from compact media view to full-screen lyrics, immediately illuminate and center the currently active lyric line without waiting for the next line's timestamp.

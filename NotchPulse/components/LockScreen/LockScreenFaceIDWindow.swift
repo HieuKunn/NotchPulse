@@ -304,6 +304,8 @@ struct LockScreenFaceIDPillView: View {
             Button {
                 triggerScan()
             } label: {
+                // ARCHITECTURAL RULE: ScanAnimationView must ALWAYS stay on the top-most layer
+                // with zIndex(999) so the Face ID glyph & animation render directly over the notch.
                 applyNotchClip(
                     ScanAnimationView(media: scanMedia)
                         .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
@@ -333,7 +335,7 @@ struct LockScreenFaceIDPillView: View {
             .buttonStyle(.plain)
             .contentShape(Rectangle())
             .onHover { hovering in
-                withAnimation(.spring(response: 0.28, dampingFraction: hovering ? 0.75 : 1.0)) {
+                withAnimation(.spring(response: 0.38, dampingFraction: hovering ? 0.80 : 1.0)) {
                     self.isHovered = hovering
                 }
                 if hovering {
@@ -344,10 +346,10 @@ struct LockScreenFaceIDPillView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(.spring(response: 0.28, dampingFraction: isExpanded ? 0.75 : 1.0), value: isExpanded)
-        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: isHovered)
-        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: faceIDManager.isScanning)
-        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: faceIDManager.lastUnlockSuccess)
+        .animation(.spring(response: 0.38, dampingFraction: isExpanded ? 0.80 : 1.0), value: isExpanded)
+        .animation(.spring(response: 0.38, dampingFraction: 0.80), value: isHovered)
+        .animation(.spring(response: 0.38, dampingFraction: 0.80), value: faceIDManager.isScanning)
+        .animation(.spring(response: 0.38, dampingFraction: 0.80), value: faceIDManager.lastUnlockSuccess)
         .onChange(of: faceIDManager.isScanning) { _, scanning in
             if scanning {
                 startBreathingPulse()

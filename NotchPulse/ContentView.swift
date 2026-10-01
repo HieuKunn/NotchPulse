@@ -621,6 +621,8 @@ struct ContentView: View {
                         .opacity(isFaceIDContentVisible ? 0 : 1)
                         .animation(.easeInOut(duration: 0.28), value: isFaceIDContentVisible)
 
+                        // ARCHITECTURAL RULE: FaceIDContentView must ALWAYS remain on the top-most layer
+                        // with zIndex(999) inside NotchLayout ZStack so HUDs and header elements do not draw over it.
                         if isFaceIDContentActive {
                             FaceIDContentView()
                                 .zIndex(999)
