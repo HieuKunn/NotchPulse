@@ -37,8 +37,7 @@ struct NotchPulseHeader: View {
             .zIndex(2)
 
             let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
-            let hasPhysicalNotch = (activeScreen?.safeAreaInsets.top ?? 0) > 0 || activeScreen?.auxiliaryTopLeftArea != nil
-            if hasPhysicalNotch {
+            if hasPhysicalNotch && !isDynamicIsland {
                 Rectangle()
                     .fill(.black)
                     .frame(width: vm.closedNotchSize.width)

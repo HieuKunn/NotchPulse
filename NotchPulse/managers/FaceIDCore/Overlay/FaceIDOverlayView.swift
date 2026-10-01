@@ -84,7 +84,7 @@ struct FaceIDOverlayView: View {
     }
 
     private var scanOpenSize: CGSize {
-        if style == .notch || controller.geometry.isPhysicalNotch {
+        if style == .notch {
             let width = max(closedBodySize.width, FaceIDOverlayGeometry.notchOpenSize.width)
             return CGSize(width: width, height: FaceIDOverlayGeometry.notchOpenSize.height)
         } else {

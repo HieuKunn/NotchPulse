@@ -344,8 +344,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let padding = CGFloat(Defaults[.dragDetectionPadding])
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let hasPhysicalNotch = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
-            let topOffset = (isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0
+            let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
             
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding

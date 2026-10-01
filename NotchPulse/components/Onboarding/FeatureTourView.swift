@@ -83,7 +83,7 @@ struct FeatureTourView: View {
     }
     
     private var isDynamicIsland: Bool {
-        notchStyle == .dynamicIsland && !hasPhysicalNotch
+        notchStyle == .dynamicIsland
     }
     
     let steps: [FeatureTourStep] = [
@@ -113,7 +113,7 @@ struct FeatureTourView: View {
         ),
         FeatureTourStep(
             title: "System Stats",
-            description: "Monitor your Mac's health in real-time. View live CPU, Memory, and GPU usage graphs directly in your status bar.",
+            description: "Monitor your Mac's health in real-time. View live CPU, Memory, and GPU usage graphs directly in your status bar. Click on CPU or RAM cards to open Activity Monitor for detailed breakdown.",
             icon: "chart.xyaxis.line",
             tabColor: .green,
             viewType: .stats,
@@ -168,8 +168,8 @@ struct FeatureTourView: View {
             
             let currentCornerRadius: CGFloat = isGearTarget ? 18 : (isDynamicIsland ? 28 : 22)
             
-            let cardX = isGearTarget ? min(screenWidth - 200, gearCenterX) : centerX
-            let cardY = isGearTarget ? (topOffset + openHeight + 14 + 110) : (topOffset + spotlightHeight + 14 + 110)
+            let cardX = isGearTarget ? min(screenWidth - 200, max(200, gearCenterX - 40)) : centerX
+            let cardY = isGearTarget ? (gearBoxY + gearBoxSize + 18 + 105) : (topOffset + spotlightHeight + 14 + 110)
             
             ZStack(alignment: .top) {
                 // Dimmed background with spotlight cutout
@@ -352,12 +352,12 @@ struct FeatureTourView: View {
     }
     
     private func repositionWindow() {
-        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "OnboardingWindow" }) else { return }
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "OnboardingWindow" || $0.identifier?.rawValue == "FeatureTourWindow" }) else { return }
         window.styleMask = [.borderless, .fullSizeContentView]
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = .floating
+        window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
         
         let screen = targetScreen
         window.setFrame(screen.frame, display: true, animate: true)

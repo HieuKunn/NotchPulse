@@ -834,6 +834,7 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @State private var displayedDate = Date()
     @State private var mode: CalendarMode = .normal
+    @State private var isTourBlinking = false
 
     private var isFullPage: Bool { mode == .fullMonth || mode == .dayDetail }
 
@@ -848,6 +849,17 @@ struct CalendarView: View {
         }
         .frame(height: frameHeight, alignment: .top)
         .clipped()
+        .onChange(of: vm.featureTourTarget) { _, target in
+            if target == "calendar" {
+                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                    isTourBlinking = true
+                }
+            } else {
+                withAnimation(.default) {
+                    isTourBlinking = false
+                }
+            }
+        }
         .onChange(of: selectedDate) { _, newValue in
             Task { @MainActor in
                 await calendarManager.updateCurrentDate(newValue)
@@ -895,6 +907,13 @@ struct CalendarView: View {
             mode = .normal
             CalendarStateViewModel.shared.isPinned = false
             vm.customOpenHeight = nil
+            if vm.featureTourTarget == "calendar" {
+                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                    isTourBlinking = true
+                }
+            } else {
+                isTourBlinking = false
+            }
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
@@ -940,13 +959,8 @@ struct CalendarView: View {
                 }
                 .buttonStyle(.plain)
                 .frame(minWidth: 54, alignment: .leading)
-                .padding(4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.red, lineWidth: vm.featureTourTarget == "calendar" ? 2 : 0)
-                        .shadow(color: Color.red.opacity(vm.featureTourTarget == "calendar" ? 0.8 : 0), radius: vm.featureTourTarget == "calendar" ? 8 : 0)
-                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: vm.featureTourTarget)
-                )
+                .opacity((vm.featureTourTarget == "calendar" && isTourBlinking) ? 0.25 : 1.0)
+                .scaleEffect((vm.featureTourTarget == "calendar" && isTourBlinking) ? 1.08 : 1.0)
 
                 ZStack(alignment: .top) {
                     WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())

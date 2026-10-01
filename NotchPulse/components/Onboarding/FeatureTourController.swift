@@ -46,7 +46,7 @@ final class FeatureTourController: NSObject {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = .floating
+        window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
         window.ignoresMouseEvents = false
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.setFrame(screen.frame, display: true)
