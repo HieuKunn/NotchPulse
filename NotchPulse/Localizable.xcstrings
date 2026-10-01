@@ -23514,6 +23514,526 @@
           }
         }
       }
+    },
+    "Shelf auto-close delay": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تأخير الإغلاق التلقائي للرف"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zpoždění automatického zavření police"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ablage automatisch schließen nach"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelf auto-close delay"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelf auto-close delay"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retardo de cierre automático de la bandeja"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Délai de fermeture automatique de l'étagère"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polc automatikus bezárási késleltetése"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ritardo chiusura automatica scaffale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シェルフ自動終了遅延"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서랍 자동 닫힘 지연"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatische sluitvertraging van plank"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opóźnienie automatycznego zamykania półki"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atraso de fechamento automático da prateleira"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Задержка автозакрытия полки"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fördröjning för automatisk stängning av hyllan"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raf otomatik kapanma gecikmesi"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Затримка автозакриття полиці"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Độ trễ tự động đóng ngăn chứa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "书架自动关闭延迟"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫存區自動關閉延遲"
+          }
+        }
+      }
+    },
+    "After the shelf opens — by shaking while dragging a file, or by hovering the dragged file near the notch — it closes automatically after this many seconds if you do not drop anything. While you keep holding the file over the shelf, it never closes.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بعد فتح الرف — عن طريق الهز أثناء سحب ملف، أو بتمرير الملف بالقرب من النتوء — يُغلق تلقائيًا بعد هذا العدد من الثواني إذا لم تسقط أي عنصر. طالما بقيت ممسكًا بالملف فوق الرف، فلن يُغلق أبدًا."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po otevření police zatřesením při přetahování souboru nebo najetím poblíž výřezu se police po tolika sekundách automaticky zavře, pokud nic nepustíte. Dokud držíte soubor nad policí, nikdy se nezavře."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach dem Öffnen der Ablage – durch Schütteln beim Ziehen einer Datei oder Bewegen der Datei in die Nähe der Notch – schließt sie sich nach dieser Zeit automatisch, wenn nichts abgelegt wird. Solange eine Datei über der Ablage gehalten wird, schließt sie sich nie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After the shelf opens — by shaking while dragging a file, or by hovering the dragged file near the notch — it closes automatically after this many seconds if you do not drop anything. While you keep holding the file over the shelf, it never closes."
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After the shelf opens — by shaking while dragging a file, or by hovering the dragged file near the notch — it closes automatically after this many seconds if you do not drop anything. While you keep holding the file over the shelf, it never closes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después de abrir la bandeja — agitando al arrastrar un archivo o pasando el archivo cerca del notch —, se cierra automáticamente tras estos segundos si no sueltas nada. Mientras mantengas el archivo sobre la bandeja, nunca se cerrará."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une fois l'étagère ouverte — en secouant pendant le glisser d'un fichier ou en le survolant près de l'encoche — elle se ferme automatiquement après ce délai si rien n'est déposé. Tant que vous maintenez le fichier au-dessus, elle ne se ferme jamais."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A polc megnyitása után – fájl húzása közbeni rázással vagy a notch közelébe mozgatásával – ennyi másodperc után automatikusan bezáródik, ha semmit sem dob bele. Amíg a fájlt a polc felett tartja, sosem záródik be."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo l'apertura dello scaffale — scuotendo durante il trascinamento o passando il file vicino alla tacca — si chiude automaticamente dopo questi secondi se non rilasci nulla. Finché tieni il file sopra lo scaffale, non si chiuderà mai."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルをドラッグ中に振るか、ノッチ付近にホバーしてシェルフを開いた後、何もドロップしない場合は指定した秒数後に自動で閉じます。ファイルをシェルフ上に保持している間は閉じません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "파일을 드래그하면서 흔들거나 노치 근처로 가져가 서랍이 열린 후, 아무것도 드롭하지 않으면 설정한 시간(초) 후에 자동으로 닫힙니다. 서랍 위에 파일을 올려두는 동안에는 닫히지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nadat de plank opent — door te schudden tijdens het slepen of door het bestand bij de notch te houden — sluit deze automatisch na dit aantal seconden als je niets neerzet. Zolang je het bestand boven de plank houdt, sluit deze nooit."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po otwarciu półki — przez potrząśnięcie podczas przeciągania pliku lub najechanie w pobliże notcha — zamyka się ona automatycznie po tylu sekundach, jeśli nic nie upuścisz. Dopóki trzymasz plik nad półką, nigdy się nie zamknie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depois que a prateleira abre — sacudindo ao arrastar um arquivo ou passando o arquivo perto do notch —, ela fecha automaticamente após estes segundos se nada for solto. Enquanto mantiver o arquivo sobre a prateleira, ela nunca fecha."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После открытия полки — встряхиванием при перетаскивании файла или наведением к вырезу — она автоматически закроется через указанное количество секунд, если ничего не бросить. Пока файл находится над полкой, она не закроется."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "När hyllan öppnas – genom att skaka under fildragning eller hålla filen nära flärpen – stängs den automatiskt efter dessa sekunder om inget släpps. Så länge du håller filen över hyllan stängs den aldrig."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raf açıldıktan sonra — bir dosyayı sürüklerken sallayarak veya çentiğin yanına getirerek — hiçbir şey bırakmazsanız bu kadar saniye sonra otomatik kapanır. Dosyayı rafın üzerinde tuttuğunuz sürece asla kapanmaz."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Після відкриття полиці — струшуванням під час перетягування файлу або наведенням до вирізу — вона автоматично закриється через стільки секунд, якщо нічого не опустити. Поки ви тримаєте файл над полицею, вона не закриється."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sau khi ngăn chứa mở ra — bằng cách lắc chuột khi kéo tệp hoặc di chuyển tệp đang kéo lại gần notch — ngăn chứa sẽ tự động đóng sau số giây này nếu bạn không thả tệp. Khi bạn vẫn đang giữ tệp trên ngăn chứa, ngăn chứa sẽ không bao giờ đóng."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "书架打开后（通过在拖动文件时晃动，或将拖动的文件悬停在刘海附近），如果您未放下任何内容，它将在几秒后自动关闭。当您继续将文件保持在书架上方时，它绝不会关闭。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫存區開啟後（透過拖曳檔案時晃動，或將拖曳的檔案懸停在瀏海附近），若您未放入任何內容，將在設定秒數後自動關閉。只要您將檔案懸停在暫存區上方，它就絕不會關閉。"
+          }
+        }
+      }
+    },
+    "File-drag open area": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "منطقة فتح سحب الملفات"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oblast otevření přetažením souboru"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereich zum Öffnen durch Dateizug"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File-drag open area"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File-drag open area"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Área de apertura al arrastrar archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zone d'ouverture par glisser-déposer"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fájlhúzásos megnyitási terület"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Area di apertura trascinamento file"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルドラッグ展開エリア"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "파일 드래그 열림 영역"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestandssleep-openingsgebied"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obszar otwierania przeciąganiem pliku"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Área de abertura por arrasto de arquivo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Область открытия перетаскиванием файла"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppningsområde för fildragning"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dosya sürükleme açma alanı"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Область відкриття перетягуванням файлу"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vùng kích hoạt kéo tệp"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖拽文件触发区域"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖曳檔案觸發區域"
+          }
+        }
+      }
+    },
+    "While dragging a file, hovering this close to the notch opens the shelf instantly — no shake needed. Lets you drag files straight out of the Dock (e.g. the Downloads stack) into the shelf. Set to 0 to require the shake gesture instead.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أثناء سحب ملف، يؤدي التمرير بهذا القرب من النتوء إلى فتح الرف فورًا — دون الحاجة للهز. يتيح لك سحب الملفات مباشرة من شريط Dock (مثل مجلد التنزيلات) إلى الرف. اضبطه على 0 لطلب إيماءة الهز بدلاً من ذلك."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Při přetahování souboru najetím takto blízko k výřezu se police okamžitě otevře – bez nutnosti třást. Umožňuje přetáhnout soubory přímo z Docku (např. ze složky Stahování) do police. Nastavením na 0 vyžadujete gesto zatřesení."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Ziehen einer Datei öffnet das Bewegen in diesen Abstand zur Notch die Ablage sofort – kein Schütteln erforderlich. Ermöglicht das direkte Ziehen von Dateien aus dem Dock (z. B. Downloads) in die Ablage. Auf 0 setzen, um stattdessen die Schüttelgeste zu erfordern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While dragging a file, hovering this close to the notch opens the shelf instantly — no shake needed. Lets you drag files straight out of the Dock (e.g. the Downloads stack) into the shelf. Set to 0 to require the shake gesture instead."
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While dragging a file, hovering this close to the notch opens the shelf instantly — no shake needed. Lets you drag files straight out of the Dock (e.g. the Downloads stack) into the shelf. Set to 0 to require the shake gesture instead."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al arrastrar un archivo, pasar a esta distancia del notch abre la bandeja al instante — sin necesidad de agitar. Te permite arrastrar archivos directamente desde el Dock (ej. Descargas) a la bandeja. Ponlo en 0 para requerir el gesto de agitar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lors du glisser d'un fichier, le survol à cette distance de l'encoche ouvre instantanément l'étagère — sans secouer. Permet de glisser des fichiers directement depuis le Dock (ex. Téléchargements). Définissez sur 0 pour exiger le geste de secousse."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fájl húzásakor a notch ilyen közelébe érve a polc azonnal megnyílik – rázás nélkül. Lehetővé teszi fájlok közvetlen behúzását a Dockból (pl. Letöltések). Állítsa 0-ra, ha inkább a rázás gesztust szeretné használni."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durante il trascinamento di un file, avvicinarsi alla tacca apre lo scaffale all'istante — senza scuotere. Ti consente di trascinare file direttamente dal Dock (es. Download) nello scaffale. Imposta su 0 per richiedere il gesto di scuotimento."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルをドラッグ中、ノッチのこの近さにホバーするとシェルフが即座に開きます（振る必要はありません）。Dock（ダウンロードスタックなど）から直接シェルフへドラッグできます。0に設定すると振るジェスチャーが必要になります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "파일을 드래그하는 동안 노치 근처로 가져가면 흔들 필요 없이 서랍이 즉시 열립니다. Dock(예: 다운로드 스택)에서 파일을 서랍으로 바로 드래그할 수 있습니다. 0으로 설정하면 흔들기 제스처로 동작합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tijdens het slepen van een bestand opent de plank direct wanneer je zo dicht bij de notch komt — schudden is niet nodig. Hiermee sleep je bestanden rechtstreeks vanuit het Dock (bijv. Downloads) naar de plank. Stel in op 0 om het schudgebaar te vereisen."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podczas przeciągania pliku najechanie tak blisko notcha natychmiast otwiera półkę — bez potrzeby potrząsania. Umożliwia przeciąganie plików bezpośrednio z Docka (np. Pobrane) na półkę. Ustaw 0, aby wymagać gestu potrząśnięcia."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao arrastar um arquivo, passar perto do notch abre a prateleira instantaneamente — sem precisar sacudir. Permite arrastar arquivos direto do Dock (ex: Downloads) para a prateleira. Defina como 0 para exigir o gesto de sacudir."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "При перетаскивании файла наведение на такое расстояние к вырезу мгновенно открывает полку — встряхивание не требуется. Позволяет перетаскивать файлы прямо из Dock (например, из папки Загрузки) на полку. Установите 0, чтобы использовать жест встряхивания."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "När du drar en fil öppnas hyllan omedelbart om du för den så här nära flärpen – ingen skakning behövs. Låter dig dra filer direkt från Dock (t.ex. Hämtade filer) till hyllan. Sätt till 0 för att kräva skakgest istället."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir dosyayı sürüklerken çentiğe bu kadar yaklaşmak rafı anında açar — sallamaya gerek kalmaz. Dosyaları doğrudan Dock'tan (örn. İndirilenler yığını) rafa sürüklemenizi sağlar. Sallama hareketini kullanmak için 0 olarak ayarlayın."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Під час перетягування файлу наведення на таку відстань до вирізу миттєво відкриває полицю — струшування не потрібне. Дозволяє перетягувати файли безпосередньо з Dock (наприклад, Завантаження) на полицю. Встановіть 0, щоб використовувати жест струшування."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sau khi ngăn chứa mở ra — bằng cách lắc chuột khi kéo tệp hoặc di chuyển tệp đang kéo lại gần notch — ngăn chứa sẽ tự động đóng sau số giây này nếu bạn không thả tệp. Khi bạn vẫn đang giữ tệp trên ngăn chứa, ngăn chứa sẽ không bao giờ đóng."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖动文件时，悬停在距离刘海此范围内将立即打开书架 — 无需晃动。可让您直接从程序坞（例如下载堆栈）将文件拖入书架。设置为 0 则需要使用晃动手势。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖曳檔案時，懸停在此距離範圍內會立即開啟暫存區 — 無需晃動。讓您能直接從 Dock（例如「下載項目」堆疊）將檔案拖入暫存區。設為 0 則改為需要晃動手勢。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
