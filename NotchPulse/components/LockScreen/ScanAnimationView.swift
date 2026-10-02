@@ -45,7 +45,7 @@ final class ScanAnimationHostView: NSView {
     private static var firstFrameCache: [String: CGImage] = [:]
 
     static func prewarm() {
-        Task.detached(priority: .userInitiated) {
+        DispatchQueue.global(qos: .userInitiated).async {
             _ = firstFrame(for: "idleanimation")
             _ = firstFrame(for: "unlockanimation")
             _ = firstFrame(for: "unsuccessfulunlockanimation")

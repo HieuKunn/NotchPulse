@@ -121,6 +121,7 @@ public class SystemMonitorManager: ObservableObject {
     @Published public var hardwareBaselineFanPercent: Int = 0
     @Published public var selectedFanOption: FanSpeedOption = .auto
     @Published public var isThermalMonitoring: Bool = false
+    @Published public var isHardwareFanAvailable: Bool = false
 
     // MARK: - Top Processes
     @Published public var topCpuProcesses: [MonitorProcessItem] = []

@@ -193,13 +193,13 @@ struct AudioHubNotchView: View {
                 }
             }
         }
-        .onChange(of: audioManager.selectedTab) { _ in
+        .onChange(of: audioManager.selectedTab) {
             updateDynamicHeight()
         }
-        .onChange(of: audioManager.outputDevices) { _ in
+        .onChange(of: audioManager.outputDevices) {
             updateDynamicHeight()
         }
-        .onChange(of: audioManager.inputDevices) { _ in
+        .onChange(of: audioManager.inputDevices) {
             updateDynamicHeight()
         }
     }

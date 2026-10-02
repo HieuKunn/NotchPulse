@@ -371,12 +371,12 @@ public final class SMCService {
         var success = false
 
         // 1. Enable Manual Mode on fan
-        var modeBytes: [UInt8] = [1]
+        let modeBytes: [UInt8] = [1]
         _ = writeSMCBytes("F\(fanIndex)Md", bytes: modeBytes)
 
         // Force bitmask FS!
-        var forceMask: UInt16 = 1 << fanIndex
-        var forceBytes: [UInt8] = [UInt8((forceMask >> 8) & 0xFF), UInt8(forceMask & 0xFF)]
+        let forceMask: UInt16 = 1 << fanIndex
+        let forceBytes: [UInt8] = [UInt8((forceMask >> 8) & 0xFF), UInt8(forceMask & 0xFF)]
         _ = writeSMCBytes("FS! ", bytes: forceBytes)
 
         // 2. Write Target RPM
@@ -404,7 +404,7 @@ public final class SMCService {
     @discardableResult
     public func restoreAutoFanControl() -> Bool {
         let fans = getFans()
-        var allRestored = true
+        let allRestored = true
 
         for i in 0..<fans.count {
             // Write Mode 0 (Auto)

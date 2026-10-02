@@ -171,10 +171,10 @@ struct FeatureTourView: View {
             let topOffset: CGFloat = isDynamicIsland ? 12 : 0
             
             let isGearTarget = currentStep.target == "settingsGear"
-            let gearBoxSize: CGFloat = 36
-            let headerInset: CGFloat = isDynamicIsland ? 22 : 22
+            let gearBoxSize: CGFloat = 34
+            let headerInset: CGFloat = isDynamicIsland ? 22 : 24
             let gearCenterX = centerX + (openWidth / 2) - headerInset - 15
-            let gearCenterY = topOffset + 18
+            let gearCenterY = topOffset + (isDynamicIsland ? 22 : 20)
             let gearBoxX = gearCenterX - (gearBoxSize / 2)
             let gearBoxY = gearCenterY - (gearBoxSize / 2)
             
@@ -182,10 +182,14 @@ struct FeatureTourView: View {
                 ? CGRect(x: gearBoxX, y: gearBoxY, width: gearBoxSize, height: gearBoxSize)
                 : CGRect(x: centerX - (spotlightWidth / 2), y: topOffset, width: spotlightWidth, height: spotlightHeight)
             
-            let currentCornerRadius: CGFloat = isGearTarget ? 18 : (isDynamicIsland ? 28 : 22)
+            let currentCornerRadius: CGFloat = isGearTarget ? (gearBoxSize / 2) : (isDynamicIsland ? 28 : 22)
             
-            let cardX = isGearTarget ? min(screenWidth - 210, max(210, centerX + (openWidth / 2) - 160)) : centerX
-            let cardY = topOffset + spotlightHeight + 14 + 110
+            let cardWidth: CGFloat = 380
+            let cardX = isGearTarget
+                ? min(screenWidth - (cardWidth / 2) - 20, max((cardWidth / 2) + 20, centerX + (openWidth / 2) - (cardWidth / 2)))
+                : centerX
+            let cardY = topOffset + openHeight + 14 + 105
+            let arrowOffset = isGearTarget ? max(-160, min(160, gearCenterX - cardX)) : 0
             
             ZStack(alignment: .top) {
                 // Dimmed background with spotlight cutout
@@ -200,7 +204,11 @@ struct FeatureTourView: View {
                 
                 // Highlight Clean Border around the open area
                 Group {
-                    if isGearTarget || isDynamicIsland {
+                    if isGearTarget {
+                        Circle()
+                            .stroke(Color.white.opacity(0.85), lineWidth: 2)
+                            .shadow(color: Color.white.opacity(0.4), radius: 6)
+                    } else if isDynamicIsland {
                         RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
                             .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
                             .shadow(color: Color.black.opacity(0.4), radius: 10)
@@ -230,12 +238,13 @@ struct FeatureTourView: View {
                         .font(.system(size: 18))
                         .foregroundColor(Color.white.opacity(0.96))
                         .shadow(color: Color.black.opacity(0.2), radius: 4, y: -2)
+                        .offset(x: arrowOffset)
                         .zIndex(3)
                     
                     instructionCard
                         .padding(.top, -4)
                 }
-                .frame(width: 380)
+                .frame(width: cardWidth)
                 .background(
                     GeometryReader { geo in
                         Color.clear
