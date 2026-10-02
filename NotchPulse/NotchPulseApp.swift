@@ -360,13 +360,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let closedSize = targetVM.closedNotchSize
                 let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 190.0)
                 let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
-                let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 12.0
+                let padding: CGFloat = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 0.0
 
                 return CGRect(
                     x: screenFrame.midX - (closedWidth / 2 + padding),
                     y: screenFrame.maxY - (closedHeight + padding + topOffset),
                     width: closedWidth + (padding * 2),
-                    height: closedHeight + padding + topOffset + 12
+                    height: closedHeight + padding + topOffset
                 )
             },
             openRegionProvider: { [weak self] in

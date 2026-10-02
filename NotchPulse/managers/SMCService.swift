@@ -32,7 +32,7 @@ public final class SMCService {
     private let kSMCWriteKey: UInt8 = 6
     private let kSMCGetKeyInfo: UInt8 = 9
 
-    private struct SMCVersion {
+    private struct SMCKeyData_vers_t {
         var major: UInt8 = 0
         var minor: UInt8 = 0
         var build: UInt8 = 0
@@ -40,7 +40,7 @@ public final class SMCService {
         var release: UInt16 = 0
     }
 
-    private struct SMCPLimitData {
+    private struct SMCKeyData_pLimitData_t {
         var version: UInt16 = 0
         var length: UInt16 = 0
         var cpuPLimit: UInt32 = 0
@@ -48,7 +48,7 @@ public final class SMCService {
         var memPLimit: UInt32 = 0
     }
 
-    private struct SMCKeyInfoData {
+    private struct SMCKeyData_keyInfo_t {
         var dataSize: UInt32 = 0
         var dataType: UInt32 = 0
         var dataAttributes: UInt8 = 0
@@ -56,12 +56,15 @@ public final class SMCService {
 
     private struct SMCParamStruct {
         var key: UInt32 = 0
-        var vers = SMCVersion()
-        var pLimitData = SMCPLimitData()
-        var keyInfo = SMCKeyInfoData()
+        var vers = SMCKeyData_vers_t()
+        var _pad0: UInt16 = 0
+        var pLimitData = SMCKeyData_pLimitData_t()
+        var keyInfo = SMCKeyData_keyInfo_t()
+        var _pad1: (UInt8, UInt8, UInt8) = (0, 0, 0)
         var result: UInt8 = 0
         var status: UInt8 = 0
         var data8: UInt8 = 0
+        var _pad2: UInt8 = 0
         var data32: UInt32 = 0
         var bytes: (
             UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
@@ -166,6 +169,7 @@ public final class SMCService {
 
         input.key = fourCCToUInt32(key)
         input.keyInfo.dataSize = info.size
+        input.keyInfo.dataType = info.type
         input.data8 = kSMCReadKey
 
         let status = callSMC(input: &input, output: &output)
@@ -174,16 +178,16 @@ public final class SMCService {
         }
 
         var resultBytes = [UInt8]()
-        withUnsafeBytes(of: output.bytes) { rawBuffer in
-            let count = min(Int(info.size), rawBuffer.count)
-            for i in 0..<count {
-                resultBytes.append(rawBuffer[i])
+        withUnsafePointer(to: &output.bytes) { ptr in
+            let rawPtr = UnsafeRawPointer(ptr).assumingMemoryBound(to: UInt8.self)
+            for i in 0..<Int(info.size) {
+                resultBytes.append(rawPtr[i])
             }
         }
         return (resultBytes, info.type)
     }
 
-    private func writeSMCBytes(_ key: String, bytes: [UInt8]) -> Bool {
+    private func writeSMCBytes(_ key: String, bytes: [UInt8], type: UInt32? = nil) -> Bool {
         guard let info = readKeyInfo(key) else { return false }
 
         var input = SMCParamStruct()
@@ -191,12 +195,13 @@ public final class SMCService {
 
         input.key = fourCCToUInt32(key)
         input.keyInfo.dataSize = info.size
-        input.keyInfo.dataType = info.type
+        input.keyInfo.dataType = type ?? info.type
         input.data8 = kSMCWriteKey
 
-        withUnsafeMutableBytes(of: &input.bytes) { rawBuffer in
-            for i in 0..<min(bytes.count, rawBuffer.count) {
-                rawBuffer[i] = bytes[i]
+        withUnsafeMutablePointer(to: &input.bytes) { ptr in
+            let rawPtr = UnsafeMutableRawPointer(ptr).assumingMemoryBound(to: UInt8.self)
+            for i in 0..<min(bytes.count, Int(info.size)) {
+                rawPtr[i] = bytes[i]
             }
         }
 
@@ -373,6 +378,7 @@ public final class SMCService {
         // 1. Enable Manual Mode on fan
         let modeBytes: [UInt8] = [1]
         _ = writeSMCBytes("F\(fanIndex)Md", bytes: modeBytes)
+        _ = writeSMCBytes("Ftst", bytes: modeBytes)
 
         // Force bitmask FS!
         let forceMask: UInt16 = 1 << fanIndex
@@ -384,18 +390,13 @@ public final class SMCService {
             if info.type == fourCCToUInt32("fpe2") {
                 let raw = UInt16(clampedRPM * 4)
                 let bytes: [UInt8] = [UInt8((raw >> 8) & 0xFF), UInt8(raw & 0xFF)]
-                success = writeSMCBytes("F\(fanIndex)Tg", bytes: bytes)
+                success = writeSMCBytes("F\(fanIndex)Tg", bytes: bytes, type: info.type)
             } else if info.type == fourCCToUInt32("flt ") {
                 var f = Float32(clampedRPM)
                 var bytes = [UInt8](repeating: 0, count: 4)
                 memcpy(&bytes, &f, 4)
-                success = writeSMCBytes("F\(fanIndex)Tg", bytes: bytes)
+                success = writeSMCBytes("F\(fanIndex)Tg", bytes: bytes, type: info.type)
             }
-        }
-
-        // 3. If direct IOKit write is restricted without root, invoke privileged helper or smc tool
-        if !success {
-            success = executePrivilegedFanCommand(fanIndex: fanIndex, targetRPM: clampedRPM, isManual: true)
         }
 
         return success
@@ -404,36 +405,16 @@ public final class SMCService {
     @discardableResult
     public func restoreAutoFanControl() -> Bool {
         let fans = getFans()
-        let allRestored = true
+        var allRestored = true
 
         for i in 0..<fans.count {
-            // Write Mode 0 (Auto)
+            // Write Mode 0 (Auto) or 3 (System default)
             _ = writeSMCBytes("F\(i)Md", bytes: [0])
+            _ = writeSMCBytes("Ftst", bytes: [0])
             // Clear Force bitmask
             _ = writeSMCBytes("FS! ", bytes: [0, 0])
         }
 
-        // Also ensure fallback command is dispatched
-        _ = executePrivilegedFanCommand(fanIndex: 0, targetRPM: 0, isManual: false)
         return allRestored
-    }
-
-    private func executePrivilegedFanCommand(fanIndex: Int, targetRPM: Int, isManual: Bool) -> Bool {
-        // Execute SMC override via background helper task if available
-        let script: String
-        if isManual {
-            script = "do shell script \"/usr/bin/smc -k F\(fanIndex)Md -w 01 && /usr/bin/smc -k F\(fanIndex)Tg -w $(printf '%04x' $(( \(targetRPM) * 4 )))\" with administrator privileges"
-        } else {
-            script = "do shell script \"/usr/bin/smc -k F\(fanIndex)Md -w 00 && /usr/bin/smc -k 'FS! ' -w 0000\" with administrator privileges"
-        }
-
-        // We run background non-blocking dispatch
-        DispatchQueue.global(qos: .userInitiated).async {
-            var error: NSDictionary?
-            if let appleScript = NSAppleScript(source: script) {
-                appleScript.executeAndReturnError(&error)
-            }
-        }
-        return true
     }
 }
