@@ -183,13 +183,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     private func sendMediaRemoteCommand(_ command: Int) {
-        // Direct C function call (best effort)
-        MRMediaRemoteSendCommandFunction(command, nil)
-        
         if adapterPaths != nil {
             executeAdapter(action: "send", args: ["\(command)"])
         } else {
-            postMediaKeyEvent(for: command)
+            MRMediaRemoteSendCommandFunction(command, nil)
         }
     }
 
@@ -208,26 +205,13 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     func nextTrack() async {
         sendMediaRemoteCommand(4)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
-        }
     }
 
     func previousTrack() async {
         sendMediaRemoteCommand(5)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
-        }
     }
 
     func seek(to time: Double) async {
-        MRMediaRemoteSetElapsedTimeFunction(time)
         executeAdapter(action: "seek", args: ["\(Int(time * 1_000_000))"])
         
         let bundleID = playbackState.bundleIdentifier
@@ -251,46 +235,14 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     func toggleShuffle() async {
         let isShuffled = playbackState.isShuffled
         let targetShuffleMode = isShuffled ? 1 : 3
-        MRMediaRemoteSendCommandFunction(6, nil)
-        MRMediaRemoteSetShuffleModeFunction(targetShuffleMode)
         executeAdapter(action: "shuffle", args: ["\(targetShuffleMode)"])
-        
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            let script = "tell application \"Music\" to set shuffle enabled to (not shuffle enabled)"
-            try? await AppleScriptHelper.executeVoid(script)
-        } else if bundleID == "com.spotify.client" {
-            let script = "tell application \"Spotify\" to set shuffling to (not shuffling)"
-            try? await AppleScriptHelper.executeVoid(script)
-        }
         playbackState.isShuffled.toggle()
     }
     
     func toggleRepeat() async {
         let newRepeatMode = (playbackState.repeatMode == .off) ? 3 : (playbackState.repeatMode.rawValue - 1)
         playbackState.repeatMode = RepeatMode(rawValue: newRepeatMode) ?? .off
-        MRMediaRemoteSendCommandFunction(7, nil)
-        MRMediaRemoteSetRepeatModeFunction(newRepeatMode)
         executeAdapter(action: "repeat", args: ["\(newRepeatMode)"])
-        
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            let script = """
-            tell application "Music"
-                if song repeat is off then
-                    set song repeat to all
-                else if song repeat is all then
-                    set song repeat to one
-                else
-                    set song repeat to off
-                end if
-            end tell
-            """
-            try? await AppleScriptHelper.executeVoid(script)
-        } else if bundleID == "com.spotify.client" {
-            let script = "tell application \"Spotify\" to set repeating to (not repeating)"
-            try? await AppleScriptHelper.executeVoid(script)
-        }
     }
     
     func setVolume(_ level: Double) async {
