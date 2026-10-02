@@ -271,26 +271,31 @@ struct AudioHubNotchView: View {
     }
 
     private func calculateContentHeight() -> CGFloat {
-        let physicalNotchOffset: CGFloat = 50
-        let subheaderHeight: CGFloat = 40
+        // Physical notch / top bar header height is 36-40pt in NotchPulseHeader
+        let physicalNotchOffset: CGFloat = 38
+        // Tab switcher & breadcrumb header row + top padding
+        let subheaderHeight: CGFloat = 34
+        // Devices count & height (each row is ~32pt + 4pt spacing)
         let devicesCount = audioManager.selectedTab == .output ?
             max(1, audioManager.outputDevices.count) :
             max(1, audioManager.inputDevices.count)
-        let devicesHeight = CGFloat(devicesCount) * 36
-        let dividerHeight: CGFloat = 10
-        let appsHeaderHeight: CGFloat = 30
+        let devicesHeight = CGFloat(devicesCount) * 32
+        // Divider (1pt + 8pt spacing)
+        let dividerHeight: CGFloat = 9
+        // APPS collapsible header button
+        let appsHeaderHeight: CGFloat = 26
 
         let appsListHeight: CGFloat
         if isAppsExpanded {
             let appsCount = max(1, audioManager.activeApps.count)
-            appsListHeight = CGFloat(appsCount) * 36 + 14
+            appsListHeight = CGFloat(appsCount) * 28 + 6
         } else {
             appsListHeight = 0
         }
 
-        let bottomPadding: CGFloat = 20
+        let bottomPadding: CGFloat = 12
         let total = physicalNotchOffset + subheaderHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
-        return min(540, max(210, total))
+        return min(540, max(120, total))
     }
 
     private func updateDynamicHeight() {
