@@ -11,7 +11,7 @@
             <sparkle:version>270</sparkle:version>
             <sparkle:shortVersionString>5.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v5.1/NotchPulse.app.zip" length="19524993" type="application/octet-stream" sparkle:edSignature="yM5u1ZKUavGU24RF2b/w7HMtzL/iCkf3WaTLrVH0aFqqNVDqxykfbyCeUsx7TCiO9gQ4KkO+WKHctRSx5vWXAg=="/>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v5.1/NotchPulse.app.zip" length="19544925" type="application/octet-stream" sparkle:edSignature="n9muewksJnD9gZRkl2cp23H+Omi5bQ3iEv7jrnGTxBGZ0Y3gSMBEKBBcF/J5j5WWddT0mRp2eBpRHwwe7RJyAA=="/>
         </item>
         <item>
             <title>5.0</title>
