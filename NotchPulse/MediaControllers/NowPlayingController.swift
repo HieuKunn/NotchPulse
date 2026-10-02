@@ -118,20 +118,19 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     // MARK: - Adapter Execution & Control Helpers
-    private var adapterPaths: (scriptPath: String, frameworkPath: String)? {
-        if let script = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl")?.path,
-           let framework = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework"),
-           FileManager.default.fileExists(atPath: script),
-           FileManager.default.fileExists(atPath: framework) {
-            return (script, framework)
-        }
+    private var adapterPaths: (scriptPath: String, frameworkPath: String, helperPath: String)? {
+        let script = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl")?.path ??
+            (Bundle.main.resourcePath.map { $0 + "/mediaremote-adapter.pl" })
+        let helper = Bundle.main.url(forResource: "MediaRemoteAdapterTestClient", withExtension: nil)?.path ??
+            (Bundle.main.resourcePath.map { $0 + "/MediaRemoteAdapterTestClient" })
+        let framework = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework") ??
+            (Bundle.main.resourcePath.map { $0 + "/../Frameworks/MediaRemoteAdapter.framework" })
         
-        if let resourcePath = Bundle.main.resourcePath {
-            let script = resourcePath + "/mediaremote-adapter.pl"
-            let framework = (Bundle.main.privateFrameworksPath ?? (resourcePath + "/../Frameworks")) + "/MediaRemoteAdapter.framework"
-            if FileManager.default.fileExists(atPath: script) && FileManager.default.fileExists(atPath: framework) {
-                return (script, framework)
-            }
+        if let script = script, let framework = framework, let helper = helper,
+           FileManager.default.fileExists(atPath: script),
+           FileManager.default.fileExists(atPath: framework),
+           FileManager.default.fileExists(atPath: helper) {
+            return (script, framework, helper)
         }
         return nil
     }
@@ -141,7 +140,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         DispatchQueue.global(qos: .userInteractive).async {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-            process.arguments = [paths.scriptPath, paths.frameworkPath, action] + args
+            process.arguments = [paths.scriptPath, paths.frameworkPath, paths.helperPath, action] + args
             try? process.run()
         }
     }
@@ -187,6 +186,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             executeAdapter(action: "send", args: ["\(command)"])
         } else {
             MRMediaRemoteSendCommandFunction(command, nil)
+            postMediaKeyEvent(for: command)
         }
     }
 
@@ -280,7 +280,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.scriptPath, paths.frameworkPath, "stream", "--debounce=100"]
+        process.arguments = [paths.scriptPath, paths.frameworkPath, paths.helperPath, "stream", "--debounce=100"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
