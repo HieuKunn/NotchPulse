@@ -170,7 +170,7 @@
 		A354AB15C4DF819FB5AE62CB /* FaceIDOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C416320A68E66012C56039F /* FaceIDOverlayView.swift */; };
 		A9F1B2C42E589FAA00147B33 /* BluetoothHeadphoneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */; };
 		AA0000022ED0000100000002 /* SystemMonitorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000012ED0000100000001 /* SystemMonitorManager.swift */; };
-		AA0000062ED0000300000006 /* SMCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000052ED0000300000005 /* SMCService.swift */; };
+		AA0000062ED0000300000006 /* SMCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000072ED0000300000007 /* SMCService.swift */; };
 		AA0000042ED0000200000004 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000032ED0000200000003 /* StatsView.swift */; };
 		ABA2A7AE47F39E6F8606A677 /* FaceIDSettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */; };
 		AEC91CAB43968E85ACCEEC60 /* FaceIDAnimatedCheckmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0DAA5C994C088A7532D1A9 /* FaceIDAnimatedCheckmark.swift */; };
@@ -441,7 +441,7 @@
 		A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsTab.swift; sourceTree = "<group>"; };
 		A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothHeadphoneManager.swift; sourceTree = "<group>"; };
 		AA0000012ED0000100000001 /* SystemMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorManager.swift; sourceTree = "<group>"; };
-		AA0000052ED0000300000005 /* SMCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCService.swift; sourceTree = "<group>"; };
+		AA0000072ED0000300000007 /* SMCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCService.swift; sourceTree = "<group>"; };
 		AA0000032ED0000200000003 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessScoring.swift; sourceTree = "<group>"; };
 		B10348D82C74E56000475897 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
@@ -751,7 +751,7 @@
 				59D8C23B2E589FAA00147B33 /* VolumeManager.swift */,
 				A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */,
 				AA0000012ED0000100000001 /* SystemMonitorManager.swift */,
-				AA0000052ED0000300000005 /* SMCService.swift */,
+				AA0000072ED0000300000007 /* SMCService.swift */,
 				EA3A0859B1FA539A5464FF90 /* FaceIDCore */,
 				DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */,
 				78728B0E6CE22080DF969DBF /* MediaAutomationPermissionHelper.swift */,
@@ -1493,7 +1493,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 284;
+				CURRENT_PROJECT_VERSION = 285;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
@@ -1518,7 +1518,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 284;
+				CURRENT_PROJECT_VERSION = 285;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
@@ -1672,7 +1672,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 284;
+				CURRENT_PROJECT_VERSION = 285;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1726,7 +1726,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 284;
+				CURRENT_PROJECT_VERSION = 285;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";

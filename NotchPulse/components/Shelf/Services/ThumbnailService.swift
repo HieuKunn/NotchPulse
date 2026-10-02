@@ -10,7 +10,8 @@ import AppKit
 import QuickLookThumbnailing
 import UniformTypeIdentifiers
 
-actor ThumbnailService {
+@MainActor
+final class ThumbnailService {
     static let shared = ThumbnailService()
 
     private let cache: NSCache<NSString, NSImage> = {
