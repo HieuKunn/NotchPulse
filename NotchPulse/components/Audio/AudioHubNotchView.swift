@@ -238,10 +238,9 @@ struct AudioHubNotchView: View {
                 .padding(.horizontal, 4)
                 .padding(.bottom, 6)
             }
-        }
-        .padding(.horizontal, 10)
-        .padding(.top, 4)
-        .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
+            .padding(.horizontal, 10)
+            .padding(.top, 4)
+            .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
         .onAppear {
             audioManager.refreshDevices()
             audioManager.refreshApps()

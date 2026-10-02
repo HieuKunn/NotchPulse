@@ -344,13 +344,11 @@ final class AudioDeviceManager: ObservableObject {
             mElement: kAudioObjectPropertyElementMain
         )
 
-        var isMutedNow = false
         if AudioObjectHasProperty(id, &addr) {
             var muted: UInt32 = 0
             var size = UInt32(MemoryLayout<UInt32>.size)
             if AudioObjectGetPropertyData(id, &addr, 0, nil, &size, &muted) == noErr {
                 var newMute = (muted == 0) ? UInt32(1) : UInt32(0)
-                isMutedNow = (newMute != 0)
                 _ = AudioObjectSetPropertyData(id, &addr, 0, nil, size, &newMute)
             }
         }
