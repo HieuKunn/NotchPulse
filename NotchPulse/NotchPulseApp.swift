@@ -805,17 +805,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 activeVM = self.vm
             }
+            SharingStateManager.shared.preventNotchClose = true
             activeVM.notchSize = CGSize(width: width, height: openNotchSize.height)
-            activeVM.open()
+            if activeVM.notchState != .open {
+                activeVM.open()
+            }
         }
 
         NotificationCenter.default.addObserver(
             forName: Notification.Name.closeNotchPreview, object: nil, queue: .main
         ) { [weak self] _ in
             guard let self = self else { return }
-            self.vm.close()
+            SharingStateManager.shared.preventNotchClose = false
+            self.vm.close(force: true)
             for (_, subVm) in self.viewModels {
-                subVm.close()
+                subVm.close(force: true)
             }
         }
 

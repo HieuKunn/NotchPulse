@@ -479,14 +479,18 @@ struct ContentView: View {
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .previewNotchWidth)) { notification in
                         let targetWidth = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
+                        SharingStateManager.shared.preventNotchClose = true
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            vm.open()
+                            if vm.notchState != .open {
+                                vm.open()
+                            }
                             vm.notchSize = CGSize(width: targetWidth, height: openNotchSize.height)
                         }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
+                        SharingStateManager.shared.preventNotchClose = false
                         withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
-                            vm.close()
+                            vm.close(force: true)
                         }
                     }
                     .onChange(of: notchOpenWidth) { _, newWidth in

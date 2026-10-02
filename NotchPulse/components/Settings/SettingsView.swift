@@ -306,6 +306,7 @@ struct GeneralSettings: View {
     @State private var autoClosePreviewTask: Task<Void, Never>? = nil
 
     private func triggerWidthPreview(width: CGFloat, isEditing: Bool = false) {
+        SharingStateManager.shared.preventNotchClose = true
         NotificationCenter.default.post(name: .previewNotchWidth, object: width)
         
         autoClosePreviewTask?.cancel()
@@ -313,6 +314,7 @@ struct GeneralSettings: View {
             autoClosePreviewTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(3500))
                 guard !Task.isCancelled else { return }
+                SharingStateManager.shared.preventNotchClose = false
                 NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
             }
         }
@@ -506,6 +508,11 @@ struct GeneralSettings: View {
             .padding(.vertical, 4)
             .onChange(of: notchOpenWidth) { _, newWidth in
                 triggerWidthPreview(width: newWidth, isEditing: true)
+            }
+            .onDisappear {
+                autoClosePreviewTask?.cancel()
+                SharingStateManager.shared.preventNotchClose = false
+                NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
             }
         } header: {
             Text(loc("Notch Dimensions (Width)"))
