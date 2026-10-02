@@ -644,15 +644,17 @@ struct FullMonthCalendarGrid<TrailingContent: View>: View {
     @Default(.alternateCalendarType) private var alternateCalendarType
 
     private let calendar = Calendar.current
-    private let daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+    private let daysOfWeek = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 
     private var daysInMonth: [Date?] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: displayedDate) else { return [] }
         let monthStart = monthInterval.start
-        let firstWeekday = calendar.component(.weekday, from: monthStart)
+        let weekday = calendar.component(.weekday, from: monthStart)
+        // Offset so that Monday (weekday 2) is the first column (index 0), Sunday (weekday 1) is index 6
+        let leadingEmptyCount = (weekday + 5) % 7
         let numberOfDays = calendar.range(of: .day, in: .month, for: displayedDate)?.count ?? 30
 
-        var days: [Date?] = Array(repeating: nil, count: firstWeekday - 1)
+        var days: [Date?] = Array(repeating: nil, count: leadingEmptyCount)
         for day in 0..<numberOfDays {
             if let date = calendar.date(byAdding: .day, value: day, to: monthStart) {
                 days.append(date)
