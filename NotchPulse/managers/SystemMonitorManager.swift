@@ -202,6 +202,17 @@ public class SystemMonitorManager: ObservableObject {
         }
         self.selectedFanOption = option
         self.queue.async {
+            if option == .auto {
+                SMCService.shared.restoreAutoFanControl()
+            } else {
+                let fans = SMCService.shared.getFans()
+                let minRpm = fans.first?.minRPM ?? 1200
+                let maxRpm = fans.first?.maxRPM ?? 5800
+                let targetRPM = Int(Double(minRpm) + ((Double(option.rawValue) / 100.0) * Double(maxRpm - minRpm)))
+                for (index, _) in fans.enumerated() {
+                    SMCService.shared.setFanSpeed(targetRPM: targetRPM, fanIndex: index)
+                }
+            }
             self.updateThermalMetrics()
         }
     }
@@ -558,26 +569,27 @@ public class SystemMonitorManager: ObservableObject {
         let (cpuTotal, _, _, _) = fetchCPUUsage()
         let gpuUsage = fetchGPUUsage()
 
-        // Base physics thermal curve calibrated for Apple Silicon & Intel Macs
-        var calculatedTemp: Double = 40.0
-        switch thermalState {
-        case .nominal:
-            // 38°C to 58°C
-            calculatedTemp = 39.0 + (cpuTotal * 0.18) + (gpuUsage * 0.12)
-        case .fair:
-            // 60°C to 75°C
-            calculatedTemp = 62.0 + (cpuTotal * 0.14) + (gpuUsage * 0.10)
-        case .serious:
-            // 76°C to 88°C
-            calculatedTemp = 78.0 + (cpuTotal * 0.12) + (gpuUsage * 0.08)
-        case .critical:
-            // 90°C to 98°C
-            calculatedTemp = 91.0 + (cpuTotal * 0.08)
-        @unknown default:
-            calculatedTemp = 42.0 + (cpuTotal * 0.15)
+        // 1. Fetch real hardware sensor temperature from SMC / IOHID
+        var calculatedTemp: Double
+        if let realHardwareTemp = SMCService.shared.getHardwareTemperature(), realHardwareTemp > 20.0 && realHardwareTemp < 115.0 {
+            calculatedTemp = realHardwareTemp
+        } else {
+            // Calibrated physics thermal curve fallback
+            switch thermalState {
+            case .nominal:
+                calculatedTemp = 39.0 + (cpuTotal * 0.18) + (gpuUsage * 0.12)
+            case .fair:
+                calculatedTemp = 62.0 + (cpuTotal * 0.14) + (gpuUsage * 0.10)
+            case .serious:
+                calculatedTemp = 78.0 + (cpuTotal * 0.12) + (gpuUsage * 0.08)
+            case .critical:
+                calculatedTemp = 91.0 + (cpuTotal * 0.08)
+            @unknown default:
+                calculatedTemp = 42.0 + (cpuTotal * 0.15)
+            }
         }
 
-        calculatedTemp = max(32.0, min(102.0, calculatedTemp))
+        calculatedTemp = max(30.0, min(105.0, calculatedTemp))
 
         // Classify temperature level
         let level: TemperatureLevel
@@ -601,7 +613,7 @@ public class SystemMonitorManager: ObservableObject {
             baselineFanPct = 0
         }
 
-        // Effective fan percentage
+        // Effective fan percentage & real hardware RPM
         let effectiveFanPct: Int
         switch selectedFanOption {
         case .auto:
@@ -616,15 +628,22 @@ public class SystemMonitorManager: ObservableObject {
             effectiveFanPct = 100
         }
 
-        // Compute RPM based on percentage (MacBook fan range: 0 or ~1,200 to 5,600 RPM)
+        // Fetch real hardware fan RPM from SMC if available
+        let fans = SMCService.shared.getFans()
+        let realRPM = fans.map { $0.currentRPM }.max() ?? 0
+
         let rpm: Int
-        if effectiveFanPct == 0 {
+        if realRPM > 0 {
+            rpm = realRPM
+        } else if effectiveFanPct == 0 {
             rpm = 0
         } else {
-            let maxRpm: Double = 5600.0
-            let minRpm: Double = 1200.0
+            let maxRpm: Double = Double(fans.first?.maxRPM ?? 5800)
+            let minRpm: Double = Double(fans.first?.minRPM ?? 1200)
             rpm = Int(minRpm + ((Double(effectiveFanPct) / 100.0) * (maxRpm - minRpm)))
         }
+
+        let isAvailable = SMCService.shared.isHardwareFanAvailable
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -633,6 +652,7 @@ public class SystemMonitorManager: ObservableObject {
             self.hardwareBaselineFanPercent = baselineFanPct
             self.currentFanSpeedPercent = effectiveFanPct
             self.currentFanRPM = rpm
+            self.isHardwareFanAvailable = isAvailable
         }
     }
 }
