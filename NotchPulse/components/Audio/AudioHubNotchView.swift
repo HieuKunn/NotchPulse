@@ -11,6 +11,7 @@ import SwiftUI
 
 struct AudioHubNotchView: View {
     @ObservedObject var audioManager = AudioDeviceManager.shared
+    @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @EnvironmentObject var vm: NotchPulseViewModel
 
     @AppStorage("NotchPulse_AudioHubAppsExpanded") private var isAppsExpanded: Bool = true

@@ -280,7 +280,6 @@ final class AudioDeviceManager: ObservableObject {
         let clamped = max(0, min(1, volume))
         let scope: AudioObjectPropertyScope = isInput ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput
         
-        var written = false
         for element in [kAudioObjectPropertyElementMain, UInt32(1), UInt32(2)] {
             var addr = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyVolumeScalar,
@@ -290,9 +289,7 @@ final class AudioDeviceManager: ObservableObject {
             if AudioObjectHasProperty(id, &addr) {
                 var val = clamped
                 let size = UInt32(MemoryLayout<Float32>.size)
-                if AudioObjectSetPropertyData(id, &addr, 0, nil, size, &val) == noErr {
-                    written = true
-                }
+                _ = AudioObjectSetPropertyData(id, &addr, 0, nil, size, &val)
             }
         }
 
