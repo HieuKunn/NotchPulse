@@ -432,21 +432,21 @@ private struct AudioAppRow: View {
             }
             .buttonStyle(.plain)
 
-            // Volume Slider (supports drag & scroll-wheel)
+            // Volume Slider (supports drag & scroll-wheel + 200% boost for web/apps)
             CustomAudioSlider(
                 value: Binding(
                     get: { CGFloat(appItem.volume) },
                     set: { onVolumeChange(Float($0)) }
                 ),
-                range: 0...1,
-                tintColor: Color.blue
+                range: 0...2,
+                tintColor: appItem.volume > 1.0 ? Color.orange : Color.blue
             )
             .frame(width: 100, height: 16)
 
-            // Percentage Label
+            // Percentage Label (shows up to 200% with boost color)
             Text("\(Int(round(appItem.volume * 100)))%")
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(appItem.volume > 1.0 ? Color.orange : Color.secondary)
                 .frame(width: 36, alignment: .trailing)
         }
         .padding(.horizontal, 8)
@@ -454,7 +454,7 @@ private struct AudioAppRow: View {
     }
 }
 
-// MARK: - Minimal Clean Audio Slider with Scroll-Wheel Support
+// MARK: - Minimal Clean Audio Slider with Scroll-Wheel & Fine-Tuning Support
 
 private struct CustomAudioSlider: View {
     @Binding var value: CGFloat
@@ -543,11 +543,12 @@ private final class SliderScrollWheelNSView: NSView {
             if self.bounds.contains(pointInView) {
                 let delta = event.scrollingDeltaY
                 if abs(delta) > 0.001 {
+                    let isFineTune = event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.option)
                     let step: CGFloat
                     if event.hasPreciseScrollingDeltas {
-                        step = delta * 0.004
+                        step = delta * (isFineTune ? 0.001 : 0.004)
                     } else {
-                        step = delta > 0 ? 0.04 : -0.04
+                        step = (delta > 0 ? 1.0 : -1.0) * (isFineTune ? 0.01 : 0.03)
                     }
                     self.onScroll?(step)
                     return nil // Intercept & consume so the notch/page doesn't scroll

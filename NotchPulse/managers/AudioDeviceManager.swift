@@ -95,6 +95,12 @@ final class AudioDeviceManager: ObservableObject {
         }
     }
 
+    private var deviceSavedVolumes: [String: Float] = [:] {
+        didSet {
+            UserDefaults.standard.set(deviceSavedVolumes, forKey: "NotchPulse_DeviceSavedVolumes")
+        }
+    }
+
     private var cancellables = Set<AnyCancellable>()
     private var hardwareListenerBlock: AudioObjectPropertyListenerBlock?
 
@@ -104,6 +110,9 @@ final class AudioDeviceManager: ObservableObject {
         }
         if let savedMutes = UserDefaults.standard.dictionary(forKey: "NotchPulse_AppMutes") as? [String: Bool] {
             self.appMutes = savedMutes
+        }
+        if let savedDevVols = UserDefaults.standard.dictionary(forKey: "NotchPulse_DeviceSavedVolumes") as? [String: Float] {
+            self.deviceSavedVolumes = savedDevVols
         }
 
         refreshDevices()
@@ -260,9 +269,15 @@ final class AudioDeviceManager: ObservableObject {
                 outputDevices[i].isDefault = (outputDevices[i].id == id)
                 if outputDevices[i].id == id {
                     self.defaultOutputDevice = outputDevices[i]
-                    let vol = outputDevices[i].volume
-                    VolumeManager.shared.setAbsolute(vol)
-                    NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(vol))
+                    let targetDev = outputDevices[i]
+                    // Auto-restore saved preferred volume for this device if previously saved
+                    if let savedVol = deviceSavedVolumes[targetDev.uid] {
+                        setDeviceVolume(id: targetDev.id, volume: savedVol, isInput: false)
+                    } else {
+                        let vol = targetDev.volume
+                        VolumeManager.shared.setAbsolute(vol)
+                        NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(vol))
+                    }
                 }
             }
         }
@@ -297,6 +312,7 @@ final class AudioDeviceManager: ObservableObject {
         if isInput {
             if let idx = inputDevices.firstIndex(where: { $0.id == id }) {
                 inputDevices[idx].volume = clamped
+                deviceSavedVolumes[inputDevices[idx].uid] = clamped
             }
             if defaultInputDevice?.id == id {
                 defaultInputDevice?.volume = clamped
@@ -304,6 +320,7 @@ final class AudioDeviceManager: ObservableObject {
         } else {
             if let idx = outputDevices.firstIndex(where: { $0.id == id }) {
                 outputDevices[idx].volume = clamped
+                deviceSavedVolumes[outputDevices[idx].uid] = clamped
             }
             if defaultOutputDevice?.id == id {
                 defaultOutputDevice?.volume = clamped
@@ -349,7 +366,7 @@ final class AudioDeviceManager: ObservableObject {
     private var appVolumeTasks: [String: Task<Void, Never>] = [:]
 
     func setAppVolume(id: String, volume: Float) {
-        let clamped = max(0, min(1, volume))
+        let clamped = max(0, min(2.0, volume))
         appVolumes[id] = clamped
         if let idx = activeApps.firstIndex(where: { $0.id == id }) {
             activeApps[idx].volume = clamped
@@ -384,6 +401,39 @@ final class AudioDeviceManager: ObservableObject {
         let vol = isMuted ? 0.0 : Double(volume)
         let mutedBool = isMuted || (volume == 0)
         
+        let jsSnippet = """
+        (() => {
+            const v = \(vol);
+            const m = \(mutedBool);
+            document.querySelectorAll('video, audio').forEach(e => {
+                if (v > 1.0) {
+                    e.volume = 1.0;
+                    e.muted = m;
+                    try {
+                        if (!e._npGain) {
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            const src = ctx.createMediaElementSource(e);
+                            const gain = ctx.createGain();
+                            src.connect(gain);
+                            gain.connect(ctx.destination);
+                            e._npGain = gain;
+                            e._npCtx = ctx;
+                        }
+                        if (e._npGain) {
+                            e._npGain.gain.value = v;
+                            if (e._npCtx && e._npCtx.state === 'suspended') { e._npCtx.resume(); }
+                        }
+                    } catch(err) {}
+                } else {
+                    e.volume = Math.max(0, Math.min(1, v));
+                    e.muted = m;
+                    if (e._npGain) { e._npGain.gain.value = 1.0; }
+                }
+            });
+            return true;
+        })()
+        """.replacingOccurrences(of: "\n", with: " ")
+
         var script: String?
         
         if lower.contains("arc") {
@@ -394,12 +444,12 @@ final class AudioDeviceManager: ObservableObject {
                         repeat with w in windows
                             try
                                 tell active tab of w
-                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                    execute javascript "\(jsSnippet)"
                                 end tell
                                 set mediaTabs to (every tab of w whose URL contains "youtube" or URL contains "spotify" or URL contains "music" or URL contains "soundcloud" or URL contains "twitch" or URL contains "netflix" or URL contains "watch")
                                 repeat with mt in mediaTabs
                                     try
-                                        tell mt to execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                        tell mt to execute javascript "\(jsSnippet)"
                                     end try
                                 end repeat
                             end try
@@ -416,12 +466,12 @@ final class AudioDeviceManager: ObservableObject {
                         repeat with w in windows
                             try
                                 tell active tab of w
-                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                    execute javascript "\(jsSnippet)"
                                 end tell
                                 set mediaTabs to (every tab of w whose URL contains "youtube" or URL contains "spotify" or URL contains "music" or URL contains "soundcloud" or URL contains "twitch" or URL contains "netflix" or URL contains "watch")
                                 repeat with mt in mediaTabs
                                     try
-                                        tell mt to execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                        tell mt to execute javascript "\(jsSnippet)"
                                     end try
                                 end repeat
                             end try
@@ -438,7 +488,7 @@ final class AudioDeviceManager: ObservableObject {
                         repeat with w in windows
                             try
                                 tell active tab of w
-                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                    execute javascript "\(jsSnippet)"
                                 end tell
                             end try
                         end repeat
@@ -454,7 +504,7 @@ final class AudioDeviceManager: ObservableObject {
                         repeat with w in windows
                             try
                                 tell active tab of w
-                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                    execute javascript "\(jsSnippet)"
                                 end tell
                             end try
                         end repeat
@@ -470,7 +520,7 @@ final class AudioDeviceManager: ObservableObject {
                         repeat with w in windows
                             try
                                 tell current tab of w
-                                    do JavaScript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                    do JavaScript "\(jsSnippet)"
                                 end tell
                             end try
                         end repeat
