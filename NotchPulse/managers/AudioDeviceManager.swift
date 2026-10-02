@@ -301,19 +301,193 @@ final class AudioDeviceManager: ObservableObject {
         }
     }
 
+    private var appVolumeTasks: [String: Task<Void, Never>] = [:]
+
     func setAppVolume(id: String, volume: Float) {
         let clamped = max(0, min(1, volume))
         appVolumes[id] = clamped
         if let idx = activeApps.firstIndex(where: { $0.id == id }) {
             activeApps[idx].volume = clamped
         }
+        let isMuted = appMutes[id] ?? false
+        dispatchAppVolume(id: id, volume: clamped, isMuted: isMuted)
     }
 
     func toggleAppMute(id: String) {
         let current = appMutes[id] ?? false
-        appMutes[id] = !current
+        let newMute = !current
+        appMutes[id] = newMute
         if let idx = activeApps.firstIndex(where: { $0.id == id }) {
-            activeApps[idx].isMuted.toggle()
+            activeApps[idx].isMuted = newMute
+        }
+        let vol = appVolumes[id] ?? 1.0
+        dispatchAppVolume(id: id, volume: vol, isMuted: newMute)
+    }
+
+    private func dispatchAppVolume(id: String, volume: Float, isMuted: Bool) {
+        appVolumeTasks[id]?.cancel()
+        appVolumeTasks[id] = Task.detached(priority: .userInitiated) {
+            // Debounce rapid slider dragging and mouse wheel scrolls (35ms)
+            try? await Task.sleep(nanoseconds: 35_000_000)
+            guard !Task.isCancelled else { return }
+            AudioDeviceManager.applyVolumeToApp(id: id, volume: volume, isMuted: isMuted)
+        }
+    }
+
+    nonisolated static func applyVolumeToApp(id: String, volume: Float, isMuted: Bool) {
+        let lower = id.lowercased()
+        let vol = isMuted ? 0.0 : Double(volume)
+        let mutedBool = isMuted || (volume == 0)
+        
+        var script: String?
+        
+        if lower.contains("arc") {
+            script = """
+            tell application "Arc"
+                if it is running then
+                    with timeout of 1 seconds
+                        repeat with w in windows
+                            try
+                                tell active tab of w
+                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                end tell
+                                set mediaTabs to (every tab of w whose URL contains "youtube" or URL contains "spotify" or URL contains "music" or URL contains "soundcloud" or URL contains "twitch" or URL contains "netflix" or URL contains "watch")
+                                repeat with mt in mediaTabs
+                                    try
+                                        tell mt to execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                    end try
+                                end repeat
+                            end try
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("chrome") {
+            script = """
+            tell application "Google Chrome"
+                if it is running then
+                    with timeout of 1 seconds
+                        repeat with w in windows
+                            try
+                                tell active tab of w
+                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                end tell
+                                set mediaTabs to (every tab of w whose URL contains "youtube" or URL contains "spotify" or URL contains "music" or URL contains "soundcloud" or URL contains "twitch" or URL contains "netflix" or URL contains "watch")
+                                repeat with mt in mediaTabs
+                                    try
+                                        tell mt to execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                    end try
+                                end repeat
+                            end try
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("brave") {
+            script = """
+            tell application "Brave Browser"
+                if it is running then
+                    with timeout of 1 seconds
+                        repeat with w in windows
+                            try
+                                tell active tab of w
+                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                end tell
+                            end try
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("edgemac") || lower.contains("microsoft edge") {
+            script = """
+            tell application "Microsoft Edge"
+                if it is running then
+                    with timeout of 1 seconds
+                        repeat with w in windows
+                            try
+                                tell active tab of w
+                                    execute javascript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                end tell
+                            end try
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("safari") {
+            script = """
+            tell application "Safari"
+                if it is running then
+                    with timeout of 1 seconds
+                        repeat with w in windows
+                            try
+                                tell current tab of w
+                                    do JavaScript "(() => { const v = \(vol); const m = \(mutedBool); document.querySelectorAll('video, audio').forEach(e => { e.volume = v; e.muted = m; }); return true; })()"
+                                end tell
+                            end try
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("spotify") {
+            let spotifyVol = Int(vol * 100)
+            script = """
+            tell application "Spotify"
+                if it is running then
+                    set sound volume to \(spotifyVol)
+                end if
+            end tell
+            """
+        } else if lower.contains("music") || lower.contains("itunes") {
+            let musicVol = Int(vol * 100)
+            script = """
+            tell application "Music"
+                if it is running then
+                    if \(mutedBool) then
+                        set mute to true
+                    else
+                        set mute to false
+                        set sound volume to \(musicVol)
+                    end if
+                end if
+            end tell
+            """
+        } else if lower.contains("vlc") {
+            let vlcVol = Int(vol * 256)
+            script = """
+            tell application "VLC"
+                if it is running then
+                    if \(mutedBool) then
+                        mute
+                    else
+                        set audio volume to \(vlcVol)
+                    end if
+                end if
+            end tell
+            """
+        } else if lower.contains("quicktime") {
+            script = """
+            tell application "QuickTime Player"
+                if it is running then
+                    repeat with d in documents
+                        try
+                            set audio volume of d to \(vol)
+                        end try
+                    end repeat
+                end if
+            end tell
+            """
+        }
+        
+        if let script = script {
+            var error: NSDictionary?
+            if let appleScript = NSAppleScript(source: script) {
+                appleScript.executeAndReturnError(&error)
+            }
         }
     }
 

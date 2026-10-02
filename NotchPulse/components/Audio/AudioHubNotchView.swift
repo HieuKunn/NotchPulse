@@ -13,6 +13,8 @@ struct AudioHubNotchView: View {
     @ObservedObject var audioManager = AudioDeviceManager.shared
     @EnvironmentObject var vm: NotchPulseViewModel
 
+    @AppStorage("NotchPulse_AudioHubAppsExpanded") private var isAppsExpanded: Bool = true
+
     private var activeOutputName: String {
         audioManager.defaultOutputDevice?.name ?? loc("Speakers")
     }
@@ -25,39 +27,43 @@ struct AudioHubNotchView: View {
         VStack(spacing: 8) {
             // Header Bar
             HStack(spacing: 10) {
-                // Tab switcher (Output vs Input)
+                // Tab switcher (Output vs Input) with full cell hit-testing
                 HStack(spacing: 2) {
                     Button(action: {
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                             audioManager.selectedTab = .output
+                            updateDynamicHeight()
                         }
                     }) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(audioManager.selectedTab == .output ? .white : .secondary)
-                            .frame(width: 26, height: 24)
+                            .frame(width: 34, height: 26)
                             .background(
                                 audioManager.selectedTab == .output ?
                                     Color.white.opacity(0.18) : Color.clear
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
                     Button(action: {
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                             audioManager.selectedTab = .input
+                            updateDynamicHeight()
                         }
                     }) {
                         Image(systemName: "mic.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(audioManager.selectedTab == .input ? .white : .secondary)
-                            .frame(width: 26, height: 24)
+                            .frame(width: 34, height: 26)
                             .background(
                                 audioManager.selectedTab == .input ?
                                     Color.white.opacity(0.18) : Color.clear
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -103,13 +109,14 @@ struct AudioHubNotchView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 8)
             .padding(.top, 2)
 
-            // Scrollable Content: Devices & Apps
+            // Content: Devices & Apps
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 10) {
                     // Devices List Section
@@ -169,30 +176,61 @@ struct AudioHubNotchView: View {
                         .frame(height: 1)
                         .padding(.horizontal, 4)
 
-                    // APPS Section
+                    // APPS Section (Collapsible)
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(loc("APPS"))
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(.secondary)
-                            .padding(.leading, 6)
+                        Button(action: {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                isAppsExpanded.toggle()
+                                updateDynamicHeight()
+                            }
+                        }) {
+                            HStack(spacing: 6) {
+                                Text(loc("APPS"))
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.secondary)
 
-                        if audioManager.activeApps.isEmpty {
-                            Text(loc("No active audio applications"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary.opacity(0.8))
-                                .padding(.leading, 6)
-                                .padding(.vertical, 4)
-                        } else {
-                            ForEach(audioManager.activeApps) { appItem in
-                                AudioAppRow(
-                                    appItem: appItem,
-                                    onVolumeChange: { newVol in
-                                        audioManager.setAppVolume(id: appItem.id, volume: newVol)
-                                    },
-                                    onMuteToggle: {
-                                        audioManager.toggleAppMute(id: appItem.id)
-                                    }
-                                )
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.secondary.opacity(0.85))
+                                    .rotationEffect(.degrees(isAppsExpanded ? 90 : 0))
+
+                                if !audioManager.activeApps.isEmpty {
+                                    Text("\(audioManager.activeApps.count)")
+                                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.65))
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1)
+                                        .background(Color.white.opacity(0.1))
+                                        .clipShape(Capsule())
+                                }
+
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                        }
+                        .buttonStyle(.plain)
+
+                        if isAppsExpanded {
+                            if audioManager.activeApps.isEmpty {
+                                Text(loc("No active audio applications"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary.opacity(0.8))
+                                    .padding(.leading, 8)
+                                    .padding(.vertical, 4)
+                            } else {
+                                ForEach(audioManager.activeApps) { appItem in
+                                    AudioAppRow(
+                                        appItem: appItem,
+                                        onVolumeChange: { newVol in
+                                            audioManager.setAppVolume(id: appItem.id, volume: newVol)
+                                        },
+                                        onMuteToggle: {
+                                            audioManager.toggleAppMute(id: appItem.id)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -200,14 +238,58 @@ struct AudioHubNotchView: View {
                 .padding(.horizontal, 4)
                 .padding(.bottom, 8)
             }
-            .frame(maxHeight: 220)
+            .frame(maxHeight: max(220, calculateContentHeight() - 44))
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 10)
         .padding(.top, 4)
+        .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
         .onAppear {
             audioManager.refreshDevices()
             audioManager.refreshApps()
-            vm.customOpenHeight = 290
+            updateDynamicHeight()
+        }
+        .onDisappear {
+            vm.customOpenHeight = nil
+        }
+        .onChange(of: audioManager.selectedTab) { _ in
+            updateDynamicHeight()
+        }
+        .onChange(of: audioManager.outputDevices) { _ in
+            updateDynamicHeight()
+        }
+        .onChange(of: audioManager.inputDevices) { _ in
+            updateDynamicHeight()
+        }
+        .onChange(of: audioManager.activeApps) { _ in
+            updateDynamicHeight()
+        }
+    }
+
+    private func calculateContentHeight() -> CGFloat {
+        let headerHeight: CGFloat = 40
+        let devicesCount = audioManager.selectedTab == .output ?
+            max(1, audioManager.outputDevices.count) :
+            max(1, audioManager.inputDevices.count)
+        let devicesHeight = CGFloat(devicesCount) * 36
+        let dividerHeight: CGFloat = 10
+        let appsHeaderHeight: CGFloat = 28
+
+        let appsListHeight: CGFloat
+        if isAppsExpanded {
+            let appsCount = max(1, audioManager.activeApps.count)
+            appsListHeight = CGFloat(appsCount) * 32 + 4
+        } else {
+            appsListHeight = 0
+        }
+
+        let total = headerHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + 20
+        return min(440, max(175, total))
+    }
+
+    private func updateDynamicHeight() {
+        let target = calculateContentHeight()
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+            vm.customOpenHeight = target
         }
     }
 }
@@ -253,11 +335,12 @@ private struct AudioDeviceRow: View {
                 Image(systemName: device.isMuted ? (isInput ? "mic.slash.fill" : "speaker.slash.fill") : (isInput ? "mic.fill" : "speaker.wave.2.fill"))
                     .font(.system(size: 10))
                     .foregroundStyle(device.isMuted ? Color.red.opacity(0.85) : Color.secondary)
-                    .frame(width: 18, height: 18)
+                    .frame(width: 20, height: 20)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
-            // Volume Slider
+            // Volume Slider (supports drag & scroll-wheel)
             CustomAudioSlider(
                 value: Binding(
                     get: { CGFloat(device.volume) },
@@ -266,15 +349,15 @@ private struct AudioDeviceRow: View {
                 range: 0...1,
                 tintColor: device.isDefault ? Color.blue : Color.white.opacity(0.7)
             )
-            .frame(width: 110, height: 14)
+            .frame(width: 150, height: 16)
 
             // Percentage Label
             Text("\(Int(round(device.volume * 100)))%")
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(.secondary)
-                .frame(width: 32, alignment: .trailing)
+                .frame(width: 36, alignment: .trailing)
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(
             device.isDefault ?
@@ -325,11 +408,12 @@ private struct AudioAppRow: View {
                 Image(systemName: appItem.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                     .font(.system(size: 10))
                     .foregroundStyle(appItem.isMuted ? Color.red.opacity(0.85) : Color.secondary)
-                    .frame(width: 18, height: 18)
+                    .frame(width: 20, height: 20)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
-            // Volume Slider
+            // Volume Slider (supports drag & scroll-wheel)
             CustomAudioSlider(
                 value: Binding(
                     get: { CGFloat(appItem.volume) },
@@ -338,20 +422,20 @@ private struct AudioAppRow: View {
                 range: 0...1,
                 tintColor: Color.blue
             )
-            .frame(width: 110, height: 14)
+            .frame(width: 150, height: 16)
 
             // Percentage Label
             Text("\(Int(round(appItem.volume * 100)))%")
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(.secondary)
-                .frame(width: 32, alignment: .trailing)
+                .frame(width: 36, alignment: .trailing)
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
         .padding(.vertical, 3)
     }
 }
 
-// MARK: - Minimal Clean Audio Slider
+// MARK: - Minimal Clean Audio Slider with Scroll-Wheel Support
 
 private struct CustomAudioSlider: View {
     @Binding var value: CGFloat
@@ -365,6 +449,13 @@ private struct CustomAudioSlider: View {
             let progress = max(0, min(1, (value - range.lowerBound) / (range.upperBound - range.lowerBound)))
 
             ZStack(alignment: .leading) {
+                // Scroll wheel listener covering full slider area
+                SliderScrollWheelRepresentable { deltaStep in
+                    let span = range.upperBound - range.lowerBound
+                    let newValue = max(range.lowerBound, min(range.upperBound, value + deltaStep * span))
+                    self.value = newValue
+                }
+
                 // Background Track
                 Capsule()
                     .fill(Color.white.opacity(0.12))
@@ -393,5 +484,68 @@ private struct CustomAudioSlider: View {
                     }
             )
         }
+    }
+}
+
+private struct SliderScrollWheelRepresentable: NSViewRepresentable {
+    var onScroll: (CGFloat) -> Void
+
+    func makeNSView(context: Context) -> SliderScrollWheelNSView {
+        let view = SliderScrollWheelNSView()
+        view.onScroll = onScroll
+        return view
+    }
+
+    func updateNSView(_ nsView: SliderScrollWheelNSView, context: Context) {
+        nsView.onScroll = onScroll
+    }
+}
+
+private final class SliderScrollWheelNSView: NSView {
+    var onScroll: ((CGFloat) -> Void)?
+    private var monitor: Any?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window != nil {
+            startMonitoring()
+        } else {
+            stopMonitoring()
+        }
+    }
+
+    private func startMonitoring() {
+        guard monitor == nil else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
+            guard let self = self, let win = self.window, event.window === win else { return event }
+            let pointInWindow = event.locationInWindow
+            let pointInView = self.convert(pointInWindow, from: nil)
+
+            if self.bounds.contains(pointInView) {
+                let delta = event.scrollingDeltaY
+                if abs(delta) > 0.001 {
+                    let step: CGFloat
+                    if event.hasPreciseScrollingDeltas {
+                        step = delta * 0.004
+                    } else {
+                        step = delta > 0 ? 0.04 : -0.04
+                    }
+                    self.onScroll?(step)
+                    return nil // Intercept & consume so the notch/page doesn't scroll
+                }
+            }
+            return event
+        }
+    }
+
+    private func stopMonitoring() {
+        if let monitor = monitor {
+            NSEvent.removeMonitor(monitor)
+            self.monitor = nil
+        }
+    }
+
+    deinit {
+        stopMonitoring()
     }
 }
