@@ -117,127 +117,59 @@ struct AudioHubNotchView: View {
             .padding(.horizontal, 8)
             .padding(.top, 2)
 
-            // Content: Devices & Apps
+            // Content: Devices List
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 8) {
-                    // Devices List Section
-                    VStack(spacing: 4) {
-                        if audioManager.selectedTab == .output {
-                            if audioManager.outputDevices.isEmpty {
-                                Text(loc("No output devices found"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.vertical, 8)
-                            } else {
-                                ForEach(audioManager.outputDevices) { device in
-                                    AudioDeviceRow(
-                                        device: device,
-                                        isInput: false,
-                                        onSelect: {
-                                            audioManager.setDefaultDevice(id: device.id, isInput: false)
-                                        },
-                                        onVolumeChange: { newVol in
-                                            audioManager.setDeviceVolume(id: device.id, volume: newVol, isInput: false)
-                                        },
-                                        onMuteToggle: {
-                                            audioManager.toggleDeviceMute(id: device.id, isInput: false)
-                                        }
-                                    )
-                                }
-                            }
+                VStack(spacing: 4) {
+                    if audioManager.selectedTab == .output {
+                        if audioManager.outputDevices.isEmpty {
+                            Text(loc("No output devices found"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.vertical, 12)
                         } else {
-                            if audioManager.inputDevices.isEmpty {
-                                Text(loc("No input devices found"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.vertical, 8)
-                            } else {
-                                ForEach(audioManager.inputDevices) { device in
-                                    AudioDeviceRow(
-                                        device: device,
-                                        isInput: true,
-                                        onSelect: {
-                                            audioManager.setDefaultDevice(id: device.id, isInput: true)
-                                        },
-                                        onVolumeChange: { newVol in
-                                            audioManager.setDeviceVolume(id: device.id, volume: newVol, isInput: true)
-                                        },
-                                        onMuteToggle: {
-                                            audioManager.toggleDeviceMute(id: device.id, isInput: true)
-                                        }
-                                    )
-                                }
+                            ForEach(audioManager.outputDevices) { device in
+                                AudioDeviceRow(
+                                    device: device,
+                                    isInput: false,
+                                    onSelect: {
+                                        audioManager.setDefaultDevice(id: device.id, isInput: false)
+                                    },
+                                    onVolumeChange: { newVol in
+                                        audioManager.setDeviceVolume(id: device.id, volume: newVol, isInput: false)
+                                    },
+                                    onMuteToggle: {
+                                        audioManager.toggleDeviceMute(id: device.id, isInput: false)
+                                    }
+                                )
                             }
                         }
-                    }
-
-                    // Divider
-                    Rectangle()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(height: 1)
-                        .padding(.horizontal, 4)
-
-                    // APPS Section (Preserved on both Output and Input)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Button(action: {
-                            let newExpanded = !isAppsExpanded
-                            isAppsExpanded = newExpanded
-                            UserDefaults.standard.set(newExpanded, forKey: "NotchPulse_AudioHubAppsExpanded")
-                            updateDynamicHeight(isExpanded: newExpanded)
-                        }) {
-                            HStack(spacing: 6) {
-                                Text(loc("APPS"))
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.secondary)
-
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(.secondary.opacity(0.85))
-                                    .rotationEffect(.degrees(isAppsExpanded ? 90 : 0))
-
-                                if !audioManager.activeApps.isEmpty {
-                                    Text("\(audioManager.activeApps.count)")
-                                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                                        .foregroundStyle(.white.opacity(0.65))
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 1)
-                                        .background(Color.white.opacity(0.1))
-                                        .clipShape(Capsule())
-                                }
-
-                                Spacer()
-                            }
-                            .contentShape(Rectangle())
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                        }
-                        .buttonStyle(.plain)
-
-                        if isAppsExpanded {
-                            if audioManager.activeApps.isEmpty {
-                                Text(loc("No active audio applications"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary.opacity(0.8))
-                                    .padding(.leading, 8)
-                                    .padding(.vertical, 4)
-                            } else {
-                                ForEach(audioManager.activeApps) { appItem in
-                                    AudioAppRow(
-                                        appItem: appItem,
-                                        onVolumeChange: { newVol in
-                                            audioManager.setAppVolume(id: appItem.id, volume: newVol)
-                                        },
-                                        onMuteToggle: {
-                                            audioManager.toggleAppMute(id: appItem.id)
-                                        }
-                                    )
-                                }
+                    } else {
+                        if audioManager.inputDevices.isEmpty {
+                            Text(loc("No input devices found"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.vertical, 12)
+                        } else {
+                            ForEach(audioManager.inputDevices) { device in
+                                AudioDeviceRow(
+                                    device: device,
+                                    isInput: true,
+                                    onSelect: {
+                                        audioManager.setDefaultDevice(id: device.id, isInput: true)
+                                    },
+                                    onVolumeChange: { newVol in
+                                        audioManager.setDeviceVolume(id: device.id, volume: newVol, isInput: true)
+                                    },
+                                    onMuteToggle: {
+                                        audioManager.toggleDeviceMute(id: device.id, isInput: true)
+                                    }
+                                )
                             }
                         }
                     }
                 }
                 .padding(.horizontal, 4)
-                .padding(.bottom, 10)
+                .padding(.bottom, 8)
             }
         }
         .padding(.horizontal, 10)
@@ -245,7 +177,6 @@ struct AudioHubNotchView: View {
         .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
         .onAppear {
             audioManager.refreshDevices()
-            audioManager.refreshApps()
             DispatchQueue.main.async {
                 updateDynamicHeight()
             }
@@ -262,9 +193,6 @@ struct AudioHubNotchView: View {
                 }
             }
         }
-        .onChange(of: isAppsExpanded) { _ in
-            updateDynamicHeight()
-        }
         .onChange(of: audioManager.selectedTab) { _ in
             updateDynamicHeight()
         }
@@ -274,18 +202,11 @@ struct AudioHubNotchView: View {
         .onChange(of: audioManager.inputDevices) { _ in
             updateDynamicHeight()
         }
-        .onChange(of: audioManager.activeApps) { _ in
-            updateDynamicHeight()
-        }
     }
 
     @MainActor
-    static func calculateHeight(
-        selectedTab: AudioHubTab? = nil,
-        isAppsExpanded: Bool? = nil
-    ) -> CGFloat {
+    static func calculateHeight(selectedTab: AudioHubTab? = nil) -> CGFloat {
         let currentTab = selectedTab ?? AudioDeviceManager.shared.selectedTab
-        let expanded = isAppsExpanded ?? ((UserDefaults.standard.object(forKey: "NotchPulse_AudioHubAppsExpanded") as? Bool) ?? true)
         let topBarOffset: CGFloat = 48
         let headerBarHeight: CGFloat = 32
         let spacing: CGFloat = 8
@@ -293,35 +214,20 @@ struct AudioHubNotchView: View {
             max(1, AudioDeviceManager.shared.outputDevices.count) :
             max(1, AudioDeviceManager.shared.inputDevices.count)
         let devicesHeight = CGFloat(devicesCount) * 38
-        let dividerHeight: CGFloat = 17
-        let appsHeaderHeight: CGFloat = 28
-
-        let appsListHeight: CGFloat
-        if expanded {
-            let activeCount = AudioDeviceManager.shared.activeApps.count
-            if activeCount == 0 {
-                appsListHeight = 28
-            } else {
-                appsListHeight = CGFloat(activeCount) * 34
-            }
-        } else {
-            appsListHeight = 0
-        }
-
         let bottomPadding: CGFloat = 16
-        let total = topBarOffset + headerBarHeight + spacing + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
-        return min(560, max(140, total))
+        let total = topBarOffset + headerBarHeight + spacing + devicesHeight + bottomPadding
+        return min(480, max(140, total))
     }
 
-    private func updateDynamicHeight(isExpanded: Bool? = nil) {
-        let target = Self.calculateHeight(selectedTab: audioManager.selectedTab, isAppsExpanded: isExpanded ?? isAppsExpanded)
+    private func updateDynamicHeight() {
+        let target = Self.calculateHeight(selectedTab: audioManager.selectedTab)
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
             vm.customOpenHeight = target
         }
     }
 }
 
-// MARK: - Subviews: Device Row & App Row
+// MARK: - Subviews: Device Row
 
 private struct AudioDeviceRow: View {
     let device: AudioDeviceItem
@@ -395,80 +301,6 @@ private struct AudioDeviceRow: View {
                 Color.white.opacity(0.08) : Color.clear
         )
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-private struct AudioAppRow: View {
-    let appItem: AudioAppItem
-    let onVolumeChange: (Float) -> Void
-    let onMuteToggle: () -> Void
-
-    private var isEffectivelyMuted: Bool {
-        appItem.isMuted || appItem.volume <= 0.001
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            // Equalizer Bars (only if playing media)
-            if appItem.isPlaying {
-                HStack(spacing: 1.5) {
-                    RoundedRectangle(cornerRadius: 0.5)
-                        .fill(Color.green)
-                        .frame(width: 2, height: 8)
-                    RoundedRectangle(cornerRadius: 0.5)
-                        .fill(Color.yellow)
-                        .frame(width: 2, height: 11)
-                    RoundedRectangle(cornerRadius: 0.5)
-                        .fill(Color.red)
-                        .frame(width: 2, height: 6)
-                }
-                .frame(width: 10, height: 12)
-            }
-
-            // App Icon
-            Image(nsImage: appItem.icon)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 18, height: 18)
-                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-
-            // App Name
-            Text(appItem.name)
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.9))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Mute Icon
-            Button(action: onMuteToggle) {
-                Image(systemName: isEffectivelyMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(isEffectivelyMuted ? Color.red.opacity(0.9) : Color.white.opacity(0.9))
-                    .frame(width: 20, height: 20)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            // Volume Slider (supports drag & scroll-wheel + 200% boost for web/apps)
-            CustomAudioSlider(
-                value: Binding(
-                    get: { CGFloat(appItem.volume) },
-                    set: { onVolumeChange(Float($0)) }
-                ),
-                range: 0...2,
-                tintColor: appItem.volume > 1.0 ? Color.orange : Color.blue
-            )
-            .frame(width: 100, height: 16)
-
-            // Percentage Label (shows up to 200% with boost color)
-            Text("\(Int(round(appItem.volume * 100)))%")
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(appItem.volume > 1.0 ? Color.orange : Color.secondary)
-                .frame(width: 36, alignment: .trailing)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
     }
 }
 
