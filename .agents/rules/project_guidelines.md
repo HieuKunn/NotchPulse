@@ -2,7 +2,10 @@
 
 This document outlines the core rules, architectural guidelines, and release procedures for the NotchPulse project. All AI agents working on this codebase MUST read and strictly adhere to these instructions.
 
-> 🚨 **MANDATORY RELEASE CHECKLIST (NEVER SKIP ANY STEP):**
+> ⛔️ **DO NOT RELEASE UNLESS EXPLICITLY INSTRUCTED (STRICT RULE):**
+> If the user's prompt does NOT explicitly contain a direct command or request to release (e.g., "release", "publish", "tag", "release lại", "sửa lỗi build release", etc.), **DO NOT** bump versions/build numbers, **DO NOT** create or push git tags, and **DO NOT** trigger release workflows. Simply make code modifications, verify correctness, and commit normally.
+>
+> 🚨 **MANDATORY RELEASE CHECKLIST (ONLY WHEN USER EXPLICITLY ASKS FOR RELEASE):**
 > 1. ✅ **Update Build Number & Version in Xcode Project:**
 >    - Bump `MARKETING_VERSION` (e.g., `4.8.7`) and increment `CURRENT_PROJECT_VERSION` (build number, e.g., `149`) in `NotchPulse.xcodeproj/project.pbxproj`.
 >    - ⚠️ **BUILD ERROR EXCEPTION RULE**: If the user provides a GitHub Actions / Xcodebuild error log stating the build FAILED, DO NOT increment the build number or version on your subsequent fix attempt. Keep the exact same version/build number and just force-push the fix, because no runnable binary was successfully released to users. Only strictly increment the build number when introducing new features or finalizing a completely successful prior build.
