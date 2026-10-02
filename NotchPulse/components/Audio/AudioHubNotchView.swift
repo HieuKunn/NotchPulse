@@ -248,7 +248,9 @@ struct AudioHubNotchView: View {
             updateDynamicHeight()
         }
         .onDisappear {
-            vm.customOpenHeight = nil
+            if coordinator.currentView != .audio {
+                vm.customOpenHeight = nil
+            }
         }
         .onChange(of: isAppsExpanded) { _ in
             updateDynamicHeight()
@@ -268,26 +270,26 @@ struct AudioHubNotchView: View {
     }
 
     private func calculateContentHeight() -> CGFloat {
-        let physicalNotchOffset: CGFloat = 46
+        let physicalNotchOffset: CGFloat = 50
         let subheaderHeight: CGFloat = 40
         let devicesCount = audioManager.selectedTab == .output ?
             max(1, audioManager.outputDevices.count) :
             max(1, audioManager.inputDevices.count)
         let devicesHeight = CGFloat(devicesCount) * 36
-        let dividerHeight: CGFloat = 8
-        let appsHeaderHeight: CGFloat = 26
+        let dividerHeight: CGFloat = 10
+        let appsHeaderHeight: CGFloat = 30
 
         let appsListHeight: CGFloat
         if isAppsExpanded {
             let appsCount = max(1, audioManager.activeApps.count)
-            appsListHeight = CGFloat(appsCount) * 34 + 8
+            appsListHeight = CGFloat(appsCount) * 36 + 14
         } else {
             appsListHeight = 0
         }
 
-        let bottomPadding: CGFloat = 18
+        let bottomPadding: CGFloat = 20
         let total = physicalNotchOffset + subheaderHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
-        return min(520, max(190, total))
+        return min(540, max(210, total))
     }
 
     private func updateDynamicHeight() {

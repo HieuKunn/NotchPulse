@@ -52,7 +52,7 @@ struct TabSelectionView: View {
         vm.generalDropTargeting = false
         vm.anyDropZoneTargeting = false
         CalendarStateViewModel.shared.isFullMonthExpanded = false
-        if vm.customOpenHeight != nil {
+        if tabView != .audio && tabView != .stats && vm.customOpenHeight != nil {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 vm.customOpenHeight = nil
             }
