@@ -21,16 +21,6 @@ enum PanDirection {
 extension View {
     func panGesture(direction: PanDirection, threshold: CGFloat = 4, action: @escaping (CGFloat, NSEvent.Phase) -> Void) -> some View {
         self
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 20)
-                    .onChanged { value in
-                        let s = direction.signed(from: value.translation)
-                        guard s > 0, s.magnitude >= threshold else { return }
-                        action(s.magnitude, .changed)
-                    }
-                    .onEnded { _ in action(0, .ended) }
-            )
-            .background(ScrollMonitor(direction: direction, threshold: threshold, action: action))
     }
 }
 

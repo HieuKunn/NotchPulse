@@ -118,7 +118,7 @@ struct AudioHubNotchView: View {
 
             // Content: Devices & Apps
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 10) {
+                VStack(spacing: 8) {
                     // Devices List Section
                     VStack(spacing: 4) {
                         if audioManager.selectedTab == .output {
@@ -236,9 +236,8 @@ struct AudioHubNotchView: View {
                     }
                 }
                 .padding(.horizontal, 4)
-                .padding(.bottom, 8)
+                .padding(.bottom, 6)
             }
-            .frame(maxHeight: max(220, calculateContentHeight() - 44))
         }
         .padding(.horizontal, 10)
         .padding(.top, 4)
@@ -250,6 +249,9 @@ struct AudioHubNotchView: View {
         }
         .onDisappear {
             vm.customOpenHeight = nil
+        }
+        .onChange(of: isAppsExpanded) { _ in
+            updateDynamicHeight()
         }
         .onChange(of: audioManager.selectedTab) { _ in
             updateDynamicHeight()
@@ -266,24 +268,26 @@ struct AudioHubNotchView: View {
     }
 
     private func calculateContentHeight() -> CGFloat {
-        let headerHeight: CGFloat = 40
+        let notchHeaderOffset: CGFloat = 38
+        let subheaderHeight: CGFloat = 38
         let devicesCount = audioManager.selectedTab == .output ?
             max(1, audioManager.outputDevices.count) :
             max(1, audioManager.inputDevices.count)
         let devicesHeight = CGFloat(devicesCount) * 36
-        let dividerHeight: CGFloat = 10
-        let appsHeaderHeight: CGFloat = 28
+        let dividerHeight: CGFloat = 12
+        let appsHeaderHeight: CGFloat = 32
 
         let appsListHeight: CGFloat
         if isAppsExpanded {
             let appsCount = max(1, audioManager.activeApps.count)
-            appsListHeight = CGFloat(appsCount) * 32 + 4
+            appsListHeight = CGFloat(appsCount) * 36 + 6
         } else {
             appsListHeight = 0
         }
 
-        let total = headerHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + 20
-        return min(440, max(175, total))
+        let bottomPadding: CGFloat = 26
+        let total = notchHeaderOffset + subheaderHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
+        return min(480, max(180, total))
     }
 
     private func updateDynamicHeight() {

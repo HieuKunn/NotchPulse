@@ -669,56 +669,10 @@ struct GeneralSettings: View {
             systemFeaturesSection
             notchSizingSection
             NotchBehaviour()
-            gestureControls()
         }
         .scrollContentBackground(.hidden)
         .hideScrollbar()
         .accentColor(.effectiveAccent)
-        .onChange(of: openNotchOnHover) {
-            if !openNotchOnHover {
-                enableGestures = true
-            }
-        }
-    }
-
-    @ViewBuilder
-    func gestureControls() -> some View {
-        Section {
-            Defaults.Toggle(key: .enableGestures) {
-                Text(loc("Enable gestures"))
-            }
-                .disabled(!openNotchOnHover)
-            if enableGestures {
-                Toggle(loc("Change media with horizontal gestures"), isOn: .constant(false))
-                    .disabled(true)
-                Defaults.Toggle(key: .closeGestureEnabled) {
-                    Text(loc("Close gesture"))
-                }
-                Slider(value: $gestureSensitivity, in: 100...300, step: 100) {
-                    HStack {
-                        Text(loc("Gesture sensitivity"))
-                        Spacer()
-                        Text(
-                            Defaults[.gestureSensitivity] == 100
-                                ? loc("High") : Defaults[.gestureSensitivity] == 200 ? loc("Medium") : loc("Low")
-                        )
-                        .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        } header: {
-            HStack {
-                Text(loc("Gesture control"))
-                customBadge(text: loc("Beta"))
-            }
-        } footer: {
-            Text(
-                loc("Two-finger swipe up on notch to close, two-finger swipe down on notch to open when **Open notch on hover** option is disabled")
-            )
-            .multilineTextAlignment(.trailing)
-            .foregroundStyle(.secondary)
-            .font(.caption)
-        }
     }
 
     @ViewBuilder

@@ -442,20 +442,6 @@ struct ContentView: View {
                     .onChange(of: isFaceIDActive) { _, _ in
                         updateFaceIDExpansion()
                     }
-                    .conditionalModifier(Defaults[.enableGestures]) { view in
-                        view
-                            .panGesture(direction: .down) { translation, phase in
-                                guard !isFaceIDActive else { return }
-                                handleDownGesture(translation: translation, phase: phase)
-                            }
-                    }
-                    .conditionalModifier(Defaults[.closeGestureEnabled] && Defaults[.enableGestures]) { view in
-                        view
-                            .panGesture(direction: .up) { translation, phase in
-                                guard !isFaceIDActive else { return }
-                                handleUpGesture(translation: translation, phase: phase)
-                            }
-                    }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
                         if vm.notchState == .open && !isHovering && !vm.isBatteryPopoverActive {
                             hoverTask?.cancel()
@@ -552,7 +538,7 @@ struct ContentView: View {
         .environmentObject(vm)
         .onChange(of: coordinator.currentView) { _, newView in
             guard !SharingStateManager.shared.preventNotchClose else { return }
-            if vm.customOpenHeight != nil {
+            if newView != .audio && newView != .stats && vm.customOpenHeight != nil {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     vm.customOpenHeight = nil
                 }
@@ -1005,69 +991,7 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Gesture Handling
 
-    private func handleDownGesture(translation: CGFloat, phase: NSEvent.Phase) {
-        guard !NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
-        guard vm.notchState == .closed else { return }
-
-        if phase == .ended {
-            withAnimation(animationSpring) { gestureProgress = .zero }
-            return
-        }
-
-        withAnimation(animationSpring) {
-            gestureProgress = (translation / Defaults[.gestureSensitivity]) * 20
-        }
-
-        if translation > Defaults[.gestureSensitivity] {
-            if Defaults[.enableHaptics] {
-                haptics.toggle()
-            }
-            withAnimation(animationSpring) {
-                gestureProgress = .zero
-            }
-            doOpen()
-        }
-    }
-
-    private func handleUpGesture(translation: CGFloat, phase: NSEvent.Phase) {
-        guard vm.notchState == .open && !vm.isHoveringCalendar else { return }
-
-        // If in Clipboard view (or hovering over Clipboard), do NOT close the notch unless user has scrolled all the way to the last copied item
-        if (coordinator.currentView == .clipboard || vm.isHoveringClipboard) && !vm.clipboardScrolledToBottom {
-            if gestureProgress != .zero {
-                withAnimation(animationSpring) {
-                    gestureProgress = .zero
-                }
-            }
-            return
-        }
-
-        withAnimation(animationSpring) {
-            gestureProgress = (translation / Defaults[.gestureSensitivity]) * -20
-        }
-
-        if phase == .ended {
-            withAnimation(animationSpring) {
-                gestureProgress = .zero
-            }
-        }
-
-        if translation > Defaults[.gestureSensitivity] {
-            withAnimation(animationSpring) {
-                isHovering = false
-            }
-            if !SharingStateManager.shared.preventNotchClose { 
-                gestureProgress = .zero
-                vm.close()
-            }
-
-            if Defaults[.enableHaptics] {
-                haptics.toggle()
-            }
-        }
-    }
 }
 
 struct FullScreenDropDelegate: DropDelegate {
