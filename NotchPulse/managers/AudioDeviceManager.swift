@@ -596,10 +596,8 @@ final class AudioDeviceManager: ObservableObject {
         let isMuted = appMutes[id] ?? false
         
         let lower = id.lowercased()
-        if (lower.contains("spotify") || lower.contains("music")) && MusicManager.shared.currentController != nil {
-            Task {
-                await MusicManager.shared.setVolume(Double(clamped))
-            }
+        if (lower.contains("spotify") || lower.contains("music")) && MusicManager.shared.isPlaying {
+            MusicManager.shared.setVolume(to: Double(clamped))
         }
         
         dispatchAppVolume(id: id, volume: clamped, isMuted: isMuted)
@@ -615,10 +613,8 @@ final class AudioDeviceManager: ObservableObject {
         let vol = appVolumes[id] ?? 1.0
         
         let lower = id.lowercased()
-        if (lower.contains("spotify") || lower.contains("music")) && MusicManager.shared.currentController != nil {
-            Task {
-                await MusicManager.shared.setVolume(newMute ? 0 : Double(vol))
-            }
+        if (lower.contains("spotify") || lower.contains("music")) && MusicManager.shared.isPlaying {
+            MusicManager.shared.setVolume(to: newMute ? 0 : Double(vol))
         }
         
         dispatchAppVolume(id: id, volume: vol, isMuted: newMute)
@@ -902,6 +898,7 @@ final class AudioDeviceManager: ObservableObject {
             if let appleScript = NSAppleScript(source: script) {
                 appleScript.executeAndReturnError(&error)
             }
+        }
     }
 
     // MARK: - CoreAudio Internal Queries
