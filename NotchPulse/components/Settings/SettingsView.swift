@@ -2386,7 +2386,6 @@ struct ClipboardSettingsView: View {
 
 struct AudioSettingsView: View {
     @Default(.enableAudioHub) var enableAudioHub
-    @Default(.showAudioHubInNotch) var showAudioHubInNotch
     @ObservedObject var audioManager = AudioDeviceManager.shared
 
     var body: some View {
@@ -2396,7 +2395,7 @@ struct AudioSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(loc("Enable Audio Hub"))
                             .font(.headline)
-                        Text(loc("Manage audio devices, per-device volume & mute, and per-app volume mixer directly from the Notch."))
+                        Text(loc("Manage audio devices, per-device volume & mute directly from the Notch."))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -2410,26 +2409,6 @@ struct AudioSettingsView: View {
             }
 
             if enableAudioHub {
-                Section(header: Text(loc("Display Options"))) {
-                    Defaults.Toggle(key: .showAudioHubInNotch) {
-                        Text(loc("Show Audio Hub icon in Notch / Dynamic Island"))
-                    }
-                }
-
-                Section(header: Text(loc("App Volume Engine"))) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Defaults.Toggle(key: .enableVirtualAudioDriver) {
-                            Text(loc("Universal App Audio Engine"))
-                        }
-
-                        Text(loc("Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.vertical, 2)
-                }
-
                 Section(header: Text(loc("Features"))) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top, spacing: 10) {
@@ -2452,9 +2431,9 @@ struct AudioSettingsView: View {
                                 .foregroundStyle(Color.effectiveAccent)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(loc("Per-App Volume Mixer"))
+                                Text(loc("Per-Device Volume & Mute"))
                                     .font(.subheadline.weight(.medium))
-                                Text(loc("Adjust independent volume levels for music players, browsers, and voice apps."))
+                                Text(loc("Adjust volume sliders and mute states independently for each connected audio device."))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

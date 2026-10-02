@@ -242,7 +242,7 @@ struct StatsView: View {
                                     .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(monitor.temperatureLevel.color)
 
-                                Text(loc("Nhiệt độ & Quạt"))
+                                Text(loc("Temperature & Fan"))
                                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                                     .foregroundStyle(.white.opacity(0.9))
 
@@ -295,8 +295,27 @@ struct StatsView: View {
         }
         .onAppear {
             monitor.startMonitoring()
-            if isThermalExpanded {
+            if isThermalExpanded || vm.featureTourTarget == "fan" {
+                if vm.featureTourTarget == "fan" {
+                    isThermalExpanded = true
+                }
                 monitor.startThermalMonitoring()
+            }
+        }
+        .onChange(of: vm.featureTourTarget) { _, target in
+            if target == "fan" {
+                withAnimation(NotchPulseViewModel.notchSpring) {
+                    isThermalExpanded = true
+                    expandedMetric = nil
+                    monitor.startThermalMonitoring()
+                    vm.customOpenHeight = 285
+                }
+            } else if target == "stats" {
+                withAnimation(NotchPulseViewModel.notchSpring) {
+                    isThermalExpanded = false
+                    monitor.stopThermalMonitoring()
+                    vm.customOpenHeight = nil
+                }
             }
         }
         .onDisappear {

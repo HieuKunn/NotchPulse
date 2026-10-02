@@ -113,11 +113,19 @@ struct FeatureTourView: View {
         ),
         FeatureTourStep(
             title: "System Stats",
-            description: "Monitor your Mac's health in real-time. View live CPU, Memory, and GPU usage graphs directly in your status bar. Click on CPU or RAM cards to open Activity Monitor for detailed breakdown.",
+            description: "Monitor your Mac's health in real-time. View live CPU, Memory, and GPU usage graphs directly in your status bar. Click on CPU or RAM cards to inspect detailed process breakdown.",
             icon: "chart.xyaxis.line",
             tabColor: .green,
             viewType: .stats,
             target: "stats"
+        ),
+        FeatureTourStep(
+            title: "Temperature & Fan Control",
+            description: "Expand the thermal drawer to monitor CPU/GPU temperatures in real-time and customize fan speed with hardware safety constraints.",
+            icon: "fanblades.fill",
+            tabColor: .teal,
+            viewType: .stats,
+            target: "fan"
         ),
         FeatureTourStep(
             title: "Clipboard Manager",
@@ -126,6 +134,14 @@ struct FeatureTourView: View {
             tabColor: .orange,
             viewType: .clipboard,
             target: "clipboard"
+        ),
+        FeatureTourStep(
+            title: "Audio Hub",
+            description: "Switch instantly between speakers, headphones, and microphones. Adjust volume and mute states effortlessly right inside the notch.",
+            icon: "speaker.wave.2.fill",
+            tabColor: .cyan,
+            viewType: .audio,
+            target: "audio"
         ),
         FeatureTourStep(
             title: "Settings & Options",
@@ -392,7 +408,14 @@ struct FeatureTourView: View {
             coordinator.currentView = currentStep.viewType
             targetVM.featureTourTarget = currentStep.target
             CalendarStateViewModel.shared.isFullMonthExpanded = false
-            targetVM.customOpenHeight = nil
+            if currentStep.target == "fan" {
+                targetVM.customOpenHeight = 285
+            } else if currentStep.viewType == .audio {
+                AudioDeviceManager.shared.refreshDevices()
+                targetVM.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
+            } else {
+                targetVM.customOpenHeight = nil
+            }
             targetVM.open()
         }
     }
