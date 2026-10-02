@@ -194,44 +194,55 @@ final class AudioDeviceManager: ObservableObject {
 
     func refreshApps() {
         let running = NSWorkspace.shared.runningApplications
+        let myBid = Bundle.main.bundleIdentifier ?? ""
+        let isSystemMusicPlaying = MusicManager.shared.isPlaying
         let mediaKeywords = [
             "music", "spotify", "arc", "chrome", "safari", "firefox", "brave", "edge", "opera", "vivaldi", "orion",
             "youtube", "discord", "slack", "telegram", "vlc", "iina", "quicktime", "zoom", "teams", "podcasts",
-            "netflix", "tidal", "deezer", "soundcloud", "whatsapp", "signal"
+            "netflix", "tidal", "deezer", "soundcloud", "whatsapp", "signal", "game", "player", "audio", "video"
         ]
-        let isUniversalMode = Defaults[.enableVirtualAudioDriver]
-        let isSystemMusicPlaying = MusicManager.shared.isPlaying
 
         var items: [AudioAppItem] = []
         for app in running where app.activationPolicy == .regular {
             guard let name = app.localizedName, !name.isEmpty else { continue }
             let bid = app.bundleIdentifier ?? name
-            let lower = (name + " " + bid).lowercased()
+            if bid == myBid { continue }
 
-            let isMediaRelated = mediaKeywords.contains(where: { lower.contains($0) })
-            if isUniversalMode || isMediaRelated {
-                let savedVol = appVolumes[bid] ?? 1.0
-                let savedMute = appMutes[bid] ?? false
-                
-                // Only mark playing if it's the active music player or has active media playback
-                var isPlaying = false
-                if isSystemMusicPlaying && (lower.contains("music") || lower.contains("spotify")) {
+            let lower = (name + " " + bid).lowercased()
+            let savedVol = appVolumes[bid] ?? 1.0
+            let savedMute = appMutes[bid] ?? false
+            
+            var isPlaying = false
+            if isSystemMusicPlaying {
+                if lower.contains("music") || lower.contains("spotify") || lower.contains("tidal") || lower.contains("deezer") {
                     isPlaying = true
                 }
-
-                items.append(AudioAppItem(
-                    id: bid,
-                    name: name,
-                    bundleIdentifier: app.bundleIdentifier,
-                    volume: savedVol,
-                    isMuted: savedMute,
-                    isPlaying: isPlaying
-                ))
             }
+
+            items.append(AudioAppItem(
+                id: bid,
+                name: name,
+                bundleIdentifier: app.bundleIdentifier,
+                volume: savedVol,
+                isMuted: savedMute,
+                isPlaying: isPlaying
+            ))
         }
 
-        // Keep sorted by name
-        items.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        // Sort: Active playing apps first, then media-related apps, then alphabetically
+        items.sort { a, b in
+            if a.isPlaying != b.isPlaying {
+                return a.isPlaying && !b.isPlaying
+            }
+            let aLower = (a.name + " " + a.id).lowercased()
+            let bLower = (b.name + " " + b.id).lowercased()
+            let aIsMedia = mediaKeywords.contains(where: { aLower.contains($0) })
+            let bIsMedia = mediaKeywords.contains(where: { bLower.contains($0) })
+            if aIsMedia != bIsMedia {
+                return aIsMedia && !bIsMedia
+            }
+            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+        }
         self.activeApps = items
     }
 
@@ -376,6 +387,14 @@ final class AudioDeviceManager: ObservableObject {
             activeApps[idx].volume = clamped
         }
         let isMuted = appMutes[id] ?? false
+        
+        let lower = id.lowercased()
+        if (lower.contains("spotify") || lower.contains("music")) && MusicManager.shared.currentController != nil {
+            Task {
+                await MusicManager.shared.setVolume(Double(clamped))
+            }
+        }
+        
         dispatchAppVolume(id: id, volume: clamped, isMuted: isMuted)
     }
 
@@ -387,6 +406,14 @@ final class AudioDeviceManager: ObservableObject {
             activeApps[idx].isMuted = newMute
         }
         let vol = appVolumes[id] ?? 1.0
+        
+        let lower = id.lowercased()
+        if (lower.contains("spotify") || lower.contains("music")) && MusicManager.shared.currentController != nil {
+            Task {
+                await MusicManager.shared.setVolume(newMute ? 0 : Double(vol))
+            }
+        }
+        
         dispatchAppVolume(id: id, volume: vol, isMuted: newMute)
     }
 
@@ -409,29 +436,42 @@ final class AudioDeviceManager: ObservableObject {
         (() => {
             const v = \(vol);
             const m = \(mutedBool);
-            document.querySelectorAll('video, audio').forEach(e => {
+            function adjustMedia(el) {
+                if (!el) return;
                 if (v > 1.0) {
-                    e.volume = 1.0;
-                    e.muted = m;
+                    el.volume = 1.0;
+                    el.muted = m;
                     try {
-                        if (!e._npGain) {
+                        if (!el._npGain) {
                             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                            const src = ctx.createMediaElementSource(e);
+                            const src = ctx.createMediaElementSource(el);
                             const gain = ctx.createGain();
                             src.connect(gain);
                             gain.connect(ctx.destination);
-                            e._npGain = gain;
-                            e._npCtx = ctx;
+                            el._npGain = gain;
+                            el._npCtx = ctx;
                         }
-                        if (e._npGain) {
-                            e._npGain.gain.value = v;
-                            if (e._npCtx && e._npCtx.state === 'suspended') { e._npCtx.resume(); }
+                        if (el._npGain) {
+                            el._npGain.gain.value = v;
+                            if (el._npCtx && el._npCtx.state === 'suspended') { el._npCtx.resume(); }
                         }
                     } catch(err) {}
                 } else {
-                    e.volume = Math.max(0, Math.min(1, v));
-                    e.muted = m;
-                    if (e._npGain) { e._npGain.gain.value = 1.0; }
+                    el.volume = Math.max(0, Math.min(1, v));
+                    el.muted = m;
+                    if (el._npGain) { el._npGain.gain.value = 1.0; }
+                }
+            }
+            try {
+                const ytp = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+                if (ytp && typeof ytp.setVolume === 'function') {
+                    if (m) { ytp.mute(); } else { ytp.unMute(); ytp.setVolume(Math.min(100, v * 100)); }
+                }
+            } catch(err) {}
+            document.querySelectorAll('video, audio').forEach(adjustMedia);
+            document.querySelectorAll('*').forEach(el => {
+                if (el.shadowRoot) {
+                    el.shadowRoot.querySelectorAll('video, audio').forEach(adjustMedia);
                 }
             });
             return true;
@@ -440,99 +480,7 @@ final class AudioDeviceManager: ObservableObject {
 
         var script: String?
         
-        if lower.contains("arc") {
-            script = """
-            tell application "Arc"
-                if it is running then
-                    with timeout of 1 seconds
-                        repeat with w in windows
-                            try
-                                tell active tab of w
-                                    execute javascript "\(jsSnippet)"
-                                end tell
-                                set mediaTabs to (every tab of w whose URL contains "youtube" or URL contains "spotify" or URL contains "music" or URL contains "soundcloud" or URL contains "twitch" or URL contains "netflix" or URL contains "watch")
-                                repeat with mt in mediaTabs
-                                    try
-                                        tell mt to execute javascript "\(jsSnippet)"
-                                    end try
-                                end repeat
-                            end try
-                        end repeat
-                    end timeout
-                end if
-            end tell
-            """
-        } else if lower.contains("chrome") {
-            script = """
-            tell application "Google Chrome"
-                if it is running then
-                    with timeout of 1 seconds
-                        repeat with w in windows
-                            try
-                                tell active tab of w
-                                    execute javascript "\(jsSnippet)"
-                                end tell
-                                set mediaTabs to (every tab of w whose URL contains "youtube" or URL contains "spotify" or URL contains "music" or URL contains "soundcloud" or URL contains "twitch" or URL contains "netflix" or URL contains "watch")
-                                repeat with mt in mediaTabs
-                                    try
-                                        tell mt to execute javascript "\(jsSnippet)"
-                                    end try
-                                end repeat
-                            end try
-                        end repeat
-                    end timeout
-                end if
-            end tell
-            """
-        } else if lower.contains("brave") {
-            script = """
-            tell application "Brave Browser"
-                if it is running then
-                    with timeout of 1 seconds
-                        repeat with w in windows
-                            try
-                                tell active tab of w
-                                    execute javascript "\(jsSnippet)"
-                                end tell
-                            end try
-                        end repeat
-                    end timeout
-                end if
-            end tell
-            """
-        } else if lower.contains("edgemac") || lower.contains("microsoft edge") {
-            script = """
-            tell application "Microsoft Edge"
-                if it is running then
-                    with timeout of 1 seconds
-                        repeat with w in windows
-                            try
-                                tell active tab of w
-                                    execute javascript "\(jsSnippet)"
-                                end tell
-                            end try
-                        end repeat
-                    end timeout
-                end if
-            end tell
-            """
-        } else if lower.contains("safari") {
-            script = """
-            tell application "Safari"
-                if it is running then
-                    with timeout of 1 seconds
-                        repeat with w in windows
-                            try
-                                tell current tab of w
-                                    do JavaScript "\(jsSnippet)"
-                                end tell
-                            end try
-                        end repeat
-                    end timeout
-                end if
-            end tell
-            """
-        } else if lower.contains("spotify") {
+        if lower.contains("spotify") {
             let spotifyVol = Int(vol * 100)
             script = """
             tell application "Spotify"
@@ -555,6 +503,29 @@ final class AudioDeviceManager: ObservableObject {
                 end if
             end tell
             """
+        } else if lower.contains("apple.tv") || lower == "tv" {
+            let tvVol = Int(vol * 100)
+            script = """
+            tell application "TV"
+                if it is running then
+                    if \(mutedBool) then
+                        set mute to true
+                    else
+                        set mute to false
+                        set sound volume to \(tvVol)
+                    end if
+                end if
+            end tell
+            """
+        } else if lower.contains("podcasts") {
+            let podVol = Int(vol * 100)
+            script = """
+            tell application "Podcasts"
+                if it is running then
+                    set sound volume to \(podVol)
+                end if
+            end tell
+            """
         } else if lower.contains("vlc") {
             let vlcVol = Int(vol * 256)
             script = """
@@ -565,6 +536,15 @@ final class AudioDeviceManager: ObservableObject {
                     else
                         set audio volume to \(vlcVol)
                     end if
+                end if
+            end tell
+            """
+        } else if lower.contains("iina") {
+            let iinaVol = Int(vol * 100)
+            script = """
+            tell application "IINA"
+                if it is running then
+                    set volume to \(iinaVol)
                 end if
             end tell
             """
@@ -580,6 +560,134 @@ final class AudioDeviceManager: ObservableObject {
                 end if
             end tell
             """
+        } else if lower.contains("arc") {
+            script = """
+            tell application "Arc"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to execute javascript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("chrome") {
+            script = """
+            tell application "Google Chrome"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to execute javascript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("brave") {
+            script = """
+            tell application "Brave Browser"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to execute javascript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("edgemac") || lower.contains("microsoft edge") || lower.contains("edge") {
+            script = """
+            tell application "Microsoft Edge"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to execute javascript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("safari") {
+            script = """
+            tell application "Safari"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to do JavaScript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("orion") {
+            script = """
+            tell application "Orion"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to do JavaScript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("opera") {
+            script = """
+            tell application "Opera"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to execute javascript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
+        } else if lower.contains("vivaldi") {
+            script = """
+            tell application "Vivaldi"
+                if it is running then
+                    with timeout of 2 seconds
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    tell t to execute javascript "\(jsSnippet)"
+                                end try
+                            end repeat
+                        end repeat
+                    end timeout
+                end if
+            end tell
+            """
         }
         
         if let script = script {
@@ -587,7 +695,6 @@ final class AudioDeviceManager: ObservableObject {
             if let appleScript = NSAppleScript(source: script) {
                 appleScript.executeAndReturnError(&error)
             }
-        }
     }
 
     // MARK: - CoreAudio Internal Queries

@@ -118,7 +118,8 @@ struct AudioHubNotchView: View {
             .padding(.top, 2)
 
             // Content: Devices & Apps
-            VStack(spacing: 8) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 8) {
                     // Devices List Section
                     VStack(spacing: 4) {
                         if audioManager.selectedTab == .output {
@@ -176,7 +177,7 @@ struct AudioHubNotchView: View {
                         .frame(height: 1)
                         .padding(.horizontal, 4)
 
-                    // APPS Section (Collapsible)
+                    // APPS Section (Preserved on both Output and Input)
                     VStack(alignment: .leading, spacing: 6) {
                         Button(action: {
                             withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
@@ -238,9 +239,10 @@ struct AudioHubNotchView: View {
                 .padding(.horizontal, 4)
                 .padding(.bottom, 6)
             }
-            .padding(.horizontal, 10)
-            .padding(.top, 4)
-            .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 4)
+        .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
         .onAppear {
             audioManager.refreshDevices()
             audioManager.refreshApps()
