@@ -186,6 +186,7 @@ final class AudioDeviceManager: ObservableObject {
     func refreshApps() {
         let running = NSWorkspace.shared.runningApplications
         let mediaKeywords = ["music", "spotify", "arc", "chrome", "safari", "firefox", "brave", "youtube", "discord", "slack", "telegram", "vlc", "quicktime", "zoom", "teams", "podcasts"]
+        let isUniversalMode = Defaults[.enableVirtualAudioDriver]
 
         var items: [AudioAppItem] = []
         for app in running where app.activationPolicy == .regular {
@@ -193,9 +194,10 @@ final class AudioDeviceManager: ObservableObject {
             let bid = app.bundleIdentifier ?? name
             let lower = (name + " " + bid).lowercased()
 
-            // Prioritize browsers, media players and active apps
+            // In lightweight mode: filter to media-capable apps / active apps
+            // In universal mode: list all running regular apps
             let isMediaRelated = mediaKeywords.contains(where: { lower.contains($0) })
-            if isMediaRelated || app.isActive {
+            if isUniversalMode || isMediaRelated || app.isActive {
                 let savedVol = appVolumes[bid] ?? 1.0
                 let savedMute = appMutes[bid] ?? false
                 let isPlaying = (lower.contains("music") || lower.contains("spotify") || lower.contains("arc") || lower.contains("chrome") || lower.contains("safari"))
@@ -707,5 +709,12 @@ final class AudioDeviceManager: ObservableObject {
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
             self?.refreshApps()
         }
+
+        // Listen for Universal Audio Engine toggle changes
+        Defaults.observe(.enableVirtualAudioDriver) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshApps()
+            }
+        }.tieToLifetime(of: self)
     }
 }

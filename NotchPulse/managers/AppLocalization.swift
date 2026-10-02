@@ -38,6 +38,9 @@ struct L10n {
     
     private static let translations: [AppLanguage: [String: String]] = [
         .english: [
+            "App Volume Engine": "App Volume Engine",
+            "Universal App Audio Engine": "Universal App Audio Engine",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "'Now Playing' was the only option on previous versions and works with all media apps.",
             "560 px (Compact)": "560 px (Compact)",
             "960 px (Extra Wide)": "960 px (Extra Wide)",
@@ -495,6 +498,9 @@ struct L10n {
             "Image Conversion Failed": "Image Conversion Failed"
         ],
         .vietnamese: [
+            "App Volume Engine": "Bộ điều khiển âm lượng ứng dụng",
+            "Universal App Audio Engine": "Trình điều khiển âm thanh mọi ứng dụng",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Tắt tính năng này giúp tiết kiệm RAM và CPU bằng cách chỉ điều khiển trình duyệt và app nghe nhạc được hỗ trợ. Bật để tinh chỉnh âm lượng mọi ứng dụng hệ thống.",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "'Đang phát' là tùy chọn tương thích với tất cả ứng dụng phát đa phương tiện.",
             "560 px (Compact)": "560 px (Gọn)",
             "960 px (Extra Wide)": "960 px (Rộng)",
@@ -952,6 +958,9 @@ struct L10n {
             "Image Conversion Failed": "Chuyển đổi ảnh thất bại"
         ],
         .german: [
+            "App Volume Engine": "App-Lautstärke-Engine",
+            "Universal App Audio Engine": "Universelle App-Audio-Engine",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Deaktivieren spart RAM und CPU, indem nur unterstützte Browser und Mediaplayer gesteuert werden. Aktivieren ermöglicht die Lautstärkeregelung für alle Systemanwendungen.",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "'Aktuelle Wiedergabe' funktioniert universell mit allen Medien-Apps.",
             "560 px (Compact)": "560 px (Kompakt)",
             "960 px (Extra Wide)": "960 px (Extra breit)",
@@ -1409,6 +1418,9 @@ struct L10n {
             "Image Conversion Failed": "Bildkonvertierung fehlgeschlagen"
         ],
         .traditionalChinese: [
+            "App Volume Engine": "應用程式音量引擎",
+            "Universal App Audio Engine": "全域應用程式音訊引擎",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "關閉可節省記憶體和 CPU，僅控制受支援的瀏覽器和播放器。開啟後可調整所有系統應用程式的音量。",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "「正在播放」與所有多媒體播放器均相容。",
             "560 px (Compact)": "560 像素（緊湊）",
             "960 px (Extra Wide)": "960 像素（超寬）",
@@ -1866,6 +1878,9 @@ struct L10n {
             "Image Conversion Failed": "圖片轉換失敗"
         ],
         .simplifiedChinese: [
+            "App Volume Engine": "应用音量引擎",
+            "Universal App Audio Engine": "全局应用音频引擎",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "关闭可节省内存和 CPU，仅控制受支持的浏览器和播放器。开启后可调节所有系统应用程序的音量。",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "“正在播放”与所有多媒体播放器均兼容。",
             "560 px (Compact)": "560 像素（紧凑）",
             "960 px (Extra Wide)": "960 像素（超宽）",
@@ -2323,6 +2338,9 @@ struct L10n {
             "Image Conversion Failed": "图像转换失败"
         ],
         .japanese: [
+            "App Volume Engine": "アプリ音量エンジン",
+            "Universal App Audio Engine": "ユニバーサル・アプリオーディオエンジン",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "無効にすると、対応するブラウザやメディアプレーヤーのみを制御し、メモリとCPUを節約します。有効にすると、すべてのシステムアプリの音量を調整できます。",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "「再生中」はすべてのメディアアプリに対応しています。",
             "560 px (Compact)": "560 px（コンパクト）",
             "960 px (Extra Wide)": "960 px（エクストラワイド）",
@@ -2780,6 +2798,9 @@ struct L10n {
             "Image Conversion Failed": "画像の変換に失敗しました"
         ],
         .french: [
+            "App Volume Engine": "Moteur de volume d'application",
+            "Universal App Audio Engine": "Moteur audio universel pour applications",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "La désactivation économise la RAM et le processeur en ne contrôlant que les navigateurs et lecteurs pris en charge. L'activation permet de régler le volume de toutes les applications système.",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "« À l'écoute » fonctionne avec toutes les applications multimédias.",
             "560 px (Compact)": "560 px (Compact)",
             "960 px (Extra Wide)": "960 px (Ultra large)",
@@ -3237,6 +3258,9 @@ struct L10n {
             "Image Conversion Failed": "Échec de la conversion de l'image"
         ],
         .spanish: [
+            "App Volume Engine": "Motor de volumen de aplicaciones",
+            "Universal App Audio Engine": "Motor de audio universal para aplicaciones",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Desactivar ahorra RAM y CPU al controlar solo navegadores y reproductores compatibles. Activar permite ajustar el volumen en todas las aplicaciones del sistema.",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "'En reproducción' funciona con todas las aplicaciones multimedia.",
             "560 px (Compact)": "560 px (Compacto)",
             "960 px (Extra Wide)": "960 px (Extra ancho)",
@@ -3694,6 +3718,9 @@ struct L10n {
             "Image Conversion Failed": "Error al convertir la imagen"
         ],
         .arabic: [
+            "App Volume Engine": "محرك صوت التطبيقات",
+            "Universal App Audio Engine": "محرك الصوت الشامل للتطبيقات",
+            "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "يؤدي التعطيل إلى توفير الذاكرة والمعالج من خلال التحكم في المتصفحات ومشغلات الوسائط المدعومة فقط. يتيح التمكين ضبط مستوى الصوت عبر جميع تطبيقات النظام.",
             "'Now Playing' was the only option on previous versions and works with all media apps.": "خيار 'قيد التشغيل' متوافق مع كافة تطبيقات الوسائط.",
             "560 px (Compact)": "560 بكسل (مدمج)",
             "960 px (Extra Wide)": "960 بكسل (عريض جداً)",

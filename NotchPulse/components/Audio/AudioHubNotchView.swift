@@ -349,7 +349,7 @@ private struct AudioDeviceRow: View {
                 range: 0...1,
                 tintColor: device.isDefault ? Color.blue : Color.white.opacity(0.7)
             )
-            .frame(width: 150, height: 16)
+            .frame(width: 100, height: 16)
 
             // Percentage Label
             Text("\(Int(round(device.volume * 100)))%")
@@ -422,7 +422,7 @@ private struct AudioAppRow: View {
                 range: 0...1,
                 tintColor: Color.blue
             )
-            .frame(width: 150, height: 16)
+            .frame(width: 100, height: 16)
 
             // Percentage Label
             Text("\(Int(round(appItem.volume * 100)))%")

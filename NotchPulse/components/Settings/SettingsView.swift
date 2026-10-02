@@ -2462,6 +2462,20 @@ struct AudioSettingsView: View {
                     }
                 }
 
+                Section(header: Text(loc("App Volume Engine"))) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Defaults.Toggle(key: .enableVirtualAudioDriver) {
+                            Text(loc("Universal App Audio Engine"))
+                        }
+
+                        Text(loc("Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 2)
+                }
+
                 Section(header: Text(loc("Features"))) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top, spacing: 10) {

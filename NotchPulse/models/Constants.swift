@@ -360,6 +360,7 @@ extension Defaults.Keys {
     // MARK: Audio Hub
     static let enableAudioHub = Key<Bool>("enableAudioHub", default: true)
     static let showAudioHubInNotch = Key<Bool>("showAudioHubInNotch", default: true)
+    static let enableVirtualAudioDriver = Key<Bool>("enableVirtualAudioDriver", default: false)
 
     // MARK: Master Feature Toggles
     static let enableCalendarFeature = Key<Bool>("enableCalendarFeature", default: true)
