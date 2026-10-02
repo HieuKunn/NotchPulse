@@ -1,28 +1,14 @@
-## 🚀 What's New in NotchPulse v5.0
+## 🚀 What's New in NotchPulse v5.1
 
-### 🌙 Lunar Calendar & Schedule Integration
-- **Lunar Calendar Display**: Easily view lunar dates (Âm lịch) alongside solar dates and upcoming schedule events directly inside the Notch Calendar tab.
-- **Smart Date Information**: Seamlessly track traditional days, festivals, and lunar phases right from your desktop without third-party plugins.
+### 🎛️ Audio Hub & Device Mixer
+- **One-Click Audio Switcher**: Easily switch between speakers, headphones, AirPods, displays, and microphones right inside the Notch and Dynamic Island.
+- **Per-Device Volume & Mute**: Smoothly adjust volume levels and toggle mute independently for each connected output and input device.
+- **Per-App Volume Mixer**: Fine-tune volume levels for running applications like browsers, music players, and meeting tools with a clean, low-overhead interface inspired by FineTune.
+- **Dynamic Header Icon**: Quick-access audio icon elegantly positioned alongside your existing camera mirror and settings buttons.
 
-### 📋 Clipboard History Manager
-- **Notch Clipboard Hub**: Quickly access, search, and copy recently copied text snippets, links, and clipboard items directly from the Notch interface.
-- **Privacy First**: Secure local storage of your clipboard history with instant clearing whenever needed.
+### 🎚️ Master Feature Controls
+- **Dedicated Feature Toggles**: Added clear master on/off switches at the top of every feature settings page (Audio Hub, Media Player, Calendar, Shelf, Clipboard, HUD, System Monitor, and Face ID) so you can easily customize NotchPulse to your exact workflow.
 
-### 🔊 Redesigned Inline HUDs
-- **Reliable Volume & Brightness HUDs**: Upgraded inline indicators for volume, screen brightness, and keyboard backlighting with rock-solid responsiveness.
-- **Zero Screen Clutter**: Smooth, minimal animations embedded right in the Notch and Dynamic Island that never block your active workspace.
-
-### 🔒 Next-Gen Face ID Motion & Natural Scaling
-- **Full Notch Proportions**: The Face ID drop-down matches your MacBook's physical notch width, perfectly presenting the face icon and scan animation at an 80% natural scale.
-- **Top-Most Layer Face ID Rendering**: Guaranteed Face ID static previews and scan animations render on the top-most visual layer, eliminating any overlapping elements or black screen covers on wake.
-- **Instant Static Preview**: Zero black-screen delay on wake — the face illustration renders instantly the moment the panel drops down.
-- **Intelligent Multi-Phase Scan Lifecycle**:
-  - Displays the static face during early scanning.
-  - Smoothly transitions to the looking-around searching animation if scanning takes longer.
-  - Instantly unlocks with a smile on match, or gently shakes if an unauthenticated face is presented.
-- **Custom Scan Duration**: Respects your exact scan duration setting without dropping or canceling prematurely.
-
-### 🌊 120Hz ProMotion Fluidity & UI Polish
-- **Buttery-Smooth Springs**: Restored organic, continuous spring animations for open, close, and hover interactions across both Notch and Dynamic Island styles.
-- **Refined Dynamic Island Borders**: Halved side border padding for a tighter, sleeker silhouette that hugs your screen naturally.
-- **Feature Tour & Settings Upgrades**: Smoother onboarding tour transitions and real-time animation previews.
+### ⚡ Hover & Click Responsiveness Fixes
+- **Ultra-Responsive Hover Detection**: Fixed notch opening and closing delays with instant hover tracking across all MacBook and external displays.
+- **Reliable Gesture Handling**: Resolved touch and click conflicts so opening, closing, and switching tabs always work reliably on the first tap.

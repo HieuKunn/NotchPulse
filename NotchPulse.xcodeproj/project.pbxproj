@@ -30,6 +30,7 @@
 		1113ABD02E80E6BB00EC13B2 /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1113ABCF2E80E6BB00EC13B2 /* ThumbnailService.swift */; };
 		111BE95D2ECD71E10079DD4E /* AsyncXPCConnection in Frameworks */ = {isa = PBXBuildFile; productRef = 111BE95C2ECD71E10079DD4E /* AsyncXPCConnection */; };
 		111BE9952ECF2DF40079DD4E /* DragDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111BE9942ECF2DEF0079DD4E /* DragDetector.swift */; };
+		111BE9982ECF2DF40079DD4E /* NotchHoverDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111BE9972ECF2DEF0079DD4E /* NotchHoverDetector.swift */; };
 		111BEA612ED09B1B0079DD4E /* NSScreen+UUID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111BEA602ED09B1B0079DD4E /* NSScreen+UUID.swift */; };
 		112B0EB82E30DD0F00562D6C /* MediaRemoteAdapterTestClient in Resources */ = {isa = PBXBuildFile; fileRef = 112B0EB52E30DD0F00562D6C /* MediaRemoteAdapterTestClient */; };
 		112B0EB92E30DD0F00562D6C /* mediaremote-adapter.pl in Resources */ = {isa = PBXBuildFile; fileRef = 112B0EB32E30DD0F00562D6C /* mediaremote-adapter.pl */; };
@@ -121,6 +122,8 @@
 		14FC6E502C7DED5600C7BEA5 /* DataTypes+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FC6E4F2C7DED5600C7BEA5 /* DataTypes+Extensions.swift */; };
 		17BB86BF4CF8AED364A3F042 /* NotchPulseGlareCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5BB72A0F985602D6A8E514 /* NotchPulseGlareCue.swift */; };
 		181C4A3ACB1F0E3E4603E3BA /* NotchPulseCameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3FECCD1F2AA1B8FA937450A /* NotchPulseCameraPreviewView.swift */; };
+		B1AD00032ED0000100000003 /* AudioHubNotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1AD00022ED0000100000002 /* AudioHubNotchView.swift */; };
+		B1AD00052ED0000100000005 /* AudioDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1AD00042ED0000100000004 /* AudioDeviceManager.swift */; };
 		18EA8295C95B4071AAFBD23B /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */; };
 		194FFC7DCD8B5925AFF059F2 /* FaceIDOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716C76D423C0B1A834C52E64 /* FaceIDOverlayWindow.swift */; };
 		1A72FDCA4B3A24546A1C5C3B /* FaceIDOnboardingStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523C6C0F6EAC452DE1EE0F48 /* FaceIDOnboardingStepViews.swift */; };
@@ -282,6 +285,8 @@
 /* Begin PBXFileReference section */
 		01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingControls.swift; sourceTree = "<group>"; };
 		09DEF060F7197B05866F7137 /* FaceIDMinimalUnlockView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDMinimalUnlockView.swift; sourceTree = "<group>"; };
+		B1AD00022ED0000100000002 /* AudioHubNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioHubNotchView.swift; sourceTree = "<group>"; };
+		B1AD00042ED0000100000004 /* AudioDeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceManager.swift; sourceTree = "<group>"; };
 		0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardNotchView.swift; sourceTree = "<group>"; };
 		0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsControls.swift; sourceTree = "<group>"; };
 		1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSItemProvider+LoadHelpers.swift"; sourceTree = "<group>"; };
@@ -297,6 +302,7 @@
 		1113ABC32E80E27000EC13B2 /* ShelfItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfItemView.swift; sourceTree = "<group>"; };
 		1113ABCF2E80E6BB00EC13B2 /* ThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailService.swift; sourceTree = "<group>"; };
 		111BE9942ECF2DEF0079DD4E /* DragDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDetector.swift; sourceTree = "<group>"; };
+		111BE9972ECF2DEF0079DD4E /* NotchHoverDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHoverDetector.swift; sourceTree = "<group>"; };
 		111BEA602ED09B1B0079DD4E /* NSScreen+UUID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+UUID.swift"; sourceTree = "<group>"; };
 		112B0EB32E30DD0F00562D6C /* mediaremote-adapter.pl */ = {isa = PBXFileReference; lastKnownFileType = text.script.perl; path = "mediaremote-adapter.pl"; sourceTree = "<group>"; };
 		112B0EB52E30DD0F00562D6C /* MediaRemoteAdapterTestClient */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = MediaRemoteAdapterTestClient; sourceTree = "<group>"; };
@@ -684,6 +690,7 @@
 				F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */,
 				F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */,
 				111BE9942ECF2DEF0079DD4E /* DragDetector.swift */,
+				111BE9972ECF2DEF0079DD4E /* NotchHoverDetector.swift */,
 				D1427EE773FE4158AC14BEC3 /* ShelfDropZoneWindow.swift */,
 				B1A78C812C8BA08100BD51B0 /* FullscreenMediaDetection.swift */,
 				5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */,
@@ -702,6 +709,7 @@
 		1471639B2C5D362F0068B555 /* components */ = {
 			isa = PBXGroup;
 			children = (
+				B1AD00012ED0000100000001 /* Audio */,
 				B1CB00012ED0000100000001 /* Clipboard */,
 				F1D2000D2ED0000100000001 /* LockScreen */,
 				B141C23B2CA5F50900AC8CC8 /* Onboarding */,
@@ -729,6 +737,7 @@
 		147163B52C5D804B0068B555 /* managers */ = {
 			isa = PBXGroup;
 			children = (
+				B1AD00042ED0000100000004 /* AudioDeviceManager.swift */,
 				B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */,
 				F1D200042ED0000100000001 /* FaceIDManager.swift */,
 				11D58EA12E760AE100FA8377 /* ImageService.swift */,
@@ -1037,6 +1046,14 @@
 			path = Tips;
 			sourceTree = "<group>";
 		};
+		B1AD00012ED0000100000001 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				B1AD00022ED0000100000002 /* AudioHubNotchView.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
 		B1CB00012ED0000100000001 /* Clipboard */ = {
 			isa = PBXGroup;
 			children = (
@@ -1256,6 +1273,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1AD00032ED0000100000003 /* AudioHubNotchView.swift in Sources */,
+				B1AD00052ED0000100000005 /* AudioDeviceManager.swift in Sources */,
 				18EA8295C95B4071AAFBD23B /* ClipboardManager.swift in Sources */,
 				2DF809B2C72744C782CA5EEE /* ClipboardNotchView.swift in Sources */,
 				115C12EC2ED3D003009754CA /* OpenNotchHUD.swift in Sources */,
@@ -1283,6 +1302,7 @@
 				14D570C02C5EA5870011E668 /* AnimatedFace.swift in Sources */,
 				B1D6FD432C6603730015F173 /* SoftwareUpdater.swift in Sources */,
 				111BE9952ECF2DF40079DD4E /* DragDetector.swift in Sources */,
+				111BE9982ECF2DF40079DD4E /* NotchHoverDetector.swift in Sources */,
 				DFFDFC505F834EB59D426BA5 /* ShelfDropZoneWindow.swift in Sources */,
 				B1D365D02C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift in Sources */,
 				1194E87C2EA19E09009C82D6 /* ImageProcessingService.swift in Sources */,
@@ -1469,14 +1489,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 268;
+				CURRENT_PROJECT_VERSION = 269;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.0;
+				MARKETING_VERSION = 5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1494,14 +1514,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 268;
+				CURRENT_PROJECT_VERSION = 269;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchPulseXPCHelper/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.0;
+				MARKETING_VERSION = 5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1648,7 +1668,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 268;
+				CURRENT_PROJECT_VERSION = 269;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1675,7 +1695,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.0;
+				MARKETING_VERSION = 5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1702,7 +1722,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 268;
+				CURRENT_PROJECT_VERSION = 269;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1728,7 +1748,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.0;
+				MARKETING_VERSION = 5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

@@ -356,4 +356,12 @@ extension Defaults.Keys {
     // MARK: Clipboard Manager
     static let enableClipboardManager = Key<Bool>("enableClipboardManager", default: true)
     static let clipboardMaxItems = Key<Int>("clipboardMaxItems", default: 10)
+
+    // MARK: Audio Hub
+    static let enableAudioHub = Key<Bool>("enableAudioHub", default: true)
+    static let showAudioHubInNotch = Key<Bool>("showAudioHubInNotch", default: true)
+
+    // MARK: Master Feature Toggles
+    static let enableCalendarFeature = Key<Bool>("enableCalendarFeature", default: true)
+    static let enableMediaFeature = Key<Bool>("enableMediaFeature", default: true)
 }

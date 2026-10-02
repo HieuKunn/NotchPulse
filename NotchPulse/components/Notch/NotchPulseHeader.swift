@@ -63,6 +63,28 @@ struct NotchPulseHeader: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 } else {
                     HStack(spacing: 6) {
+                        if Defaults[.enableAudioHub] && Defaults[.showAudioHubInNotch] {
+                            Button(action: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                                    if coordinator.currentView == .audio {
+                                        coordinator.currentView = .home
+                                    } else {
+                                        coordinator.currentView = .audio
+                                    }
+                                }
+                            }) {
+                                Capsule()
+                                    .fill(coordinator.currentView == .audio ? Color.white.opacity(0.2) : .black)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        Image(systemName: "speaker.wave.2.fill")
+                                            .foregroundColor(coordinator.currentView == .audio ? .white : .gray)
+                                            .padding()
+                                            .imageScale(.medium)
+                                    }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                         if Defaults[.showMirror] {
                             Button(action: {
                                 vm.toggleCameraPreview()

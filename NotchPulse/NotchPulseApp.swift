@@ -104,6 +104,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isScreenLocked: Bool = false
     private var windowScreenDidChangeObserver: Any?
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
+    private var hoverDetectors: [String: NotchHoverDetector] = [:] // UUID -> NotchHoverDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
     var dragAutoCloseTasks: [String: Task<Void, Never>] = [:]
     var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
@@ -150,6 +151,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.windows.forEach { $0.orderOut(nil) }
         cleanupWindows()
         cleanupDragDetectors()
+        cleanupHoverDetectors()
         FaceIDOverlayController.shared.disarm()
         LockScreenFaceIDWindow.shared.orderOut(nil)
         LockScreenMediaWindow.shared.orderOut(nil)
@@ -182,6 +184,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         workspaceLockObservers.removeAll()
         cleanupDragDetectors()
+        cleanupHoverDetectors()
         cleanupWindows()
         MusicManager.shared.destroy()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
@@ -221,7 +224,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenUnlocked(_ notification: Notification) {
         isScreenLocked = false
-        setupDragDetectors() // Re-enable Ghost Windows and sync Radar after unlocking
+        setupDetectors() // Re-enable Ghost Windows, Radar and Hover Detectors after unlocking
         
         let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
         if !shouldKeepWindow {
@@ -313,6 +316,124 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             detector.stopMonitoring()
         }
         dragDetectors.removeAll()
+    }
+
+    private func cleanupHoverDetectors() {
+        hoverDetectors.values.forEach { detector in
+            detector.stopMonitoring()
+        }
+        hoverDetectors.removeAll()
+    }
+
+    func setupHoverDetectors() {
+        cleanupHoverDetectors()
+
+        if Defaults[.showOnAllDisplays] {
+            for screen in NSScreen.screens {
+                setupHoverDetectorForScreen(screen)
+            }
+        } else {
+            let preferredScreen: NSScreen? = (coordinator.preferredScreenUUID.flatMap({ NSScreen.screen(withUUID: $0) }))
+                ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
+                ?? window?.screen
+                ?? NSScreen.main
+                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+                ?? NSScreen.screens.first
+
+            if let screen = preferredScreen {
+                setupHoverDetectorForScreen(screen)
+            }
+        }
+    }
+
+    private func setupHoverDetectorForScreen(_ screen: NSScreen) {
+        guard let uuid = screen.displayUUID else { return }
+
+        let detector = NotchHoverDetector(
+            closedRegionProvider: { [weak self] in
+                guard let self = self else { return .zero }
+                let screenFrame = screen.frame
+                let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+                let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+                let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
+
+                let closedSize = targetVM.closedNotchSize
+                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 12.0
+
+                return CGRect(
+                    x: screenFrame.midX - (closedWidth / 2 + padding),
+                    y: screenFrame.maxY - (closedHeight + padding + topOffset),
+                    width: closedWidth + (padding * 2),
+                    height: closedHeight + padding + topOffset + 12
+                )
+            },
+            openRegionProvider: { [weak self] in
+                guard let self = self else { return .zero }
+                let screenFrame = screen.frame
+                let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+                let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+                let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
+
+                let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
+                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
+                let padding: CGFloat = 24.0
+
+                return CGRect(
+                    x: screenFrame.midX - (openWidth / 2 + padding),
+                    y: screenFrame.maxY - (openHeight + padding + topOffset),
+                    width: openWidth + (padding * 2),
+                    height: openHeight + padding + topOffset + 24
+                )
+            },
+            isNotchOpenProvider: { [weak self] in
+                guard let self = self else { return false }
+                let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+                return targetVM.notchState == .open
+            }
+        )
+
+        detector.onHoverEntersNotchRegion = { [weak self] in
+            Task { @MainActor in
+                guard let self = self else { return }
+                guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
+                      !FeatureTourController.shared.isTourActive else { return }
+                let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+                if targetVM.notchState == .closed && Defaults[.openNotchOnHover] {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        targetVM.open()
+                    }
+                }
+            }
+        }
+
+        detector.onHoverExitsNotchRegion = { [weak self] in
+            Task { @MainActor in
+                guard let self = self else { return }
+                let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+                guard targetVM.notchState == .open else { return }
+                guard !ShelfStateViewModel.shared.isPinned,
+                      !CalendarStateViewModel.shared.isPinned,
+                      !SharingStateManager.shared.preventNotchClose,
+                      !targetVM.isBatteryPopoverActive,
+                      !FeatureTourController.shared.isTourActive,
+                      !targetVM.anyDropZoneTargeting,
+                      !targetVM.dropEvent else { return }
+
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.84)) {
+                    targetVM.close()
+                }
+            }
+        }
+
+        hoverDetectors[uuid] = detector
+        detector.startMonitoring()
+    }
+
+    func setupDetectors() {
+        setupDragDetectors()
+        setupHoverDetectors()
     }
 
     private func setupDragDetectors() {
@@ -496,7 +617,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: window,
             queue: .main) { [weak self] _ in
                 Task { @MainActor in
-                    self?.setupDragDetectors()
+                    self?.setupDetectors()
                 }
         }
         return window
@@ -621,7 +742,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.adjustWindowPosition(changeAlpha: true)
-                self?.setupDragDetectors()
+                self?.setupDetectors()
             }
         }
 
@@ -630,7 +751,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.adjustWindowPosition()
-                self?.setupDragDetectors()
+                self?.setupDetectors()
             }
         }
 
@@ -647,7 +768,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.adjustWindowPosition(changeAlpha: true)
-                self?.setupDragDetectors()
+                self?.setupDetectors()
             }
         }
 
@@ -658,7 +779,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self = self else { return }
                 self.cleanupWindows(shouldInvert: true)
                 self.adjustWindowPosition(changeAlpha: true)
-                self.setupDragDetectors()
+                self.setupDetectors()
             }
         }
 
@@ -666,7 +787,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             forName: Notification.Name.expandedDragDetectionChanged, object: nil, queue: nil
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.setupDragDetectors()
+                self?.setupDetectors()
             }
         }
 
@@ -825,7 +946,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             adjustWindowPosition(changeAlpha: true)
         }
 
-        setupDragDetectors()
+        setupDetectors()
 
         currentViewObserver = coordinator.$currentView
             .sink { [weak self] view in
@@ -906,7 +1027,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async { [weak self] in
                 self?.cleanupWindows()
                 self?.adjustWindowPosition(changeAlpha: true)
-                self?.setupDragDetectors()
+                self?.setupDetectors()
             }
         }
     }

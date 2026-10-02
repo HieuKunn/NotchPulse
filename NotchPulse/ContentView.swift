@@ -236,7 +236,7 @@ struct ContentView: View {
             chinWidth = openNotchSize.width
         } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && vm.notchState == .closed {
             chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
-        } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
+        } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
         {
@@ -647,7 +647,7 @@ struct ContentView: View {
                             if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                 InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                     .transition(.opacity)
-                            } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
+                            } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                                 MusicLiveActivity()
                                     .frame(alignment: .center)
                                     .transition(.opacity)
@@ -738,6 +738,10 @@ struct ContentView: View {
                         ClipboardNotchView()
                             .environmentObject(vm)
                             .id(NotchViews.clipboard)
+                    case .audio:
+                        AudioHubNotchView()
+                            .environmentObject(vm)
+                            .id(NotchViews.audio)
                     }
                 }
                 .transition(
@@ -960,8 +964,14 @@ struct ContentView: View {
                   !coordinator.sneakPeek.show,
                   Defaults[.openNotchOnHover] else { return }
             
+            let delay = max(0.0, Defaults[.minimumHoverDuration])
+            if delay <= 0.02 {
+                self.doOpen()
+                return
+            }
+            
             hoverTask = Task {
-                try? await Task.sleep(for: .seconds(Defaults[.minimumHoverDuration]))
+                try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
@@ -975,7 +985,7 @@ struct ContentView: View {
             }
         } else {
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(100))
+                try? await Task.sleep(for: .milliseconds(120))
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
@@ -983,7 +993,7 @@ struct ContentView: View {
                         self.isHovering = false
                     }
                     
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive {
+                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive && !self.vm.anyDropZoneTargeting && !self.vm.dropEvent {
                         self.vm.close()
                     }
                 }

@@ -60,6 +60,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Clipboard") {
                     Label(tabTitle(for: "Clipboard"), systemImage: "doc.on.clipboard.fill")
                 }
+                NavigationLink(value: "Audio") {
+                    Label(tabTitle(for: "Audio"), systemImage: "speaker.wave.2.fill")
+                }
                 NavigationLink(value: "Shortcuts") {
                     Label(tabTitle(for: "Shortcuts"), systemImage: "command.square.fill")
                 }
@@ -108,6 +111,8 @@ struct SettingsView: View {
                             Shelf()
                         case "Clipboard":
                             ClipboardSettingsView()
+                        case "Audio":
+                            AudioSettingsView()
                         case "Shortcuts":
                             Shortcuts()
                         case "Extensions":
@@ -1240,11 +1245,30 @@ struct Media: View {
     @Default(.sneakPeekStyles) var sneakPeekStyles
 
     @Default(.enableLyrics) var enableLyrics
+    @Default(.enableMediaFeature) var enableMediaFeature
     @State private var isSyncing: Bool = false
     @State private var isMusicSyncConfirmed: Bool = MediaAutomationPermissionHelper.isSyncConfirmed()
 
     var body: some View {
         Form {
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Enable Media & Music Player"))
+                            .font(.headline)
+                        Text(loc("Display track info, interactive playback controls, and lyrics in the Notch."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .enableMediaFeature)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
+                }
+            }
+
             Section {
                 Picker(loc("Music Source"), selection: $mediaController) {
                     ForEach(availableMediaControllers) { controller in
@@ -1393,8 +1417,22 @@ struct CalendarSettings: View {
 
     var body: some View {
         Form {
-            Defaults.Toggle(key: .showCalendar) {
-                Text(loc("Show calendar"))
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Enable Calendar"))
+                            .font(.headline)
+                        Text(loc("Show upcoming calendar events, reminders, and lunar dates in the Notch."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .showCalendar)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
+                }
             }
             Defaults.Toggle(key: .hideCompletedReminders) {
                 Text(loc("Hide completed reminders"))
@@ -1655,9 +1693,24 @@ struct Shelf: View {
     var body: some View {
         Form {
             Section {
-                Defaults.Toggle(key: .notchPulseShelf) {
-                    Text(loc("Enable shelf"))
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Enable Shelf"))
+                            .font(.headline)
+                        Text(loc("Temporary storage for drag & drop files and quick sharing directly in the Notch."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .notchPulseShelf)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
                 }
+            }
+
+            Section {
                 Defaults.Toggle(key: .openShelfByDefault) {
                     Text(loc("Open shelf by default if items are present"))
                 }
@@ -2330,24 +2383,110 @@ struct ClipboardSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Defaults.Toggle(key: .enableClipboardManager) {
-                    Text(loc("Enable Clipboard Manager"))
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Enable Clipboard Manager"))
+                            .font(.headline)
+                        Text(loc("Keep track of your recent text and image clips to easily re-copy them from the Notch."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .enableClipboardManager)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
                 }
+            }
 
-                if enableClipboardManager {
+            if enableClipboardManager {
+                Section {
                     Stepper(loc("History limit: %lld items", clipboardMaxItems), value: $clipboardMaxItems, in: 5...50, step: 5)
                     
                     Button(loc("Clear clipboard history"), role: .destructive) {
                         clipboardManager.clearHistory()
                     }
                     .disabled(clipboardManager.history.isEmpty)
+                } header: {
+                    Text(loc("Clipboard History"))
+                } footer: {
+                    Text(loc("NotchPulse securely keeps track of your recent text and image clips. Tap any clip in the Notch clipboard tab to re-copy it instantly."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-            } header: {
-                Text(loc("Clipboard History"))
-            } footer: {
-                Text(loc("NotchPulse securely keeps track of your recent text and image clips. Tap any clip in the Notch clipboard tab to re-copy it instantly."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
+        .accentColor(.effectiveAccent)
+    }
+}
+
+struct AudioSettingsView: View {
+    @Default(.enableAudioHub) var enableAudioHub
+    @Default(.showAudioHubInNotch) var showAudioHubInNotch
+    @ObservedObject var audioManager = AudioDeviceManager.shared
+
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Enable Audio Hub"))
+                            .font(.headline)
+                        Text(loc("Manage audio devices, per-device volume & mute, and per-app volume mixer directly from the Notch."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .enableAudioHub)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
+                }
+            }
+
+            if enableAudioHub {
+                Section(header: Text(loc("Display Options"))) {
+                    Defaults.Toggle(key: .showAudioHubInNotch) {
+                        Text(loc("Show Audio Hub icon in Notch / Dynamic Island"))
+                    }
+                }
+
+                Section(header: Text(loc("Features"))) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.effectiveAccent)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc("Quick Device Switcher"))
+                                    .font(.subheadline.weight(.medium))
+                                Text(loc("Switch between speakers, headphones, and microphones with one click."))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.effectiveAccent)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc("Per-App Volume Mixer"))
+                                    .font(.subheadline.weight(.medium))
+                                Text(loc("Adjust independent volume levels for music players, browsers, and voice apps."))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
         }
         .scrollContentBackground(.hidden)

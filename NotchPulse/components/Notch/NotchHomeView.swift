@@ -477,6 +477,7 @@ struct NotchHomeView: View {
 
     @ViewBuilder
     private func mainContent(totalWidth: CGFloat) -> some View {
+        let isMediaVisible = Defaults[.enableMediaFeature]
         let isCalendarVisible = Defaults[.showCalendar]
         let isCameraVisible = shouldShowCamera
         let isCalendarFullPage = isCalendarVisible && vm.customOpenHeight != nil
@@ -492,25 +493,35 @@ struct NotchHomeView: View {
             if isCalendarFullPage {
                 return (0, availableWidth, 0)
             }
-            if isCalendarVisible && isCameraVisible {
+            if isMediaVisible && isCalendarVisible && isCameraVisible {
                 let camW: CGFloat = 130
                 let remainW = max(200, availableWidth - camW - (spacing * 2))
                 return (remainW * 0.55, remainW * 0.45, camW)
-            } else if isCalendarVisible {
+            } else if isMediaVisible && isCalendarVisible {
                 // 55% Media - 45% Calendar distribution!
                 let remainW = max(240, availableWidth - spacing)
                 return (remainW * 0.55, remainW * 0.45, 0)
-            } else if isCameraVisible {
+            } else if isMediaVisible && isCameraVisible {
                 let camW: CGFloat = 160
                 let remainW = max(200, availableWidth - camW - spacing)
                 return (remainW, 0, camW)
-            } else {
+            } else if isCalendarVisible && isCameraVisible {
+                let camW: CGFloat = 160
+                let remainW = max(200, availableWidth - camW - spacing)
+                return (0, remainW, camW)
+            } else if isMediaVisible {
                 return (availableWidth, 0, 0)
+            } else if isCalendarVisible {
+                return (0, availableWidth, 0)
+            } else if isCameraVisible {
+                return (0, 0, availableWidth)
+            } else {
+                return (0, 0, 0)
             }
         }()
 
         HStack(alignment: .center, spacing: isCalendarFullPage ? 0 : spacing) {
-            if !isCalendarFullPage {
+            if isMediaVisible && !isCalendarFullPage {
                 MusicPlayerView(albumArtNamespace: albumArtNamespace, allocatedWidth: mediaWidth)
                     .frame(width: mediaWidth, height: isCalendarFullPage ? 228 : 148, alignment: .center)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
