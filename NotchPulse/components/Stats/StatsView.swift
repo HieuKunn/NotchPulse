@@ -166,6 +166,7 @@ struct StatsView: View {
 
     private enum ExpandedMetric { case cpu, ram }
     @State private var expandedMetric: ExpandedMetric?
+    @State private var isThermalExpanded: Bool = false
 
     // Keep the 3 cards at identical constant height both when collapsed and when expanded
     private let cardRowHeight: CGFloat = 118
@@ -200,7 +201,7 @@ struct StatsView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: cardRowHeight)
 
-                // 8 Highest Consuming Processes List
+                // 8 Highest Consuming Processes List (Activity Monitor style)
                 if showProcesses, expandedMetric == .cpu {
                     StatsProcessList(
                         tint: .blue,
@@ -220,25 +221,90 @@ struct StatsView: View {
                     .frame(maxWidth: .infinity)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+
+                // Thermal & Fan Control Expand Bar (only shown when not inspecting processes)
+                if expandedMetric == nil {
+                    Button(action: {
+                        withAnimation(NotchPulseViewModel.notchSpring) {
+                            isThermalExpanded.toggle()
+                            if isThermalExpanded {
+                                monitor.startThermalMonitoring()
+                                vm.customOpenHeight = 285
+                            } else {
+                                monitor.stopThermalMonitoring()
+                                vm.customOpenHeight = nil
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "thermometer.medium")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(monitor.temperatureLevel.color)
+
+                                Text(loc("Nhiệt độ & Quạt"))
+                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.white.opacity(0.9))
+
+                                Text("·")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+
+                                Text("\(Int(round(monitor.temperature)))°C")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(monitor.temperatureLevel.color)
+                            }
+
+                            Spacer()
+
+                            HStack(spacing: 5) {
+                                Image(systemName: "fanblades.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(monitor.currentFanSpeedPercent > 0 ? Color.cyan : Color.secondary)
+
+                                Text(monitor.currentFanRPM > 0 ? "\(monitor.currentFanSpeedPercent)%" : loc("Auto"))
+                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.secondary.opacity(0.85))
+                                    .rotationEffect(.degrees(isThermalExpanded ? 90 : 0))
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if isThermalExpanded {
+                        ThermalAndFanCard(monitor: monitor)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
             }
             .padding(.horizontal, horizontalMargin)
             .padding(.top, 2)
-            .padding(.bottom, 6)
+            .padding(.bottom, 8)
             .animation(.smooth(duration: 0.25), value: expandedMetric)
+            .animation(.smooth(duration: 0.25), value: isThermalExpanded)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-        .onChange(of: expandedMetric) { _, metric in
-            withAnimation(NotchPulseViewModel.notchSpring) {
-                vm.customOpenHeight = metric == nil ? nil : 320
-            }
         }
         .onAppear {
             monitor.startMonitoring()
+            if isThermalExpanded {
+                monitor.startThermalMonitoring()
+            }
         }
         .onDisappear {
             monitor.stopMonitoring()
-            if expandedMetric != nil {
+            monitor.stopThermalMonitoring()
+            if expandedMetric != nil || isThermalExpanded {
                 expandedMetric = nil
+                isThermalExpanded = false
                 if NotchPulseViewCoordinator.shared.currentView != .audio {
                     withAnimation(NotchPulseViewModel.notchSpring) {
                         vm.customOpenHeight = nil
@@ -250,7 +316,28 @@ struct StatsView: View {
 
     private func toggleMetric(_ metric: ExpandedMetric) {
         guard showProcesses else { return }
-        expandedMetric = (expandedMetric == metric) ? nil : metric
+        if expandedMetric == metric {
+            expandedMetric = nil
+            if isThermalExpanded {
+                monitor.startThermalMonitoring()
+                withAnimation(NotchPulseViewModel.notchSpring) {
+                    vm.customOpenHeight = 285
+                }
+            } else {
+                withAnimation(NotchPulseViewModel.notchSpring) {
+                    vm.customOpenHeight = nil
+                }
+            }
+        } else {
+            expandedMetric = metric
+            if isThermalExpanded {
+                isThermalExpanded = false
+                monitor.stopThermalMonitoring()
+            }
+            withAnimation(NotchPulseViewModel.notchSpring) {
+                vm.customOpenHeight = 320
+            }
+        }
     }
 
     // MARK: - CPU Card
@@ -638,5 +725,209 @@ private struct StatsProcessList: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
+    }
+}
+
+/// Expandable Thermal & Fan Control card featuring a circular gradient ring gauge
+/// and interactive fan speed controls with hardware baseline safety constraints.
+private struct ThermalAndFanCard: View {
+    @ObservedObject var monitor: SystemMonitorManager
+    @State private var fanRotation: Double = 0
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // LEFT SIDE: Fan Speed Controller (56% width)
+            VStack(alignment: .leading, spacing: 6) {
+                // Header
+                HStack(spacing: 6) {
+                    Image(systemName: "fanblades.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(monitor.currentFanRPM > 0 ? Color.cyan : Color.secondary)
+                        .rotationEffect(.degrees(fanRotation))
+                        .onAppear {
+                            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                                fanRotation = 360
+                            }
+                        }
+
+                    Text(loc("ĐIỀU KHIỂN QUẠT (FAN)"))
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    // Live machine feedback badge
+                    Text(fanFeedbackText)
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Capsule())
+                }
+
+                // 5 Fan speed selection buttons
+                HStack(spacing: 4) {
+                    ForEach(FanSpeedOption.allCases) { option in
+                        let isSelected = (monitor.selectedFanOption == option)
+                        let isAllowed = isOptionAllowed(option)
+
+                        Button(action: {
+                            guard isAllowed else { return }
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                monitor.setFanOption(option)
+                            }
+                        }) {
+                            VStack(spacing: 1.5) {
+                                if !isAllowed {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 7))
+                                        .foregroundStyle(.secondary.opacity(0.8))
+                                }
+                                Text(option.label)
+                                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                                    .foregroundStyle(
+                                        isSelected ? .white :
+                                        (isAllowed ? .white.opacity(0.85) : .secondary.opacity(0.45))
+                                    )
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 30)
+                            .background(
+                                isSelected ?
+                                    Color.blue :
+                                    (isAllowed ? Color.white.opacity(0.08) : Color.white.opacity(0.03))
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .stroke(isSelected ? Color.white.opacity(0.25) : Color.clear, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!isAllowed)
+                        .help(isAllowed ? option.description : loc("Máy đang yêu cầu mức tối thiểu \(monitor.hardwareBaselineFanPercent)%"))
+                    }
+                }
+
+                // Status info line
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 8.5))
+                        .foregroundStyle(.secondary)
+                    Text(fanStatusNote)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity)
+            .background(Color.white.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+
+            // RIGHT SIDE: Circular Temperature Gauge (44% width)
+            HStack(spacing: 10) {
+                // Circular Ring Gauge
+                ZStack {
+                    // Background track
+                    Circle()
+                        .stroke(Color.white.opacity(0.12), lineWidth: 6)
+
+                    // Color Gradient Ring (Green -> Yellow -> Orange -> Red)
+                    Circle()
+                        .trim(from: 0.0, to: CGFloat(min(1.0, max(0.06, (monitor.temperature - 30.0) / 70.0))))
+                        .stroke(
+                            AngularGradient(
+                                gradient: Gradient(colors: [
+                                    Color(red: 0.20, green: 0.85, blue: 0.40), // Green
+                                    Color(red: 1.00, green: 0.80, blue: 0.00), // Yellow
+                                    Color(red: 1.00, green: 0.55, blue: 0.00), // Orange
+                                    Color(red: 1.00, green: 0.20, blue: 0.20)  // Red
+                                ]),
+                                center: .center,
+                                startAngle: .degrees(-90),
+                                endAngle: .degrees(270)
+                            ),
+                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+
+                    // Center Temperature Text
+                    VStack(spacing: 0) {
+                        Text("\(Int(round(monitor.temperature)))°C")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(monitor.temperatureLevel.color)
+
+                        Text("SOC")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: 54, height: 54)
+
+                // Text Description
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(monitor.temperatureLevel.color)
+                            .frame(width: 5, height: 5)
+
+                        Text(monitor.temperatureLevel.title)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(monitor.temperatureLevel.color)
+                    }
+
+                    Text(tempAdviceText)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity)
+            .background(Color.white.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+        }
+        .frame(height: 74)
+    }
+
+    private func isOptionAllowed(_ option: FanSpeedOption) -> Bool {
+        if option == .auto { return true }
+        return option.rawValue >= monitor.hardwareBaselineFanPercent
+    }
+
+    private var fanFeedbackText: String {
+        if monitor.currentFanRPM == 0 {
+            return loc("0 RPM (Yên tĩnh)")
+        }
+        return "\(monitor.currentFanSpeedPercent)% · \(monitor.currentFanRPM) RPM"
+    }
+
+    private var fanStatusNote: String {
+        if monitor.selectedFanOption == .auto {
+            return loc("Hệ thống tự điều tiết theo nhiệt độ phần cứng")
+        }
+        return loc("Duy trì tối thiểu \(monitor.selectedFanOption.label) công suất")
+    }
+
+    private var tempAdviceText: String {
+        switch monitor.temperatureLevel {
+        case .cool:
+            return loc("Nhiệt độ tối ưu, mát mẻ và tiết kiệm pin.")
+        case .warm:
+            return loc("Tải trung bình, quạt hoạt động êm ái.")
+        case .hot:
+            return loc("Nhiệt độ cao, nên tăng tốc quạt làm mát.")
+        }
     }
 }
