@@ -38,6 +38,16 @@ struct L10n {
     
     private static let translations: [AppLanguage: [String: String]] = [
         .english: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.",
+            "COOLING & FAN SPEED": "COOLING & FAN SPEED",
+            "0 RPM (Silent)": "0 RPM (Silent)",
+            "Max ~6,500 RPM": "Max ~6,500 RPM",
+            "Passive cooling (Fanless)": "Passive cooling (Fanless)",
+            "Automated hardware thermal regulation by macOS": "Automated hardware thermal regulation by macOS",
+            "Optimal temperature, cool and power efficient.": "Optimal temperature, cool and power efficient.",
+            "Moderate load, cooling operating normally.": "Moderate load, cooling operating normally.",
+            "High temperature, fan automatically spins up to cool.": "High temperature, fan automatically spins up to cool.",
+
             "App Volume Engine": "App Volume Engine",
             "Universal App Audio Engine": "Universal App Audio Engine",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.",
@@ -507,6 +517,16 @@ struct L10n {
             "Image Conversion Failed": "Image Conversion Failed"
         ],
         .vietnamese: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Mở rộng ngăn nhiệt độ để theo dõi nhiệt độ CPU/GPU và tốc độ quạt phần cứng theo thời gian thực.",
+            "COOLING & FAN SPEED": "TẢN NHIỆT & TỐC ĐỘ QUẠT",
+            "0 RPM (Silent)": "0 RPM (Yên tĩnh)",
+            "Max ~6,500 RPM": "Tối đa ~6.500 RPM",
+            "Passive cooling (Fanless)": "Tản nhiệt thụ động (Không quạt)",
+            "Automated hardware thermal regulation by macOS": "Hệ thống macOS tự động điều tiết theo nhiệt độ phần cứng",
+            "Optimal temperature, cool and power efficient.": "Nhiệt độ tối ưu, mát mẻ và tiết kiệm pin.",
+            "Moderate load, cooling operating normally.": "Tải trung bình, hệ thống tản nhiệt hoạt động bình thường.",
+            "High temperature, fan automatically spins up to cool.": "Nhiệt độ cao, quạt tự động tăng tốc để làm mát.",
+
             "App Volume Engine": "Bộ điều khiển âm lượng ứng dụng",
             "Universal App Audio Engine": "Trình điều khiển âm thanh mọi ứng dụng",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Tắt tính năng này giúp tiết kiệm RAM và CPU bằng cách chỉ điều khiển trình duyệt và app nghe nhạc được hỗ trợ. Bật để tinh chỉnh âm lượng mọi ứng dụng hệ thống.",
@@ -976,6 +996,16 @@ struct L10n {
             "Image Conversion Failed": "Chuyển đổi ảnh thất bại"
         ],
         .german: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Erweitern Sie die Wärmeschublade, um CPU/GPU-Temperaturen und die Lüfterdrehzahl der Hardware in Echtzeit zu überwachen.",
+            "COOLING & FAN SPEED": "KÜHLUNG & LÜFTERDREHZAHL",
+            "0 RPM (Silent)": "0 U/min (Lautlos)",
+            "Max ~6,500 RPM": "Max. ~6.500 U/min",
+            "Passive cooling (Fanless)": "Passive Kühlung (Lüfterlos)",
+            "Automated hardware thermal regulation by macOS": "Automatische Hardware-Temperaturregelung durch macOS",
+            "Optimal temperature, cool and power efficient.": "Optimale Temperatur, kühl und energieeffizient.",
+            "Moderate load, cooling operating normally.": "Mäßige Auslastung, Kühlung arbeitet normal.",
+            "High temperature, fan automatically spins up to cool.": "Hohe Temperatur, Lüfter dreht automatisch zur Kühlung hoch.",
+
             "App Volume Engine": "App-Lautstärke-Engine",
             "Universal App Audio Engine": "Universelle App-Audio-Engine",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Deaktivieren spart RAM und CPU, indem nur unterstützte Browser und Mediaplayer gesteuert werden. Aktivieren ermöglicht die Lautstärkeregelung für alle Systemanwendungen.",
@@ -1445,6 +1475,16 @@ struct L10n {
             "Image Conversion Failed": "Bildkonvertierung fehlgeschlagen"
         ],
         .traditionalChinese: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "展開溫度抽屜以即時監控 CPU/GPU 溫度與硬體風扇轉速。",
+            "COOLING & FAN SPEED": "散熱與風扇轉速",
+            "0 RPM (Silent)": "0 RPM (靜音)",
+            "Max ~6,500 RPM": "最高 ~6,500 RPM",
+            "Passive cooling (Fanless)": "被動散熱 (無風扇)",
+            "Automated hardware thermal regulation by macOS": "由 macOS 自動進行硬體散熱調節",
+            "Optimal temperature, cool and power efficient.": "最佳溫度，低溫且省電。",
+            "Moderate load, cooling operating normally.": "負載適中，散熱系統運作正常。",
+            "High temperature, fan automatically spins up to cool.": "溫度較高，風扇會自動加速散熱。",
+
             "App Volume Engine": "應用程式音量引擎",
             "Universal App Audio Engine": "全域應用程式音訊引擎",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "關閉可節省記憶體和 CPU，僅控制受支援的瀏覽器和播放器。開啟後可調整所有系統應用程式的音量。",
@@ -1914,6 +1954,16 @@ struct L10n {
             "Image Conversion Failed": "圖片轉換失敗"
         ],
         .simplifiedChinese: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "展开温度抽屉以实时监控 CPU/GPU 温度与硬件风扇转速。",
+            "COOLING & FAN SPEED": "散热与风扇转速",
+            "0 RPM (Silent)": "0 RPM (静音)",
+            "Max ~6,500 RPM": "最高 ~6,500 RPM",
+            "Passive cooling (Fanless)": "被动散热 (无风扇)",
+            "Automated hardware thermal regulation by macOS": "由 macOS 自动进行硬件散热调节",
+            "Optimal temperature, cool and power efficient.": "最佳温度，低温且省电。",
+            "Moderate load, cooling operating normally.": "负载适中，散热系统运作正常。",
+            "High temperature, fan automatically spins up to cool.": "温度较高，风扇会自动加速散热。",
+
             "App Volume Engine": "应用音量引擎",
             "Universal App Audio Engine": "全局应用音频引擎",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "关闭可节省内存和 CPU，仅控制受支持的浏览器和播放器。开启后可调节所有系统应用程序的音量。",
@@ -2383,6 +2433,16 @@ struct L10n {
             "Image Conversion Failed": "图像转换失败"
         ],
         .japanese: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "サーマルドロワーを展開して、CPU/GPU 温度とハードウェアファンの回転数をリアルタイムで監視します。",
+            "COOLING & FAN SPEED": "冷却とファン速度",
+            "0 RPM (Silent)": "0 RPM (静音)",
+            "Max ~6,500 RPM": "最大 ~6,500 RPM",
+            "Passive cooling (Fanless)": "パッシブ冷却 (ファンレス)",
+            "Automated hardware thermal regulation by macOS": "macOS による自動ハードウェア熱管理",
+            "Optimal temperature, cool and power efficient.": "最適な温度、低発熱で省電力です。",
+            "Moderate load, cooling operating normally.": "適度な負荷、冷却は正常に動作しています。",
+            "High temperature, fan automatically spins up to cool.": "高温のため、ファンが自動的に加速して冷却します。",
+
             "App Volume Engine": "アプリ音量エンジン",
             "Universal App Audio Engine": "ユニバーサル・アプリオーディオエンジン",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "無効にすると、対応するブラウザやメディアプレーヤーのみを制御し、メモリとCPUを節約します。有効にすると、すべてのシステムアプリの音量を調整できます。",
@@ -2852,6 +2912,16 @@ struct L10n {
             "Image Conversion Failed": "画像の変換に失敗しました"
         ],
         .french: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Développez le tiroir thermique pour surveiller en temps réel les températures CPU/GPU et la vitesse du ventilateur.",
+            "COOLING & FAN SPEED": "REFROIDISSEMENT ET VITESSE DU VENTILATEUR",
+            "0 RPM (Silent)": "0 RPM (Silencieux)",
+            "Max ~6,500 RPM": "Max ~6 500 RPM",
+            "Passive cooling (Fanless)": "Refroidissement passif (sans ventilateur)",
+            "Automated hardware thermal regulation by macOS": "Régulation thermique matérielle automatisée par macOS",
+            "Optimal temperature, cool and power efficient.": "Température optimale, fraîche et économe en énergie.",
+            "Moderate load, cooling operating normally.": "Charge modérée, refroidissement fonctionnant normalement.",
+            "High temperature, fan automatically spins up to cool.": "Température élevée, le ventilateur accélère automatiquement pour refroidir.",
+
             "App Volume Engine": "Moteur de volume d'application",
             "Universal App Audio Engine": "Moteur audio universel pour applications",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "La désactivation économise la RAM et le processeur en ne contrôlant que les navigateurs et lecteurs pris en charge. L'activation permet de régler le volume de toutes les applications système.",
@@ -3321,6 +3391,16 @@ struct L10n {
             "Image Conversion Failed": "Échec de la conversion de l'image"
         ],
         .spanish: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Expande el cajón térmico para monitorear las temperaturas de CPU/GPU y la velocidad del ventilador en tiempo real.",
+            "COOLING & FAN SPEED": "REFRIGERACIÓN Y VELOCIDAD DEL VENTILADOR",
+            "0 RPM (Silent)": "0 RPM (Silencioso)",
+            "Max ~6,500 RPM": "Máx. ~6.500 RPM",
+            "Passive cooling (Fanless)": "Refrigeración pasiva (sin ventilador)",
+            "Automated hardware thermal regulation by macOS": "Regulación térmica automática de hardware por macOS",
+            "Optimal temperature, cool and power efficient.": "Temperatura óptima, fresco y eficiente en energía.",
+            "Moderate load, cooling operating normally.": "Carga moderada, refrigeración funcionando con normalidad.",
+            "High temperature, fan automatically spins up to cool.": "Temperatura alta, el ventilador acelera automáticamente para enfriar.",
+
             "App Volume Engine": "Motor de volumen de aplicaciones",
             "Universal App Audio Engine": "Motor de audio universal para aplicaciones",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "Desactivar ahorra RAM y CPU al controlar solo navegadores y reproductores compatibles. Activar permite ajustar el volumen en todas las aplicaciones del sistema.",
@@ -3790,6 +3870,16 @@ struct L10n {
             "Image Conversion Failed": "Error al convertir la imagen"
         ],
         .arabic: [
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "قم بتوسيع درج الحرارة لمراقبة درجات حرارة CPU/GPU وسرعة مروحة العتاد في الوقت الفعلي.",
+            "COOLING & FAN SPEED": "التبريد وسرعة المروحة",
+            "0 RPM (Silent)": "0 RPM (صامت)",
+            "Max ~6,500 RPM": "الحد الأقصى ~6,500 RPM",
+            "Passive cooling (Fanless)": "تبريد سلبي (بدون مروحة)",
+            "Automated hardware thermal regulation by macOS": "تنظيم حراري تلقائي للعتاد بواسطة macOS",
+            "Optimal temperature, cool and power efficient.": "درجة حرارة مثالية، باردة وموفرة للطاقة.",
+            "Moderate load, cooling operating normally.": "حمولة معتدلة، التبريد يعمل بشكل طبيعي.",
+            "High temperature, fan automatically spins up to cool.": "درجة حرارة مرتفعة، تعمل المروحة تلقائياً للتبريد.",
+
             "App Volume Engine": "محرك صوت التطبيقات",
             "Universal App Audio Engine": "محرك الصوت الشامل للتطبيقات",
             "Disabling saves RAM and CPU by controlling only supported web browsers and media players. Enabling allows adjusting volume across all system applications.": "يؤدي التعطيل إلى توفير الذاكرة والمعالج من خلال التحكم في المتصفحات ومشغلات الوسائط المدعومة فقط. يتيح التمكين ضبط مستوى الصوت عبر جميع تطبيقات النظام.",

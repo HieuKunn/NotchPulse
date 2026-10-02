@@ -197,23 +197,8 @@ public class SystemMonitorManager: ObservableObject {
     }
 
     public func setFanOption(_ option: FanSpeedOption) {
-        let baseline = self.hardwareBaselineFanPercent
-        if option != .auto && option.rawValue < baseline {
-            return
-        }
         self.selectedFanOption = option
         self.queue.async {
-            if option == .auto {
-                SMCService.shared.restoreAutoFanControl()
-            } else {
-                let fans = SMCService.shared.getFans()
-                let minRpm = fans.first?.minRPM ?? 1200
-                let maxRpm = fans.first?.maxRPM ?? 5800
-                let targetRPM = Int(Double(minRpm) + ((Double(option.rawValue) / 100.0) * Double(maxRpm - minRpm)))
-                for (index, _) in fans.enumerated() {
-                    SMCService.shared.setFanSpeed(targetRPM: targetRPM, fanIndex: index)
-                }
-            }
             self.updateThermalMetrics()
         }
     }

@@ -769,7 +769,7 @@ private struct ThermalAndFanCard: View {
                             }
                         }
 
-                    Text(loc("ĐIỀU KHIỂN QUẠT (FAN)"))
+                    Text(loc("COOLING & FAN SPEED"))
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(.secondary)
 
@@ -785,56 +785,47 @@ private struct ThermalAndFanCard: View {
                         .clipShape(Capsule())
                 }
 
-                // 5 Fan speed selection buttons
-                HStack(spacing: 4) {
-                    ForEach(FanSpeedOption.allCases) { option in
-                        let isSelected = (monitor.selectedFanOption == option)
-                        let isAllowed = isOptionAllowed(option)
+                // Dynamic Hardware Fan Speed Progress Bar
+                VStack(spacing: 3) {
+                    GeometryReader { geo in
+                        let w = geo.size.width
+                        let progress = CGFloat(min(1.0, max(0.0, Double(monitor.currentFanSpeedPercent) / 100.0)))
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.white.opacity(0.08))
+                                .frame(height: 7)
 
-                        Button(action: {
-                            guard isAllowed else { return }
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                                monitor.setFanOption(option)
-                            }
-                        }) {
-                            VStack(spacing: 1.5) {
-                                if !isAllowed {
-                                    Image(systemName: "lock.fill")
-                                        .font(.system(size: 7))
-                                        .foregroundStyle(.secondary.opacity(0.8))
-                                }
-                                Text(option.label)
-                                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
-                                    .foregroundStyle(
-                                        isSelected ? .white :
-                                        (isAllowed ? .white.opacity(0.85) : .secondary.opacity(0.45))
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.cyan.opacity(0.8), Color.blue],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
                                     )
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 30)
-                            .background(
-                                isSelected ?
-                                    Color.blue :
-                                    (isAllowed ? Color.white.opacity(0.08) : Color.white.opacity(0.03))
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .stroke(isSelected ? Color.white.opacity(0.25) : Color.clear, lineWidth: 1)
-                            )
+                                )
+                                .frame(width: max(0, w * progress), height: 7)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(!isAllowed)
-                        .help(isAllowed ? option.description : loc("Máy đang yêu cầu mức tối thiểu \(monitor.hardwareBaselineFanPercent)%"))
+                    }
+                    .frame(height: 7)
+
+                    HStack {
+                        Text("0 RPM")
+                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.secondary.opacity(0.7))
+                        Spacer()
+                        Text(monitor.isHardwareFanAvailable ? loc("Max ~6,500 RPM") : loc("Passive cooling (Fanless)"))
+                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.secondary.opacity(0.7))
                     }
                 }
+                .padding(.vertical, 3)
 
                 // Status info line
                 HStack(spacing: 4) {
-                    Image(systemName: "info.circle")
+                    Image(systemName: "checkmark.shield.fill")
                         .font(.system(size: 8.5))
-                        .foregroundStyle(.secondary)
-                    Text(fanStatusNote)
+                        .foregroundStyle(Color.green.opacity(0.85))
+                    Text(loc("Automated hardware thermal regulation by macOS"))
                         .font(.system(size: 9))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -920,33 +911,21 @@ private struct ThermalAndFanCard: View {
         .frame(height: 74)
     }
 
-    private func isOptionAllowed(_ option: FanSpeedOption) -> Bool {
-        if option == .auto { return true }
-        return option.rawValue >= monitor.hardwareBaselineFanPercent
-    }
-
     private var fanFeedbackText: String {
         if monitor.currentFanRPM == 0 {
-            return loc("0 RPM (Yên tĩnh)")
+            return loc("0 RPM (Silent)")
         }
-        return "\(monitor.currentFanSpeedPercent)% · \(monitor.currentFanRPM) RPM"
-    }
-
-    private var fanStatusNote: String {
-        if monitor.selectedFanOption == .auto {
-            return loc("Hệ thống tự điều tiết theo nhiệt độ phần cứng")
-        }
-        return loc("Duy trì tối thiểu \(monitor.selectedFanOption.label) công suất")
+        return "\(monitor.currentFanRPM) RPM"
     }
 
     private var tempAdviceText: String {
         switch monitor.temperatureLevel {
         case .cool:
-            return loc("Nhiệt độ tối ưu, mát mẻ và tiết kiệm pin.")
+            return loc("Optimal temperature, cool and power efficient.")
         case .warm:
-            return loc("Tải trung bình, quạt hoạt động êm ái.")
+            return loc("Moderate load, cooling operating normally.")
         case .hot:
-            return loc("Nhiệt độ cao, nên tăng tốc quạt làm mát.")
+            return loc("High temperature, fan automatically spins up to cool.")
         }
     }
 }

@@ -120,8 +120,8 @@ struct FeatureTourView: View {
             target: "stats"
         ),
         FeatureTourStep(
-            title: "Temperature & Fan Control",
-            description: "Expand the thermal drawer to monitor CPU/GPU temperatures in real-time and customize fan speed with hardware safety constraints.",
+            title: "Temperature & Fan",
+            description: "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.",
             icon: "fanblades.fill",
             tabColor: .teal,
             viewType: .stats,

@@ -367,46 +367,6 @@ public final class SMCService {
     }
 
     @discardableResult
-    public func setFanSpeed(targetRPM: Int, fanIndex: Int = 0) -> Bool {
-        let fans = getFans()
-        guard fanIndex < fans.count else { return false }
-        let fan = fans[fanIndex]
-        let clampedRPM = max(fan.minRPM, min(fan.maxRPM, targetRPM))
-
-        var success = false
-
-        // 1. Enable Manual Mode on fan
-        let modeBytes: [UInt8] = [1]
-        _ = writeSMCBytes("F\(fanIndex)Md", bytes: modeBytes)
-        _ = writeSMCBytes("Ftst", bytes: modeBytes)
-
-        // Force bitmask FS!
-        let forceMask: UInt16 = 1 << fanIndex
-        let forceBytes: [UInt8] = [UInt8((forceMask >> 8) & 0xFF), UInt8(forceMask & 0xFF)]
-        _ = writeSMCBytes("FS! ", bytes: forceBytes)
-
-        // 2. Write Target RPM
-        if let info = readKeyInfo("F\(fanIndex)Tg") {
-            if info.type == fourCCToUInt32("fpe2") {
-                let raw = UInt16(clampedRPM * 4)
-                let bytes: [UInt8] = [UInt8((raw >> 8) & 0xFF), UInt8(raw & 0xFF)]
-                success = writeSMCBytes("F\(fanIndex)Tg", bytes: bytes, type: info.type)
-            } else if info.type == fourCCToUInt32("flt ") {
-                var f = Float32(clampedRPM)
-                var bytes = [UInt8](repeating: 0, count: 4)
-                memcpy(&bytes, &f, 4)
-                success = writeSMCBytes("F\(fanIndex)Tg", bytes: bytes, type: info.type)
-            }
-        }
-
-        if !success {
-            success = executePrivilegedFanCommand(targetRPM: clampedRPM, isAuto: false)
-        }
-
-        return success
-    }
-
-    @discardableResult
     public func restoreAutoFanControl() -> Bool {
         let fans = getFans()
         var allRestored = true
@@ -419,62 +379,6 @@ public final class SMCService {
             _ = writeSMCBytes("FS! ", bytes: [0, 0])
         }
 
-        _ = executePrivilegedFanCommand(targetRPM: 0, isAuto: true)
         return allRestored
-    }
-
-    private func executePrivilegedFanCommand(targetRPM: Int, isAuto: Bool) -> Bool {
-        let helperPath = "/tmp/notchpulse_smc_helper"
-        if !FileManager.default.fileExists(atPath: helperPath) {
-            let cCode = """
-            #include <stdio.h>
-            #include <stdlib.h>
-            #include <string.h>
-            #include <unistd.h>
-            #include <IOKit/IOKitLib.h>
-            typedef struct { unsigned char major; unsigned char minor; unsigned char build; unsigned char reserved; unsigned short release; } SMCKeyData_vers_t;
-            typedef struct { uint16_t version; uint16_t length; uint32_t cpuPLimit; uint32_t gpuPLimit; uint32_t memPLimit; } SMCKeyData_pLimitData_t;
-            typedef struct { uint32_t dataSize; uint32_t dataType; uint8_t dataAttributes; } SMCKeyData_keyInfo_t;
-            typedef struct { uint32_t key; SMCKeyData_vers_t vers; uint16_t _pad0; SMCKeyData_pLimitData_t pLimitData; SMCKeyData_keyInfo_t keyInfo; uint8_t _pad1[3]; uint8_t result; uint8_t status; uint8_t data8; uint8_t _pad2; uint32_t data32; uint8_t bytes[32]; } SMCParamStruct;
-            static io_connect_t g_conn = 0;
-            kern_return_t callSMC(SMCParamStruct *in, SMCParamStruct *out) { size_t inSize = sizeof(SMCParamStruct); size_t outSize = sizeof(SMCParamStruct); return IOConnectCallStructMethod(g_conn, 2, in, inSize, out, &outSize); }
-            int readKeyInfo(const char *keyStr, uint32_t *outSize, uint32_t *outType) { SMCParamStruct in, out; memset(&in, 0, sizeof(in)); memset(&out, 0, sizeof(out)); in.key = (keyStr[0]<<24)|(keyStr[1]<<16)|(keyStr[2]<<8)|keyStr[3]; in.data8 = 9; kern_return_t kr = callSMC(&in, &out); if (kr != 0 || out.result != 0) return 0; *outSize = out.keyInfo.dataSize; *outType = out.keyInfo.dataType; return 1; }
-            int writeKey(const char *keyStr, uint8_t *inBytes, uint32_t size, uint32_t type) { SMCParamStruct in, out; memset(&in, 0, sizeof(in)); memset(&out, 0, sizeof(out)); in.key = (keyStr[0]<<24)|(keyStr[1]<<16)|(keyStr[2]<<8)|keyStr[3]; in.keyInfo.dataSize = size; in.keyInfo.dataType = type; in.data8 = 6; memcpy(in.bytes, inBytes, size); kern_return_t kr = callSMC(&in, &out); return (kr == 0 && out.result == 0); }
-            int main(int argc, char *argv[]) {
-                CFMutableDictionaryRef matching = IOServiceMatching("AppleSMC");
-                io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault, matching);
-                if (!service || IOServiceOpen(service, mach_task_self(), 0, &g_conn) != 0) return 1;
-                if (argc > 1 && strcmp(argv[1], "auto") == 0) {
-                    uint8_t mode = 0; writeKey("F0Md", &mode, 1, ('u'<<24)|('i'<<16)|('8'<<8)|' '); writeKey("F1Md", &mode, 1, ('u'<<24)|('i'<<16)|('8'<<8)|' '); writeKey("Ftst", &mode, 1, ('u'<<24)|('i'<<16)|('8'<<8)|' '); uint8_t zeroMask[2] = {0, 0}; writeKey("FS! ", zeroMask, 2, ('c'<<24)|('h'<<16)|('8'<<8)|' ');
-                } else if (argc > 1) {
-                    float rpm = atof(argv[1]); uint8_t mode = 1; writeKey("F0Md", &mode, 1, ('u'<<24)|('i'<<16)|('8'<<8)|' '); writeKey("F1Md", &mode, 1, ('u'<<24)|('i'<<16)|('8'<<8)|' '); writeKey("Ftst", &mode, 1, ('u'<<24)|('i'<<16)|('8'<<8)|' '); uint8_t forceMask[2] = {0, 3}; writeKey("FS! ", forceMask, 2, ('c'<<24)|('h'<<16)|('8'<<8)|' ');
-                    uint32_t size = 0, type = 0;
-                    if (readKeyInfo("F0Tg", &size, &type)) {
-                        if (type == (('f'<<24)|('l'<<16)|('t'<<8)|' ')) { writeKey("F0Tg", (uint8_t*)&rpm, 4, type); writeKey("F1Tg", (uint8_t*)&rpm, 4, type); }
-                        else if (type == (('f'<<24)|('p'<<16)|('e'<<8)|'2')) { uint16_t raw = (uint16_t)(rpm * 4.0); uint8_t b[2] = { (uint8_t)(raw >> 8), (uint8_t)(raw & 0xFF) }; writeKey("F0Tg", b, 2, type); writeKey("F1Tg", b, 2, type); }
-                    }
-                }
-                IOServiceClose(g_conn); IOObjectRelease(service); return 0;
-            }
-            """
-            let sourcePath = "/tmp/smc_helper_src.c"
-            try? cCode.write(toFile: sourcePath, atomically: true, encoding: .utf8)
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/bin/clang")
-            task.arguments = ["-x", "c", "-framework", "IOKit", "-framework", "CoreFoundation", sourcePath, "-o", helperPath]
-            try? task.run()
-            task.waitUntilExit()
-        }
-
-        let commandArg = isAuto ? "auto" : "\(targetRPM)"
-        let script = "do shell script \"\(helperPath) \(commandArg)\" with administrator privileges"
-        
-        DispatchQueue.global(qos: .userInitiated).async {
-            var error: NSDictionary?
-            if let appleScript = NSAppleScript(source: script) {
-                appleScript.executeAndReturnError(&error)
-            }
-        }
-        return true
     }
 }
