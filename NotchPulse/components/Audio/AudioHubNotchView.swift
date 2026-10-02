@@ -335,6 +335,7 @@ private struct AudioDeviceRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -369,9 +370,10 @@ private struct AudioDeviceRow: View {
         .padding(.vertical, 4)
         .background(
             device.isDefault ?
-                Color.white.opacity(0.06) : Color.clear
+                Color.white.opacity(0.08) : Color.clear
         )
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 

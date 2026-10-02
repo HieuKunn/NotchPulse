@@ -238,7 +238,42 @@ final class AudioDeviceManager: ObservableObject {
         let size = UInt32(MemoryLayout<AudioObjectID>.size)
         _ = AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &propertyAddress, 0, nil, size, &devID)
         
-        refreshDevices()
+        if !isInput {
+            var sysAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioHardwarePropertyDefaultSystemOutputDevice,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            _ = AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &sysAddr, 0, nil, size, &devID)
+        }
+
+        // Optimistically update device selection immediately in UI
+        if isInput {
+            for i in 0..<inputDevices.count {
+                inputDevices[i].isDefault = (inputDevices[i].id == id)
+                if inputDevices[i].id == id {
+                    self.defaultInputDevice = inputDevices[i]
+                }
+            }
+        } else {
+            for i in 0..<outputDevices.count {
+                outputDevices[i].isDefault = (outputDevices[i].id == id)
+                if outputDevices[i].id == id {
+                    self.defaultOutputDevice = outputDevices[i]
+                    let vol = outputDevices[i].volume
+                    VolumeManager.shared.setAbsolute(vol)
+                    NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(vol))
+                }
+            }
+        }
+
+        // Schedule delayed refreshes to sync with CoreAudio HAL async switch
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.refreshDevices()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.refreshDevices()
+        }
     }
 
     func setDeviceVolume(id: AudioObjectID, volume: Float, isInput: Bool) {
@@ -261,19 +296,22 @@ final class AudioDeviceManager: ObservableObject {
             }
         }
 
-        // If adjusting default output, also synchronize VolumeManager
-        if !isInput, let defOut = defaultOutputDevice, defOut.id == id {
-            VolumeManager.shared.setAbsolute(clamped)
-        }
-
-        // Optimistically update list
+        // Optimistically update list & default devices
         if isInput {
             if let idx = inputDevices.firstIndex(where: { $0.id == id }) {
                 inputDevices[idx].volume = clamped
             }
+            if defaultInputDevice?.id == id {
+                defaultInputDevice?.volume = clamped
+            }
         } else {
             if let idx = outputDevices.firstIndex(where: { $0.id == id }) {
                 outputDevices[idx].volume = clamped
+            }
+            if defaultOutputDevice?.id == id {
+                defaultOutputDevice?.volume = clamped
+                VolumeManager.shared.setAbsolute(clamped)
+                NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(clamped))
             }
         }
     }
