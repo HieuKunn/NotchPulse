@@ -192,8 +192,153 @@ final class AudioDeviceManager: ObservableObject {
         self.inputDevices = newInputs
     }
 
+    // MARK: - CoreAudio Process & Media Detection (FineTune-grade Engine)
+
+    private var processListenerBlocks: [AudioObjectID: AudioObjectPropertyListenerBlock] = [:]
+    private var monitoredProcesses: Set<AudioObjectID> = []
+
+    private typealias ResponsibilityFunc = @convention(c) (pid_t) -> pid_t
+
+    private func getResponsiblePID(for pid: pid_t) -> pid_t? {
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -1), "responsibility_get_pid_responsible_for_pid") else {
+            return nil
+        }
+        let responsiblePID = unsafeBitCast(symbol, to: ResponsibilityFunc.self)(pid)
+        return responsiblePID > 0 && responsiblePID != pid ? responsiblePID : nil
+    }
+
+    private func findResponsibleApp(
+        for pid: pid_t,
+        in runningAppsByPID: [pid_t: NSRunningApplication]
+    ) -> NSRunningApplication? {
+        if let responsiblePID = getResponsiblePID(for: pid),
+           let app = runningAppsByPID[responsiblePID],
+           app.bundleURL?.pathExtension == "app" {
+            return app
+        }
+
+        var currentPID = pid
+        var visited = Set<pid_t>()
+
+        while currentPID > 1 && !visited.contains(currentPID) {
+            visited.insert(currentPID)
+
+            if let app = runningAppsByPID[currentPID],
+               app.bundleURL?.pathExtension == "app" {
+                return app
+            }
+
+            var info = kinfo_proc()
+            var size = MemoryLayout<kinfo_proc>.size
+            var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, currentPID]
+
+            guard sysctl(&mib, 4, &info, &size, nil, 0) == 0 else { break }
+
+            let parentPID = info.kp_eproc.e_ppid
+            if parentPID == currentPID { break }
+            currentPID = parentPID
+        }
+
+        return nil
+    }
+
+    private static let systemDaemonPrefixes: [String] = [
+        "com.apple.siri", "com.apple.Siri", "com.apple.assistant", "com.apple.audio",
+        "com.apple.coreaudio", "com.apple.mediaremote", "com.apple.accessibility.heard",
+        "com.apple.hearingd", "com.apple.voicebankingd", "com.apple.systemsound",
+        "com.apple.FrontBoardServices", "com.apple.frontboard", "com.apple.springboard",
+        "com.apple.notificationcenter", "com.apple.NotificationCenter", "com.apple.UserNotifications",
+        "com.apple.usernotifications", "com.apple.SpeechRecognitionCore", "com.apple.speech",
+        "com.apple.dictation", "com.apple.corespeech", "com.apple.CoreSpeech",
+        "com.apple.VoiceControl", "com.apple.voicecontrol"
+    ]
+
+    private static let systemDaemonNames: [String] = [
+        "systemsoundserverd", "systemsoundserv", "coreaudiod", "audiomxd",
+        "speechrecognitiond", "dictationd", "corespeech"
+    ]
+
+    private func isSystemDaemon(bundleID: String?, name: String) -> Bool {
+        if let bundleID = bundleID {
+            if Self.systemDaemonPrefixes.contains(where: { bundleID.hasPrefix($0) }) {
+                return true
+            }
+        }
+        let lower = name.lowercased()
+        if Self.systemDaemonNames.contains(where: { lower.hasPrefix($0) }) {
+            return true
+        }
+        return false
+    }
+
+    private func readCoreAudioProcessIDs() -> [AudioObjectID] {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyProcessObjectList,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &propertyAddress, 0, nil, &size) == noErr else {
+            return []
+        }
+        let count = Int(size) / MemoryLayout<AudioObjectID>.size
+        var ids = [AudioObjectID](repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &propertyAddress, 0, nil, &size, &ids) == noErr else {
+            return []
+        }
+        return ids
+    }
+
+    private func readProcessPID(_ id: AudioObjectID) -> pid_t? {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioProcessPropertyPID,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var pid: pid_t = 0
+        var size = UInt32(MemoryLayout<pid_t>.size)
+        guard AudioObjectGetPropertyData(id, &propertyAddress, 0, nil, &size, &pid) == noErr else {
+            return nil
+        }
+        return pid
+    }
+
+    private func readProcessIsRunning(_ id: AudioObjectID) -> Bool {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioProcessPropertyIsRunning,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var running: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(id, &propertyAddress, 0, nil, &size, &running) == noErr else {
+            return false
+        }
+        return running != 0
+    }
+
+    private func readProcessBundleID(_ id: AudioObjectID) -> String? {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioProcessPropertyBundleID,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var unmanaged: Unmanaged<CFString>? = nil
+        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        let err = withUnsafeMutablePointer(to: &unmanaged) { ptr in
+            AudioObjectGetPropertyData(id, &propertyAddress, 0, nil, &size, UnsafeMutableRawPointer(ptr))
+        }
+        guard err == noErr, let unmanaged = unmanaged else { return nil }
+        return unmanaged.takeRetainedValue() as String
+    }
+
     func refreshApps() {
         let running = NSWorkspace.shared.runningApplications
+        let runningAppsByPID = Dictionary(
+            running.map { ($0.processIdentifier, $0) },
+            uniquingKeysWith: { _, latest in latest }
+        )
+        let myPID = ProcessInfo.processInfo.processIdentifier
         let myBid = Bundle.main.bundleIdentifier ?? ""
         let isSystemMusicPlaying = MusicManager.shared.isPlaying
         let mediaKeywords = [
@@ -202,21 +347,49 @@ final class AudioDeviceManager: ObservableObject {
             "netflix", "tidal", "deezer", "soundcloud", "whatsapp", "signal", "game", "player", "audio", "video"
         ]
 
+        // 1. Query CoreAudio HAL active audio processes (identifies apps actually producing media/audio)
+        let coreAudioProcessIDs = readCoreAudioProcessIDs()
+        var activeAudioPIDs = Set<pid_t>()
+        var activeAudioBundleIDs = Set<String>()
+
+        for objID in coreAudioProcessIDs {
+            guard let pid = readProcessPID(objID), pid != myPID else { continue }
+            let isRunning = readProcessIsRunning(objID)
+            
+            let directApp = runningAppsByPID[pid]
+            let isRealApp = directApp?.bundleURL?.pathExtension == "app"
+            let resolvedApp = isRealApp ? directApp : findResponsibleApp(for: pid, in: runningAppsByPID)
+            let parentPID = resolvedApp?.processIdentifier ?? pid
+            let bundleID = resolvedApp?.bundleIdentifier ?? readProcessBundleID(objID)
+
+            if isRunning {
+                activeAudioPIDs.insert(parentPID)
+                activeAudioPIDs.insert(pid)
+                if let bid = bundleID {
+                    activeAudioBundleIDs.insert(bid)
+                }
+            }
+        }
+
+        // Update listeners for CoreAudio process lifecycle
+        updateProcessListeners(for: coreAudioProcessIDs)
+
+        // 2. Build list of all user applications with accurate media state
         var items: [AudioAppItem] = []
         for app in running where app.activationPolicy == .regular {
             guard let name = app.localizedName, !name.isEmpty else { continue }
             let bid = app.bundleIdentifier ?? name
             if bid == myBid { continue }
 
+            let pid = app.processIdentifier
             let lower = (name + " " + bid).lowercased()
             let savedVol = appVolumes[bid] ?? 1.0
             let savedMute = appMutes[bid] ?? false
-            
-            var isPlaying = false
-            if isSystemMusicPlaying {
-                if lower.contains("music") || lower.contains("spotify") || lower.contains("tidal") || lower.contains("deezer") {
-                    isPlaying = true
-                }
+
+            // Mark playing if CoreAudio confirms active audio output OR system music is active on this app
+            var isPlaying = activeAudioPIDs.contains(pid) || activeAudioBundleIDs.contains(bid)
+            if isSystemMusicPlaying && (lower.contains("music") || lower.contains("spotify") || lower.contains("tidal") || lower.contains("deezer")) {
+                isPlaying = true
             }
 
             items.append(AudioAppItem(
@@ -229,7 +402,7 @@ final class AudioDeviceManager: ObservableObject {
             ))
         }
 
-        // Sort: Active playing apps first, then media-related apps, then alphabetically
+        // Sort: Apps actively playing audio FIRST, then media-related apps, then alphabetically
         items.sort { a, b in
             if a.isPlaying != b.isPlaying {
                 return a.isPlaying && !b.isPlaying
@@ -243,7 +416,41 @@ final class AudioDeviceManager: ObservableObject {
             }
             return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
         }
+
         self.activeApps = items
+    }
+
+    private func updateProcessListeners(for processIDs: [AudioObjectID]) {
+        let currentSet = Set(processIDs)
+        let removed = monitoredProcesses.subtracting(currentSet)
+        for objectID in removed {
+            if let block = processListenerBlocks.removeValue(forKey: objectID) {
+                var address = AudioObjectPropertyAddress(
+                    mSelector: kAudioProcessPropertyIsRunning,
+                    mScope: kAudioObjectPropertyScopeGlobal,
+                    mElement: kAudioObjectPropertyElementMain
+                )
+                AudioObjectRemovePropertyListenerBlock(objectID, &address, nil, block)
+            }
+        }
+
+        let added = currentSet.subtracting(monitoredProcesses)
+        for objectID in added {
+            var address = AudioObjectPropertyAddress(
+                mSelector: kAudioProcessPropertyIsRunning,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+                Task { @MainActor [weak self] in
+                    self?.refreshApps()
+                }
+            }
+            if AudioObjectAddPropertyListenerBlock(objectID, &address, nil, block) == noErr {
+                processListenerBlocks[objectID] = block
+            }
+        }
+        monitoredProcesses = currentSet
     }
 
     // MARK: - Actions
@@ -903,6 +1110,18 @@ final class AudioDeviceManager: ObservableObject {
         AudioObjectAddPropertyListenerBlock(systemObjectID, &inAddr, nil) { [weak self] _, _ in
             Task { @MainActor [weak self] in
                 self?.refreshDevices()
+            }
+        }
+
+        // 4. CoreAudio Process Object list changed (real-time detection when apps start/stop playing media)
+        var procAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyProcessObjectList,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectAddPropertyListenerBlock(systemObjectID, &procAddr, nil) { [weak self] _, _ in
+            Task { @MainActor [weak self] in
+                self?.refreshApps()
             }
         }
 
