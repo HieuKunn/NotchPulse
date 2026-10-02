@@ -258,18 +258,23 @@ final class AudioDeviceManager: ObservableObject {
 
         // Optimistically update device selection immediately in UI
         if isInput {
-            for i in 0..<inputDevices.count {
-                inputDevices[i].isDefault = (inputDevices[i].id == id)
-                if inputDevices[i].id == id {
-                    self.defaultInputDevice = inputDevices[i]
+            var updated = inputDevices
+            for i in 0..<updated.count {
+                let match = (updated[i].id == id)
+                updated[i].isDefault = match
+                if match {
+                    self.defaultInputDevice = updated[i]
                 }
             }
+            self.inputDevices = updated
         } else {
-            for i in 0..<outputDevices.count {
-                outputDevices[i].isDefault = (outputDevices[i].id == id)
-                if outputDevices[i].id == id {
-                    self.defaultOutputDevice = outputDevices[i]
-                    let targetDev = outputDevices[i]
+            var updated = outputDevices
+            for i in 0..<updated.count {
+                let match = (updated[i].id == id)
+                updated[i].isDefault = match
+                if match {
+                    self.defaultOutputDevice = updated[i]
+                    let targetDev = updated[i]
                     // Auto-restore saved preferred volume for this device if previously saved
                     if let savedVol = deviceSavedVolumes[targetDev.uid] {
                         setDeviceVolume(id: targetDev.id, volume: savedVol, isInput: false)
@@ -280,6 +285,7 @@ final class AudioDeviceManager: ObservableObject {
                     }
                 }
             }
+            self.outputDevices = updated
         }
 
         // Schedule delayed refreshes to sync with CoreAudio HAL async switch

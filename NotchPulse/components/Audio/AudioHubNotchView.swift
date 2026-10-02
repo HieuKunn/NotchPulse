@@ -118,8 +118,7 @@ struct AudioHubNotchView: View {
             .padding(.top, 2)
 
             // Content: Devices & Apps
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 8) {
+            VStack(spacing: 8) {
                     // Devices List Section
                     VStack(spacing: 4) {
                         if audioManager.selectedTab == .output {
@@ -271,30 +270,29 @@ struct AudioHubNotchView: View {
     }
 
     private func calculateContentHeight() -> CGFloat {
-        // Physical notch / top bar header height is 36-40pt in NotchPulseHeader
-        let physicalNotchOffset: CGFloat = 38
-        // Tab switcher & breadcrumb header row + top padding
-        let subheaderHeight: CGFloat = 34
-        // Devices count & height (each row is ~32pt + 4pt spacing)
+        let topBarOffset: CGFloat = 40
+        let subheaderHeight: CGFloat = 32
+        let topSpacing: CGFloat = 8
         let devicesCount = audioManager.selectedTab == .output ?
             max(1, audioManager.outputDevices.count) :
             max(1, audioManager.inputDevices.count)
-        let devicesHeight = CGFloat(devicesCount) * 32
-        // Divider (1pt + 8pt spacing)
+        let devicesHeight = CGFloat(devicesCount) * 36
         let dividerHeight: CGFloat = 9
-        // APPS collapsible header button
         let appsHeaderHeight: CGFloat = 26
 
         let appsListHeight: CGFloat
         if isAppsExpanded {
-            let appsCount = max(1, audioManager.activeApps.count)
-            appsListHeight = CGFloat(appsCount) * 28 + 6
+            if audioManager.activeApps.isEmpty {
+                appsListHeight = 28
+            } else {
+                appsListHeight = CGFloat(audioManager.activeApps.count) * 30 + 4
+            }
         } else {
             appsListHeight = 0
         }
 
-        let bottomPadding: CGFloat = 12
-        let total = physicalNotchOffset + subheaderHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
+        let bottomPadding: CGFloat = 18
+        let total = topBarOffset + subheaderHeight + topSpacing + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
         return min(540, max(120, total))
     }
 
@@ -321,29 +319,28 @@ private struct AudioDeviceRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Icon
+            // Icon & Name tap area (expands across left side)
             Button(action: onSelect) {
-                ZStack {
-                    Circle()
-                        .fill(device.isDefault ? Color.blue : Color.white.opacity(0.12))
-                        .frame(width: 24, height: 24)
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(device.isDefault ? Color.blue : Color.white.opacity(0.12))
+                            .frame(width: 24, height: 24)
 
-                    Image(systemName: device.iconName)
-                        .font(.system(size: 11))
+                        Image(systemName: device.iconName)
+                            .font(.system(size: 11))
+                            .foregroundStyle(device.isDefault ? .white : .white.opacity(0.85))
+                    }
+
+                    Text(device.name)
+                        .font(.system(size: 12, weight: device.isDefault ? .semibold : .regular))
                         .foregroundStyle(device.isDefault ? .white : .white.opacity(0.85))
-                }
-            }
-            .buttonStyle(.plain)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
 
-            // Name
-            Button(action: onSelect) {
-                Text(device.name)
-                    .font(.system(size: 12, weight: device.isDefault ? .semibold : .regular))
-                    .foregroundStyle(device.isDefault ? .white : .white.opacity(0.85))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
+                    Spacer()
+                }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -381,7 +378,6 @@ private struct AudioDeviceRow: View {
                 Color.white.opacity(0.08) : Color.clear
         )
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
