@@ -239,8 +239,10 @@ struct StatsView: View {
             monitor.stopMonitoring()
             if expandedMetric != nil {
                 expandedMetric = nil
-                withAnimation(NotchPulseViewModel.notchSpring) {
-                    vm.customOpenHeight = nil
+                if NotchPulseViewCoordinator.shared.currentView != .audio {
+                    withAnimation(NotchPulseViewModel.notchSpring) {
+                        vm.customOpenHeight = nil
+                    }
                 }
             }
         }

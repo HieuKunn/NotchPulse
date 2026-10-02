@@ -180,10 +180,10 @@ struct AudioHubNotchView: View {
                     // APPS Section (Preserved on both Output and Input)
                     VStack(alignment: .leading, spacing: 6) {
                         Button(action: {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                isAppsExpanded.toggle()
-                                updateDynamicHeight()
-                            }
+                            let newExpanded = !isAppsExpanded
+                            isAppsExpanded = newExpanded
+                            UserDefaults.standard.set(newExpanded, forKey: "NotchPulse_AudioHubAppsExpanded")
+                            updateDynamicHeight(isExpanded: newExpanded)
                         }) {
                             HStack(spacing: 6) {
                                 Text(loc("APPS"))
@@ -237,7 +237,7 @@ struct AudioHubNotchView: View {
                     }
                 }
                 .padding(.horizontal, 4)
-                .padding(.bottom, 6)
+                .padding(.bottom, 22)
             }
         }
         .padding(.horizontal, 10)
@@ -246,11 +246,20 @@ struct AudioHubNotchView: View {
         .onAppear {
             audioManager.refreshDevices()
             audioManager.refreshApps()
-            updateDynamicHeight()
+            DispatchQueue.main.async {
+                updateDynamicHeight()
+            }
         }
         .onDisappear {
             if coordinator.currentView != .audio {
                 vm.customOpenHeight = nil
+            }
+        }
+        .onChange(of: coordinator.currentView) { _, newView in
+            if newView == .audio {
+                DispatchQueue.main.async {
+                    updateDynamicHeight()
+                }
             }
         }
         .onChange(of: isAppsExpanded) { _ in
@@ -293,19 +302,19 @@ struct AudioHubNotchView: View {
             if activeCount == 0 {
                 appsListHeight = 28
             } else {
-                appsListHeight = CGFloat(activeCount) * 34
+                appsListHeight = CGFloat(activeCount) * 36
             }
         } else {
             appsListHeight = 0
         }
 
-        let bottomPadding: CGFloat = 24
+        let bottomPadding: CGFloat = 36
         let total = topBarOffset + headerBarHeight + spacing + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
-        return min(560, max(140, total))
+        return min(580, max(160, total))
     }
 
-    private func updateDynamicHeight() {
-        let target = Self.calculateHeight(selectedTab: audioManager.selectedTab, isAppsExpanded: isAppsExpanded)
+    private func updateDynamicHeight(isExpanded: Bool? = nil) {
+        let target = Self.calculateHeight(selectedTab: audioManager.selectedTab, isAppsExpanded: isExpanded ?? isAppsExpanded)
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
             vm.customOpenHeight = target
         }

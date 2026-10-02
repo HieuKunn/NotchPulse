@@ -341,83 +341,70 @@ final class AudioDeviceManager: ObservableObject {
         let myPID = ProcessInfo.processInfo.processIdentifier
         let myBid = Bundle.main.bundleIdentifier ?? ""
         let isSystemMusicPlaying = MusicManager.shared.isPlaying
-        let mediaKeywords = [
-            "music", "spotify", "arc", "chrome", "safari", "firefox", "brave", "edge", "opera", "vivaldi", "orion",
-            "youtube", "discord", "slack", "telegram", "vlc", "iina", "quicktime", "zoom", "teams", "podcasts",
-            "netflix", "tidal", "deezer", "soundcloud", "whatsapp", "signal", "game", "player", "audio", "video"
-        ]
 
         // 1. Query CoreAudio HAL active audio processes (identifies apps actually producing media/audio)
         let coreAudioProcessIDs = readCoreAudioProcessIDs()
-        var activeAudioPIDs = Set<pid_t>()
-        var activeAudioBundleIDs = Set<String>()
+        updateProcessListeners(for: coreAudioProcessIDs)
+
+        var appsByPID: [pid_t: AudioAppItem] = [:]
 
         for objID in coreAudioProcessIDs {
             guard let pid = readProcessPID(objID), pid != myPID else { continue }
-            let isRunning = readProcessIsRunning(objID)
-            
+            guard readProcessIsRunning(objID) else { continue }
+
             let directApp = runningAppsByPID[pid]
             let isRealApp = directApp?.bundleURL?.pathExtension == "app"
             let resolvedApp = isRealApp ? directApp : findResponsibleApp(for: pid, in: runningAppsByPID)
             let parentPID = resolvedApp?.processIdentifier ?? pid
+
+            let name = resolvedApp?.localizedName
+                ?? readProcessBundleID(objID)?.components(separatedBy: ".").last
+                ?? "Unknown"
             let bundleID = resolvedApp?.bundleIdentifier ?? readProcessBundleID(objID)
 
-            if isRunning {
-                activeAudioPIDs.insert(parentPID)
-                activeAudioPIDs.insert(pid)
-                if let bid = bundleID {
-                    activeAudioBundleIDs.insert(bid)
+            if isSystemDaemon(bundleID: bundleID, name: name) { continue }
+
+            let bid = bundleID ?? name
+            if bid == myBid { continue }
+
+            let savedVol = appVolumes[bid] ?? 1.0
+            let savedMute = appMutes[bid] ?? false
+
+            if appsByPID[parentPID] == nil {
+                appsByPID[parentPID] = AudioAppItem(
+                    id: bid,
+                    name: name,
+                    bundleIdentifier: bundleID,
+                    volume: savedVol,
+                    isMuted: savedMute,
+                    isPlaying: true
+                )
+            }
+        }
+
+        // Also check if system Music or Spotify is playing
+        if isSystemMusicPlaying {
+            for (bid, fallbackName) in [("com.apple.Music", "Music"), ("com.spotify.client", "Spotify")] {
+                if let app = running.first(where: { $0.bundleIdentifier == bid }) {
+                    let pid = app.processIdentifier
+                    if appsByPID[pid] == nil {
+                        let savedVol = appVolumes[bid] ?? 1.0
+                        let savedMute = appMutes[bid] ?? false
+                        appsByPID[pid] = AudioAppItem(
+                            id: bid,
+                            name: app.localizedName ?? fallbackName,
+                            bundleIdentifier: bid,
+                            volume: savedVol,
+                            isMuted: savedMute,
+                            isPlaying: true
+                        )
+                    }
                 }
             }
         }
 
-        // Update listeners for CoreAudio process lifecycle
-        updateProcessListeners(for: coreAudioProcessIDs)
-
-        // 2. Build list of all user applications with accurate media state
-        var items: [AudioAppItem] = []
-        for app in running where app.activationPolicy == .regular {
-            guard let name = app.localizedName, !name.isEmpty else { continue }
-            let bid = app.bundleIdentifier ?? name
-            if bid == myBid { continue }
-
-            let pid = app.processIdentifier
-            let lower = (name + " " + bid).lowercased()
-            let savedVol = appVolumes[bid] ?? 1.0
-            let savedMute = appMutes[bid] ?? false
-
-            // Mark playing if CoreAudio confirms active audio output OR system music is active on this app
-            var isPlaying = activeAudioPIDs.contains(pid) || activeAudioBundleIDs.contains(bid)
-            if isSystemMusicPlaying && (lower.contains("music") || lower.contains("spotify") || lower.contains("tidal") || lower.contains("deezer")) {
-                isPlaying = true
-            }
-
-            items.append(AudioAppItem(
-                id: bid,
-                name: name,
-                bundleIdentifier: app.bundleIdentifier,
-                volume: savedVol,
-                isMuted: savedMute,
-                isPlaying: isPlaying
-            ))
-        }
-
-        // Sort: Apps actively playing audio FIRST, then media-related apps, then alphabetically
-        items.sort { a, b in
-            if a.isPlaying != b.isPlaying {
-                return a.isPlaying && !b.isPlaying
-            }
-            let aLower = (a.name + " " + a.id).lowercased()
-            let bLower = (b.name + " " + b.id).lowercased()
-            let aIsMedia = mediaKeywords.contains(where: { aLower.contains($0) })
-            let bIsMedia = mediaKeywords.contains(where: { bLower.contains($0) })
-            if aIsMedia != bIsMedia {
-                return aIsMedia && !bIsMedia
-            }
-            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
-        }
-
-        self.activeApps = items
+        let sorted = appsByPID.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        self.activeApps = sorted
     }
 
     private func updateProcessListeners(for processIDs: [AudioObjectID]) {

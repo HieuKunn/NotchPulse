@@ -56,7 +56,7 @@ struct TabSelectionView: View {
             AudioDeviceManager.shared.refreshDevices()
             AudioDeviceManager.shared.refreshApps()
             let isExpanded = (UserDefaults.standard.object(forKey: "NotchPulse_AudioHubAppsExpanded") as? Bool) ?? true
-            let targetHeight = AudioHubNotchView.calculateHeight(isAppsExpanded: isExpanded)
+            let targetHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab, isAppsExpanded: isExpanded)
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 vm.customOpenHeight = targetHeight
             }
