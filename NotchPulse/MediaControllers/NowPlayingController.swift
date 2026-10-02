@@ -117,29 +117,119 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         self.pipeHandler = nil
     }
 
+    // MARK: - Adapter Execution & Control Helpers
+    private var adapterPaths: (scriptPath: String, frameworkPath: String)? {
+        if let script = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl")?.path,
+           let framework = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework"),
+           FileManager.default.fileExists(atPath: script),
+           FileManager.default.fileExists(atPath: framework) {
+            return (script, framework)
+        }
+        
+        if let resourcePath = Bundle.main.resourcePath {
+            let script = resourcePath + "/mediaremote-adapter.pl"
+            let framework = (Bundle.main.privateFrameworksPath ?? (resourcePath + "/../Frameworks")) + "/MediaRemoteAdapter.framework"
+            if FileManager.default.fileExists(atPath: script) && FileManager.default.fileExists(atPath: framework) {
+                return (script, framework)
+            }
+        }
+        return nil
+    }
+
+    private func executeAdapter(action: String, args: [String]) {
+        guard let paths = adapterPaths else { return }
+        DispatchQueue.global(qos: .userInteractive).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
+            process.arguments = [paths.scriptPath, paths.frameworkPath, action] + args
+            try? process.run()
+        }
+    }
+
+    private func postMediaKeyEvent(for command: Int) {
+        let keyType: Int32?
+        switch command {
+        case 0, 1, 2:
+            keyType = 16 // NX_KEYTYPE_PLAY
+        case 4:
+            keyType = 17 // NX_KEYTYPE_NEXT
+        case 5:
+            keyType = 18 // NX_KEYTYPE_PREVIOUS
+        default:
+            keyType = nil
+        }
+        
+        guard let key = keyType else { return }
+        
+        func sendKey(down: Bool) {
+            let flags = NSEvent.ModifierFlags(rawValue: down ? 0xa00 : 0xb00)
+            let data1 = Int((key << 16) | (down ? 0xa00 : 0xb00))
+            let ev = NSEvent.otherEvent(
+                with: .systemDefined,
+                location: .zero,
+                modifierFlags: flags,
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                subtype: 8,
+                data1: data1,
+                data2: -1
+            )
+            ev?.cgEvent?.post(tap: .cghidEventTap)
+        }
+        
+        sendKey(down: true)
+        sendKey(down: false)
+    }
+
+    private func sendMediaRemoteCommand(_ command: Int) {
+        // Direct C function call (best effort)
+        MRMediaRemoteSendCommandFunction(command, nil)
+        
+        if adapterPaths != nil {
+            executeAdapter(action: "send", args: ["\(command)"])
+        } else {
+            postMediaKeyEvent(for: command)
+        }
+    }
+
     // MARK: - Protocol Implementation
     func play() async {
-        MRMediaRemoteSendCommandFunction(0, nil)
+        sendMediaRemoteCommand(0)
     }
 
     func pause() async {
-        MRMediaRemoteSendCommandFunction(1, nil)
+        sendMediaRemoteCommand(1)
     }
 
     func togglePlay() async {
-        MRMediaRemoteSendCommandFunction(2, nil)
+        sendMediaRemoteCommand(2)
     }
 
     func nextTrack() async {
-        MRMediaRemoteSendCommandFunction(4, nil)
+        sendMediaRemoteCommand(4)
+        let bundleID = playbackState.bundleIdentifier
+        if bundleID == "com.apple.Music" {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
+        } else if bundleID == "com.spotify.client" {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+        }
     }
 
     func previousTrack() async {
-        MRMediaRemoteSendCommandFunction(5, nil)
+        sendMediaRemoteCommand(5)
+        let bundleID = playbackState.bundleIdentifier
+        if bundleID == "com.apple.Music" {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+        } else if bundleID == "com.spotify.client" {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
+        }
     }
 
     func seek(to time: Double) async {
         MRMediaRemoteSetElapsedTimeFunction(time)
+        executeAdapter(action: "seek", args: ["\(Int(time * 1_000_000))"])
+        
         let bundleID = playbackState.bundleIdentifier
         if bundleID == "com.apple.Music" {
             Task {
@@ -159,9 +249,12 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
     
     func toggleShuffle() async {
-        MRMediaRemoteSendCommandFunction(6, nil)
         let isShuffled = playbackState.isShuffled
-        MRMediaRemoteSetShuffleModeFunction(isShuffled ? 1 : 3)
+        let targetShuffleMode = isShuffled ? 1 : 3
+        MRMediaRemoteSendCommandFunction(6, nil)
+        MRMediaRemoteSetShuffleModeFunction(targetShuffleMode)
+        executeAdapter(action: "shuffle", args: ["\(targetShuffleMode)"])
+        
         let bundleID = playbackState.bundleIdentifier
         if bundleID == "com.apple.Music" {
             let script = "tell application \"Music\" to set shuffle enabled to (not shuffle enabled)"
@@ -174,10 +267,12 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
     
     func toggleRepeat() async {
-        MRMediaRemoteSendCommandFunction(7, nil)
         let newRepeatMode = (playbackState.repeatMode == .off) ? 3 : (playbackState.repeatMode.rawValue - 1)
         playbackState.repeatMode = RepeatMode(rawValue: newRepeatMode) ?? .off
+        MRMediaRemoteSendCommandFunction(7, nil)
         MRMediaRemoteSetRepeatModeFunction(newRepeatMode)
+        executeAdapter(action: "repeat", args: ["\(newRepeatMode)"])
+        
         let bundleID = playbackState.bundleIdentifier
         if bundleID == "com.apple.Music" {
             let script = """
@@ -227,16 +322,13 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     // MARK: - Setup Methods
     private func setupNowPlayingObserver() async {
         let process = Process()
-        guard
-            let scriptURL = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl"),
-            let frameworkPath = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework")
-        else {
+        guard let paths = adapterPaths else {
             assertionFailure("Could not find mediaremote-adapter.pl script or framework path")
             return
         }
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [scriptURL.path, frameworkPath, "stream", "--debounce=100"]
+        process.arguments = [paths.scriptPath, paths.frameworkPath, "stream", "--debounce=100"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
