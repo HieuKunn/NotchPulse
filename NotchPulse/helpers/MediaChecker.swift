@@ -30,9 +30,13 @@ final class MediaChecker: Sendable {
         }
 
         // Verify the bundled adapter resources exist
-        guard Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl") != nil,
-              let frameworkPath = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework"),
-              FileManager.default.fileExists(atPath: frameworkPath) else {
+        let hasScript = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl") != nil ||
+            (Bundle.main.resourcePath.map { FileManager.default.fileExists(atPath: $0 + "/mediaremote-adapter.pl") } ?? false)
+        let frameworkPath = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework") ??
+            (Bundle.main.resourcePath.map { $0 + "/../Frameworks/MediaRemoteAdapter.framework" } ?? "")
+        let hasFramework = FileManager.default.fileExists(atPath: frameworkPath)
+
+        guard hasScript, hasFramework else {
             print("MediaChecker: App bundle is missing internal mediaremote-adapter resources")
             return true
         }
