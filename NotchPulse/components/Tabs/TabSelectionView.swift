@@ -52,7 +52,15 @@ struct TabSelectionView: View {
         vm.generalDropTargeting = false
         vm.anyDropZoneTargeting = false
         CalendarStateViewModel.shared.isFullMonthExpanded = false
-        if tabView != .audio && tabView != .stats && vm.customOpenHeight != nil {
+        if tabView == .audio {
+            AudioDeviceManager.shared.refreshDevices()
+            AudioDeviceManager.shared.refreshApps()
+            let isExpanded = (UserDefaults.standard.object(forKey: "NotchPulse_AudioHubAppsExpanded") as? Bool) ?? true
+            let targetHeight = AudioHubNotchView.calculateHeight(isAppsExpanded: isExpanded)
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                vm.customOpenHeight = targetHeight
+            }
+        } else if tabView != .stats && vm.customOpenHeight != nil {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 vm.customOpenHeight = nil
             }

@@ -268,35 +268,39 @@ struct AudioHubNotchView: View {
         }
     }
 
-    private func calculateContentHeight() -> CGFloat {
-        let topBarOffset: CGFloat = 40
-        let subheaderHeight: CGFloat = 32
-        let topSpacing: CGFloat = 8
-        let devicesCount = audioManager.selectedTab == .output ?
-            max(1, audioManager.outputDevices.count) :
-            max(1, audioManager.inputDevices.count)
-        let devicesHeight = CGFloat(devicesCount) * 36
-        let dividerHeight: CGFloat = 9
-        let appsHeaderHeight: CGFloat = 26
+    static func calculateHeight(
+        selectedTab: AudioHubTab = AudioDeviceManager.shared.selectedTab,
+        isAppsExpanded: Bool = (UserDefaults.standard.object(forKey: "NotchPulse_AudioHubAppsExpanded") as? Bool) ?? true
+    ) -> CGFloat {
+        let topBarOffset: CGFloat = 48
+        let headerBarHeight: CGFloat = 32
+        let spacing: CGFloat = 8
+        let devicesCount = selectedTab == .output ?
+            max(1, AudioDeviceManager.shared.outputDevices.count) :
+            max(1, AudioDeviceManager.shared.inputDevices.count)
+        let devicesHeight = CGFloat(devicesCount) * 38
+        let dividerHeight: CGFloat = 17
+        let appsHeaderHeight: CGFloat = 28
 
         let appsListHeight: CGFloat
         if isAppsExpanded {
-            if audioManager.activeApps.isEmpty {
+            let activeCount = AudioDeviceManager.shared.activeApps.count
+            if activeCount == 0 {
                 appsListHeight = 28
             } else {
-                appsListHeight = CGFloat(audioManager.activeApps.count) * 30 + 4
+                appsListHeight = CGFloat(activeCount) * 34
             }
         } else {
             appsListHeight = 0
         }
 
-        let bottomPadding: CGFloat = 18
-        let total = topBarOffset + subheaderHeight + topSpacing + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
-        return min(540, max(120, total))
+        let bottomPadding: CGFloat = 24
+        let total = topBarOffset + headerBarHeight + spacing + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
+        return min(560, max(140, total))
     }
 
     private func updateDynamicHeight() {
-        let target = calculateContentHeight()
+        let target = Self.calculateHeight(selectedTab: audioManager.selectedTab, isAppsExpanded: isAppsExpanded)
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
             vm.customOpenHeight = target
         }
