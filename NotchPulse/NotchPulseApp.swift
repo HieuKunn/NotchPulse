@@ -377,7 +377,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
 
                 let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
+                let openHeight = max(targetVM.customOpenHeight ?? 0, max(targetVM.notchSize.height, openNotchSize.height))
                 let padding: CGFloat = 24.0
 
                 return CGRect(
@@ -474,7 +474,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding
                 let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let openHeight = max(targetVM.notchSize.height, openNotchSize.height)
+                let openHeight = max(targetVM.customOpenHeight ?? 0, max(targetVM.notchSize.height, openNotchSize.height))
                 return CGRect(
                     x: screenFrame.midX - (openWidth / 2 + padding),
                     y: screenFrame.maxY - (openHeight + padding + topOffset),
