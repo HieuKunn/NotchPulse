@@ -237,7 +237,7 @@ struct AudioHubNotchView: View {
                     }
                 }
                 .padding(.horizontal, 4)
-                .padding(.bottom, 22)
+                .padding(.bottom, 10)
             }
         }
         .padding(.horizontal, 10)
@@ -302,15 +302,15 @@ struct AudioHubNotchView: View {
             if activeCount == 0 {
                 appsListHeight = 28
             } else {
-                appsListHeight = CGFloat(activeCount) * 36
+                appsListHeight = CGFloat(activeCount) * 34
             }
         } else {
             appsListHeight = 0
         }
 
-        let bottomPadding: CGFloat = 36
+        let bottomPadding: CGFloat = 16
         let total = topBarOffset + headerBarHeight + spacing + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
-        return min(580, max(160, total))
+        return min(560, max(140, total))
     }
 
     private func updateDynamicHeight(isExpanded: Bool? = nil) {
