@@ -268,14 +268,17 @@ struct AudioHubNotchView: View {
         }
     }
 
+    @MainActor
     static func calculateHeight(
-        selectedTab: AudioHubTab = AudioDeviceManager.shared.selectedTab,
-        isAppsExpanded: Bool = (UserDefaults.standard.object(forKey: "NotchPulse_AudioHubAppsExpanded") as? Bool) ?? true
+        selectedTab: AudioHubTab? = nil,
+        isAppsExpanded: Bool? = nil
     ) -> CGFloat {
+        let currentTab = selectedTab ?? AudioDeviceManager.shared.selectedTab
+        let expanded = isAppsExpanded ?? ((UserDefaults.standard.object(forKey: "NotchPulse_AudioHubAppsExpanded") as? Bool) ?? true)
         let topBarOffset: CGFloat = 48
         let headerBarHeight: CGFloat = 32
         let spacing: CGFloat = 8
-        let devicesCount = selectedTab == .output ?
+        let devicesCount = currentTab == .output ?
             max(1, AudioDeviceManager.shared.outputDevices.count) :
             max(1, AudioDeviceManager.shared.inputDevices.count)
         let devicesHeight = CGFloat(devicesCount) * 38
@@ -283,7 +286,7 @@ struct AudioHubNotchView: View {
         let appsHeaderHeight: CGFloat = 28
 
         let appsListHeight: CGFloat
-        if isAppsExpanded {
+        if expanded {
             let activeCount = AudioDeviceManager.shared.activeApps.count
             if activeCount == 0 {
                 appsListHeight = 28
