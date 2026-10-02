@@ -57,7 +57,7 @@ enum MusicPlayerImageSizes {
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
     var notchHeight: CGFloat = Defaults[.nonNotchHeight]
-    var notchWidth: CGFloat = 165
+    var notchWidth: CGFloat = 190
 
     let screen = resolveScreen(screenUUID: screenUUID)
 

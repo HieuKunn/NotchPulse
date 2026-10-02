@@ -185,8 +185,13 @@ final class AudioDeviceManager: ObservableObject {
 
     func refreshApps() {
         let running = NSWorkspace.shared.runningApplications
-        let mediaKeywords = ["music", "spotify", "arc", "chrome", "safari", "firefox", "brave", "youtube", "discord", "slack", "telegram", "vlc", "quicktime", "zoom", "teams", "podcasts"]
+        let mediaKeywords = [
+            "music", "spotify", "arc", "chrome", "safari", "firefox", "brave", "edge", "opera", "vivaldi", "orion",
+            "youtube", "discord", "slack", "telegram", "vlc", "iina", "quicktime", "zoom", "teams", "podcasts",
+            "netflix", "tidal", "deezer", "soundcloud", "whatsapp", "signal"
+        ]
         let isUniversalMode = Defaults[.enableVirtualAudioDriver]
+        let isSystemMusicPlaying = MusicManager.shared.isPlaying
 
         var items: [AudioAppItem] = []
         for app in running where app.activationPolicy == .regular {
@@ -194,13 +199,16 @@ final class AudioDeviceManager: ObservableObject {
             let bid = app.bundleIdentifier ?? name
             let lower = (name + " " + bid).lowercased()
 
-            // In lightweight mode: filter to media-capable apps / active apps
-            // In universal mode: list all running regular apps
             let isMediaRelated = mediaKeywords.contains(where: { lower.contains($0) })
-            if isUniversalMode || isMediaRelated || app.isActive {
+            if isUniversalMode || isMediaRelated {
                 let savedVol = appVolumes[bid] ?? 1.0
                 let savedMute = appMutes[bid] ?? false
-                let isPlaying = (lower.contains("music") || lower.contains("spotify") || lower.contains("arc") || lower.contains("chrome") || lower.contains("safari"))
+                
+                // Only mark playing if it's the active music player or has active media playback
+                var isPlaying = false
+                if isSystemMusicPlaying && (lower.contains("music") || lower.contains("spotify")) {
+                    isPlaying = true
+                }
 
                 items.append(AudioAppItem(
                     id: bid,

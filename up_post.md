@@ -1,53 +1,50 @@
-BIẾN CÁI "TAI THỎ" TÙ NÚNG TRÊN MACBOOK THÀNH NƠI ĐA NHIỆM SIÊU XỊN NỊN! (FREE 100%)
+Chào mọi người nha! 👋
 
-Chào anh em trong hội dùng Mac! 👋
 
-Chắc nhiều anh em ở đây giống mình, mua cái MacBook về mở ra thấy cái "tai thỏ" (Notch) to chềnh ễnh trên màn hình, nhiều lúc nhìn ngứa mắt vãi chưởng. Để trống thì phí mà chả làm được trò trống gì.
+Thực ra mình biết là dạo này trên mạng cũng có khá nhiều app biến hóa cái "tai thỏ" (Notch) trên Mac rồi. Nhưng mà dùng mấy cái đó nhiều khi thấy thiếu mấy tính năng mình hay cần, thế là sẵn máu mày mò nên mình tự tay code luôn một chiếc app nhỏ đặt tên là NotchPulse để tự phục vụ bản thân là chính. Trong tương lai sẽ có ý định phát triển thêm nữa các tính năng như quản lý âm thanh , ròi điều khiển fan của Mac các thứ,...
 
-Thế là sẵn máu mày mò, mình tự tay code luôn một app nhỏ đặt tên là NotchPulse. Mục tiêu cực kỳ đơn giản: F5 lại cái Tai Thỏ, biến nó thành một "trung tâm điều khiển" thông minh, tiện lợi và mượt mà hệt như Dynamic Island trên iPhone luôn!
 
-Sau cả tháng ròng rã fix lỗi, chỉnh từng pixel, hôm nay bản v5.0 chính thức ra lò. Mình chia sẻ hoàn toàn MIỄN PHÍ cho anh em trải nghiệm đây! Mình vẫn đnag fix một số lỗi lặt vặt nhỏ ảnh hưởng đến trải nghiệm xí hihi.
+Mình mò fix lên fix xuống cả tháng trời thì nay bản v5.0 cũng tạm gọi là mượt mà, mình share lên đây hoàn toàn FREE (Miễn phí 100%) cho mọi người tải về trải nghiệm cùng cho vui!
 
-================================
-
-🔥 NHỮNG TÍNH NĂNG "ĐÁNG TIỀN" NHẤT TRÊN NOTCHPULSE:
-
-1. 📂 KHAY CHỨA ĐỒ (SHELF DRAG & DROP)
-- Đang làm việc mà muốn cất tạm vài cái file, link, hình ảnh hay video? Anh em chỉ cần cầm file kéo sát lên Notch rồi lắc nhẹ chuột sang trái phải là cái Khay Chứa Đồ hiện ra liền.
-- Thả file vào đó để lưu tạm, lúc nào cần thì lôi ra lại. Siêu nhanh, không bị rối màn hình Desktop!
-
-2. 🔒 MỞ KHÓA MACBOOK BẰNG FACE ID KHÔNG KHÁC GÌ IPHONE
-- Đỡ phải gõ mật khẩu hay bấm vân tay rườm rà. App tích hợp nhận diện khuôn mặt qua Camera Mac.
-- Mỗi lần mở máy hay mở khóa ứng dụng, cái Notch tự bung ra quét mặt cực xịn mịn, hiệu ứng chuyển động đỉnh cao!
-
-3. 🗓️ XEM LỊCH ÂM DƯƠNG & SỰ KIỆN NATIVE NGAY TRÊN NOTCH
-- Dành riêng cho anh em Việt Nam mình luôn! Bấm vào Notch là thấy ngay Lịch Âm (Âm Lịch VN UTC+7), coi ngày tốt xấu, mùng 1, rằm hay ngày lễ tết cực tiện.
-- Hỗ trợ xem 3 chế độ: Thu gọn, Lưới 3/5 kèm sự kiện, hoặc phóng to trọn tháng. Đồng bộ chuẩn đét với Google Calendar / Apple Calendar.
-
-4. 📋 BỘ NHỚ TẠM THÔNG MINH (CLIPBOARD HISTORY)
-- Anh em hay copy nhiều đoạn văn bản, mã code, đường link, hay mã màu Hex?
-- NotchPulse tự động lưu lại lịch sử copy. Chỉ cần bấm tổ hợp phím tắt Command + Option + V là danh sách copy hiện ra ngay tai thỏ để chọn lại, không sợ bị đè mất thông tin cũ nữa.
-
-5. 🎵 TRÌNH PHÁT NHẠC TIỆN LỢI (SPOTIFY, APPLE MUSIC, YOUTUBE MUSIC)
-- Đang nghe nhạc mà muốn chuyển bài, tạm dừng hay xem hình thu nhỏ (Thumbnail) của bài hát?
-- Rê chuột vào Notch là trình điều khiển nhạc bung ra mượt mà, kèm sóng nhạc nhịp nhàng cực chill.
-
-6. 🖥️ HỖ TRỢ ĐA MÀN HÌNH (MULTI-MONITOR)
-- Anh em cắm thêm 2-3 màn hình ngoài dùng vẫn mượt. Notch / Dynamic Island sẽ tự linh hoạt xuất hiện đúng màn hình mà anh em đang làm việc, không bị xung đột.
 
 ================================
 
-🎁 TẢI VỀ DÙNG THỬ MIỄN PHÍ NAY:
 
-🌐 Website / Landing Page chính thức: https://notchpulse-app.web.app/
-👉 Link tải trực tiếp (GitHub Release v5.0): https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/tag/v5.0
-👉 Yêu cầu hệ điều hành: macOS 14.0 (Sonoma) trở lên (Dùng tốt trên cả Mac Tai Thỏ và Mac màn hình phẳng).
-👉 Cam kết: App hoàn toàn sạch, mã nguồn mở công khai, không quảng cáo, không thu thập dữ liệu cá nhân!
+🗓️ Cái mình tâm đắc nhất: TÍCH HỢP LUÔN LỊCH ÂM VIỆT NAM NGAY TRÊN TAI THỎ
+Mấy app nước ngoài thì làm gì có Lịch Âm cho dân mình dùng đúng không mọi người =)))
+- Nhìn lên Notch là thấy ngay ngày Âm, hôm nào Mùng 1, hôm nào Rằm hay Lễ Tết là biết liền, đỡ phải mở app ngoài hay lên Google tra cứu mất công.
+- Có chia ngày theo Can Chi, giờ hoàng đạo và đồng bộ luôn với mấy cái lịch học, lịch làm việc (Google/Apple Calendar) cực kỳ tiện.
+
 
 ================================
 
-Anh em tải về trải nghiệm thử xem có giúp công việc nhanh hơn không nhé! Anh em có góp ý hay phát hiện lỗi gì cứ comment thoải mái ở dưới, mình sẽ hỗ trợ fix ngay lập tức.
 
-Nếu thấy hay thì cho mình xin 1 tim / 1 share hoặc 1 Star trên GitHub để mình có thêm động lực phát triển nhé! Cảm ơn anh em rất nhiều! ❤️🔥
+🔥 Ngoài ra mình có nhồi thêm mấy món tiện ích hay dùng hàng ngày:
 
-#MacBook #NotchPulse #DynamicIsland #MacTool #ShareApp #FreeApp #DeveloperViệtNam
+
+- Vừa nghe nhạc vừa ngó Lịch: Nửa bên trái là chỉnh bài hát (Spotify, Apple Music, Youtube), nửa bên phải là lịch sự kiện trong ngày, nhìn gọn gàng mà chill phết.
+- Khay chứa đồ tạm (Shelf): Đang lướt web hay làm bài mà muốn cất tạm cái ảnh, file PDF hay đường link? Chỉ cần cầm chuột kéo thẳng lên Notch thả vào đó là xong, khi nào cần thì lôi ra, khỏi sợ bừa bộn màn hình Desktop.
+- Soi hiệu năng máy (CPU / RAM / GPU): Bấm qua tab hiệu năng là thấy máy đang gánh bao nhiêu % CPU, ăn bao nhiêu RAM, app nào (Zalo, Discord, Chrome...) đang ngốn tài nguyên nhất để tiện đường tắt bớt.
+- Mở khóa Face ID: Notch tự bung ra quét khuôn mặt qua Camera Mac với hiệu ứng quét mặt mở khóa nhìn cũng ra gì và này nọ lắm!
+- Xem lại lịch sử Copy (Clipboard): Bấm phím tắt là hiện lại danh sách mấy đoạn text, link hay mã code đã copy trước đó, không sợ bị copy đè mất dữ liệu.
+
+
+================================
+
+
+🎁 Mọi người tải về dùng thử miễn phí ở đây nhé:
+
+
+🌐 Trang web giới thiệu: https://notchpulse-app.web.app/
+👉 Link tải trực tiếp (GitHub Release): https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases
+💻 Hệ điều hành: macOS 14 (Sonoma) trở lên nha (máy có tai thỏ hay màn hình phẳng đều cân tất).
+🛡️ Cam kết: App sạch 99%, không quảng cáo hay thu thập bất kỳ dữ liệu gì của mọi người đâu ạ.
+
+
+Vì là app do một mình tự mày mò làm nên chắc chắn không tránh khỏi vài hạt sạn nhỏ, mọi người dùng thử thấy có lỗi gì hay có ý tưởng gì hay ho cứ bình luận thẳng thắn bên dưới để mình fix dần nha! 
+
+
+Nếu thấy app tiện thì cho mình xin 1 like hoặc 1 share để lan tỏa tới nhiều bạn hơn nhé. Cảm ơn mọi người nhiều!
+
+
+#MacBook #NotchPulse #DynamicIsland #mactools #FreeApp #chiasekinhnghiem

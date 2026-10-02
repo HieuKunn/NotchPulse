@@ -268,26 +268,26 @@ struct AudioHubNotchView: View {
     }
 
     private func calculateContentHeight() -> CGFloat {
-        let notchHeaderOffset: CGFloat = 38
-        let subheaderHeight: CGFloat = 38
+        let topHeaderHeight: CGFloat = 30
+        let subheaderHeight: CGFloat = 28
         let devicesCount = audioManager.selectedTab == .output ?
             max(1, audioManager.outputDevices.count) :
             max(1, audioManager.inputDevices.count)
-        let devicesHeight = CGFloat(devicesCount) * 36
-        let dividerHeight: CGFloat = 12
-        let appsHeaderHeight: CGFloat = 32
+        let devicesHeight = CGFloat(devicesCount) * 28
+        let dividerHeight: CGFloat = 8
+        let appsHeaderHeight: CGFloat = 22
 
         let appsListHeight: CGFloat
         if isAppsExpanded {
             let appsCount = max(1, audioManager.activeApps.count)
-            appsListHeight = CGFloat(appsCount) * 36 + 6
+            appsListHeight = CGFloat(appsCount) * 26 + 4
         } else {
             appsListHeight = 0
         }
 
-        let bottomPadding: CGFloat = 26
-        let total = notchHeaderOffset + subheaderHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
-        return min(480, max(180, total))
+        let bottomPadding: CGFloat = 10
+        let total = topHeaderHeight + subheaderHeight + devicesHeight + dividerHeight + appsHeaderHeight + appsListHeight + bottomPadding
+        return min(420, max(140, total))
     }
 
     private func updateDynamicHeight() {
@@ -306,6 +306,10 @@ private struct AudioDeviceRow: View {
     let onSelect: () -> Void
     let onVolumeChange: (Float) -> Void
     let onMuteToggle: () -> Void
+
+    private var isEffectivelyMuted: Bool {
+        device.isMuted || device.volume <= 0.001
+    }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -336,9 +340,9 @@ private struct AudioDeviceRow: View {
 
             // Mute Icon
             Button(action: onMuteToggle) {
-                Image(systemName: device.isMuted ? (isInput ? "mic.slash.fill" : "speaker.slash.fill") : (isInput ? "mic.fill" : "speaker.wave.2.fill"))
+                Image(systemName: isEffectivelyMuted ? (isInput ? "mic.slash.fill" : "speaker.slash.fill") : (isInput ? "mic.fill" : "speaker.wave.2.fill"))
                     .font(.system(size: 10))
-                    .foregroundStyle(device.isMuted ? Color.red.opacity(0.85) : Color.secondary)
+                    .foregroundStyle(isEffectivelyMuted ? Color.red.opacity(0.9) : Color.white.opacity(0.9))
                     .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }
@@ -376,21 +380,27 @@ private struct AudioAppRow: View {
     let onVolumeChange: (Float) -> Void
     let onMuteToggle: () -> Void
 
+    private var isEffectivelyMuted: Bool {
+        appItem.isMuted || appItem.volume <= 0.001
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            // Equalizer Bars (FineTune style minimal indicator)
-            HStack(spacing: 1.5) {
-                RoundedRectangle(cornerRadius: 0.5)
-                    .fill(appItem.isPlaying ? Color.green : Color.gray.opacity(0.4))
-                    .frame(width: 2, height: 8)
-                RoundedRectangle(cornerRadius: 0.5)
-                    .fill(appItem.isPlaying ? Color.yellow : Color.gray.opacity(0.4))
-                    .frame(width: 2, height: 11)
-                RoundedRectangle(cornerRadius: 0.5)
-                    .fill(appItem.isPlaying ? Color.red : Color.gray.opacity(0.4))
-                    .frame(width: 2, height: 6)
+            // Equalizer Bars (only if playing media)
+            if appItem.isPlaying {
+                HStack(spacing: 1.5) {
+                    RoundedRectangle(cornerRadius: 0.5)
+                        .fill(Color.green)
+                        .frame(width: 2, height: 8)
+                    RoundedRectangle(cornerRadius: 0.5)
+                        .fill(Color.yellow)
+                        .frame(width: 2, height: 11)
+                    RoundedRectangle(cornerRadius: 0.5)
+                        .fill(Color.red)
+                        .frame(width: 2, height: 6)
+                }
+                .frame(width: 10, height: 12)
             }
-            .frame(width: 10, height: 12)
 
             // App Icon
             Image(nsImage: appItem.icon)
@@ -409,9 +419,9 @@ private struct AudioAppRow: View {
 
             // Mute Icon
             Button(action: onMuteToggle) {
-                Image(systemName: appItem.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                Image(systemName: isEffectivelyMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(appItem.isMuted ? Color.red.opacity(0.85) : Color.secondary)
+                    .foregroundStyle(isEffectivelyMuted ? Color.red.opacity(0.9) : Color.white.opacity(0.9))
                     .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }

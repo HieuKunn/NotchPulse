@@ -15,7 +15,7 @@ import SwiftUI
 final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content> {
     var onHoverChanged: ((Bool) -> Void)?
     var onClicked: (() -> Void)?
-    var notchClosedSize: CGSize = CGSize(width: 165, height: 38)
+    var notchClosedSize: CGSize = CGSize(width: 190, height: 38)
     private var trackingArea: NSTrackingArea?
 
     private func currentActiveRect() -> NSRect {
@@ -171,7 +171,7 @@ final class LockScreenFaceIDWindow: NSPanel {
             physicalNotchWidth: closedSize.width,
             notchStyle: notchStyle
         ))
-        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? max(165, closedSize.width) : 165, height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
+        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? max(190, closedSize.width) : 190, height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
@@ -244,7 +244,7 @@ struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
-    var physicalNotchWidth: CGFloat = 165
+    var physicalNotchWidth: CGFloat = 190
     var notchStyle: NotchStyle = .notch
     
     @State private var isHovered: Bool = false
@@ -272,7 +272,7 @@ struct LockScreenFaceIDPillView: View {
     
     //  Native NotchPulse Face ID biometric implementation.
     private var closedBodySize: CGSize {
-        let width = max(165, physicalNotchWidth)
+        let width = max(190, physicalNotchWidth)
         let height = max(32, notchHardwareHeight)
         return CGSize(width: width, height: height)
     }
@@ -285,7 +285,7 @@ struct LockScreenFaceIDPillView: View {
                 return CGSize(width: physicalNotchWidth + 148, height: closedBodySize.height)
             }
         }
-        let width = max(165, physicalNotchWidth)
+        let width = max(190, physicalNotchWidth)
         return CGSize(width: width, height: 180)
     }
     

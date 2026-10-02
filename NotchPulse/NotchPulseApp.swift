@@ -358,7 +358,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
 
                 let closedSize = targetVM.closedNotchSize
-                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 190.0)
                 let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
                 let padding = Defaults[.extendHoverArea] ? CGFloat(Defaults[.hoverAreaPadding]) : 12.0
 
@@ -484,7 +484,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
                 let closedSize = targetVM.closedNotchSize
-                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 190.0)
                 let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
                 return CGRect(
                     x: screenFrame.midX - (closedWidth / 2 + padding),
