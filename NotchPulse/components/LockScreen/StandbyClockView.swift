@@ -695,15 +695,7 @@ private struct AnalogClockFace: View {
     @ViewBuilder
     private func clockTicks(center: CGPoint, radius: CGFloat) -> some View {
         ForEach(0..<12, id: \.self) { i in
-            let isMain = (i % 3 == 0)
-            let angle = Double(i) * 30.0 * .pi / 180.0
-            let innerRadius = isMain ? radius - 16 : radius - 10
-            
-            Path { path in
-                path.move(to: CGPoint(x: center.x + innerRadius * cos(angle), y: center.y + innerRadius * sin(angle)))
-                path.addLine(to: CGPoint(x: center.x + (radius - 4) * cos(angle), y: center.y + (radius - 4) * sin(angle)))
-            }
-            .stroke(isMain ? Color.white : Color.white.opacity(0.3), lineWidth: isMain ? 3 : 1.5)
+            ClockTickItem(index: i, center: center, radius: radius)
         }
     }
     
@@ -745,6 +737,26 @@ private struct AnalogClockFace: View {
                 .fill(Color.white)
                 .frame(width: 8, height: 8)
         }
+    }
+}
+
+private struct ClockTickItem: View {
+    let index: Int
+    let center: CGPoint
+    let radius: CGFloat
+    
+    var body: some View {
+        let isMain = (index % 3 == 0)
+        let angle = Double(index) * 30.0 * .pi / 180.0
+        let innerRadius: CGFloat = isMain ? radius - 16 : radius - 10
+        let p1 = CGPoint(x: center.x + innerRadius * cos(angle), y: center.y + innerRadius * sin(angle))
+        let p2 = CGPoint(x: center.x + (radius - 4) * cos(angle), y: center.y + (radius - 4) * sin(angle))
+        
+        Path { path in
+            path.move(to: p1)
+            path.addLine(to: p2)
+        }
+        .stroke(isMain ? Color.white : Color.white.opacity(0.3), lineWidth: isMain ? 3 : 1.5)
     }
 }
 
