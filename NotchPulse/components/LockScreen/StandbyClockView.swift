@@ -666,68 +666,84 @@ private struct AnalogClockFace: View {
             let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
             let radius = size / 2
             
-            let cal = Calendar.current
-            let hour = Double(cal.component(.hour, from: date) % 12)
-            let minute = Double(cal.component(.minute, from: date))
-            let second = Double(cal.component(.second, from: date)) + Double(cal.component(.nanosecond, from: date)) / 1_000_000_000.0
-            
-            let hourAngle = (hour + minute / 60.0) * 30.0 - 90.0
-            let minuteAngle = (minute + second / 60.0) * 6.0 - 90.0
-            let secondAngle = second * 6.0 - 90.0
+            let angles = calculateAngles(date: date)
             
             ZStack {
-                // Mặt số tròn
                 Circle()
                     .strokeBorder(Color.white.opacity(0.12), lineWidth: 2)
                 
-                // 12 Vạch giờ
-                ForEach(0..<12) { i in
-                    let isMain = (i % 3 == 0)
-                    let angle = Double(i) * 30.0 * .pi / 180.0
-                    let innerRadius = isMain ? radius - 16 : radius - 10
-                    
-                    Path { path in
-                        path.move(to: CGPoint(x: center.x + innerRadius * cos(angle), y: center.y + innerRadius * sin(angle)))
-                        path.addLine(to: CGPoint(x: center.x + (radius - 4) * cos(angle), y: center.y + (radius - 4) * sin(angle)))
-                    }
-                    .stroke(isMain ? Color.white : Color.white.opacity(0.3), lineWidth: isMain ? 3 : 1.5)
-                }
+                clockTicks(center: center, radius: radius)
                 
-                // Kim Giờ
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.white)
-                    .frame(width: radius * 0.52, height: 5)
-                    .offset(x: radius * 0.26)
-                    .rotationEffect(.degrees(hourAngle))
-                    .shadow(radius: 3)
+                clockHands(radius: radius, hourAngle: angles.hour, minuteAngle: angles.minute, secondAngle: angles.second)
+            }
+        }
+    }
+    
+    private func calculateAngles(date: Date) -> (hour: Double, minute: Double, second: Double) {
+        let cal = Calendar.current
+        let hour = Double(cal.component(.hour, from: date) % 12)
+        let minute = Double(cal.component(.minute, from: date))
+        let second = Double(cal.component(.second, from: date)) + Double(cal.component(.nanosecond, from: date)) / 1_000_000_000.0
+        
+        return (
+            hour: (hour + minute / 60.0) * 30.0 - 90.0,
+            minute: (minute + second / 60.0) * 6.0 - 90.0,
+            second: second * 6.0 - 90.0
+        )
+    }
+    
+    @ViewBuilder
+    private func clockTicks(center: CGPoint, radius: CGFloat) -> some View {
+        ForEach(0..<12, id: \.self) { i in
+            let isMain = (i % 3 == 0)
+            let angle = Double(i) * 30.0 * .pi / 180.0
+            let innerRadius = isMain ? radius - 16 : radius - 10
+            
+            Path { path in
+                path.move(to: CGPoint(x: center.x + innerRadius * cos(angle), y: center.y + innerRadius * sin(angle)))
+                path.addLine(to: CGPoint(x: center.x + (radius - 4) * cos(angle), y: center.y + (radius - 4) * sin(angle)))
+            }
+            .stroke(isMain ? Color.white : Color.white.opacity(0.3), lineWidth: isMain ? 3 : 1.5)
+        }
+    }
+    
+    @ViewBuilder
+    private func clockHands(radius: CGFloat, hourAngle: Double, minuteAngle: Double, secondAngle: Double) -> some View {
+        ZStack {
+            // Kim Giờ
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.white)
+                .frame(width: radius * 0.52, height: 5)
+                .offset(x: radius * 0.26)
+                .rotationEffect(.degrees(hourAngle))
+                .shadow(radius: 3)
+            
+            // Kim Phút
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color.white.opacity(0.9))
+                .frame(width: radius * 0.75, height: 3.5)
+                .offset(x: radius * 0.375)
+                .rotationEffect(.degrees(minuteAngle))
+                .shadow(radius: 3)
+            
+            // Kim Giây lướt mượt mà
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(tintColor)
+                    .frame(width: radius * 0.88, height: 1.8)
+                    .offset(x: radius * 0.44)
                 
-                // Kim Phút
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.white.opacity(0.9))
-                    .frame(width: radius * 0.75, height: 3.5)
-                    .offset(x: radius * 0.375)
-                    .rotationEffect(.degrees(minuteAngle))
-                    .shadow(radius: 3)
-                
-                // Kim Giây lướt mượt mà
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(tintColor)
-                        .frame(width: radius * 0.88, height: 1.8)
-                        .offset(x: radius * 0.44)
-                    
-                    Circle()
-                        .fill(tintColor)
-                        .frame(width: 8, height: 8)
-                }
-                .rotationEffect(.degrees(secondAngle))
-                .shadow(color: tintColor.opacity(0.6), radius: 4)
-                
-                // Trục tâm
                 Circle()
-                    .fill(Color.white)
+                    .fill(tintColor)
                     .frame(width: 8, height: 8)
             }
+            .rotationEffect(.degrees(secondAngle))
+            .shadow(color: tintColor.opacity(0.6), radius: 4)
+            
+            // Trục tâm
+            Circle()
+                .fill(Color.white)
+                .frame(width: 8, height: 8)
         }
     }
 }

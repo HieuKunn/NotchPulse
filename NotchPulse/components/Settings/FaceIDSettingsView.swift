@@ -14,6 +14,9 @@ import ApplicationServices
 struct FaceIDSettingsView: View {
     @Bindable private var pocController = NotchPulsePOCController.shared
     
+    @Default(.standbyClockStyle) private var standbyClockStyle
+    @Default(.standbyTheme) private var standbyTheme
+    
     @State private var isAccessibilityGranted: Bool = AXIsProcessTrusted()
     @State private var isCameraGranted: Bool = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     @State private var isMusicSyncConfirmed: Bool = MediaAutomationPermissionHelper.isSyncConfirmed()
@@ -195,7 +198,7 @@ struct FaceIDSettingsView: View {
             if Defaults[.enableLockScreenStandBy] {
                 SettingsGroupDivider()
                 SettingsRowContent(title: loc("Clock Face Style")) {
-                    Picker("", selection: Defaults.binding(to: .standbyClockStyle)) {
+                    Picker("", selection: $standbyClockStyle) {
                         ForEach(StandbyClockStyle.allCases) { style in
                             Label(style.displayName, systemImage: style.systemIcon).tag(style)
                         }
@@ -206,7 +209,7 @@ struct FaceIDSettingsView: View {
                 
                 SettingsGroupDivider()
                 SettingsRowContent(title: loc("Color Theme")) {
-                    Picker("", selection: Defaults.binding(to: .standbyTheme)) {
+                    Picker("", selection: $standbyTheme) {
                         ForEach(StandbyTheme.allCases) { th in
                             Text(th.displayName).tag(th)
                         }
