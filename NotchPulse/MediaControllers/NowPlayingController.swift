@@ -25,7 +25,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     var supportsVolumeControl: Bool {
         let bundleID = playbackState.bundleIdentifier
-        return bundleID == "com.apple.Music" || bundleID == "com.spotify.client" || isBrowser(bundleID)
+        return bundleID == "com.apple.Music" || bundleID == "com.spotify.client" || !bundleID.isEmpty
     }
 
     var supportsFavorite: Bool {
@@ -117,280 +117,29 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         self.pipeHandler = nil
     }
 
-    // MARK: - Adapter Execution & Control Helpers
-    private var adapterPaths: (scriptPath: String, frameworkPath: String, helperPath: String)? {
-        let script = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl")?.path ??
-            (Bundle.main.resourcePath.map { $0 + "/mediaremote-adapter.pl" })
-        let helper = Bundle.main.url(forResource: "MediaRemoteAdapterTestClient", withExtension: nil)?.path ??
-            (Bundle.main.resourcePath.map { $0 + "/MediaRemoteAdapterTestClient" })
-        let framework = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework") ??
-            (Bundle.main.resourcePath.map { $0 + "/../Frameworks/MediaRemoteAdapter.framework" })
-        
-        if let script = script, let framework = framework, let helper = helper,
-           FileManager.default.fileExists(atPath: script),
-           FileManager.default.fileExists(atPath: framework),
-           FileManager.default.fileExists(atPath: helper) {
-            return (script, framework, helper)
-        }
-        return nil
-    }
-
-    private func executeAdapter(action: String, args: [String]) {
-        guard let paths = adapterPaths else { return }
-        DispatchQueue.global(qos: .userInteractive).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-            process.arguments = [paths.scriptPath, paths.frameworkPath, paths.helperPath, action] + args
-            do {
-                try process.run()
-                process.waitUntilExit()
-            } catch {
-                print("NowPlayingController: executeAdapter failed: \(error)")
-            }
-        }
-    }
-
-    private func postMediaKeyEvent(for command: Int) {
-        let keyType: Int32?
-        switch command {
-        case 0, 1, 2:
-            keyType = 16 // NX_KEYTYPE_PLAY
-        case 4:
-            keyType = 17 // NX_KEYTYPE_NEXT
-        case 5:
-            keyType = 18 // NX_KEYTYPE_PREVIOUS
-        default:
-            keyType = nil
-        }
-        
-        guard let key = keyType else { return }
-        
-        func sendKey(down: Bool) {
-            let flags = NSEvent.ModifierFlags(rawValue: down ? 0xa00 : 0xb00)
-            let data1 = Int((key << 16) | (down ? 0xa00 : 0xb00))
-            let ev = NSEvent.otherEvent(
-                with: .systemDefined,
-                location: .zero,
-                modifierFlags: flags,
-                timestamp: 0,
-                windowNumber: 0,
-                context: nil,
-                subtype: 8,
-                data1: data1,
-                data2: -1
-            )
-            ev?.cgEvent?.post(tap: .cghidEventTap)
-        }
-        
-        sendKey(down: true)
-        sendKey(down: false)
-    }
-
-    private func sendMediaRemoteCommand(_ command: Int) {
-        if adapterPaths != nil {
-            executeAdapter(action: "send", args: ["\(command)"])
-        } else {
-            MRMediaRemoteSendCommandFunction(command, nil)
-        }
-    }
-
-    // MARK: - Browser Media Automation
-    private enum BrowserMediaAction {
-        case next
-        case previous
-        case togglePlay
-        case toggleRepeat
-        case toggleShuffle
-        case seek(Double)
-        case setVolume(Double)
-    }
-
-    private func isBrowser(_ bundleID: String) -> Bool {
-        return getBrowserAppName(for: bundleID) != nil
-    }
-
-    private func getBrowserAppName(for bundleID: String) -> String? {
-        switch bundleID {
-        case "company.thebrowser.Browser": return "Arc"
-        case "com.google.Chrome": return "Google Chrome"
-        case "com.google.Chrome.canary": return "Google Chrome Canary"
-        case "com.brave.Browser": return "Brave Browser"
-        case "com.microsoft.edgemac": return "Microsoft Edge"
-        case "com.operasoftware.Opera": return "Opera"
-        case "com.vivaldi.Vivaldi": return "Vivaldi"
-        default: return nil
-        }
-    }
-
-    private func executeBrowserScript(for action: BrowserMediaAction) async {
-        let bundleID = playbackState.bundleIdentifier
-        guard let appName = getBrowserAppName(for: bundleID) else { return }
-
-        let js: String
-        switch action {
-        case .next:
-            js = """
-            (function() {
-                var btn = document.querySelector('.ytp-next-button, a.ytp-next-button, .skipControl__next, [aria-label*=\"Next\" i], [title*=\"Next\" i]');
-                if (btn) { btn.click(); return 'clicked'; }
-                var v = document.querySelector('video, audio');
-                if (v) { v.currentTime = v.duration || (v.currentTime + 30); return 'seeked_end'; }
-                return 'not_found';
-            })()
-            """
-        case .previous:
-            js = """
-            (function() {
-                var btn = document.querySelector('.ytp-prev-button, a.ytp-prev-button, .skipControl__previous, [aria-label*=\"Previous\" i], [title*=\"Previous\" i]');
-                if (btn && btn.getAttribute('aria-disabled') !== 'true') { btn.click(); return 'clicked'; }
-                var v = document.querySelector('video, audio');
-                if (v) {
-                    if (v.currentTime > 3) { v.currentTime = 0; }
-                    else if (window.history.length > 1) { window.history.back(); }
-                    return 'rewound';
-                }
-                return 'not_found';
-            })()
-            """
-        case .togglePlay:
-            js = """
-            (function() {
-                var btn = document.querySelector('.ytp-play-button, .playControl, [aria-label*=\"Play\" i], [aria-label*=\"Pause\" i]');
-                if (btn) { btn.click(); return 'clicked'; }
-                var v = document.querySelector('video, audio');
-                if (v) { if (v.paused) { v.play(); } else { v.pause(); } return 'toggled'; }
-                return 'not_found';
-            })()
-            """
-        case .toggleRepeat:
-            js = """
-            (function() {
-                var ytmBtn = document.querySelector('tp-yt-paper-icon-button.repeat, button[aria-label*=\"Repeat\" i], .repeat[role=\"button\"]');
-                if (ytmBtn) { ytmBtn.click(); return 'clicked_ytm_repeat'; }
-                var spotBtn = document.querySelector('[data-testid=\"control-button-repeat\"]');
-                if (spotBtn) { spotBtn.click(); return 'clicked_spotify_repeat'; }
-                var ytPlaylistBtn = document.querySelector('.ytp-repeat-button, button[aria-label*=\"Repeat playlist\" i]');
-                if (ytPlaylistBtn) { ytPlaylistBtn.click(); return 'clicked_yt_playlist_repeat'; }
-                var v = document.querySelector('video, audio');
-                if (v) { v.loop = !v.loop; return v.loop ? 'loop_on' : 'loop_off'; }
-                return 'not_found';
-            })()
-            """
-        case .toggleShuffle:
-            js = """
-            (function() {
-                var ytmShuffle = document.querySelector('tp-yt-paper-icon-button.shuffle, button[aria-label*=\"Shuffle\" i], .shuffle[role=\"button\"]');
-                if (ytmShuffle) { ytmShuffle.click(); return 'clicked_ytm_shuffle'; }
-                var spotShuffle = document.querySelector('[data-testid=\"control-button-shuffle\"], button[aria-label*=\"Shuffle\" i]');
-                if (spotShuffle) { spotShuffle.click(); return 'clicked_spotify_shuffle'; }
-                return 'not_found';
-            })()
-            """
-        case .seek(let time):
-            js = """
-            (function() {
-                var v = document.querySelector('video, audio');
-                if (v) { v.currentTime = \(time); return 'seeked'; }
-                return 'not_found';
-            })()
-            """
-        case .setVolume(let level):
-            js = """
-            (function() {
-                var v = document.querySelector('video, audio');
-                if (v) { v.volume = \(level); return 'volumed'; }
-                return 'not_found';
-            })()
-            """
-        }
-
-        let escapedJS = js.replacingOccurrences(of: "\\", with: "\\\\")
-                          .replacingOccurrences(of: "\"", with: "\\\"")
-                          .replacingOccurrences(of: "\n", with: " ")
-
-        let appleScript = """
-        tell application "\(appName)"
-            repeat with w in windows
-                repeat with t in tabs of w
-                    set tabURL to URL of t
-                    if tabURL contains "youtube.com" or tabURL contains "soundcloud.com" or tabURL contains "bilibili.com" or tabURL contains "netflix.com" or tabURL contains "spotify.com" then
-                        tell t to execute javascript "\(escapedJS)"
-                        return
-                    end if
-                end repeat
-            end repeat
-            try
-                tell active tab of front window to execute javascript "\(escapedJS)"
-            end try
-        end tell
-        """
-
-        try? await AppleScriptHelper.executeVoid(appleScript)
-    }
-
     // MARK: - Protocol Implementation
     func play() async {
-        sendMediaRemoteCommand(0)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
-        }
+        MRMediaRemoteSendCommandFunction(0, nil)
     }
 
     func pause() async {
-        sendMediaRemoteCommand(1)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
-        }
+        MRMediaRemoteSendCommandFunction(1, nil)
     }
 
     func togglePlay() async {
-        sendMediaRemoteCommand(2)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
-        }
+        MRMediaRemoteSendCommandFunction(2, nil)
     }
 
     func nextTrack() async {
-        sendMediaRemoteCommand(4)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .next)
-        } else {
-            postMediaKeyEvent(for: 4)
-        }
+        MRMediaRemoteSendCommandFunction(4, nil)
     }
 
     func previousTrack() async {
-        sendMediaRemoteCommand(5)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .previous)
-        } else {
-            postMediaKeyEvent(for: 5)
-        }
+        MRMediaRemoteSendCommandFunction(5, nil)
     }
 
     func seek(to time: Double) async {
         MRMediaRemoteSetElapsedTimeFunction(time)
-        executeAdapter(action: "seek", args: ["\(Int(time * 1_000_000))"])
-        
         let bundleID = playbackState.bundleIdentifier
         if bundleID == "com.apple.Music" {
             Task {
@@ -402,8 +151,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 let script = "tell application \"Spotify\" to set player position to \(time)"
                 try? await AppleScriptHelper.executeVoid(script)
             }
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .seek(time))
         }
     }
 
@@ -412,12 +159,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
     
     func toggleShuffle() async {
-        let isShuffled = playbackState.isShuffled
-        let targetShuffleMode = isShuffled ? 1 : 3
         MRMediaRemoteSendCommandFunction(6, nil)
-        MRMediaRemoteSetShuffleModeFunction(targetShuffleMode)
-        executeAdapter(action: "shuffle", args: ["\(targetShuffleMode)"])
-        
+        let isShuffled = playbackState.isShuffled
+        MRMediaRemoteSetShuffleModeFunction(isShuffled ? 1 : 3)
         let bundleID = playbackState.bundleIdentifier
         if bundleID == "com.apple.Music" {
             let script = "tell application \"Music\" to set shuffle enabled to (not shuffle enabled)"
@@ -425,46 +169,32 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" {
             let script = "tell application \"Spotify\" to set shuffling to (not shuffling)"
             try? await AppleScriptHelper.executeVoid(script)
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .toggleShuffle)
         }
         playbackState.isShuffled.toggle()
     }
     
     func toggleRepeat() async {
-        let nextMode: RepeatMode
-        switch playbackState.repeatMode {
-        case .off:
-            nextMode = .all
-        case .all:
-            nextMode = .one
-        case .one:
-            nextMode = .off
-        }
-        playbackState.repeatMode = nextMode
-        
-        let targetValue = nextMode.rawValue
         MRMediaRemoteSendCommandFunction(7, nil)
-        MRMediaRemoteSetRepeatModeFunction(targetValue)
-        executeAdapter(action: "repeat", args: ["\(targetValue)"])
-        
+        let newRepeatMode = (playbackState.repeatMode == .off) ? 3 : (playbackState.repeatMode.rawValue - 1)
+        playbackState.repeatMode = RepeatMode(rawValue: newRepeatMode) ?? .off
+        MRMediaRemoteSetRepeatModeFunction(newRepeatMode)
         let bundleID = playbackState.bundleIdentifier
         if bundleID == "com.apple.Music" {
-            let script: String
-            switch nextMode {
-            case .off:
-                script = "tell application \"Music\" to set song repeat to off"
-            case .one:
-                script = "tell application \"Music\" to set song repeat to one"
-            case .all:
-                script = "tell application \"Music\" to set song repeat to all"
-            }
+            let script = """
+            tell application "Music"
+                if song repeat is off then
+                    set song repeat to all
+                else if song repeat is all then
+                    set song repeat to one
+                else
+                    set song repeat to off
+                end if
+            end tell
+            """
             try? await AppleScriptHelper.executeVoid(script)
         } else if bundleID == "com.spotify.client" {
             let script = "tell application \"Spotify\" to set repeating to (not repeating)"
             try? await AppleScriptHelper.executeVoid(script)
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .toggleRepeat)
         }
     }
     
@@ -485,8 +215,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 let script = "tell application \"Spotify\" to set sound volume to \(volumePercentage)"
                 try? await AppleScriptHelper.executeVoid(script)
             }
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .setVolume(clampedLevel))
         } else {
             await MainActor.run {
                 VolumeManager.shared.setAbsolute(Float32(clampedLevel))
@@ -499,13 +227,21 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     // MARK: - Setup Methods
     private func setupNowPlayingObserver() async {
         let process = Process()
-        guard let paths = adapterPaths else {
+        let scriptPath = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl")?.path ??
+            Bundle.main.resourcePath.map({ $0 + "/mediaremote-adapter.pl" })
+        let frameworkPath = Bundle.main.privateFrameworksPath?.appending("/MediaRemoteAdapter.framework") ??
+            Bundle.main.resourcePath.map({ $0 + "/../Frameworks/MediaRemoteAdapter.framework" })
+        
+        guard let script = scriptPath, let framework = frameworkPath,
+              FileManager.default.fileExists(atPath: script),
+              FileManager.default.fileExists(atPath: framework)
+        else {
             assertionFailure("Could not find mediaremote-adapter.pl script or framework path")
             return
         }
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.scriptPath, paths.frameworkPath, paths.helperPath, "stream", "--debounce=100"]
+        process.arguments = [script, framework, "stream"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
@@ -529,6 +265,13 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         await pipeHandler.readJSONLines(as: NowPlayingUpdate.self) { [weak self] update in
             await self?.handleAdapterUpdate(update)
+        }
+        
+        // Auto-reconnect if process exited unexpectedly
+        if !Task.isCancelled && self.process != nil {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled && self.process != nil else { return }
+            await self.setupNowPlayingObserver()
         }
     }
 
@@ -565,8 +308,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else {
             newPlaybackState.isShuffled = self.playbackState.isShuffled
         }
-        if let repeatModeValue = payload.repeatMode, repeatModeValue > 0 {
+        if let repeatModeValue = payload.repeatMode {
             newPlaybackState.repeatMode = RepeatMode(rawValue: repeatModeValue) ?? .off
+        } else if !diff {
+            newPlaybackState.repeatMode = .off
         } else {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         }
