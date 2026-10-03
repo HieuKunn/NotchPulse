@@ -203,13 +203,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case setVolume(Double)
     }
 
-    private func isBrowser(_ bundleID: String?) -> Bool {
-        guard let bundleID = bundleID else { return false }
+    private func isBrowser(_ bundleID: String) -> Bool {
         return getBrowserAppName(for: bundleID) != nil
     }
 
-    private func getBrowserAppName(for bundleID: String?) -> String? {
-        guard let bundleID = bundleID else { return nil }
+    private func getBrowserAppName(for bundleID: String) -> String? {
         switch bundleID {
         case "company.thebrowser.Browser": return "Arc"
         case "com.google.Chrome": return "Google Chrome"
@@ -223,8 +221,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     private func executeBrowserScript(for action: BrowserMediaAction) async {
-        guard let bundleID = playbackState.bundleIdentifier,
-              let appName = getBrowserAppName(for: bundleID) else { return }
+        let bundleID = playbackState.bundleIdentifier
+        guard let appName = getBrowserAppName(for: bundleID) else { return }
 
         let js: String
         switch action {
