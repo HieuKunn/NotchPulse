@@ -139,13 +139,12 @@ final class LockScreenWakeObserver: ObservableObject {
             }
             .store(in: &cancellables)
             
-        // 5. Listen for music state changes & StandBy setting changes to show/hide lock screen window dynamically
-        Publishers.Merge5(
+        // 5. Listen for music state changes to show/hide lock screen window dynamically
+        Publishers.Merge4(
             MusicManager.shared.$isPlaying.map { _ in () },
             MusicManager.shared.$songTitle.map { _ in () },
             MusicManager.shared.$bundleIdentifier.map { _ in () },
-            Defaults.publisher(.enableLockScreenPlayer).map { _ in () },
-            Defaults.publisher(.enableLockScreenStandBy).map { _ in () }
+            Defaults.publisher(.enableLockScreenPlayer).map { _ in () }
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
@@ -165,10 +164,8 @@ final class LockScreenWakeObserver: ObservableObject {
         }()
 
         let shouldShow = (isScreenLocked || LockScreenMediaWindow.shared.isPreviewMode)
-            && (
-                (Defaults[.enableLockScreenPlayer] && hasActiveTrack)
-                || Defaults[.enableLockScreenStandBy]
-            )
+            && Defaults[.enableLockScreenPlayer]
+            && hasActiveTrack
         
         if shouldShow {
             LockScreenMediaWindow.shared.show()

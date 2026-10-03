@@ -40,31 +40,16 @@ struct LockScreenMediaView: View {
     var body: some View {
         ZStack(alignment: .top) {
             if windowController.isWindowVisible {
-                switch windowController.displayMode {
-                case .standby:
-                    StandbyClockView(
-                        onToggleMusic: {
-                            windowController.switchToMode(.compactMedia)
-                        },
-                        onClose: {
-                            if windowController.isPreviewMode {
-                                windowController.togglePreview()
-                            }
-                        }
-                    )
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                    
-                case .compactMedia:
-                    compactPlayerView
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                    
-                case .fullScreenLyrics:
+                if windowController.isFullScreen {
                     fullScreenPlayerView
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                } else {
+                    compactPlayerView
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
         }
-        .animation(.spring(response: 0.55, dampingFraction: 0.82, blendDuration: 0), value: windowController.displayMode)
+        .animation(.spring(response: 0.45, dampingFraction: 0.85, blendDuration: 0), value: windowController.isFullScreen)
         .onAppear {
             musicManager.ensureLyricsLoaded()
         }
@@ -234,19 +219,11 @@ struct LockScreenMediaView: View {
                 )
             }
             
-            // Hàng 4: Cụm phím điều khiển đồng bộ theo cài đặt Notch & Nút Lời bài hát & Nút StandBy Clock
+            // Hàng 4: Cụm phím điều khiển đồng bộ theo cài đặt Notch & Nút Lời bài hát
             HStack(spacing: 0) {
-                if Defaults[.enableLockScreenStandBy] {
-                    Button {
-                        windowController.switchToMode(.standby)
-                    } label: {
-                        Image(systemName: "clock.fill")
-                            .font(.system(size: 15))
-                            .foregroundStyle(Color.white.opacity(0.8))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Switch to StandBy Clock")
-                }
+                Image(systemName: "music.note")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.white.opacity(0.4))
                 
                 Spacer()
                 
@@ -260,16 +237,16 @@ struct LockScreenMediaView: View {
                 
                 Spacer()
                 
-                // Nút Lời bài hát góc phải
+                // Nút Lời bài hát & Mở rộng toàn màn hình
                 Button {
-                    windowController.switchToMode(.fullScreenLyrics)
+                    windowController.setFullScreen(true)
                 } label: {
-                    Image(systemName: "quote.bubble.fill")
-                        .font(.system(size: 15))
-                        .foregroundStyle(hasLyrics ? Color.white.opacity(0.95) : Color.white.opacity(0.4))
+                    Image(systemName: hasLyrics ? "quote.bubble.fill" : "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(hasLyrics ? Color.white.opacity(0.95) : Color.white.opacity(0.55))
                 }
                 .buttonStyle(.plain)
-                .help("Click to expand to full-screen lyrics")
+                .help("Click to expand to full-screen player & lyrics")
             }
         }
         .padding(.horizontal, 18)
@@ -309,7 +286,7 @@ struct LockScreenMediaView: View {
                             .shadow(radius: 6)
                     }
                     .buttonStyle(.plain)
-                    .help("Collapse to compact player (Esc)")
+                    .help("Collapse to compact player")
                     .padding(.trailing, 28)
                     .padding(.top, 28)
                 }
@@ -370,7 +347,7 @@ struct LockScreenMediaView: View {
         VStack(spacing: albumSize * 0.07) {
             // Ảnh bìa bài hát to nổi bật (bấm vào để thu nhỏ về compact)
             Button {
-                windowController.switchToMode(.compactMedia)
+                windowController.setFullScreen(false)
             } label: {
                 ZStack(alignment: .bottomTrailing) {
                     Image(nsImage: musicManager.albumArt)

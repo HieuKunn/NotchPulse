@@ -2,7 +2,7 @@
 //  LockScreenMediaWindow.swift
 //  NotchPulse
 //
-//  Created for NotchPulse v2.0 - Lock Screen & StandBy Window Controller
+//  Created for NotchPulse - Lock Screen Media Player Window Controller
 //
 
 import Cocoa
@@ -11,17 +11,10 @@ import Defaults
 import SkyLightWindow
 import SwiftUI
 
-enum LockScreenDisplayMode: Equatable {
-    case standby
-    case compactMedia
-    case fullScreenLyrics
-}
-
 @MainActor
 final class LockScreenMediaWindow: NSPanel, ObservableObject {
     static let shared = LockScreenMediaWindow()
     
-    @Published var displayMode: LockScreenDisplayMode = .standby
     @Published var isFullScreen: Bool = false
     @Published var isWindowVisible: Bool = false
     @Published var isPreviewMode: Bool = false
@@ -30,7 +23,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var lyricsCancellables = Set<AnyCancellable>()
     
     private init() {
-        let initialRect = NSRect(x: 0, y: 0, width: 780, height: 440)
+        let initialRect = NSRect(x: 0, y: 0, width: 420, height: 185)
         super.init(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -50,7 +43,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _, _, _ in
-            guard let self = self, self.isWindowVisible, self.displayMode == .compactMedia, let screen = self.getTargetScreen() else { return }
+            guard let self = self, self.isWindowVisible, !self.isFullScreen, let screen = self.getTargetScreen() else { return }
             let newFrame = self.targetCompactFrame(for: screen)
             if abs(self.frame.height - newFrame.height) > 1 {
                 NSAnimationContext.runAnimationGroup { ctx in
@@ -97,14 +90,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             ?? NSScreen.screens.first
     }
     
-    func targetStandbyFrame(for screen: NSScreen) -> NSRect {
-        let width: CGFloat = 780
-        let height: CGFloat = 440
-        let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
-        let y = screen.frame.origin.y + (screen.frame.height - height) / 2 + 25
-        return NSRect(x: x, y: y, width: width, height: height)
-    }
-    
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
         let width: CGFloat = 420
         let hasLyrics = (!MusicManager.shared.syncedLyrics.isEmpty || !MusicManager.shared.currentLyrics.isEmpty) && Defaults[.lockScreenPlayerShowLyrics]
@@ -115,20 +100,16 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func targetFrame(for screen: NSScreen) -> NSRect {
-        switch displayMode {
-        case .standby:
-            return targetStandbyFrame(for: screen)
-        case .compactMedia:
-            return targetCompactFrame(for: screen)
-        case .fullScreenLyrics:
+        if isFullScreen {
             return screen.frame
+        } else {
+            return targetCompactFrame(for: screen)
         }
     }
     
-    func switchToMode(_ mode: LockScreenDisplayMode) {
+    func setFullScreen(_ fullScreen: Bool) {
         guard let screen = getTargetScreen() else { return }
-        self.displayMode = mode
-        self.isFullScreen = (mode == .fullScreenLyrics)
+        self.isFullScreen = fullScreen
         
         let targetRect = targetFrame(for: screen)
         NSAnimationContext.runAnimationGroup { context in
@@ -138,34 +119,19 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }
     }
     
-    func setFullScreen(_ fullScreen: Bool) {
-        switchToMode(fullScreen ? .fullScreenLyrics : (Defaults[.enableLockScreenStandBy] ? .standby : .compactMedia))
-    }
-    
     func togglePreview() {
         if isPreviewMode && isVisible {
             hide()
             isPreviewMode = false
         } else {
             isPreviewMode = true
-            displayMode = .standby
+            isFullScreen = false
             show()
         }
     }
     
     func show() {
         guard let screen = getTargetScreen() else { return }
-        
-        if isPreviewMode {
-            displayMode = .standby
-        } else if !isFullScreen {
-            let hasActiveTrack = MusicManager.shared.isPlaying || !MusicManager.shared.songTitle.isEmpty
-            if Defaults[.enableLockScreenStandBy] {
-                displayMode = .standby
-            } else if Defaults[.enableLockScreenPlayer] && hasActiveTrack {
-                displayMode = .compactMedia
-            }
-        }
         
         let targetRect = targetFrame(for: screen)
         setFrame(targetRect, display: true)
