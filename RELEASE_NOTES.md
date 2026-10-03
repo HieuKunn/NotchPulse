@@ -1,19 +1,22 @@
-## 🚀 What's New in NotchPulse v5.1
+## 🚀 What's New in NotchPulse v5.2
 
-### 🎵 Universal Now Playing & Media Controls Fix
-- **Entitled Media Command Dispatch**: Fixed media control execution by passing the internal helper client path to the media adapter script, restoring 100% reliable Play/Pause, Next Track, Previous Track, Seek, Shuffle, and Repeat functionality.
-- **Flawless Playback Control**: Seamlessly play, pause, skip, and seek across all web browsers (Arc, Chrome, Safari, Brave) and desktop music apps with zero lag or button freezing.
-- **Universal Mac Compatibility**: Guaranteed out-of-the-box Now Playing support across all Intel and Apple Silicon Macs (M1 through M4) on modern macOS versions.
+### ⏰ iPhone-Style StandBy Mode on Lock Screen
+- **Smart Bedside & Desk Clock**: Turn your Mac into a beautiful StandBy desk clock whenever your screen is locked.
+- **4 Iconic Clock Face Styles**:
+  - **iOS Big Digital**: Huge, stacked bold typography showing hours, minutes, live seconds, and the current date.
+  - **Analog & Calendar**: Classic Bauhaus analog clock face with smooth sweeping second hand paired with a monthly calendar widget.
+  - **Retro Flip Clock**: Split-flap mechanical flip cards for a stylish vintage desk aesthetic.
+  - **Solar Minimalist**: 24-hour celestial orbit dial tracking sun position and daytime progress.
+- **Vibrant Color Themes**: Choose from 5 curated gradients including Neon Sunset, Ocean Wave, Cyber Mint, Pure Minimal, and Night Red.
+- **Night Mode (🌙)**: Low-glare, eye-soothing deep red night mode for dark rooms and bedrooms.
+- **Live Battery Status**: Real-time Mac battery level and charging indicator.
+- **Quick Style Switcher**: Easily swap clock faces, color themes, or toggle Night Mode directly on the screen with a single tap.
+- **Instant Preview**: Preview StandBy mode anytime directly from Settings without needing to lock your Mac.
 
-### 🎛️ Audio Hub & Device Mixer
-- **One-Click Audio Switcher**: Easily switch between speakers, headphones, AirPods, displays, and microphones right inside the Notch and Dynamic Island.
-- **Per-Device Volume & Mute**: Smoothly adjust volume levels and toggle mute independently for each connected output and input device.
-- **Per-App Volume Mixer**: Fine-tune volume levels for running applications like browsers, music players, and meeting tools with a clean, low-overhead interface.
-
-### 🎚️ Master Feature Controls
-- **Dedicated Feature Toggles**: Added clear master on/off switches at the top of every feature settings page (Audio Hub, Media Player, Calendar, Shelf, Clipboard, HUD, System Monitor, and Face ID).
-
-### ⚡ Responsiveness & Launch Stability
-- **Immediate Launch Fix**: Eliminated startup deadlocks during media source initialization so the app opens instantly without crashing or hanging upon download.
-- **Ultra-Responsive Control Handling**: Fixed media slot click event routing for smooth, instant response.
-- **Reliable Hover & Gesture Tracking**: Resolved touch and click conflicts so opening, closing, and switching tabs always work on the first tap.
+### 🎵 Refined Lock Screen Media Player
+- **Interactive Scrubber**: Click or drag smoothly anywhere along the progress bar to seek your music instantly.
+- **Marquee Song Titles**: Long song titles and artist names scroll smoothly so you never miss track details.
+- **Rock-Solid Lyrics Stability**: Fixed an issue where tracks without lyrics caused the player to momentarily flash an empty lyrics column on play/pause.
+- **Instant Collapse**: Tap the album artwork to immediately switch between the compact card and full-screen player.
+- **Seamless StandBy & Music Flow**: Jump effortlessly between the StandBy clock and the media player card with a dedicated quick-switch button.
+- **Lightweight & Battery-Friendly**: Completely streamlined rendering for butter-smooth 60/120Hz performance with minimal GPU and battery consumption.
