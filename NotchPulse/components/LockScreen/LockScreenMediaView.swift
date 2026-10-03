@@ -65,15 +65,6 @@ struct LockScreenMediaView: View {
             }
         }
         .animation(.spring(response: 0.55, dampingFraction: 0.82, blendDuration: 0), value: windowController.displayMode)
-        .onExitCommand {
-            if windowController.isPreviewMode {
-                windowController.togglePreview()
-            } else if windowController.displayMode == .fullScreenLyrics {
-                windowController.switchToMode(Defaults[.enableLockScreenStandBy] ? .standby : .compactMedia)
-            } else if windowController.displayMode == .compactMedia && Defaults[.enableLockScreenStandBy] {
-                windowController.switchToMode(.standby)
-            }
-        }
         .onAppear {
             musicManager.ensureLyricsLoaded()
         }
@@ -104,8 +95,7 @@ struct LockScreenMediaView: View {
     private var compactPlayerView: some View {
         let hasLyrics = lockScreenPlayerShowLyrics && (
             !musicManager.syncedLyrics.isEmpty ||
-            !musicManager.currentLyrics.isEmpty ||
-            musicManager.isFetchingLyrics
+            !musicManager.currentLyrics.isEmpty
         )
         
         return VStack(spacing: 9) {
@@ -286,48 +276,15 @@ struct LockScreenMediaView: View {
         .padding(.vertical, 15)
         .frame(width: 420, height: hasLyrics ? 218 : 185)
         .background(
-            ZStack {
-                // Lớp kính mờ cao cấp
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .environment(\.colorScheme, .dark)
-                
-                // Nền đen bán trong suốt
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.black.opacity(0.55))
-                
-                // Quầng sáng màu bài hát phản chiếu tinh tế
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                Color(nsColor: musicManager.avgColor).opacity(0.28),
-                                Color.clear
-                            ],
-                            center: .topLeading,
-                            startRadius: 20,
-                            endRadius: 280
-                        )
-                    )
-                
-                // Viền sáng bóng kính mờ
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.22),
-                                Color.white.opacity(0.06)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            }
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(white: 0.12).opacity(0.94))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Color.black.opacity(0.45), radius: 24, x: 0, y: 12)
-        .shadow(color: Color(nsColor: musicManager.avgColor).opacity(0.18), radius: 18, x: 0, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: Color.black.opacity(0.4), radius: 14, x: 0, y: 7)
     }
     
     // =========================================================================
@@ -365,7 +322,7 @@ struct LockScreenMediaView: View {
                 let h = geo.size.height
                 let albumSize = min(max(h * 0.44, 280), 550)
                 let contentWidth = w * 0.85
-                let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty || musicManager.isFetchingLyrics
+                let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty
                 
                 VStack(spacing: 0) {
                     Spacer()
@@ -392,32 +349,19 @@ struct LockScreenMediaView: View {
         .ignoresSafeArea()
     }
     
-    // Nền Ambient động phủ toàn màn hình
+    // Nền Ambient nhẹ nhàng tối ưu GPU phủ toàn màn hình
     private var ambientDynamicBackground: some View {
         ZStack {
-            Color(nsColor: musicManager.avgColor)
-            
-            // Quầng sáng to chính giữa bên trái
-            Circle()
-                .fill(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.9).opacity(0.6))
-                .frame(width: 650, height: 650)
-                .blur(radius: 120)
-                .offset(x: -250, y: -50)
-            
-            // Quầng sáng phụ bên phải
-            Circle()
-                .fill(Color.white.opacity(0.2))
-                .frame(width: 550, height: 550)
-                .blur(radius: 110)
-                .offset(x: 280, y: 120)
-            
-            // Lớp kính mờ phủ ngoài
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-            
-            Rectangle()
-                .fill(Color.black.opacity(0.25))
+            Color(white: 0.08)
+            RadialGradient(
+                colors: [
+                    Color(nsColor: musicManager.avgColor).opacity(0.4),
+                    Color.clear
+                ],
+                center: .topLeading,
+                startRadius: 80,
+                endRadius: 750
+            )
         }
     }
     
@@ -426,7 +370,7 @@ struct LockScreenMediaView: View {
         VStack(spacing: albumSize * 0.07) {
             // Ảnh bìa bài hát to nổi bật (bấm vào để thu nhỏ về compact)
             Button {
-                windowController.setFullScreen(false)
+                windowController.switchToMode(.compactMedia)
             } label: {
                 ZStack(alignment: .bottomTrailing) {
                     Image(nsImage: musicManager.albumArt)

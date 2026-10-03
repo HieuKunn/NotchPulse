@@ -51,6 +51,7 @@ class MusicManager: ObservableObject {
     @Published var currentLyrics: String = ""
     @Published var isFetchingLyrics: Bool = false
     @Published var syncedLyrics: [(time: Double, text: String)] = []
+    private var checkedTracksWithNoLyrics = Set<String>()
     @Published var canFavoriteTrack: Bool = false
     @Published var isFavoriteTrack: Bool = false
     @Published var isUIActive: Bool = false {
@@ -362,6 +363,8 @@ class MusicManager: ObservableObject {
     // MARK: - Lyrics
     func ensureLyricsLoaded() {
         guard !songTitle.isEmpty else { return }
+        let trackKey = "\(songTitle.lowercased())---\(artistName.lowercased())"
+        if checkedTracksWithNoLyrics.contains(trackKey) { return }
         if currentLyrics.isEmpty && syncedLyrics.isEmpty && !isFetchingLyrics {
             fetchLyricsIfAvailable(bundleIdentifier: bundleIdentifier, title: songTitle, artist: artistName)
         }
@@ -494,6 +497,8 @@ class MusicManager: ObservableObject {
             }
         }
         
+        let trackKey = "\(title.lowercased())---\(artist.lowercased())"
+        self.checkedTracksWithNoLyrics.insert(trackKey)
         self.currentLyrics = ""
         self.isFetchingLyrics = false
         self.syncedLyrics = []
