@@ -74,12 +74,24 @@ struct ContentView: View {
             if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
                let targetUUID = targetScreen.displayUUID {
                 let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                return thisScreenUUID == targetUUID
+                if thisScreenUUID == targetUUID {
+                    return true
+                }
+                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
+                    return true
+                }
+                return false
             }
             if let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }),
                let targetUUID = builtInScreen.displayUUID {
                 let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                return thisScreenUUID == targetUUID
+                if thisScreenUUID == targetUUID {
+                    return true
+                }
+                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
+                    return true
+                }
+                return false
             }
             return true
         }

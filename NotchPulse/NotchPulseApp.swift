@@ -109,8 +109,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var dragAutoCloseTasks: [String: Task<Void, Never>] = [:]
     var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
     private var currentViewObserver: AnyCancellable?
-    private var faceIDCameraWindow: NSWindow?
-    private var faceIDCameraVM: NotchPulseViewModel?
+    private(set) var faceIDCameraWindow: NSWindow?
+    private(set) var faceIDCameraVM: NotchPulseViewModel?
 
     func resetAllDropAndDragTargeting() {
         for vm in viewModels.values {
@@ -626,12 +626,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func updateFaceIDCameraWindow() {
         let isLockScreen = NotchPulseLockMonitor.isScreenActuallyLocked()
-        let canRouteForLockScreen = !isLockScreen || FaceIDOverlayController.shared.isHoverTriggeredOnLockScreen
-        let isFaceIDScanning = canRouteForLockScreen && (FaceIDOverlayController.shared.phase == .scanning
+        let isFaceIDScanning = FaceIDOverlayController.shared.phase == .scanning
             || FaceIDOverlayController.shared.phase == .success
             || FaceIDOverlayController.shared.phase == .failure
             || FaceIDOverlayController.shared.phase == .onboarding
-            || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed && FaceIDOverlayController.shared.phase != .collapsing))
+            || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed && FaceIDOverlayController.shared.phase != .collapsing)
 
         if isLockScreen && isFaceIDScanning {
             if let skyWindow = self.window as? NotchPulseSkyLightWindow {
@@ -648,7 +647,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // KHÔNG ĐƯỢC ĐỔI LOGIC NÀY: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
+        // thì mới chuyển sang bên màn hình có camera!
+        // (CRITICAL RULE: At lockscreen or wake/sleep, ONLY switch to camera screen if Face ID was triggered by hover!)
+        let canRouteForLockScreen = !isLockScreen || FaceIDOverlayController.shared.isHoverTriggeredOnLockScreen
+
         guard isFaceIDScanning,
+              canRouteForLockScreen,
               !Defaults[.showOnAllDisplays],
               let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
               let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),

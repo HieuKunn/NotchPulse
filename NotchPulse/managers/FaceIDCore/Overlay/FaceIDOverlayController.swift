@@ -335,7 +335,7 @@ final class FaceIDOverlayController {
         }
 
         scanTimeoutTask = Task { @MainActor [weak self] in
-            let duration = self?.scanTimeoutDuration ?? .seconds(5)
+            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
             try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
             self.finish(success: false)

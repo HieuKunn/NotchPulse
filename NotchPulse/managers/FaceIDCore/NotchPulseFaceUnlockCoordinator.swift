@@ -49,8 +49,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanGeneration = 0
     /// When the last scan cycle was armed — collapses a single wake into a single arm (see `.wake` branch of `evaluateTrigger`).
     private var lastArmedAt: ContinuousClock.Instant?
-    /// One lid-open fires several wake signals within a few hundred ms of each other; anything in this window counts as the same wake.
-    private let rearmDebounce: Duration = .milliseconds(400)
+    /// One lid-open fires several wake signals within a couple of seconds of each other; anything in this window counts as the same wake.
+    private let rearmDebounce: Duration = .seconds(2)
     /// Held separately from `scanTask` since it's scheduled from inside the scan task it follows — reusing `scanTask` would self-cancel it.
     private var autoRetryTask: Task<Void, Never>?
     /// Gap between headless auto-retries, just to keep the camera from restarting in a tight loop.
@@ -135,9 +135,12 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // `.wake` (sleep, display sleep, screensaver stopping, lid open) is an explicit "let me back in," so clear the one-shot guard.
+        // `isWithinRecentArmBurst` and active `scanTask` keep the burst of wake signals from re-arming and cancelling an in-flight scan.
         if isWake {
             lastHandledWakeCount = lockMonitor.wakeEventCount
-            hasArmedForCurrentLock = false
+            if !isWithinRecentArmBurst && scanTask == nil {
+                hasArmedForCurrentLock = false
+            }
         }
 
         // Runs before the hasArmedForCurrentLock guard — the space monitor's lifetime is tied to "locked + opted in," not to whether a scan already ran.
