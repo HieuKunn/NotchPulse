@@ -49,6 +49,10 @@ struct FaceIDSettingsView: View {
                 // 6. Lock Screen Media Player
                 SettingsSectionTitle(text: loc("Lock Screen Media Player"))
                 lockScreenMediaPlayerSection
+                
+                // 7. Lock Screen StandBy Mode (iPhone Style)
+                SettingsSectionTitle(text: loc("Lock Screen StandBy Mode (iPhone Style)"))
+                standBySettingsSection
             }
             .padding(.horizontal, SettingsMetrics.contentHorizontalPadding)
             .padding(.top, 16)
@@ -178,5 +182,81 @@ struct FaceIDSettingsView: View {
     private func checkPermissions() {
         isAccessibilityGranted = AXIsProcessTrusted()
         isCameraGranted = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+    }
+    
+    private var standBySettingsSection: some View {
+        SettingsGroup {
+            SettingsRowContent(title: loc("Enable StandBy Mode on Lock Screen")) {
+                Defaults.Toggle(key: .enableLockScreenStandBy) {
+                    Text("")
+                }
+            }
+            
+            if Defaults[.enableLockScreenStandBy] {
+                SettingsGroupDivider()
+                SettingsRowContent(title: loc("Clock Face Style")) {
+                    Picker("", selection: Defaults.binding(to: .standbyClockStyle)) {
+                        ForEach(StandbyClockStyle.allCases) { style in
+                            Label(style.displayName, systemImage: style.systemIcon).tag(style)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 190)
+                }
+                
+                SettingsGroupDivider()
+                SettingsRowContent(title: loc("Color Theme")) {
+                    Picker("", selection: Defaults.binding(to: .standbyTheme)) {
+                        ForEach(StandbyTheme.allCases) { th in
+                            Text(th.displayName).tag(th)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 190)
+                }
+                
+                SettingsGroupDivider()
+                SettingsRowContent(title: loc("Night Mode (Red Glow for Dark Rooms)")) {
+                    Defaults.Toggle(key: .standbyNightMode) {
+                        Text("")
+                    }
+                }
+                
+                SettingsGroupDivider()
+                SettingsRowContent(title: loc("Show Live Seconds")) {
+                    Defaults.Toggle(key: .standbyShowSeconds) {
+                        Text("")
+                    }
+                }
+                
+                SettingsGroupDivider()
+                SettingsRowContent(title: loc("Show Mac Battery Indicator")) {
+                    Defaults.Toggle(key: .standbyShowBattery) {
+                        Text("")
+                    }
+                }
+                
+                SettingsGroupDivider()
+                HStack {
+                    Button {
+                        LockScreenMediaWindow.shared.togglePreview()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles.tv")
+                            Text(loc("Preview StandBy Mode on Screen"))
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.effectiveAccent)
+                    
+                    Spacer()
+                    
+                    Text(loc("Press Esc anytime to exit preview"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+        }
     }
 }

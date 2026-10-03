@@ -71,3 +71,50 @@ enum SliderColorEnum: String, CaseIterable, Defaults.Serializable {
     case albumArt = "Match album art"
     case accent = "Accent color"
 }
+
+enum StandbyClockStyle: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case digitalStacked = "Digital Stacked"
+    case dualWidget = "Analog & Calendar"
+    case retroFlip = "Retro Flip Clock"
+    case solarDial = "Solar Dial"
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .digitalStacked: return "iOS Big Digital"
+        case .dualWidget: return "Analog & Calendar"
+        case .retroFlip: return "Retro Flip Clock"
+        case .solarDial: return "Solar Minimalist"
+        }
+    }
+    
+    var systemIcon: String {
+        switch self {
+        case .digitalStacked: return "clock.fill"
+        case .dualWidget: return "calendar.badge.clock"
+        case .retroFlip: return "rectangle.split.2x1.fill"
+        case .solarDial: return "sun.max.circle.fill"
+        }
+    }
+}
+
+enum StandbyTheme: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case neonSunset = "Neon Sunset"
+    case oceanWave = "Ocean Wave"
+    case cyberMint = "Cyber Mint"
+    case pureMinimal = "Pure Minimal"
+    case nightRed = "Night Red"
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .neonSunset: return "Neon Sunset"
+        case .oceanWave: return "Ocean Wave"
+        case .cyberMint: return "Cyber Mint"
+        case .pureMinimal: return "Pure Minimal"
+        case .nightRed: return "Night Red"
+        }
+    }
+}

@@ -40,19 +40,38 @@ struct LockScreenMediaView: View {
     var body: some View {
         ZStack(alignment: .top) {
             if windowController.isWindowVisible {
-                if windowController.isFullScreen {
-                    fullScreenPlayerView
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                } else {
+                switch windowController.displayMode {
+                case .standby:
+                    StandbyClockView(
+                        onToggleMusic: {
+                            windowController.switchToMode(.compactMedia)
+                        },
+                        onClose: {
+                            if windowController.isPreviewMode {
+                                windowController.togglePreview()
+                            }
+                        }
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    
+                case .compactMedia:
                     compactPlayerView
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    
+                case .fullScreenLyrics:
+                    fullScreenPlayerView
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
         }
-        .animation(.spring(response: 0.55, dampingFraction: 0.82, blendDuration: 0), value: windowController.isFullScreen)
+        .animation(.spring(response: 0.55, dampingFraction: 0.82, blendDuration: 0), value: windowController.displayMode)
         .onExitCommand {
-            if windowController.isFullScreen {
-                windowController.setFullScreen(false)
+            if windowController.isPreviewMode {
+                windowController.togglePreview()
+            } else if windowController.displayMode == .fullScreenLyrics {
+                windowController.switchToMode(Defaults[.enableLockScreenStandBy] ? .standby : .compactMedia)
+            } else if windowController.displayMode == .compactMedia && Defaults[.enableLockScreenStandBy] {
+                windowController.switchToMode(.standby)
             }
         }
         .onAppear {
@@ -225,8 +244,20 @@ struct LockScreenMediaView: View {
                 )
             }
             
-            // Hàng 4: Cụm phím điều khiển đồng bộ theo cài đặt Notch & Nút Lời bài hát
+            // Hàng 4: Cụm phím điều khiển đồng bộ theo cài đặt Notch & Nút Lời bài hát & Nút StandBy Clock
             HStack(spacing: 0) {
+                if Defaults[.enableLockScreenStandBy] {
+                    Button {
+                        windowController.switchToMode(.standby)
+                    } label: {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.white.opacity(0.8))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Switch to StandBy Clock")
+                }
+                
                 Spacer()
                 
                 // Các nút điều khiển theo cấu hình slots đã cài đặt
@@ -241,7 +272,7 @@ struct LockScreenMediaView: View {
                 
                 // Nút Lời bài hát góc phải
                 Button {
-                    windowController.setFullScreen(true)
+                    windowController.switchToMode(.fullScreenLyrics)
                 } label: {
                     Image(systemName: "quote.bubble.fill")
                         .font(.system(size: 15))

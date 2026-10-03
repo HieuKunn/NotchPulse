@@ -217,6 +217,7 @@
 		F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200082ED0000100000001 /* FaceIDSettingsView.swift */; };
 		F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */; };
 		F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */; };
+		F1D2001A2ED0000100000001 /* StandbyClockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2001B2ED0000100000001 /* StandbyClockView.swift */; };
 		F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */; };
 		F1D200152ED0000100000001 /* SystemAuthPromptObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */; };
 		F1D200502ED0000100000001 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200512ED0000100000001 /* AppLocalization.swift */; };
@@ -494,6 +495,7 @@
 		F1D200082ED0000100000001 /* FaceIDSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsView.swift; sourceTree = "<group>"; };
 		F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaView.swift; sourceTree = "<group>"; };
 		F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaWindow.swift; sourceTree = "<group>"; };
+		F1D2001B2ED0000100000001 /* StandbyClockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandbyClockView.swift; sourceTree = "<group>"; };
 		F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenFaceIDWindow.swift; sourceTree = "<group>"; };
 		F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAuthPromptObserver.swift; sourceTree = "<group>"; };
 		F1D200512ED0000100000001 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
@@ -1117,6 +1119,7 @@
 			children = (
 				F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */,
 				F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */,
+				F1D2001B2ED0000100000001 /* StandbyClockView.swift */,
 				F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */,
 				11FA00092E80E27000EC13B2 /* ScanAnimationView.swift */,
 			);
@@ -1288,6 +1291,7 @@
 				11FA000B2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift in Sources */,
 				F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */,
 				F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */,
+				F1D2001A2ED0000100000001 /* StandbyClockView.swift in Sources */,
 				F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */,
 				11FA000A2E80E27000EC13B2 /* ScanAnimationView.swift in Sources */,
 				14C08BB92C8DE4B1000F8AA0 /* NotchPulseCalendar.swift in Sources */,

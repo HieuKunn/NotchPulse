@@ -280,6 +280,12 @@ extension Defaults.Keys {
     static let faceIDMatchThreshold = Key<Double>("faceIDMatchThreshold", default: 0.64)
     static let enableLockScreenPlayer = Key<Bool>("enableLockScreenPlayer", default: true)
     static let lockScreenPlayerShowLyrics = Key<Bool>("lockScreenPlayerShowLyrics", default: true)
+    static let enableLockScreenStandBy = Key<Bool>("enableLockScreenStandBy", default: true)
+    static let standbyClockStyle = Key<StandbyClockStyle>("standbyClockStyle", default: .digitalStacked)
+    static let standbyTheme = Key<StandbyTheme>("standbyTheme", default: .neonSunset)
+    static let standbyNightMode = Key<Bool>("standbyNightMode", default: false)
+    static let standbyShowSeconds = Key<Bool>("standbyShowSeconds", default: true)
+    static let standbyShowBattery = Key<Bool>("standbyShowBattery", default: true)
     
     // MARK: Battery
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
