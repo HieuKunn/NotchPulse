@@ -344,6 +344,7 @@ struct VolumeControlView: View {
     @State private var dragging: Bool = false
     @State private var showVolumeSlider: Bool = false
     @State private var lastVolumeUpdateTime: Date = Date.distantPast
+    @State private var localVolume: Double? = nil
     private let volumeUpdateThrottle: TimeInterval = 0.05
     
     private var isCurrentlyMuted: Bool {
@@ -351,6 +352,9 @@ struct VolumeControlView: View {
     }
 
     private var currentEffectiveVolume: Double {
+        if let local = localVolume {
+            return local
+        }
         return Double(volumeManager.rawVolume)
     }
 
@@ -385,6 +389,7 @@ struct VolumeControlView: View {
                     value: Binding(
                         get: { currentEffectiveVolume },
                         set: { newValue in
+                            localVolume = newValue
                             MusicManager.shared.setVolume(to: newValue)
                         }
                     ),
@@ -393,9 +398,16 @@ struct VolumeControlView: View {
                     dragging: $dragging,
                     lastDragged: .constant(Date.distantPast),
                     onValueChange: { newValue in
+                        localVolume = newValue
                         MusicManager.shared.setVolume(to: newValue)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            if !dragging {
+                                localVolume = nil
+                            }
+                        }
                     },
                     onDragChange: { newValue in
+                        localVolume = newValue
                         let now = Date()
                         if now.timeIntervalSince(lastVolumeUpdateTime) > volumeUpdateThrottle {
                             MusicManager.shared.setVolume(to: newValue)
@@ -582,13 +594,16 @@ struct CustomSlider: View {
     var onValueChange: ((Double) -> Void)?
     var onDragChange: ((Double) -> Void)?
 
+    @State private var localDragValue: Double? = nil
+
     var body: some View {
         GeometryReader { geometry in
-            let width = geometry.size.width
+            let width = max(1, geometry.size.width)
             let height = CGFloat(dragging ? 9 : 5)
             let rangeSpan = range.upperBound - range.lowerBound
 
-            let progress = rangeSpan == .zero ? 0 : (value - range.lowerBound) / rangeSpan
+            let currentVal = localDragValue ?? value
+            let progress = rangeSpan <= .zero ? 0 : (currentVal - range.lowerBound) / rangeSpan
             let filledTrackWidth = min(max(progress, 0), 1) * width
 
             ZStack(alignment: .leading) {
@@ -606,15 +621,25 @@ struct CustomSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        withAnimation {
-                            dragging = true
+                        if !dragging {
+                            withAnimation(.easeInOut(duration: 0.1)) {
+                                dragging = true
+                            }
                         }
-                        let newValue = range.lowerBound + Double(gesture.location.x / width) * rangeSpan
-                        value = min(max(newValue, range.lowerBound), range.upperBound)
-                        onDragChange?(value)
+                        let fraction = width > 0 ? (gesture.location.x / width) : 0
+                        let computed = range.lowerBound + Double(fraction) * rangeSpan
+                        let clamped = min(max(computed, range.lowerBound), range.upperBound)
+                        localDragValue = clamped
+                        value = clamped
+                        onDragChange?(clamped)
                     }
-                    .onEnded { _ in
-                        onValueChange?(value)
+                    .onEnded { gesture in
+                        let fraction = width > 0 ? (gesture.location.x / width) : 0
+                        let computed = range.lowerBound + Double(fraction) * rangeSpan
+                        let finalValue = min(max(computed, range.lowerBound), range.upperBound)
+                        localDragValue = nil
+                        value = finalValue
+                        onValueChange?(finalValue)
                         dragging = false
                         lastDragged = Date()
                     }

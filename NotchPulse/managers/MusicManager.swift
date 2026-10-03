@@ -303,7 +303,7 @@ class MusicManager: ObservableObject {
             self.isFavoriteTrack = state.isFavorite
         }
         
-        if volumeChanged {
+        if volumeChanged && !(activeController is NowPlayingController) {
             self.volume = state.volume
         }
         
@@ -758,19 +758,46 @@ class MusicManager: ObservableObject {
     
     func togglePlay() {
         Task {
-            await activeController?.togglePlay()
+            if let activeController = activeController {
+                await activeController.togglePlay()
+            } else {
+                let bundleID = bundleIdentifier ?? ""
+                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
+                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+                }
+            }
         }
     }
 
     func nextTrack() {
         Task {
-            await activeController?.nextTrack()
+            if let activeController = activeController {
+                await activeController.nextTrack()
+            } else {
+                let bundleID = bundleIdentifier ?? ""
+                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
+                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+                }
+            }
         }
     }
 
     func previousTrack() {
         Task {
-            await activeController?.previousTrack()
+            if let activeController = activeController {
+                await activeController.previousTrack()
+            } else {
+                let bundleID = bundleIdentifier ?? ""
+                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
+                }
+            }
         }
     }
 

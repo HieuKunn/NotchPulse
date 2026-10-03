@@ -117,36 +117,83 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         self.pipeHandler = nil
     }
 
+    // MARK: - Helper
+    private func getEffectiveBundleID() -> String {
+        if !playbackState.bundleIdentifier.isEmpty {
+            return playbackState.bundleIdentifier
+        }
+        if let id = MusicManager.shared.bundleIdentifier, !id.isEmpty {
+            return id
+        }
+        if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
+            return "com.apple.Music"
+        }
+        if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
+            return "com.spotify.client"
+        }
+        return ""
+    }
+
     // MARK: - Protocol Implementation
     func play() async {
         MRMediaRemoteSendCommandFunction(0, nil)
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+        }
     }
 
     func pause() async {
         MRMediaRemoteSendCommandFunction(1, nil)
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
+        }
     }
 
     func togglePlay() async {
         MRMediaRemoteSendCommandFunction(2, nil)
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+        }
     }
 
     func nextTrack() async {
         MRMediaRemoteSendCommandFunction(4, nil)
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+        }
     }
 
     func previousTrack() async {
         MRMediaRemoteSendCommandFunction(5, nil)
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
+        }
     }
 
     func seek(to time: Double) async {
         MRMediaRemoteSetElapsedTimeFunction(time)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             Task {
                 let script = "tell application \"Music\" to set player position to \(time)"
                 try? await AppleScriptHelper.executeVoid(script)
             }
-        } else if bundleID == "com.spotify.client" {
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             Task {
                 let script = "tell application \"Spotify\" to set player position to \(time)"
                 try? await AppleScriptHelper.executeVoid(script)
@@ -162,11 +209,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         MRMediaRemoteSendCommandFunction(6, nil)
         let isShuffled = playbackState.isShuffled
         MRMediaRemoteSetShuffleModeFunction(isShuffled ? 1 : 3)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let script = "tell application \"Music\" to set shuffle enabled to (not shuffle enabled)"
             try? await AppleScriptHelper.executeVoid(script)
-        } else if bundleID == "com.spotify.client" {
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set shuffling to (not shuffling)"
             try? await AppleScriptHelper.executeVoid(script)
         }
@@ -178,8 +225,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         let newRepeatMode = (playbackState.repeatMode == .off) ? 3 : (playbackState.repeatMode.rawValue - 1)
         playbackState.repeatMode = RepeatMode(rawValue: newRepeatMode) ?? .off
         MRMediaRemoteSetRepeatModeFunction(newRepeatMode)
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let script = """
             tell application "Music"
                 if song repeat is off then
@@ -192,7 +239,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             end tell
             """
             try? await AppleScriptHelper.executeVoid(script)
-        } else if bundleID == "com.spotify.client" {
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set repeating to (not repeating)"
             try? await AppleScriptHelper.executeVoid(script)
         }
@@ -202,14 +249,14 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         let clampedLevel = max(0.0, min(1.0, level))
         let volumePercentage = Int(clampedLevel * 100)
         
-        let bundleID = playbackState.bundleIdentifier
-        if bundleID == "com.apple.Music" {
+        let bundleID = getEffectiveBundleID()
+        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music")
             if !runningApps.isEmpty {
                 let script = "tell application \"Music\" to set sound volume to \(volumePercentage)"
                 try? await AppleScriptHelper.executeVoid(script)
             }
-        } else if bundleID == "com.spotify.client" {
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client")
             if !runningApps.isEmpty {
                 let script = "tell application \"Spotify\" to set sound volume to \(volumePercentage)"
@@ -358,7 +405,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             (diff ? self.playbackState.bundleIdentifier : "")
         )
         
-        newPlaybackState.volume = payload.volume ?? (diff ? self.playbackState.volume : 0.5)
+        newPlaybackState.volume = payload.volume ?? self.playbackState.volume
         
         self.playbackState = newPlaybackState
         

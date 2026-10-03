@@ -131,7 +131,7 @@ final class VolumeManager: NSObject, ObservableObject {
         if !volumes.isEmpty {
             let avg = max(0, min(1, volumes.reduce(0, +) / Float32(volumes.count)))
             DispatchQueue.main.async {
-                let isRecentLocalChange = Date().timeIntervalSince(self.lastChangeAt) < 0.35
+                let isRecentLocalChange = Date().timeIntervalSince(self.lastChangeAt) < 0.6
                 if self.rawVolume != avg {  
                     if self.didInitialFetch && !isRecentLocalChange {
                         self.lastChangeAt = Date()
@@ -367,10 +367,15 @@ final class VolumeManager: NSObject, ObservableObject {
     }
 
     private func publish(volume: Float32, muted: Bool, touchDate: Bool) {
-        DispatchQueue.main.async {
+        let update = {
             if touchDate { self.lastChangeAt = Date() }
             self.rawVolume = volume
             self.isMuted = muted
+        }
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.async(execute: update)
         }
     }
 }
