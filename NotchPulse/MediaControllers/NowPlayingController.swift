@@ -200,6 +200,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case previous
         case togglePlay
         case toggleRepeat
+        case toggleShuffle
         case seek(Double)
         case setVolume(Double)
     }
@@ -272,6 +273,16 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 if (ytPlaylistBtn) { ytPlaylistBtn.click(); return 'clicked_yt_playlist_repeat'; }
                 var v = document.querySelector('video, audio');
                 if (v) { v.loop = !v.loop; return v.loop ? 'loop_on' : 'loop_off'; }
+                return 'not_found';
+            })()
+            """
+        case .toggleShuffle:
+            js = """
+            (function() {
+                var ytmShuffle = document.querySelector('tp-yt-paper-icon-button.shuffle, button[aria-label*=\"Shuffle\" i], .shuffle[role=\"button\"]');
+                if (ytmShuffle) { ytmShuffle.click(); return 'clicked_ytm_shuffle'; }
+                var spotShuffle = document.querySelector('[data-testid=\"control-button-shuffle\"], button[aria-label*=\"Shuffle\" i]');
+                if (spotShuffle) { spotShuffle.click(); return 'clicked_spotify_shuffle'; }
                 return 'not_found';
             })()
             """
@@ -414,6 +425,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" {
             let script = "tell application \"Spotify\" to set shuffling to (not shuffling)"
             try? await AppleScriptHelper.executeVoid(script)
+        } else if isBrowser(bundleID) {
+            await executeBrowserScript(for: .toggleShuffle)
         }
         playbackState.isShuffled.toggle()
     }

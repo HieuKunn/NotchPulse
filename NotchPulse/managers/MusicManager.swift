@@ -781,7 +781,8 @@ class MusicManager: ObservableObject {
         }
     }
     func skip(seconds: TimeInterval) {
-        let newPos = min(max(0, elapsedTime + seconds), songDuration)
+        let maxDuration = songDuration > 0 ? songDuration : Double.greatestFiniteMagnitude
+        let newPos = min(max(0, elapsedTime + seconds), maxDuration)
         seek(to: newPos)
     }
 
