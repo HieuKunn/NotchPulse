@@ -150,16 +150,34 @@ jobs:
             KEYCHAIN_ARG="--keychain $KEYCHAIN_PATH"
           fi
 
-          # Ký chuẩn inside-out (từ trong ra ngoài) với danh tính cố định để macOS TCC không reset quyền
+          # 1. Ký các helper XPC và daemon riêng của NotchPulse
           if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc" ]; then
             codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
           fi
           if [ -f "dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon" ]; then
             codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulseBatteryDaemon/NotchPulseBatteryDaemon.entitlements dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon
           fi
-          if [ -d "dmg_staging/NotchPulse.app/Contents/Frameworks" ]; then
-            find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 -exec codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG {} \;
+
+          # 2. Ký Sparkle.framework chuẩn inside-out (XPC services, Autoupdate, Updater.app trước khi ký framework)
+          SPARKLE_FW="dmg_staging/NotchPulse.app/Contents/Frameworks/Sparkle.framework"
+          if [ -d "$SPARKLE_FW" ]; then
+            echo "Đang ký các thành phần bên trong Sparkle.framework..."
+            find "$SPARKLE_FW" -name "*.xpc" -type d -exec codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime {} \;
+            if [ -f "$SPARKLE_FW/Versions/B/Autoupdate" ]; then
+              codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime "$SPARKLE_FW/Versions/B/Autoupdate"
+            fi
+            if [ -d "$SPARKLE_FW/Versions/B/Updater.app" ]; then
+              codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime "$SPARKLE_FW/Versions/B/Updater.app"
+            fi
+            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG "$SPARKLE_FW"
           fi
+
+          # 3. Ký các framework khác còn lại (MediaRemoteAdapter, v.v.)
+          if [ -d "dmg_staging/NotchPulse.app/Contents/Frameworks" ]; then
+            find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 ! -name "Sparkle.framework" -exec codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG {} \;
+          fi
+
+          # 4. Ký toàn bộ bundle ứng dụng chính
           codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
 
           # Xóa lại lần cuối phòng ngừa codesign tạo lại file ẩn
