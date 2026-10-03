@@ -344,7 +344,7 @@ extension Defaults.Keys {
     
     // Helper to determine the default media controller based on NowPlaying deprecation status
     static var defaultMediaController: MediaControllerType {
-        if MusicManager.shared.isNowPlayingDeprecated {
+        if MediaChecker().checkDeprecationStatus() {
             return .appleMusic
         } else {
             return .nowPlaying

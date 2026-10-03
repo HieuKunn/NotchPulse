@@ -13,7 +13,7 @@ final class MediaChecker: Sendable {
         case missingResources
     }
 
-    func checkDeprecationStatus() async throws -> Bool {
+    func checkDeprecationStatus() -> Bool {
         // Fast, reliable native check without spawning fragile external perl sub-processes
         // that get killed by Gatekeeper quarantine or sandbox policies on clean user installs.
         let systemFrameworkPath = "/System/Library/PrivateFrameworks/MediaRemote.framework"

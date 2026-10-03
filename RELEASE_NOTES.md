@@ -13,6 +13,7 @@
 ### 🎚️ Master Feature Controls
 - **Dedicated Feature Toggles**: Added clear master on/off switches at the top of every feature settings page (Audio Hub, Media Player, Calendar, Shelf, Clipboard, HUD, System Monitor, and Face ID).
 
-### ⚡ Responsiveness & Stability
+### ⚡ Responsiveness & Launch Stability
+- **Immediate Launch Fix**: Eliminated startup deadlocks during media source initialization so the app opens instantly without crashing or hanging upon download.
 - **Ultra-Responsive Control Handling**: Fixed media slot click event routing for smooth, instant response.
 - **Reliable Hover & Gesture Tracking**: Resolved touch and click conflicts so opening, closing, and switching tabs always work on the first tap.

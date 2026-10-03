@@ -99,19 +99,10 @@ class MusicManager: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Initialize deprecation check asynchronously
-        Task { @MainActor in
-            do {
-                self.isNowPlayingDeprecated = try await self.mediaChecker.checkDeprecationStatus()
-                print("Deprecation check completed: \(self.isNowPlayingDeprecated)")
-            } catch {
-                print("Failed to check deprecation status: \(error). Defaulting to false.")
-                self.isNowPlayingDeprecated = false
-            }
-            
-            // Initialize the active controller after deprecation check
-            self.setActiveControllerBasedOnPreference()
-        }
+        // Initialize deprecation check and active controller synchronously
+        self.isNowPlayingDeprecated = self.mediaChecker.checkDeprecationStatus()
+        print("Deprecation check completed: \(self.isNowPlayingDeprecated)")
+        self.setActiveControllerBasedOnPreference()
     }
 
     deinit {
