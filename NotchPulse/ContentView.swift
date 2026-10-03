@@ -358,7 +358,6 @@ struct ContentView: View {
                         RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
                             .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
                     }
-                    .contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
             }
             .conditionalModifier(!isIsland) { view in
                 view
@@ -369,7 +368,6 @@ struct ContentView: View {
                             .frame(height: 1)
                             .padding(.horizontal, topCornerRadius)
                     }
-                    .contentShape(currentNotchShape)
             }
             .shadow(
                 color: isIsland
@@ -389,15 +387,21 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
+            dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
-                    .animation(animationSpring, value: vm.notchState)
-                    .animation(animationSpring, value: currentNotchWidth)
-                    .animation(animationSpring, value: currentNotchHeight)
-                    .animation(animationSpring, value: islandRadius)
-                    .animation(animationSpring, value: topCornerRadius)
-                    .animation(animationSpring, value: bottomCornerRadius)
-                    .animation(.smooth, value: gestureProgress)
+                    .conditionalModifier(true) { view in
+                        return view
+                            .animation(animationSpring, value: vm.notchState)
+                            .animation(animationSpring, value: currentNotchWidth)
+                            .animation(animationSpring, value: currentNotchHeight)
+                            .animation(animationSpring, value: islandRadius)
+                            .animation(animationSpring, value: topCornerRadius)
+                            .animation(animationSpring, value: bottomCornerRadius)
+                            .animation(faceIDAnimation, value: isFaceIDActive)
+                            .animation(faceIDAnimation, value: targetFaceIDSize)
+                            .animation(.smooth, value: gestureProgress)
+                    }
                     .onHover { hovering in
                         handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
@@ -407,20 +411,17 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .onTapGesture {
-                        guard !isFaceIDContentActive else {
-                            if shouldHandleFaceIDTap() {
-                                FaceIDOverlayController.shared.activate()
+                    .conditionalModifier(!isFaceIDContentActive) { view in
+                        applyHitShape(view)
+                            .onTapGesture {
+                                if shouldHandleFaceIDTap() {
+                                    FaceIDOverlayController.shared.activate()
+                                    return
+                                }
+                                if vm.notchState == .closed {
+                                    doOpen()
+                                }
                             }
-                            return
-                        }
-                        if shouldHandleFaceIDTap() {
-                            FaceIDOverlayController.shared.activate()
-                            return
-                        }
-                        if vm.notchState == .closed {
-                            doOpen()
-                        }
                     }
                     .onAppear {
                         visualIsFaceIDExpanded = targetIsFaceIDExpanded

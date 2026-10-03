@@ -83,6 +83,14 @@ class MusicManager: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // Keep music volume synchronized with active system output volume
+        VolumeManager.shared.$rawVolume
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] vol in
+                self?.volume = Double(vol)
+            }
+            .store(in: &cancellables)
+
         // Initialize deprecation check asynchronously
         Task { @MainActor in
             do {
@@ -732,6 +740,18 @@ class MusicManager: ObservableObject {
     }
 
     func toggleRepeat() {
+        let nextMode: RepeatMode
+        switch repeatMode {
+        case .off:
+            nextMode = .all
+        case .all:
+            nextMode = .one
+        case .one:
+            nextMode = .off
+        }
+        withAnimation(.easeInOut(duration: 0.15)) {
+            self.repeatMode = nextMode
+        }
         Task {
             await activeController?.toggleRepeat()
         }
@@ -770,9 +790,12 @@ class MusicManager: ObservableObject {
     }
     
     func setVolume(to level: Double) {
+        let clamped = max(0.0, min(1.0, level))
+        self.volume = clamped
+        VolumeManager.shared.setAbsolute(Float32(clamped))
         if let controller = activeController {
             Task {
-                await controller.setVolume(level)
+                await controller.setVolume(clamped)
             }
         }
     }

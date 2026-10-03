@@ -199,6 +199,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case next
         case previous
         case togglePlay
+        case toggleRepeat
         case seek(Double)
         case setVolume(Double)
     }
@@ -257,6 +258,20 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 if (btn) { btn.click(); return 'clicked'; }
                 var v = document.querySelector('video, audio');
                 if (v) { if (v.paused) { v.play(); } else { v.pause(); } return 'toggled'; }
+                return 'not_found';
+            })()
+            """
+        case .toggleRepeat:
+            js = """
+            (function() {
+                var ytmBtn = document.querySelector('tp-yt-paper-icon-button.repeat, button[aria-label*=\"Repeat\" i], .repeat[role=\"button\"]');
+                if (ytmBtn) { ytmBtn.click(); return 'clicked_ytm_repeat'; }
+                var spotBtn = document.querySelector('[data-testid=\"control-button-repeat\"]');
+                if (spotBtn) { spotBtn.click(); return 'clicked_spotify_repeat'; }
+                var ytPlaylistBtn = document.querySelector('.ytp-repeat-button, button[aria-label*=\"Repeat playlist\" i]');
+                if (ytPlaylistBtn) { ytPlaylistBtn.click(); return 'clicked_yt_playlist_repeat'; }
+                var v = document.querySelector('video, audio');
+                if (v) { v.loop = !v.loop; return v.loop ? 'loop_on' : 'loop_off'; }
                 return 'not_found';
             })()
             """
@@ -404,29 +419,39 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
     
     func toggleRepeat() async {
-        let newRepeatMode = (playbackState.repeatMode == .off) ? 3 : (playbackState.repeatMode.rawValue - 1)
-        playbackState.repeatMode = RepeatMode(rawValue: newRepeatMode) ?? .off
+        let nextMode: RepeatMode
+        switch playbackState.repeatMode {
+        case .off:
+            nextMode = .all
+        case .all:
+            nextMode = .one
+        case .one:
+            nextMode = .off
+        }
+        playbackState.repeatMode = nextMode
+        
+        let targetValue = nextMode.rawValue
         MRMediaRemoteSendCommandFunction(7, nil)
-        MRMediaRemoteSetRepeatModeFunction(newRepeatMode)
-        executeAdapter(action: "repeat", args: ["\(newRepeatMode)"])
+        MRMediaRemoteSetRepeatModeFunction(targetValue)
+        executeAdapter(action: "repeat", args: ["\(targetValue)"])
         
         let bundleID = playbackState.bundleIdentifier
         if bundleID == "com.apple.Music" {
-            let script = """
-            tell application "Music"
-                if song repeat is off then
-                    set song repeat to all
-                else if song repeat is all then
-                    set song repeat to one
-                else
-                    set song repeat to off
-                end if
-            end tell
-            """
+            let script: String
+            switch nextMode {
+            case .off:
+                script = "tell application \"Music\" to set song repeat to off"
+            case .one:
+                script = "tell application \"Music\" to set song repeat to one"
+            case .all:
+                script = "tell application \"Music\" to set song repeat to all"
+            }
             try? await AppleScriptHelper.executeVoid(script)
         } else if bundleID == "com.spotify.client" {
             let script = "tell application \"Spotify\" to set repeating to (not repeating)"
             try? await AppleScriptHelper.executeVoid(script)
+        } else if isBrowser(bundleID) {
+            await executeBrowserScript(for: .toggleRepeat)
         }
     }
     
@@ -527,10 +552,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else {
             newPlaybackState.isShuffled = self.playbackState.isShuffled
         }
-        if let repeatModeValue = payload.repeatMode {
+        if let repeatModeValue = payload.repeatMode, repeatModeValue > 0 {
             newPlaybackState.repeatMode = RepeatMode(rawValue: repeatModeValue) ?? .off
-        } else if !diff {
-            newPlaybackState.repeatMode = .off
         } else {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         }

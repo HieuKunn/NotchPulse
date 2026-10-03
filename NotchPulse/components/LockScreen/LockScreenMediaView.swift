@@ -513,7 +513,7 @@ struct LockScreenMediaView: View {
         case .next:
             Button { musicManager.nextTrack() } label: { Image(systemName: "forward.fill").font(.system(size: size)).foregroundStyle(.white.opacity(opacity)) }.buttonStyle(.plain)
         case .repeatMode:
-            Button { musicManager.toggleRepeat() } label: { Image(systemName: musicManager.repeatMode == .one ? "repeat.1" : "repeat").font(.system(size: isCompact ? 18 : 17)).foregroundStyle(musicManager.repeatMode != .off ? Color.green : .white.opacity(0.55)) }.buttonStyle(.plain)
+            Button { musicManager.toggleRepeat() } label: { Image(systemName: musicManager.repeatMode == .one ? "repeat.1" : "repeat").font(.system(size: isCompact ? 18 : 17)).foregroundStyle(musicManager.repeatMode != .off ? Color.red : .white.opacity(0.55)) }.buttonStyle(.plain)
         case .favorite:
             Button { musicManager.toggleFavoriteTrack() } label: { Image(systemName: musicManager.isFavoriteTrack ? "heart.fill" : "heart").font(.system(size: isCompact ? 18 : 20)).foregroundStyle(musicManager.isFavoriteTrack ? Color.red : .white.opacity(opacity)) }.buttonStyle(.plain).disabled(!musicManager.canFavoriteTrack)
         case .goBackward:
@@ -521,7 +521,7 @@ struct LockScreenMediaView: View {
         case .goForward:
             Button { musicManager.skip(seconds: 15) } label: { Image(systemName: "goforward.15").font(.system(size: isCompact ? 18 : 20)).foregroundStyle(.white.opacity(opacity)) }.buttonStyle(.plain)
         case .volume:
-            Button { musicManager.setVolume(to: musicManager.volume > 0 ? 0 : 0.5) } label: { Image(systemName: musicManager.volume > 0 ? "speaker.wave.2.fill" : "speaker.slash.fill").font(.system(size: isCompact ? 16 : 18)).foregroundStyle(.white.opacity(opacity)) }.buttonStyle(.plain)
+            Button { VolumeManager.shared.toggleMuteAction() } label: { Image(systemName: VolumeManager.shared.isMuted || VolumeManager.shared.rawVolume == 0 ? "speaker.slash.fill" : (VolumeManager.shared.rawVolume < 0.33 ? "speaker.wave.1.fill" : (VolumeManager.shared.rawVolume < 0.66 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"))).font(.system(size: isCompact ? 16 : 18)).foregroundStyle(.white.opacity(opacity)) }.buttonStyle(.plain)
         case .none:
             EmptyView()
         }

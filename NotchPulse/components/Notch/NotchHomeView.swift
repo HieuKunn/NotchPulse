@@ -303,7 +303,7 @@ struct MusicControlsView: View {
     private var repeatIconColor: Color {
         switch musicManager.repeatMode {
         case .off:
-            return .primary
+            return .white.opacity(0.55)
         case .all, .one:
             return .red
         }
@@ -340,28 +340,18 @@ private extension Array where Element == MusicControlButton {
 // MARK: - Volume Control View
 
 struct VolumeControlView: View {
-    @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
-    @State private var volumeSliderValue: Double = 0.5
     @State private var dragging: Bool = false
     @State private var showVolumeSlider: Bool = false
     @State private var lastVolumeUpdateTime: Date = Date.distantPast
-    private let volumeUpdateThrottle: TimeInterval = 0.1
+    private let volumeUpdateThrottle: TimeInterval = 0.05
     
     private var isCurrentlyMuted: Bool {
-        if musicManager.volumeControlSupported {
-            return volumeSliderValue == 0
-        } else {
-            return volumeManager.isMuted || volumeManager.rawVolume == 0
-        }
+        return volumeManager.isMuted || volumeManager.rawVolume == 0
     }
 
     private var currentEffectiveVolume: Double {
-        if musicManager.volumeControlSupported {
-            return volumeSliderValue
-        } else {
-            return Double(volumeManager.rawVolume)
-        }
+        return Double(volumeManager.rawVolume)
     }
 
     private var volumeIcon: String {
@@ -395,12 +385,7 @@ struct VolumeControlView: View {
                     value: Binding(
                         get: { currentEffectiveVolume },
                         set: { newValue in
-                            volumeSliderValue = newValue
-                            if musicManager.volumeControlSupported {
-                                MusicManager.shared.setVolume(to: newValue)
-                            } else {
-                                VolumeManager.shared.setAbsolute(Float32(newValue))
-                            }
+                            MusicManager.shared.setVolume(to: newValue)
                         }
                     ),
                     range: 0.0...1.0,
@@ -408,20 +393,12 @@ struct VolumeControlView: View {
                     dragging: $dragging,
                     lastDragged: .constant(Date.distantPast),
                     onValueChange: { newValue in
-                        if musicManager.volumeControlSupported {
-                            MusicManager.shared.setVolume(to: newValue)
-                        } else {
-                            VolumeManager.shared.setAbsolute(Float32(newValue))
-                        }
+                        MusicManager.shared.setVolume(to: newValue)
                     },
                     onDragChange: { newValue in
                         let now = Date()
                         if now.timeIntervalSince(lastVolumeUpdateTime) > volumeUpdateThrottle {
-                            if musicManager.volumeControlSupported {
-                                MusicManager.shared.setVolume(to: newValue)
-                            } else {
-                                VolumeManager.shared.setAbsolute(Float32(newValue))
-                            }
+                            MusicManager.shared.setVolume(to: newValue)
                             lastVolumeUpdateTime = now
                         }
                     }
@@ -431,23 +408,6 @@ struct VolumeControlView: View {
             }
         }
         .clipped()
-        .onReceive(musicManager.$volume) { volume in
-            if !dragging && musicManager.volumeControlSupported {
-                volumeSliderValue = volume
-            }
-        }
-        .onReceive(volumeManager.$rawVolume) { vol in
-            if !dragging && !musicManager.volumeControlSupported {
-                volumeSliderValue = Double(vol)
-            }
-        }
-        .onChange(of: showVolumeSlider) { _, isShowing in
-            if isShowing && musicManager.volumeControlSupported {
-                Task {
-                    await MusicManager.shared.syncVolumeFromActiveApp()
-                }
-            }
-        }
     }
 }
 
