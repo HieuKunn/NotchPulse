@@ -682,32 +682,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             forName: Notification.Name.previewNotchWidth, object: nil, queue: .main
         ) { [weak self] notification in
-            guard let self = self else { return }
-            let width = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
-            // Rule: Only 1 notch active at a time! Only preview on the screen containing mouse cursor.
-            let mouseLocation = NSEvent.mouseLocation
-            let activeScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
-            let activeVM: NotchPulseViewModel
-            if Defaults[.showOnAllDisplays], let uuid = activeScreen?.displayUUID, let sub = self.viewModels[uuid] {
-                activeVM = sub
-            } else {
-                activeVM = self.vm
-            }
-            SharingStateManager.shared.preventNotchClose = true
-            activeVM.notchSize = CGSize(width: width, height: openNotchSize.height)
-            if activeVM.notchState != .open {
-                activeVM.open()
+            Task { @MainActor in
+                guard let self = self else { return }
+                let width = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
+                // Rule: Only 1 notch active at a time! Only preview on the screen containing mouse cursor.
+                let mouseLocation = NSEvent.mouseLocation
+                let activeScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
+                let activeVM: NotchPulseViewModel
+                if Defaults[.showOnAllDisplays], let uuid = activeScreen?.displayUUID, let sub = self.viewModels[uuid] {
+                    activeVM = sub
+                } else {
+                    activeVM = self.vm
+                }
+                SharingStateManager.shared.preventNotchClose = true
+                activeVM.notchSize = CGSize(width: width, height: openNotchSize.height)
+                if activeVM.notchState != .open {
+                    activeVM.open()
+                }
             }
         }
 
         NotificationCenter.default.addObserver(
             forName: Notification.Name.closeNotchPreview, object: nil, queue: .main
         ) { [weak self] _ in
-            guard let self = self else { return }
-            SharingStateManager.shared.preventNotchClose = false
-            self.vm.close(force: true)
-            for (_, subVm) in self.viewModels {
-                subVm.close(force: true)
+            Task { @MainActor in
+                guard let self = self else { return }
+                SharingStateManager.shared.preventNotchClose = false
+                self.vm.close(force: true)
+                for (_, subVm) in self.viewModels {
+                    subVm.close(force: true)
+                }
             }
         }
 

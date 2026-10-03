@@ -924,6 +924,26 @@ struct ContentView: View {
         )
     }
 
+    @ViewBuilder
+    var dragDetector: some View {
+        if Defaults[.notchPulseShelf] && vm.notchState == .closed {
+            let padding = expandedDragDetection ? CGFloat(dragDetectionPadding) : 0
+            Color.black.opacity(0.001)
+                .frame(
+                    width: currentNotchWidth + (padding * 2),
+                    height: currentNotchHeight + padding + ((isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0)
+                )
+                .contentShape(Rectangle())
+                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
+                    vm.dropEvent = true
+                    ShelfStateViewModel.shared.load(providers)
+                    return true
+                }
+        } else {
+            EmptyView()
+        }
+    }
+
     private func doOpen() {
         withAnimation(animationSpring) {
             vm.open()
