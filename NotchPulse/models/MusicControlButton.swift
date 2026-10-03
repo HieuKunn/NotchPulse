@@ -98,3 +98,10 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
         self == .playPause
     }
 }
+
+extension Array where Element == MusicControlButton {
+    func padded(to length: Int, filler: MusicControlButton = .none) -> [MusicControlButton] {
+        if count >= length { return self }
+        return self + Array(repeating: filler, count: length - count)
+    }
+}

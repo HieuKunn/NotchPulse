@@ -330,12 +330,6 @@ struct FavoriteControlButton: View {
     }
 }
 
-private extension Array where Element == MusicControlButton {
-    func padded(to length: Int, filler: MusicControlButton) -> [MusicControlButton] {
-        if count >= length { return self }
-        return self + Array(repeating: filler, count: length - count)
-    }
-}
 
 // MARK: - Volume Control View
 

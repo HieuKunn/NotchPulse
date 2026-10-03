@@ -21,7 +21,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var lyricsCancellables = Set<AnyCancellable>()
     
     private init() {
-        let initialRect = NSRect(x: 0, y: 0, width: 410, height: 180)
+        let initialRect = NSRect(x: 0, y: 0, width: 420, height: 185)
         super.init(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -34,20 +34,24 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     private func setupLyricsObserver() {
-        Publishers.CombineLatest(MusicManager.shared.$syncedLyrics, MusicManager.shared.$currentLyrics)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _, _ in
-                guard let self = self, self.isWindowVisible, !self.isFullScreen, let screen = self.getTargetScreen() else { return }
-                let newFrame = self.targetCompactFrame(for: screen)
-                if abs(self.frame.height - newFrame.height) > 1 {
-                    NSAnimationContext.runAnimationGroup { ctx in
-                        ctx.duration = 0.25
-                        ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                        self.animator().setFrame(newFrame, display: true)
-                    }
+        Publishers.CombineLatest3(
+            MusicManager.shared.$syncedLyrics,
+            MusicManager.shared.$currentLyrics,
+            Defaults.publisher(.lockScreenPlayerShowLyrics).map { _ in () }
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _, _, _ in
+            guard let self = self, self.isWindowVisible, !self.isFullScreen, let screen = self.getTargetScreen() else { return }
+            let newFrame = self.targetCompactFrame(for: screen)
+            if abs(self.frame.height - newFrame.height) > 1 {
+                NSAnimationContext.runAnimationGroup { ctx in
+                    ctx.duration = 0.25
+                    ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    self.animator().setFrame(newFrame, display: true)
                 }
             }
-            .store(in: &lyricsCancellables)
+        }
+        .store(in: &lyricsCancellables)
     }
     
     private func configureWindow() {
@@ -87,11 +91,11 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
-        let width: CGFloat = 410
-        let hasLyrics = !MusicManager.shared.syncedLyrics.isEmpty || !MusicManager.shared.currentLyrics.isEmpty
-        let height: CGFloat = hasLyrics ? 205 : 180
+        let width: CGFloat = 420
+        let hasLyrics = (!MusicManager.shared.syncedLyrics.isEmpty || !MusicManager.shared.currentLyrics.isEmpty) && Defaults[.lockScreenPlayerShowLyrics]
+        let height: CGFloat = hasLyrics ? 218 : 185
         let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
-        let y = screen.frame.origin.y + (screen.frame.height * 0.22)
+        let y = screen.frame.origin.y + (screen.frame.height * 0.20)
         return NSRect(x: x, y: y, width: width, height: height)
     }
     
