@@ -170,6 +170,7 @@ class SpotifyController: MediaControllerProtocol {
 
     func setUIActive(_ active: Bool) {
         if active && playbackState.isPlaying {
+            Task { await resyncPositionOnly() }
             startPeriodicSyncIfNeeded()
         } else if !active {
             stopPeriodicSync()

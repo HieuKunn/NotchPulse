@@ -226,6 +226,16 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     
     // MARK: - Setup Methods
     private func setupNowPlayingObserver() async {
+        if let oldPipe = self.pipeHandler {
+            await oldPipe.close()
+            self.pipeHandler = nil
+        }
+        if let oldProc = self.process, oldProc.isRunning {
+            oldProc.interrupt()
+            oldProc.terminate()
+            self.process = nil
+        }
+
         let process = Process()
         let scriptPath = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl")?.path ??
             Bundle.main.resourcePath.map({ $0 + "/mediaremote-adapter.pl" })
