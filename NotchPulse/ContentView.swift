@@ -334,55 +334,57 @@ struct ContentView: View {
     @ViewBuilder
     private var mainNotchContainer: some View {
         let isIsland = isDynamicIsland
-        NotchLayout()
-            .frame(
-                width: currentNotchWidth,
-                height: currentNotchHeight,
-                alignment: .top
-            )
-            .padding(
-                .horizontal,
-                (vm.notchState == .open)
-                ? (isIsland ? 5 : 10)
-                : ((isFaceIDActive || isFaceIDSettlingAfterClose || NotchPulseLockMonitor.isScreenActuallyLocked())
-                    ? 0
-                    : (isIsland ? 6 : 4))
-            )
-            .padding(.horizontal, (vm.notchState == .open) ? (isIsland ? 2 : 4) : 0)
-            .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
-            .background(.black)
-            .conditionalModifier(isIsland) { view in
-                view
-                    .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
-                    }
-            }
-            .conditionalModifier(!isIsland) { view in
-                view
-                    .clipShape(currentNotchShape)
-                    .overlay(alignment: .top) {
-                        Rectangle()
-                            .fill(.black)
-                            .frame(height: 1)
-                            .padding(.horizontal, topCornerRadius)
-                    }
-            }
-            .shadow(
-                color: isIsland
-                    ? .black.opacity(0.65)
-                    : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
-                        ? .black.opacity(0.7) : .clear),
-                radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
-                x: 0,
-                y: isIsland ? 4 : 0
-            )
-            .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
-            .padding(
-                .bottom,
-                vm.effectiveClosedNotchHeight == 0 ? 10 : 0
-            )
+        applyHitShape(
+            NotchLayout()
+                .frame(
+                    width: currentNotchWidth,
+                    height: currentNotchHeight,
+                    alignment: .top
+                )
+                .padding(
+                    .horizontal,
+                    (vm.notchState == .open)
+                    ? (isIsland ? 5 : 10)
+                    : ((isFaceIDActive || isFaceIDSettlingAfterClose || NotchPulseLockMonitor.isScreenActuallyLocked())
+                        ? 0
+                        : (isIsland ? 6 : 4))
+                )
+                .padding(.horizontal, (vm.notchState == .open) ? (isIsland ? 2 : 4) : 0)
+                .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
+                .background(.black)
+                .conditionalModifier(isIsland) { view in
+                    view
+                        .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                        }
+                }
+                .conditionalModifier(!isIsland) { view in
+                    view
+                        .clipShape(currentNotchShape)
+                        .overlay(alignment: .top) {
+                            Rectangle()
+                                .fill(.black)
+                                .frame(height: 1)
+                                .padding(.horizontal, topCornerRadius)
+                        }
+                }
+                .shadow(
+                    color: isIsland
+                        ? .black.opacity(0.65)
+                        : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
+                            ? .black.opacity(0.7) : .clear),
+                    radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
+                    x: 0,
+                    y: isIsland ? 4 : 0
+                )
+                .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
+                .padding(
+                    .bottom,
+                    vm.effectiveClosedNotchHeight == 0 ? 10 : 0
+                )
+        )
     }
 
     var body: some View {
@@ -535,6 +537,7 @@ struct ContentView: View {
                     Rectangle()
                         .fill(Color.black.opacity(0.01))
                         .frame(width: computedChinWidth, height: vm.chinHeight)
+                        .allowsHitTesting(false)
                 }
             }
         }
@@ -926,22 +929,7 @@ struct ContentView: View {
 
     @ViewBuilder
     var dragDetector: some View {
-        if Defaults[.notchPulseShelf] && vm.notchState == .closed {
-            let padding = expandedDragDetection ? CGFloat(dragDetectionPadding) : 0
-            Color.black.opacity(0.001)
-                .frame(
-                    width: currentNotchWidth + (padding * 2),
-                    height: currentNotchHeight + padding + ((isDynamicIsland && !hasPhysicalNotch) ? Defaults[.dynamicIslandTopOffset] : 0)
-                )
-                .contentShape(Rectangle())
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
-                    vm.dropEvent = true
-                    ShelfStateViewModel.shared.load(providers)
-                    return true
-                }
-        } else {
-            EmptyView()
-        }
+        EmptyView()
     }
 
     private func doOpen() {

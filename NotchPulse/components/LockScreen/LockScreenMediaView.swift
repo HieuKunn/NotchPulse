@@ -32,6 +32,7 @@ struct LockScreenMediaView: View {
     @State private var fullLastDragged: Date = .distantPast
     
     @State private var showCompactVolumeSlider: Bool = false
+    @State private var showFullScreenVolumeSlider: Bool = false
     @State private var localVolume: Double? = nil
     @State private var lastVolumeUpdateTime: Date = .distantPast
     
@@ -124,25 +125,23 @@ struct LockScreenMediaView: View {
                 .buttonStyle(.plain)
                 .help("Click to expand to full-screen lyrics")
                 
-                // Tên bài hát & Ca sĩ hỗ trợ MarqueeText tự cuộn khi chữ dài
+                // Tên bài hát & Ca sĩ hiển thị cố định, dài quá thì "..."
                 VStack(alignment: .leading, spacing: 2) {
-                    MarqueeText(
-                        $musicManager.songTitle,
-                        font: .system(size: 15, weight: .bold, design: .rounded),
-                        nsFont: .headline,
-                        textColor: .white,
-                        frameWidth: 268
-                    )
+                    Text(musicManager.songTitle)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: 268, alignment: .leading)
                     
-                    MarqueeText(
-                        $musicManager.artistName,
-                        font: .system(size: 13, weight: .medium, design: .rounded),
-                        nsFont: .subheadline,
-                        textColor: playerColorTinting
+                    Text(musicManager.artistName)
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(playerColorTinting
                             ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.75)
-                            : .white.opacity(0.68),
-                        frameWidth: 268
-                    )
+                            : .white.opacity(0.68))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: 268, alignment: .leading)
                 }
                 
                 Spacer(minLength: 4)
@@ -219,12 +218,8 @@ struct LockScreenMediaView: View {
                 )
             }
             
-            // Hàng 4: Cụm phím điều khiển đồng bộ theo cài đặt Notch & Nút Lời bài hát
+            // Hàng 4: Cụm phím điều khiển đồng bộ theo cài đặt Notch
             HStack(spacing: 0) {
-                Image(systemName: "music.note")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.white.opacity(0.4))
-                
                 Spacer()
                 
                 // Các nút điều khiển theo cấu hình slots đã cài đặt
@@ -233,20 +228,12 @@ struct LockScreenMediaView: View {
                     ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
                         compactSlotButton(for: slot)
                     }
+                    if !slots.contains(.volume) {
+                        compactVolumeButton
+                    }
                 }
                 
                 Spacer()
-                
-                // Nút Lời bài hát & Mở rộng toàn màn hình
-                Button {
-                    windowController.setFullScreen(true)
-                } label: {
-                    Image(systemName: hasLyrics ? "quote.bubble.fill" : "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 14))
-                        .foregroundStyle(hasLyrics ? Color.white.opacity(0.95) : Color.white.opacity(0.55))
-                }
-                .buttonStyle(.plain)
-                .help("Click to expand to full-screen player & lyrics")
             }
         }
         .padding(.horizontal, 18)
@@ -271,28 +258,6 @@ struct LockScreenMediaView: View {
         ZStack {
             // Nền Ambient phát sáng màu của bài hát phủ toàn màn hình
             ambientDynamicBackground
-            
-            // Nút đóng góc trên bên phải
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        windowController.setFullScreen(false)
-                    } label: {
-                        Image(systemName: "chevron.down.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(.white.opacity(0.85), .white.opacity(0.2))
-                            .symbolRenderingMode(.palette)
-                            .shadow(radius: 6)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Collapse to compact player")
-                    .padding(.trailing, 28)
-                    .padding(.top, 28)
-                }
-                Spacer()
-            }
-            .zIndex(10)
             
             GeometryReader { geo in
                 let w = geo.size.width
@@ -386,19 +351,22 @@ struct LockScreenMediaView: View {
                 Text(musicManager.songTitle)
                     .font(.system(size: max(albumSize * 0.075, 20), weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                     .multilineTextAlignment(.center)
                 
                 Text(musicManager.artistName)
                     .font(.system(size: max(albumSize * 0.055, 15), weight: .medium, design: .rounded))
                     .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.8))
                     .lineLimit(1)
+                    .truncationMode(.tail)
                 
                 if !musicManager.album.isEmpty {
                     Text(musicManager.album)
                         .font(.system(size: max(albumSize * 0.04, 12), weight: .regular))
                         .foregroundStyle(.white.opacity(0.5))
                         .lineLimit(1)
+                        .truncationMode(.tail)
                 }
             }
             
@@ -427,30 +395,10 @@ struct LockScreenMediaView: View {
                 ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
                     fullScreenSlotButton(for: slot)
                 }
+                if !slots.contains(.volume) {
+                    fullScreenVolumeButton
+                }
             }
-            
-            // Thanh âm lượng dạng slider khi ở chế độ Full Screen
-            HStack(spacing: 12) {
-                Image(systemName: "speaker.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.5))
-                
-                LockScreenVolumeSlider(
-                    volume: Binding(
-                        get: { Double(volumeManager.rawVolume) },
-                        set: { newValue in
-                            musicManager.setVolume(to: newValue)
-                        }
-                    )
-                )
-                .frame(height: 6)
-                
-                Image(systemName: "speaker.wave.3.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            .frame(width: albumSize * 0.95)
-            .padding(.top, 4)
         }
     }
     
@@ -694,7 +642,9 @@ struct LockScreenMediaView: View {
                 size: 32,
                 action: { musicManager.skip(seconds: 15) }
             )
-        case .volume, .none:
+        case .volume:
+            fullScreenVolumeButton
+        case .none:
             EmptyView()
         }
     }
@@ -723,6 +673,35 @@ struct LockScreenMediaView: View {
                     )
                 )
                 .frame(width: 52, height: 5)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+    }
+    
+    // Nút Volume tương tác trong Full Screen
+    private var fullScreenVolumeButton: some View {
+        HStack(spacing: 6) {
+            LockScreenButton(
+                icon: volumeIcon,
+                iconColor: isCurrentlyMuted ? .gray : .white.opacity(0.85),
+                size: 32,
+                action: {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        showFullScreenVolumeSlider.toggle()
+                    }
+                }
+            )
+            
+            if showFullScreenVolumeSlider {
+                LockScreenVolumeSlider(
+                    volume: Binding(
+                        get: { Double(volumeManager.rawVolume) },
+                        set: { newValue in
+                            musicManager.setVolume(to: newValue)
+                        }
+                    )
+                )
+                .frame(width: 80, height: 6)
                 .transition(.scale.combined(with: .opacity))
             }
         }
