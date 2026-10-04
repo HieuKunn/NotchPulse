@@ -62,6 +62,8 @@ class MusicManager: ObservableObject {
     }
 
     private var artworkData: Data? = nil
+    /// Track last isPlaying to detect resume after a long idle period.
+    private var lastIsPlaying: Bool = false
 
     // Store last values at the time artwork was changed
     private var lastArtworkTitle: String = "I'm Handsome"
@@ -197,6 +199,19 @@ class MusicManager: ObservableObject {
     // MARK: - Update Methods
     @MainActor
     private func updateFromPlaybackState(_ state: PlaybackState) {
+        // Detect resume after a long idle: if media transitions from not-playing → playing,
+        // the app may have been suspended by macOS. Force clear artwork cache and track history
+        // so the new playback session's visual elements and artwork/app icon are always reloaded.
+        let isResuming = !self.lastIsPlaying && state.isPlaying
+        if isResuming {
+            self.artworkData = nil
+            self.lastArtworkTitle = ""
+            self.lastArtworkArtist = ""
+            self.lastArtworkAlbum = ""
+            self.lastArtworkBundleIdentifier = ""
+        }
+        self.lastIsPlaying = state.isPlaying
+
         // Check for playback state changes (playing/paused)
         if state.isPlaying != self.isPlaying {
             NSLog("Playback state changed: \(state.isPlaying ? "Playing" : "Paused")")
@@ -216,9 +231,9 @@ class MusicManager: ObservableObject {
         let albumChanged = state.album != self.lastArtworkAlbum
         let bundleChanged = state.bundleIdentifier != self.lastArtworkBundleIdentifier
 
-        // Check for artwork changes
-        let artworkChanged = state.artwork != nil && state.artwork != self.artworkData
-        let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged
+        // Check for artwork changes (always treat resume as artwork change to force re-display)
+        let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || isResuming
+        let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged || (isResuming && !state.title.isEmpty)
 
         // Handle artwork and visual transitions for changed content
         if hasContentChange {
@@ -228,24 +243,25 @@ class MusicManager: ObservableObject {
             }
             self.triggerFlipAnimation()
 
-            if artworkChanged, let artwork = state.artwork {
+            if let artwork = state.artwork {
+                self.usingAppIconForArtwork = false
                 self.updateArtwork(artwork)
-            } else if state.artwork == nil {
-                // Try to use app icon if no artwork but track changed
-                if let appIconImage = AppIconAsNSImage(for: state.bundleIdentifier) {
+            } else {
+                // For web browsers (Chrome, Arc, Safari) or media apps without embedded artwork,
+                // ensure we always load and display the host app icon so the cover is never empty.
+                let effectiveBundleID = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "com.apple.Music")
+                if let appIconImage = AppIconAsNSImage(for: effectiveBundleID) {
                     self.usingAppIconForArtwork = true
                     self.updateAlbumArt(newAlbumArt: appIconImage)
                 }
             }
             self.artworkData = state.artwork
 
-            if artworkChanged || state.artwork == nil {
-                // Update last artwork change values
-                self.lastArtworkTitle = state.title
-                self.lastArtworkArtist = state.artist
-                self.lastArtworkAlbum = state.album
-                self.lastArtworkBundleIdentifier = state.bundleIdentifier
-            }
+            // Update last artwork change values
+            self.lastArtworkTitle = state.title
+            self.lastArtworkArtist = state.artist
+            self.lastArtworkAlbum = state.album
+            self.lastArtworkBundleIdentifier = state.bundleIdentifier
 
             // Only update sneak peek if there's actual content and something changed
             if !state.title.isEmpty && !state.artist.isEmpty && state.isPlaying {

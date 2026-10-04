@@ -1,13 +1,14 @@
 ## 🚀 What's New in NotchPulse v5.2
 
-### 🎯 Notch Click & Hover Passthrough
-- **Seamless Desktop Interactions**: Completely eliminated ghost hitboxes and invisible padding around and beneath the Notch when closed, ensuring zero interference with browser tabs, window titlebars, and native controls.
+### 🎵 Media Player & Browser Controls
+- **Reliable Artwork Restoration**: Fixed an issue where album covers and app icons would disappear or fail to reload after pausing or leaving media idle in web browsers (Google Chrome, Arc, Safari, YouTube).
+- **Responsive Browser Controls**: Next track, previous track, and play/pause buttons now respond instantly for web browser players even after long idle periods.
+- **Sleep & Wake Auto-Reconnection**: Media player connections now seamlessly re-establish immediately when your Mac wakes from sleep.
 
-### 🎵 Refined Lock Screen Media Player
-- **Clean Compact Player**: Streamlined compact media card with centered controls, removing unnecessary icons.
-- **Direct Tap to Expand & Collapse**: Tap the album artwork to immediately switch between compact card and full-screen player modes.
-- **Inline Pop-up Volume Slider**: Volume stays compactly inline with playback controls on the same row in both compact and full-screen modes, revealing a smooth slider when tapped.
-- **Clean Track Info**: Media titles and artist names now display crisply with trailing ellipsis without jarring scrolling/marquee motions.
-- **Interactive Scrubber**: Click or drag smoothly anywhere along the progress bar to seek your music instantly.
-- **Synchronized Control Buttons**: Lock screen media player buttons automatically adapt to your customized Notch control button slots.
-- **Rock-Solid Lyrics Stability**: Zero flicker or layout shifting during track transitions and playback toggles.
+### 🔒 Silky Smooth Face ID Unlock
+- **Smooth Notch Retraction**: Resolved an issue where Face ID would abruptly vanish ("bụp") after recognizing your face. The success animation and checkmark now play cleanly and glide back into the Notch without stuttering.
+- **Hover Conflict Prevention**: Prevented the desktop Notch from prematurely opening or jittering when your cursor is near the top of the screen right as Face ID unlocks.
+
+### ⚡️ Battery & Performance Optimizations
+- **Intelligent Background Polling**: Temporarily pauses clipboard monitoring while your screen is locked or asleep to conserve battery life.
+- **Cleaner Memory Management**: Added proper teardown routines for video and animation resources, ensuring minimal RAM usage and zero idle battery drain.

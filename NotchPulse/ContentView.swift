@@ -957,7 +957,7 @@ struct ContentView: View {
 
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
-        if isFaceIDActive && (faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .onboarding) { return }
+        if isFaceIDActive || isFaceIDSettlingAfterClose || faceIDOverlay.phase != .closed { return }
         hoverTask?.cancel()
         
         if hovering {

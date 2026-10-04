@@ -188,6 +188,32 @@ final class FaceIDOverlayController {
         // turns it into a full slide-off-screen exit rather than a shrink to a resting pill.
         isPillDocked = false
         guard phase != .success, phase != .collapsing else { return }
+
+        // If the overlay is actively scanning when disarm is called (e.g. user unlocked via
+        // password while FaceID was still looking), animate it closed instead of hiding instantly.
+        // This prevents the "bụp" snap-away and gives a smooth collapse back into the notch.
+        if phase == .scanning {
+            resolveTask?.cancel(); resolveTask = nil
+            scanTimeoutTask?.cancel(); scanTimeoutTask = nil
+            geometry = windowController.currentGeometry
+            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
+                phase = .collapsing
+            }
+            updateInteractivity()
+            Task { [weak self] in
+                try? await Task.sleep(for: self?.collapseAnimationDuration ?? .milliseconds(600))
+                guard let self, self.phase == .collapsing else { return }
+                withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
+                    self.phase = .closed
+                }
+                self.content = .scan(.idle)
+                self.windowController.setInteractive(false)
+                self.windowController.hide()
+                self.restorePreviousScreen()
+            }
+            return
+        }
+
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         // Re-measured here, not just trusted from `arm()` — `arm()` typically
@@ -550,9 +576,9 @@ final class FaceIDOverlayController {
     }
 
     /// Tears the overlay down without any resolve animation. Deliberately a no-op while
-    /// success/collapsing is in flight — interrupting that made the window vanish abruptly.
+    /// success/collapsing/scanning is in flight — interrupting those made the window vanish abruptly.
     func dismissImmediately() {
-        guard phase != .success, phase != .collapsing else { return }
+        guard phase != .success, phase != .collapsing, phase != .scanning else { return }
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         phase = .closed

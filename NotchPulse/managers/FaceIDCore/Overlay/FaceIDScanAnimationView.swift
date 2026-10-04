@@ -266,6 +266,10 @@ final class FaceIDScanAnimationHostView: NSView {
         playerLayer.zPosition = 0
     }
 
+    deinit {
+        teardownPlayer()
+    }
+
     private static var cachedStillCGImage: CGImage?
 
     static func loadStillCGImage() -> CGImage? {

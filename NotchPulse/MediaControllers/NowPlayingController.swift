@@ -68,6 +68,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private var process: Process?
     private var pipeHandler: JSONLinesPipeHandler?
     private var streamTask: Task<Void, Never>?
+    private var wakeObserver: NSObjectProtocol?
 
     // MARK: - Initialization
     init?() {
@@ -96,12 +97,29 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         MRMediaRemoteSetRepeatModeFunction = unsafeBitCast(
             MRMediaRemoteSetRepeatModePointer, to: (@convention(c) (Int) -> Void).self)
 
+        // Auto-reconnect adapter whenever Mac wakes from sleep to prevent stale Mach connections
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(600))
+                await self?.setupNowPlayingObserver()
+            }
+        }
+
         Task { await setupNowPlayingObserver() }
     }
 
     deinit {
         streamTask?.cancel()
         
+        if let observer = wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            wakeObserver = nil
+        }
+
         if let pipeHandler = self.pipeHandler {
             Task { await pipeHandler.close() }
         }
@@ -134,6 +152,41 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         return ""
     }
 
+    // MARK: - Media Key Fallback
+    private func postMediaKeyEvent(for command: Int) {
+        let keyType: Int32?
+        switch command {
+        case 0, 1, 2:
+            keyType = 16 // NX_KEYTYPE_PLAY
+        case 4:
+            keyType = 17 // NX_KEYTYPE_NEXT
+        case 5:
+            keyType = 18 // NX_KEYTYPE_PREVIOUS
+        default:
+            keyType = nil
+        }
+        guard let key = keyType else { return }
+
+        func sendKey(down: Bool) {
+            let flags = NSEvent.ModifierFlags(rawValue: down ? 0xa00 : 0xb00)
+            let data1 = Int((key << 16) | (down ? 0xa00 : 0xb00))
+            let ev = NSEvent.otherEvent(
+                with: .systemDefined,
+                location: .zero,
+                modifierFlags: flags,
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                subtype: 8,
+                data1: data1,
+                data2: -1
+            )
+            ev?.cgEvent?.post(tap: .cghidEventTap)
+        }
+        sendKey(down: true)
+        sendKey(down: false)
+    }
+
     // MARK: - Protocol Implementation
     func play() async {
         MRMediaRemoteSendCommandFunction(0, nil)
@@ -142,6 +195,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+        } else {
+            postMediaKeyEvent(for: 0)
         }
     }
 
@@ -152,6 +207,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
+        } else {
+            postMediaKeyEvent(for: 1)
         }
     }
 
@@ -162,6 +219,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+        } else {
+            postMediaKeyEvent(for: 2)
         }
     }
 
@@ -172,6 +231,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+        } else {
+            postMediaKeyEvent(for: 4)
         }
     }
 
@@ -182,6 +243,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
+        } else {
+            postMediaKeyEvent(for: 5)
         }
     }
 
@@ -293,7 +356,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
               FileManager.default.fileExists(atPath: script),
               FileManager.default.fileExists(atPath: framework)
         else {
-            assertionFailure("Could not find mediaremote-adapter.pl script or framework path")
+            NSLog("NowPlayingController: Could not find mediaremote-adapter.pl script or framework path")
             return
         }
         
@@ -312,7 +375,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 await self?.processJSONStream()
             }
         } catch {
-            assertionFailure("Failed to launch mediaremote-adapter.pl: \(error)")
+            NSLog("NowPlayingController: Failed to launch mediaremote-adapter.pl: \(error)")
         }
     }
 

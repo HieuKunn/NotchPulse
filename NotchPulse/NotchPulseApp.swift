@@ -194,6 +194,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         isScreenLocked = true
 
         collapseAllNotches(force: true)
+        ClipboardManager.shared.stopMonitoring()
         
         let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
         if !shouldKeepWindow {
@@ -222,6 +223,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func onScreenUnlocked(_ notification: Notification) {
         isScreenLocked = false
         setupDetectors() // Re-enable Ghost Windows, Radar and Hover Detectors after unlocking
+        ClipboardManager.shared.startMonitoring()
         
         let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
         if !shouldKeepWindow {

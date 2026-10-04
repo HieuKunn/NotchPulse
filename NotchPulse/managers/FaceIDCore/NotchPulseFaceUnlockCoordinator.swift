@@ -513,6 +513,9 @@ final class NotchPulseFaceUnlockCoordinator {
                         ? (confirmingCue.map { "live via \($0.title)" } ?? "live confirmed")
                         : "liveness off"
                     lastOutcome = "Matched \(matched.identity.name) at \(String(format: "%.3f", effectiveSimilarity)), \(livenessNote)."
+                    if showsUI {
+                        FaceIDOverlayController.shared.finish(success: true)
+                    }
                     await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                     return .matched
                 }
