@@ -149,6 +149,21 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
             return "com.spotify.client"
         }
+        let browserBundleIDs = [
+            "company.thebrowser.Browser",
+            "com.google.Chrome",
+            "com.google.Chrome.canary",
+            "com.brave.Browser",
+            "com.microsoft.edgemac",
+            "com.apple.Safari",
+            "com.operasoftware.Opera",
+            "com.vivaldi.Vivaldi"
+        ]
+        for id in browserBundleIDs {
+            if !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty {
+                return id
+            }
+        }
         return ""
     }
 
@@ -187,6 +202,337 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         sendKey(down: false)
     }
 
+    // MARK: - Browser Media Automation
+    private enum BrowserMediaAction {
+        case next
+        case previous
+        case togglePlay
+        case play
+        case pause
+        case toggleRepeat
+        case toggleShuffle
+        case seek(Double)
+        case setVolume(Double)
+    }
+
+    private func isBrowser(_ bundleID: String) -> Bool {
+        return getBrowserAppName(for: bundleID) != nil
+    }
+
+    private func getBrowserAppName(for bundleID: String) -> (name: String, isSafari: Bool)? {
+        switch bundleID {
+        case "company.thebrowser.Browser":
+            return ("Arc", false)
+        case "com.google.Chrome":
+            return ("Google Chrome", false)
+        case "com.google.Chrome.canary":
+            return ("Google Chrome Canary", false)
+        case "com.google.Chrome.beta":
+            return ("Google Chrome Beta", false)
+        case "com.google.Chrome.dev":
+            return ("Google Chrome Dev", false)
+        case "com.brave.Browser":
+            return ("Brave Browser", false)
+        case "com.brave.Browser.nightly":
+            return ("Brave Browser Nightly", false)
+        case "com.microsoft.edgemac":
+            return ("Microsoft Edge", false)
+        case "com.microsoft.edgemac.Canary":
+            return ("Microsoft Edge Canary", false)
+        case "com.microsoft.edgemac.Dev":
+            return ("Microsoft Edge Dev", false)
+        case "com.microsoft.edgemac.Beta":
+            return ("Microsoft Edge Beta", false)
+        case "com.operasoftware.Opera":
+            return ("Opera", false)
+        case "com.operasoftware.OperaGX":
+            return ("Opera GX", false)
+        case "com.vivaldi.Vivaldi":
+            return ("Vivaldi", false)
+        case "org.chromium.Chromium":
+            return ("Chromium", false)
+        case "com.apple.Safari":
+            return ("Safari", true)
+        case "com.apple.SafariTechnologyPreview":
+            return ("Safari Technology Preview", true)
+        case "com.kagi.kagisafari":
+            return ("Orion", true)
+        default:
+            let lower = bundleID.lowercased()
+            if lower.contains("arc") || lower.contains("thebrowser") {
+                return ("Arc", false)
+            } else if lower.contains("chrome") {
+                return ("Google Chrome", false)
+            } else if lower.contains("brave") {
+                return ("Brave Browser", false)
+            } else if lower.contains("edge") {
+                return ("Microsoft Edge", false)
+            } else if lower.contains("safari") {
+                return ("Safari", true)
+            } else if lower.contains("opera") {
+                return ("Opera", false)
+            } else if lower.contains("vivaldi") {
+                return ("Vivaldi", false)
+            } else if lower.contains("chromium") {
+                return ("Chromium", false)
+            } else if lower.contains("orion") {
+                return ("Orion", true)
+            }
+            return nil
+        }
+    }
+
+    @discardableResult
+    private func executeBrowserScript(for action: BrowserMediaAction) async -> Bool {
+        let bundleID = getEffectiveBundleID()
+        guard let (appName, isSafari) = getBrowserAppName(for: bundleID) else {
+            return false
+        }
+
+        let js: String
+        switch action {
+        case .next:
+            js = """
+            (function() {
+                var nextBtn = document.querySelector('.ytp-next-button, a.ytp-next-button, tp-yt-paper-icon-button.next-button, button.next-button');
+                if (!nextBtn) {
+                    nextBtn = document.querySelector('[data-testid="control-button-skip-forward"], .skipControl__next, [aria-label*="Next" i], [aria-label*="Tiếp" i], [title*="Next" i], [title*="Tiếp" i]');
+                }
+                if (nextBtn && nextBtn.getAttribute('aria-disabled') !== 'true') {
+                    nextBtn.click();
+                    return 'clicked_next_btn';
+                }
+                var evt = new KeyboardEvent('keydown', { key: 'N', code: 'KeyN', keyCode: 78, which: 78, shiftKey: true, bubbles: true });
+                document.dispatchEvent(evt);
+                var v = document.querySelector('video, audio');
+                if (v) {
+                    if (v.duration && isFinite(v.duration)) {
+                        v.currentTime = Math.max(0, v.duration - 0.1);
+                    } else {
+                        v.currentTime += 30;
+                    }
+                    return 'seeked_end';
+                }
+                return 'not_found';
+            })()
+            """
+        case .previous:
+            js = """
+            (function() {
+                var prevBtn = document.querySelector('.ytp-prev-button, a.ytp-prev-button, tp-yt-paper-icon-button.previous-button, button.previous-button');
+                if (!prevBtn) {
+                    prevBtn = document.querySelector('[data-testid="control-button-skip-back"], .skipControl__previous, [aria-label*="Previous" i], [aria-label*="Trước" i], [title*="Previous" i], [title*="Trước" i]');
+                }
+                if (prevBtn && prevBtn.getAttribute('aria-disabled') !== 'true') {
+                    prevBtn.click();
+                    return 'clicked_prev_btn';
+                }
+                var v = document.querySelector('video, audio');
+                if (v && v.currentTime > 3) {
+                    v.currentTime = 0;
+                    return 'rewound_start';
+                }
+                var evt = new KeyboardEvent('keydown', { key: 'P', code: 'KeyP', keyCode: 80, which: 80, shiftKey: true, bubbles: true });
+                document.dispatchEvent(evt);
+                if (window.history.length > 1) {
+                    window.history.back();
+                    return 'history_back';
+                }
+                if (v) {
+                    v.currentTime = 0;
+                    return 'rewound';
+                }
+                return 'not_found';
+            })()
+            """
+        case .togglePlay:
+            js = """
+            (function() {
+                var btn = document.querySelector('.ytp-play-button, tp-yt-paper-icon-button#play-pause-button, #play-pause-button, [data-testid="control-button-playpause"], .playControl');
+                if (btn) {
+                    btn.click();
+                    return 'clicked_playpause_btn';
+                }
+                var v = document.querySelector('video, audio');
+                if (v) {
+                    if (v.paused) { v.play(); } else { v.pause(); }
+                    return 'toggled_video';
+                }
+                return 'not_found';
+            })()
+            """
+        case .play:
+            js = """
+            (function() {
+                var v = document.querySelector('video, audio');
+                if (v && v.paused) {
+                    v.play();
+                    return 'played_video';
+                }
+                var btn = document.querySelector('.ytp-play-button[aria-label*="Play" i], .ytp-play-button[aria-label*="Phát" i], [data-testid="control-button-play"]');
+                if (btn) { btn.click(); return 'clicked_play_btn'; }
+                return 'noop';
+            })()
+            """
+        case .pause:
+            js = """
+            (function() {
+                var v = document.querySelector('video, audio');
+                if (v && !v.paused) {
+                    v.pause();
+                    return 'paused_video';
+                }
+                var btn = document.querySelector('.ytp-play-button[aria-label*="Pause" i], .ytp-play-button[aria-label*="Tạm dừng" i], [data-testid="control-button-pause"]');
+                if (btn) { btn.click(); return 'clicked_pause_btn'; }
+                return 'noop';
+            })()
+            """
+        case .toggleRepeat:
+            js = """
+            (function() {
+                var ytmBtn = document.querySelector('tp-yt-paper-icon-button.repeat, button[aria-label*="Repeat" i], .repeat[role="button"]');
+                if (ytmBtn) { ytmBtn.click(); return 'clicked_ytm_repeat'; }
+                var spotBtn = document.querySelector('[data-testid="control-button-repeat"]');
+                if (spotBtn) { spotBtn.click(); return 'clicked_spotify_repeat'; }
+                var ytPlaylistBtn = document.querySelector('.ytp-repeat-button, button[aria-label*="Repeat playlist" i]');
+                if (ytPlaylistBtn) { ytPlaylistBtn.click(); return 'clicked_yt_playlist_repeat'; }
+                var v = document.querySelector('video, audio');
+                if (v) { v.loop = !v.loop; return v.loop ? 'loop_on' : 'loop_off'; }
+                return 'not_found';
+            })()
+            """
+        case .toggleShuffle:
+            js = """
+            (function() {
+                var ytmShuffle = document.querySelector('tp-yt-paper-icon-button.shuffle, button[aria-label*="Shuffle" i], .shuffle[role="button"]');
+                if (ytmShuffle) { ytmShuffle.click(); return 'clicked_ytm_shuffle'; }
+                var spotShuffle = document.querySelector('[data-testid="control-button-shuffle"], button[aria-label*="Shuffle" i]');
+                if (spotShuffle) { spotShuffle.click(); return 'clicked_spotify_shuffle'; }
+                return 'not_found';
+            })()
+            """
+        case .seek(let time):
+            js = """
+            (function() {
+                var v = document.querySelector('video, audio');
+                if (v) {
+                    v.currentTime = \(time);
+                    return 'seeked';
+                }
+                return 'not_found';
+            })()
+            """
+        case .setVolume(let level):
+            let clamped = max(0.0, min(1.0, level))
+            js = """
+            (function() {
+                var v = document.querySelector('video, audio');
+                if (v) {
+                    v.volume = \(clamped);
+                    return 'volumed';
+                }
+                return 'not_found';
+            })()
+            """
+        }
+
+        let escapedJS = js
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: " ")
+
+        let appleScript: String
+        if isSafari {
+            appleScript = """
+            tell application "\(appName)"
+                set targetTab to missing value
+                set fallbackTab to missing value
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        set u to (URL of t as text)
+                        if u contains "youtube.com" or u contains "soundcloud.com" or u contains "spotify.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "music.youtube.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "tiktok.com" or u contains "facebook.com" then
+                            try
+                                set ms to (do JavaScript "(function(){ var v = document.querySelector('video, audio'); if (!v) return 'none'; return (!v.paused ? 'playing' : (v.currentTime > 0 ? 'paused_progress' : 'idle')); })()" in t)
+                                if ms contains "playing" then
+                                    set targetTab to t
+                                    exit repeat
+                                else if ms contains "paused_progress" and fallbackTab is missing value then
+                                    set fallbackTab to t
+                                else if fallbackTab is missing value then
+                                    set fallbackTab to t
+                                end if
+                            end try
+                        end if
+                    end repeat
+                    if targetTab is not missing value then exit repeat
+                end repeat
+                if targetTab is missing value and fallbackTab is not missing value then
+                    set targetTab to fallbackTab
+                end if
+                if targetTab is missing value then
+                    try
+                        set targetTab to current tab of front window
+                    end try
+                end if
+                if targetTab is not missing value then
+                    return (do JavaScript "\(escapedJS)" in targetTab)
+                end if
+                return "no_tab"
+            end tell
+            """
+        } else {
+            appleScript = """
+            tell application "\(appName)"
+                set targetTab to missing value
+                set fallbackTab to missing value
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        set u to (URL of t as text)
+                        if u contains "youtube.com" or u contains "soundcloud.com" or u contains "spotify.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "music.youtube.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "tiktok.com" or u contains "facebook.com" then
+                            try
+                                tell t
+                                    set ms to execute javascript "(function(){ var v = document.querySelector('video, audio'); if (!v) return 'none'; return (!v.paused ? 'playing' : (v.currentTime > 0 ? 'paused_progress' : 'idle')); })()"
+                                end tell
+                                if ms contains "playing" then
+                                    set targetTab to t
+                                    exit repeat
+                                else if ms contains "paused_progress" and fallbackTab is missing value then
+                                    set fallbackTab to t
+                                else if fallbackTab is missing value then
+                                    set fallbackTab to t
+                                end if
+                            end try
+                        end if
+                    end repeat
+                    if targetTab is not missing value then exit repeat
+                end repeat
+                if targetTab is missing value and fallbackTab is not missing value then
+                    set targetTab to fallbackTab
+                end if
+                if targetTab is missing value then
+                    try
+                        set targetTab to active tab of front window
+                    end try
+                end if
+                if targetTab is not missing value then
+                    tell targetTab
+                        return execute javascript "\(escapedJS)"
+                    end tell
+                end if
+                return "no_tab"
+            end tell
+            """
+        }
+
+        do {
+            let result = try await AppleScriptHelper.execute(appleScript)
+            let resStr = result.stringValue ?? ""
+            return !resStr.isEmpty && resStr != "no_tab" && resStr != "not_found"
+        } catch {
+            return false
+        }
+    }
+
     // MARK: - Protocol Implementation
     func play() async {
         MRMediaRemoteSendCommandFunction(0, nil)
@@ -195,6 +541,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+        } else if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .play)
+            if !handled {
+                postMediaKeyEvent(for: 0)
+            }
         } else {
             postMediaKeyEvent(for: 0)
         }
@@ -207,6 +558,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
+        } else if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .pause)
+            if !handled {
+                postMediaKeyEvent(for: 1)
+            }
         } else {
             postMediaKeyEvent(for: 1)
         }
@@ -219,6 +575,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+        } else if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .togglePlay)
+            if !handled {
+                postMediaKeyEvent(for: 2)
+            }
         } else {
             postMediaKeyEvent(for: 2)
         }
@@ -231,6 +592,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+        } else if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .next)
+            if !handled {
+                postMediaKeyEvent(for: 4)
+            }
         } else {
             postMediaKeyEvent(for: 4)
         }
@@ -243,6 +609,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
+        } else if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .previous)
+            if !handled {
+                postMediaKeyEvent(for: 5)
+            }
         } else {
             postMediaKeyEvent(for: 5)
         }
@@ -260,6 +631,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             Task {
                 let script = "tell application \"Spotify\" to set player position to \(time)"
                 try? await AppleScriptHelper.executeVoid(script)
+            }
+        } else if isBrowser(bundleID) {
+            Task {
+                await executeBrowserScript(for: .seek(time))
             }
         }
     }
@@ -279,6 +654,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set shuffling to (not shuffling)"
             try? await AppleScriptHelper.executeVoid(script)
+        } else if isBrowser(bundleID) {
+            await executeBrowserScript(for: .toggleShuffle)
         }
         playbackState.isShuffled.toggle()
     }
@@ -305,6 +682,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set repeating to (not repeating)"
             try? await AppleScriptHelper.executeVoid(script)
+        } else if isBrowser(bundleID) {
+            await executeBrowserScript(for: .toggleRepeat)
         }
     }
     
@@ -325,6 +704,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 let script = "tell application \"Spotify\" to set sound volume to \(volumePercentage)"
                 try? await AppleScriptHelper.executeVoid(script)
             }
+        } else if isBrowser(bundleID) {
+            await executeBrowserScript(for: .setVolume(clampedLevel))
         } else {
             await MainActor.run {
                 VolumeManager.shared.setAbsolute(Float32(clampedLevel))
