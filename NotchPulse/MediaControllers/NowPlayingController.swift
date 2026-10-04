@@ -206,9 +206,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private enum BrowserMediaAction {
         case next
         case previous
-        case togglePlay
-        case play
-        case pause
         case toggleRepeat
         case toggleShuffle
         case seek(Double)
@@ -294,35 +291,20 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case .next:
             js = """
             (function() {
-                var nextBtn = document.querySelector('.ytp-next-button, a.ytp-next-button, tp-yt-paper-icon-button.next-button, button.next-button');
-                if (!nextBtn) {
-                    nextBtn = document.querySelector('[data-testid="control-button-skip-forward"], .skipControl__next, [aria-label*="Next" i], [aria-label*="Tiếp" i], [title*="Next" i], [title*="Tiếp" i]');
-                }
+                var nextBtn = document.querySelector('.ytp-next-button, a.ytp-next-button, tp-yt-paper-icon-button.next-button, button.next-button, [data-testid="control-button-skip-forward"], .skipControl__next, [aria-label*="Next" i], [aria-label*="Tiếp" i], [title*="Next" i], [title*="Tiếp" i]');
                 if (nextBtn && nextBtn.getAttribute('aria-disabled') !== 'true') {
                     nextBtn.click();
                     return 'clicked_next_btn';
                 }
                 var evt = new KeyboardEvent('keydown', { key: 'N', code: 'KeyN', keyCode: 78, which: 78, shiftKey: true, bubbles: true });
                 document.dispatchEvent(evt);
-                var v = document.querySelector('video, audio');
-                if (v) {
-                    if (v.duration && isFinite(v.duration)) {
-                        v.currentTime = Math.max(0, v.duration - 0.1);
-                    } else {
-                        v.currentTime += 30;
-                    }
-                    return 'seeked_end';
-                }
-                return 'not_found';
+                return 'dispatched_key';
             })()
             """
         case .previous:
             js = """
             (function() {
-                var prevBtn = document.querySelector('.ytp-prev-button, a.ytp-prev-button, tp-yt-paper-icon-button.previous-button, button.previous-button');
-                if (!prevBtn) {
-                    prevBtn = document.querySelector('[data-testid="control-button-skip-back"], .skipControl__previous, [aria-label*="Previous" i], [aria-label*="Trước" i], [title*="Previous" i], [title*="Trước" i]');
-                }
+                var prevBtn = document.querySelector('.ytp-prev-button, a.ytp-prev-button, tp-yt-paper-icon-button.previous-button, button.previous-button, [data-testid="control-button-skip-back"], .skipControl__previous, [aria-label*="Previous" i], [aria-label*="Trước" i], [title*="Previous" i], [title*="Trước" i]');
                 if (prevBtn && prevBtn.getAttribute('aria-disabled') !== 'true') {
                     prevBtn.click();
                     return 'clicked_prev_btn';
@@ -343,48 +325,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                     return 'rewound';
                 }
                 return 'not_found';
-            })()
-            """
-        case .togglePlay:
-            js = """
-            (function() {
-                var btn = document.querySelector('.ytp-play-button, tp-yt-paper-icon-button#play-pause-button, #play-pause-button, [data-testid="control-button-playpause"], .playControl');
-                if (btn) {
-                    btn.click();
-                    return 'clicked_playpause_btn';
-                }
-                var v = document.querySelector('video, audio');
-                if (v) {
-                    if (v.paused) { v.play(); } else { v.pause(); }
-                    return 'toggled_video';
-                }
-                return 'not_found';
-            })()
-            """
-        case .play:
-            js = """
-            (function() {
-                var v = document.querySelector('video, audio');
-                if (v && v.paused) {
-                    v.play();
-                    return 'played_video';
-                }
-                var btn = document.querySelector('.ytp-play-button[aria-label*="Play" i], .ytp-play-button[aria-label*="Phát" i], [data-testid="control-button-play"]');
-                if (btn) { btn.click(); return 'clicked_play_btn'; }
-                return 'noop';
-            })()
-            """
-        case .pause:
-            js = """
-            (function() {
-                var v = document.querySelector('video, audio');
-                if (v && !v.paused) {
-                    v.pause();
-                    return 'paused_video';
-                }
-                var btn = document.querySelector('.ytp-play-button[aria-label*="Pause" i], .ytp-play-button[aria-label*="Tạm dừng" i], [data-testid="control-button-pause"]');
-                if (btn) { btn.click(); return 'clicked_pause_btn'; }
-                return 'noop';
             })()
             """
         case .toggleRepeat:
@@ -536,86 +476,37 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     // MARK: - Protocol Implementation
     func play() async {
         MRMediaRemoteSendCommandFunction(0, nil)
-        let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
-        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
-        } else if isBrowser(bundleID) {
-            let handled = await executeBrowserScript(for: .play)
-            if !handled {
-                postMediaKeyEvent(for: 0)
-            }
-        } else {
-            postMediaKeyEvent(for: 0)
-        }
     }
 
     func pause() async {
         MRMediaRemoteSendCommandFunction(1, nil)
-        let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
-        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
-        } else if isBrowser(bundleID) {
-            let handled = await executeBrowserScript(for: .pause)
-            if !handled {
-                postMediaKeyEvent(for: 1)
-            }
-        } else {
-            postMediaKeyEvent(for: 1)
-        }
     }
 
     func togglePlay() async {
         MRMediaRemoteSendCommandFunction(2, nil)
-        let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
-        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
-        } else if isBrowser(bundleID) {
-            let handled = await executeBrowserScript(for: .togglePlay)
-            if !handled {
-                postMediaKeyEvent(for: 2)
-            }
-        } else {
-            postMediaKeyEvent(for: 2)
-        }
     }
 
     func nextTrack() async {
-        MRMediaRemoteSendCommandFunction(4, nil)
         let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
-        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
-        } else if isBrowser(bundleID) {
+        if isBrowser(bundleID) {
             let handled = await executeBrowserScript(for: .next)
             if !handled {
-                postMediaKeyEvent(for: 4)
+                MRMediaRemoteSendCommandFunction(4, nil)
             }
         } else {
-            postMediaKeyEvent(for: 4)
+            MRMediaRemoteSendCommandFunction(4, nil)
         }
     }
 
     func previousTrack() async {
-        MRMediaRemoteSendCommandFunction(5, nil)
         let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
-        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
-        } else if isBrowser(bundleID) {
+        if isBrowser(bundleID) {
             let handled = await executeBrowserScript(for: .previous)
             if !handled {
-                postMediaKeyEvent(for: 5)
+                MRMediaRemoteSendCommandFunction(5, nil)
             }
         } else {
-            postMediaKeyEvent(for: 5)
+            MRMediaRemoteSendCommandFunction(5, nil)
         }
     }
 
