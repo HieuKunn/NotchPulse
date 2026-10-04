@@ -149,19 +149,21 @@ struct MusicControlsView: View {
 
     private func songInfo(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            MarqueeText(
-                $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: .white,
-                frameWidth: width)
-            MarqueeText(
-                $musicManager.artistName,
-                font: .headline,
-                nsFont: .headline,
-                textColor: Defaults[.playerColorTinting]
+            Text(musicManager.songTitle)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: width, alignment: .leading)
+            Text(musicManager.artistName)
+                .font(.headline)
+                .fontWeight(.medium)
+                .foregroundStyle(Defaults[.playerColorTinting]
                     ? Color(nsColor: musicManager.avgColor)
-                        .ensureMinimumBrightness(factor: 0.6) : .gray,
-                frameWidth: width
-            )
-            .fontWeight(.medium)
+                        .ensureMinimumBrightness(factor: 0.6) : .gray)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: width, alignment: .leading)
             if Defaults[.enableLyrics] {
                 TimelineView(.animation(minimumInterval: 0.25)) { timeline in
                     let currentElapsed: Double = musicManager.estimatedPlaybackPosition(at: timeline.date)
@@ -178,24 +180,21 @@ struct MusicControlsView: View {
                         let v = scalar.value
                         return v >= 0x0600 && v <= 0x06FF
                     }
-                    MarqueeText(
-                        .constant(line),
-                        font: .subheadline,
-                        nsFont: .subheadline,
-                        textColor: musicManager.isFetchingLyrics
+                    Text(line)
+                        .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
+                        .foregroundStyle(musicManager.isFetchingLyrics
                             ? .gray.opacity(0.7)
-                            : (activeIndex != nil ? .white.opacity(0.95) : .gray),
-                        frameWidth: width
-                    )
-                    .id(activeIndex != nil ? "lyric-\(activeIndex!)" : "lyric-\(line)")
-                    .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
-                    .lineLimit(1)
-                    .opacity(musicManager.isPlaying ? 1 : 0)
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .offset(y: 4)),
-                        removal: .opacity.combined(with: .offset(y: -4))
-                    ))
-                    .animation(.easeInOut(duration: 0.28), value: activeIndex)
+                            : (activeIndex != nil ? .white.opacity(0.95) : .gray))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: width, alignment: .leading)
+                        .id(activeIndex != nil ? "lyric-\(activeIndex!)" : "lyric-\(line)")
+                        .opacity(musicManager.isPlaying ? 1 : 0)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .offset(y: 4)),
+                            removal: .opacity.combined(with: .offset(y: -4))
+                        ))
+                        .animation(.easeInOut(duration: 0.28), value: activeIndex)
                 }
             }
         }

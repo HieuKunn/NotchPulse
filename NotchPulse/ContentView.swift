@@ -712,9 +712,11 @@ struct ContentView: View {
                             if vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard {
                                 HStack(alignment: .center) {
                                     Image(systemName: "music.note")
-                                    GeometryReader { geo in
-                                        MarqueeText(.constant(musicManager.songTitle + " - " + musicManager.artistName),  textColor: Defaults[.playerColorTinting] ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray, minDuration: 1, frameWidth: geo.size.width)
-                                    }
+                                    Text(musicManager.songTitle + " - " + musicManager.artistName)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Defaults[.playerColorTinting] ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
                                 }
                                 .foregroundStyle(.gray)
                                 .padding(.bottom, 10)
@@ -853,13 +855,14 @@ struct ContentView: View {
                         if coordinator.expandingView.show
                             && coordinator.expandingView.type == .music
                         {
-                            MarqueeText(
-                                .constant(musicManager.songTitle),
-                                textColor: Defaults[.coloredSpectrogram]
-                                    ? Color(nsColor: musicManager.avgColor) : Color.gray,
-                                minDuration: 0.4,
-                                frameWidth: 100
-                            )
+                            Text(musicManager.songTitle)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .foregroundStyle(
+                                    Defaults[.coloredSpectrogram]
+                                        ? Color(nsColor: musicManager.avgColor) : Color.gray
+                                )
+                                .frame(maxWidth: 100, alignment: .leading)
                             .opacity(
                                 (coordinator.expandingView.show
                                     && Defaults[.sneakPeekStyles] == .inline)
