@@ -32,6 +32,12 @@ extension SkyLightOperator {
     }
 }
 
+final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        return true
+    }
+}
+
 class NotchPulseSkyLightWindow: NSPanel {
     private var isSkyLightEnabled: Bool = false
     private var observers: Set<AnyCancellable> = []

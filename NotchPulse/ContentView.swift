@@ -413,7 +413,7 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .conditionalModifier(!isFaceIDContentActive) { view in
+                    .conditionalModifier(!isFaceIDContentActive && (vm.notchState == .closed || shouldHandleFaceIDTap())) { view in
                         applyHitShape(view)
                             .onTapGesture {
                                 if shouldHandleFaceIDTap() {

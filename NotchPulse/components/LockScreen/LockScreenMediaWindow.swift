@@ -62,7 +62,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         backgroundColor = .clear
         hasShadow = false
         isMovable = false
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 1)
         acceptsMouseMovedEvents = true
         ignoresMouseEvents = false
         
@@ -137,7 +137,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         setFrame(targetRect, display: true)
         
         if contentView == nil {
-            let hostingView = NSHostingView(rootView: LockScreenMediaView(windowController: self))
+            let hostingView = FirstMouseHostingView(rootView: LockScreenMediaView(windowController: self))
             hostingView.wantsLayer = true
             hostingView.layer?.backgroundColor = NSColor.clear.cgColor
             contentView = hostingView

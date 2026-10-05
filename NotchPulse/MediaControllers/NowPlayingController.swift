@@ -204,6 +204,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Browser Media Automation
     private enum BrowserMediaAction {
+        case togglePlay
+        case play
+        case pause
         case next
         case previous
         case toggleRepeat
@@ -288,6 +291,48 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         let js: String
         switch action {
+        case .togglePlay:
+            js = """
+            (function() {
+                var btn = document.querySelector('.ytp-play-button, tp-yt-paper-icon-button#play-pause-button, #play-pause-button, [data-testid="control-button-playpause"], .playControl');
+                if (btn) {
+                    btn.click();
+                    return 'clicked_playpause_btn';
+                }
+                var v = document.querySelector('video, audio');
+                if (v) {
+                    if (v.paused) { v.play(); } else { v.pause(); }
+                    return 'toggled_video';
+                }
+                return 'not_found';
+            })()
+            """
+        case .play:
+            js = """
+            (function() {
+                var v = document.querySelector('video, audio');
+                if (v && v.paused) {
+                    v.play();
+                    return 'played_video';
+                }
+                var btn = document.querySelector('.ytp-play-button[aria-label*="Play" i], .ytp-play-button[aria-label*="Phát" i], [data-testid="control-button-play"]');
+                if (btn) { btn.click(); return 'clicked_play_btn'; }
+                return 'noop';
+            })()
+            """
+        case .pause:
+            js = """
+            (function() {
+                var v = document.querySelector('video, audio');
+                if (v && !v.paused) {
+                    v.pause();
+                    return 'paused_video';
+                }
+                var btn = document.querySelector('.ytp-play-button[aria-label*="Pause" i], .ytp-play-button[aria-label*="Tạm dừng" i], [data-testid="control-button-pause"]');
+                if (btn) { btn.click(); return 'clicked_pause_btn'; }
+                return 'noop';
+            })()
+            """
         case .next:
             js = """
             (function() {
@@ -475,15 +520,51 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Protocol Implementation
     func play() async {
-        MRMediaRemoteSendCommandFunction(0, nil)
+        let bundleID = getEffectiveBundleID()
+        if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .play)
+            if !handled {
+                MRMediaRemoteSendCommandFunction(0, nil)
+            }
+        } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+        } else {
+            MRMediaRemoteSendCommandFunction(0, nil)
+        }
     }
 
     func pause() async {
-        MRMediaRemoteSendCommandFunction(1, nil)
+        let bundleID = getEffectiveBundleID()
+        if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .pause)
+            if !handled {
+                MRMediaRemoteSendCommandFunction(1, nil)
+            }
+        } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
+        } else {
+            MRMediaRemoteSendCommandFunction(1, nil)
+        }
     }
 
     func togglePlay() async {
-        MRMediaRemoteSendCommandFunction(2, nil)
+        let bundleID = getEffectiveBundleID()
+        if isBrowser(bundleID) {
+            let handled = await executeBrowserScript(for: .togglePlay)
+            if !handled {
+                MRMediaRemoteSendCommandFunction(2, nil)
+            }
+        } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+        } else {
+            MRMediaRemoteSendCommandFunction(2, nil)
+        }
     }
 
     func nextTrack() async {
@@ -493,6 +574,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             if !handled {
                 MRMediaRemoteSendCommandFunction(4, nil)
             }
+        } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
         } else {
             MRMediaRemoteSendCommandFunction(4, nil)
         }
@@ -505,6 +590,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             if !handled {
                 MRMediaRemoteSendCommandFunction(5, nil)
             }
+        } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+        } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
         } else {
             MRMediaRemoteSendCommandFunction(5, nil)
         }

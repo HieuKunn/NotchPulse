@@ -20,6 +20,8 @@ class MusicManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var controllerCancellables = Set<AnyCancellable>()
     private var debounceIdleTask: Task<Void, Never>?
+    private var lastTogglePlayTime: Date = .distantPast
+    private var lastTrackChangeTime: Date = .distantPast
 
     // Helper to check if macOS has removed support for NowPlayingController
     public private(set) var isNowPlayingDeprecated: Bool = false
@@ -736,9 +738,7 @@ class MusicManager: ObservableObject {
 
     // MARK: - Public Methods for controlling playback
     func playPause() {
-        Task {
-            await activeController?.togglePlay()
-        }
+        togglePlay()
     }
 
     func play() {
@@ -778,6 +778,9 @@ class MusicManager: ObservableObject {
     }
     
     func togglePlay() {
+        let now = Date()
+        guard now.timeIntervalSince(lastTogglePlayTime) > 0.25 else { return }
+        lastTogglePlayTime = now
         Task {
             if let activeController = activeController {
                 await activeController.togglePlay()
@@ -793,6 +796,9 @@ class MusicManager: ObservableObject {
     }
 
     func nextTrack() {
+        let now = Date()
+        guard now.timeIntervalSince(lastTrackChangeTime) > 0.25 else { return }
+        lastTrackChangeTime = now
         Task {
             if let activeController = activeController {
                 await activeController.nextTrack()
@@ -808,6 +814,9 @@ class MusicManager: ObservableObject {
     }
 
     func previousTrack() {
+        let now = Date()
+        guard now.timeIntervalSince(lastTrackChangeTime) > 0.25 else { return }
+        lastTrackChangeTime = now
         Task {
             if let activeController = activeController {
                 await activeController.previousTrack()
