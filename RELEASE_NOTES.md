@@ -1,10 +1,9 @@
 ## 🚀 What's New in NotchPulse v5.2
 
-### 🎵 Media Player & Browser Controls
-- **Enhanced Browser Media Controls**: Fixed track switching (next & previous track) for web browsers (Google Chrome, Arc, Safari, Brave, Edge, Opera) on YouTube and web music players.
-- **Smooth Play/Pause Execution**: Resolved an issue where clicking play would start audio for a split second before immediately pausing due to duplicate command triggers.
-- **Reliable Artwork Restoration**: Fixed an issue where album covers and app icons would disappear or fail to reload after leaving media idle in web browsers.
-- **Sleep & Wake Auto-Reconnection**: Media player connections now seamlessly re-establish immediately when your Mac wakes from sleep.
+### 🎵 Media Controls & Touch Responsiveness
+- **Instant Button Response**: Implemented native first-mouse dispatching so all media controls (Play/Pause, Next, Previous, Volume, Scrubber) in both Notch and Lock Screen respond immediately on the very first click without requiring double-clicks or window activation.
+- **Conflict-Free Command Routing**: Restored clean, single-path execution for browser media controls (YouTube, Spotify Web, SoundCloud, etc.) without double-triggering or instant cut-off.
+- **Gesture Isolation**: Refined Notch container gestures so background tap zones never compete with or swallow media button clicks when the Notch is open.
 
 ### 🔒 Silky Smooth Face ID Unlock
 - **Smooth Notch Retraction**: Resolved an issue where Face ID would abruptly vanish after recognizing your face. The success animation and checkmark now play cleanly and glide back into the Notch without stuttering.
