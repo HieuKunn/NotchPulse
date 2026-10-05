@@ -2,8 +2,6 @@
 //  ShelfDropZoneWindow.swift
 //  NotchPulse
 //
-//  Created by Alexander on 2026-09-26.
-//
 
 import Cocoa
 import UniformTypeIdentifiers

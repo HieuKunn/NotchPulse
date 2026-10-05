@@ -466,7 +466,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         do {
             let result = try await AppleScriptHelper.execute(appleScript)
-            let resStr = result.stringValue ?? ""
+            let resStr = result?.stringValue ?? ""
             return !resStr.isEmpty && resStr != "no_tab" && resStr != "not_found"
         } catch {
             return false
