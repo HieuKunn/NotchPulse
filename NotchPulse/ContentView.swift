@@ -255,15 +255,24 @@ struct ContentView: View {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
-            let inlineExtra: CGFloat = isInlineMediaActive ? (isDynamicIsland ? 48 : 140) : 0
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 32) + inlineExtra + gestureProgress
+            if isDynamicIsland {
+                let spacerWidth: CGFloat = isInlineMediaActive ? 190 : 110
+                chinWidth = (artSize * 2) + spacerWidth + gestureProgress
+            } else {
+                let extraWidth: CGFloat = isInlineMediaActive ? 120 : 4
+                chinWidth = vm.closedNotchSize.width + (artSize * 2) + extraWidth + gestureProgress
+            }
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
             && !vm.hideOnClosed
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 32) + gestureProgress
+            if isDynamicIsland {
+                chinWidth = (artSize * 2) + 110 + gestureProgress
+            } else {
+                chinWidth = vm.closedNotchSize.width + (artSize * 2) + 4 + gestureProgress
+            }
         }
         return chinWidth
     }
@@ -833,6 +842,10 @@ struct ContentView: View {
             && coordinator.expandingView.type == .music
             && Defaults[.sneakPeekStyles] == .inline
 
+        let spacerWidth: CGFloat = isDynamicIsland
+            ? (isInlineExpanded ? 190 : 110)
+            : (isInlineExpanded ? vm.closedNotchSize.width + 120 : vm.closedNotchSize.width + 4)
+
         HStack(spacing: 0) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
@@ -848,7 +861,6 @@ struct ContentView: View {
                         style: .continuous
                     )
                 )
-                .padding(.leading, isDynamicIsland ? 0 : 5)
                 .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
 
             Rectangle()
@@ -864,7 +876,7 @@ struct ContentView: View {
                                     Defaults[.coloredSpectrogram]
                                         ? Color(nsColor: musicManager.avgColor) : Color.white
                                 )
-                                .frame(maxWidth: isDynamicIsland ? 75 : 60, alignment: .leading)
+                                .frame(maxWidth: isDynamicIsland ? 75 : 55, alignment: .leading)
                                 .opacity(isInlineExpanded ? 1 : 0)
 
                             Spacer(minLength: isDynamicIsland ? 10 : vm.closedNotchSize.width + 8)
@@ -879,17 +891,13 @@ struct ContentView: View {
                                         ? Color(nsColor: musicManager.avgColor).opacity(0.85)
                                         : Color.white.opacity(0.7)
                                 )
-                                .frame(maxWidth: isDynamicIsland ? 75 : 60, alignment: .trailing)
+                                .frame(maxWidth: isDynamicIsland ? 75 : 55, alignment: .trailing)
                                 .opacity(isInlineExpanded ? 1 : 0)
                         }
                     }
                     .padding(.horizontal, 4)
                 )
-                .frame(
-                    width: isInlineExpanded
-                        ? (isDynamicIsland ? 210 : vm.closedNotchSize.width + 130)
-                        : (vm.closedNotchSize.width + 12)
-                )
+                .frame(width: spacerWidth)
 
             HStack {
                 if useMusicVisualizer {
@@ -910,7 +918,6 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .padding(.trailing, isDynamicIsland ? 0 : 5)
             .frame(
                 width: max(
                     0,
