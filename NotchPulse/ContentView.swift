@@ -369,10 +369,8 @@ struct ContentView: View {
                             .padding(.horizontal, topCornerRadius)
                     }
                     .overlay {
-                        if isDynamicIsland && vm.notchState == .open {
-                            currentNotchShape
-                                .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
-                        }
+                        currentNotchShape
+                            .stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0), lineWidth: 0.8)
                     }
             }
             .shadow(
@@ -417,7 +415,7 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .conditionalModifier(!isFaceIDContentActive && (vm.notchState == .closed || shouldHandleFaceIDTap())) { view in
+                    .conditionalModifier(!isFaceIDContentActive) { view in
                         applyHitShape(view)
                             .onTapGesture {
                                 if shouldHandleFaceIDTap() {
@@ -1015,10 +1013,9 @@ struct ContentView: View {
                 await MainActor.run {
                     withAnimation(animationSpring) {
                         self.isHovering = false
-                    }
-                    
-                    if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive && !self.vm.anyDropZoneTargeting && !self.vm.dropEvent {
-                        self.doClose()
+                        if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive && !self.vm.anyDropZoneTargeting && !self.vm.dropEvent {
+                            self.vm.close()
+                        }
                     }
                 }
             }
