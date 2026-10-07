@@ -21,5 +21,6 @@
 - **Harmonized Geometry**: Unified corner radii and expansion springs for seamless transitions when opening and closing Face ID.
 
 ### 🎨 Apple Design Consistency
+- **Synchronized Continuous Squircle Buttons**: Redesigned Calendar header Pin and Collapse/Expand control buttons with Apple-standard continuous squircle curvature (`cornerRadius: 7`), subtle stroke borders, and responsive hover highlights for a unified, modern macOS look.
 - **Aligned SF Symbols & Icons**: Standardized tab and header icons (Stats, Camera, Settings) to match Apple system icon guidelines and the Settings menu.
 - **Refined Pin & Moon Buttons**: Updated Pin and Lunar Calendar buttons to follow clean Apple design standards with accent colors.
