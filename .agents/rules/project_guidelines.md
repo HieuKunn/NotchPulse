@@ -52,6 +52,25 @@ This document outlines the core rules, architectural guidelines, and release pro
   - External Displays: Render standard flat designs centered symmetrically without Notch offsets.
 - **Micro-Animations & Text Flow:** When expanding or shrinking media views, apply subtle scaling (1–2px) to prevent layout shifts or premature line breaks in lyrics.
 
+### 3.1. ⚠️ Notch & Dynamic Island Animation & View Identity Preservation Rules (CRITICAL)
+- **Stable View Identity (`_ConditionalContent` Prevention):**
+  - **NEVER** wrap the main notch container in `conditionalModifier` or `if/else` checks where the condition depends on `vm.notchState == .closed` or states that flip during open/close.
+  - In SwiftUI, toggling a condition in `conditionalModifier` swaps branches in `_ConditionalContent`, destroying the active view tree and instantiating a fresh view at target size. This cancels in-flight frame interpolations and causes the notch to abruptly pop open ("mở bùm ra") and snap shut ("đóng bụp vào") with zero continuous spring movement.
+  - If a gesture (e.g. `onTapGesture`) should only trigger when closed, keep the view modifier unconditional (`!isFaceIDContentActive`) and place `guard vm.notchState == .closed` **INSIDE** the gesture closure.
+- **Horizontal Padding Symmetry (14px Parity):**
+  - Closed horizontal padding: `cornerRadiusInsets.closed.bottom` (14px).
+  - Open horizontal padding: `10 + 4` = 14px.
+  - Padding must remain strictly identical across closed and open states. Any mismatch causes sudden horizontal layout jumps and clips physical notch bottom wings.
+- **Physical Notch vs Dynamic Island Differentiation:**
+  - Floating pill styling (`RoundedRectangle`, `dynamicIslandTopOffset`, bottom shadow offset) MUST ONLY apply when `isDynamicIsland && !hasPhysicalNotch`.
+  - On displays with a physical MacBook notch (`hasPhysicalNotch == true`), NotchPulse MUST ALWAYS attach flush to the top edge and use `currentNotchShape` so its wings seamlessly attach to the display bezel.
+- **Continuous Overlay Strokes:**
+  - Never branch with `if` inside `.overlay`. Instead, unconditionally render the shape and smoothly interpolate opacity: `.stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0))`.
+- **Hover Debounce & Cohesive Spring Transactions:**
+  - In `handleHover(false)`, maintain a hover exit delay of at least 250–280ms before collapsing. Because the spring expansion takes ~380ms (`response: 0.38`), short timeouts (e.g. 100–120ms) cancel the expansion mid-flight.
+  - Always bundle `isHovering = false` and `vm.close()` inside the exact same `withAnimation(animationSpring)` block so hover-out and retraction animate cohesively.
+
+
 ---
 
 ## 4. Lock Screen & FaceID Window
