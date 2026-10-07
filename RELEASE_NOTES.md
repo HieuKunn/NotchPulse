@@ -12,6 +12,8 @@
 - **Smart Background Polling**: Automatically pauses media sync when navigating to other tabs to preserve system resources.
 
 ### 🔒 Refined Notch & Face ID Animations
+- **Continuous Spring Interpolation**: Fixed an issue where opening or closing the Notch would jump or snap discretely. The Notch now animates continuously with 60/120fps spring physics across all expansion and collapse states.
+- **Hardware Notch & Dynamic Island Geometry Parity**: Fixed horizontal padding and alignment to seamlessly fit physical MacBook camera notches without clipping bottom wings or jumping widths.
 - **Restored Buttery-Smooth Notch Motion**: Restored interactive spring physics for opening and closing the Notch, eliminating snapping and ensuring fluid expansions.
 - **Smooth Notch Collapsing**: Fixed an issue where the Face ID scanner window would snap away mid-animation. Closing Face ID now retracts fluidly into the Notch.
 - **Harmonized Geometry**: Unified corner radii and expansion springs for seamless transitions when opening and closing Face ID.
