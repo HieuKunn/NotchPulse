@@ -126,6 +126,7 @@ public class SystemMonitorManager: ObservableObject {
     // MARK: - Top Processes
     @Published public var topCpuProcesses: [MonitorProcessItem] = []
     @Published public var topRamProcesses: [MonitorProcessItem] = []
+    public var shouldFetchProcesses: Bool = false
 
     // MARK: - Internal State
     private var previousCpuLoadInfo: host_cpu_load_info?
@@ -209,7 +210,12 @@ public class SystemMonitorManager: ObservableObject {
         let (usedRAM, totalRAM, percentRAM, appRAM, wiredRAM, compRAM, freeRAM, pressure, pressurePercent) = fetchRAMUsage()
         let (usedSwap, totalSwap) = fetchSwapUsage()
         let gpu = fetchGPUUsage()
-        let (topCpu, topRam) = fetchTopProcesses()
+        let (topCpu, topRam): ([MonitorProcessItem], [MonitorProcessItem])
+        if shouldFetchProcesses {
+            (topCpu, topRam) = fetchTopProcesses()
+        } else {
+            (topCpu, topRam) = ([], [])
+        }
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -454,6 +460,7 @@ public class SystemMonitorManager: ObservableObject {
 
         var entries: [(name: String, rssMB: Double)] = []
         entries.reserveCapacity(written)
+        var nameBuffer = [CChar](repeating: 0, count: 1024)
 
         for index in 0..<written {
             let pid = pids[index]
@@ -467,7 +474,7 @@ public class SystemMonitorManager: ObservableObject {
             let rssMB = Double(taskInfo.pti_resident_size) / (1024.0 * 1024.0)
             guard rssMB > 1.0 else { continue }
 
-            var nameBuffer = [CChar](repeating: 0, count: 2048)
+            nameBuffer[0] = 0
             proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
             let name = String(cString: nameBuffer)
             guard !name.isEmpty else { continue }
@@ -497,6 +504,7 @@ public class SystemMonitorManager: ObservableObject {
         var freshSamples: [pid_t: CpuUsageSample] = [:]
         freshSamples.reserveCapacity(written)
         var entries: [(name: String, pct: Double)] = []
+        var nameBuffer = [CChar](repeating: 0, count: 1024)
 
         for index in 0..<written {
             let pid = pids[index]
@@ -518,7 +526,7 @@ public class SystemMonitorManager: ObservableObject {
             guard deltaCpu > 0 else { continue }
             let pct: Double = (deltaCpu / deltaWall) * 100.0
 
-            var nameBuffer = [CChar](repeating: 0, count: 2048)
+            nameBuffer[0] = 0
             proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
             let name = String(cString: nameBuffer)
             guard !name.isEmpty else { continue }
@@ -535,7 +543,7 @@ public class SystemMonitorManager: ObservableObject {
             for index in 0..<written {
                 let pid = pids[index]
                 guard pid > 0 else { continue }
-                var nameBuffer = [CChar](repeating: 0, count: 2048)
+                nameBuffer[0] = 0
                 proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
                 let name = String(cString: nameBuffer)
                 guard !name.isEmpty, !sortedEntries.contains(where: { $0.name == name }) else { continue }

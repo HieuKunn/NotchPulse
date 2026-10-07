@@ -54,6 +54,9 @@ struct ContentView: View {
         let isFaceIDOpening = isFaceIDActive && faceIDOverlay.phase != .collapsing && faceIDOverlay.phase != .closed
         return isFaceIDOpening ? openAnimation : closeAnimation
     }
+    private var effectiveDimensionAnimation: Animation {
+        (isFaceIDActive || isFaceIDSettlingAfterClose) ? faceIDAnimation : animationSpring
+    }
 
     @State private var isScanPulseDimmed = false
     @State private var scanPulseTask: Task<Void, Never>?
@@ -99,7 +102,7 @@ struct ContentView: View {
     }
 
     private var isFaceIDContentActive: Bool {
-        isFaceIDActive
+        isFaceIDActive || isFaceIDSettlingAfterClose
     }
 
     private var isFaceIDContentVisible: Bool {
@@ -190,7 +193,7 @@ struct ContentView: View {
     }
 
     private var topCornerRadius: CGFloat {
-        if isFaceIDActive {
+        if isFaceIDActive || isFaceIDSettlingAfterClose {
             if !visualIsFaceIDExpanded {
                 return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
                          ? cornerRadiusInsets.opened.top
@@ -207,7 +210,7 @@ struct ContentView: View {
     }
 
     private var bottomCornerRadius: CGFloat {
-        if isFaceIDActive {
+        if isFaceIDActive || isFaceIDSettlingAfterClose {
             if !visualIsFaceIDExpanded {
                 return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
                     ? cornerRadiusInsets.opened.bottom
@@ -284,7 +287,7 @@ struct ContentView: View {
         return isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
     }
     private var islandRadius: CGFloat {
-        if isFaceIDActive {
+        if isFaceIDActive || isFaceIDSettlingAfterClose {
             if !visualIsFaceIDExpanded {
                 return isDynamicIsland ? baseClosedHeight / 2 : max(14, vm.effectiveClosedNotchHeight / 2)
             }
@@ -308,7 +311,7 @@ struct ContentView: View {
         return computedChinWidth
     }
     private var currentNotchHeight: CGFloat {
-        if isFaceIDActive {
+        if isFaceIDActive || isFaceIDSettlingAfterClose {
             return targetFaceIDSize.height
         }
         if vm.notchState == .open {
@@ -395,13 +398,11 @@ struct ContentView: View {
                     .conditionalModifier(true) { view in
                         return view
                             .animation(animationSpring, value: vm.notchState)
-                            .animation(animationSpring, value: currentNotchWidth)
-                            .animation(animationSpring, value: currentNotchHeight)
-                            .animation(animationSpring, value: islandRadius)
-                            .animation(animationSpring, value: topCornerRadius)
-                            .animation(animationSpring, value: bottomCornerRadius)
-                            .animation(faceIDAnimation, value: isFaceIDActive)
-                            .animation(faceIDAnimation, value: targetFaceIDSize)
+                            .animation(effectiveDimensionAnimation, value: currentNotchWidth)
+                            .animation(effectiveDimensionAnimation, value: currentNotchHeight)
+                            .animation(effectiveDimensionAnimation, value: islandRadius)
+                            .animation(effectiveDimensionAnimation, value: topCornerRadius)
+                            .animation(effectiveDimensionAnimation, value: bottomCornerRadius)
                             .animation(.smooth, value: gestureProgress)
                     }
                     .onHover { hovering in

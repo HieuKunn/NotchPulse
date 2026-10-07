@@ -63,6 +63,7 @@ struct TabSelectionView: View {
                 vm.customOpenHeight = nil
             }
         }
+        MusicManager.shared.isUIActive = (tabView == .home)
         withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
             coordinator.currentView = tabView
         }

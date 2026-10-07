@@ -515,7 +515,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             || FaceIDOverlayController.shared.phase == .success
             || FaceIDOverlayController.shared.phase == .failure
             || FaceIDOverlayController.shared.phase == .onboarding
-            || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed && FaceIDOverlayController.shared.phase != .collapsing)
+            || FaceIDOverlayController.shared.phase == .collapsing
+            || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed)
 
         if isLockScreen && isFaceIDScanning {
             if let skyWindow = self.window as? NotchPulseSkyLightWindow {

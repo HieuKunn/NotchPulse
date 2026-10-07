@@ -354,22 +354,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                     prevBtn.click();
                     return 'clicked_prev_btn';
                 }
-                var v = document.querySelector('video, audio');
-                if (v && v.currentTime > 3) {
-                    v.currentTime = 0;
-                    return 'rewound_start';
-                }
                 var evt = new KeyboardEvent('keydown', { key: 'P', code: 'KeyP', keyCode: 80, which: 80, shiftKey: true, bubbles: true });
                 document.dispatchEvent(evt);
-                if (window.history.length > 1) {
-                    window.history.back();
-                    return 'history_back';
-                }
-                if (v) {
-                    v.currentTime = 0;
-                    return 'rewound';
-                }
-                return 'not_found';
+                return 'dispatched_key';
             })()
             """
         case .toggleRepeat:
@@ -557,6 +544,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             let handled = await executeBrowserScript(for: .togglePlay)
             if !handled {
                 MRMediaRemoteSendCommandFunction(2, nil)
+                postMediaKeyEvent(for: 2)
             }
         } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
@@ -564,6 +552,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
         } else {
             MRMediaRemoteSendCommandFunction(2, nil)
+            postMediaKeyEvent(for: 2)
         }
     }
 
@@ -573,6 +562,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             let handled = await executeBrowserScript(for: .next)
             if !handled {
                 MRMediaRemoteSendCommandFunction(4, nil)
+                postMediaKeyEvent(for: 4)
             }
         } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
@@ -580,6 +570,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
         } else {
             MRMediaRemoteSendCommandFunction(4, nil)
+            postMediaKeyEvent(for: 4)
         }
     }
 
@@ -589,13 +580,37 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             let handled = await executeBrowserScript(for: .previous)
             if !handled {
                 MRMediaRemoteSendCommandFunction(5, nil)
+                postMediaKeyEvent(for: 5)
             }
         } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+            let script = """
+            tell application "Music"
+                if player position > 2 then
+                    previous track
+                    delay 0.05
+                    previous track
+                else
+                    previous track
+                end if
+            end tell
+            """
+            try? await AppleScriptHelper.executeVoid(script)
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
+            let script = """
+            tell application "Spotify"
+                if player position > 2 then
+                    previous track
+                    delay 0.05
+                    previous track
+                else
+                    previous track
+                end if
+            end tell
+            """
+            try? await AppleScriptHelper.executeVoid(script)
         } else {
             MRMediaRemoteSendCommandFunction(5, nil)
+            postMediaKeyEvent(for: 5)
         }
     }
 
@@ -722,7 +737,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [script, framework, "stream"]
+        process.arguments = [script, framework, "stream", "--debounce=100"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()

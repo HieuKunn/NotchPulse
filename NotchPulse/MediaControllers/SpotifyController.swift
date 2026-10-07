@@ -71,7 +71,20 @@ class SpotifyController: MediaControllerProtocol {
     func togglePlay() async { await executeCommand("playpause") }
     func nextTrack() async { await executeCommand("next track") }
     func previousTrack() async {
-        await executeAndRefresh("previous track")
+        let script = """
+        tell application "Spotify"
+            if player position > 2 then
+                previous track
+                delay 0.05
+                previous track
+            else
+                previous track
+            end if
+        end tell
+        """
+        try? await AppleScriptHelper.executeVoid(script)
+        try? await Task.sleep(for: commandUpdateDelay)
+        await updatePlaybackInfo()
     }
     
     func seek(to time: Double) async {
@@ -79,11 +92,11 @@ class SpotifyController: MediaControllerProtocol {
     }
     
     func toggleShuffle() async {
-        await executeAndRefresh("set shuffling to not shuffling")
+        await executeAndRefresh("set shuffling to (not shuffling)")
     }
     
     func toggleRepeat() async {
-        await executeAndRefresh("set repeating to not repeating")
+        await executeAndRefresh("set repeating to (not repeating)")
     }
     
     func setVolume(_ level: Double) async {

@@ -823,9 +823,31 @@ class MusicManager: ObservableObject {
             } else {
                 let bundleID = bundleIdentifier ?? ""
                 if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+                    let script = """
+                    tell application "Music"
+                        if player position > 2 then
+                            previous track
+                            delay 0.05
+                            previous track
+                        else
+                            previous track
+                        end if
+                    end tell
+                    """
+                    try? await AppleScriptHelper.executeVoid(script)
                 } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to previous track")
+                    let script = """
+                    tell application "Spotify"
+                        if player position > 2 then
+                            previous track
+                            delay 0.05
+                            previous track
+                        else
+                            previous track
+                        end if
+                    end tell
+                    """
+                    try? await AppleScriptHelper.executeVoid(script)
                 }
             }
         }

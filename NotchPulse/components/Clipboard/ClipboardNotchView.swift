@@ -63,21 +63,23 @@ struct ClipboardNotchView: View {
                     .padding(.bottom, 6)
                     .background(
                         ClipboardScrollWheelHelper { isAtBottom in
-                            vm.clipboardScrolledToBottom = isAtBottom
+                            if vm.clipboardScrolledToBottom != isAtBottom {
+                                vm.clipboardScrolledToBottom = isAtBottom
+                            }
                         }
                     )
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onAppear {
-                    if clipboardManager.history.count <= 3 {
-                        vm.clipboardScrolledToBottom = true
-                    } else {
-                        vm.clipboardScrolledToBottom = false
+                    let atBottom = clipboardManager.history.count <= 3
+                    if vm.clipboardScrolledToBottom != atBottom {
+                        vm.clipboardScrolledToBottom = atBottom
                     }
                 }
                 .onChange(of: clipboardManager.history.count) { _, newCount in
-                    if newCount <= 3 {
-                        vm.clipboardScrolledToBottom = true
+                    let atBottom = newCount <= 3
+                    if vm.clipboardScrolledToBottom != atBottom {
+                        vm.clipboardScrolledToBottom = atBottom
                     }
                 }
             }
@@ -108,12 +110,12 @@ private struct ClipboardScrollWheelHelper: NSViewRepresentable {
     func updateNSView(_ nsView: HelperView, context: Context) {
         nsView.onScrollStateChanged = onScrollStateChanged
         nsView.checkSetup()
-        nsView.recheck()
     }
 
     class HelperView: NSView {
         private var boundsObserver: NSObjectProtocol?
         var onScrollStateChanged: ((Bool) -> Void)?
+        private var lastState: Bool? = nil
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -142,10 +144,6 @@ private struct ClipboardScrollWheelHelper: NSViewRepresentable {
             }
         }
 
-        func recheck() {
-            evaluateBottom()
-        }
-
         func evaluateBottom() {
             guard let sv = self.enclosingScrollView else { return }
             let clip = sv.contentView
@@ -154,16 +152,16 @@ private struct ClipboardScrollWheelHelper: NSViewRepresentable {
             let clipHeight = clip.bounds.height
             let originY = clip.bounds.origin.y
 
+            let isAtBottom: Bool
             if docHeight <= clipHeight + 4 {
-                DispatchQueue.main.async { [weak self] in
-                    self?.onScrollStateChanged?(true)
-                }
-                return
+                isAtBottom = true
+            } else {
+                isAtBottom = (originY + clipHeight >= docHeight - 8)
             }
 
-            // In flipped NSScrollView (SwiftUI):
-            // originY starts at 0 at the top, and reaches docHeight - clipHeight at the bottom
-            let isAtBottom = (originY + clipHeight >= docHeight - 8)
+            guard lastState != isAtBottom else { return }
+            lastState = isAtBottom
+
             DispatchQueue.main.async { [weak self] in
                 self?.onScrollStateChanged?(isAtBottom)
             }
@@ -175,10 +173,6 @@ private struct ClipboardScrollWheelHelper: NSViewRepresentable {
             if let scrollView = enclosingScrollView, boundsObserver == nil {
                 let clipView = scrollView.contentView
                 clipView.postsBoundsChangedNotifications = true
-
-                DispatchQueue.main.async { [weak self] in
-                    self?.evaluateBottom()
-                }
 
                 boundsObserver = NotificationCenter.default.addObserver(
                     forName: NSView.boundsDidChangeNotification,
@@ -197,6 +191,7 @@ struct ClipboardRowView: View {
     var onCopy: (() -> Void)? = nil
     @State private var isHovered = false
     @State private var isCopied = false
+    @State private var cachedImage: NSImage? = nil
 
     private var itemColor: Color {
         if item.isImage { return .purple }
@@ -225,12 +220,18 @@ struct ClipboardRowView: View {
                     .fill(itemColor.opacity(0.2))
                     .frame(width: 32, height: 32)
                 
-                if item.isImage, let data = item.imageData, let nsImage = NSImage(data: data) {
-                    Image(nsImage: nsImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 32, height: 32)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                if item.isImage {
+                    if let img = cachedImage {
+                        Image(nsImage: img)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 32, height: 32)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    } else {
+                        Image(systemName: "photo")
+                            .font(.system(size: 14))
+                            .foregroundStyle(itemColor)
+                    }
                 } else {
                     Image(systemName: itemIconName)
                         .font(.system(size: 14))
@@ -288,6 +289,11 @@ struct ClipboardRowView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isCopied = false
                 }
+            }
+        }
+        .onAppear {
+            if item.isImage && cachedImage == nil, let data = item.imageData {
+                cachedImage = NSImage(data: data)
             }
         }
     }
