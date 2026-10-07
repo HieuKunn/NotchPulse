@@ -1,14 +1,18 @@
 ## 🚀 What's New in NotchPulse v5.2
 
-### 🎵 Media Controls & Touch Responsiveness
-- **Instant Button Response**: Implemented native first-mouse dispatching so all media controls (Play/Pause, Next, Previous, Volume, Scrubber) in both Notch and Lock Screen respond immediately on the very first click without requiring double-clicks or window activation.
-- **Conflict-Free Command Routing**: Restored clean, single-path execution for browser media controls (YouTube, Spotify Web, SoundCloud, etc.) without double-triggering or instant cut-off.
-- **Gesture Isolation**: Refined Notch container gestures so background tap zones never compete with or swallow media button clicks when the Notch is open.
+### ⚡️ Memory & Battery Optimizations
+- **Drastically Reduced RAM & CPU Usage**: Fixed high memory pressure and system lag caused by repetitive image decoding when browsing your clipboard history.
+- **Efficient Hardware Monitoring**: System process monitoring now runs only when expanding process details, keeping your Mac cool and saving CPU cycles.
+- **Smart Background Management**: Automatically pauses media position syncing when switching away from the Home tab to prevent unnecessary background work.
 
-### 🔒 Silky Smooth Face ID Unlock
-- **Smooth Notch Retraction**: Resolved an issue where Face ID would abruptly vanish after recognizing your face. The success animation and checkmark now play cleanly and glide back into the Notch without stuttering.
-- **Hover Conflict Prevention**: Prevented the desktop Notch from prematurely opening or jittering when your cursor is near the top of the screen right as Face ID unlocks.
+### 🎵 Enhanced Media Controls
+- **Reliable Previous Track Jump**: Tapping the Previous Track button now reliably switches to the previous song across Spotify, Apple Music, and web players without stopping at 0:00.
+- **Fixed Web & Browser Shortcuts**: Keyboard media controls and shuffle/repeat buttons now operate smoothly across web music players like YouTube and Spotify.
 
-### ⚡️ Battery & Performance Optimizations
-- **Intelligent Background Polling**: Temporarily pauses clipboard monitoring while your screen is locked or asleep to conserve battery life.
-- **Cleaner Memory Management**: Added proper teardown routines for video and animation resources, ensuring minimal RAM usage and zero idle battery drain.
+### 🔒 Refined Face ID Animations
+- **Smooth Notch Collapsing**: Fixed an issue where the Face ID scanner window would snap away mid-animation. Closing Face ID now retracts fluidly into the Notch.
+- **Harmonized Geometry**: Unified corner radii and expansion springs for seamless transitions when opening and closing Face ID.
+
+### 🎨 Apple Design Consistency
+- **Aligned SF Symbols & Icons**: Standardized tab and header icons (Stats, Camera, Settings) to match Apple system icon guidelines and the Settings menu.
+- **Refined Pin & Moon Buttons**: Updated Pin and Lunar Calendar buttons to follow clean Apple design standards with accent colors.
