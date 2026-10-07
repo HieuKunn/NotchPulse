@@ -475,128 +475,91 @@ public class SystemMonitorManager: ObservableObject {
 
     // MARK: - Top Processes Fetch
 
-    /// CPU list uses instantaneous per-process deltas via proc_pid_rusage — the same
-    /// measurement Activity Monitor's "% CPU" column shows. `ps %cpu` is a LIFETIME
-    /// decaying average: heavy usage weeks ago (e.g. the old 25ms poll bug) inflated
-    /// the number forever ("NotchPulse 48%" next to a 21% system total), while
-    /// Activity Monitor showed the truthful 1.4%. RSS (memory) is instantaneous in
-    /// `ps`, so the RAM list stays ps-sorted.
-    private struct CpuUsageSample {
-        let cpuNs: UInt64
-        let at: TimeInterval
+    private struct RawProcessEntry {
+        let pid: pid_t
+        let ppid: pid_t
+        let cpu: Double
+        let rssKB: Double
+        let comm: String
     }
-    private var cpuSamples: [pid_t: CpuUsageSample] = [:]
 
     private func fetchTopProcesses() -> (cpu: [MonitorProcessItem], ram: [MonitorProcessItem]) {
-        let cpuList = fetchInstantaneousTopCPU(limit: 10)
-        let ramList = fetchInstantaneousTopRAM(limit: 10)
-        return (cpuList, ramList)
-    }
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/ps")
+        task.arguments = ["-c", "-eo", "pid,ppid,%cpu,rss,comm", "-r"]
+        let pipe = Pipe()
+        task.standardOutput = pipe
 
-    private func fetchInstantaneousTopRAM(limit: Int) -> [MonitorProcessItem] {
-        let pidCount = Int(proc_listallpids(nil, 0))
-        guard pidCount > 0 else { return [] }
-        var pids = [pid_t](repeating: 0, count: pidCount + 64)
-        let written = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size)))
-        guard written > 0 else { return [] }
+        do {
+            try task.run()
+            task.waitUntilExit()
 
-        var entries: [(name: String, rssMB: Double)] = []
-        entries.reserveCapacity(written)
-        var nameBuffer = [CChar](repeating: 0, count: 1024)
-
-        for index in 0..<written {
-            let pid = pids[index]
-            guard pid > 0 else { continue }
-
-            var taskInfo = proc_taskinfo()
-            let size = Int32(MemoryLayout<proc_taskinfo>.stride)
-            let result = proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &taskInfo, size)
-            guard result == size else { continue }
-
-            let rssMB = Double(taskInfo.pti_resident_size) / (1024.0 * 1024.0)
-            guard rssMB > 1.0 else { continue }
-
-            nameBuffer[0] = 0
-            proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
-            let name = String(cString: nameBuffer)
-            guard !name.isEmpty else { continue }
-
-            entries.append((name: name, rssMB: rssMB))
-        }
-
-        return entries
-            .sorted { $0.rssMB > $1.rssMB }
-            .prefix(limit)
-            .map { entry in
-                let formatted = entry.rssMB >= 1024.0 
-                    ? String(format: "%.1f GB", entry.rssMB / 1024.0) 
-                    : String(format: "%.0f MB", entry.rssMB)
-                return MonitorProcessItem(name: entry.name, value: formatted)
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            guard let str = String(data: data, encoding: .utf8) else {
+                return ([], [])
             }
-    }
 
-    private func fetchInstantaneousTopCPU(limit: Int) -> [MonitorProcessItem] {
-        let now: TimeInterval = Date().timeIntervalSinceReferenceDate
-        let pidCount = Int(proc_listallpids(nil, 0))
-        guard pidCount > 0 else { return [] }
-        var pids = [pid_t](repeating: 0, count: pidCount + 64)
-        let written = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size)))
-        guard written > 0 else { return [] }
-
-        var freshSamples: [pid_t: CpuUsageSample] = [:]
-        freshSamples.reserveCapacity(written)
-        var entries: [(name: String, pct: Double)] = []
-        var nameBuffer = [CChar](repeating: 0, count: 1024)
-
-        for index in 0..<written {
-            let pid = pids[index]
-            guard pid > 0 else { continue }
-            var info = rusage_info_current()
-            let status = withUnsafeMutableBytes(of: &info) { rawBuffer in
-                proc_pid_rusage(pid, RUSAGE_INFO_CURRENT, rawBuffer.bindMemory(to: rusage_info_t?.self).baseAddress)
+            var entries: [RawProcessEntry] = []
+            let lines = str.components(separatedBy: "\n")
+            for line in lines.dropFirst() {
+                let parts = line.trimmingCharacters(in: .whitespaces).split(separator: " ", maxSplits: 4, omittingEmptySubsequences: true)
+                guard parts.count >= 5,
+                      let pid = pid_t(parts[0]),
+                      let ppid = pid_t(parts[1]),
+                      let cpu = Double(parts[2]),
+                      let rss = Double(parts[3]) else { continue }
+                let comm = String(parts[4])
+                entries.append(RawProcessEntry(pid: pid, ppid: ppid, cpu: cpu, rssKB: rss, comm: comm))
             }
-            guard status == 0 else { continue }
-            let totalNs: UInt64 = info.ri_user_time &+ info.ri_system_time
-            freshSamples[pid] = CpuUsageSample(cpuNs: totalNs, at: now)
 
-            guard let previous = cpuSamples[pid] else { continue }
-            let deltaWall: TimeInterval = now - previous.at
-            // First observation, or monitoring resumed after a long pause — no valid
-            // delta yet; this pass just seeds the baseline.
-            guard deltaWall > 0.5, deltaWall < 10 else { continue }
-            let deltaCpu: TimeInterval = TimeInterval(totalNs &- previous.cpuNs) / 1_000_000_000.0
-            guard deltaCpu > 0 else { continue }
-            let pct: Double = (deltaCpu / deltaWall) * 100.0
-
-            nameBuffer[0] = 0
-            proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
-            let name = String(cString: nameBuffer)
-            guard !name.isEmpty else { continue }
-            entries.append((name: name, pct: max(0.1, pct)))
-        }
-
-        cpuSamples = freshSamples
-
-        var sortedEntries = entries.sorted { $0.pct > $1.pct }
-        
-        // If system is nearly idle and fewer than limit processes showed active delta,
-        // fill with running processes with 0.1% baseline so the UI always has 8 items
-        if sortedEntries.count < limit {
-            for index in 0..<written {
-                let pid = pids[index]
-                guard pid > 0 else { continue }
-                nameBuffer[0] = 0
-                proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
-                let name = String(cString: nameBuffer)
-                guard !name.isEmpty, !sortedEntries.contains(where: { $0.name == name }) else { continue }
-                sortedEntries.append((name: name, pct: 0.1))
-                if sortedEntries.count >= limit { break }
+            func resolveFriendlyName(_ p: RawProcessEntry) -> String {
+                if let app = NSRunningApplication(processIdentifier: p.pid), let name = app.localizedName, !name.isEmpty {
+                    return name
+                }
+                if p.ppid > 1, let parentApp = NSRunningApplication(processIdentifier: p.ppid), let parentName = parentApp.localizedName, !parentName.isEmpty {
+                    if p.comm.contains("Renderer") {
+                        return "\(parentName) (Renderer)"
+                    } else if p.comm.contains("GPU") {
+                        return "\(parentName) (GPU)"
+                    } else if p.comm.contains("Plugin") {
+                        return "\(parentName) (Plugin)"
+                    } else if p.comm.contains("Helper") {
+                        return "\(parentName) Helper"
+                    }
+                }
+                if p.comm.hasPrefix("com.apple.") {
+                    return p.comm.replacingOccurrences(of: "com.apple.", with: "")
+                }
+                return p.comm
             }
-        }
 
-        return sortedEntries
-            .prefix(limit)
-            .map { MonitorProcessItem(name: $0.name, value: String(format: "%.1f%%", $0.pct)) }
+            let topCpu = entries
+                .sorted { $0.cpu > $1.cpu }
+                .prefix(8)
+                .map { p in
+                    MonitorProcessItem(
+                        name: resolveFriendlyName(p),
+                        value: String(format: "%.1f%%", p.cpu)
+                    )
+                }
+
+            let topRam = entries
+                .sorted { $0.rssKB > $1.rssKB }
+                .prefix(8)
+                .map { p in
+                    let formatted = p.rssKB >= (1024.0 * 1024.0)
+                        ? String(format: "%.1f GB", p.rssKB / (1024.0 * 1024.0))
+                        : String(format: "%.0f MB", p.rssKB / 1024.0)
+                    return MonitorProcessItem(
+                        name: resolveFriendlyName(p),
+                        value: formatted
+                    )
+                }
+
+            return (Array(topCpu), Array(topRam))
+        } catch {
+            return ([], [])
+        }
     }
 
     // MARK: - Thermal & Fan Metrics Computation (1s interval)
