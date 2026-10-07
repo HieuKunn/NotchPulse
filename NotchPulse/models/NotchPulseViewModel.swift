@@ -246,6 +246,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     func open() {
         CalendarStateViewModel.shared.isFullMonthExpanded = false
+        self.coordinator.dismissExpandingView(animated: false)
+        self.coordinator.sneakPeek.show = false
         self.notchSize = openNotchSize
         self.notchState = .open
         
@@ -271,6 +273,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.closedNotchSize = self.notchSize
         self.notchState = .closed
         self.isBatteryPopoverActive = false
+        self.coordinator.dismissExpandingView(animated: false)
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
 

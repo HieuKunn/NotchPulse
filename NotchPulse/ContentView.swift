@@ -254,10 +254,9 @@ struct ContentView: View {
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
-            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 32) + gestureProgress
-            if isDynamicIsland && coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline {
-                chinWidth = max(chinWidth, 440 + gestureProgress)
-            }
+            let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
+            let inlineExtra: CGFloat = isInlineMediaActive ? (isDynamicIsland ? 48 : 140) : 0
+            chinWidth = vm.closedNotchSize.width + (artSize * 2) + (isDynamicIsland ? 24 : 32) + inlineExtra + gestureProgress
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
             && !vm.hideOnClosed
@@ -708,6 +707,7 @@ struct ContentView: View {
                             .padding(.bottom, 10)
                             .padding(.leading, 4)
                             .padding(.trailing, 8)
+                            .fixedSize()
                         }
                         // Old sneak peek music
                         else if coordinator.sneakPeek.type == .music {
@@ -722,14 +722,11 @@ struct ContentView: View {
                                 }
                                 .foregroundStyle(.gray)
                                 .padding(.bottom, 10)
+                                .fixedSize()
                             }
                         }
                     }
                 }
-            }
-            .conditionalModifier((coordinator.sneakPeek.show && (coordinator.sneakPeek.type == .music) && vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard) || (coordinator.sneakPeek.show && (coordinator.sneakPeek.type != .music) && (vm.notchState == .closed))) { view in
-                view
-                    .fixedSize()
             }
             .zIndex(2)
             if vm.notchState == .open && !isFaceIDActive {
@@ -832,6 +829,10 @@ struct ContentView: View {
         let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
         let artSize: CGFloat = max(18, liveHeight - 12)
 
+        let isInlineExpanded = coordinator.expandingView.show
+            && coordinator.expandingView.type == .music
+            && Defaults[.sneakPeekStyles] == .inline
+
         HStack(spacing: 0) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
@@ -853,48 +854,41 @@ struct ContentView: View {
             Rectangle()
                 .fill(.black)
                 .overlay(
-                    HStack(alignment: .top) {
-                        if coordinator.expandingView.show
-                            && coordinator.expandingView.type == .music
-                        {
+                    HStack(alignment: .center, spacing: 0) {
+                        if isInlineExpanded {
                             Text(musicManager.songTitle)
+                                .font(.system(size: 11, weight: .medium))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                                 .foregroundStyle(
                                     Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor) : Color.gray
+                                        ? Color(nsColor: musicManager.avgColor) : Color.white
                                 )
-                                .frame(maxWidth: 100, alignment: .leading)
-                            .opacity(
-                                (coordinator.expandingView.show
-                                    && Defaults[.sneakPeekStyles] == .inline)
-                                    ? 1 : 0
-                            )
-                            Spacer(minLength: isDynamicIsland ? 20 : vm.closedNotchSize.width + 12)
+                                .frame(maxWidth: isDynamicIsland ? 75 : 60, alignment: .leading)
+                                .opacity(isInlineExpanded ? 1 : 0)
+
+                            Spacer(minLength: isDynamicIsland ? 10 : vm.closedNotchSize.width + 8)
+
                             // Song Artist
                             Text(musicManager.artistName)
+                                .font(.system(size: 11, weight: .medium))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                                 .foregroundStyle(
                                     Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor)
-                                        : Color.gray
+                                        ? Color(nsColor: musicManager.avgColor).opacity(0.85)
+                                        : Color.white.opacity(0.7)
                                 )
-                                .opacity(
-                                    (coordinator.expandingView.show
-                                        && coordinator.expandingView.type == .music
-                                        && Defaults[.sneakPeekStyles] == .inline)
-                                        ? 1 : 0
-                                )
+                                .frame(maxWidth: isDynamicIsland ? 75 : 60, alignment: .trailing)
+                                .opacity(isInlineExpanded ? 1 : 0)
                         }
                     }
+                    .padding(.horizontal, 4)
                 )
                 .frame(
-                    width: (coordinator.expandingView.show
-                        && coordinator.expandingView.type == .music
-                        && Defaults[.sneakPeekStyles] == .inline)
-                        ? (isDynamicIsland ? 360 : 380)
-                        : (vm.closedNotchSize.width + (isDynamicIsland ? 12 : 12))
+                    width: isInlineExpanded
+                        ? (isDynamicIsland ? 210 : vm.closedNotchSize.width + 130)
+                        : (vm.closedNotchSize.width + 12)
                 )
 
             HStack {
@@ -938,12 +932,16 @@ struct ContentView: View {
     }
 
     private func doOpen() {
+        coordinator.dismissExpandingView(animated: false)
+        coordinator.sneakPeek.show = false
         withAnimation(animationSpring) {
             vm.open()
         }
     }
 
     private func doClose() {
+        coordinator.dismissExpandingView(animated: false)
+        coordinator.sneakPeek.show = false
         withAnimation(animationSpring) {
             vm.close()
         }

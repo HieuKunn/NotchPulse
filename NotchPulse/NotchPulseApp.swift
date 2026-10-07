@@ -215,7 +215,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 subVm.close(force: force)
             }
         }
-        self.coordinator.toggleExpandingView(status: false, type: .music)
+        self.coordinator.dismissExpandingView(animated: false)
         self.coordinator.toggleSneakPeek(status: false, type: .music)
     }
 
@@ -768,6 +768,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyDown(for: .toggleSneakPeek) { [weak self] in
             guard let self = self else { return }
+            guard self.vm.notchState == .closed else { return }
             if Defaults[.sneakPeekStyles] == .inline {
                 let newStatus = !self.coordinator.expandingView.show
                 self.coordinator.toggleExpandingView(status: newStatus, type: .music)

@@ -225,6 +225,9 @@ class NotchPulseViewCoordinator: ObservableObject {
                 return
             }
         }
+        if status && type == .music && (MusicManager.shared.isUIActive || !Defaults[.enableMediaFeature]) {
+            return
+        }
         Task { @MainActor in
             withAnimation(.interactiveSpring(response: 0.18, dampingFraction: 0.85)) {
                 self.sneakPeek.show = status
@@ -274,6 +277,11 @@ class NotchPulseViewCoordinator: ObservableObject {
         value: CGFloat = 0,
         browser: BrowserType = .chromium
     ) {
+        if status && (MusicManager.shared.isUIActive || !Defaults[.enableMediaFeature]) {
+            return
+        }
+        expandingViewTask?.cancel()
+        expandingViewTask = nil
         Task { @MainActor in
             withAnimation(.smooth) {
                 self.expandingView.show = status
@@ -281,6 +289,19 @@ class NotchPulseViewCoordinator: ObservableObject {
                 self.expandingView.value = value
                 self.expandingView.browser = browser
             }
+        }
+    }
+
+    @MainActor
+    func dismissExpandingView(animated: Bool = false) {
+        expandingViewTask?.cancel()
+        expandingViewTask = nil
+        if animated {
+            withAnimation(.smooth) {
+                self.expandingView.show = false
+            }
+        } else {
+            self.expandingView.show = false
         }
     }
 
