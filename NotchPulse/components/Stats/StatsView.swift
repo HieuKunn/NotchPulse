@@ -22,9 +22,6 @@ struct AppleActivityGraphView: View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
-            let count = max(1, data.count)
-            let step = count > 1 ? w / CGFloat(count - 1) : w
-
 
             ZStack {
                 // macOS Activity Monitor dark container background
@@ -47,104 +44,53 @@ struct AppleActivityGraphView: View {
                     .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
                 }
 
-                // Stacked chart if secondaryData is provided
+                // Stacked chart if secondaryData is provided (e.g. Total CPU vs System CPU)
                 if let sec = secondaryData, sec.count == data.count {
+                    let totalPoints = points(from: data, width: w, height: h)
+                    let secPoints = points(from: sec, width: w, height: h)
+
                     // Total CPU fill in primary color
-                    Path { path in
-                        guard !data.isEmpty else { return }
-                        path.move(to: CGPoint(x: 0, y: h))
-                        for (i, val) in data.enumerated() {
-                            let clamped = max(0.0, min(maxVal, val))
-                            let x = CGFloat(i) * step
-                            let y = h - (CGFloat(clamped / maxVal) * (h - 2))
-                            path.addLine(to: CGPoint(x: x, y: y))
-                        }
-                        path.addLine(to: CGPoint(x: CGFloat(data.count - 1) * step, y: h))
-                        path.closeSubpath()
-                    }
-                    .fill(
-                        LinearGradient(
-                            colors: [color.opacity(0.56), color.opacity(0.28)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                    smoothAreaPath(points: totalPoints, bottomY: h)
+                        .fill(
+                            LinearGradient(
+                                colors: [color.opacity(0.56), color.opacity(0.28)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
 
                     // System CPU fill in secondary color
-                    Path { path in
-                        guard !sec.isEmpty else { return }
-                        path.move(to: CGPoint(x: 0, y: h))
-                        for (i, val) in sec.enumerated() {
-                            let clamped = max(0.0, min(maxVal, val))
-                            let x = CGFloat(i) * step
-                            let y = h - (CGFloat(clamped / maxVal) * (h - 2))
-                            path.addLine(to: CGPoint(x: x, y: y))
-                        }
-                        path.addLine(to: CGPoint(x: CGFloat(sec.count - 1) * step, y: h))
-                        path.closeSubpath()
-                    }
-                    .fill(
-                        LinearGradient(
-                            colors: [secondaryColor.opacity(0.65), secondaryColor.opacity(0.35)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                    smoothAreaPath(points: secPoints, bottomY: h)
+                        .fill(
+                            LinearGradient(
+                                colors: [secondaryColor.opacity(0.65), secondaryColor.opacity(0.35)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
 
                     // System stroke line
-                    Path { path in
-                        guard !sec.isEmpty else { return }
-                        for (i, val) in sec.enumerated() {
-                            let clamped = max(0.0, min(maxVal, val))
-                            let x = CGFloat(i) * step
-                            let y = h - (CGFloat(clamped / maxVal) * (h - 2))
-                            if i == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
-                        }
-                    }
-                    .stroke(secondaryColor.opacity(0.95), style: StrokeStyle(lineWidth: 1.0, lineCap: .round, lineJoin: .round))
+                    smoothStrokePath(points: secPoints)
+                        .stroke(secondaryColor.opacity(0.95), style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
 
                     // Total CPU stroke line
-                    Path { path in
-                        guard !data.isEmpty else { return }
-                        for (i, val) in data.enumerated() {
-                            let clamped = max(0.0, min(maxVal, val))
-                            let x = CGFloat(i) * step
-                            let y = h - (CGFloat(clamped / maxVal) * (h - 2))
-                            if i == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
-                        }
-                    }
-                    .stroke(color, style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
+                    smoothStrokePath(points: totalPoints)
+                        .stroke(color, style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
                 } else {
                     // Single series (RAM Memory Pressure or GPU)
-                    Path { path in
-                        guard !data.isEmpty else { return }
-                        path.move(to: CGPoint(x: 0, y: h))
-                        for (i, val) in data.enumerated() {
-                            let clamped = max(0.0, min(maxVal, val))
-                            let x = CGFloat(i) * step
-                            let y = h - (CGFloat(clamped / maxVal) * (h - 2))
-                            path.addLine(to: CGPoint(x: x, y: y))
-                        }
-                        path.addLine(to: CGPoint(x: CGFloat(data.count - 1) * step, y: h))
-                        path.closeSubpath()
-                    }
-                    .fill(
-                        isSolidFill
-                            ? LinearGradient(colors: [color.opacity(0.85), color.opacity(0.68)], startPoint: .top, endPoint: .bottom)
-                            : LinearGradient(colors: [color.opacity(0.58), color.opacity(0.30)], startPoint: .top, endPoint: .bottom)
-                    )
+                    let seriesPoints = points(from: data, width: w, height: h)
 
-                    // Line stroke
-                    Path { path in
-                        guard !data.isEmpty else { return }
-                        for (i, val) in data.enumerated() {
-                            let clamped = max(0.0, min(maxVal, val))
-                            let x = CGFloat(i) * step
-                            let y = h - (CGFloat(clamped / maxVal) * (h - 2))
-                            if i == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
-                        }
-                    }
-                    .stroke(color, style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
+                    // Apple Activity Monitor smooth organic area fill
+                    smoothAreaPath(points: seriesPoints, bottomY: h)
+                        .fill(
+                            isSolidFill
+                                ? LinearGradient(colors: [color.opacity(0.85), color.opacity(0.65)], startPoint: .top, endPoint: .bottom)
+                                : LinearGradient(colors: [color.opacity(0.58), color.opacity(0.30)], startPoint: .top, endPoint: .bottom)
+                        )
+
+                    // Crisp Apple-style contour stroke along top wave
+                    smoothStrokePath(points: seriesPoints)
+                        .stroke(color, style: StrokeStyle(lineWidth: 1.3, lineCap: .round, lineJoin: .round))
                 }
             }
             .drawingGroup()
@@ -154,6 +100,84 @@ struct AppleActivityGraphView: View {
                     .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
         }
+    }
+
+    private func points(from values: [Double], width: CGFloat, height: CGFloat) -> [CGPoint] {
+        guard !values.isEmpty else { return [] }
+        let count = values.count
+        let step = count > 1 ? width / CGFloat(count - 1) : width
+        return values.enumerated().map { i, val in
+            let clamped = max(0.0, min(maxVal, val))
+            let x = CGFloat(i) * step
+            let y = height - (CGFloat(clamped / maxVal) * (height - 2.5))
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func smoothAreaPath(points: [CGPoint], bottomY: CGFloat) -> Path {
+        var path = Path()
+        guard let first = points.first else { return path }
+        guard points.count > 1 else {
+            path.move(to: CGPoint(x: 0, y: bottomY))
+            path.addLine(to: first)
+            path.addLine(to: CGPoint(x: first.x, y: bottomY))
+            path.closeSubpath()
+            return path
+        }
+
+        path.move(to: CGPoint(x: 0, y: bottomY))
+        path.addLine(to: first)
+
+        for i in 0..<(points.count - 1) {
+            let p0 = i > 0 ? points[i - 1] : points[i]
+            let p1 = points[i]
+            let p2 = points[i + 1]
+            let p3 = (i + 2 < points.count) ? points[i + 2] : p2
+
+            let cp1 = CGPoint(
+                x: p1.x + (p2.x - p0.x) / 6.0,
+                y: p1.y + (p2.y - p0.y) / 6.0
+            )
+            let cp2 = CGPoint(
+                x: p2.x - (p3.x - p1.x) / 6.0,
+                y: p2.y - (p3.y - p1.y) / 6.0
+            )
+            path.addCurve(to: p2, control1: cp1, control2: cp2)
+        }
+
+        path.addLine(to: CGPoint(x: points.last!.x, y: bottomY))
+        path.closeSubpath()
+        return path
+    }
+
+    private func smoothStrokePath(points: [CGPoint]) -> Path {
+        var path = Path()
+        guard let first = points.first else { return path }
+        guard points.count > 1 else {
+            path.move(to: first)
+            path.addLine(to: first)
+            return path
+        }
+
+        path.move(to: first)
+
+        for i in 0..<(points.count - 1) {
+            let p0 = i > 0 ? points[i - 1] : points[i]
+            let p1 = points[i]
+            let p2 = points[i + 1]
+            let p3 = (i + 2 < points.count) ? points[i + 2] : p2
+
+            let cp1 = CGPoint(
+                x: p1.x + (p2.x - p0.x) / 6.0,
+                y: p1.y + (p2.y - p0.y) / 6.0
+            )
+            let cp2 = CGPoint(
+                x: p2.x - (p3.x - p1.x) / 6.0,
+                y: p2.y - (p3.y - p1.y) / 6.0
+            )
+            path.addCurve(to: p2, control1: cp1, control2: cp2)
+        }
+        return path
     }
 }
 
@@ -475,7 +499,7 @@ struct StatsView: View {
             switch monitor.ramPressure {
             case "Critical": return .red
             case "Warning": return .yellow
-            default: return Color(red: 0.20, green: 0.72, blue: 0.28)
+            default: return Color(red: 0.35, green: 0.85, blue: 0.45)
             }
         }()
 
