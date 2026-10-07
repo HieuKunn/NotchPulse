@@ -9,7 +9,8 @@
 - **Reliable Previous Track Jump**: Tapping the Previous Track button now reliably switches to the previous song across Spotify, Apple Music, and web players without stopping at 0:00.
 - **Fixed Web & Browser Shortcuts**: Keyboard media controls and shuffle/repeat buttons now operate smoothly across web music players like YouTube and Spotify.
 
-### 🔒 Refined Face ID Animations
+### 🔒 Refined Notch & Face ID Animations
+- **Restored Buttery-Smooth Notch Motion**: Restored the interactive spring physics for opening and closing the Notch, eliminating snapping and ensuring fluid expansions.
 - **Smooth Notch Collapsing**: Fixed an issue where the Face ID scanner window would snap away mid-animation. Closing Face ID now retracts fluidly into the Notch.
 - **Harmonized Geometry**: Unified corner radii and expansion springs for seamless transitions when opening and closing Face ID.
 
