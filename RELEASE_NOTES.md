@@ -1,16 +1,18 @@
 ## 🚀 What's New in NotchPulse v5.2
 
-### ⚡️ Memory & Battery Optimizations
-- **Drastically Reduced RAM & CPU Usage**: Fixed high memory pressure and system lag caused by repetitive image decoding when browsing your clipboard history.
-- **Efficient Hardware Monitoring**: System process monitoring now runs only when expanding process details, keeping your Mac cool and saving CPU cycles.
-- **Smart Background Management**: Automatically pauses media position syncing when switching away from the Home tab to prevent unnecessary background work.
+### ⚡️ Accurate Hardware Monitoring & Performance
+- **Activity Monitor Parity**: Top CPU and Memory process lists now match Apple's Activity Monitor, accurately tracking app usage and system processes like WindowServer.
+- **Smooth Memory Pressure Graph**: The RAM monitor now features an authentic curved activity wave displaying real-time system memory pressure.
+- **Drastically Reduced RAM & CPU Usage**: Fixed high memory pressure and lag caused by repetitive image decoding when browsing clipboard history.
+- **Efficient On-Demand Monitoring**: Process list inspection runs only when expanded, saving CPU cycles and battery life.
 
-### 🎵 Enhanced Media Controls
+### 🎵 Enhanced Media Player & Clean White Aesthetic
+- **Pure White Media Controls**: Artist name, track timeline slider, and timestamps now feature a clean, crisp Apple-native white design.
 - **Reliable Previous Track Jump**: Tapping the Previous Track button now reliably switches to the previous song across Spotify, Apple Music, and web players without stopping at 0:00.
-- **Fixed Web & Browser Shortcuts**: Keyboard media controls and shuffle/repeat buttons now operate smoothly across web music players like YouTube and Spotify.
+- **Smart Background Polling**: Automatically pauses media sync when navigating to other tabs to preserve system resources.
 
 ### 🔒 Refined Notch & Face ID Animations
-- **Restored Buttery-Smooth Notch Motion**: Restored the interactive spring physics for opening and closing the Notch, eliminating snapping and ensuring fluid expansions.
+- **Restored Buttery-Smooth Notch Motion**: Restored interactive spring physics for opening and closing the Notch, eliminating snapping and ensuring fluid expansions.
 - **Smooth Notch Collapsing**: Fixed an issue where the Face ID scanner window would snap away mid-animation. Closing Face ID now retracts fluidly into the Notch.
 - **Harmonized Geometry**: Unified corner radii and expansion springs for seamless transitions when opening and closing Face ID.
 
