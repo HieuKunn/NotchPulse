@@ -93,7 +93,7 @@ struct NotchPulseHeader: View {
                                     .fill(.black)
                                     .frame(width: 30, height: 30)
                                     .overlay {
-                                        Image(systemName: "web.camera")
+                                        Image(systemName: "camera.fill")
                                             .foregroundColor(.white)
                                             .padding()
                                             .imageScale(.medium)
@@ -111,7 +111,7 @@ struct NotchPulseHeader: View {
                                     .fill(.black)
                                     .frame(width: 30, height: 30)
                                     .overlay {
-                                        Image(systemName: "gear")
+                                        Image(systemName: "gearshape.fill")
                                             .foregroundColor(.white)
                                             .padding()
                                             .imageScale(.medium)

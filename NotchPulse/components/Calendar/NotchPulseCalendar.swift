@@ -526,16 +526,15 @@ struct CalendarPinButton: View {
         } label: {
             Image(systemName: state.isPinned ? "pin.fill" : "pin")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(state.isPinned ? Color.green : Color.white.opacity(0.65))
-                .rotationEffect(.degrees(state.isPinned ? 0 : 45))
+                .foregroundStyle(state.isPinned ? Color.effectiveAccent : Color.white.opacity(0.65))
                 .frame(width: 24, height: 24)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(state.isPinned ? Color.green.opacity(0.22) : Color.white.opacity(0.08))
+                        .fill(state.isPinned ? Color.effectiveAccent.opacity(0.22) : Color.white.opacity(0.08))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(state.isPinned ? Color.green.opacity(0.7) : Color.white.opacity(0.12), lineWidth: 1)
+                        .stroke(state.isPinned ? Color.effectiveAccent.opacity(0.6) : Color.white.opacity(0.12), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -685,9 +684,9 @@ struct FullMonthCalendarGrid<TrailingContent: View>: View {
 
                     Spacer(minLength: 0)
 
-                    // Moon icon positioned to the far right of the 3/5 month section
+                    // Moon icon positioned to the far right of the 3/5 month section (Apple SF Symbol moon.fill)
                     CalendarNavButton(
-                        icon: showLunarCalendar ? "moon.fill" : "moon",
+                        icon: showLunarCalendar ? "moon.fill" : "moon.fill",
                         helpText: showLunarCalendar ? "Hide lunar calendar" : "Show lunar calendar",
                         isToggled: showLunarCalendar
                     ) {

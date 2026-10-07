@@ -107,16 +107,15 @@ struct ShelfView: View {
         } label: {
             Image(systemName: tvm.isPinned ? "pin.fill" : "pin")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(tvm.isPinned ? Color.green : Color.white.opacity(0.65))
-                .rotationEffect(.degrees(tvm.isPinned ? 0 : 45))
+                .foregroundStyle(tvm.isPinned ? Color.effectiveAccent : Color.white.opacity(0.65))
                 .frame(width: 26, height: 26)
                 .background(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(tvm.isPinned ? Color.green.opacity(0.22) : Color.white.opacity(0.08))
+                        .fill(tvm.isPinned ? Color.effectiveAccent.opacity(0.22) : Color.white.opacity(0.08))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(tvm.isPinned ? Color.green.opacity(0.7) : Color.white.opacity(0.12), lineWidth: 1)
+                        .stroke(tvm.isPinned ? Color.effectiveAccent.opacity(0.6) : Color.white.opacity(0.12), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)

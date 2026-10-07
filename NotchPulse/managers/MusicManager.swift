@@ -825,9 +825,9 @@ class MusicManager: ObservableObject {
                 if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
                     let script = """
                     tell application "Music"
-                        if player position > 2 then
+                        if player position > 1 then
                             previous track
-                            delay 0.05
+                            delay 0.15
                             previous track
                         else
                             previous track
@@ -838,9 +838,9 @@ class MusicManager: ObservableObject {
                 } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
                     let script = """
                     tell application "Spotify"
-                        if player position > 2 then
+                        if player position > 1 then
                             previous track
-                            delay 0.05
+                            delay 0.15
                             previous track
                         else
                             previous track
