@@ -299,7 +299,7 @@ struct ContentView: View {
         coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
     }
     private var currentNotchWidth: CGFloat {
-        if isFaceIDActive || isFaceIDSettlingAfterClose {
+        if isFaceIDActive {
             return targetFaceIDSize.width
         }
         if vm.notchState == .open {
@@ -324,7 +324,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private func applyHitShape<V: View>(_ view: V) -> some View {
-        if isDynamicIsland {
+        if isDynamicIsland && !hasPhysicalNotch {
             view.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
         } else {
             view.contentShape(currentNotchShape)
@@ -333,58 +333,62 @@ struct ContentView: View {
 
     @ViewBuilder
     private var mainNotchContainer: some View {
-        let isIsland = isDynamicIsland
-        applyHitShape(
-            NotchLayout()
-                .frame(
-                    width: currentNotchWidth,
-                    height: currentNotchHeight,
-                    alignment: .top
-                )
-                .padding(
-                    .horizontal,
-                    (vm.notchState == .open)
-                    ? (isIsland ? 5 : 10)
-                    : ((isFaceIDActive || isFaceIDSettlingAfterClose || NotchPulseLockMonitor.isScreenActuallyLocked())
-                        ? 0
-                        : (isIsland ? 6 : 4))
-                )
-                .padding(.horizontal, (vm.notchState == .open) ? (isIsland ? 2 : 4) : 0)
-                .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
-                .background(.black)
-                .conditionalModifier(isIsland) { view in
-                    view
-                        .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+        let isIsland = isDynamicIsland && !hasPhysicalNotch
+        NotchLayout()
+            .frame(
+                width: currentNotchWidth,
+                height: currentNotchHeight,
+                alignment: .top
+            )
+            .padding(
+                .horizontal,
+                (vm.notchState == .open)
+                ? 10
+                : (isIsland
+                    ? (isFaceIDContentVisible ? 0 : 12)
+                    : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
+            )
+            .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
+            .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
+            .background(.black)
+            .conditionalModifier(isIsland) { view in
+                view
+                    .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                    }
+            }
+            .conditionalModifier(!isIsland) { view in
+                view
+                    .clipShape(currentNotchShape)
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(.black)
+                            .frame(height: 1)
+                            .padding(.horizontal, topCornerRadius)
+                    }
+                    .overlay {
+                        if isDynamicIsland && vm.notchState == .open {
+                            currentNotchShape
+                                .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
                         }
-                }
-                .conditionalModifier(!isIsland) { view in
-                    view
-                        .clipShape(currentNotchShape)
-                        .overlay(alignment: .top) {
-                            Rectangle()
-                                .fill(.black)
-                                .frame(height: 1)
-                                .padding(.horizontal, topCornerRadius)
-                        }
-                }
-                .shadow(
-                    color: isIsland
-                        ? .black.opacity(0.65)
-                        : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
-                            ? .black.opacity(0.7) : .clear),
-                    radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
-                    x: 0,
-                    y: isIsland ? 4 : 0
-                )
-                .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
-                .padding(
-                    .bottom,
-                    vm.effectiveClosedNotchHeight == 0 ? 10 : 0
-                )
-        )
+                    }
+            }
+            .shadow(
+                color: isIsland
+                    ? .black.opacity(0.65)
+                    : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
+                        ? .black.opacity(0.7) : .clear),
+                radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
+                x: 0,
+                y: isIsland ? 4 : 0
+            )
+            .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
+            .padding(
+                .bottom,
+                vm.effectiveClosedNotchHeight == 0 ? 10 : 0
+            )
     }
 
     var body: some View {
@@ -465,7 +469,7 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                                        self.vm.close()
+                                        self.doClose()
                                     }
                                 }
                             }
@@ -509,7 +513,7 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                                        self.vm.close()
+                                        self.doClose()
                                     }
                                 }
                             }
@@ -584,7 +588,7 @@ struct ContentView: View {
 
                 vm.dropEvent = false
                 if !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                    vm.close()
+                    self.doClose()
                 }
             }
         }
@@ -941,6 +945,12 @@ struct ContentView: View {
         }
     }
 
+    private func doClose() {
+        withAnimation(animationSpring) {
+            vm.close()
+        }
+    }
+
     // MARK: - Hover Management
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
@@ -957,7 +967,7 @@ struct ContentView: View {
 
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
-        if isFaceIDActive || isFaceIDSettlingAfterClose || faceIDOverlay.phase != .closed { return }
+        if faceIDOverlay.phase != .closed || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || isFaceIDSettlingAfterClose { return }
         hoverTask?.cancel()
         
         if hovering {
@@ -999,7 +1009,7 @@ struct ContentView: View {
             }
         } else {
             hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(120))
+                try? await Task.sleep(for: .milliseconds(280))
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
@@ -1008,7 +1018,7 @@ struct ContentView: View {
                     }
                     
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive && !self.vm.anyDropZoneTargeting && !self.vm.dropEvent {
-                        self.vm.close()
+                        self.doClose()
                     }
                 }
             }

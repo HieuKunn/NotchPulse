@@ -231,10 +231,12 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     func isMouseHovering(position: NSPoint = NSEvent.mouseLocation) -> Bool {
         if hideOnClosed && notchState == .closed { return false }
         guard let frame = getScreenFrame(screenUUID) else { return false }
-        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+        let screen = resolveScreen(screenUUID: screenUUID)
+        let hasPhysicalNotch = (screen?.safeAreaInsets.top ?? 0) > 0 || screen?.auxiliaryTopLeftArea != nil
+        let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland && !hasPhysicalNotch
         let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
-        let currentWidth = notchState == .open ? openNotchWidth : closedNotchSize.width
-        let currentHeight = notchState == .open ? (customOpenHeight ?? openNotchSize.height) : closedNotchSize.height
+        let currentWidth = notchState == .open ? openNotchWidth : (isDynamicIsland ? 210 : closedNotchSize.width)
+        let currentHeight = notchState == .open ? (customOpenHeight ?? openNotchSize.height) : (isDynamicIsland ? 32 : closedNotchSize.height)
         
         let baseY = frame.maxY - currentHeight - topOffset
         let baseX = frame.midX - currentWidth / 2

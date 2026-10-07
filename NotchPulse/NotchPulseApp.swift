@@ -353,7 +353,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             let padding = CGFloat(Defaults[.dragDetectionPadding])
             
-            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
+            let hasPhysicalNotch = (screen.safeAreaInsets.top > 0) || (screen.auxiliaryTopLeftArea != nil)
+            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland && !hasPhysicalNotch
             let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
             
             if targetVM.notchState == .open {
