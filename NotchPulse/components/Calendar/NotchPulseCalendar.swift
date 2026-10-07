@@ -514,6 +514,7 @@ final class CalendarStateViewModel: ObservableObject {
 struct CalendarPinButton: View {
     @ObservedObject private var state = CalendarStateViewModel.shared
     @EnvironmentObject var vm: NotchPulseViewModel
+    @State private var isHovered: Bool = false
 
     var body: some View {
         Button {
@@ -526,18 +527,20 @@ struct CalendarPinButton: View {
         } label: {
             Image(systemName: state.isPinned ? "pin.fill" : "pin")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(state.isPinned ? Color.effectiveAccent : Color.white.opacity(0.65))
+                .foregroundStyle(state.isPinned ? Color.effectiveAccent : (isHovered ? Color.white : Color.white.opacity(0.7)))
                 .frame(width: 24, height: 24)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(state.isPinned ? Color.effectiveAccent.opacity(0.22) : Color.white.opacity(0.08))
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(state.isPinned ? Color.effectiveAccent.opacity(isHovered ? 0.28 : 0.20) : Color.white.opacity(isHovered ? 0.16 : 0.08))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(state.isPinned ? Color.effectiveAccent.opacity(0.6) : Color.white.opacity(0.12), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(state.isPinned ? Color.effectiveAccent.opacity(0.45) : Color.white.opacity(isHovered ? 0.18 : 0.08), lineWidth: 0.8)
                 )
+                .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
         .help(state.isPinned ? loc("Unpin Calendar (Close on hover exit)") : loc("Pin Calendar (Keep open when hovering out)"))
     }
 }
@@ -560,11 +563,18 @@ struct CalendarNavButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(isToggled ? Color.effectiveAccent : (isHovered ? .white : Color(white: 0.7)))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(isToggled ? Color.effectiveAccent : (isHovered ? Color.white : Color.white.opacity(0.7)))
                 .frame(width: 24, height: 24)
-                .background(isToggled ? Color.effectiveAccent.opacity(0.18) : Color.white.opacity(isHovered ? 0.16 : 0.08), in: RoundedRectangle(cornerRadius: 6))
-                .contentShape(Rectangle())
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(isToggled ? Color.effectiveAccent.opacity(isHovered ? 0.28 : 0.20) : Color.white.opacity(isHovered ? 0.16 : 0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(isToggled ? Color.effectiveAccent.opacity(0.45) : Color.white.opacity(isHovered ? 0.18 : 0.08), lineWidth: 0.8)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
