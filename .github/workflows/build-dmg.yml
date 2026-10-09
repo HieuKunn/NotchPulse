@@ -211,7 +211,7 @@ jobs:
 
       - name: Upload Test Build Artifacts (Beta Mode)
         if: ${{ github.event.inputs.beta_mode == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: NotchPulse-test-build
           path: |
