@@ -250,7 +250,7 @@ struct ContentView: View {
             chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
         } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
-            && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
+            && coordinator.musicLiveActivityEnabled && !isEffectivelyHiddenInFullscreen
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
@@ -264,7 +264,7 @@ struct ContentView: View {
             }
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
-            && !vm.hideOnClosed
+            && !isEffectivelyHiddenInFullscreen
         {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
@@ -284,24 +284,30 @@ struct ContentView: View {
         return baseChinWidth
     }
 
+    private var isEffectivelyHiddenInFullscreen: Bool {
+        vm.hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked()
+    }
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
     private var baseClosedHeight: CGFloat {
+        if isEffectivelyHiddenInFullscreen {
+            return 0
+        }
         if hasPhysicalNotch {
             return vm.effectiveClosedNotchHeight
         }
-        return isDynamicIsland ? max(32, vm.effectiveClosedNotchHeight) : max(vm.effectiveClosedNotchHeight, 0)
+        return isDynamicIsland ? max(32, vm.closedNotchSize.height) : max(vm.closedNotchSize.height, 0)
     }
     private var islandRadius: CGFloat {
         if isFaceIDActive {
             if !visualIsFaceIDExpanded {
-                return isDynamicIsland ? baseClosedHeight / 2 : max(14, vm.effectiveClosedNotchHeight / 2)
+                return isDynamicIsland ? (baseClosedHeight > 0 ? baseClosedHeight / 2 : 16) : max(14, vm.effectiveClosedNotchHeight / 2)
             }
             if isMinimalScan {
                 return FaceIDOverlayGeometry.minimalPillOpenHeight / 2
             }
             return FaceIDOverlayGeometry.pillOpenCornerRadius
         }
-        return vm.notchState == .open ? 26 : (isDynamicIsland ? baseClosedHeight / 2 : max(14, vm.effectiveClosedNotchHeight / 2))
+        return vm.notchState == .open ? 26 : (isDynamicIsland ? (baseClosedHeight > 0 ? baseClosedHeight / 2 : 16) : max(14, vm.effectiveClosedNotchHeight / 2))
     }
     private var isDefaultHUDActive: Bool {
         coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
@@ -393,8 +399,9 @@ struct ContentView: View {
             .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
             .padding(
                 .bottom,
-                vm.effectiveClosedNotchHeight == 0 ? 10 : 0
+                (vm.notchState == .closed && vm.effectiveClosedNotchHeight == 0) ? 10 : 0
             )
+            .opacity(isEffectivelyHiddenInFullscreen && vm.notchState == .closed ? 0 : 1)
     }
 
     var body: some View {
@@ -663,16 +670,16 @@ struct ContentView: View {
                             if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                 InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                     .transition(.opacity)
-                            } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
+                            } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !isEffectivelyHiddenInFullscreen {
                                 MusicLiveActivity()
                                     .frame(alignment: .center)
                                     .transition(.opacity)
-                            } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
+                            } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !isEffectivelyHiddenInFullscreen  {
                                 NotchPulseFaceAnimation()
                                     .transition(.opacity)
                             } else if vm.notchState == .open {
                                 NotchPulseHeader()
-                                    .frame(height: max(24, vm.effectiveClosedNotchHeight))
+                                    .frame(height: max(32, vm.closedNotchSize.height))
                                     .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                     .transition(.opacity)
                             } else {
@@ -720,7 +727,7 @@ struct ContentView: View {
                         }
                         // Old sneak peek music
                         else if coordinator.sneakPeek.type == .music {
-                            if vm.notchState == .closed && !vm.hideOnClosed && Defaults[.sneakPeekStyles] == .standard {
+                            if vm.notchState == .closed && !isEffectivelyHiddenInFullscreen && Defaults[.sneakPeekStyles] == .standard {
                                 HStack(alignment: .center) {
                                     Image(systemName: "music.note")
                                     Text(musicManager.songTitle + " - " + musicManager.artistName)

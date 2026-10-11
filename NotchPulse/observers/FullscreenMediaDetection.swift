@@ -255,5 +255,9 @@ final class FullscreenMediaDetector: ObservableObject {
         
         self.fullscreenStatus = newStatus
     }
+
+    func reevaluate() {
+        self.updateStatus(with: self.lastSpaces)
+    }
 }
 

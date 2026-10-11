@@ -125,10 +125,17 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         let fullscreenStatusPublisher = detector.$fullscreenStatus
             .removeDuplicates()
 
-        // Combine all three: screen UUID, fullscreen status, and enabled setting
-        Publishers.CombineLatest3(screenPublisher, fullscreenStatusPublisher, enabledPublisher)
-            .map { screenUUID, fullscreenStatus, enabled in
+        let lockScreenPublisher = LockScreenWakeObserver.shared.$isScreenLocked
+            .removeDuplicates()
+
+        // Combine all four: screen UUID, fullscreen status, enabled setting, and lock screen status
+        Publishers.CombineLatest4(screenPublisher, fullscreenStatusPublisher, enabledPublisher, lockScreenPublisher)
+            .map { screenUUID, fullscreenStatus, enabled, isLocked in
                 let isFullscreen = fullscreenStatus[screenUUID] ?? false
+                let actuallyLocked = isLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
+                if actuallyLocked {
+                    return false
+                }
                 return enabled && isFullscreen
             }
             .removeDuplicates()
@@ -142,11 +149,32 @@ class NotchPulseViewModel: NSObject, ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screenIsLocked"))
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                withAnimation(.smooth) {
+                    self?.hideOnClosed = false
+                }
+            }
+            .store(in: &cancellables)
+
+        DistributedNotificationCenter.default().publisher(for: NSNotification.Name("com.apple.screenIsUnlocked"))
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                let isFullscreen = self.detector.fullscreenStatus[self.screenUUID ?? ""] ?? false
+                let enabled = Defaults[.hideNotchOption] != .never
+                withAnimation(.smooth) {
+                    self.hideOnClosed = enabled && isFullscreen
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // Computed property for effective notch height
     var effectiveClosedNotchHeight: CGFloat {
-        if hideOnClosed {
+        if hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() {
             return 0
         }
         return closedNotchSize.height
@@ -229,7 +257,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
     
     func isMouseHovering(position: NSPoint = NSEvent.mouseLocation) -> Bool {
-        if hideOnClosed && notchState == .closed { return false }
+        if hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() && notchState == .closed { return false }
         guard let frame = getScreenFrame(screenUUID) else { return false }
         let screen = resolveScreen(screenUUID: screenUUID)
         let hasPhysicalNotch = (screen?.safeAreaInsets.top ?? 0) > 0 || screen?.auxiliaryTopLeftArea != nil

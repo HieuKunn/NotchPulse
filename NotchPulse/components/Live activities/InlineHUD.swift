@@ -20,7 +20,7 @@ struct InlineHUD: View {
     var body: some View {
         let isDynamicIsland = notchStyle == .dynamicIsland
         let hudHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
-        HStack {
+        HStack(spacing: type == .battery ? 0 : 8) {
             HStack(spacing: 5) {
                 Group {
                     switch (type) {
@@ -87,12 +87,12 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, 10)
+            .padding(.leading, type == .battery ? 2 : 10)
             .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
                 .fill(.black)
-                .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width))
+                .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width, type: type))
             
             HStack(spacing: 5) {
                 if (type == .battery) {
@@ -155,7 +155,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, 10)
+            .padding(.trailing, type == .battery ? 2 : 10)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -213,7 +213,7 @@ struct InlineHUD: View {
         case .mic:
             return 56
         case .battery:
-            return 32
+            return 22
         default:
             return 74
         }
@@ -224,25 +224,30 @@ struct InlineHUD: View {
         case .mic:
             return 56
         case .battery:
-            return 32
+            return 22
         default:
             return 78
         }
     }
 
-    static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
+    static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat, type: SneakContentType = .volume) -> CGFloat {
         if isDynamicIsland {
-            return 14
+            return type == .battery ? 12 : 14
         } else {
-            return max(0, closedNotchWidth - 16)
+            return type == .battery ? max(0, closedNotchWidth + 4) : max(0, closedNotchWidth - 16)
         }
     }
 
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
-        let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth)
-        let padding: CGFloat = isDynamicIsland ? 16 : 20
+        let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth, type: type)
+        let padding: CGFloat
+        if type == .battery {
+            padding = isDynamicIsland ? 6 : 4
+        } else {
+            padding = isDynamicIsland ? 16 : 20
+        }
         return left + center + right + padding
     }
 }
