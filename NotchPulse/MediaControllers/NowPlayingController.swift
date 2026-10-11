@@ -685,54 +685,24 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         if isBrowser(bundleID) {
             let handled = await executeBrowserScript(for: .previous)
             if !handled {
-                if (playbackState.currentTime ?? 0) > 1.5 {
-                    MRMediaRemoteSendCommandFunction(5, nil)
-                    postMediaKeyEvent(for: 5)
-                    try? await Task.sleep(for: .milliseconds(150))
-                    MRMediaRemoteSendCommandFunction(5, nil)
-                    postMediaKeyEvent(for: 5)
-                } else {
-                    MRMediaRemoteSendCommandFunction(5, nil)
-                    postMediaKeyEvent(for: 5)
-                }
+                MRMediaRemoteSetElapsedTimeFunction(0.0)
+                MRMediaRemoteSendCommandFunction(5, nil)
+                postMediaKeyEvent(for: 5)
             }
         } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            let script = """
-            tell application "Music"
-                if player position > 1 then
-                    previous track
-                    delay 0.15
-                    previous track
-                else
-                    previous track
-                end if
-            end tell
-            """
-            try? await AppleScriptHelper.executeVoid(script)
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = """
             tell application "Spotify"
-                if player position > 1 then
-                    previous track
-                    delay 0.15
-                    previous track
-                else
-                    previous track
-                end if
+                set player position to 0
+                previous track
             end tell
             """
             try? await AppleScriptHelper.executeVoid(script)
         } else {
-            if (playbackState.currentTime ?? 0) > 1.5 {
-                MRMediaRemoteSendCommandFunction(5, nil)
-                postMediaKeyEvent(for: 5)
-                try? await Task.sleep(for: .milliseconds(150))
-                MRMediaRemoteSendCommandFunction(5, nil)
-                postMediaKeyEvent(for: 5)
-            } else {
-                MRMediaRemoteSendCommandFunction(5, nil)
-                postMediaKeyEvent(for: 5)
-            }
+            MRMediaRemoteSetElapsedTimeFunction(0.0)
+            MRMediaRemoteSendCommandFunction(5, nil)
+            postMediaKeyEvent(for: 5)
         }
     }
 

@@ -73,13 +73,8 @@ class SpotifyController: MediaControllerProtocol {
     func previousTrack() async {
         let script = """
         tell application "Spotify"
-            if player position > 1 then
-                previous track
-                delay 0.15
-                previous track
-            else
-                previous track
-            end if
+            set player position to 0
+            previous track
         end tell
         """
         try? await AppleScriptHelper.executeVoid(script)

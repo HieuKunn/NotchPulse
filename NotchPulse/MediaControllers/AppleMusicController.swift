@@ -76,18 +76,7 @@ class AppleMusicController: MediaControllerProtocol {
     }
     
     func previousTrack() async {
-        let script = """
-        tell application "Music"
-            if player position > 1 then
-                previous track
-                delay 0.15
-                previous track
-            else
-                previous track
-            end if
-        end tell
-        """
-        try? await AppleScriptHelper.executeVoid(script)
+        await executeCommand("previous track")
         try? await Task.sleep(for: .milliseconds(150))
         await updatePlaybackInfo()
     }
