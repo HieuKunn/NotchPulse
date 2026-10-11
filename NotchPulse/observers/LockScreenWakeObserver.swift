@@ -163,7 +163,7 @@ final class LockScreenWakeObserver: ObservableObject {
             return MusicManager.shared.isPlaying
         }()
 
-        let shouldShow = (isScreenLocked || LockScreenMediaWindow.shared.isPreviewMode)
+        let shouldShow = isScreenLocked
             && Defaults[.enableLockScreenPlayer]
             && hasActiveTrack
         

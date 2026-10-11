@@ -368,7 +368,9 @@ struct VolumeControlView: View {
                 iconColor: isCurrentlyMuted ? .gray : .white.opacity(0.9),
                 scale: .medium
             ) {
-                VolumeManager.shared.toggleMuteAction()
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                    showVolumeSlider.toggle()
+                }
             }
             .contextMenu {
                 Button(isCurrentlyMuted ? "Bật âm thanh" : "Tắt tiếng") {
@@ -418,7 +420,13 @@ struct VolumeControlView: View {
                         }
                     }
                 )
-                .frame(width: 48, height: 8)
+                .frame(width: 52, height: 10)
+                .background(
+                    SliderScrollWheelRepresentable { deltaStep in
+                        let step = Float32(deltaStep) * 0.02
+                        VolumeManager.shared.adjustRelative(delta: step)
+                    }
+                )
                 .transition(.scale.combined(with: .opacity))
             }
         }

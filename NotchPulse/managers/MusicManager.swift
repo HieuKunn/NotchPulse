@@ -331,8 +331,10 @@ class MusicManager: ObservableObject {
 
     func toggleFavoriteTrack() {
         guard canFavoriteTrack else { return }
-        // Toggle based on current state
-        setFavorite(!isFavoriteTrack)
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
+            self.isFavoriteTrack.toggle()
+        }
+        setFavorite(isFavoriteTrack)
     }
 
     @MainActor
@@ -755,6 +757,9 @@ class MusicManager: ObservableObject {
     }
 
     func toggleShuffle() {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            self.isShuffled.toggle()
+        }
         Task {
             await activeController?.toggleShuffle()
         }
@@ -859,9 +864,13 @@ class MusicManager: ObservableObject {
             await activeController?.seek(to: position)
         }
     }
+
     func skip(seconds: TimeInterval) {
+        let currentPos = currentEstimatedTime
         let maxDuration = songDuration > 0 ? songDuration : Double.greatestFiniteMagnitude
-        let newPos = min(max(0, elapsedTime + seconds), maxDuration)
+        let newPos = min(max(0, currentPos + seconds), maxDuration)
+        self.elapsedTime = newPos
+        self.timestampDate = Date()
         seek(to: newPos)
     }
 

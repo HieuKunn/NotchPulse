@@ -662,6 +662,12 @@ struct LockScreenMediaView: View {
                     }
                 }
             )
+            .background(
+                SliderScrollWheelRepresentable { deltaStep in
+                    let step = Float32(deltaStep) * 0.02
+                    VolumeManager.shared.adjustRelative(delta: step)
+                }
+            )
             
             if showCompactVolumeSlider {
                 LockScreenVolumeSlider(
@@ -672,7 +678,13 @@ struct LockScreenMediaView: View {
                         }
                     )
                 )
-                .frame(width: 52, height: 5)
+                .frame(width: 58, height: 14)
+                .background(
+                    SliderScrollWheelRepresentable { deltaStep in
+                        let step = Float32(deltaStep) * 0.02
+                        VolumeManager.shared.adjustRelative(delta: step)
+                    }
+                )
                 .transition(.scale.combined(with: .opacity))
             }
         }
@@ -691,6 +703,12 @@ struct LockScreenMediaView: View {
                     }
                 }
             )
+            .background(
+                SliderScrollWheelRepresentable { deltaStep in
+                    let step = Float32(deltaStep) * 0.02
+                    VolumeManager.shared.adjustRelative(delta: step)
+                }
+            )
             
             if showFullScreenVolumeSlider {
                 LockScreenVolumeSlider(
@@ -701,7 +719,13 @@ struct LockScreenMediaView: View {
                         }
                     )
                 )
-                .frame(width: 80, height: 6)
+                .frame(width: 80, height: 16)
+                .background(
+                    SliderScrollWheelRepresentable { deltaStep in
+                        let step = Float32(deltaStep) * 0.02
+                        VolumeManager.shared.adjustRelative(delta: step)
+                    }
+                )
                 .transition(.scale.combined(with: .opacity))
             }
         }
@@ -977,6 +1001,7 @@ private struct LockScreenVolumeSlider: View {
                     .fill(Color.white.opacity(0.92))
                     .frame(width: fillWidth, height: height)
             }
+            .frame(maxHeight: .infinity, alignment: .center)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)

@@ -29,14 +29,17 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     var supportsFavorite: Bool {
-        let bundleID = playbackState.bundleIdentifier
-        return bundleID == "com.apple.Music"
+        let bundleID = getEffectiveBundleID()
+        return bundleID == "com.apple.Music" || bundleID.contains("Music") || isBrowser(bundleID)
     }
 
     func setFavorite(_ favorite: Bool) async {
-        let bundleID = playbackState.bundleIdentifier
+        let bundleID = getEffectiveBundleID()
         
-        if bundleID == "com.apple.Music" {
+        if isBrowser(bundleID) {
+            await executeBrowserScript(for: .toggleFavorite)
+            playbackState.isFavorite.toggle()
+        } else if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music")
             if !runningApps.isEmpty {
                 let script = """
@@ -211,6 +214,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case previous
         case toggleRepeat(RepeatMode)
         case toggleShuffle
+        case toggleFavorite
         case seek(Double)
         case setVolume(Double)
     }
@@ -384,12 +388,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case .previous:
             js = """
             (function() {
-                var v = document.querySelector('video, audio');
-                if (v && v.currentTime > 2) {
-                    v.currentTime = 0;
-                    v.play();
-                    return 'rewound_to_start';
-                }
                 var ytPrev = document.querySelector('.html5-video-player a.ytp-prev-button, .html5-video-player .ytp-prev-button, a.ytp-prev-button');
                 if (ytPrev && ytPrev.getAttribute('aria-disabled') !== 'true') {
                     ytPrev.click();
@@ -415,10 +413,15 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                     playerPrev.click();
                     return 'clicked_player_prev';
                 }
+                if (ytPrev && ytPrev.href && ytPrev.href !== window.location.href) {
+                    window.location.href = ytPrev.href;
+                    return 'navigated_yt_prev';
+                }
                 if (window.history.length > 1) {
                     window.history.back();
                     return 'navigated_history_back';
                 }
+                var v = document.querySelector('video, audio');
                 if (v) {
                     v.currentTime = 0;
                     v.play();
@@ -468,6 +471,20 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 if (spotShuffle) { spotShuffle.click(); return 'clicked_spotify_shuffle'; }
                 var scShuffle = document.querySelector('.shuffleControl');
                 if (scShuffle) { scShuffle.click(); return 'clicked_sc_shuffle'; }
+                return 'not_found';
+            })()
+            """
+        case .toggleFavorite:
+            js = """
+            (function() {
+                var ytLike = document.querySelector('like-button-view-model button, #segmented-like-button button, ytm-like-button-renderer button');
+                if (ytLike) { ytLike.click(); return 'clicked_yt_like'; }
+                var ytmLike = document.querySelector('tp-yt-paper-icon-button.like, #like-button-renderer tp-yt-paper-icon-button');
+                if (ytmLike) { ytmLike.click(); return 'clicked_ytm_like'; }
+                var spotLike = document.querySelector('[data-testid="add-button"]');
+                if (spotLike) { spotLike.click(); return 'clicked_spotify_like'; }
+                var scLike = document.querySelector('.playbackSoundBadge__like, button[title*="Like" i]');
+                if (scLike) { scLike.click(); return 'clicked_sc_like'; }
                 return 'not_found';
             })()
             """

@@ -17,7 +17,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     @Published var isFullScreen: Bool = false
     @Published var isWindowVisible: Bool = false
-    @Published var isPreviewMode: Bool = false
     
     private var isSkyLightAttached = false
     private var lyricsCancellables = Set<AnyCancellable>()
@@ -119,17 +118,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }
     }
     
-    func togglePreview() {
-        if isPreviewMode && isVisible {
-            hide()
-            isPreviewMode = false
-        } else {
-            isPreviewMode = true
-            isFullScreen = false
-            show()
-        }
-    }
-    
     func show() {
         guard let screen = getTargetScreen() else { return }
         
@@ -177,7 +165,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             self.contentView = nil
             self.isFullScreen = false
             self.isWindowVisible = false
-            self.isPreviewMode = false
             MusicManager.shared.isUIActive = false
             if self.isSkyLightAttached {
                 SkyLightOperator.shared.undelegateWindow(self)
