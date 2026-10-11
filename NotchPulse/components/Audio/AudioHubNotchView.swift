@@ -356,7 +356,7 @@ private struct CustomAudioSlider: View {
     }
 }
 
-private struct SliderScrollWheelRepresentable: NSViewRepresentable {
+struct SliderScrollWheelRepresentable: NSViewRepresentable {
     var onScroll: (CGFloat) -> Void
 
     func makeNSView(context: Context) -> SliderScrollWheelNSView {
@@ -370,7 +370,7 @@ private struct SliderScrollWheelRepresentable: NSViewRepresentable {
     }
 }
 
-private final class SliderScrollWheelNSView: NSView {
+final class SliderScrollWheelNSView: NSView {
     var onScroll: ((CGFloat) -> Void)?
     private var monitor: Any?
 

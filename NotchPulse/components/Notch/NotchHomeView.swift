@@ -363,17 +363,29 @@ struct VolumeControlView: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.12)) {
-                    showVolumeSlider.toggle()
-                }
-            }) {
-                Image(systemName: volumeIcon)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(isCurrentlyMuted ? .gray : .white)
+            HoverButton(
+                icon: volumeIcon,
+                iconColor: isCurrentlyMuted ? .gray : .white.opacity(0.9),
+                scale: .medium
+            ) {
+                VolumeManager.shared.toggleMuteAction()
             }
-            .buttonStyle(PlainButtonStyle())
-            .frame(width: 24)
+            .contextMenu {
+                Button(isCurrentlyMuted ? "Bật âm thanh" : "Tắt tiếng") {
+                    VolumeManager.shared.toggleMuteAction()
+                }
+                Button(showVolumeSlider ? "Ẩn thanh âm lượng" : "Hiện thanh âm lượng") {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        showVolumeSlider.toggle()
+                    }
+                }
+            }
+            .background(
+                SliderScrollWheelRepresentable { deltaStep in
+                    let step = Float32(deltaStep) * 0.02
+                    VolumeManager.shared.adjustRelative(delta: step)
+                }
+            )
 
             if showVolumeSlider {
                 CustomSlider(

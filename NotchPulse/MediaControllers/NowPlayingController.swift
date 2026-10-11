@@ -209,7 +209,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case pause
         case next
         case previous
-        case toggleRepeat
+        case toggleRepeat(RepeatMode)
         case toggleShuffle
         case seek(Double)
         case setVolume(Double)
@@ -294,11 +294,14 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case .togglePlay:
             js = """
             (function() {
-                var btn = document.querySelector('.ytp-play-button, tp-yt-paper-icon-button#play-pause-button, #play-pause-button, [data-testid="control-button-playpause"], .playControl');
-                if (btn) {
-                    btn.click();
-                    return 'clicked_playpause_btn';
-                }
+                var ytBtn = document.querySelector('.html5-video-player .ytp-play-button, .ytp-play-button');
+                if (ytBtn) { ytBtn.click(); return 'clicked_yt_playpause'; }
+                var ytmBtn = document.querySelector('tp-yt-paper-icon-button#play-pause-button, #play-pause-button');
+                if (ytmBtn) { ytmBtn.click(); return 'clicked_ytm_playpause'; }
+                var spotBtn = document.querySelector('[data-testid="control-button-playpause"]');
+                if (spotBtn) { spotBtn.click(); return 'clicked_spotify_playpause'; }
+                var scBtn = document.querySelector('.playControl');
+                if (scBtn) { scBtn.click(); return 'clicked_sc_playpause'; }
                 var v = document.querySelector('video, audio');
                 if (v) {
                     if (v.paused) { v.play(); } else { v.pause(); }
@@ -315,8 +318,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                     v.play();
                     return 'played_video';
                 }
-                var btn = document.querySelector('.ytp-play-button[aria-label*="Play" i], .ytp-play-button[aria-label*="Phát" i], [data-testid="control-button-play"]');
-                if (btn) { btn.click(); return 'clicked_play_btn'; }
+                var ytBtn = document.querySelector('.html5-video-player .ytp-play-button[aria-label*="Play" i], .html5-video-player .ytp-play-button[aria-label*="Phát" i], .ytp-play-button');
+                if (ytBtn) { ytBtn.click(); return 'clicked_play_btn'; }
+                var spotBtn = document.querySelector('[data-testid="control-button-play"]');
+                if (spotBtn) { spotBtn.click(); return 'clicked_play_btn'; }
                 return 'noop';
             })()
             """
@@ -328,58 +333,141 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                     v.pause();
                     return 'paused_video';
                 }
-                var btn = document.querySelector('.ytp-play-button[aria-label*="Pause" i], .ytp-play-button[aria-label*="Tạm dừng" i], [data-testid="control-button-pause"]');
-                if (btn) { btn.click(); return 'clicked_pause_btn'; }
+                var ytBtn = document.querySelector('.html5-video-player .ytp-play-button[aria-label*="Pause" i], .html5-video-player .ytp-play-button[aria-label*="Tạm dừng" i], .ytp-play-button');
+                if (ytBtn) { ytBtn.click(); return 'clicked_pause_btn'; }
+                var spotBtn = document.querySelector('[data-testid="control-button-pause"]');
+                if (spotBtn) { spotBtn.click(); return 'clicked_pause_btn'; }
                 return 'noop';
             })()
             """
         case .next:
             js = """
             (function() {
-                var nextBtn = document.querySelector('.ytp-next-button, a.ytp-next-button, tp-yt-paper-icon-button.next-button, button.next-button, [data-testid="control-button-skip-forward"], .skipControl__next, [aria-label*="Next" i], [aria-label*="Tiếp" i], [title*="Next" i], [title*="Tiếp" i]');
-                if (nextBtn && nextBtn.getAttribute('aria-disabled') !== 'true') {
-                    nextBtn.click();
-                    return 'clicked_next_btn';
+                var ytNext = document.querySelector('.html5-video-player a.ytp-next-button, .html5-video-player .ytp-next-button, a.ytp-next-button');
+                if (ytNext && ytNext.getAttribute('aria-disabled') !== 'true') {
+                    ytNext.click();
+                    return 'clicked_yt_next';
                 }
-                var evt = new KeyboardEvent('keydown', { key: 'N', code: 'KeyN', keyCode: 78, which: 78, shiftKey: true, bubbles: true });
-                document.dispatchEvent(evt);
-                return 'dispatched_key';
+                var ytmNext = document.querySelector('tp-yt-paper-icon-button.next-button, #left-controls .next-button');
+                if (ytmNext && ytmNext.getAttribute('aria-disabled') !== 'true') {
+                    ytmNext.click();
+                    return 'clicked_ytm_next';
+                }
+                var spotNext = document.querySelector('[data-testid="control-button-skip-forward"]');
+                if (spotNext && spotNext.getAttribute('aria-disabled') !== 'true') {
+                    spotNext.click();
+                    return 'clicked_spotify_next';
+                }
+                var scNext = document.querySelector('.skipControl__next, [title="Skip to next"]');
+                if (scNext && scNext.getAttribute('aria-disabled') !== 'true') {
+                    scNext.click();
+                    return 'clicked_sc_next';
+                }
+                var playerNext = document.querySelector('.player-controls button.next, .controls button.next, [data-testid*="next" i]');
+                if (playerNext && playerNext.getAttribute('aria-disabled') !== 'true') {
+                    playerNext.click();
+                    return 'clicked_player_next';
+                }
+                if (ytNext && ytNext.href && ytNext.href !== window.location.href) {
+                    window.location.href = ytNext.href;
+                    return 'navigated_yt_next';
+                }
+                var v = document.querySelector('video, audio');
+                if (v && v.duration && !isNaN(v.duration) && v.duration > 1) {
+                    v.currentTime = v.duration - 0.2;
+                    v.play();
+                    return 'jumped_to_end';
+                }
+                return 'not_found';
             })()
             """
         case .previous:
             js = """
             (function() {
-                var prevBtn = document.querySelector('.ytp-prev-button, a.ytp-prev-button, tp-yt-paper-icon-button.previous-button, button.previous-button, [data-testid="control-button-skip-back"], .skipControl__previous, [aria-label*="Previous" i], [aria-label*="Trước" i], [title*="Previous" i], [title*="Trước" i]');
-                if (prevBtn && prevBtn.getAttribute('aria-disabled') !== 'true') {
-                    prevBtn.click();
-                    return 'clicked_prev_btn';
+                var v = document.querySelector('video, audio');
+                if (v && v.currentTime > 2) {
+                    v.currentTime = 0;
+                    v.play();
+                    return 'rewound_to_start';
                 }
-                var evt = new KeyboardEvent('keydown', { key: 'P', code: 'KeyP', keyCode: 80, which: 80, shiftKey: true, bubbles: true });
-                document.dispatchEvent(evt);
-                return 'dispatched_key';
+                var ytPrev = document.querySelector('.html5-video-player a.ytp-prev-button, .html5-video-player .ytp-prev-button, a.ytp-prev-button');
+                if (ytPrev && ytPrev.getAttribute('aria-disabled') !== 'true') {
+                    ytPrev.click();
+                    return 'clicked_yt_prev';
+                }
+                var ytmPrev = document.querySelector('tp-yt-paper-icon-button.previous-button, #left-controls .previous-button');
+                if (ytmPrev && ytmPrev.getAttribute('aria-disabled') !== 'true') {
+                    ytmPrev.click();
+                    return 'clicked_ytm_prev';
+                }
+                var spotPrev = document.querySelector('[data-testid="control-button-skip-back"]');
+                if (spotPrev && spotPrev.getAttribute('aria-disabled') !== 'true') {
+                    spotPrev.click();
+                    return 'clicked_spotify_prev';
+                }
+                var scPrev = document.querySelector('.skipControl__previous, [title="Skip to previous"]');
+                if (scPrev && scPrev.getAttribute('aria-disabled') !== 'true') {
+                    scPrev.click();
+                    return 'clicked_sc_prev';
+                }
+                var playerPrev = document.querySelector('.player-controls button.prev, .controls button.prev, [data-testid*="prev" i]');
+                if (playerPrev && playerPrev.getAttribute('aria-disabled') !== 'true') {
+                    playerPrev.click();
+                    return 'clicked_player_prev';
+                }
+                if (window.history.length > 1) {
+                    window.history.back();
+                    return 'navigated_history_back';
+                }
+                if (v) {
+                    v.currentTime = 0;
+                    v.play();
+                    return 'rewound_to_start';
+                }
+                return 'not_found';
             })()
             """
-        case .toggleRepeat:
+        case .toggleRepeat(let targetMode):
+            let isLoop = (targetMode != .off)
             js = """
             (function() {
-                var ytmBtn = document.querySelector('tp-yt-paper-icon-button.repeat, button[aria-label*="Repeat" i], .repeat[role="button"]');
-                if (ytmBtn) { ytmBtn.click(); return 'clicked_ytm_repeat'; }
+                var ytmBtn = document.querySelector('tp-yt-paper-icon-button.repeat, #left-controls .repeat');
+                if (ytmBtn) {
+                    ytmBtn.click();
+                    return 'clicked_ytm_repeat';
+                }
                 var spotBtn = document.querySelector('[data-testid="control-button-repeat"]');
-                if (spotBtn) { spotBtn.click(); return 'clicked_spotify_repeat'; }
-                var ytPlaylistBtn = document.querySelector('.ytp-repeat-button, button[aria-label*="Repeat playlist" i]');
-                if (ytPlaylistBtn) { ytPlaylistBtn.click(); return 'clicked_yt_playlist_repeat'; }
+                if (spotBtn) {
+                    spotBtn.click();
+                    return 'clicked_spotify_repeat';
+                }
+                var ytPlaylistBtn = document.querySelector('.ytp-playlist-repeat-button, .ytp-repeat-button');
+                if (ytPlaylistBtn) {
+                    ytPlaylistBtn.click();
+                    return 'clicked_yt_playlist_repeat';
+                }
+                var scRepeat = document.querySelector('.repeatControl');
+                if (scRepeat) {
+                    scRepeat.click();
+                    return 'clicked_sc_repeat';
+                }
                 var v = document.querySelector('video, audio');
-                if (v) { v.loop = !v.loop; return v.loop ? 'loop_on' : 'loop_off'; }
+                if (v) {
+                    v.loop = \(isLoop);
+                    return v.loop ? 'loop_on' : 'loop_off';
+                }
                 return 'not_found';
             })()
             """
         case .toggleShuffle:
             js = """
             (function() {
-                var ytmShuffle = document.querySelector('tp-yt-paper-icon-button.shuffle, button[aria-label*="Shuffle" i], .shuffle[role="button"]');
+                var ytmShuffle = document.querySelector('tp-yt-paper-icon-button.shuffle, #left-controls .shuffle');
                 if (ytmShuffle) { ytmShuffle.click(); return 'clicked_ytm_shuffle'; }
-                var spotShuffle = document.querySelector('[data-testid="control-button-shuffle"], button[aria-label*="Shuffle" i]');
+                var spotShuffle = document.querySelector('[data-testid="control-button-shuffle"]');
                 if (spotShuffle) { spotShuffle.click(); return 'clicked_spotify_shuffle'; }
+                var scShuffle = document.querySelector('.shuffleControl');
+                if (scShuffle) { scShuffle.click(); return 'clicked_sc_shuffle'; }
                 return 'not_found';
             })()
             """
@@ -401,6 +489,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 var v = document.querySelector('video, audio');
                 if (v) {
                     v.volume = \(clamped);
+                    if (v.volume > 0 && v.muted) { v.muted = false; }
                     return 'volumed';
                 }
                 return 'not_found';
@@ -673,9 +762,17 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     
     func toggleRepeat() async {
         MRMediaRemoteSendCommandFunction(7, nil)
-        let newRepeatMode = (playbackState.repeatMode == .off) ? 3 : (playbackState.repeatMode.rawValue - 1)
-        playbackState.repeatMode = RepeatMode(rawValue: newRepeatMode) ?? .off
-        MRMediaRemoteSetRepeatModeFunction(newRepeatMode)
+        let nextMode: RepeatMode
+        switch playbackState.repeatMode {
+        case .off:
+            nextMode = .all
+        case .all:
+            nextMode = .one
+        case .one:
+            nextMode = .off
+        }
+        playbackState.repeatMode = nextMode
+        MRMediaRemoteSetRepeatModeFunction(nextMode.rawValue)
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let script = """
@@ -694,7 +791,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             let script = "tell application \"Spotify\" to set repeating to (not repeating)"
             try? await AppleScriptHelper.executeVoid(script)
         } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .toggleRepeat)
+            await executeBrowserScript(for: .toggleRepeat(nextMode))
         }
     }
     
@@ -815,15 +912,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let shuffleMode = payload.shuffleMode {
             newPlaybackState.isShuffled = shuffleMode != 1
-        } else if !diff {
-            newPlaybackState.isShuffled = false
         } else {
             newPlaybackState.isShuffled = self.playbackState.isShuffled
         }
         if let repeatModeValue = payload.repeatMode {
             newPlaybackState.repeatMode = RepeatMode(rawValue: repeatModeValue) ?? .off
-        } else if !diff {
-            newPlaybackState.repeatMode = .off
         } else {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         }
