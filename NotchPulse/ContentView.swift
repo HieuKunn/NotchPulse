@@ -30,6 +30,7 @@ struct ContentView: View {
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
+    @State private var fullscreenHoverDebounceTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
 
@@ -285,7 +286,7 @@ struct ContentView: View {
     }
 
     private var isEffectivelyHiddenInFullscreen: Bool {
-        vm.hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked()
+        vm.hideOnClosed && !vm.isHoverRevealed && !NotchPulseLockMonitor.isScreenActuallyLocked()
     }
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
     private var baseClosedHeight: CGFloat {
@@ -348,6 +349,9 @@ struct ContentView: View {
     @ViewBuilder
     private var mainNotchContainer: some View {
         let isIsland = isDynamicIsland && !hasPhysicalNotch
+        let isHiddenInFS = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
+        let slideOffset: CGFloat = isHiddenInFS ? -(isIsland ? (32 + dynamicIslandTopOffset + 24) : (max(vm.closedNotchSize.height, 36) + 24)) : 0
+
         NotchLayout()
             .frame(
                 width: currentNotchWidth,
@@ -396,16 +400,18 @@ struct ContentView: View {
                 x: 0,
                 y: isIsland ? 4 : 0
             )
-            .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
+            .padding(.top, isIsland ? (isHiddenInFS ? 0 : dynamicIslandTopOffset) : 0)
             .padding(
                 .bottom,
                 (vm.notchState == .closed && vm.effectiveClosedNotchHeight == 0) ? 10 : 0
             )
-            .opacity(isEffectivelyHiddenInFullscreen && vm.notchState == .closed ? 0 : 1)
+            .offset(y: slideOffset)
+            .opacity(isHiddenInFS ? 0 : 1)
     }
 
     var body: some View {
         ZStack(alignment: .top) {
+            topEdgeHoverSensor
             dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
@@ -417,6 +423,8 @@ struct ContentView: View {
                             .animation(animationSpring, value: islandRadius)
                             .animation(animationSpring, value: topCornerRadius)
                             .animation(animationSpring, value: bottomCornerRadius)
+                            .animation(animationSpring, value: vm.isHoverRevealed)
+                            .animation(animationSpring, value: isEffectivelyHiddenInFullscreen)
                             .animation(faceIDAnimation, value: isFaceIDActive)
                             .animation(faceIDAnimation, value: targetFaceIDSize)
                             .animation(.smooth, value: gestureProgress)
@@ -489,9 +497,21 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.notchState) { _, newState in
-                        if newState == .closed && isHovering {
-                            withAnimation {
-                                isHovering = false
+                        if newState == .closed {
+                            if isHovering {
+                                withAnimation {
+                                    isHovering = false
+                                }
+                            }
+                            if vm.hideOnClosed {
+                                Task { @MainActor in
+                                    try? await Task.sleep(for: .milliseconds(320))
+                                    if !self.isHovering && self.vm.notchState == .closed {
+                                        withAnimation(animationSpring) {
+                                            self.vm.isHoverRevealed = false
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -941,6 +961,44 @@ struct ContentView: View {
     }
 
     @ViewBuilder
+    private var topEdgeHoverSensor: some View {
+        if vm.hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() {
+            let sensorWidth = max(currentNotchWidth + 120, 380)
+            let sensorHeight: CGFloat = vm.isHoverRevealed
+                ? (vm.notchState == .open ? (vm.customOpenHeight ?? openNotchSize.height) + 40 : 64)
+                : 14
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(width: sensorWidth, height: sensorHeight)
+                .onHover { hovering in
+                    handleFullscreenHoverSensor(hovering)
+                }
+        }
+    }
+
+    private func handleFullscreenHoverSensor(_ hovering: Bool) {
+        guard vm.hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
+        fullscreenHoverDebounceTask?.cancel()
+
+        if hovering {
+            if !vm.isHoverRevealed {
+                withAnimation(animationSpring) {
+                    vm.isHoverRevealed = true
+                }
+            }
+        } else {
+            fullscreenHoverDebounceTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(320))
+                guard !Task.isCancelled else { return }
+                guard !self.isHovering && self.vm.notchState == .closed else { return }
+                withAnimation(animationSpring) {
+                    self.vm.isHoverRevealed = false
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     var dragDetector: some View {
         EmptyView()
     }
@@ -958,6 +1016,9 @@ struct ContentView: View {
         coordinator.sneakPeek.show = false
         withAnimation(animationSpring) {
             vm.close()
+            if vm.hideOnClosed && !isHovering {
+                vm.isHoverRevealed = false
+            }
         }
     }
 
@@ -979,6 +1040,7 @@ struct ContentView: View {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
         if faceIDOverlay.phase != .closed || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || isFaceIDSettlingAfterClose { return }
         hoverTask?.cancel()
+        fullscreenHoverDebounceTask?.cancel()
         
         if hovering {
             if NotchPulseLockMonitor.isScreenActuallyLocked() {
@@ -988,6 +1050,9 @@ struct ContentView: View {
 
             withAnimation(animationSpring) {
                 isHovering = true
+                if vm.hideOnClosed {
+                    vm.isHoverRevealed = true
+                }
             }
             
             if vm.notchState == .closed && Defaults[.enableHaptics] {
@@ -1027,6 +1092,9 @@ struct ContentView: View {
                         self.isHovering = false
                         if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive && !self.vm.anyDropZoneTargeting && !self.vm.dropEvent {
                             self.vm.close()
+                        }
+                        if self.vm.hideOnClosed && self.vm.notchState == .closed {
+                            self.vm.isHoverRevealed = false
                         }
                     }
                 }

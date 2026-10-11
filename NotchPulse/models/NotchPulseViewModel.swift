@@ -34,6 +34,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     var cancellables: Set<AnyCancellable> = []
     
     @Published var hideOnClosed: Bool = false
+    @Published var isHoverRevealed: Bool = false
 
     @Published var edgeAutoOpenActive: Bool = false
     @Published var isHoveringCalendar: Bool = false
@@ -143,8 +144,13 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             .sink { [weak self] shouldHide in
                 withAnimation(.smooth) {
                     self?.hideOnClosed = shouldHide
-                    if shouldHide && self?.notchState == .open {
-                        self?.close(force: true)
+                    if shouldHide {
+                        self?.isHoverRevealed = false
+                        if self?.notchState == .open {
+                            self?.close(force: true)
+                        }
+                    } else {
+                        self?.isHoverRevealed = false
                     }
                 }
             }
@@ -155,6 +161,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             .sink { [weak self] _ in
                 withAnimation(.smooth) {
                     self?.hideOnClosed = false
+                    self?.isHoverRevealed = false
                 }
             }
             .store(in: &cancellables)
@@ -167,6 +174,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
                 let enabled = Defaults[.hideNotchOption] != .never
                 withAnimation(.smooth) {
                     self.hideOnClosed = enabled && isFullscreen
+                    self.isHoverRevealed = false
                 }
             }
             .store(in: &cancellables)
@@ -174,7 +182,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     // Computed property for effective notch height
     var effectiveClosedNotchHeight: CGFloat {
-        if hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() {
+        if hideOnClosed && !isHoverRevealed && !NotchPulseLockMonitor.isScreenActuallyLocked() {
             return 0
         }
         return closedNotchSize.height
@@ -257,7 +265,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
     
     func isMouseHovering(position: NSPoint = NSEvent.mouseLocation) -> Bool {
-        if hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() && notchState == .closed { return false }
+        if hideOnClosed && !isHoverRevealed && !NotchPulseLockMonitor.isScreenActuallyLocked() && notchState == .closed { return false }
         guard let frame = getScreenFrame(screenUUID) else { return false }
         let screen = resolveScreen(screenUUID: screenUUID)
         let hasPhysicalNotch = (screen?.safeAreaInsets.top ?? 0) > 0 || screen?.auxiliaryTopLeftArea != nil
