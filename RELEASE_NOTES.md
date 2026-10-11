@@ -1,26 +1,17 @@
-## 🚀 What's New in NotchPulse v5.2
+## 🚀 What's New in NotchPulse v5.3
 
-### ⚡️ Accurate Hardware Monitoring & Performance
-- **Activity Monitor Parity**: Top CPU and Memory process lists now match Apple's Activity Monitor, accurately tracking app usage and system processes like WindowServer.
-- **Smooth Memory Pressure Graph**: The RAM monitor now features an authentic curved activity wave displaying real-time system memory pressure.
-- **Drastically Reduced RAM & CPU Usage**: Fixed high memory pressure and lag caused by repetitive image decoding when browsing clipboard history.
-- **Efficient On-Demand Monitoring**: Process list inspection runs only when expanded, saving CPU cycles and battery life.
+### 🎵 Enhanced Media Controls & Interactive Volume Slider
+- **Interactive Volume Slider**: Left-clicking the speaker icon now smoothly opens an interactive volume slider bar instead of muting, giving you immediate control without accidental silencing.
+- **Mouse Scroll Wheel Volume Control**: Effortlessly adjust volume up or down by scrolling your mouse wheel or trackpad directly over the volume icon or the open slider bar.
+- **True Previous Track Navigation**: The Previous Track button now reliably returns to the actual previous song or video across Spotify, Apple Music, YouTube Music, and web players instead of restarting from 0:00, keeping it distinct from the 15-second skip buttons.
+- **Expanded Web Music Likes**: Added support for liking tracks directly from the Notch toolbar when playing music on YouTube, YouTube Music, Spotify Web, and SoundCloud.
+- **Lock Screen Playback Parity**: Enjoy the exact same interactive volume slider, scroll wheel adjustment, and full playback controls on both Compact and Full Screen lock screen players.
 
-### 🎵 Enhanced Media Player & Clean White Aesthetic
-- **Pure White Media Controls**: Artist name, track timeline slider, and timestamps now feature a clean, crisp Apple-native white design.
-- **Reliable Previous Track Jump**: Tapping the Previous Track button now reliably switches to the previous song across Spotify, Apple Music, and web players without stopping at 0:00.
-- **Smart Background Polling**: Automatically pauses media sync when navigating to other tabs to preserve system resources.
+### 🖥️ Smart Full-Screen Auto-Hide & Hover Reveal
+- **Seamless Fullscreen Auto-Hide**: Dynamic Island and Notch automatically slide away when you switch to Full Screen apps, ensuring movies, games, and presentations remain completely unobstructed.
+- **Quick Hover-to-Reveal**: Simply move your cursor to the top edge of your screen while in full-screen to gently reveal the island or notch, check music or battery, and have it smoothly hide when you move away.
+- **Lock Screen Persistence**: Screen lock now reliably shows the lock screen media player even if full-screen apps are running in the background.
 
-### 🔒 Refined Notch & Face ID Animations
-- **Compact Inline Media Layout**: Inline music previews now expand with sleek, compact proportions (278px on Dynamic Island and symmetrical wings on MacBook Notches) with crisp 11pt typography and white text readability.
-- **Conflict-Free Notch Transitions**: Fixed state conflicts when opening or closing the Notch while inline media or sneak peek is active, ensuring 100% continuous spring motion without two-stage snaps or jumps.
-- **Continuous Spring Interpolation**: Fixed an issue where opening or closing the Notch would jump or snap discretely. The Notch now animates continuously with 60/120fps spring physics across all expansion and collapse states.
-- **Hardware Notch & Dynamic Island Geometry Parity**: Fixed horizontal padding and alignment to seamlessly fit physical MacBook camera notches without clipping bottom wings or jumping widths.
-- **Restored Buttery-Smooth Notch Motion**: Restored interactive spring physics for opening and closing the Notch, eliminating snapping and ensuring fluid expansions.
-- **Smooth Notch Collapsing**: Fixed an issue where the Face ID scanner window would snap away mid-animation. Closing Face ID now retracts fluidly into the Notch.
-- **Harmonized Geometry**: Unified corner radii and expansion springs for seamless transitions when opening and closing Face ID.
-
-### 🎨 Apple Design Consistency
-- **Synchronized Continuous Squircle Buttons**: Redesigned Calendar header Pin and Collapse/Expand control buttons with Apple-standard continuous squircle curvature (`cornerRadius: 7`), subtle stroke borders, and responsive hover highlights for a unified, modern macOS look.
-- **Aligned SF Symbols & Icons**: Standardized tab and header icons (Stats, Camera, Settings) to match Apple system icon guidelines and the Settings menu.
-- **Refined Pin & Moon Buttons**: Updated Pin and Lunar Calendar buttons to follow clean Apple design standards with accent colors.
+### 🎨 Visual & UI Refinements
+- **Clean Settings Experience**: Removed outdated preview toggles for a cleaner, faster settings menu.
+- **Refined Bluetooth & Island Metrics**: Polished inline Bluetooth margins and active tab indicators for flawless edge alignment across display modes.
