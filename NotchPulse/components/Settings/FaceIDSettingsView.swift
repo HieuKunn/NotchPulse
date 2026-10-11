@@ -109,17 +109,6 @@ struct FaceIDSettingsView: View {
                 .buttonStyle(.bordered)
                 .tint(isMusicSyncConfirmed ? .green : nil)
                 Spacer()
-                
-                Button {
-                    LockScreenMediaWindow.shared.togglePreview()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles.tv")
-                        Text(loc("Preview Lock Screen Player"))
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.effectiveAccent)
             }
             .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
             .padding(.vertical, 12)
