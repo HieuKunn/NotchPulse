@@ -718,6 +718,10 @@ class MusicManager: ObservableObject {
         return min(max(0, estimated), songDuration)
     }
 
+    public var currentEstimatedTime: TimeInterval {
+        estimatedPlaybackPosition()
+    }
+
     func calculateAverageColor() {
         albumArt.averageColor { [weak self] color in
             DispatchQueue.main.async {
