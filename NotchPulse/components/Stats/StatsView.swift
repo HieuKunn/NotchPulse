@@ -796,7 +796,6 @@ private struct StatsProcessList: View {
 /// Right (30%): Compact SoC circular temperature gauge and status label.
 private struct CoolingHeaderView: View {
     let feedbackText: String
-    @ObservedObject private var helperManager = FanHelperManager.shared
 
     var body: some View {
         HStack(spacing: 6) {
@@ -805,26 +804,6 @@ private struct CoolingHeaderView: View {
                 .foregroundStyle(.secondary)
 
             Spacer()
-
-            if !helperManager.isHelperInstalled {
-                Button(action: {
-                    helperManager.installHelper { _ in }
-                }) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "bolt.shield.fill")
-                            .font(.system(size: 8))
-                        Text(helperManager.isInstalling ? loc("Enabling...") : loc("Enable Fan"))
-                            .font(.system(size: 8.5, weight: .bold))
-                    }
-                    .foregroundStyle(.cyan)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(Color.cyan.opacity(0.18))
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .disabled(helperManager.isInstalling)
-            }
 
             Text(feedbackText)
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
@@ -877,6 +856,9 @@ private struct CoolingSliderView: View {
                             let pct = Int(round((clampedX / max(1.0, sw)) * 100.0))
                             monitor.setCustomFanPercent(pct)
                         }
+                        .onEnded { _ in
+                            FanHelperManager.shared.promptInstallIfNeeded()
+                        }
                 )
             }
             .frame(height: 11)
@@ -904,6 +886,9 @@ private struct CoolingProfileButtonsView: View {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         monitor.setFanProfile(profile)
+                    }
+                    if profile != .auto {
+                        FanHelperManager.shared.promptInstallIfNeeded()
                     }
                 }) {
                     Text(profile.title)

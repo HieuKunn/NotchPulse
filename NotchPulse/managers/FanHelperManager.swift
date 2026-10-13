@@ -37,6 +37,19 @@ public final class FanHelperManager: ObservableObject {
         return installed
     }
 
+    /// Automatically prompts for administrator privileges and installs helper if not already running
+    public func promptInstallIfNeeded(onSuccess: (() -> Void)? = nil) {
+        guard !checkHelperStatus() && !isInstalling else {
+            onSuccess?()
+            return
+        }
+        installHelper { success in
+            if success {
+                onSuccess?()
+            }
+        }
+    }
+
     /// Prompts user with native macOS admin authentication to install the privileged daemon
     public func installHelper(completion: @escaping (Bool) -> Void) {
         isInstalling = true
@@ -85,7 +98,7 @@ public final class FanHelperManager: ObservableObject {
             try? plistContent.write(toFile: tmpPlistPath, atomically: true, encoding: .utf8)
 
             let script = """
-            do shell script "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && launchctl unload '\(Self.daemonPlistPath)' 2>/dev/null; launchctl load -w '\(Self.daemonPlistPath)'" with administrator privileges
+            do shell script "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && launchctl bootout system/com.notchpulse.fanhelper 2>/dev/null; launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)'" with administrator privileges with prompt "NotchPulse requires administrator privileges to enable direct hardware fan speed control."
             """
 
             var errorDict: NSDictionary?
