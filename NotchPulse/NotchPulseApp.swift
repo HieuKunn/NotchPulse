@@ -16,6 +16,7 @@ import AppKit
 import AVFoundation
 import Combine
 import Defaults
+import EventKit
 import KeyboardShortcuts
 import Sparkle
 import SwiftUI
@@ -864,12 +865,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
         let isFirstInstall = coordinator.firstLaunch
+        let isUpdated = isAppUpdated()
 
         if isFirstInstall {
             DispatchQueue.main.async {
                 self.showOnboardingWindow()
             }
             playWelcomeSound()
+        }
+
+        // Proactively request missing permissions upfront on fresh install or app update
+        if isFirstInstall || isUpdated {
+            requestPermissionsUpfrontIfNeeded()
         }
 
         // NotchPulse 2.0: Initialize Face ID & Lock Screen Observer
@@ -899,6 +906,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard vm.notchState == .open, !SharingStateManager.shared.preventNotchClose else { return }
             withAnimation(NotchPulseViewModel.notchCloseSpring) {
                 vm.close()
+            }
+        }
+    }
+
+    @MainActor
+    private func requestPermissionsUpfrontIfNeeded() {
+        Task {
+            // 1. Camera / Face ID Permission
+            let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+            if cameraStatus == .notDetermined {
+                _ = await AVCaptureDevice.requestAccess(for: .video)
+            }
+
+            // 2. Accessibility Permission (for system lock screen auto-fill, notch interaction & HUD)
+            if !AXIsProcessTrusted() {
+                try? await Task.sleep(for: .milliseconds(350))
+                XPCHelperClient.shared.requestAccessibilityAuthorization()
+            }
+
+            // 3. Calendar & Reminders Permissions (for Notch Schedule and Reminders)
+            try? await Task.sleep(for: .milliseconds(350))
+            if EKEventStore.authorizationStatus(for: .event) == .notDetermined {
+                await CalendarManager.shared.checkCalendarAuthorization()
+            }
+            if EKEventStore.authorizationStatus(for: .reminder) == .notDetermined {
+                await CalendarManager.shared.checkReminderAuthorization()
             }
         }
     }
