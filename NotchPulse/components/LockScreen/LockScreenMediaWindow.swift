@@ -22,11 +22,11 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var lyricsCancellables = Set<AnyCancellable>()
     
     static let compactCardWidth: CGFloat = 420
-    static let compactWindowPadding: CGFloat = 20
+    static let compactWindowPadding: CGFloat = 0
     
     private init() {
-        let initialWidth = Self.compactCardWidth + (Self.compactWindowPadding * 2)
-        let initialHeight: CGFloat = 190 + (Self.compactWindowPadding * 2)
+        let initialWidth = Self.compactCardWidth
+        let initialHeight: CGFloat = 190
         let initialRect = NSRect(x: 0, y: 0, width: initialWidth, height: initialHeight)
         super.init(
             contentRect: initialRect,
@@ -97,10 +97,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
         let hasLyrics = (!MusicManager.shared.syncedLyrics.isEmpty || !MusicManager.shared.currentLyrics.isEmpty) && Defaults[.lockScreenPlayerShowLyrics]
         let cardHeight: CGFloat = hasLyrics ? 228 : 190
-        let totalWidth = Self.compactCardWidth + (Self.compactWindowPadding * 2)
-        let totalHeight = cardHeight + (Self.compactWindowPadding * 2)
+        let totalWidth = Self.compactCardWidth
+        let totalHeight = cardHeight
         let x = (screen.frame.width - totalWidth) / 2 + screen.frame.origin.x
-        let y = screen.frame.origin.y + (screen.frame.height * 0.20) - Self.compactWindowPadding
+        let y = screen.frame.origin.y + (screen.frame.height * 0.20)
         return NSRect(x: x, y: y, width: totalWidth, height: totalHeight)
     }
     
@@ -126,6 +126,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     func show() {
         guard let screen = getTargetScreen() else { return }
+        
+        // Sync system appearance (Dark Mode vs Light Mode)
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        self.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
         
         let targetRect = targetFrame(for: screen)
         setFrame(targetRect, display: true)

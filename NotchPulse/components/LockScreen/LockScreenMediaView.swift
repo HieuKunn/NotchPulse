@@ -39,20 +39,21 @@ struct LockScreenMediaView: View {
     
     private let lyricsTimer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     
+    @State private var isSystemLightMode: Bool = {
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        return !isDark
+    }()
+    
     private var isLightMode: Bool {
-        colorScheme == .light
+        isSystemLightMode
     }
     
     private var compactCardBg: Color {
-        isLightMode ? Color.white : Color(white: 0.11)
+        isLightMode ? Color.white : Color(white: 0.10)
     }
     
     private var compactCardBorder: Color {
-        isLightMode ? Color.black.opacity(0.12) : Color.white.opacity(0.14)
-    }
-    
-    private var compactCardShadow: Color {
-        isLightMode ? Color.black.opacity(0.14) : Color.black.opacity(0.45)
+        isLightMode ? Color.black.opacity(0.12) : Color.white.opacity(0.15)
     }
     
     private var compactPrimaryText: Color {
@@ -71,10 +72,13 @@ struct LockScreenMediaView: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 } else {
                     compactPlayerView
-                        .padding(LockScreenMediaWindow.compactWindowPadding)
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
+        }
+        .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("AppleInterfaceThemeChangedNotification"))) { _ in
+            let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            self.isSystemLightMode = !isDark
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85, blendDuration: 0), value: windowController.isFullScreen)
         .onAppear {
@@ -319,7 +323,6 @@ struct LockScreenMediaView: View {
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: compactCardShadow, radius: 16, x: 0, y: 7)
     }
     
     // =========================================================================
