@@ -33,13 +33,15 @@ struct AudioDeviceItem: Identifiable, Equatable {
     var isMuted: Bool
     var deviceType: AudioDeviceType
     var iconName: String
+    var batteryLevel: Int? = nil
     
     static func == (lhs: AudioDeviceItem, rhs: AudioDeviceItem) -> Bool {
         lhs.id == rhs.id &&
         lhs.isDefault == rhs.isDefault &&
         abs(lhs.volume - rhs.volume) < 0.01 &&
         lhs.isMuted == rhs.isMuted &&
-        lhs.name == rhs.name
+        lhs.name == rhs.name &&
+        lhs.batteryLevel == rhs.batteryLevel
     }
 }
 
@@ -98,6 +100,8 @@ final class AudioDeviceManager: ObservableObject {
                 let muted = getDeviceMute(id, isInput: false)
                 let type = resolveDeviceType(name: name, transport: transport, isInput: false)
                 let icon = iconForType(type, isInput: false)
+                let battery = (type == .airpods || type == .headphones || type == .bluetooth) ?
+                    BluetoothHeadphoneManager.shared.getBatteryPercentage(forDeviceNamed: name) : nil
 
                 let item = AudioDeviceItem(
                     id: id,
@@ -109,7 +113,8 @@ final class AudioDeviceManager: ObservableObject {
                     volume: vol,
                     isMuted: muted,
                     deviceType: type,
-                    iconName: icon
+                    iconName: icon,
+                    batteryLevel: battery
                 )
                 newOutputs.append(item)
                 if isDef {
@@ -123,6 +128,8 @@ final class AudioDeviceManager: ObservableObject {
                 let muted = getDeviceMute(id, isInput: true)
                 let type = resolveDeviceType(name: name, transport: transport, isInput: true)
                 let icon = iconForType(type, isInput: true)
+                let battery = (type == .airpods || type == .headphones || type == .bluetooth) ?
+                    BluetoothHeadphoneManager.shared.getBatteryPercentage(forDeviceNamed: name) : nil
 
                 let item = AudioDeviceItem(
                     id: id,
@@ -134,7 +141,8 @@ final class AudioDeviceManager: ObservableObject {
                     volume: vol,
                     isMuted: muted,
                     deviceType: type,
-                    iconName: icon
+                    iconName: icon,
+                    batteryLevel: battery
                 )
                 newInputs.append(item)
                 if isDef {

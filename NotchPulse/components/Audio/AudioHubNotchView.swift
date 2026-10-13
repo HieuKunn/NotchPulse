@@ -261,6 +261,17 @@ private struct AudioDeviceRow: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
 
+                    if let bat = device.batteryLevel {
+                        HStack(spacing: 3) {
+                            Image(systemName: bat <= 20 ? "battery.25" : (bat <= 50 ? "battery.50" : (bat <= 80 ? "battery.75" : "battery.100")))
+                                .font(.system(size: 9))
+                                .foregroundStyle(bat <= 20 ? Color.red : (bat <= 40 ? Color.yellow : Color.green.opacity(0.9)))
+                            Text("\(bat)%")
+                                .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
                     Spacer()
                 }
                 .contentShape(Rectangle())
