@@ -208,6 +208,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             enableSkyLightOnAllWindows()
         }
+
+        // On-demand Face ID ML warmup: Pre-warm ArcFace Neural Engine model only when screen is locked
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+            ArcFaceEmbedder.warmUp()
+        }
     }
 
     @MainActor
@@ -237,6 +242,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             adjustWindowPosition(changeAlpha: true)
         } else {
             disableSkyLightOnAllWindows()
+        }
+
+        // Unload ArcFace ML model from RAM after a 10s grace period upon desktop unlock
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+            ArcFaceEmbedder.scheduleUnload(after: 10.0)
         }
     }
     
@@ -884,9 +894,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = NotchPulseFaceUnlockCoordinator.shared
         _ = SystemAuthPromptObserver.shared
         _ = BluetoothHeadphoneManager.shared
-        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-            ArcFaceEmbedder.warmUp()
-        }
 
         previousScreens = NSScreen.screens
 

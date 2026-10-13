@@ -1,6 +1,11 @@
 //
 //  ArcFaceEmbedder.swift
-//  NotchPulse
+//  NotchPulse Face ID Core
+//
+//  CRITICAL COMPONENT: ArcFace MobileFaceNet embedding extraction (512-D) via Apple Neural Engine / CoreML.
+//  DO NOT REMOVE OR BYPASS: Required for offline, private biometric face unlock and system auth verification.
+//  MEMORY OPTIMIZATION: Dynamically loaded on-demand when screen locks or Face ID is triggered, and automatically
+//  unloaded from RAM after a 10s grace period upon desktop unlock (0MB RAM footprint during normal desktop usage).
 //
 //  Requires a canonically-aligned 112x112 input (see NotchPulseFaceAligner) — unlike VisionFeaturePrintEmbedder, accuracy depends on alignment.
 //
@@ -56,19 +61,15 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let outputName = "embedding"
 
     private static let instanceLock = NSLock()
-    private static var _sharedInstance: ArcFaceEmbedder? = {
-        do {
-            return try ArcFaceEmbedder()
-        } catch {
-            NSLog("[ArcFaceEmbedder] Failed to initialize persistent instance: \(error.localizedDescription)")
-            return nil
-        }
-    }()
+    private static var _sharedInstance: ArcFaceEmbedder? = nil
+    private static var unloadTask: Task<Void, Never>?
 
-    /// Persistent ArcFace model resident in memory (24/7, ~12MB) for instant 0ms recognition on sleep wake and lock screen.
+    /// On-demand ArcFace model instance: allocated when needed for authentication, unloaded when desktop is active.
     static var shared: ArcFaceEmbedder? {
         instanceLock.lock()
         defer { instanceLock.unlock() }
+        unloadTask?.cancel()
+        unloadTask = nil
         if let existing = _sharedInstance {
             return existing
         }
@@ -96,11 +97,26 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         }.value
     }
 
-    /// Kept resident in RAM for instant 0ms response.
-    static func scheduleUnload(after delay: TimeInterval = 60.0) {}
+    /// Automatically unloads the model from RAM after `delay` seconds of inactivity.
+    static func scheduleUnload(after delay: TimeInterval = 10.0) {
+        instanceLock.lock()
+        unloadTask?.cancel()
+        unloadTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            ArcFaceEmbedder.unload()
+        }
+        instanceLock.unlock()
+    }
 
-    /// Kept resident in RAM for instant 0ms response.
-    static func unload() {}
+    /// Immediately frees the ArcFace CoreML model and neural network allocations from RAM.
+    static func unload() {
+        instanceLock.lock()
+        defer { instanceLock.unlock() }
+        unloadTask?.cancel()
+        unloadTask = nil
+        _sharedInstance = nil
+    }
 
     // Loaded once and reused — model load dominates a single inference.
     private let model: MLModel

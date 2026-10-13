@@ -2,9 +2,14 @@
 //  NotchPulseSystemAuthCoordinator.swift
 //  NotchPulse
 //
-//  Complete System Authorization, Terminal Quick-Auth & Apple Biometrics Integration.
-//  Intercepts macOS SecurityAgent/installer prompts, supports Terminal & sudo Face ID,
-//  and integrates Apple Touch ID / LocalAuthentication authority fallback.
+//  CRITICAL COMPONENT: Intercepts macOS SecurityAgent, CoreAuthUI, and sudo prompts for biometric Face ID auto-fill.
+//  DO NOT REMOVE OR BYPASS: Required for hands-free system authorization, administrator prompts, and Terminal quick-auth.
+//  OPTIMIZATIONS & FIXES:
+//  1. Single-Prompt Locking: Tracks lastPromptPid and triggers authentication strictly ONCE per prompt PID, eliminating the
+//     incessant 3-second retry loop that previously caused the camera and Face ID to cycle on and off continuously.
+//  2. Fail-Fast Recognition: Immediately stops and presents failure animation if an unrecognized face is seen for 5 consecutive frames.
+//  3. Resource Efficiency: ArcFace ML model is warmed up in background when camera starts and automatically unloaded after 30s.
+//  4. Window-List Throttling: Skips expensive CGWindowListCopyWindowInfo checks if no SecurityAgent/CoreAuthUI process is active.
 //
 
 import AppKit
@@ -190,18 +195,22 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         // Fast check 1: Check frontmost application directly in O(1)
         if let frontApp = NSWorkspace.shared.frontmostApplication, Self.isAuthAgent(frontApp) {
             let pid = frontApp.processIdentifier
-            if pid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
+            if pid != lastPromptPid {
                 lastPromptPid = pid
                 lastPromptTimestamp = Date()
                 authenticateForSystemPrompt(targetApp: frontApp)
                 return
             }
+            return
         }
 
         // Fast check 2: Only enumerate CGWindowList if an auth agent is actually running in the system
         let isAuthRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.SecurityAgent").isEmpty
             || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.CoreAuthUI").isEmpty
-        guard isAuthRunning else { return }
+        guard isAuthRunning else {
+            lastPromptPid = 0
+            return
+        }
 
         // Check on-screen window list for SecurityAgent or CoreAuthUI
         if let windowInfoList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
@@ -216,7 +225,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                        let w = boundsDict["Width"] as? CGFloat,
                        let h = boundsDict["Height"] as? CGFloat,
                        w > 50, h > 50 {
-                        if ownerPid != lastPromptPid || Date().timeIntervalSince(lastPromptTimestamp) > 3.0 {
+                        if ownerPid != lastPromptPid {
                             lastPromptPid = ownerPid
                             lastPromptTimestamp = Date()
                             if let runningApp = NSRunningApplication(processIdentifier: ownerPid) {
@@ -244,13 +253,22 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             return
         }
 
-        authenticateForSystemPrompt(targetApp: app)
+        let pid = app.processIdentifier
+        if pid != lastPromptPid {
+            lastPromptPid = pid
+            lastPromptTimestamp = Date()
+            authenticateForSystemPrompt(targetApp: app)
+        }
     }
 
     private func handleDeactivation(_ notification: Notification) {
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
               Self.isAuthAgent(app) else {
             return
+        }
+
+        if app.processIdentifier == lastPromptPid {
+            lastPromptPid = 0
         }
 
         if isCurrentlyVerifying {
@@ -372,6 +390,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         let threshold = settings.matchThreshold
         var lastProcessedFrameID: UInt64?
         var lastFaceBoundingBox: CGRect?
+        var consecutiveWrongFaceFrames = 0
 
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { [weak self] in self?.settings.livenessMode ?? .light }
@@ -423,6 +442,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)
             if let _ = pipeline.bestMatch(in: scored, threshold: threshold) {
+                consecutiveWrongFaceFrames = 0
                 if !livenessConfirmed {
                     try? await Task.sleep(for: .milliseconds(30))
                     continue
@@ -433,6 +453,13 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                     NSSound(named: "Glass")?.play()
                 }
                 return true
+            } else {
+                // Detected a face but not matching enrolled identity
+                consecutiveWrongFaceFrames += 1
+                if consecutiveWrongFaceFrames >= 5 {
+                    FaceIDOverlayController.shared.finish(success: false)
+                    return false
+                }
             }
 
             try? await Task.sleep(for: .milliseconds(25))

@@ -2,7 +2,12 @@
 //  NotchPulseCamera.swift
 //  NotchPulse
 //
-//  Owns the AVCaptureSession and publishes the newest camera frame as a CGImage. Runs entirely on-device.
+//  CRITICAL COMPONENT: Hardware AVCaptureSession provider publishing low-latency camera frames for Face ID.
+//  DO NOT REMOVE OR BYPASS: Required for on-device biometric capture and live video analysis.
+//  OPTIMIZATIONS & FIXES:
+//  1. Sleep-Wake Hardware Recovery: Automatically listens to AVCaptureSessionRuntimeError & interruption notifications,
+//     tearing down disconnected camera input handles so re-awakening from sleep always binds a fresh, live camera stream.
+//  2. Zero-Allocation Idle: Stops session immediately upon recognition or timeout, ensuring camera light turns off instantly.
 //
 
 @preconcurrency import AVFoundation
