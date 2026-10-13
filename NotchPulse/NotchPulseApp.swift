@@ -638,6 +638,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Start clipboard monitoring immediately at app launch
         _ = ClipboardManager.shared
 
+        // Ensure ArcFace Neural Engine model is completely unloaded from RAM at startup (loads on-demand only)
+        ArcFaceEmbedder.unload()
+
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil
         ) { [weak self] _ in

@@ -41,10 +41,10 @@ final class NotchPulseFaceRecognitionPipeline {
     }
 
     nonisolated static var sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) {
-        if let arcFace = ArcFaceEmbedder.shared {
+        if ArcFaceEmbedder.isModelBundled, let arcFace = ArcFaceEmbedder.shared {
             return (arcFace, false, nil)
         } else {
-            return (VisionFeaturePrintEmbedder(), true, "ArcFace model not loaded or available")
+            return (VisionFeaturePrintEmbedder(), true, ArcFaceEmbedder.isModelBundled ? "ArcFace model failed to load" : "ArcFace model not bundled")
         }
     }
 
@@ -52,12 +52,12 @@ final class NotchPulseFaceRecognitionPipeline {
         Self.sharedEmbedderResult.embedder
     }
 
-    /// Set when ArcFace failed to load (see tools/convert_arcface.py) and the weaker Vision feature-print embedder is in use instead.
+    /// Set when ArcFace is not bundled in the app and the Vision feature-print embedder is in use instead.
     var usingFallbackEmbedder: Bool {
-        Self.sharedEmbedderResult.isFallback
+        !ArcFaceEmbedder.isModelBundled
     }
     var fallbackReason: String? {
-        Self.sharedEmbedderResult.reason
+        usingFallbackEmbedder ? "ArcFace model not bundled in app" : nil
     }
 
     init() {}

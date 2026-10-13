@@ -650,7 +650,7 @@ final class FaceIDEnrollmentController {
     func teardown() {
         stopPermissionsPolling()
         camera.stop()
-        ArcFaceEmbedder.scheduleUnload(after: 30.0)
+        ArcFaceEmbedder.scheduleUnload(after: 5.0)
         sweepWindow.dismiss()
     }
 

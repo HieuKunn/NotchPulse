@@ -78,6 +78,7 @@ class MusicManager: ObservableObject {
 
     @Published var isTransitioning: Bool = false
     private var transitionWorkItem: DispatchWorkItem?
+    private var currentControllerType: MediaControllerType?
 
     // MARK: - Initialization
     init() {
@@ -177,6 +178,9 @@ class MusicManager: ObservableObject {
             ? .appleMusic
             : preferredType
 
+        guard controllerType != currentControllerType || activeController == nil else { return }
+        currentControllerType = controllerType
+
         if let controller = createController(for: controllerType) {
             setActiveController(controller)
         } else if controllerType != .appleMusic, let fallbackController = createController(for: .appleMusic) {
@@ -274,7 +278,12 @@ class MusicManager: ObservableObject {
             self.fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
         }
 
-        let timeChanged = state.currentTime != self.elapsedTime
+        let timeChanged: Bool
+        if state.isPlaying {
+            timeChanged = abs(state.currentTime - self.elapsedTime) >= 1.0 || state.isPlaying != self.isPlaying
+        } else {
+            timeChanged = state.currentTime != self.elapsedTime
+        }
         let durationChanged = state.duration != self.songDuration
         let playbackRateChanged = state.playbackRate != self.playbackRate
         let shuffleChanged = state.isShuffled != self.isShuffled

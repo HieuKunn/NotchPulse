@@ -220,7 +220,7 @@ final class NotchPulseFaceUnlockCoordinator {
         FaceIDOverlayController.shared.dismissImmediately()
         FaceIDOverlayController.shared.disarm()
         // Retain ArcFace CoreML model for a grace period to avoid cold-start lag on rapid relocks
-        ArcFaceEmbedder.scheduleUnload(after: 60.0)
+        ArcFaceEmbedder.scheduleUnload(after: 10.0)
         // Covers isEnabled being switched off directly, keeping "disarmed" and "not listening for space" in lockstep.
         spaceKeyMonitor.stop()
     }
@@ -359,7 +359,7 @@ final class NotchPulseFaceUnlockCoordinator {
         switch outcome {
         case .matched:
             // Retain ArcFace CoreML model for a grace period so rapid re-auth doesn't pay cold-start penalty
-            ArcFaceEmbedder.scheduleUnload(after: 60.0)
+            ArcFaceEmbedder.scheduleUnload(after: 10.0)
             if showsUI {
                 FaceIDOverlayController.shared.finish(success: true)
             }

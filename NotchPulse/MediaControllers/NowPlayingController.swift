@@ -70,6 +70,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     private var process: Process?
     private var pipeHandler: JSONLinesPipeHandler?
+    private var setupObserverTask: Task<Void, Never>?
     private var streamTask: Task<Void, Never>?
     private var wakeObserver: NSObjectProtocol?
 
@@ -112,10 +113,13 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             }
         }
 
-        Task { await setupNowPlayingObserver() }
+        setupObserverTask = Task { [weak self] in
+            await self?.setupNowPlayingObserver()
+        }
     }
 
     deinit {
+        setupObserverTask?.cancel()
         streamTask?.cancel()
         
         if let observer = wakeObserver {
@@ -891,6 +895,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     
     // MARK: - Setup Methods
     private func setupNowPlayingObserver() async {
+        guard !Task.isCancelled else { return }
         if let oldPipe = self.pipeHandler {
             await oldPipe.close()
             self.pipeHandler = nil
@@ -900,6 +905,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             oldProc.terminate()
             self.process = nil
         }
+        guard !Task.isCancelled else { return }
 
         let process = Process()
         guard let paths = Self.getAdapterPaths() else {
@@ -908,7 +914,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.script, paths.framework, "stream", "--debounce=100"]
+        process.arguments = [paths.script, paths.framework, "stream", "--debounce=250"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
