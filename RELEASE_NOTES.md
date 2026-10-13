@@ -12,8 +12,14 @@
 - **Symmetrical 3-Column Layout**: Perfectly balanced CPU, RAM, and GPU dashboard cards (33% each) with responsive typography, giving your GPU model name extra breathing room while keeping all labels clean and legible.
 
 ### ❄️ Interactive Thermal & Fan Controls
+- **Dedicated Native Fan Helper**: NotchPulse now features its own native helper daemon for direct Apple Silicon SMC fan speed control without third-party app dependencies.
 - **70/30 Fan & Temperature Card**: Enjoy a dedicated thermal card featuring a 70/30 split between interactive fan controls and a real-time hardware temperature gauge.
 - **One-Click Fan Profiles**: Instantly switch between Silent, Auto, Full Speed, and custom fan percentages directly from the Notch.
+
+### 🎵 Refined Lock Screen Media Player
+- **Clean Border & Zero Blurred Artifacts**: Eliminated unsightly diffuse shadows and window margins around the compact player for a clean, seamless card presentation.
+- **Unified Control Button Icons**: Synchronized icon color fidelity across all media buttons (Shuffle, Previous, Play/Pause, Next, Repeat, Volume, Favorite, and Seek).
+- **Reactive Dark & Light Mode Appearance**: Card background, borders, text, and icons dynamically transition between pure white and dark gray in sync with macOS system appearance.
 
 ### 🔒 Smarter Face ID Biometrics & Instant Verification
 - **Seamless Parallel Pre-Warming**: AI facial models warm up concurrently while camera hardware starts up, ensuring instant recognition without perceptible wait times.
