@@ -823,8 +823,8 @@ public class SystemMonitorManager: ObservableObject {
 
         let isAvailable = SMCService.shared.isHardwareFanAvailable
 
-        // DIRECT HARDWARE FAN CONTROL (ThermalForge Native Port):
-        // Directly drive Apple Silicon SMC registers without requiring third-party processes
+        // DIRECT HARDWARE FAN CONTROL (NotchPulse Native Port):
+        // 1. Direct Kernel SMC call in-process
         if isAvailable {
             if selectedFanProfile == .auto {
                 SMCService.shared.restoreAutoFanControl()
@@ -833,7 +833,16 @@ public class SystemMonitorManager: ObservableObject {
             }
         }
 
-        // Secondary fallback: Dispatches to ThermalForge root daemon socket if present on system
+        // 2. Dispatch directly to NotchPulse's native privileged fan daemon socket
+        if selectedFanProfile == .auto {
+            FanHelperManager.shared.sendCommand("auto")
+        } else if selectedFanProfile == .max {
+            FanHelperManager.shared.sendCommand("max")
+        } else if rpm > 0 {
+            FanHelperManager.shared.sendCommand("set \(rpm)")
+        }
+
+        // 3. Secondary fallback: Dispatches to external daemon socket if present on system
         dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: rpm)
 
         DispatchQueue.main.async { [weak self] in

@@ -170,6 +170,8 @@
 		A9F1B2C42E589FAA00147B33 /* BluetoothHeadphoneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */; };
 		AA0000022ED0000100000002 /* SystemMonitorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000012ED0000100000001 /* SystemMonitorManager.swift */; };
 		AA0000062ED0000300000006 /* SMCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000072ED0000300000007 /* SMCService.swift */; };
+		AA0000082ED0000400000008 /* FanHelperManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000092ED0000400000009 /* FanHelperManager.swift */; };
+		AA0000102ED0000500000010 /* notchpulse-fanhelper in Resources */ = {isa = PBXBuildFile; fileRef = AA0000112ED0000500000011 /* notchpulse-fanhelper */; };
 		AA0000042ED0000200000004 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000032ED0000200000003 /* StatsView.swift */; };
 		ABA2A7AE47F39E6F8606A677 /* FaceIDSettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */; };
 		AEC91CAB43968E85ACCEEC60 /* FaceIDAnimatedCheckmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0DAA5C994C088A7532D1A9 /* FaceIDAnimatedCheckmark.swift */; };
@@ -440,6 +442,8 @@
 		A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothHeadphoneManager.swift; sourceTree = "<group>"; };
 		AA0000012ED0000100000001 /* SystemMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorManager.swift; sourceTree = "<group>"; };
 		AA0000072ED0000300000007 /* SMCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCService.swift; sourceTree = "<group>"; };
+		AA0000092ED0000400000009 /* FanHelperManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanHelperManager.swift; sourceTree = "<group>"; };
+		AA0000112ED0000500000011 /* notchpulse-fanhelper */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "notchpulse-fanhelper"; sourceTree = "<group>"; };
 		AA0000032ED0000200000003 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessScoring.swift; sourceTree = "<group>"; };
 		B10348D82C74E56000475897 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
@@ -661,6 +665,7 @@
 		11FA00002E80E27000EC13B2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				AA0000112ED0000500000011 /* notchpulse-fanhelper */,
 				11FA00012E80E27000EC13B2 /* unlockanimation.mp4 */,
 				11FA00032E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 */,
 				11FA00052E80E27000EC13B2 /* unlockstatic.png */,
@@ -749,6 +754,7 @@
 				A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */,
 				AA0000012ED0000100000001 /* SystemMonitorManager.swift */,
 				AA0000072ED0000300000007 /* SMCService.swift */,
+				AA0000092ED0000400000009 /* FanHelperManager.swift */,
 				EA3A0859B1FA539A5464FF90 /* FaceIDCore */,
 				DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */,
 				78728B0E6CE22080DF969DBF /* MediaAutomationPermissionHelper.swift */,
@@ -1248,6 +1254,7 @@
 				14CEF41A2C5CAED400855D72 /* Assets.xcassets in Resources */,
 				112B0EB82E30DD0F00562D6C /* MediaRemoteAdapterTestClient in Resources */,
 				112B0EB92E30DD0F00562D6C /* mediaremote-adapter.pl in Resources */,
+				AA0000102ED0000500000010 /* notchpulse-fanhelper in Resources */,
 				B17266E12C6532560031BA0D /* Localizable.xcstrings in Resources */,
 				14A7E5972C65FD31008C1BE9 /* notchpulse.m4a in Resources */,
 				11FA00022E80E27000EC13B2 /* unlockanimation.mp4 in Resources */,
@@ -1280,6 +1287,7 @@
 				115C12EC2ED3D003009754CA /* OpenNotchHUD.swift in Sources */,
 				AA0000022ED0000100000002 /* SystemMonitorManager.swift in Sources */,
 				AA0000062ED0000300000006 /* SMCService.swift in Sources */,
+				AA0000082ED0000400000008 /* FanHelperManager.swift in Sources */,
 				AA0000042ED0000200000004 /* StatsView.swift in Sources */,
 				F1D200032ED0000100000001 /* FaceIDManager.swift in Sources */,
 				F1D200052ED0000100000001 /* LockScreenWakeObserver.swift in Sources */,

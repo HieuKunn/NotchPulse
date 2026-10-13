@@ -796,6 +796,7 @@ private struct StatsProcessList: View {
 /// Right (30%): Compact SoC circular temperature gauge and status label.
 private struct CoolingHeaderView: View {
     let feedbackText: String
+    @ObservedObject private var helperManager = FanHelperManager.shared
 
     var body: some View {
         HStack(spacing: 6) {
@@ -804,6 +805,26 @@ private struct CoolingHeaderView: View {
                 .foregroundStyle(.secondary)
 
             Spacer()
+
+            if !helperManager.isHelperInstalled {
+                Button(action: {
+                    helperManager.installHelper { _ in }
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "bolt.shield.fill")
+                            .font(.system(size: 8))
+                        Text(helperManager.isInstalling ? loc("Enabling...") : loc("Enable Fan"))
+                            .font(.system(size: 8.5, weight: .bold))
+                    }
+                    .foregroundStyle(.cyan)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.cyan.opacity(0.18))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(helperManager.isInstalling)
+            }
 
             Text(feedbackText)
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
