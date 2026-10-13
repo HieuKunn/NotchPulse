@@ -181,27 +181,48 @@ struct LockScreenMediaView: View {
         }
     }
 
+    private var compactQuoteBubbleColor: Color {
+        if isLightMode {
+            return Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
+        } else {
+            return Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85)
+        }
+    }
+
+    private func compactLyricColor(isActive: Bool) -> Color {
+        if isLightMode {
+            if musicManager.isFetchingLyrics { return Color.black.opacity(0.50) }
+            return isActive ? Color.black.opacity(0.92) : Color.black.opacity(0.58)
+        } else {
+            if musicManager.isFetchingLyrics { return Color.white.opacity(0.60) }
+            return isActive ? Color.white.opacity(0.95) : Color.white.opacity(0.65)
+        }
+    }
+
+    private func resolveCompactLyricText(elapsed: Double) -> (text: String, isPersian: Bool) {
+        let line: String
+        if musicManager.isFetchingLyrics {
+            line = "Loading lyrics…"
+        } else if !musicManager.syncedLyrics.isEmpty {
+            line = musicManager.lyricLine(at: elapsed)
+        } else {
+            let trimmed = musicManager.currentLyrics.trimmingCharacters(in: .whitespacesAndNewlines)
+            line = trimmed.isEmpty ? "♪  ♫  ♪" : trimmed.replacingOccurrences(of: "\n", with: " ")
+        }
+        let cleanText = MusicManager.stripLRCTimestamps(from: line)
+        let displayText = cleanText.isEmpty ? "♪  ♫  ♪" : cleanText
+        let isPersian = displayText.unicodeScalars.contains { $0.value >= 0x0600 && $0.value <= 0x06FF }
+        return (displayText, isPersian)
+    }
+
     @ViewBuilder
     private var compactLyricsRow: some View {
         TimelineView(.animation(minimumInterval: 0.25)) { timeline in
-            let effectiveElapsed: Double = compactDragging
+            let effectiveElapsed = compactDragging
                 ? compactSliderValue
                 : musicManager.estimatedPlaybackPosition(at: timeline.date)
             let activeIndex = musicManager.currentLyricIndex(at: effectiveElapsed)
-            let line: String = {
-                if musicManager.isFetchingLyrics { return "Loading lyrics…" }
-                if !musicManager.syncedLyrics.isEmpty {
-                    return musicManager.lyricLine(at: effectiveElapsed)
-                }
-                let trimmed = musicManager.currentLyrics.trimmingCharacters(in: .whitespacesAndNewlines)
-                return trimmed.isEmpty ? "♪  ♫  ♪" : trimmed.replacingOccurrences(of: "\n", with: " ")
-            }()
-            let cleanText = MusicManager.stripLRCTimestamps(from: line)
-            let displayText = cleanText.isEmpty ? "♪  ♫  ♪" : cleanText
-            let isPersian = displayText.unicodeScalars.contains { scalar in
-                let v = scalar.value
-                return v >= 0x0600 && v <= 0x06FF
-            }
+            let lyric = resolveCompactLyricText(elapsed: effectiveElapsed)
             
             Button {
                 windowController.setFullScreen(true)
@@ -209,24 +230,12 @@ struct LockScreenMediaView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "quote.bubble.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(
-                            isLightMode
-                                ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
-                                : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85)
-                        )
+                        .foregroundStyle(compactQuoteBubbleColor)
                     
-                    Text(displayText)
-                        .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(displayText)")
-                        .font(isPersian ? .custom("Vazirmatn-Regular", size: 12) : .system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(
-                            isLightMode
-                                ? (musicManager.isFetchingLyrics
-                                    ? Color.black.opacity(0.50)
-                                    : (activeIndex != nil ? Color.black.opacity(0.92) : Color.black.opacity(0.58)))
-                                : (musicManager.isFetchingLyrics
-                                    ? Color.white.opacity(0.60)
-                                    : (activeIndex != nil ? Color.white.opacity(0.95) : Color.white.opacity(0.65)))
-                        )
+                    Text(lyric.text)
+                        .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(lyric.text)")
+                        .font(lyric.isPersian ? .custom("Vazirmatn-Regular", size: 12) : .system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(compactLyricColor(isActive: activeIndex != nil))
                         .lineLimit(1)
                         .transition(.opacity.combined(with: .offset(y: 2)))
                         .animation(.easeInOut(duration: 0.25), value: activeIndex)
