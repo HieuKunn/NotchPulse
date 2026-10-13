@@ -210,10 +210,10 @@ struct StatsView: View {
             let cpuWidth = availableWidth * (1.0 / 3.0)
             // RAM + GPU: 2/3 (66.67%)
             let ramGpuWidth = availableWidth * (2.0 / 3.0)
-            // RAM: 60% of 2/3 (= 40% of total)
-            let ramWidth = ramGpuWidth * 0.60
-            // GPU: 40% of 2/3 (= 26.67% of total)
-            let gpuWidth = ramGpuWidth * 0.40
+            // RAM: shortened by 10% on the right (50% of 2/3 = 33.33% of total) to give GPU room
+            let ramWidth = ramGpuWidth * 0.50
+            // GPU: expanded to the left by 10% (50% of 2/3 = 33.33% of total)
+            let gpuWidth = ramGpuWidth * 0.50
 
             VStack(spacing: 8) {
                 // The 3 Cards Row (always kept intact and identical in size)
