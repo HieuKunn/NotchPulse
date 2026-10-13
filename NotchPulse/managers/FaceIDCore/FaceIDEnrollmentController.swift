@@ -250,7 +250,7 @@ final class FaceIDEnrollmentController {
     ///
     /// The Your Face page is still single-identity, so this keeps targeting
     /// `identities.first`: "redo" replaces it in place, or enrolls someone new.
-    static func startEnrollmentOnly(onDismiss: (() -> Void)? = nil) {
+    nonisolated static func startEnrollmentOnly(onDismiss: (@Sendable () -> Void)? = nil) {
         Task { @MainActor in
             _ = NotchPulseVault.ensureSessionKey()
             let store = NotchPulseFaceEnrollmentStore.shared
@@ -268,7 +268,7 @@ final class FaceIDEnrollmentController {
 
     /// Entry point used by Face Lab's "Add Identity" — always enrolls a *new* person
     /// alongside whoever is already enrolled; name starts empty rather than `defaultName`.
-    static func startAddIdentity() {
+    nonisolated static func startAddIdentity() {
         Task { @MainActor in
             _ = NotchPulseVault.ensureSessionKey()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
@@ -278,7 +278,7 @@ final class FaceIDEnrollmentController {
 
     /// Entry point used by Face Lab's per-identity "Recapture" — replaces that identity's
     /// samples wholesale, keeping its id and enrollment date.
-    static func startRecapture(of identity: FaceIdentity) {
+    nonisolated static func startRecapture(of identity: FaceIdentity) {
         Task { @MainActor in
             _ = NotchPulseVault.ensureSessionKey()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
@@ -297,7 +297,7 @@ final class FaceIDEnrollmentController {
     ///
     /// No Touch ID prompt here: the only caller already has a live session, and
     /// `finish(password:)` re-asserts that anyway.
-    static func startPasswordOnly(onComplete: (() -> Void)? = nil) {
+    nonisolated static func startPasswordOnly(onComplete: (@Sendable () -> Void)? = nil) {
         Task { @MainActor in
             let controller = FaceIDEnrollmentController(isPasswordOnly: true)
             controller.onFirstRunComplete = onComplete

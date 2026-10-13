@@ -79,16 +79,18 @@ public final class FanHelperManager: ObservableObject {
 
     /// Presents unified Notch overlay password prompt (shared with Face ID & App unlock)
     public func presentUnifiedPasswordPrompt(onSuccess: (() -> Void)? = nil) {
-        FaceIDEnrollmentController.startPasswordOnly(onComplete: {
-            if Self.shared.checkHelperStatus() {
-                onSuccess?()
-            } else {
-                // As fallback if notch was cancelled or unsupported, fallback to AppleScript
-                Self.shared.installHelperViaAppleScript { success in
-                    if success { onSuccess?() }
+        Task { @MainActor in
+            FaceIDEnrollmentController.startPasswordOnly(onComplete: {
+                if Self.shared.checkHelperStatus() {
+                    onSuccess?()
+                } else {
+                    // As fallback if notch was cancelled or unsupported, fallback to AppleScript
+                    Self.shared.installHelperViaAppleScript { success in
+                        if success { onSuccess?() }
+                    }
                 }
-            }
-        })
+            })
+        }
     }
 
     /// Tries silent installation using the password stored in NotchPulseVault
