@@ -39,13 +39,8 @@ struct LockScreenMediaView: View {
     
     private let lyricsTimer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     
-    @State private var isSystemLightMode: Bool = {
-        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        return !isDark
-    }()
-    
     private var isLightMode: Bool {
-        isSystemLightMode
+        windowController.isLightMode
     }
     
     private var compactCardBg: Color {
@@ -61,7 +56,11 @@ struct LockScreenMediaView: View {
     }
     
     private var compactSecondaryText: Color {
-        isLightMode ? Color.black.opacity(0.62) : Color.white.opacity(0.68)
+        isLightMode ? Color.black.opacity(0.65) : Color.white.opacity(0.70)
+    }
+    
+    private var compactIconColor: Color {
+        isLightMode ? Color.black : Color.white
     }
     
     var body: some View {
@@ -77,11 +76,14 @@ struct LockScreenMediaView: View {
             }
         }
         .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("AppleInterfaceThemeChangedNotification"))) { _ in
-            let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            self.isSystemLightMode = !isDark
+            windowController.syncTheme()
+        }
+        .onChange(of: colorScheme) { _, _ in
+            windowController.syncTheme()
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85, blendDuration: 0), value: windowController.isFullScreen)
         .onAppear {
+            windowController.syncTheme()
             musicManager.ensureLyricsLoaded()
         }
         .onChange(of: musicManager.songTitle) { _, _ in
@@ -586,7 +588,7 @@ struct LockScreenMediaView: View {
         case .shuffle:
             LockScreenButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? Color.green : (isLightMode ? Color.black.opacity(0.60) : Color.white.opacity(0.60)),
+                iconColor: musicManager.isShuffled ? Color.green : compactIconColor,
                 size: 28,
                 isLight: isLightMode,
                 action: { musicManager.toggleShuffle() }
@@ -594,7 +596,7 @@ struct LockScreenMediaView: View {
         case .previous:
             LockScreenButton(
                 icon: "backward.fill",
-                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.90),
+                iconColor: compactIconColor,
                 size: 30,
                 isLight: isLightMode,
                 action: { musicManager.previousTrack() }
@@ -602,7 +604,7 @@ struct LockScreenMediaView: View {
         case .playPause:
             LockScreenButton(
                 icon: musicManager.isPlaying ? "pause.fill" : "play.fill",
-                iconColor: isLightMode ? Color.black : Color.white,
+                iconColor: compactIconColor,
                 size: 38,
                 isPrimary: true,
                 isLight: isLightMode,
@@ -613,7 +615,7 @@ struct LockScreenMediaView: View {
         case .next:
             LockScreenButton(
                 icon: "forward.fill",
-                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.90),
+                iconColor: compactIconColor,
                 size: 30,
                 isLight: isLightMode,
                 action: { musicManager.nextTrack() }
@@ -631,7 +633,7 @@ struct LockScreenMediaView: View {
         case .favorite:
             LockScreenButton(
                 icon: musicManager.isFavoriteTrack ? "heart.fill" : "heart",
-                iconColor: musicManager.isFavoriteTrack ? Color.red : (isLightMode ? Color.black.opacity(0.60) : Color.white.opacity(0.70)),
+                iconColor: musicManager.isFavoriteTrack ? Color.red : compactIconColor,
                 size: 28,
                 disabled: !musicManager.canFavoriteTrack,
                 isLight: isLightMode,
@@ -640,7 +642,7 @@ struct LockScreenMediaView: View {
         case .goBackward:
             LockScreenButton(
                 icon: "gobackward.15",
-                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.85),
+                iconColor: compactIconColor,
                 size: 28,
                 isLight: isLightMode,
                 action: { musicManager.skip(seconds: -15) }
@@ -648,7 +650,7 @@ struct LockScreenMediaView: View {
         case .goForward:
             LockScreenButton(
                 icon: "goforward.15",
-                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.85),
+                iconColor: compactIconColor,
                 size: 28,
                 isLight: isLightMode,
                 action: { musicManager.skip(seconds: 15) }
@@ -664,14 +666,14 @@ struct LockScreenMediaView: View {
         case .shuffle:
             LockScreenButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? Color.green : .white.opacity(0.65),
+                iconColor: musicManager.isShuffled ? Color.green : .white,
                 size: 32,
                 action: { musicManager.toggleShuffle() }
             )
         case .previous:
             LockScreenButton(
                 icon: "backward.fill",
-                iconColor: .white.opacity(0.92),
+                iconColor: .white,
                 size: 36,
                 action: { musicManager.previousTrack() }
             )
@@ -694,21 +696,21 @@ struct LockScreenMediaView: View {
         case .next:
             LockScreenButton(
                 icon: "forward.fill",
-                iconColor: .white.opacity(0.92),
+                iconColor: .white,
                 size: 36,
                 action: { musicManager.nextTrack() }
             )
         case .repeatMode:
             LockScreenButton(
                 icon: repeatIcon,
-                iconColor: repeatIconColor,
+                iconColor: musicManager.repeatMode == .off ? .white : .red,
                 size: 32,
                 action: { musicManager.toggleRepeat() }
             )
         case .favorite:
             LockScreenButton(
                 icon: musicManager.isFavoriteTrack ? "heart.fill" : "heart",
-                iconColor: musicManager.isFavoriteTrack ? Color.red : .white.opacity(0.75),
+                iconColor: musicManager.isFavoriteTrack ? Color.red : .white,
                 size: 32,
                 disabled: !musicManager.canFavoriteTrack,
                 action: { musicManager.toggleFavoriteTrack() }
@@ -716,14 +718,14 @@ struct LockScreenMediaView: View {
         case .goBackward:
             LockScreenButton(
                 icon: "gobackward.15",
-                iconColor: .white.opacity(0.9),
+                iconColor: .white,
                 size: 32,
                 action: { musicManager.skip(seconds: -15) }
             )
         case .goForward:
             LockScreenButton(
                 icon: "goforward.15",
-                iconColor: .white.opacity(0.9),
+                iconColor: .white,
                 size: 32,
                 action: { musicManager.skip(seconds: 15) }
             )
@@ -739,7 +741,7 @@ struct LockScreenMediaView: View {
         HStack(spacing: 4) {
             LockScreenButton(
                 icon: volumeIcon,
-                iconColor: isCurrentlyMuted ? .gray : (isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.85)),
+                iconColor: isCurrentlyMuted ? (isLightMode ? Color.black.opacity(0.35) : Color.white.opacity(0.35)) : compactIconColor,
                 size: 28,
                 isLight: isLightMode,
                 action: {
@@ -832,7 +834,7 @@ struct LockScreenMediaView: View {
     private var repeatIconColor: Color {
         switch musicManager.repeatMode {
         case .off:
-            return isLightMode ? Color.black.opacity(0.55) : Color.white.opacity(0.55)
+            return compactIconColor
         case .all, .one:
             return .red
         }

@@ -17,9 +17,29 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     @Published var isFullScreen: Bool = false
     @Published var isWindowVisible: Bool = false
+    @Published var isLightMode: Bool = !LockScreenMediaWindow.detectIsDark()
     
     private var isSkyLightAttached = false
     private var lyricsCancellables = Set<AnyCancellable>()
+    
+    static func detectIsDark() -> Bool {
+        if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") {
+            return style.caseInsensitiveCompare("Dark") == .orderedSame
+        }
+        return NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+    
+    func syncTheme() {
+        let isDark = Self.detectIsDark()
+        let newIsLight = !isDark
+        if self.isLightMode != newIsLight {
+            self.isLightMode = newIsLight
+        }
+        let targetAppearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
+        if self.appearance != targetAppearance {
+            self.appearance = targetAppearance
+        }
+    }
     
     static let compactCardWidth: CGFloat = 420
     static let compactWindowPadding: CGFloat = 0
@@ -76,6 +96,24 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             .canJoinAllSpaces,
             .ignoresCycle
         ]
+        
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("AppleInterfaceThemeChangedNotification"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.syncTheme()
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.syncTheme()
+        }
+        
+        syncTheme()
     }
     
     private func getTargetScreen() -> NSScreen? {
@@ -128,8 +166,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         guard let screen = getTargetScreen() else { return }
         
         // Sync system appearance (Dark Mode vs Light Mode)
-        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        self.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
+        syncTheme()
         
         let targetRect = targetFrame(for: screen)
         setFrame(targetRect, display: true)
