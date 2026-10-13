@@ -12,6 +12,7 @@ import Defaults
 import SwiftUI
 
 struct LockScreenMediaView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
     @ObservedObject var windowController: LockScreenMediaWindow
@@ -38,14 +39,39 @@ struct LockScreenMediaView: View {
     
     private let lyricsTimer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     
+    private var isLightMode: Bool {
+        colorScheme == .light
+    }
+    
+    private var compactCardBg: Color {
+        isLightMode ? Color.white : Color(white: 0.11)
+    }
+    
+    private var compactCardBorder: Color {
+        isLightMode ? Color.black.opacity(0.12) : Color.white.opacity(0.14)
+    }
+    
+    private var compactCardShadow: Color {
+        isLightMode ? Color.black.opacity(0.14) : Color.black.opacity(0.45)
+    }
+    
+    private var compactPrimaryText: Color {
+        isLightMode ? Color.black : Color.white
+    }
+    
+    private var compactSecondaryText: Color {
+        isLightMode ? Color.black.opacity(0.62) : Color.white.opacity(0.68)
+    }
+    
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack(alignment: .center) {
             if windowController.isWindowVisible {
                 if windowController.isFullScreen {
                     fullScreenPlayerView
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 } else {
                     compactPlayerView
+                        .padding(LockScreenMediaWindow.compactWindowPadding)
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
@@ -96,15 +122,15 @@ struct LockScreenMediaView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 54, height: 54)
-                            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
                             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
-                            .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
-                            .shadow(color: Color(nsColor: musicManager.avgColor).opacity(0.3), radius: 8, x: 0, y: 4)
+                            .shadow(color: isLightMode ? Color.black.opacity(0.18) : Color.black.opacity(0.35), radius: 6, x: 0, y: 3)
+                            .shadow(color: Color(nsColor: musicManager.avgColor).opacity(isLightMode ? 0.22 : 0.3), radius: 8, x: 0, y: 4)
                         
                         // Lớp phủ tối khi tạm dừng
                         if !musicManager.isPlaying {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .fill(Color.black.opacity(0.35))
                                 .frame(width: 54, height: 54)
                                 .allowsHitTesting(false)
@@ -129,7 +155,7 @@ struct LockScreenMediaView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(musicManager.songTitle)
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(compactPrimaryText)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: 268, alignment: .leading)
@@ -137,8 +163,10 @@ struct LockScreenMediaView: View {
                     Text(musicManager.artistName)
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundStyle(playerColorTinting
-                            ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.75)
-                            : .white.opacity(0.68))
+                            ? (isLightMode
+                                ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.35)
+                                : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.75))
+                            : compactSecondaryText)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: 268, alignment: .leading)
@@ -178,15 +206,23 @@ struct LockScreenMediaView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "quote.bubble.fill")
                                 .font(.system(size: 10))
-                                .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85))
+                                .foregroundStyle(
+                                    isLightMode
+                                        ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
+                                        : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85)
+                                )
                             
                             Text(displayText)
                                 .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(displayText)")
                                 .font(isPersian ? .custom("Vazirmatn-Regular", size: 12) : .system(size: 12, weight: .semibold, design: .rounded))
                                 .foregroundStyle(
-                                    musicManager.isFetchingLyrics
-                                        ? Color.white.opacity(0.6)
-                                        : (activeIndex != nil ? Color.white.opacity(0.95) : Color.white.opacity(0.65))
+                                    isLightMode
+                                        ? (musicManager.isFetchingLyrics
+                                            ? Color.black.opacity(0.50)
+                                            : (activeIndex != nil ? Color.black.opacity(0.92) : Color.black.opacity(0.58)))
+                                        : (musicManager.isFetchingLyrics
+                                            ? Color.white.opacity(0.60)
+                                            : (activeIndex != nil ? Color.white.opacity(0.95) : Color.white.opacity(0.65)))
                                 )
                                 .lineLimit(1)
                                 .transition(.opacity.combined(with: .offset(y: 2)))
@@ -212,6 +248,7 @@ struct LockScreenMediaView: View {
                     color: musicManager.avgColor,
                     estimatedPlaybackTime: currentEstimated,
                     isCompact: true,
+                    isLight: isLightMode,
                     onValueChange: { newValue in
                         musicManager.seek(to: newValue)
                     }
@@ -236,19 +273,19 @@ struct LockScreenMediaView: View {
                 Spacer()
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 15)
-        .frame(width: 420, height: hasLyrics ? 218 : 185)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .frame(width: LockScreenMediaWindow.compactCardWidth, height: hasLyrics ? 228 : 190)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(white: 0.12).opacity(0.94))
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(compactCardBg)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .strokeBorder(compactCardBorder, lineWidth: 1.2)
                 )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: Color.black.opacity(0.4), radius: 14, x: 0, y: 7)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: compactCardShadow, radius: 16, x: 0, y: 7)
     }
     
     // =========================================================================
@@ -512,30 +549,36 @@ struct LockScreenMediaView: View {
         case .shuffle:
             LockScreenButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? Color.green : .white.opacity(0.6),
+                iconColor: musicManager.isShuffled ? Color.green : (isLightMode ? Color.black.opacity(0.60) : Color.white.opacity(0.60)),
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.toggleShuffle() }
             )
         case .previous:
             LockScreenButton(
                 icon: "backward.fill",
-                iconColor: .white.opacity(0.9),
+                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.90),
                 size: 30,
+                isLight: isLightMode,
                 action: { musicManager.previousTrack() }
             )
         case .playPause:
             LockScreenButton(
                 icon: musicManager.isPlaying ? "pause.fill" : "play.fill",
-                iconColor: .white,
+                iconColor: isLightMode ? Color.black : Color.white,
                 size: 38,
                 isPrimary: true,
-                action: { musicManager.togglePlay() }
+                isLight: isLightMode,
+                action: {
+                    musicManager.togglePlay()
+                }
             )
         case .next:
             LockScreenButton(
                 icon: "forward.fill",
-                iconColor: .white.opacity(0.9),
+                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.90),
                 size: 30,
+                isLight: isLightMode,
                 action: { musicManager.nextTrack() }
             )
         case .repeatMode:
@@ -543,6 +586,7 @@ struct LockScreenMediaView: View {
                 icon: repeatIcon,
                 iconColor: repeatIconColor,
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.toggleRepeat() }
             )
         case .volume:
@@ -550,23 +594,26 @@ struct LockScreenMediaView: View {
         case .favorite:
             LockScreenButton(
                 icon: musicManager.isFavoriteTrack ? "heart.fill" : "heart",
-                iconColor: musicManager.isFavoriteTrack ? Color.red : .white.opacity(0.7),
+                iconColor: musicManager.isFavoriteTrack ? Color.red : (isLightMode ? Color.black.opacity(0.60) : Color.white.opacity(0.70)),
                 size: 28,
                 disabled: !musicManager.canFavoriteTrack,
+                isLight: isLightMode,
                 action: { musicManager.toggleFavoriteTrack() }
             )
         case .goBackward:
             LockScreenButton(
                 icon: "gobackward.15",
-                iconColor: .white.opacity(0.85),
+                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.85),
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.skip(seconds: -15) }
             )
         case .goForward:
             LockScreenButton(
                 icon: "goforward.15",
-                iconColor: .white.opacity(0.85),
+                iconColor: isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.85),
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.skip(seconds: 15) }
             )
         case .none:
@@ -654,8 +701,9 @@ struct LockScreenMediaView: View {
         HStack(spacing: 4) {
             LockScreenButton(
                 icon: volumeIcon,
-                iconColor: isCurrentlyMuted ? .gray : .white.opacity(0.85),
+                iconColor: isCurrentlyMuted ? .gray : (isLightMode ? Color.black.opacity(0.85) : Color.white.opacity(0.85)),
                 size: 28,
+                isLight: isLightMode,
                 action: {
                     withAnimation(.easeInOut(duration: 0.16)) {
                         showCompactVolumeSlider.toggle()
@@ -676,7 +724,8 @@ struct LockScreenMediaView: View {
                         set: { newValue in
                             musicManager.setVolume(to: newValue)
                         }
-                    )
+                    ),
+                    isLight: isLightMode
                 )
                 .frame(width: 58, height: 14)
                 .background(
@@ -745,7 +794,7 @@ struct LockScreenMediaView: View {
     private var repeatIconColor: Color {
         switch musicManager.repeatMode {
         case .off:
-            return .white.opacity(0.55)
+            return isLightMode ? Color.black.opacity(0.55) : Color.white.opacity(0.55)
         case .all, .one:
             return .red
         }
@@ -771,7 +820,14 @@ struct LockScreenMediaView: View {
     private var soundWaveform: some View {
         HStack(spacing: 2.5) {
             ForEach(0..<5) { i in
-                WaveBar(isPlaying: musicManager.isPlaying, index: i, tintColor: Color(nsColor: musicManager.avgColor))
+                WaveBar(
+                    isPlaying: musicManager.isPlaying,
+                    index: i,
+                    tintColor: isLightMode
+                        ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
+                        : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85),
+                    isLight: isLightMode
+                )
             }
         }
         .frame(height: 14)
@@ -820,6 +876,7 @@ private struct LockScreenScrubberView: View {
     let color: NSColor
     let estimatedPlaybackTime: Double
     var isCompact: Bool
+    var isLight: Bool = false
     var onValueChange: (Double) -> Void
     
     @Default(.sliderColor) private var sliderColorPref
@@ -837,11 +894,13 @@ private struct LockScreenScrubberView: View {
     
     private var trackColor: Color {
         if sliderColorPref == .albumArt {
-            return Color(nsColor: color).ensureMinimumBrightness(factor: 0.85)
+            return isLight
+                ? Color(nsColor: color).ensureMaximumBrightness(factor: 0.45)
+                : Color(nsColor: color).ensureMinimumBrightness(factor: 0.85)
         } else if sliderColorPref == .accent {
             return .effectiveAccent
         } else {
-            return .white
+            return (isCompact && isLight) ? Color.black.opacity(0.85) : .white
         }
     }
     
@@ -856,7 +915,7 @@ private struct LockScreenScrubberView: View {
                 ZStack(alignment: .leading) {
                     // Thanh rãnh nền
                     Capsule()
-                        .fill(Color.white.opacity(0.18))
+                        .fill((isCompact && isLight) ? Color.black.opacity(0.12) : Color.white.opacity(0.18))
                         .frame(height: height)
                     
                     // Thanh tiến trình đã phát
@@ -867,9 +926,9 @@ private struct LockScreenScrubberView: View {
                     // Nút đầu ngón tay / chấm tròn chỉ báo khi di chuột hoặc kéo
                     if dragging || isHoveringTrack {
                         Circle()
-                            .fill(Color.white)
+                            .fill((isCompact && isLight) ? Color.black : Color.white)
                             .frame(width: height + 6, height: height + 6)
-                            .shadow(color: Color.black.opacity(0.4), radius: 3, x: 0, y: 1)
+                            .shadow(color: Color.black.opacity(isLight ? 0.22 : 0.4), radius: 3, x: 0, y: 1)
                             .offset(x: max(0, min(width - (height + 6), filledWidth - (height + 6) / 2)))
                             .transition(.scale.combined(with: .opacity))
                     }
@@ -912,15 +971,17 @@ private struct LockScreenScrubberView: View {
                     .font(.system(size: isCompact ? 11 : 12, weight: .semibold, design: .rounded))
                     .foregroundStyle(
                         playerColorTinting
-                            ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.75)
-                            : .white.opacity(0.65)
+                            ? (isLight
+                                ? Color(nsColor: color).ensureMaximumBrightness(factor: 0.40)
+                                : Color(nsColor: color).ensureMinimumBrightness(factor: 0.75))
+                            : ((isCompact && isLight) ? Color.black.opacity(0.60) : .white.opacity(0.65))
                     )
                 
                 Spacer()
                 
                 Text("-" + timeFormatted(seconds: max(0, duration - effectiveElapsed)))
                     .font(.system(size: isCompact ? 11 : 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle((isCompact && isLight) ? Color.black.opacity(0.60) : .white.opacity(0.65))
             }
         }
         .onChange(of: estimatedPlaybackTime) { _, newTime in
@@ -947,29 +1008,42 @@ private struct LockScreenButton: View {
     var size: CGFloat = 30
     var isPrimary: Bool = false
     var disabled: Bool = false
+    var isLight: Bool = false
     let action: () -> Void
     
     @State private var isHovering = false
     
     var body: some View {
+        let hitSize: CGFloat = isPrimary ? (size + 14) : (size + 8)
+        let iconSize: CGFloat = isPrimary ? (size * 0.62) : (size * 0.52)
+        
         Button(action: action) {
-            ZStack {
-                Capsule()
-                    .fill(isHovering && !disabled ? Color.white.opacity(0.18) : Color.clear)
-                    .frame(width: size + 8, height: size + 8)
-                
-                Image(systemName: icon)
-                    .font(.system(size: isPrimary ? size * 0.62 : size * 0.52, weight: isPrimary ? .bold : .medium))
-                    .foregroundStyle(iconColor)
-            }
-            .contentShape(Rectangle())
+            Rectangle()
+                .fill(Color.clear)
+                .contentShape(Rectangle())
+                .frame(width: hitSize, height: hitSize)
+                .overlay {
+                    Circle()
+                        .fill(
+                            isHovering && !disabled
+                                ? (isLight ? Color.black.opacity(0.08) : Color.white.opacity(0.18))
+                                : Color.clear
+                        )
+                        .frame(width: hitSize, height: hitSize)
+                        .overlay {
+                            Image(systemName: icon)
+                                .font(.system(size: iconSize, weight: isPrimary ? .bold : .medium))
+                                .foregroundStyle(iconColor)
+                                .contentTransition(.symbolEffect)
+                                .offset(x: (icon == "play.fill" && isPrimary) ? 1.5 : 0)
+                        }
+                }
         }
         .buttonStyle(.plain)
         .disabled(disabled)
         .opacity(disabled ? 0.35 : 1.0)
-        .scaleEffect(isHovering && !disabled ? 1.06 : 1.0)
         .onHover { hovering in
-            withAnimation(.smooth(duration: 0.2)) {
+            withAnimation(.smooth(duration: 0.18)) {
                 isHovering = hovering
             }
         }
@@ -982,6 +1056,7 @@ private struct LockScreenButton: View {
 
 private struct LockScreenVolumeSlider: View {
     @Binding var volume: Double
+    var isLight: Bool = false
     @State private var dragging: Bool = false
     @State private var localVolume: Double? = nil
     
@@ -994,11 +1069,11 @@ private struct LockScreenVolumeSlider: View {
             
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.white.opacity(0.2))
+                    .fill(isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.2))
                     .frame(height: height)
                 
                 Capsule()
-                    .fill(Color.white.opacity(0.92))
+                    .fill(isLight ? Color.black.opacity(0.85) : Color.white.opacity(0.92))
                     .frame(width: fillWidth, height: height)
             }
             .frame(maxHeight: .infinity, alignment: .center)
@@ -1031,12 +1106,13 @@ private struct WaveBar: View {
     let isPlaying: Bool
     let index: Int
     let tintColor: Color
+    var isLight: Bool = false
     
     @State private var animatingHeight: CGFloat = 3
     
     var body: some View {
         Capsule()
-            .fill(isPlaying ? tintColor.ensureMinimumBrightness(factor: 0.85) : Color.white.opacity(0.35))
+            .fill(isPlaying ? tintColor : (isLight ? Color.black.opacity(0.20) : Color.white.opacity(0.35)))
             .frame(width: 3, height: isPlaying ? animatingHeight : 3)
             .onAppear {
                 if isPlaying {

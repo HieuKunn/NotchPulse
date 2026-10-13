@@ -21,8 +21,13 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var isSkyLightAttached = false
     private var lyricsCancellables = Set<AnyCancellable>()
     
+    static let compactCardWidth: CGFloat = 420
+    static let compactWindowPadding: CGFloat = 20
+    
     private init() {
-        let initialRect = NSRect(x: 0, y: 0, width: 420, height: 185)
+        let initialWidth = Self.compactCardWidth + (Self.compactWindowPadding * 2)
+        let initialHeight: CGFloat = 190 + (Self.compactWindowPadding * 2)
+        let initialRect = NSRect(x: 0, y: 0, width: initialWidth, height: initialHeight)
         super.init(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -90,12 +95,13 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
-        let width: CGFloat = 420
         let hasLyrics = (!MusicManager.shared.syncedLyrics.isEmpty || !MusicManager.shared.currentLyrics.isEmpty) && Defaults[.lockScreenPlayerShowLyrics]
-        let height: CGFloat = hasLyrics ? 218 : 185
-        let x = (screen.frame.width - width) / 2 + screen.frame.origin.x
-        let y = screen.frame.origin.y + (screen.frame.height * 0.20)
-        return NSRect(x: x, y: y, width: width, height: height)
+        let cardHeight: CGFloat = hasLyrics ? 228 : 190
+        let totalWidth = Self.compactCardWidth + (Self.compactWindowPadding * 2)
+        let totalHeight = cardHeight + (Self.compactWindowPadding * 2)
+        let x = (screen.frame.width - totalWidth) / 2 + screen.frame.origin.x
+        let y = screen.frame.origin.y + (screen.frame.height * 0.20) - Self.compactWindowPadding
+        return NSRect(x: x, y: y, width: totalWidth, height: totalHeight)
     }
     
     func targetFrame(for screen: NSScreen) -> NSRect {

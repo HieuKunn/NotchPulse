@@ -157,10 +157,10 @@ final class LockScreenWakeObserver: ObservableObject {
         let hasActiveTrack: Bool = {
             let title = MusicManager.shared.songTitle
             guard !title.isEmpty && title != "I'm Handsome" else { return false }
-            if let bundleId = MusicManager.shared.bundleIdentifier {
+            if let bundleId = MusicManager.shared.bundleIdentifier, !bundleId.isEmpty {
                 return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
             }
-            return MusicManager.shared.isPlaying
+            return true
         }()
 
         let shouldShow = isScreenLocked

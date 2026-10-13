@@ -789,8 +789,11 @@ class MusicManager: ObservableObject {
     
     func togglePlay() {
         let now = Date()
-        guard now.timeIntervalSince(lastTogglePlayTime) > 0.25 else { return }
+        guard now.timeIntervalSince(lastTogglePlayTime) > 0.20 else { return }
         lastTogglePlayTime = now
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
+            self.isPlaying.toggle()
+        }
         Task {
             if let activeController = activeController {
                 await activeController.togglePlay()

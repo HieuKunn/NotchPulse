@@ -68,7 +68,11 @@ class SpotifyController: MediaControllerProtocol {
     // MARK: - Protocol Implementation
     func play() async { await executeCommand("play") }
     func pause() async { await executeCommand("pause") }
-    func togglePlay() async { await executeCommand("playpause") }
+    func togglePlay() async {
+        await executeCommand("playpause")
+        try? await Task.sleep(for: commandUpdateDelay)
+        await updatePlaybackInfo()
+    }
     func nextTrack() async { await executeCommand("next track") }
     func previousTrack() async {
         let script = """

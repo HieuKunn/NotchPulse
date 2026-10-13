@@ -69,6 +69,8 @@ class AppleMusicController: MediaControllerProtocol {
     
     func togglePlay() async {
         await executeCommand("playpause")
+        try? await Task.sleep(for: .milliseconds(150))
+        await resyncPositionOnly()
     }
     
     func nextTrack() async {
