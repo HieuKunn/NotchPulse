@@ -794,140 +794,132 @@ private struct StatsProcessList: View {
 /// Expandable Thermal & Fan Control card featuring a 70/30 split:
 /// Left (70%): Interactive fan slider and clean text profile buttons (Auto, Balanced, Smart, Max, Custom). Zero icons.
 /// Right (30%): Compact SoC circular temperature gauge and status label.
-private struct ThermalAndFanCard: View {
+private struct CoolingHeaderView: View {
+    let feedbackText: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(loc("COOLING & FAN SPEED"))
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text(feedbackText)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.88))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.white.opacity(0.08))
+                .clipShape(Capsule())
+        }
+    }
+}
+
+private struct CoolingSliderView: View {
     @ObservedObject var monitor: SystemMonitorManager
 
     var body: some View {
-        GeometryReader { geo in
-            let totalW = geo.size.width
-            let spacing: CGFloat = 8
-            let leftW = max(100, (totalW - spacing) * 0.70)
-            let rightW = max(60, (totalW - spacing) * 0.30)
+        VStack(spacing: 2) {
+            GeometryReader { sliderGeo in
+                let sw: CGFloat = sliderGeo.size.width
+                let progress: CGFloat = CGFloat(min(1.0, max(0.0, Double(monitor.currentFanSpeedPercent) / 100.0)))
+                let barWidth: CGFloat = max(0, sw * progress)
+                let knobOffset: CGFloat = max(0, min(sw - 11, sw * progress - 5.5))
 
-            HStack(spacing: spacing) {
-                coolingSection(width: leftW)
-                socGaugeSection(width: rightW)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .frame(height: 86)
-    }
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.09))
+                        .frame(height: 7)
 
-    @ViewBuilder
-    private func coolingSection(width: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Header row
-            HStack(spacing: 6) {
-                Text(loc("COOLING & FAN SPEED"))
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Text(fanFeedbackText)
-                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.88))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.white.opacity(0.08))
-                    .clipShape(Capsule())
-            }
-
-            // Interactive Drag Slider / Progress Bar
-            VStack(spacing: 2) {
-                GeometryReader { sliderGeo in
-                    let sw = sliderGeo.size.width
-                    let progress = CGFloat(min(1.0, max(0.0, Double(monitor.currentFanSpeedPercent) / 100.0)))
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.white.opacity(0.09))
-                            .frame(height: 7)
-
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.cyan.opacity(0.85), Color.blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.cyan.opacity(0.85), Color.blue],
+                                startPoint: .leading,
+                                endPoint: .trailing
                             )
-                            .frame(width: max(0, sw * progress), height: 7)
+                        )
+                        .frame(width: barWidth, height: 7)
 
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 11, height: 11)
-                            .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
-                            .offset(x: max(0, min(sw - 11, sw * progress - 5.5)))
-                    }
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { val in
-                                let clampedX = max(0, min(sw, val.location.x))
-                                let pct = Int(round((clampedX / max(1.0, sw)) * 100.0))
-                                monitor.setCustomFanPercent(pct)
-                            }
-                    )
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 11, height: 11)
+                        .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+                        .offset(x: knobOffset)
                 }
-                .frame(height: 11)
-
-                HStack {
-                    Text("0 RPM")
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.secondary.opacity(0.7))
-                    Spacer()
-                    Text(monitor.isHardwareFanAvailable ? loc("Max ~6,500 RPM") : loc("Passive cooling (Fanless)"))
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.secondary.opacity(0.7))
-                }
-            }
-
-            // Profile Buttons (NO ICONS WHATSOEVER)
-            HStack(spacing: 4) {
-                ForEach(NotchPulseFanProfile.allCases) { profile in
-                    let isSelected = monitor.selectedFanProfile == profile
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            monitor.setFanProfile(profile)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { val in
+                            let clampedX = max(0, min(sw, val.location.x))
+                            let pct = Int(round((clampedX / max(1.0, sw)) * 100.0))
+                            monitor.setCustomFanPercent(pct)
                         }
-                    }) {
-                        Text(profile.title)
-                            .font(.system(size: 9, weight: isSelected ? .bold : .medium))
-                            .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.65))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 3.5)
-                            .background(
-                                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                    .fill(isSelected ? Color.cyan.opacity(0.26) : Color.white.opacity(0.05))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                    .stroke(isSelected ? Color.cyan.opacity(0.65) : Color.white.opacity(0.08), lineWidth: 0.8)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
+                )
+            }
+            .frame(height: 11)
+
+            HStack {
+                Text("0 RPM")
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary.opacity(0.7))
+                Spacer()
+                Text(monitor.isHardwareFanAvailable ? loc("Max ~6,500 RPM") : loc("Passive cooling (Fanless)"))
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary.opacity(0.7))
             }
         }
-        .padding(8)
-        .frame(width: width, height: 86)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+    }
+}
+
+private struct CoolingProfileButtonsView: View {
+    @ObservedObject var monitor: SystemMonitorManager
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(NotchPulseFanProfile.allCases) { profile in
+                let isSelected: Bool = monitor.selectedFanProfile == profile
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        monitor.setFanProfile(profile)
+                    }
+                }) {
+                    Text(profile.title)
+                        .font(.system(size: 9, weight: isSelected ? .bold : .medium))
+                        .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.65))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 3.5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(isSelected ? Color.cyan.opacity(0.26) : Color.white.opacity(0.05))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .stroke(isSelected ? Color.cyan.opacity(0.65) : Color.white.opacity(0.08), lineWidth: 0.8)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+private struct SocGaugeView: View {
+    @ObservedObject var monitor: SystemMonitorManager
+
+    private var gaugeTrim: CGFloat {
+        CGFloat(min(1.0, max(0.06, (monitor.temperature - 30.0) / 70.0)))
     }
 
-    @ViewBuilder
-    private func socGaugeSection(width: CGFloat) -> some View {
+    var body: some View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
                     .stroke(Color.white.opacity(0.12), lineWidth: 5)
 
                 Circle()
-                    .trim(from: 0.0, to: CGFloat(min(1.0, max(0.06, (monitor.temperature - 30.0) / 70.0))))
+                    .trim(from: 0.0, to: gaugeTrim)
                     .stroke(
                         AngularGradient(
                             gradient: Gradient(colors: [
@@ -967,14 +959,50 @@ private struct ThermalAndFanCard: View {
                     .lineLimit(1)
             }
         }
-        .padding(8)
-        .frame(width: width, height: 86)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+    }
+}
+
+/// Expandable Thermal & Fan Control card featuring a 70/30 split:
+/// Left (70%): Interactive fan slider and clean text profile buttons (Auto, Balanced, Smart, Max, Custom). Zero icons.
+/// Right (30%): Compact SoC circular temperature gauge and status label.
+private struct ThermalAndFanCard: View {
+    @ObservedObject var monitor: SystemMonitorManager
+
+    var body: some View {
+        GeometryReader { geo in
+            let totalW = geo.size.width
+            let spacing: CGFloat = 8
+            let leftW = max(100, (totalW - spacing) * 0.70)
+            let rightW = max(60, (totalW - spacing) * 0.30)
+
+            HStack(spacing: spacing) {
+                VStack(alignment: .leading, spacing: 6) {
+                    CoolingHeaderView(feedbackText: fanFeedbackText)
+                    CoolingSliderView(monitor: monitor)
+                    CoolingProfileButtonsView(monitor: monitor)
+                }
+                .padding(8)
+                .frame(width: leftW, height: 86)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+
+                SocGaugeView(monitor: monitor)
+                    .padding(8)
+                    .frame(width: rightW, height: 86)
+                    .background(Color.white.opacity(0.04))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(height: 86)
     }
 
     private var fanFeedbackText: String {
