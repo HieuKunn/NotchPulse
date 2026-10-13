@@ -163,7 +163,7 @@ struct MusicControlsView: View {
                 .truncationMode(.tail)
                 .frame(maxWidth: width, alignment: .leading)
             if Defaults[.enableLyrics] {
-                TimelineView(.animation(minimumInterval: 0.25)) { timeline in
+                TimelineView(.animation(minimumInterval: (musicManager.playbackRate > 0 && !musicManager.syncedLyrics.isEmpty) ? 0.25 : nil)) { timeline in
                     let currentElapsed: Double = musicManager.estimatedPlaybackPosition(at: timeline.date)
                     let activeIndex = musicManager.currentLyricIndex(at: currentElapsed)
                     let line: String = {

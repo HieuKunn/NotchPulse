@@ -18,23 +18,6 @@ final class NotchPulseSessionAutoLocker {
 
     init(pocController: NotchPulsePOCController) {
         self.pocController = pocController
-        // `.common` so the countdown keeps being checked during tracking runloop modes (an open menu, a drag).
-        let timer = Timer(timeInterval: checkInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.evaluate() }
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
-
-        // Also evaluate on wake: no timer fires during sleep, but the elapsed time still counts as idle once compared.
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.evaluate() }
-        }
-
-        evaluate()
     }
 
     deinit {

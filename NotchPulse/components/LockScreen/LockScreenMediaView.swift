@@ -97,7 +97,7 @@ struct LockScreenMediaView: View {
             }
         }
         .onReceive(lyricsTimer) { date in
-            guard windowController.isWindowVisible else { return }
+            guard windowController.isWindowVisible && windowController.isFullScreen && musicManager.isPlaying && !musicManager.syncedLyrics.isEmpty else { return }
             let elapsed = musicManager.estimatedPlaybackPosition(at: date)
             if let idx = musicManager.currentLyricIndex(at: elapsed) {
                 if activeLyricIndex != idx {
@@ -223,7 +223,7 @@ struct LockScreenMediaView: View {
 
     @ViewBuilder
     private var compactLyricsRow: some View {
-        TimelineView(.animation(minimumInterval: 0.25)) { timeline in
+        TimelineView(.animation(minimumInterval: (musicManager.playbackRate > 0 && !musicManager.syncedLyrics.isEmpty) ? 0.25 : nil)) { timeline in
             let effectiveElapsed = compactDragging
                 ? compactSliderValue
                 : musicManager.estimatedPlaybackPosition(at: timeline.date)
@@ -255,7 +255,7 @@ struct LockScreenMediaView: View {
     }
 
     private var compactScrubberRow: some View {
-        TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : 0.5)) { timeline in
+        TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : nil)) { timeline in
             let currentEstimated = musicManager.estimatedPlaybackPosition(at: timeline.date)
             
             LockScreenScrubberView(
@@ -447,7 +447,7 @@ struct LockScreenMediaView: View {
             }
             
             // Thanh tiến trình lớn tương tác
-            TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : 0.5)) { timeline in
+            TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : nil)) { timeline in
                 let currentEstimated = musicManager.estimatedPlaybackPosition(at: timeline.date)
                 
                 LockScreenScrubberView(

@@ -28,9 +28,32 @@ final class DragDetector {
     private var lastKnownIdleCount: Int = -1
     private var isContentDragging: Bool = false
     private var hasEnteredNotchRegion: Bool = false
+    private var lastCheckedDragCount: Int = -1
+    private var cachedHasValidContent: Bool = false
 
     private let regionProvider: () -> CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
+
+    private static let validIdentifiers: Set<String> = [
+        NSPasteboard.PasteboardType.fileURL.rawValue,
+        "NSFilenamesPboardType",
+        "Apple URL pasteboard type",
+        "com.apple.pasteboard.promised-file-url",
+        "com.apple.finder.node",
+        UTType.url.identifier,
+        UTType.fileURL.identifier,
+        UTType.utf8PlainText.identifier,
+        UTType.plainText.identifier,
+        UTType.text.identifier,
+        UTType.image.identifier,
+        UTType.png.identifier,
+        UTType.jpeg.identifier,
+        UTType.tiff.identifier,
+        NSPasteboard.PasteboardType.string.rawValue,
+        NSPasteboard.PasteboardType.html.rawValue,
+        NSPasteboard.PasteboardType.rtf.rawValue,
+        "NSStringPboardType"
+    ]
 
     init(regionProvider: @escaping () -> CGRect) {
         self.regionProvider = regionProvider
@@ -41,40 +64,29 @@ final class DragDetector {
     
     /// Checks if the drag pasteboard contains valid content types that can be dropped on the shelf
     private func hasValidDragContent() -> Bool {
+        let currentCount = dragPasteboard.changeCount
+        if currentCount == lastCheckedDragCount {
+            return cachedHasValidContent
+        }
+        lastCheckedDragCount = currentCount
+
         guard let types = dragPasteboard.types, !types.isEmpty else {
+            cachedHasValidContent = false
             return false
         }
         
-        let validIdentifiers: Set<String> = [
-            NSPasteboard.PasteboardType.fileURL.rawValue,
-            "NSFilenamesPboardType",
-            "Apple URL pasteboard type",
-            "com.apple.pasteboard.promised-file-url",
-            "com.apple.finder.node",
-            UTType.url.identifier,
-            UTType.fileURL.identifier,
-            UTType.utf8PlainText.identifier,
-            UTType.plainText.identifier,
-            UTType.text.identifier,
-            UTType.image.identifier,
-            UTType.png.identifier,
-            UTType.jpeg.identifier,
-            UTType.tiff.identifier,
-            NSPasteboard.PasteboardType.string.rawValue,
-            NSPasteboard.PasteboardType.html.rawValue,
-            NSPasteboard.PasteboardType.rtf.rawValue,
-            "NSStringPboardType"
-        ]
-        
         for type in types {
-            if validIdentifiers.contains(type.rawValue) {
+            if Self.validIdentifiers.contains(type.rawValue) {
+                cachedHasValidContent = true
                 return true
             }
             if let utType = UTType(type.rawValue),
                utType.conforms(to: .item) || utType.conforms(to: .content) || utType.conforms(to: .data) {
+                cachedHasValidContent = true
                 return true
             }
         }
+        cachedHasValidContent = false
         return false
     }
 

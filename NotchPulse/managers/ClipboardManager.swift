@@ -158,10 +158,10 @@ final class ClipboardManager: ObservableObject {
             }
 
             // 2. Background polling fallback for right-click context menu "Copy" operations
-            let timer = Timer(timeInterval: 0.8, repeats: true) { [weak self] _ in
+            let timer = Timer(timeInterval: 1.6, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
-            timer.tolerance = 0.15
+            timer.tolerance = 0.3
             RunLoop.main.add(timer, forMode: .common)
             self.pollTimer = timer
 
@@ -280,25 +280,46 @@ final class ClipboardManager: ObservableObject {
         let canInitImage = NSImage.canInit(with: pasteboard)
 
         if hasImageTypes || canInitImage {
-            if let image = NSImage(pasteboard: pasteboard),
-               let tiff = image.tiffRepresentation,
-               let bitmap = NSBitmapImageRep(data: tiff),
-               let pngData = bitmap.representation(using: .png, properties: [:]) {
-
-                if history.first?.imageData == pngData {
-                    return
+            if let image = NSImage(pasteboard: pasteboard) {
+                // Downscale oversized images (e.g. 4K/8K screenshots) to max 800px to prevent multi-megabyte RAM bloat per clipboard item
+                let maxDimension: CGFloat = 800
+                let finalImage: NSImage
+                if image.size.width > maxDimension || image.size.height > maxDimension {
+                    let aspectRatio = image.size.width / max(1.0, image.size.height)
+                    let newSize: NSSize
+                    if image.size.width > image.size.height {
+                        newSize = NSSize(width: maxDimension, height: max(1.0, maxDimension / aspectRatio))
+                    } else {
+                        newSize = NSSize(width: max(1.0, maxDimension * aspectRatio), height: maxDimension)
+                    }
+                    let resized = NSImage(size: newSize)
+                    resized.lockFocus()
+                    image.draw(in: NSRect(origin: .zero, size: newSize), from: NSRect(origin: .zero, size: image.size), operation: .copy, fraction: 1.0)
+                    resized.unlockFocus()
+                    finalImage = resized
+                } else {
+                    finalImage = image
                 }
 
-                let newItem = ClipboardItem(
-                    id: UUID(),
-                    type: .image,
-                    contentString: nil,
-                    urlString: nil,
-                    imageData: pngData,
-                    timestamp: Date()
-                )
-                insertItem(newItem)
-                return
+                if let tiff = finalImage.tiffRepresentation,
+                   let bitmap = NSBitmapImageRep(data: tiff),
+                   let pngData = bitmap.representation(using: .png, properties: [:]) {
+
+                    if history.first?.imageData == pngData {
+                        return
+                    }
+
+                    let newItem = ClipboardItem(
+                        id: UUID(),
+                        type: .image,
+                        contentString: nil,
+                        urlString: nil,
+                        imageData: pngData,
+                        timestamp: Date()
+                    )
+                    insertItem(newItem)
+                    return
+                }
             }
         }
     }

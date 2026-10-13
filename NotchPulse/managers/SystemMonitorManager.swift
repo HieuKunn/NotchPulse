@@ -204,6 +204,7 @@ public class SystemMonitorManager: ObservableObject {
                         self?.updateMetrics()
                     }
                 }
+                self.timer?.tolerance = 0.2
             }
         }
     }
@@ -231,6 +232,7 @@ public class SystemMonitorManager: ObservableObject {
                     self?.updateThermalMetrics()
                 }
             }
+            self.thermalTimer?.tolerance = 0.15
         }
     }
 
