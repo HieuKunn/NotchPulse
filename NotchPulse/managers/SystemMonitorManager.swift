@@ -823,7 +823,17 @@ public class SystemMonitorManager: ObservableObject {
 
         let isAvailable = SMCService.shared.isHardwareFanAvailable
 
-        // Dispatches to ThermalForge root daemon socket if present on system
+        // DIRECT HARDWARE FAN CONTROL (ThermalForge Native Port):
+        // Directly drive Apple Silicon SMC registers without requiring third-party processes
+        if isAvailable {
+            if selectedFanProfile == .auto {
+                SMCService.shared.restoreAutoFanControl()
+            } else if rpm > 0 {
+                SMCService.shared.setAllFans(rpm: Double(rpm))
+            }
+        }
+
+        // Secondary fallback: Dispatches to ThermalForge root daemon socket if present on system
         dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: rpm)
 
         DispatchQueue.main.async { [weak self] in
