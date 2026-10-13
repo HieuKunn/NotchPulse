@@ -42,6 +42,42 @@ final class NotchPulseCamera: NSObject {
     override init() {
         super.init()
         framePublisher.owner = self
+
+        NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionRuntimeError,
+            object: session,
+            queue: nil
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            self.sessionQueue.async { [session = self.session] in
+                if !session.isRunning {
+                    session.startRunning()
+                }
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionWasInterrupted,
+            object: session,
+            queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.isRunning = false
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionInterruptionEnded,
+            object: session,
+            queue: nil
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            self.sessionQueue.async { [session = self.session] in
+                if !session.isRunning {
+                    session.startRunning()
+                }
+            }
+        }
     }
 
     func start() async {
@@ -88,6 +124,10 @@ final class NotchPulseCamera: NSObject {
         }
         isRunning = false
         currentFrame = nil
+        // Tear down device input and configuration state so subsequent wake/start
+        // negotiates a completely fresh, live hardware connection with macOS
+        currentInput = nil
+        isConfigured = false
     }
 
     private func describe(_ status: AVAuthorizationStatus) -> String {
@@ -128,7 +168,8 @@ final class NotchPulseCamera: NSObject {
             errorMessage = "No camera device found."
             return
         }
-        guard device.uniqueID != currentInput?.device.uniqueID else { return }
+        let isDeviceLive = (currentInput?.device.isConnected ?? false) && currentInput?.device.uniqueID == device.uniqueID
+        guard !isDeviceLive else { return }
 
         session.beginConfiguration()
         if let currentInput {

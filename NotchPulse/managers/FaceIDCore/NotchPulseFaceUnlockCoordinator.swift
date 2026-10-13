@@ -416,6 +416,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveMatchedFrames = 0
+        var consecutiveWrongFaceFrames = 0
 
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
@@ -482,6 +483,7 @@ final class NotchPulseFaceUnlockCoordinator {
 
             guard let (result, livenessFrame) = outcome else {
                 consecutiveMatchedFrames = 0
+                consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
@@ -519,6 +521,7 @@ final class NotchPulseFaceUnlockCoordinator {
 
             if let matched, !isLivenessRejected {
                 consecutiveMatchedFrames += 1
+                consecutiveWrongFaceFrames = 0
                 let effectiveSimilarity = max(matched.centroidSimilarity, matched.maxSampleSimilarity)
                 let isHighConfidence = effectiveSimilarity >= currentThreshold
                 let isMatchConfirmed = isHighConfidence || (consecutiveMatchedFrames >= 2)
@@ -540,6 +543,16 @@ final class NotchPulseFaceUnlockCoordinator {
                 consecutiveMatchedFrames = 0
                 if isQualityAcceptable {
                     sawWrongFace = true
+                    if isCameraWarmedUp {
+                        consecutiveWrongFaceFrames += 1
+                        // If someone's face is clearly visible but does NOT match enrolled face for 5 frames (~160ms),
+                        // fail fast immediately and show the wrong-face error animation instead of waiting for timeout!
+                        if consecutiveWrongFaceFrames >= 5 {
+                            statusMessage = "Face not recognized."
+                            lastOutcome = "Unrecognized face detected."
+                            return .consistentlyWrongFace
+                        }
+                    }
                 }
             }
 

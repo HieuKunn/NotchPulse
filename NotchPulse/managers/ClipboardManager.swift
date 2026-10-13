@@ -95,6 +95,7 @@ final class ClipboardManager: ObservableObject {
     }
 
     private var pollTimer: Timer?
+    private var copyKeyMonitor: Any?
     private let pasteboard = NSPasteboard.general
     private var lastChangeCount: Int = -1
     private let storageKey = "NotchPulse_SavedClipboardHistory"
@@ -137,11 +138,23 @@ final class ClipboardManager: ObservableObject {
             guard let self = self else { return }
             self.stopMonitoring()
 
-            // Run timer in .common mode at 0.75s interval with coalescing tolerance to catch copies with near-zero CPU
-            let timer = Timer(timeInterval: 0.75, repeats: true) { [weak self] _ in
+            // 1. Instant event-driven copy detector: Fires immediately on Cmd+C / Cmd+X so no copy is ever missed
+            self.copyKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                if flags.contains(.command), let chars = event.charactersIgnoringModifiers?.lowercased() {
+                    if chars == "c" || chars == "x" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                            self?.checkForChanges()
+                        }
+                    }
+                }
+            }
+
+            // 2. Background polling fallback for right-click context menu "Copy" operations
+            let timer = Timer(timeInterval: 0.8, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
-            timer.tolerance = 0.1
+            timer.tolerance = 0.15
             RunLoop.main.add(timer, forMode: .common)
             self.pollTimer = timer
 
@@ -164,6 +177,10 @@ final class ClipboardManager: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             self?.pollTimer?.invalidate()
             self?.pollTimer = nil
+            if let monitor = self?.copyKeyMonitor {
+                NSEvent.removeMonitor(monitor)
+                self?.copyKeyMonitor = nil
+            }
         }
     }
 
