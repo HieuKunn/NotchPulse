@@ -13,6 +13,7 @@
 
 ### ❄️ Interactive Thermal & Fan Controls
 - **Dedicated Native Fan Helper**: NotchPulse now features its own native helper daemon for direct Apple Silicon SMC fan speed control without third-party app dependencies.
+- **Zero-Prompt Fan Activation**: If you've enrolled your master password with Face ID, fan control installs and activates automatically in the background with zero extra prompts or popups.
 - **70/30 Fan & Temperature Card**: Enjoy a dedicated thermal card featuring a 70/30 split between interactive fan controls and a real-time hardware temperature gauge.
 - **One-Click Fan Profiles**: Instantly switch between Silent, Auto, Full Speed, and custom fan percentages directly from the Notch.
 
