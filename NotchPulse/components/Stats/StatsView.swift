@@ -253,7 +253,7 @@ struct StatsView: View {
                             isThermalExpanded.toggle()
                             if isThermalExpanded {
                                 monitor.startThermalMonitoring()
-                                vm.customOpenHeight = 285
+                                vm.customOpenHeight = 300
                             } else {
                                 monitor.stopThermalMonitoring()
                                 vm.customOpenHeight = nil
@@ -286,7 +286,7 @@ struct StatsView: View {
                                     .font(.system(size: 9))
                                     .foregroundStyle(monitor.currentFanSpeedPercent > 0 ? Color.cyan : Color.secondary)
 
-                                Text(monitor.currentFanRPM > 0 ? "\(monitor.currentFanSpeedPercent)%" : loc("Auto"))
+                                Text(monitor.selectedFanProfile.title)
                                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                                     .foregroundStyle(.secondary)
 
@@ -337,7 +337,7 @@ struct StatsView: View {
                     expandedMetric = nil
                     monitor.shouldFetchProcesses = false
                     monitor.startThermalMonitoring()
-                    vm.customOpenHeight = 285
+                    vm.customOpenHeight = 300
                 }
             } else if target == "stats" {
                 withAnimation(NotchPulseViewModel.notchSpring) {
@@ -370,7 +370,7 @@ struct StatsView: View {
             if isThermalExpanded {
                 monitor.startThermalMonitoring()
                 withAnimation(NotchPulseViewModel.notchSpring) {
-                    vm.customOpenHeight = 285
+                    vm.customOpenHeight = 300
                 }
             } else {
                 withAnimation(NotchPulseViewModel.notchSpring) {
@@ -777,168 +777,182 @@ private struct StatsProcessList: View {
     }
 }
 
-/// Expandable Thermal & Fan Control card featuring a circular gradient ring gauge
-/// and interactive fan speed controls with hardware baseline safety constraints.
+/// Expandable Thermal & Fan Control card featuring a 70/30 split:
+/// Left (70%): Interactive fan slider and clean text profile buttons (Auto, Balanced, Smart, Max, Custom). Zero icons.
+/// Right (30%): Compact SoC circular temperature gauge and status label.
 private struct ThermalAndFanCard: View {
     @ObservedObject var monitor: SystemMonitorManager
-    @State private var fanRotation: Double = 0
 
     var body: some View {
-        HStack(spacing: 10) {
-            // LEFT SIDE: Fan Speed Controller (56% width)
-            VStack(alignment: .leading, spacing: 6) {
-                // Header
-                HStack(spacing: 6) {
-                    Image(systemName: "fanblades.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(monitor.currentFanRPM > 0 ? Color.cyan : Color.secondary)
-                        .rotationEffect(.degrees(fanRotation))
-                        .onAppear {
-                            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
-                                fanRotation = 360
-                            }
-                        }
+        GeometryReader { geo in
+            let totalW = geo.size.width
+            let spacing: CGFloat = 8
+            let leftW = max(100, (totalW - spacing) * 0.70)
+            let rightW = max(60, (totalW - spacing) * 0.30)
 
-                    Text(loc("COOLING & FAN SPEED"))
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    // Live machine feedback badge
-                    Text(fanFeedbackText)
-                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Capsule())
-                }
-
-                // Dynamic Hardware Fan Speed Progress Bar
-                VStack(spacing: 3) {
-                    GeometryReader { geo in
-                        let w = geo.size.width
-                        let progress = CGFloat(min(1.0, max(0.0, Double(monitor.currentFanSpeedPercent) / 100.0)))
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.white.opacity(0.08))
-                                .frame(height: 7)
-
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.cyan.opacity(0.8), Color.blue],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: max(0, w * progress), height: 7)
-                        }
-                    }
-                    .frame(height: 7)
-
-                    HStack {
-                        Text("0 RPM")
-                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.secondary.opacity(0.7))
-                        Spacer()
-                        Text(monitor.isHardwareFanAvailable ? loc("Max ~6,500 RPM") : loc("Passive cooling (Fanless)"))
-                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.secondary.opacity(0.7))
-                    }
-                }
-                .padding(.vertical, 3)
-
-                // Status info line
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.shield.fill")
-                        .font(.system(size: 8.5))
-                        .foregroundStyle(Color.green.opacity(0.85))
-                    Text(loc("Automated hardware thermal regulation by macOS"))
-                        .font(.system(size: 9))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(8)
-            .frame(maxWidth: .infinity)
-            .background(Color.white.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
-
-            // RIGHT SIDE: Circular Temperature Gauge (44% width)
-            HStack(spacing: 10) {
-                // Circular Ring Gauge
-                ZStack {
-                    // Background track
-                    Circle()
-                        .stroke(Color.white.opacity(0.12), lineWidth: 6)
-
-                    // Color Gradient Ring (Green -> Yellow -> Orange -> Red)
-                    Circle()
-                        .trim(from: 0.0, to: CGFloat(min(1.0, max(0.06, (monitor.temperature - 30.0) / 70.0))))
-                        .stroke(
-                            AngularGradient(
-                                gradient: Gradient(colors: [
-                                    Color(red: 0.20, green: 0.85, blue: 0.40), // Green
-                                    Color(red: 1.00, green: 0.80, blue: 0.00), // Yellow
-                                    Color(red: 1.00, green: 0.55, blue: 0.00), // Orange
-                                    Color(red: 1.00, green: 0.20, blue: 0.20)  // Red
-                                ]),
-                                center: .center,
-                                startAngle: .degrees(-90),
-                                endAngle: .degrees(270)
-                            ),
-                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-
-                    // Center Temperature Text
-                    VStack(spacing: 0) {
-                        Text("\(Int(round(monitor.temperature)))°C")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(monitor.temperatureLevel.color)
-
-                        Text("SOC")
-                            .font(.system(size: 7, weight: .bold))
+            HStack(spacing: spacing) {
+                // LEFT SIDE (70%): Cooling & Fan Speed Control
+                VStack(alignment: .leading, spacing: 6) {
+                    // Header row
+                    HStack(spacing: 6) {
+                        Text(loc("COOLING & FAN SPEED"))
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Text(fanFeedbackText)
+                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.88))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Capsule())
+                    }
+
+                    // Interactive Drag Slider / Progress Bar
+                    VStack(spacing: 2) {
+                        GeometryReader { sliderGeo in
+                            let sw = sliderGeo.size.width
+                            let progress = CGFloat(min(1.0, max(0.0, Double(monitor.currentFanSpeedPercent) / 100.0)))
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.white.opacity(0.09))
+                                    .frame(height: 7)
+
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.cyan.opacity(0.85), Color.blue],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: max(0, sw * progress), height: 7)
+
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 11, height: 11)
+                                    .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+                                    .offset(x: max(0, min(sw - 11, sw * progress - 5.5)))
+                            }
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { val in
+                                        let clampedX = max(0, min(sw, val.location.x))
+                                        let pct = Int(round((clampedX / max(1.0, sw)) * 100.0))
+                                        monitor.setCustomFanPercent(pct)
+                                    }
+                            )
+                        }
+                        .frame(height: 11)
+
+                        HStack {
+                            Text("0 RPM")
+                                .font(.system(size: 8, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.secondary.opacity(0.7))
+                            Spacer()
+                            Text(monitor.isHardwareFanAvailable ? loc("Max ~6,500 RPM") : loc("Passive cooling (Fanless)"))
+                                .font(.system(size: 8, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.secondary.opacity(0.7))
+                        }
+                    }
+
+                    // Profile Buttons (NO ICONS WHATSOEVER)
+                    HStack(spacing: 4) {
+                        ForEach(NotchPulseFanProfile.allCases) { profile in
+                            let isSelected = monitor.selectedFanProfile == profile
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    monitor.setFanProfile(profile)
+                                }
+                            }) {
+                                Text(profile.title)
+                                    .font(.system(size: 9, weight: isSelected ? .bold : .medium))
+                                    .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.65))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 3.5)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                            .fill(isSelected ? Color.cyan.opacity(0.26) : Color.white.opacity(0.05))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                            .stroke(isSelected ? Color.cyan.opacity(0.65) : Color.white.opacity(0.08), lineWidth: 0.8)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
-                .frame(width: 54, height: 54)
+                .padding(8)
+                .frame(width: leftW, height: 86)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
 
-                // Text Description
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 4) {
+                // RIGHT SIDE (30%): Compact SoC Temperature Gauge
+                VStack(spacing: 4) {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.12), lineWidth: 5)
+
+                        Circle()
+                            .trim(from: 0.0, to: CGFloat(min(1.0, max(0.06, (monitor.temperature - 30.0) / 70.0))))
+                            .stroke(
+                                AngularGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.20, green: 0.85, blue: 0.40),
+                                        Color(red: 1.00, green: 0.80, blue: 0.00),
+                                        Color(red: 1.00, green: 0.55, blue: 0.00),
+                                        Color(red: 1.00, green: 0.20, blue: 0.20)
+                                    ]),
+                                    center: .center,
+                                    startAngle: .degrees(-90),
+                                    endAngle: .degrees(270)
+                                ),
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+
+                        VStack(spacing: 0) {
+                            Text("\(Int(round(monitor.temperature)))°C")
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundStyle(monitor.temperatureLevel.color)
+
+                            Text("SOC")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 46, height: 46)
+
+                    HStack(spacing: 3) {
                         Circle()
                             .fill(monitor.temperatureLevel.color)
-                            .frame(width: 5, height: 5)
+                            .frame(width: 4, height: 4)
 
                         Text(monitor.temperatureLevel.title)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 9.5, weight: .bold))
                             .foregroundStyle(monitor.temperatureLevel.color)
+                            .lineLimit(1)
                     }
-
-                    Text(tempAdviceText)
-                        .font(.system(size: 9))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .frame(width: rightW, height: 86)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
             }
-            .padding(8)
-            .frame(maxWidth: .infinity)
-            .background(Color.white.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
         }
-        .frame(height: 74)
+        .frame(height: 86)
     }
 
     private var fanFeedbackText: String {
@@ -946,16 +960,5 @@ private struct ThermalAndFanCard: View {
             return loc("0 RPM (Silent)")
         }
         return "\(monitor.currentFanRPM) RPM"
-    }
-
-    private var tempAdviceText: String {
-        switch monitor.temperatureLevel {
-        case .cool:
-            return loc("Optimal temperature, cool and power efficient.")
-        case .warm:
-            return loc("Moderate load, cooling operating normally.")
-        case .hot:
-            return loc("High temperature, fan automatically spins up to cool.")
-        }
     }
 }

@@ -52,35 +52,37 @@ public enum TemperatureLevel {
     }
 }
 
-public enum FanSpeedOption: Int, CaseIterable, Identifiable {
-    case auto = 0
-    case p25 = 25
-    case p50 = 50
-    case p75 = 75
-    case p100 = 100
+public enum NotchPulseFanProfile: String, CaseIterable, Identifiable {
+    case auto = "auto"
+    case balanced = "balanced"
+    case smart = "smart"
+    case max = "max"
+    case custom = "custom"
 
-    public var id: Int { rawValue }
+    public var id: String { rawValue }
 
-    public var label: String {
+    public var title: String {
         switch self {
         case .auto: return "Auto"
-        case .p25: return "25%"
-        case .p50: return "50%"
-        case .p75: return "75%"
-        case .p100: return "100%"
+        case .balanced: return "Balanced"
+        case .smart: return "Smart"
+        case .max: return "Max"
+        case .custom: return "Custom"
         }
     }
 
     public var description: String {
         switch self {
-        case .auto: return "Theo máy (Tự động)"
-        case .p25: return "25% công suất quạt"
-        case .p50: return "50% công suất quạt"
-        case .p75: return "75% công suất quạt"
-        case .p100: return "100% công suất tối đa"
+        case .auto: return "Theo máy (Apple Auto)"
+        case .balanced: return "Cân bằng nhiệt - ồn (Tối đa 60%)"
+        case .smart: return "Tự thích ứng & đón đầu nhiệt độ"
+        case .max: return "Tản nhiệt tối đa 100%"
+        case .custom: return "Tự chỉnh thủ công"
         }
     }
 }
+
+public typealias FanSpeedOption = NotchPulseFanProfile
 
 public struct MonitorProcessItem: Identifiable, Hashable {
     public let id: String
@@ -140,9 +142,19 @@ public class SystemMonitorManager: ObservableObject {
     @Published public var currentFanSpeedPercent: Int = 0
     @Published public var currentFanRPM: Int = 0
     @Published public var hardwareBaselineFanPercent: Int = 0
-    @Published public var selectedFanOption: FanSpeedOption = .auto
+    @Published public var selectedFanProfile: NotchPulseFanProfile = .auto
+    @Published public var customFanPercent: Int = 50
     @Published public var isThermalMonitoring: Bool = false
     @Published public var isHardwareFanAvailable: Bool = false
+
+    public var selectedFanOption: FanSpeedOption {
+        get { selectedFanProfile }
+        set { selectedFanProfile = newValue }
+    }
+
+    // In-memory thermal history & ramp governor (identically matched to ThermalForge)
+    private var temperatureHistory: [Double] = []
+    private var lastRampPercent: Double = 0.0
 
     // MARK: - Top Processes
     @Published public var topCpuProcesses: [MonitorProcessItem] = []
@@ -240,8 +252,20 @@ public class SystemMonitorManager: ObservableObject {
         }
     }
 
+    public func setFanProfile(_ profile: NotchPulseFanProfile) {
+        self.selectedFanProfile = profile
+        self.queue.async {
+            self.updateThermalMetrics()
+        }
+    }
+
     public func setFanOption(_ option: FanSpeedOption) {
-        self.selectedFanOption = option
+        setFanProfile(option)
+    }
+
+    public func setCustomFanPercent(_ percent: Int) {
+        self.customFanPercent = max(0, min(100, percent))
+        self.selectedFanProfile = .custom
         self.queue.async {
             self.updateThermalMetrics()
         }
@@ -660,20 +684,92 @@ public class SystemMonitorManager: ObservableObject {
             baselineFanPct = 0
         }
 
-        // Effective fan percentage & real hardware RPM
-        let effectiveFanPct: Int
-        switch selectedFanOption {
-        case .auto:
-            effectiveFanPct = baselineFanPct
-        case .p25:
-            effectiveFanPct = max(25, baselineFanPct)
-        case .p50:
-            effectiveFanPct = max(50, baselineFanPct)
-        case .p75:
-            effectiveFanPct = max(75, baselineFanPct)
-        case .p100:
-            effectiveFanPct = 100
+        // ThermalForge-Identical Thermal Regulation Engine
+        // Track temperature history for rate-of-change awareness (Smart profile)
+        temperatureHistory.append(calculatedTemp)
+        if temperatureHistory.count > 8 {
+            temperatureHistory.removeFirst()
         }
+
+        let rateOfChange: Double
+        if temperatureHistory.count >= 2 {
+            let dt = Double(temperatureHistory.count - 1) * 1.0
+            rateOfChange = (temperatureHistory.last! - temperatureHistory.first!) / max(1.0, dt)
+        } else {
+            rateOfChange = 0.0
+        }
+
+        var targetFraction: Double = 0.0
+        switch selectedFanProfile {
+        case .auto:
+            targetFraction = Double(baselineFanPct) / 100.0
+
+        case .balanced:
+            // ThermalForge Balanced Profile:
+            // Below 50°C: Fans off / idle
+            // 50°C - 55°C: Hysteresis
+            // 55°C - 70°C: Ease-In (pos^2) up to 60%
+            if calculatedTemp <= 50.0 {
+                targetFraction = 0.0
+            } else if calculatedTemp < 55.0 {
+                targetFraction = lastRampPercent > 0.01 ? 0.20 : 0.0
+            } else if calculatedTemp >= 70.0 {
+                targetFraction = 0.60
+            } else {
+                let pos = (calculatedTemp - 55.0) / 15.0
+                targetFraction = pos * pos * 0.60
+            }
+
+        case .smart:
+            // ThermalForge Smart Profile:
+            // Below 50°C: Fans off / idle
+            // 50°C - 53°C: Hysteresis
+            // 53°C - 85°C: S-Curve (pos^2 * (3 - 2*pos)) with Velocity Booster
+            if calculatedTemp <= 50.0 {
+                targetFraction = 0.0
+            } else if calculatedTemp < 53.0 {
+                targetFraction = lastRampPercent > 0.01 ? 0.20 : 0.0
+            } else if calculatedTemp >= 85.0 {
+                targetFraction = 1.0
+            } else {
+                let pos = (calculatedTemp - 53.0) / 32.0
+                var sCurve = pos * pos * (3.0 - 2.0 * pos)
+                if rateOfChange > 0 {
+                    sCurve = min(1.0, sCurve + (rateOfChange * 0.20))
+                }
+                targetFraction = min(1.0, max(0.0, sCurve))
+            }
+
+        case .max:
+            targetFraction = 1.0
+
+        case .custom:
+            targetFraction = Double(customFanPercent) / 100.0
+        }
+
+        // Safety Override: Force 100% fans if temperature crosses 95°C (ThermalForge safety floor)
+        let finalFraction: Double
+        if calculatedTemp >= 95.0 {
+            finalFraction = 1.0
+        } else {
+            let minSafety = Double(baselineFanPct) / 100.0
+            finalFraction = max(minSafety, targetFraction)
+        }
+
+        // Ramp governor for acoustic comfort & bearing preservation
+        if selectedFanProfile == .max || selectedFanProfile == .custom {
+            lastRampPercent = finalFraction
+        } else {
+            let rampUp = 0.10
+            let rampDown = 0.05
+            if finalFraction > lastRampPercent {
+                lastRampPercent = min(finalFraction, lastRampPercent + rampUp)
+            } else {
+                lastRampPercent = max(finalFraction, lastRampPercent - rampDown)
+            }
+        }
+
+        let effectiveFanPct = Int(round(lastRampPercent * 100.0))
 
         // Fetch real hardware fan RPM from SMC if available
         let fans = SMCService.shared.getFans()
@@ -692,6 +788,9 @@ public class SystemMonitorManager: ObservableObject {
 
         let isAvailable = SMCService.shared.isHardwareFanAvailable
 
+        // Dispatches to ThermalForge root daemon socket if present on system
+        dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: rpm)
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.temperature = calculatedTemp
@@ -700,6 +799,68 @@ public class SystemMonitorManager: ObservableObject {
             self.currentFanSpeedPercent = effectiveFanPct
             self.currentFanRPM = rpm
             self.isHardwareFanAvailable = isAvailable
+        }
+    }
+
+    /// Communicates with ThermalForge root daemon via Unix socket if installed
+    private func dispatchToThermalForgeDaemon(profile: NotchPulseFanProfile, rpm: Int) {
+        let socketPath = "/var/run/thermalforge.sock"
+        guard FileManager.default.fileExists(atPath: socketPath) else { return }
+
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { return }
+        defer { close(fd) }
+
+        var timeout = timeval(tv_sec: 0, tv_usec: 100_000)
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+
+        var addr = sockaddr_un()
+        addr.sun_family = sa_family_t(AF_UNIX)
+        let maxLen = MemoryLayout.size(ofValue: addr.sun_path)
+        _ = socketPath.withCString {
+            strncpy(&addr.sun_path.0, $0, maxLen - 1)
+        }
+
+        let connectResult = withUnsafePointer(to: &addr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        guard connectResult == 0 else { return }
+
+        let verb: String
+        let reqRPM: Int?
+        switch profile {
+        case .auto:
+            verb = "auto"
+            reqRPM = nil
+        case .max:
+            verb = "max"
+            reqRPM = nil
+        case .custom, .smart, .balanced:
+            verb = "set"
+            reqRPM = rpm
+        }
+
+        struct WireRequest: Encodable {
+            let v: Int = 1
+            let verb: String
+            let rpm: Int?
+            let oneshot: Bool = true
+        }
+
+        guard let payload = try? JSONEncoder().encode(WireRequest(verb: verb, rpm: reqRPM)) else { return }
+        let len = payload.count
+        var frame = [UInt8]()
+        frame.reserveCapacity(4 + len)
+        frame.append(UInt8(truncatingIfNeeded: len >> 24))
+        frame.append(UInt8(truncatingIfNeeded: len >> 16))
+        frame.append(UInt8(truncatingIfNeeded: len >> 8))
+        frame.append(UInt8(truncatingIfNeeded: len))
+        frame.append(contentsOf: payload)
+
+        _ = frame.withUnsafeBytes { ptr in
+            write(fd, ptr.baseAddress!, frame.count)
         }
     }
 }
