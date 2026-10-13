@@ -297,9 +297,10 @@ final class FaceIDEnrollmentController {
     ///
     /// No Touch ID prompt here: the only caller already has a live session, and
     /// `finish(password:)` re-asserts that anyway.
-    static func startPasswordOnly() {
+    static func startPasswordOnly(onComplete: (() -> Void)? = nil) {
         Task { @MainActor in
             let controller = FaceIDEnrollmentController(isPasswordOnly: true)
+            controller.onFirstRunComplete = onComplete
             FaceIDOverlayController.shared.presentOnboarding(controller)
         }
     }
@@ -986,6 +987,10 @@ final class FaceIDEnrollmentController {
                 defer { bytes.resetBytes(in: 0..<bytes.count) }
                 try NotchPulseVault.savePassword(bytes)
             }.value
+
+            // Automatically configure and install privileged FanHelper with this password
+            FanHelperManager.shared.installWithPassword(trimmed)
+
             passwordError = nil
             navDirection = .forward
             withAnimation(FaceIDMetrics.stepAnimation) { step = .complete }
@@ -1004,7 +1009,7 @@ final class FaceIDEnrollmentController {
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(FaceIDMetrics.completeScreenDismissDelay))
             guard let self else { return }
-            let shouldFireCompletion = self.isFirstRunFlow || self.isPostUpdateNotice
+            let shouldFireCompletion = self.isFirstRunFlow || self.isPostUpdateNotice || self.isPasswordOnly
             let onComplete = self.onFirstRunComplete
             let onDismissCb = self.onDismiss
             self.onDismiss = nil
