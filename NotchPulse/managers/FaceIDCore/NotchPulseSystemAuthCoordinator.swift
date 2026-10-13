@@ -65,12 +65,12 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             
         if shouldPoll {
             if promptDetectionTimer == nil {
-                let timer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [weak self] _ in
+                let timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
                     Task { @MainActor [weak self] in
                         self?.checkOnScreenAuthPrompts()
                     }
                 }
-                timer.tolerance = 0.3
+                timer.tolerance = 0.5
                 promptDetectionTimer = timer
             }
         } else {

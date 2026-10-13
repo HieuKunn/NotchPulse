@@ -933,6 +933,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if EKEventStore.authorizationStatus(for: .reminder) == .notDetermined {
                 await CalendarManager.shared.checkReminderAuthorization()
             }
+
+            // 4. Pre-warm secure vault session for Face ID auto-fill if enabled
+            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+                _ = NotchPulseVault.isSessionUnlocked
+            }
         }
     }
 

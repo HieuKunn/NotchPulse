@@ -137,10 +137,11 @@ final class ClipboardManager: ObservableObject {
             guard let self = self else { return }
             self.stopMonitoring()
 
-            // Run timer in .common mode at 0.35s interval to catch all rapid copies instantly with ~0% idle CPU
-            let timer = Timer(timeInterval: 0.35, repeats: true) { [weak self] _ in
+            // Run timer in .common mode at 0.75s interval with coalescing tolerance to catch copies with near-zero CPU
+            let timer = Timer(timeInterval: 0.75, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
+            timer.tolerance = 0.1
             RunLoop.main.add(timer, forMode: .common)
             self.pollTimer = timer
 

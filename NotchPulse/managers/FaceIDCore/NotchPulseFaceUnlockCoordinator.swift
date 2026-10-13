@@ -292,6 +292,23 @@ final class NotchPulseFaceUnlockCoordinator {
     private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
+        // Prerequisite check: Do NOT start camera hardware if Accessibility is not granted
+        // or there is no stored password to unlock the Mac. This avoids runaway camera loops.
+        guard KeystrokeInjector.isAccessibilityTrusted() else {
+            statusMessage = "Accessibility not granted — cannot auto-fill password."
+            if self.showsUI {
+                FaceIDOverlayController.shared.finish(success: false)
+            }
+            return
+        }
+        guard NotchPulseVault.hasStoredPassword() else {
+            statusMessage = "No stored password to unlock Mac."
+            if self.showsUI {
+                FaceIDOverlayController.shared.finish(success: false)
+            }
+            return
+        }
+
         let showsUI = self.showsUI
         if showsUI {
             FaceIDOverlayController.shared.beginScanning()
