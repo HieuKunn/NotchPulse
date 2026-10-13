@@ -125,6 +125,19 @@ const i18nData = {
     "feat10.title": "9-Language Native Localization",
     "feat10.desc": "Full native localized interface across English, Tiếng Việt, 繁體中文, 简体中文, 日本語, Deutsch, Français, Español, and العربية with real-time UI switching.",
 
+    "feat11.title": "Native SMC Fan & Thermal Control",
+    "feat11.desc": "Direct SMC hardware driver with auto root authorization. Control fan speeds (Auto, Max Blast, Silent, Custom RPM) and monitor CPU/GPU thermal sensors directly from the notch.",
+
+    "feat12.title": "Refined Lock Screen Media Player",
+    "feat12.desc": "Stunning edge-to-edge glass player with zero faint blur shadows. Seamlessly adapts control button colors and dynamic appearance between macOS Light & Dark modes.",
+
+    "bento.fanRpm": "4,800 RPM Turbo",
+    "bento.fanCpuTemp": "CPU 42°C • Cool & Quiet",
+    "bento.fanRootAuth": "Auto Root Daemon Active",
+    "bento.lockscreenTitle": "Midnight Resonance",
+    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
+    "bento.lockscreenDynamic": "Adaptive Dark & Light Sync",
+
     // Reviews Section
     "reviews.tag": "Global Community",
     "reviews.title": "Loved by People Worldwide",
@@ -160,7 +173,7 @@ const i18nData = {
 
   vi: {
     // Navigation
-    "nav.features": "Tính Năng Bento",
+    "nav.features": "Tính Năng",
     "nav.demo": "Demo Trực Tiếp",
     "nav.reviews": "Đánh Giá Quốc Tế",
     "nav.creator": "Tác Giả",
@@ -267,6 +280,19 @@ const i18nData = {
 
     "feat10.title": "Giao Diện 9 Ngôn Ngữ Bản Địa",
     "feat10.desc": "Hỗ trợ bản địa hóa toàn diện cho 9 ngôn ngữ: Tiếng Anh, Tiếng Việt, 繁體中文, 简体中文, 日本語, Deutsch, Français, Español, العربية với khả năng chuyển đổi tức thì.",
+
+    "feat11.title": "Điều Khiển Quạt & Nhiệt Độ Phần Cứng Native",
+    "feat11.desc": "Can thiệp trực tiếp SMC phần cứng với cơ chế tự động cấp quyền Root an toàn. Kiểm soát tốc độ quạt (Auto, Max Turbo, Silent, Tuỳ chỉnh RPM) và giám sát nhiệt độ CPU/GPU tức thì ngay từ Notch.",
+
+    "feat12.title": "Trình Phát Nhạc Màn Hình Khoá Đẳng Cấp",
+    "feat12.desc": "Thiết kế viền kính siêu mỏng sắc nét loại bỏ hoàn toàn bóng mờ lem nhem. Tự động đồng bộ màu biểu tượng và thích ứng mượt mà giữa chế độ Sáng & Tối theo macOS với điều khiển nhạc tức thì.",
+
+    "bento.fanRpm": "4.800 RPM Cực Đại",
+    "bento.fanCpuTemp": "CPU 42°C • Tản Nhiệt Siêu Mát",
+    "bento.fanRootAuth": "Quyền Root Tự Động An Toàn",
+    "bento.lockscreenTitle": "Midnight Resonance",
+    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
+    "bento.lockscreenDynamic": "Thích Ứng Sáng / Tối macOS",
 
     // Reviews Section
     "reviews.tag": "Cộng Đồng Toàn Cầu",
@@ -410,6 +436,19 @@ const i18nData = {
 
     "feat10.title": "Native Lokalisierung in 9 Sprachen",
     "feat10.desc": "Vollständige Benutzeroberfläche in Englisch, Vietnamesisch, Chinesisch (Trad./Simp.), Japanisch, Deutsch, Französisch, Spanisch und Arabisch.",
+
+    "feat11.title": "Native SMC-Lüfter- & Temperatursteuerung",
+    "feat11.desc": "Direkter SMC-Hardwaretreiber mit automatischer Root-Autorisierung. Lüfterstufen (Auto, Max Blast, Silent, Custom RPM) und CPU/GPU-Temperatur direkt in der Notch steuern.",
+
+    "feat12.title": "Eleganter Sperrbildschirm-Mediaplayer",
+    "feat12.desc": "Kristallklarer Glaseffekt ohne störende Randschatten. Passt Symbolfarben und Kontraste nahtlos an den macOS Hell-/Dunkelmodus an.",
+
+    "bento.fanRpm": "4.800 U/min Turbo",
+    "bento.fanCpuTemp": "CPU 42°C • Kühl & Leise",
+    "bento.fanRootAuth": "Root-Daemon Aktiv",
+    "bento.lockscreenTitle": "Midnight Resonance",
+    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
+    "bento.lockscreenDynamic": "Hell-/Dunkelmodus Synchron",
 
     // Reviews Section
     "reviews.tag": "Globale Community",
@@ -555,6 +594,19 @@ const i18nData = {
     "feat10.title": "9言語ネイティブローカライズ",
     "feat10.desc": "英語、ベトナム語、繁体字、簡体字、日本語、ドイツ語、フランス語、スペイン語、アラビア語のリアルタイム言語切り替えに対応。",
 
+    "feat11.title": "ネイティブ SMC ファン＆温度管理",
+    "feat11.desc": "自動Root認証を備えたSMC直接ハードウェア制御。ノッチから直接ファン速度（Auto、Max、静音、カスタムRPM）とCPU/GPU温度をリアルタイム管理。",
+
+    "feat12.title": "洗練されたロック画面メディアプレーヤー",
+    "feat12.desc": "不要なぼかし影を排除した高精細ガラスUI。macOSのライト/ダークモードに同期し、アイコンカラーを美しく最適化。",
+
+    "bento.fanRpm": "4,800 RPM ターボ",
+    "bento.fanCpuTemp": "CPU 42°C • 低温静音",
+    "bento.fanRootAuth": "Root認証自動管理",
+    "bento.lockscreenTitle": "Midnight Resonance",
+    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
+    "bento.lockscreenDynamic": "ライト/ダークモード完全同期",
+
     // Reviews Section
     "reviews.tag": "グローバルコミュニティ",
     "reviews.title": "世界中の開発者から高評価",
@@ -698,6 +750,19 @@ const i18nData = {
 
     "feat10.title": "9 種語系原生多國語言",
     "feat10.desc": "完整支援繁體中文、簡體中文、英文、越南文、日文、德文、法文、西班牙文與阿拉伯文，切換即時生效。",
+
+    "feat11.title": "原生 SMC 風扇與硬體溫度控制",
+    "feat11.desc": "直接介入 SMC 硬體並支援自動 Root 權限調用。直接於瀏海監控 CPU/GPU 溫度，並自由切換風扇轉速（自動、全速、靜音、自訂 RPM）。",
+
+    "feat12.title": "極簡精緻鎖定畫面音樂播放器",
+    "feat12.desc": "邊緣清晰的磨砂玻璃卡片，完全去除突兀的模糊陰影。按鍵圖示色彩自動配對，並隨 macOS 淺色與深色外觀流暢切換。",
+
+    "bento.fanRpm": "4,800 RPM 渦輪全速",
+    "bento.fanCpuTemp": "CPU 42°C • 涼爽靜音",
+    "bento.fanRootAuth": "Root 守護程序自動啟用",
+    "bento.lockscreenTitle": "Midnight Resonance",
+    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
+    "bento.lockscreenDynamic": "深淺外觀智慧同步",
 
     // Reviews Section
     "reviews.tag": "全球開發者社群",
@@ -843,6 +908,19 @@ const i18nData = {
     "feat10.title": "9 种原生本地化语言",
     "feat10.desc": "全面支持简体中文、繁体中文、英语、越南语、日语、德语、法语、西班牙语与阿拉伯语，即时响应无缝切换。",
 
+    "feat11.title": "原生 SMC 风扇与硬件温控系统",
+    "feat11.desc": "直接对接 SMC 硬件并支持自动静默 Root 提权。直接在刘海区域调节风扇转速（自动、强劲全速、静音、自定义 RPM）并实时监控芯片温度。",
+
+    "feat12.title": "精细化锁屏多媒体控制中心",
+    "feat12.desc": "边缘细腻的高清微晶磨砂面板，告别冗余模糊阴影。按键与图标色彩自适应协调，随 macOS 深浅色外观无缝切换。",
+
+    "bento.fanRpm": "4,800 RPM 强劲全速",
+    "bento.fanCpuTemp": "CPU 42°C • 酷冷低噪",
+    "bento.fanRootAuth": "Root 守护进程安全激活",
+    "bento.lockscreenTitle": "Midnight Resonance",
+    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
+    "bento.lockscreenDynamic": "macOS 深浅外观自适应",
+
     // Reviews Section
     "reviews.tag": "全球社区",
     "reviews.title": "备受全球开发者好评",
@@ -987,6 +1065,19 @@ const i18nData = {
     "feat10.title": "Localización Nativa en 9 Idiomas",
     "feat10.desc": "Interfaz completamente traducida a inglés, vietnamita, chino (trad./simp.), japonés, alemán, francés, español y árabe en tiempo real.",
 
+    "feat11.title": "Control Nativo de Ventiladores SMC y Térmica",
+    "feat11.desc": "Control directo de hardware SMC con autorización root automática. Gestiona velocidades de ventilador (Auto, Max, Silencioso, RPM personalizado) y temperatura en tiempo real.",
+
+    "feat12.title": "Reproductor Pulido para Pantalla de Bloqueo",
+    "feat12.desc": "Diseño de cristal nítido sin sombras borrosas innecesarias. Sincroniza dinámicamente los colores de los controles con el modo claro/oscuro de macOS.",
+
+    "bento.fanRpm": "4.800 RPM Turbo",
+    "bento.fanCpuTemp": "CPU 42°C • Fresco y Silencioso",
+    "bento.fanRootAuth": "Daemon Root Seguro Activo",
+    "bento.lockscreenTitle": "Midnight Resonance",
+    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
+    "bento.lockscreenDynamic": "Sincronización Claro / Oscuro",
+
     // Reviews Section
     "reviews.tag": "Comunidad Global",
     "reviews.title": "Elogiado por Desarrolladores del Mundo",
@@ -1104,9 +1195,9 @@ function initSmoothScroll() {
 // =============================================================
 
 let appReleaseInfo = {
-  version: "v5.0",
-  versionShort: "v5.0",
-  name: "NotchPulse v5.0",
+  version: "v5.4",
+  versionShort: "v5.4",
+  name: "NotchPulse v5.4",
   downloadUrl: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg"
 };
 

@@ -1912,6 +1912,174 @@ a {
   font-weight: 600;
 }
 
+/* Bento 11: Native Fan & Thermal Control Widget */
+.fan-preview-widget {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fan-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fan-rpm-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fan-spin-svg {
+  animation: spin-fan 2.5s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes spin-fan {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fan-rpm-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fan-turbo-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 980px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.fan-modes-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.fan-mode-btn {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.fan-mode-btn.active {
+  background: rgba(141, 84, 40, 0.3);
+  border-color: rgba(141, 84, 40, 0.6);
+  color: #FFFFFF;
+}
+
+.fan-sub-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.fan-temp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fb923c;
+  font-weight: 600;
+}
+
+/* Bento 12: Refined Lock Screen Media Widget */
+.lockscreen-media-widget {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lockscreen-card-mini {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  gap: 12px;
+}
+
+.lockscreen-art-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f97316, #db2777);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.lockscreen-track-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.lockscreen-track-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lockscreen-track-artist {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.lockscreen-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+}
+
+.lockscreen-bottom-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.lockscreen-adaptive-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 980px;
+  color: #c084fc;
+  font-weight: 500;
+}
+
+
 @media (max-width: 600px) {
   .calendar-preview-widget {
     flex-direction: column;
