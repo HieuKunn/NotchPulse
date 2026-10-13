@@ -536,11 +536,13 @@ struct StatsView: View {
                 .background(Color.white.opacity(0.06))
                 .clipShape(Capsule())
 
-                Spacer()
+                Spacer(minLength: 4)
 
                 Text(String(format: "%.1f GB", monitor.ramUsedGB))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.system(size: 13.5, weight: .bold, design: .rounded))
                     .foregroundStyle(pressureColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             // Apple Activity Monitor Memory Pressure Graph
@@ -573,25 +575,31 @@ struct StatsView: View {
             .frame(height: 4)
 
             // Breakdown Labels
-            HStack(spacing: 6) {
-                HStack(spacing: 3) {
-                    Circle().fill(Color.green).frame(width: 5, height: 5)
+            HStack(spacing: 4) {
+                HStack(spacing: 2.5) {
+                    Circle().fill(Color.green).frame(width: 4.5, height: 4.5)
                     Text(String(format: "App:%.1fG", monitor.ramAppGB))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
-                HStack(spacing: 3) {
-                    Circle().fill(Color.orange).frame(width: 5, height: 5)
+                HStack(spacing: 2.5) {
+                    Circle().fill(Color.orange).frame(width: 4.5, height: 4.5)
                     Text(String(format: "Wired:%.1fG", monitor.ramWiredGB))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
-                Spacer()
-                HStack(spacing: 3) {
-                    Circle().fill(monitor.swapUsedMB > 0 ? Color.purple : Color.gray.opacity(0.6)).frame(width: 5, height: 5)
+                Spacer(minLength: 2)
+                HStack(spacing: 2.5) {
+                    Circle().fill(monitor.swapUsedMB > 0 ? Color.purple : Color.gray.opacity(0.6)).frame(width: 4.5, height: 4.5)
                     Text("Swap:\(monitor.swapUsedFormatted)")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(monitor.swapUsedMB > 500 ? Color.orange : .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
             }
 
@@ -644,11 +652,12 @@ struct StatsView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white)
 
-                Spacer()
+                Spacer(minLength: 4)
 
                 Text(String(format: "%.0f%%", monitor.gpuUsage))
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 14.5, weight: .bold, design: .rounded))
                     .foregroundStyle(.purple)
+                    .lineLimit(1)
             }
 
             // Apple Activity Monitor GPU Graph

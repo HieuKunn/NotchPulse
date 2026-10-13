@@ -1,17 +1,20 @@
-## 🚀 What's New in NotchPulse v5.3
+## 🚀 What's New in NotchPulse v5.4
 
-### 🎵 Enhanced Media Controls & Interactive Volume Slider
-- **Interactive Volume Slider**: Left-clicking the speaker icon now smoothly opens an interactive volume slider bar instead of muting, giving you immediate control without accidental silencing.
-- **Mouse Scroll Wheel Volume Control**: Effortlessly adjust volume up or down by scrolling your mouse wheel or trackpad directly over the volume icon or the open slider bar.
-- **True Previous Track Navigation**: The Previous Track button now reliably returns to the actual previous song or video across Spotify, Apple Music, YouTube Music, and web players instead of restarting from 0:00, keeping it distinct from the 15-second skip buttons.
-- **Expanded Web Music Likes**: Added support for liking tracks directly from the Notch toolbar when playing music on YouTube, YouTube Music, Spotify Web, and SoundCloud.
-- **Lock Screen Playback Parity**: Enjoy the exact same interactive volume slider, scroll wheel adjustment, and full playback controls on both Compact and Full Screen lock screen players.
+### ⚡️ Activity Monitor Parity & Symmetrical Dashboard
+- **True Real-Time RAM Metrics**: Memory consumption now precisely reflects Apple's official physical footprint standard, displaying exact real-time RAM usage without compressed memory distortion.
+- **Full Process Names**: App and helper names are now displayed completely without abbreviation or cut-off text.
+- **Instant Top Apps Inspection**: The top resource-consuming apps now appear instantly the moment you expand the dashboard with zero delay.
+- **Symmetrical 3-Column Layout**: Perfectly balanced CPU, RAM, and GPU dashboard cards (33% each) with responsive typography, giving your GPU model name extra breathing room while keeping all labels clean and legible.
 
-### 🖥️ Smart Full-Screen Auto-Hide & Hover Reveal
-- **Seamless Fullscreen Auto-Hide**: Dynamic Island and Notch automatically slide away when you switch to Full Screen apps, ensuring movies, games, and presentations remain completely unobstructed.
-- **Quick Hover-to-Reveal**: Simply move your cursor to the top edge of your screen while in full-screen to gently reveal the island or notch, check music or battery, and have it smoothly hide when you move away.
-- **Lock Screen Persistence**: Screen lock now reliably shows the lock screen media player even if full-screen apps are running in the background.
+### ❄️ Interactive Thermal & Fan Controls
+- **70/30 Fan & Temperature Card**: Enjoy a dedicated thermal card featuring a 70/30 split between interactive fan controls and a real-time hardware temperature gauge.
+- **One-Click Fan Profiles**: Instantly switch between Silent, Auto, Full Speed, and custom fan percentages directly from the Notch.
 
-### 🎨 Visual & UI Refinements
-- **Clean Settings Experience**: Removed outdated preview toggles for a cleaner, faster settings menu.
-- **Refined Bluetooth & Island Metrics**: Polished inline Bluetooth margins and active tab indicators for flawless edge alignment across display modes.
+### 🔒 Smarter Face ID Biometrics & Zero Idle Memory
+- **Zero Idle Memory Footprint**: Face ID recognition model automatically sleeps when you're working on your Mac, waking up in the background only when your screen locks or when an authentication prompt appears, freeing memory completely.
+- **Single-Prompt Authorization**: System and password prompts verify your face once without annoying camera cycling.
+- **Instant Wrong Face Rejection**: Quickly detects and signals unrecognized faces within a fraction of a second instead of waiting until timeout.
+- **Seamless Sleep Recovery**: Camera connections now reliably re-negotiate upon waking from sleep so Face ID is always ready.
+
+### 📋 Instant Event-Driven Clipboard
+- **Lightning-Fast Copying**: Captures copy and cut actions (`Cmd + C` / `Cmd + X`) instantaneously without missing rapid copy sequences, while drawing 0% CPU in the background.
