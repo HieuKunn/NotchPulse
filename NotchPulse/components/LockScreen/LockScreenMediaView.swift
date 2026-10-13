@@ -651,6 +651,7 @@ struct LockScreenMediaView: View {
                         .foregroundStyle(.white)
                         .offset(x: musicManager.isPlaying ? 0 : 1)
                 }
+                .contentShape(Circle())
             }
             .buttonStyle(.plain)
         case .next:
@@ -1018,26 +1019,23 @@ private struct LockScreenButton: View {
         let iconSize: CGFloat = isPrimary ? (size * 0.62) : (size * 0.52)
         
         Button(action: action) {
-            Rectangle()
-                .fill(Color.clear)
-                .contentShape(Rectangle())
-                .frame(width: hitSize, height: hitSize)
-                .overlay {
-                    Circle()
-                        .fill(
-                            isHovering && !disabled
-                                ? (isLight ? Color.black.opacity(0.08) : Color.white.opacity(0.18))
-                                : Color.clear
-                        )
-                        .frame(width: hitSize, height: hitSize)
-                        .overlay {
-                            Image(systemName: icon)
-                                .font(.system(size: iconSize, weight: isPrimary ? .bold : .medium))
-                                .foregroundStyle(iconColor)
-                                .contentTransition(.symbolEffect)
-                                .offset(x: (icon == "play.fill" && isPrimary) ? 1.5 : 0)
-                        }
-                }
+            ZStack {
+                Color.black.opacity(0.001)
+                Circle()
+                    .fill(
+                        isHovering && !disabled
+                            ? (isLight ? Color.black.opacity(0.08) : Color.white.opacity(0.18))
+                            : Color.clear
+                    )
+                    .frame(width: hitSize, height: hitSize)
+                Image(systemName: icon)
+                    .font(.system(size: iconSize, weight: isPrimary ? .bold : .medium))
+                    .foregroundStyle(iconColor)
+                    .contentTransition(.symbolEffect)
+                    .offset(x: (icon == "play.fill" && isPrimary) ? 1.5 : 0)
+            }
+            .frame(width: hitSize, height: hitSize)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(disabled)

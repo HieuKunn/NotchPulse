@@ -20,21 +20,18 @@ struct HoverButton: View {
         let size = CGFloat(scale == .large ? 40 : 30)
         
         Button(action: action) {
-            Rectangle()
-                .fill(.clear)
-                .contentShape(Rectangle())
-                .frame(width: size, height: size)
-                .overlay {
-                    Capsule()
-                        .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
-                        .frame(width: size, height: size)
-                        .overlay {
-                            Image(systemName: icon)
-                                .foregroundColor(iconColor)
-                                .contentTransition(contentTransition)
-                                .font(scale == .large ? .largeTitle : .body)
-                        }
-                }
+            ZStack {
+                Color.black.opacity(0.001)
+                Capsule()
+                    .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
+                    .frame(width: size, height: size)
+                Image(systemName: icon)
+                    .foregroundColor(iconColor)
+                    .contentTransition(contentTransition)
+                    .font(scale == .large ? .largeTitle : .body)
+            }
+            .frame(width: size, height: size)
+            .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
         .onHover { hovering in
