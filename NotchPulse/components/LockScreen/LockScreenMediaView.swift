@@ -104,6 +104,183 @@ struct LockScreenMediaView: View {
     // =========================================================================
     // MARK: - 1. Compact Player View (iPhone-style Lock Screen Card)
     // =========================================================================
+    private var compactArtistColor: Color {
+        if playerColorTinting {
+            return isLightMode
+                ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.35)
+                : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.75)
+        }
+        return compactSecondaryText
+    }
+
+    private var compactAlbumArtView: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Image(nsImage: musicManager.albumArt)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 54, height: 54)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
+                .shadow(color: isLightMode ? Color.black.opacity(0.18) : Color.black.opacity(0.35), radius: 6, x: 0, y: 3)
+                .shadow(color: Color(nsColor: musicManager.avgColor).opacity(isLightMode ? 0.22 : 0.3), radius: 8, x: 0, y: 4)
+            
+            // Lớp phủ tối khi tạm dừng
+            if !musicManager.isPlaying {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.black.opacity(0.35))
+                    .frame(width: 54, height: 54)
+                    .allowsHitTesting(false)
+            }
+            
+            // Icon app phát nhạc (Apple Music, Spotify, ...)
+            if !musicManager.usingAppIconForArtwork {
+                AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    .offset(x: 3, y: 3)
+                    .shadow(radius: 3)
+            }
+        }
+    }
+
+    private var compactHeaderRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            // Album Art (54x54) - Tương tự AlbumArtView trong Notch
+            Button {
+                windowController.setFullScreen(true)
+            } label: {
+                compactAlbumArtView
+            }
+            .buttonStyle(.plain)
+            .help("Click to expand to full-screen lyrics")
+            
+            // Tên bài hát & Ca sĩ hiển thị cố định, dài quá thì "..."
+            VStack(alignment: .leading, spacing: 2) {
+                Text(musicManager.songTitle)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(compactPrimaryText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 268, alignment: .leading)
+                
+                Text(musicManager.artistName)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(compactArtistColor)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 268, alignment: .leading)
+            }
+            
+            Spacer(minLength: 4)
+            
+            // Cột sóng nhạc sống động góc phải
+            soundWaveform
+        }
+    }
+
+    @ViewBuilder
+    private var compactLyricsRow: some View {
+        TimelineView(.animation(minimumInterval: 0.25)) { timeline in
+            let effectiveElapsed: Double = compactDragging
+                ? compactSliderValue
+                : musicManager.estimatedPlaybackPosition(at: timeline.date)
+            let activeIndex = musicManager.currentLyricIndex(at: effectiveElapsed)
+            let line: String = {
+                if musicManager.isFetchingLyrics { return "Loading lyrics…" }
+                if !musicManager.syncedLyrics.isEmpty {
+                    return musicManager.lyricLine(at: effectiveElapsed)
+                }
+                let trimmed = musicManager.currentLyrics.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? "♪  ♫  ♪" : trimmed.replacingOccurrences(of: "\n", with: " ")
+            }()
+            let cleanText = MusicManager.stripLRCTimestamps(from: line)
+            let displayText = cleanText.isEmpty ? "♪  ♫  ♪" : cleanText
+            let isPersian = displayText.unicodeScalars.contains { scalar in
+                let v = scalar.value
+                return v >= 0x0600 && v <= 0x06FF
+            }
+            
+            Button {
+                windowController.setFullScreen(true)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "quote.bubble.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(
+                            isLightMode
+                                ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
+                                : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85)
+                        )
+                    
+                    Text(displayText)
+                        .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(displayText)")
+                        .font(isPersian ? .custom("Vazirmatn-Regular", size: 12) : .system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(
+                            isLightMode
+                                ? (musicManager.isFetchingLyrics
+                                    ? Color.black.opacity(0.50)
+                                    : (activeIndex != nil ? Color.black.opacity(0.92) : Color.black.opacity(0.58)))
+                                : (musicManager.isFetchingLyrics
+                                    ? Color.white.opacity(0.60)
+                                    : (activeIndex != nil ? Color.white.opacity(0.95) : Color.white.opacity(0.65)))
+                        )
+                        .lineLimit(1)
+                        .transition(.opacity.combined(with: .offset(y: 2)))
+                        .animation(.easeInOut(duration: 0.25), value: activeIndex)
+                    
+                    Spacer()
+                }
+            }
+            .buttonStyle(.plain)
+            .help("Click to expand to full-screen lyrics")
+        }
+    }
+
+    private var compactScrubberRow: some View {
+        TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : 0.5)) { timeline in
+            let currentEstimated = musicManager.estimatedPlaybackPosition(at: timeline.date)
+            
+            LockScreenScrubberView(
+                sliderValue: $compactSliderValue,
+                dragging: $compactDragging,
+                lastDragged: $compactLastDragged,
+                duration: max(1.0, musicManager.songDuration),
+                color: musicManager.avgColor,
+                estimatedPlaybackTime: currentEstimated,
+                isCompact: true,
+                isLight: isLightMode,
+                onValueChange: { newValue in
+                    musicManager.seek(to: newValue)
+                }
+            )
+        }
+    }
+
+    private var compactControlsRow: some View {
+        HStack(spacing: 0) {
+            Spacer()
+            
+            // Các nút điều khiển theo cấu hình slots đã cài đặt
+            let slots = activeSlots
+            HStack(spacing: slots.count > 3 ? 18 : 28) {
+                ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
+                    compactSlotButton(for: slot)
+                }
+                if !slots.contains(.volume) {
+                    compactVolumeButton
+                }
+            }
+            
+            Spacer()
+        }
+    }
+
+    // =========================================================================
+    // MARK: - 1. Compact Player View (iPhone-style Lock Screen Card)
+    // =========================================================================
     private var compactPlayerView: some View {
         let hasLyrics = lockScreenPlayerShowLyrics && (
             !musicManager.syncedLyrics.isEmpty ||
@@ -111,167 +288,15 @@ struct LockScreenMediaView: View {
         )
         
         return VStack(spacing: 9) {
-            // Hàng 1: Album Art + Thông tin bài hát (Marquee) + Sóng nhạc động
-            HStack(alignment: .center, spacing: 12) {
-                // Album Art (54x54) - Tương tự AlbumArtView trong Notch
-                Button {
-                    windowController.setFullScreen(true)
-                } label: {
-                    ZStack(alignment: .bottomTrailing) {
-                        Image(nsImage: musicManager.albumArt)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 54, height: 54)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
-                            .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
-                            .shadow(color: isLightMode ? Color.black.opacity(0.18) : Color.black.opacity(0.35), radius: 6, x: 0, y: 3)
-                            .shadow(color: Color(nsColor: musicManager.avgColor).opacity(isLightMode ? 0.22 : 0.3), radius: 8, x: 0, y: 4)
-                        
-                        // Lớp phủ tối khi tạm dừng
-                        if !musicManager.isPlaying {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.black.opacity(0.35))
-                                .frame(width: 54, height: 54)
-                                .allowsHitTesting(false)
-                        }
-                        
-                        // Icon app phát nhạc (Apple Music, Spotify, ...)
-                        if !musicManager.usingAppIconForArtwork {
-                            AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 16, height: 16)
-                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                                .offset(x: 3, y: 3)
-                                .shadow(radius: 3)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .help("Click to expand to full-screen lyrics")
-                
-                // Tên bài hát & Ca sĩ hiển thị cố định, dài quá thì "..."
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(musicManager.songTitle)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(compactPrimaryText)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: 268, alignment: .leading)
-                    
-                    Text(musicManager.artistName)
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundStyle(playerColorTinting
-                            ? (isLightMode
-                                ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.35)
-                                : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.75))
-                            : compactSecondaryText)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: 268, alignment: .leading)
-                }
-                
-                Spacer(minLength: 4)
-                
-                // Cột sóng nhạc sống động góc phải
-                soundWaveform
-            }
+            compactHeaderRow
             
-            // Hàng 2: Câu hát thời gian thực (nếu bật tuỳ chọn Lời bài hát)
             if hasLyrics {
-                TimelineView(.animation(minimumInterval: 0.25)) { timeline in
-                    let effectiveElapsed: Double = compactDragging
-                        ? compactSliderValue
-                        : musicManager.estimatedPlaybackPosition(at: timeline.date)
-                    let activeIndex = musicManager.currentLyricIndex(at: effectiveElapsed)
-                    let line: String = {
-                        if musicManager.isFetchingLyrics { return "Loading lyrics…" }
-                        if !musicManager.syncedLyrics.isEmpty {
-                            return musicManager.lyricLine(at: effectiveElapsed)
-                        }
-                        let trimmed = musicManager.currentLyrics.trimmingCharacters(in: .whitespacesAndNewlines)
-                        return trimmed.isEmpty ? "♪  ♫  ♪" : trimmed.replacingOccurrences(of: "\n", with: " ")
-                    }()
-                    let cleanText = MusicManager.stripLRCTimestamps(from: line)
-                    let displayText = cleanText.isEmpty ? "♪  ♫  ♪" : cleanText
-                    let isPersian = displayText.unicodeScalars.contains { scalar in
-                        let v = scalar.value
-                        return v >= 0x0600 && v <= 0x06FF
-                    }
-                    
-                    Button {
-                        windowController.setFullScreen(true)
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "quote.bubble.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(
-                                    isLightMode
-                                        ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
-                                        : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85)
-                                )
-                            
-                            Text(displayText)
-                                .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(displayText)")
-                                .font(isPersian ? .custom("Vazirmatn-Regular", size: 12) : .system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundStyle(
-                                    isLightMode
-                                        ? (musicManager.isFetchingLyrics
-                                            ? Color.black.opacity(0.50)
-                                            : (activeIndex != nil ? Color.black.opacity(0.92) : Color.black.opacity(0.58)))
-                                        : (musicManager.isFetchingLyrics
-                                            ? Color.white.opacity(0.60)
-                                            : (activeIndex != nil ? Color.white.opacity(0.95) : Color.white.opacity(0.65)))
-                                )
-                                .lineLimit(1)
-                                .transition(.opacity.combined(with: .offset(y: 2)))
-                                .animation(.easeInOut(duration: 0.25), value: activeIndex)
-                            
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .help("Click to expand to full-screen lyrics")
-                }
+                compactLyricsRow
             }
             
-            // Hàng 3: Thanh tiến trình chuẩn tương tác & tua nhạc (Scrubber)
-            TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : 0.5)) { timeline in
-                let currentEstimated = musicManager.estimatedPlaybackPosition(at: timeline.date)
-                
-                LockScreenScrubberView(
-                    sliderValue: $compactSliderValue,
-                    dragging: $compactDragging,
-                    lastDragged: $compactLastDragged,
-                    duration: max(1.0, musicManager.songDuration),
-                    color: musicManager.avgColor,
-                    estimatedPlaybackTime: currentEstimated,
-                    isCompact: true,
-                    isLight: isLightMode,
-                    onValueChange: { newValue in
-                        musicManager.seek(to: newValue)
-                    }
-                )
-            }
+            compactScrubberRow
             
-            // Hàng 4: Cụm phím điều khiển đồng bộ theo cài đặt Notch
-            HStack(spacing: 0) {
-                Spacer()
-                
-                // Các nút điều khiển theo cấu hình slots đã cài đặt
-                let slots = activeSlots
-                HStack(spacing: slots.count > 3 ? 18 : 28) {
-                    ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
-                        compactSlotButton(for: slot)
-                    }
-                    if !slots.contains(.volume) {
-                        compactVolumeButton
-                    }
-                }
-                
-                Spacer()
-            }
+            compactControlsRow
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
