@@ -2,25 +2,14 @@
 //  SystemMonitorManager.swift
 //  NotchPulse
 //
-//  ========================================================================================
-//  SYSTEM HARDWARE MONITOR ARCHITECTURE & MULTI-GENERATION PARITY
-//  ========================================================================================
-//  - OPTIMIZATION GUARANTEE:
-//    100% in-memory Mach & Darwin C kernel queries. No child subprocesses spawned (/bin/ps, top,
-//    vm_stat are strictly forbidden). Zero shell forks eliminates CPU usage spikes and preserves
-//    battery life during continuous background polling.
-//
-//  - UNIVERSAL ARCHITECTURE SUPPORT (INTEL & APPLE SILICON M1-M5 MAX):
-//    1. CPU Load: Darwin Mach kernel `host_processor_info` (HOST_CPU_LOAD_INFO) tracking
-//       exact micro-ticks across User, System, Nice, and Idle states.
-//    2. RAM & Pressure: `host_statistics64(HOST_VM_INFO64)` coupled with private Darwin kernel
-//       `memorystatus_get_level` and `sysctl(kern.memorystatus_vm_pressure_level)`, producing
-//       exact 1:1 parity with Apple Activity Monitor's organic memory pressure dynamics.
-//    3. GPU Utilization: Direct IOKit `IOAccelerator` PerformanceStatistics querying.
-//    4. Top Processes: Direct in-memory BSD `sysctl(KERN_PROC_ALL)` and `proc_pidinfo(PROC_PIDTASKINFO)`
-//       tracking true nano-second CPU deltas and resident memory (RSS) without subprocess overhead.
-//    5. Thermal & Fans: Universal SMC multi-sensor integration via `SMCService`.
-//  ========================================================================================
+//  CRITICAL COMPONENT: Low-level system hardware metrics collector (CPU, RAM, GPU, Thermal Sensors, Fan Control, Top Processes).
+//  DO NOT REMOVE OR BYPASS: Required for hardware monitoring dashboard, live fans/temperature gauge, and process inspection.
+//  OPTIMIZATIONS & FIXES:
+//  - Activity Monitor Parity: Queries proc_pid_rusage (RUSAGE_INFO_V4) for ri_phys_footprint (Physical Memory Footprint)
+//    rather than raw BSD resident RSS, achieving 1:1 parity with Apple Activity Monitor's "Memory" column.
+//  - Full Process Names: Uses proc_pidpath to prevent 16-character truncation from BSD p_comm.
+//  - Stale CPU Interval Discard: Drops intervals > 3.5s to avoid distorted multi-minute averages when opening the view.
+//  - Zero Shell Forks: 100% in-process Darwin & Mach C kernel queries. Zero child subprocesses (/bin/ps, top forbidden).
 //
 
 import Combine
@@ -522,8 +511,8 @@ public class SystemMonitorManager: ObservableObject {
         let pid: pid_t
         let ppid: pid_t
         let cpu: Double
-        let rssKB: Double
-        let comm: String
+        let memoryBytes: UInt64
+        let name: String
     }
 
     private func fetchTopProcesses() -> (cpu: [MonitorProcessItem], ram: [MonitorProcessItem]) {
@@ -567,19 +556,50 @@ public class SystemMonitorManager: ObservableObject {
             guard infoSize > 0 else { continue }
 
             let totalCpuNs = taskInfo.pti_total_user + taskInfo.pti_total_system
-            let rssKB = Double(taskInfo.pti_resident_size) / 1024.0
+
+            // 1. Physical Footprint query (Activity Monitor standard) via Darwin libproc
+            var memoryBytes = taskInfo.pti_resident_size
+            var rusage = rusage_info_v4()
+            let rusageRes = withUnsafeMutablePointer(to: &rusage) { ptr in
+                proc_pid_rusage(pid, RUSAGE_INFO_V4, UnsafeMutableRawPointer(ptr).assumingMemoryBound(to: (rusage_info_t?).self))
+            }
+            if rusageRes == 0 && rusage.ri_phys_footprint > 0 {
+                memoryBytes = rusage.ri_phys_footprint
+            }
+
+            // 2. Resolve full process binary name (overcoming BSD p_comm 16-char truncation)
+            var resolvedName = comm
+            var pathBuffer = [CChar](repeating: 0, count: 1024)
+            let pathLen = proc_pidpath(pid, &pathBuffer, 1024)
+            if pathLen > 0 {
+                let fullPath = String(cString: pathBuffer)
+                let lastComp = (fullPath as NSString).lastPathComponent
+                if !lastComp.isEmpty {
+                    resolvedName = lastComp
+                }
+            } else {
+                var nameBuffer = [CChar](repeating: 0, count: 256)
+                let nameLen = proc_name(pid, &nameBuffer, 256)
+                if nameLen > 0 {
+                    let name = String(cString: nameBuffer)
+                    if !name.isEmpty {
+                        resolvedName = name
+                    }
+                }
+            }
 
             var cpuPct = 0.0
             if let (prevCpuNs, prevTime) = previousProcessCPUTimes[pid] {
                 let cpuDelta = Double(totalCpuNs > prevCpuNs ? totalCpuNs - prevCpuNs : 0)
                 let timeDeltaNs = Double(now - prevTime) * Double(timebase.numer) / Double(timebase.denom)
-                if timeDeltaNs > 0 {
+                // Filter out stale intervals (> 3.5s) to guarantee instantaneous rate
+                if timeDeltaNs > 0 && timeDeltaNs < 3.5 * 1_000_000_000 {
                     cpuPct = (cpuDelta / timeDeltaNs) * 100.0
                 }
             }
             previousProcessCPUTimes[pid] = (totalCpuNs, now)
 
-            entries.append(RawProcessEntry(pid: pid, ppid: ppid, cpu: cpuPct, rssKB: rssKB, comm: comm))
+            entries.append(RawProcessEntry(pid: pid, ppid: ppid, cpu: cpuPct, memoryBytes: memoryBytes, name: resolvedName))
         }
 
         // Periodically purge terminated PIDs from cache to prevent unbounded growth
@@ -592,20 +612,20 @@ public class SystemMonitorManager: ObservableObject {
                 return name
             }
             if p.ppid > 1, let parentApp = NSRunningApplication(processIdentifier: p.ppid), let parentName = parentApp.localizedName, !parentName.isEmpty {
-                if p.comm.contains("Renderer") {
+                if p.name.contains("Renderer") {
                     return "\(parentName) (Renderer)"
-                } else if p.comm.contains("GPU") {
+                } else if p.name.contains("GPU") {
                     return "\(parentName) (GPU)"
-                } else if p.comm.contains("Plugin") {
+                } else if p.name.contains("Plugin") {
                     return "\(parentName) (Plugin)"
-                } else if p.comm.contains("Helper") {
+                } else if p.name.contains("Helper") {
                     return "\(parentName) Helper"
                 }
             }
-            if p.comm.hasPrefix("com.apple.") {
-                return p.comm.replacingOccurrences(of: "com.apple.", with: "")
+            if p.name.hasPrefix("com.apple.") {
+                return p.name.replacingOccurrences(of: "com.apple.", with: "")
             }
-            return p.comm
+            return p.name
         }
 
         let topCpu = entries
@@ -619,12 +639,13 @@ public class SystemMonitorManager: ObservableObject {
             }
 
         let topRam = entries
-            .sorted { $0.rssKB > $1.rssKB }
+            .sorted { $0.memoryBytes > $1.memoryBytes }
             .prefix(8)
             .map { p in
-                let formatted = p.rssKB >= (1024.0 * 1024.0)
-                    ? String(format: "%.1f GB", p.rssKB / (1024.0 * 1024.0))
-                    : String(format: "%.0f MB", p.rssKB / 1024.0)
+                let mb = Double(p.memoryBytes) / (1024.0 * 1024.0)
+                let formatted = mb >= 1024.0
+                    ? String(format: "%.1f GB", mb / 1024.0)
+                    : String(format: "%.0f MB", mb)
                 return MonitorProcessItem(
                     name: resolveFriendlyName(p),
                     value: formatted
