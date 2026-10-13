@@ -187,6 +187,25 @@ enum NotchPulseVault {
         _ = ensureSessionKey()
     }
 
+    /// Proactively verifies and pre-warms Keychain access on the user's desktop immediately at app launch or after update.
+    /// This ensures any macOS system authorization dialog ("NotchPulse wants to access key...") appears
+    /// immediately right in front of the user on the desktop so they can click "Always Allow" right away,
+    /// rather than being blocked on the lock screen during their first Face ID attempt.
+    nonisolated static func preflightKeychainAuthorization() {
+        guard hasStoredPassword() else { return }
+        Task.detached(priority: .userInitiated) {
+            // 1. Ensure the session key is loaded into memory
+            _ = ensureSessionKey()
+
+            // 2. Proactively read the encrypted password blob while active on desktop.
+            // If macOS requires binary authorization after an app update, the system modal
+            // will appear cleanly on the user's desktop right now!
+            if NotchPulseKeychainManager.exists(account: passwordBlobAccount) {
+                _ = try? NotchPulseKeychainManager.read(account: passwordBlobAccount)
+            }
+        }
+    }
+
     /// Checked without needing the key itself, so this stays answerable precisely when the key can't be read.
     nonisolated static var hasSessionEncryptedData: Bool {
         NotchPulseKeychainManager.exists(account: passwordBlobAccount) || NotchPulseSecureFaceStore.exists

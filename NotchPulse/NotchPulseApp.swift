@@ -895,6 +895,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = SystemAuthPromptObserver.shared
         _ = BluetoothHeadphoneManager.shared
 
+        // Proactively verify & pre-warm Keychain authorization on desktop
+        if NotchPulseVault.hasStoredPassword() {
+            NotchPulseVault.preflightKeychainAuthorization()
+        }
+
         previousScreens = NSScreen.screens
 
         // First-open UI warm-up: the FIRST time the notch opens after launch, SwiftUI
@@ -941,9 +946,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 await CalendarManager.shared.checkReminderAuthorization()
             }
 
-            // 4. Pre-warm secure vault session for Face ID auto-fill if enabled
-            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-                _ = NotchPulseVault.isSessionUnlocked
+            // 4. Pre-warm secure vault session & authorize Keychain on desktop
+            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled || NotchPulseVault.hasStoredPassword() {
+                NotchPulseVault.preflightKeychainAuthorization()
             }
         }
     }

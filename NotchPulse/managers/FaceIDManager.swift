@@ -213,9 +213,7 @@ final class FaceIDManager: NSObject, ObservableObject {
             enrolledFaces = []
         }
         if hasPasswordSet {
-            Task.detached(priority: .background) {
-                _ = try? NotchPulseVault.readPassword()
-            }
+            NotchPulseVault.preflightKeychainAuthorization()
         }
     }
     
