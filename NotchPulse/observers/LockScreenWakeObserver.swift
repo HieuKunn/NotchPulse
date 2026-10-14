@@ -46,20 +46,25 @@ final class LockScreenWakeObserver: ObservableObject {
     private func startLockSessionSupervisor() {
         lockSessionTimer?.cancel()
         lockSessionTimer = Task { @MainActor [weak self] in
+            var consecutiveUnlockedCount = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(1500))
                 guard let self = self, self.isScreenLocked else { break }
                 
                 let actuallyLocked = Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
                 if actuallyLocked {
-                    // LockSessionSupervisor handles session lock
+                    consecutiveUnlockedCount = 0
                 } else {
-                    // Session was unlocked (notification may have been delayed or missed)
-                    self.isScreenLocked = false
-                    self.hideDebounceTask?.cancel()
-                    self.hideDebounceTask = nil
-                    self.updateLockScreenMediaWindowVisibility()
-                    break
+                    // CGSessionCopyCurrentDictionary can return nil/empty during wake and sleep transitions.
+                    // Only conclude unlocked if it remains unlocked for multiple consecutive checks (4.5s)
+                    consecutiveUnlockedCount += 1
+                    if consecutiveUnlockedCount >= 3 {
+                        self.isScreenLocked = false
+                        self.hideDebounceTask?.cancel()
+                        self.hideDebounceTask = nil
+                        self.updateLockScreenMediaWindowVisibility()
+                        break
+                    }
                 }
             }
         }
@@ -104,11 +109,17 @@ final class LockScreenWakeObserver: ObservableObject {
             guard let self = self else { return }
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                try? await Task.sleep(for: .milliseconds(800))
+                // Immediately check lock state and show window if locked without waiting 800ms
                 let locked = self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
                 if locked {
                     self.isScreenLocked = true
                     self.startLockSessionSupervisor()
+                    self.updateLockScreenMediaWindowVisibility()
+                }
+                // Also re-verify after 400ms when display has fully powered on
+                try? await Task.sleep(for: .milliseconds(400))
+                if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                    self.isScreenLocked = true
                     self.updateLockScreenMediaWindowVisibility()
                 }
             }
@@ -188,6 +199,11 @@ final class LockScreenWakeObserver: ObservableObject {
         }
         
         if MusicManager.shared.isPlaying {
+            return true
+        }
+        
+        let npTitle = NowPlayingController.shared.playbackState.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !npTitle.isEmpty || NowPlayingController.shared.playbackState.isPlaying {
             return true
         }
         

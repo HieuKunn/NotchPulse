@@ -245,17 +245,44 @@ class MusicManager: ObservableObject {
 
             if let artwork = state.artwork {
                 self.usingAppIconForArtwork = false
+                self.artworkData = artwork
                 self.updateArtwork(artwork)
+                UniversalArtworkResolver.shared.cacheArtworkData(artwork, title: state.title, artist: state.artist)
+            } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: state.title, artist: state.artist) {
+                self.usingAppIconForArtwork = false
+                self.artworkData = cached
+                self.updateArtwork(cached)
             } else {
-                // For web browsers (Chrome, Arc, Safari) or media apps without embedded artwork,
-                // ensure we always load and display the host app icon so the cover is never empty.
+                // If not yet cached, temporarily display host app icon so card is never blank
                 let effectiveBundleID = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "com.apple.Music")
                 if let appIconImage = AppIconAsNSImage(for: effectiveBundleID) {
                     self.usingAppIconForArtwork = true
                     self.updateAlbumArt(newAlbumArt: appIconImage)
                 }
+                self.artworkData = nil
+
+                // Asynchronously resolve true high-resolution media cover art (iTunes / YouTube / Deezer)
+                let currentTitle = state.title
+                let currentArtist = state.artist
+                let currentAlbum = state.album
+                let currentBundle = state.bundleIdentifier
+                UniversalArtworkResolver.shared.resolveArtwork(
+                    title: currentTitle,
+                    artist: currentArtist,
+                    album: currentAlbum,
+                    bundleIdentifier: currentBundle
+                ) { [weak self] resolvedData in
+                    guard let self = self, let data = resolvedData else { return }
+                    DispatchQueue.main.async {
+                        // Verify track hasn't changed while resolving
+                        guard self.songTitle == currentTitle else { return }
+                        self.usingAppIconForArtwork = false
+                        self.artworkData = data
+                        self.updateArtwork(data)
+                        self.triggerFlipAnimation()
+                    }
+                }
             }
-            self.artworkData = state.artwork
 
             // Update last artwork change values
             self.lastArtworkTitle = state.title

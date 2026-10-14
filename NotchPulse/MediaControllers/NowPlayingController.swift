@@ -224,6 +224,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         switch bundleID {
         case "company.thebrowser.Browser":
             return ("Arc", false)
+        case "app.zen-browser.zen":
+            return ("Zen", false)
+        case "org.mozilla.firefox":
+            return ("Firefox", false)
         case "com.google.Chrome":
             return ("Google Chrome", false)
         case "com.google.Chrome.canary":
@@ -260,7 +264,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             return ("Orion", true)
         default:
             let lower = bundleID.lowercased()
-            if lower.contains("arc") || lower.contains("thebrowser") {
+            if lower.contains("zen") {
+                return ("Zen", false)
+            } else if lower.contains("firefox") {
+                return ("Firefox", false)
+            } else if lower.contains("arc") || lower.contains("thebrowser") {
                 return ("Arc", false)
             } else if lower.contains("chrome") {
                 return ("Google Chrome", false)
@@ -981,12 +989,18 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         if let artworkDataString = payload.artworkData, !artworkDataString.isEmpty {
             let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
             if trackChanged || self.playbackState.artwork == nil {
-                newPlaybackState.artwork = Data(
+                let data = Data(
                     base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
+                newPlaybackState.artwork = data
+                if let d = data {
+                    UniversalArtworkResolver.shared.cacheArtworkData(d, title: newPlaybackState.title, artist: newPlaybackState.artist)
+                }
             } else {
                 newPlaybackState.artwork = self.playbackState.artwork
             }
+        } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: newPlaybackState.title, artist: newPlaybackState.artist) {
+            newPlaybackState.artwork = cached
         } else if !diff {
             newPlaybackState.artwork = nil
         } else {
