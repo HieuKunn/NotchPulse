@@ -21,6 +21,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     private var isSkyLightAttached = false
     private var lyricsCancellables = Set<AnyCancellable>()
+    private var hideGeneration: Int = 0
     
     static func detectIsDark() -> Bool {
         if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") {
@@ -82,6 +83,8 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     private func configureWindow() {
         isFloatingPanel = true
+        hidesOnDeactivate = false
+        canHide = false
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
@@ -163,6 +166,8 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func show() {
+        hideGeneration += 1
+        
         guard let screen = getTargetScreen() else { return }
         
         // Sync system appearance (Dark Mode vs Light Mode)
@@ -183,17 +188,14 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             isSkyLightAttached = true
         }
         
-        if !isVisible || alphaValue == 0 {
-            alphaValue = 0
-            orderFrontRegardless()
-            
+        orderFrontRegardless()
+        
+        if !isVisible || alphaValue < 1.0 {
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.35
+                context.duration = 0.25
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 self.animator().alphaValue = 1.0
             }
-        } else {
-            orderFrontRegardless()
         }
         isWindowVisible = true
         MusicManager.shared.isUIActive = true
@@ -202,12 +204,15 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     func hide() {
         guard isVisible else { return }
+        hideGeneration += 1
+        let currentGen = hideGeneration
         
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.25
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             self.animator().alphaValue = 0.0
-        }, completionHandler: {
+        }, completionHandler: { [weak self] in
+            guard let self = self, self.hideGeneration == currentGen else { return }
             self.orderOut(nil)
             self.contentView = nil
             self.isFullScreen = false

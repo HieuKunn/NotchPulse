@@ -19,6 +19,7 @@ final class LockScreenWakeObserver: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var distributedTokens: [NSObjectProtocol] = []
     private var lockSessionTimer: Task<Void, Never>?
+    private var hideDebounceTask: Task<Void, Never>?
     
     nonisolated static var isSessionLocked: Bool {
         if let dict = CGSessionCopyCurrentDictionary() as? [String: Any] {
@@ -30,7 +31,7 @@ final class LockScreenWakeObserver: ObservableObject {
     }
 
     private init() {
-        if Self.isSessionLocked {
+        if Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
             self.isScreenLocked = true
             startLockSessionSupervisor()
         }
@@ -38,6 +39,8 @@ final class LockScreenWakeObserver: ObservableObject {
     }
     
     func cleanup() {
+        hideDebounceTask?.cancel()
+        hideDebounceTask = nil
         lockSessionTimer?.cancel()
         lockSessionTimer = nil
         for token in distributedTokens {
@@ -54,11 +57,14 @@ final class LockScreenWakeObserver: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(1500))
                 guard let self = self, self.isScreenLocked else { break }
                 
-                if Self.isSessionLocked {
+                let actuallyLocked = Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
+                if actuallyLocked {
                     // LockSessionSupervisor handles session lock
                 } else {
                     // Session was unlocked (notification may have been delayed or missed)
                     self.isScreenLocked = false
+                    self.hideDebounceTask?.cancel()
+                    self.hideDebounceTask = nil
                     self.updateLockScreenMediaWindowVisibility()
                     break
                 }
@@ -93,6 +99,8 @@ final class LockScreenWakeObserver: ObservableObject {
                 self.isScreenLocked = false
                 self.lockSessionTimer?.cancel()
                 self.lockSessionTimer = nil
+                self.hideDebounceTask?.cancel()
+                self.hideDebounceTask = nil
                 self.updateLockScreenMediaWindowVisibility()
             }
         }
@@ -104,7 +112,7 @@ final class LockScreenWakeObserver: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 try? await Task.sleep(for: .milliseconds(800))
-                let locked = self.isScreenLocked || Self.isSessionLocked
+                let locked = self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
                 if locked {
                     self.isScreenLocked = true
                     self.startLockSessionSupervisor()
@@ -153,24 +161,59 @@ final class LockScreenWakeObserver: ObservableObject {
         .store(in: &cancellables)
     }
     
-    func updateLockScreenMediaWindowVisibility() {
-        let hasActiveTrack: Bool = {
-            let title = MusicManager.shared.songTitle
-            guard !title.isEmpty && title != "I'm Handsome" else { return false }
+    private func shouldShowLockScreenMedia() -> Bool {
+        let actuallyLocked = isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
+        guard actuallyLocked && Defaults[.enableLockScreenPlayer] else { return false }
+        
+        let title = MusicManager.shared.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !title.isEmpty && title != "I'm Handsome" {
             if let bundleId = MusicManager.shared.bundleIdentifier, !bundleId.isEmpty {
-                return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
+                // If it's a known dedicated music app, verify app is still running
+                if bundleId == "com.apple.Music" || bundleId == "com.spotify.client" {
+                    let isAppRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
+                    if !isAppRunning {
+                        return false
+                    }
+                }
             }
             return true
-        }()
+        }
+        
+        if MusicManager.shared.isPlaying {
+            return true
+        }
+        
+        return false
+    }
 
-        let shouldShow = isScreenLocked
-            && Defaults[.enableLockScreenPlayer]
-            && hasActiveTrack
+    func updateLockScreenMediaWindowVisibility() {
+        let actuallyLocked = isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
+        let shouldShow = shouldShowLockScreenMedia()
         
         if shouldShow {
+            hideDebounceTask?.cancel()
+            hideDebounceTask = nil
             LockScreenMediaWindow.shared.show()
         } else {
-            LockScreenMediaWindow.shared.hide()
+            if actuallyLocked {
+                // Screen is still locked, but track state might be transitioning (e.g. Next/Previous track, seek)
+                // Debounce hiding by 2.5 seconds to avoid the media window flickering or vanishing during track change
+                if hideDebounceTask == nil {
+                    hideDebounceTask = Task { @MainActor [weak self] in
+                        try? await Task.sleep(for: .milliseconds(2500))
+                        guard !Task.isCancelled, let self = self else { return }
+                        self.hideDebounceTask = nil
+                        if !self.shouldShowLockScreenMedia() {
+                            LockScreenMediaWindow.shared.hide()
+                        }
+                    }
+                }
+            } else {
+                // Screen is completely unlocked, dismiss immediately
+                hideDebounceTask?.cancel()
+                hideDebounceTask = nil
+                LockScreenMediaWindow.shared.hide()
+            }
         }
     }
 }

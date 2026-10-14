@@ -332,8 +332,33 @@ struct LockScreenMediaView: View {
     // =========================================================================
     private var fullScreenPlayerView: some View {
         ZStack {
-            // Nền Ambient phát sáng màu của bài hát phủ toàn màn hình
+            // Nền Ambient lấy trực tiếp ảnh bìa bài hát phóng to và làm mờ tràn viền toàn màn hình
             ambientDynamicBackground
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    windowController.setFullScreen(false)
+                }
+            
+            // Nút thu nhỏ ở góc trên bên trái
+            VStack {
+                HStack {
+                    Button {
+                        windowController.setFullScreen(false)
+                    } label: {
+                        Image(systemName: "chevron.down.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(.white.opacity(0.65))
+                            .background(Circle().fill(Color.black.opacity(0.2)))
+                            .padding(.leading, 36)
+                            .padding(.top, 36)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Collapse to compact player")
+                    
+                    Spacer()
+                }
+                Spacer()
+            }
             
             GeometryReader { geo in
                 let w = geo.size.width
@@ -367,20 +392,30 @@ struct LockScreenMediaView: View {
         .ignoresSafeArea()
     }
     
-    // Nền Ambient nhẹ nhàng tối ưu GPU phủ toàn màn hình
+    // Nền Ambient lấy trực tiếp ảnh bìa bài hát phóng to và làm mờ tràn toàn màn hình
     private var ambientDynamicBackground: some View {
-        ZStack {
-            Color(white: 0.08)
-            RadialGradient(
-                colors: [
-                    Color(nsColor: musicManager.avgColor).opacity(0.4),
-                    Color.clear
-                ],
-                center: .topLeading,
-                startRadius: 80,
-                endRadius: 750
-            )
+        GeometryReader { geo in
+            ZStack {
+                // Lớp nền đen sâu đề phòng khi ảnh đang load hoặc trong suốt
+                Color.black
+                
+                // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
+                Image(nsImage: musicManager.albumArt)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
+                    .blur(radius: 65, opaque: true)
+                    .overlay(
+                        // Lớp phủ đen trong suốt nhẹ để chữ và điều khiển luôn tương phản rõ nét
+                        Color.black.opacity(0.35)
+                    )
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
+            .animation(.easeInOut(duration: 0.5), value: musicManager.albumArt)
         }
+        .ignoresSafeArea()
     }
     
     // Cột trái Full Screen: Ảnh bài hát to + Thông tin + Điều khiển
