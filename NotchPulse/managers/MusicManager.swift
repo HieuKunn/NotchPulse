@@ -16,8 +16,6 @@ struct MediaSessionSnapshot: Identifiable, Equatable {
     var title: String
     var artist: String
     var album: String
-    var albumArt: NSImage?
-    var artworkData: Data?
     var isPlaying: Bool
     var currentTime: TimeInterval
     var duration: TimeInterval
@@ -37,8 +35,6 @@ struct MediaSessionSnapshot: Identifiable, Equatable {
         title: String,
         artist: String,
         album: String,
-        albumArt: NSImage? = nil,
-        artworkData: Data? = nil,
         isPlaying: Bool = false,
         currentTime: TimeInterval = 0,
         duration: TimeInterval = 0,
@@ -57,8 +53,6 @@ struct MediaSessionSnapshot: Identifiable, Equatable {
         self.title = title
         self.artist = artist
         self.album = album
-        self.albumArt = albumArt
-        self.artworkData = artworkData
         self.isPlaying = isPlaying
         self.currentTime = currentTime
         self.duration = duration
@@ -375,9 +369,6 @@ class MusicManager: ObservableObject {
                         self.artworkData = data
                         self.updateArtwork(data)
                         self.triggerFlipAnimation()
-                        if let lastIdx = self.mediaSessionStack.indices.last {
-                            self.mediaSessionStack[lastIdx].artworkData = data
-                        }
                     }
                 }
             }
@@ -848,9 +839,6 @@ class MusicManager: ObservableObject {
                 self.calculateAverageColor()
             }
         }
-        if let lastIdx = mediaSessionStack.indices.last {
-            mediaSessionStack[lastIdx].albumArt = newAlbumArt
-        }
     }
 
     // MARK: - Multi-Media Session Stack & Fallback
@@ -874,12 +862,6 @@ class MusicManager: ObservableObject {
             mediaSessionStack[lastIdx].volume = state.volume
             mediaSessionStack[lastIdx].isFavorite = state.isFavorite
             mediaSessionStack[lastIdx].lastUpdated = state.lastUpdated
-            if self.albumArt != defaultImage {
-                mediaSessionStack[lastIdx].albumArt = self.albumArt
-            }
-            if let artData = self.artworkData {
-                mediaSessionStack[lastIdx].artworkData = artData
-            }
             if !self.syncedLyrics.isEmpty {
                 mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
             }
@@ -893,12 +875,6 @@ class MusicManager: ObservableObject {
         // Save the previous session's latest state and mark it not playing (suspended).
         if let lastIdx = mediaSessionStack.indices.last {
             mediaSessionStack[lastIdx].isPlaying = false
-            if self.albumArt != defaultImage {
-                mediaSessionStack[lastIdx].albumArt = self.albumArt
-            }
-            if let artData = self.artworkData {
-                mediaSessionStack[lastIdx].artworkData = artData
-            }
         }
 
         // If this session previously existed deeper in the stack, remove it so we can push to top
@@ -910,8 +886,6 @@ class MusicManager: ObservableObject {
             title: cleanTitle,
             artist: state.artist,
             album: state.album,
-            albumArt: self.albumArt != defaultImage ? self.albumArt : nil,
-            artworkData: self.artworkData,
             isPlaying: state.isPlaying,
             currentTime: state.currentTime,
             duration: state.duration,
@@ -997,16 +971,12 @@ class MusicManager: ObservableObject {
         self.isPlaying = false
         self.isPlayerIdle = false
 
-        if let art = snapshot.albumArt {
-            self.albumArt = art
-            self.calculateAverageColor()
-        } else if let data = snapshot.artworkData, let img = NSImage(data: data) {
-            self.albumArt = img
-            self.artworkData = data
-            self.calculateAverageColor()
-        } else if let bid = snapshot.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bid) {
+        if let bid = snapshot.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bid) {
             self.usingAppIconForArtwork = true
             self.albumArt = appIcon
+            self.calculateAverageColor()
+        } else {
+            self.albumArt = defaultImage
             self.calculateAverageColor()
         }
 
@@ -1073,13 +1043,16 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.play()
             } else {
-                let bundleID = bundleIdentifier ?? ""
-                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
-                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
-                } else {
-                    await NowPlayingController.sendUniversalCommand("send", arg: "0")
+                let ok = await NowPlayingController.sendUniversalCommand("send", arg: "0")
+                if !ok {
+                    let bundleID = bundleIdentifier ?? ""
+                    if bundleID == "com.apple.Music" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
+                    } else if bundleID == "com.spotify.client" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+                    } else {
+                        NowPlayingController.postMediaKeyEvent(for: 0)
+                    }
                 }
             }
         }
@@ -1090,13 +1063,16 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.pause()
             } else {
-                let bundleID = bundleIdentifier ?? ""
-                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
-                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
-                } else {
-                    await NowPlayingController.sendUniversalCommand("send", arg: "1")
+                let ok = await NowPlayingController.sendUniversalCommand("send", arg: "1")
+                if !ok {
+                    let bundleID = bundleIdentifier ?? ""
+                    if bundleID == "com.apple.Music" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
+                    } else if bundleID == "com.spotify.client" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
+                    } else {
+                        NowPlayingController.postMediaKeyEvent(for: 1)
+                    }
                 }
             }
         }
@@ -1154,13 +1130,16 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.togglePlay()
             } else {
-                let bundleID = bundleIdentifier ?? ""
-                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
-                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
-                } else {
-                    await NowPlayingController.sendUniversalCommand("send", arg: "2")
+                let ok = await NowPlayingController.sendUniversalCommand("send", arg: "2")
+                if !ok {
+                    let bundleID = bundleIdentifier ?? ""
+                    if bundleID == "com.apple.Music" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
+                    } else if bundleID == "com.spotify.client" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+                    } else {
+                        NowPlayingController.postMediaKeyEvent(for: 2)
+                    }
                 }
             }
         }
@@ -1174,13 +1153,16 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.nextTrack()
             } else {
-                let bundleID = bundleIdentifier ?? ""
-                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
-                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
-                } else {
-                    await NowPlayingController.sendUniversalCommand("send", arg: "4")
+                let ok = await NowPlayingController.sendUniversalCommand("send", arg: "4")
+                if !ok {
+                    let bundleID = bundleIdentifier ?? ""
+                    if bundleID == "com.apple.Music" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
+                    } else if bundleID == "com.spotify.client" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+                    } else {
+                        NowPlayingController.postMediaKeyEvent(for: 4)
+                    }
                 }
             }
         }
@@ -1194,19 +1176,22 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.previousTrack()
             } else {
-                let bundleID = bundleIdentifier ?? ""
-                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
-                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
-                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
-                    let script = """
-                    tell application "Spotify"
-                        set player position to 0
-                        previous track
-                    end tell
-                    """
-                    try? await AppleScriptHelper.executeVoid(script)
-                } else {
-                    await NowPlayingController.sendUniversalCommand("send", arg: "5")
+                let ok = await NowPlayingController.sendUniversalCommand("send", arg: "5")
+                if !ok {
+                    let bundleID = bundleIdentifier ?? ""
+                    if bundleID == "com.apple.Music" {
+                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+                    } else if bundleID == "com.spotify.client" {
+                        let script = """
+                        tell application "Spotify"
+                            set player position to 0
+                            previous track
+                        end tell
+                        """
+                        try? await AppleScriptHelper.executeVoid(script)
+                    } else {
+                        NowPlayingController.postMediaKeyEvent(for: 5)
+                    }
                 }
             }
         }
