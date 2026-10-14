@@ -166,14 +166,14 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         // Sync system appearance (Dark Mode vs Light Mode)
         syncTheme()
         
-        let targetRect = targetFrame(for: screen)
-        setFrame(targetRect, display: true)
-        
         if contentView == nil {
             let hostingView = FirstMouseHostingView(rootView: LockScreenMediaView(windowController: self))
             hostingView.wantsLayer = true
             hostingView.layer?.backgroundColor = NSColor.clear.cgColor
             contentView = hostingView
+            
+            let targetRect = targetFrame(for: screen)
+            setFrame(targetRect, display: true)
         }
         
         if !isSkyLightAttached {

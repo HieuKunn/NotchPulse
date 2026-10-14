@@ -57,14 +57,12 @@ struct LockScreenMediaView: View {
     
     var body: some View {
         ZStack(alignment: .center) {
-            if windowController.isWindowVisible {
-                if windowController.isFullScreen {
-                    fullScreenPlayerView
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                } else {
-                    compactPlayerView
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                }
+            if windowController.isFullScreen {
+                fullScreenPlayerView
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            } else {
+                compactPlayerView
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("AppleInterfaceThemeChangedNotification"))) { _ in
