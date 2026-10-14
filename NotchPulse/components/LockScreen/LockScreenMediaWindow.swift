@@ -98,7 +98,9 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.syncTheme()
+            Task { @MainActor in
+                self?.syncTheme()
+            }
         }
         
         NotificationCenter.default.addObserver(
@@ -106,7 +108,9 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.syncTheme()
+            Task { @MainActor in
+                self?.syncTheme()
+            }
         }
         
         syncTheme()

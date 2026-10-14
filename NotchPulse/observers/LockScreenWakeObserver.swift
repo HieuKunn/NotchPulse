@@ -136,7 +136,6 @@ final class LockScreenWakeObserver: ObservableObject {
                 // Verify progressively after wake as display powers on
                 for delayMs in [150, 400, 800] {
                     try? await Task.sleep(for: .milliseconds(delayMs))
-                    guard let self = self else { return }
                     if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
                         self.isScreenLocked = true
                         self.updateLockScreenMediaWindowVisibility()
