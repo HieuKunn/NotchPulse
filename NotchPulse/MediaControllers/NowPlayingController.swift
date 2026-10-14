@@ -157,7 +157,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             "com.microsoft.edgemac",
             "com.apple.Safari",
             "com.operasoftware.Opera",
-            "com.vivaldi.Vivaldi"
+            "com.vivaldi.Vivaldi",
+            "app.zen-browser.zen",
+            "org.mozilla.firefox"
         ]
         for id in browserBundleIDs {
             if !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty {
@@ -258,6 +260,12 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             return ("Safari Technology Preview", true)
         case "com.kagi.kagisafari":
             return ("Orion", true)
+        case "app.zen-browser.zen":
+            return ("Zen Browser", false)
+        case "org.mozilla.firefox":
+            return ("Firefox", false)
+        case "org.mozilla.nightly":
+            return ("Firefox Nightly", false)
         default:
             let lower = bundleID.lowercased()
             if lower.contains("arc") || lower.contains("thebrowser") {
@@ -278,6 +286,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 return ("Chromium", false)
             } else if lower.contains("orion") {
                 return ("Orion", true)
+            } else if lower.contains("zen") {
+                return ("Zen Browser", false)
+            } else if lower.contains("firefox") || lower.contains("mozilla") {
+                return ("Firefox", false)
             }
             return nil
         }

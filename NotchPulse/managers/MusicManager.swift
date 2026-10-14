@@ -295,20 +295,10 @@ class MusicManager: ObservableObject {
             }
         }
 
-        // Detect resume after a long idle: if media transitions from not-playing → playing,
-        // the app may have been suspended by macOS. Force clear artwork cache and track history
-        // so the new playback session's visual elements and artwork/app icon are always reloaded.
+        // Track playback state changes (playing/paused)
         let isResuming = !self.lastIsPlaying && state.isPlaying
-        if isResuming {
-            self.artworkData = nil
-            self.lastArtworkTitle = ""
-            self.lastArtworkArtist = ""
-            self.lastArtworkAlbum = ""
-            self.lastArtworkBundleIdentifier = ""
-        }
         self.lastIsPlaying = state.isPlaying
 
-        // Check for playback state changes (playing/paused)
         if state.isPlaying != self.isPlaying {
             NSLog("Playback state changed: \(state.isPlaying ? "Playing" : "Paused")")
             withAnimation(.smooth) {
@@ -327,17 +317,20 @@ class MusicManager: ObservableObject {
         let albumChanged = state.album != self.lastArtworkAlbum
         let bundleChanged = state.bundleIdentifier != self.lastArtworkBundleIdentifier
 
-        // Check for artwork changes (always treat resume as artwork change to force re-display)
-        let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || isResuming
-        let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged || (isResuming && !state.title.isEmpty)
+        // Check for artwork changes: only treat as artwork change if embedded artwork differs, or if title/artist switched
+        let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || (titleChanged || artistChanged)
+        let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged
 
         // Handle artwork and visual transitions for changed content
         if hasContentChange {
             if titleChanged || artistChanged {
                 self.syncedLyrics = []
                 self.currentLyrics = ""
-                self.artworkData = nil
-                UniversalArtworkResolver.shared.clear()
+                // Only clear artworkData if song title or artist actually changed
+                if state.title != self.lastArtworkTitle || state.artist != self.lastArtworkArtist {
+                    self.artworkData = nil
+                    UniversalArtworkResolver.shared.clear()
+                }
             }
             self.triggerFlipAnimation()
 
@@ -351,6 +344,9 @@ class MusicManager: ObservableObject {
                 self.usingAppIconForArtwork = false
                 self.artworkData = cached
                 self.updateArtwork(cached)
+            } else if self.artworkData != nil && self.songTitle == state.title && !state.title.isEmpty {
+                // If we already resolved and loaded the artwork for this song, keep it!
+                self.usingAppIconForArtwork = false
             } else {
                 // If not yet cached, temporarily display host app icon so card is never blank
                 let effectiveBundleID = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "com.apple.Music")
@@ -1476,22 +1472,44 @@ public final class UniversalArtworkResolver {
         let task = Task<Data?, Never> { [weak self] () -> Data? in
             guard let self = self else { return nil }
 
-            // 1. Try Apple Music / iTunes Public Search API (Best quality, official 600x600 cover)
-            if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
-                self.cacheArtworkData(itunesData, title: cleanTitle, artist: cleanArtist)
-                return itunesData
-            }
+            let isBrowser = self.isBrowserSource(bundleIdentifier: bundleIdentifier, artist: cleanArtist, title: title)
 
-            // 2. Try YouTube Video Thumbnail (For YouTube, Zen Browser, web videos, lo-fi mixes)
-            if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
-                self.cacheArtworkData(ytData, title: cleanTitle, artist: cleanArtist)
-                return ytData
-            }
+            if isBrowser {
+                // 1. For web browsers, YouTube, and web media: YouTube video thumbnail has 100% fidelity
+                if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
+                    self.cacheArtworkData(ytData, title: cleanTitle, artist: cleanArtist)
+                    return ytData
+                }
 
-            // 3. Try Deezer Public Music Search
-            if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
-                self.cacheArtworkData(deezerData, title: cleanTitle, artist: cleanArtist)
-                return deezerData
+                // 2. Fallback to iTunes (with strict match verification)
+                if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
+                    self.cacheArtworkData(itunesData, title: cleanTitle, artist: cleanArtist)
+                    return itunesData
+                }
+
+                // 3. Fallback to Deezer (with strict match verification)
+                if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
+                    self.cacheArtworkData(deezerData, title: cleanTitle, artist: cleanArtist)
+                    return deezerData
+                }
+            } else {
+                // 1. For dedicated music apps (Apple Music, Spotify, Tidal): iTunes official cover art is best
+                if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
+                    self.cacheArtworkData(itunesData, title: cleanTitle, artist: cleanArtist)
+                    return itunesData
+                }
+
+                // 2. Try Deezer Public Music Search
+                if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
+                    self.cacheArtworkData(deezerData, title: cleanTitle, artist: cleanArtist)
+                    return deezerData
+                }
+
+                // 3. Fallback to YouTube Video Thumbnail
+                if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
+                    self.cacheArtworkData(ytData, title: cleanTitle, artist: cleanArtist)
+                    return ytData
+                }
             }
 
             return nil
@@ -1507,6 +1525,23 @@ public final class UniversalArtworkResolver {
             self.lock.unlock()
             completion(result)
         }
+    }
+
+    /// Determines whether the media originates from a web browser or video platform
+    private func isBrowserSource(bundleIdentifier: String?, artist: String, title: String) -> Bool {
+        if let id = bundleIdentifier?.lowercased() {
+            if id.contains("zen") || id.contains("browser") || id.contains("chrome") ||
+               id.contains("safari") || id.contains("firefox") || id.contains("edge") ||
+               id.contains("brave") || id.contains("opera") || id.contains("vivaldi") ||
+               id.contains("arc") || id.contains("orion") || id.contains("mozilla") {
+                return true
+            }
+        }
+        let lowerArtist = artist.lowercased()
+        if lowerArtist == "youtube" || lowerArtist.contains("topic") {
+            return true
+        }
+        return false
     }
 
     /// Purges in-flight tasks and memory cache.
@@ -1527,10 +1562,13 @@ public final class UniversalArtworkResolver {
         queryTerms.append(title)
 
         for term in queryTerms {
-            guard let encoded = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-                  let url = URL(string: "https://itunes.apple.com/search?term=\(encoded)&entity=song&limit=1") else {
-                continue
-            }
+            guard var components = URLComponents(string: "https://itunes.apple.com/search") else { continue }
+            components.queryItems = [
+                URLQueryItem(name: "term", value: term),
+                URLQueryItem(name: "entity", value: "song"),
+                URLQueryItem(name: "limit", value: "3")
+            ]
+            guard let url = components.url else { continue }
 
             var request = URLRequest(url: url)
             request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
@@ -1540,13 +1578,31 @@ public final class UniversalArtworkResolver {
                 guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { continue }
 
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let results = json["results"] as? [[String: Any]],
-                   let first = results.first,
-                   let artUrlStr = first["artworkUrl100"] as? String {
-                    let highResStr = artUrlStr.replacingOccurrences(of: "100x100bb", with: "600x600bb")
-                    if let imgUrl = URL(string: highResStr),
-                       let imgData = await downloadImage(from: imgUrl) {
-                        return imgData
+                   let results = json["results"] as? [[String: Any]] {
+                    for item in results {
+                        let resultArtist = (item["artistName"] as? String ?? "").lowercased()
+                        let resultTrack = (item["trackName"] as? String ?? "").lowercased()
+                        let reqArt = artist.lowercased()
+                        let reqTit = title.lowercased()
+
+                        let artistMatches = reqArt.isEmpty || resultArtist.contains(reqArt) || reqArt.contains(resultArtist)
+                        let titleMatches = reqTit.contains(resultTrack) || resultTrack.contains(reqTit)
+
+                        // Discard irrelevant matches
+                        if !reqArt.isEmpty && !artistMatches {
+                            continue
+                        }
+                        if !titleMatches {
+                            continue
+                        }
+
+                        if let artUrlStr = item["artworkUrl100"] as? String {
+                            let highResStr = artUrlStr.replacingOccurrences(of: "100x100bb", with: "600x600bb")
+                            if let imgUrl = URL(string: highResStr),
+                               let imgData = await downloadImage(from: imgUrl) {
+                                return imgData
+                            }
+                        }
                     }
                 }
             } catch {
@@ -1558,11 +1614,19 @@ public final class UniversalArtworkResolver {
 
     /// Queries YouTube search to extract the official high-resolution video thumbnail
     private func fetchFromYouTube(title: String, artist: String) async -> Data? {
-        let cleanQuery = "\(title) \(artist)".trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let encoded = cleanQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://www.youtube.com/results?search_query=\(encoded)") else {
+        var query = title
+        let cleanArt = sanitizeArtist(artist)
+        if !cleanArt.isEmpty && cleanArt.lowercased() != "youtube" && !query.lowercased().contains(cleanArt.lowercased()) {
+            query = "\(query) \(cleanArt)"
+        }
+
+        guard var components = URLComponents(string: "https://www.youtube.com/results") else {
             return nil
         }
+        components.queryItems = [
+            URLQueryItem(name: "search_query", value: query)
+        ]
+        guard let url = components.url else { return nil }
 
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
@@ -1582,18 +1646,18 @@ public final class UniversalArtworkResolver {
                     .replacingOccurrences(of: "\"", with: "")
             }
 
-            if let vId = videoId, !vId.isEmpty {
-                let candidateURLs = [
-                    "https://i.ytimg.com/vi/\(vId)/maxresdefault.jpg",
-                    "https://i.ytimg.com/vi/\(vId)/hq720.jpg",
-                    "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg"
-                ]
+            guard let vId = videoId, !vId.isEmpty else { return nil }
 
-                for thumbUrlStr in candidateURLs {
-                    if let thumbURL = URL(string: thumbUrlStr),
-                       let imgData = await downloadImage(from: thumbURL) {
-                        return imgData
-                    }
+            let candidateURLs = [
+                "https://i.ytimg.com/vi/\(vId)/maxresdefault.jpg",
+                "https://i.ytimg.com/vi/\(vId)/hq720.jpg",
+                "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg"
+            ]
+
+            for thumbUrlStr in candidateURLs {
+                if let thumbURL = URL(string: thumbUrlStr),
+                   let imgData = await downloadImage(from: thumbURL) {
+                    return imgData
                 }
             }
         } catch {
@@ -1605,23 +1669,42 @@ public final class UniversalArtworkResolver {
     /// Queries Deezer public API for cover art
     private func fetchFromDeezer(title: String, artist: String) async -> Data? {
         let query = !artist.isEmpty ? "\(artist) \(title)" : title
-        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://api.deezer.com/search?q=\(encoded)&limit=1") else {
-            return nil
-        }
+        guard var components = URLComponents(string: "https://api.deezer.com/search") else { return nil }
+        components.queryItems = [
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "limit", value: "3")
+        ]
+        guard let url = components.url else { return nil }
 
         do {
             let (data, response) = try await urlSession.data(for: url)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
 
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let results = json["data"] as? [[String: Any]],
-               let first = results.first,
-               let album = first["album"] as? [String: Any],
-               let coverUrlStr = (album["cover_xl"] as? String) ?? (album["cover_big"] as? String) ?? (album["cover_medium"] as? String),
-               let coverURL = URL(string: coverUrlStr),
-               let imgData = await downloadImage(from: coverURL) {
-                return imgData
+               let results = json["data"] as? [[String: Any]] {
+                for item in results {
+                    let resultArtist = ((item["artist"] as? [String: Any])?["name"] as? String ?? "").lowercased()
+                    let resultTrack = (item["title"] as? String ?? "").lowercased()
+                    let reqArt = artist.lowercased()
+                    let reqTit = title.lowercased()
+
+                    let artistMatches = reqArt.isEmpty || resultArtist.contains(reqArt) || reqArt.contains(resultArtist)
+                    let titleMatches = reqTit.contains(resultTrack) || resultTrack.contains(reqTit)
+
+                    if !reqArt.isEmpty && !artistMatches {
+                        continue
+                    }
+                    if !titleMatches {
+                        continue
+                    }
+
+                    if let album = item["album"] as? [String: Any],
+                       let coverUrlStr = (album["cover_xl"] as? String) ?? (album["cover_big"] as? String) ?? (album["cover_medium"] as? String),
+                       let coverURL = URL(string: coverUrlStr),
+                       let imgData = await downloadImage(from: coverURL) {
+                        return imgData
+                    }
+                }
             }
         } catch {
             return nil
