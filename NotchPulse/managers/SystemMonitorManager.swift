@@ -752,7 +752,7 @@ public class SystemMonitorManager: ObservableObject {
     private func updateThermalMetrics() {
         let thermalState = ProcessInfo.processInfo.thermalState
         let (cpuTotal, _, _, _) = fetchCPUUsage()
-        let gpuUsage = fetchGPUUsage()
+        _ = fetchGPUUsage()
 
         // 1. Fetch real hardware sensor temperature from SMC / IOHID
         guard let realHardwareTemp = SMCService.shared.getHardwareTemperature(), realHardwareTemp > 20.0 && realHardwareTemp < 115.0 else {

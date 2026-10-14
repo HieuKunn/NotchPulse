@@ -202,11 +202,6 @@ final class LockScreenWakeObserver: ObservableObject {
             return true
         }
         
-        let npTitle = NowPlayingController.shared.playbackState.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !npTitle.isEmpty || NowPlayingController.shared.playbackState.isPlaying {
-            return true
-        }
-        
         // Also show if a media player bundle is known and running
         if let bundleId = MusicManager.shared.bundleIdentifier, !bundleId.isEmpty {
             let isAppRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
