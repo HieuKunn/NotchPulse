@@ -137,9 +137,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Helper
     private func getEffectiveBundleID() -> String {
-        if let id = MusicManager.shared.bundleIdentifier, !id.isEmpty {
-            return id
-        }
         if !playbackState.bundleIdentifier.isEmpty {
             return playbackState.bundleIdentifier
         }

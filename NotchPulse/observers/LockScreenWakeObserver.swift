@@ -168,18 +168,21 @@ final class LockScreenWakeObserver: ObservableObject {
             }
             .store(in: &cancellables)
             
-        // 5. Listen for music state changes to show/hide lock screen window dynamically
-        Publishers.Merge4(
-            MusicManager.shared.$isPlaying.map { _ in () },
-            MusicManager.shared.$songTitle.map { _ in () },
-            MusicManager.shared.$bundleIdentifier.map { _ in () },
-            Defaults.publisher(.enableLockScreenPlayer).map { _ in () }
-        )
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] _ in
-            self?.updateLockScreenMediaWindowVisibility()
+        // 5. Listen for music state changes to show/hide lock screen window dynamically (deferred to prevent dispatch_once init deadlocks)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            Publishers.Merge4(
+                MusicManager.shared.$isPlaying.map { _ in () },
+                MusicManager.shared.$songTitle.map { _ in () },
+                MusicManager.shared.$bundleIdentifier.map { _ in () },
+                Defaults.publisher(.enableLockScreenPlayer).map { _ in () }
+            )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateLockScreenMediaWindowVisibility()
+            }
+            .store(in: &self.cancellables)
         }
-        .store(in: &cancellables)
     }
     
     private func shouldShowLockScreenMedia() -> Bool {
