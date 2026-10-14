@@ -127,10 +127,12 @@ public class SystemMonitorManager: ObservableObject {
         set { selectedFanProfile = newValue }
     }
 
-    // In-memory thermal history & ramp governor (identically matched to ThermalForge)
+    // Thermal regulation state — 1:1 port of ThermalForge ThermalMonitor
     private var temperatureHistory: [Double] = []
     private var lastRampPercent: Double = 0.0
     private var sustainedTicksCount: Int = 0
+    private var fansCurrentlyRunning: Bool = false
+    private var lastThermalTickTime: Date?
     private var backgroundProfileTimer: DispatchSourceTimer?
     private let backgroundEngineQueue = DispatchQueue(label: "com.notchpulse.fanprofile.engine", qos: .utility)
 
@@ -236,6 +238,9 @@ public class SystemMonitorManager: ObservableObject {
     public func setFanProfile(_ profile: NotchPulseFanProfile) {
         self.selectedFanProfile = profile
         self.sustainedTicksCount = 0
+        self.lastRampPercent = 0
+        self.fansCurrentlyRunning = false
+        self.temperatureHistory.removeAll()
         if profile != .auto {
             FanHelperManager.shared.ensureHelperUpToDate()
             FanHelperManager.shared.startBackgroundHeartbeat()
@@ -258,6 +263,8 @@ public class SystemMonitorManager: ObservableObject {
         self.customFanPercent = max(0, min(100, percent))
         self.selectedFanProfile = .custom
         self.sustainedTicksCount = 0
+        self.fansCurrentlyRunning = false
+        self.lastRampPercent = 0
         FanHelperManager.shared.ensureHelperUpToDate()
         FanHelperManager.shared.startBackgroundHeartbeat()
         startBackgroundProfileEngine()
@@ -757,156 +764,331 @@ public class SystemMonitorManager: ObservableObject {
             baselineFanPct = 0
         }
 
-        // ThermalForge-Identical Thermal Regulation Engine
-        // Track temperature history for rate-of-change awareness (Smart profile)
+        // ═══════════════════════════════════════════════════════════════════
+        // ThermalForge 1:1 Thermal Regulation Engine Port
+        // Source: ThermalMonitor.swift (tickCurve + tickSmart) + Profile.swift
+        // ═══════════════════════════════════════════════════════════════════
+
+        // Compute elapsed time since last tick for time-based ramp governor
+        let now = Date()
+        let elapsed: Double
+        if let lastTime = lastThermalTickTime {
+            elapsed = min(5.0, max(0.1, now.timeIntervalSince(lastTime)))
+        } else {
+            elapsed = 1.0
+        }
+        lastThermalTickTime = now
+
+        // Fetch real hardware fan data from SMC
+        let fans = SMCService.shared.getFans()
+        let realRPM = fans.map { $0.currentRPM }.max() ?? 0
+        let maxRpm: Double = Double(fans.first?.maxRPM ?? 6550)
+        let minRpm: Double = Double(fans.first?.minRPM ?? 2000)
+        let minPct = minRpm / maxRpm
+        let isAvailable = SMCService.shared.isHardwareFanAvailable || (fans.count > 0 && maxRpm > 0)
+
+        // Temperature history for rate-of-change (Smart profile)
         temperatureHistory.append(calculatedTemp)
         if temperatureHistory.count > 8 {
             temperatureHistory.removeFirst()
         }
 
+        // Rate of change in °C/s (ThermalForge: sampled at monitor cadence)
         let rateOfChange: Double
         if temperatureHistory.count >= 2 {
-            let dt = Double(temperatureHistory.count - 1) * 1.0
-            rateOfChange = (temperatureHistory.last! - temperatureHistory.first!) / max(1.0, dt)
+            let seconds = Double(temperatureHistory.count - 1) * elapsed
+            rateOfChange = (temperatureHistory.last! - temperatureHistory.first!) / max(1.0, seconds)
         } else {
             rateOfChange = 0.0
         }
 
-        // ThermalForge sustained trigger logic (filters brief spikes)
-        let startTemp: Double
-        let sustainedSecondsNeeded: Double
-        switch selectedFanProfile {
-        case .balanced:
-            startTemp = 55.0
-            sustainedSecondsNeeded = 8.0
-        case .smart:
-            startTemp = 53.0
-            sustainedSecondsNeeded = 6.0
-        case .max, .custom:
-            startTemp = 0.0
-            sustainedSecondsNeeded = 0.0
-        case .auto:
-            startTemp = 75.0
-            sustainedSecondsNeeded = 0.0
+        // Safety override: any sensor > 95°C → force max (ThermalForge safetyTempThreshold)
+        let safetyThreshold = 95.0
+        let safetyHysteresis = 5.0
+        if calculatedTemp >= safetyThreshold {
+            if !fansCurrentlyRunning || lastRampPercent < 1.0 {
+                FanHelperManager.shared.sendCommand("max")
+                fansCurrentlyRunning = true
+                lastRampPercent = 1.0
+            }
+            FanHelperManager.shared.sendHeartbeat()
+            let effectiveFanPct = 100
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = baselineFanPct
+                self.currentFanSpeedPercent = effectiveFanPct
+                self.currentFanRPM = realRPM
+                self.isHardwareFanAvailable = isAvailable
+            }
+            return
+        }
+        // Clear safety with hysteresis (ThermalForge: safetyTempThreshold - hysteresisDegrees)
+        if lastRampPercent >= 1.0 && calculatedTemp >= (safetyThreshold - safetyHysteresis) && fansCurrentlyRunning {
+            // Still in safety hysteresis band — maintain max
+            FanHelperManager.shared.sendHeartbeat()
+            let effectiveFanPct = 100
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = baselineFanPct
+                self.currentFanSpeedPercent = effectiveFanPct
+                self.currentFanRPM = realRPM
+                self.isHardwareFanAvailable = isAvailable
+            }
+            return
         }
 
-        if calculatedTemp >= startTemp {
-            sustainedTicksCount += 1
-        } else {
-            sustainedTicksCount = 0
-        }
+        // Per-profile constants (ThermalForge Profile.swift built-in profiles)
+        let stopTemp: Double    // Below this: fans off
+        let startTemp: Double   // Above this: fans engage (after sustained)
+        let ceilingTemp: Double // Fans at maxPercent
+        let maxPercent: Double  // Max fan fraction for this profile
+        let rampUpPerSec: Double
+        let rampDownPerSec: Double
+        let sustainedTriggerSec: Double
 
-        let isSustained = sustainedTicksCount >= Int(sustainedSecondsNeeded) || lastRampPercent > 0.01
-
-        var targetFraction: Double = 0.0
         switch selectedFanProfile {
-        case .auto:
-            targetFraction = Double(baselineFanPct) / 100.0
-
         case .balanced:
-            // ThermalForge Balanced Profile:
-            // Below 50°C: Fans off / idle
-            // 50°C - 55°C: Hysteresis
-            // 55°C - 70°C: Ease-In (pos^2) up to 60% with 8s sustained filter
-            if calculatedTemp <= 50.0 {
-                targetFraction = 0.0
-            } else if calculatedTemp < 55.0 {
-                targetFraction = lastRampPercent > 0.01 ? 0.20 : 0.0
-            } else if calculatedTemp >= 70.0 {
-                targetFraction = isSustained ? 0.60 : (lastRampPercent > 0.01 ? lastRampPercent : 0.0)
-            } else {
-                if isSustained {
-                    let pos = (calculatedTemp - 55.0) / 15.0
-                    targetFraction = pos * pos * 0.60
-                } else {
-                    targetFraction = lastRampPercent > 0.01 ? lastRampPercent : 0.0
-                }
-            }
-
+            stopTemp = 50.0; startTemp = 55.0; ceilingTemp = 70.0; maxPercent = 0.60
+            rampUpPerSec = 0.05; rampDownPerSec = 0.025; sustainedTriggerSec = 8.0
         case .smart:
-            // ThermalForge Smart Profile:
-            // Below 50°C: Fans off / idle
-            // 50°C - 53°C: Hysteresis
-            // 53°C - 85°C: S-Curve (pos^2 * (3 - 2*pos)) with Velocity Booster and 6s sustained filter
-            if calculatedTemp <= 50.0 {
-                targetFraction = 0.0
-            } else if calculatedTemp < 53.0 {
-                targetFraction = lastRampPercent > 0.01 ? 0.20 : 0.0
-            } else if calculatedTemp >= 85.0 {
-                targetFraction = 1.0
-            } else {
-                if isSustained {
-                    let pos = (calculatedTemp - 53.0) / 32.0
-                    var sCurve = pos * pos * (3.0 - 2.0 * pos)
-                    if rateOfChange > 0 {
-                        sCurve = min(1.0, sCurve + (rateOfChange * 0.20))
-                    }
-                    targetFraction = min(1.0, max(0.0, sCurve))
-                } else {
-                    targetFraction = lastRampPercent > 0.01 ? lastRampPercent : 0.0
-                }
-            }
-
+            stopTemp = 50.0; startTemp = 53.0; ceilingTemp = 85.0; maxPercent = 1.0
+            rampUpPerSec = 0.05; rampDownPerSec = 0.025; sustainedTriggerSec = 6.0
         case .max:
-            targetFraction = 1.0
-
+            stopTemp = 50.0; startTemp = 0.0; ceilingTemp = 65.0; maxPercent = 1.0
+            rampUpPerSec = 1.0; rampDownPerSec = 0.025; sustainedTriggerSec = 0.0
         case .custom:
-            targetFraction = Double(customFanPercent) / 100.0
+            stopTemp = 0.0; startTemp = 0.0; ceilingTemp = 0.0; maxPercent = Double(customFanPercent) / 100.0
+            rampUpPerSec = 1.0; rampDownPerSec = 1.0; sustainedTriggerSec = 0.0
+        case .auto:
+            stopTemp = 0.0; startTemp = 0.0; ceilingTemp = 0.0; maxPercent = 0.0
+            rampUpPerSec = 0.0; rampDownPerSec = 0.0; sustainedTriggerSec = 0.0
         }
 
-        // Safety Override: Force 100% fans if temperature crosses 95°C (ThermalForge safety floor)
-        let finalFraction: Double
-        if calculatedTemp >= 95.0 {
-            finalFraction = 1.0
-        } else {
-            let minSafety = Double(baselineFanPct) / 100.0
-            finalFraction = max(minSafety, targetFraction)
-        }
-
-        // Ramp governor for acoustic comfort & bearing preservation
-        if selectedFanProfile == .max || selectedFanProfile == .custom {
-            lastRampPercent = finalFraction
-        } else {
-            let rampUp = 0.10
-            let rampDown = 0.05
-            if finalFraction > lastRampPercent {
-                lastRampPercent = min(finalFraction, lastRampPercent + rampUp)
+        // Sustained trigger: track consecutive ticks above start threshold
+        if selectedFanProfile != .auto {
+            if calculatedTemp >= startTemp {
+                sustainedTicksCount += 1
             } else {
-                lastRampPercent = max(finalFraction, lastRampPercent - rampDown)
+                sustainedTicksCount = 0
             }
         }
+
+        // ── Auto profile: hand control to Apple, no manual fan commands ──
+        if selectedFanProfile == .auto {
+            if fansCurrentlyRunning {
+                FanHelperManager.shared.sendCommand("auto")
+                fansCurrentlyRunning = false
+                lastRampPercent = 0
+            }
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = baselineFanPct
+                self.currentFanSpeedPercent = 0
+                self.currentFanRPM = realRPM
+                self.isHardwareFanAvailable = isAvailable
+            }
+            return
+        }
+
+        // ── Max profile: instant 100% always ──
+        if selectedFanProfile == .max {
+            if !fansCurrentlyRunning {
+                FanHelperManager.shared.sendCommand("max")
+                fansCurrentlyRunning = true
+                lastRampPercent = 1.0
+            }
+            FanHelperManager.shared.sendHeartbeat()
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = baselineFanPct
+                self.currentFanSpeedPercent = 100
+                self.currentFanRPM = realRPM
+                self.isHardwareFanAvailable = isAvailable
+            }
+            return
+        }
+
+        // ── Custom profile: fixed percentage, direct set ──
+        if selectedFanProfile == .custom {
+            let targetRPM = Int(minRpm + (maxPercent * (maxRpm - minRpm)))
+            lastRampPercent = maxPercent
+            if !fansCurrentlyRunning {
+                fansCurrentlyRunning = true
+            }
+            FanHelperManager.shared.sendCommand("set \(targetRPM)")
+            FanHelperManager.shared.sendHeartbeat()
+            let effectiveFanPct = Int(round(maxPercent * 100.0))
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = baselineFanPct
+                self.currentFanSpeedPercent = effectiveFanPct
+                self.currentFanRPM = realRPM
+                self.isHardwareFanAvailable = isAvailable
+            }
+            return
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // Balanced / Smart — ThermalForge curve-based thermal regulation
+        // ═══════════════════════════════════════════════════════════════
+
+        var targetPct: Double = 0.0
+        var shouldTurnOff = false
+
+        if selectedFanProfile == .smart {
+            // ── Smart Profile (ThermalForge ThermalMonitor.tickSmart) ──
+
+            // Below stop threshold AND fans running AND temp falling → turn off
+            if calculatedTemp < stopTemp && fansCurrentlyRunning && rateOfChange <= 0 {
+                shouldTurnOff = true
+            }
+            // Below start threshold AND not running → stay off
+            else if calculatedTemp < startTemp && !fansCurrentlyRunning {
+                // Do nothing, targetPct stays 0
+            }
+            // In hysteresis band (50-53°C) AND not running → stay off
+            else if calculatedTemp >= stopTemp && calculatedTemp < startTemp && !fansCurrentlyRunning {
+                // Do nothing
+            }
+            // Above start threshold: compute S-curve
+            else {
+                // Sustained trigger check
+                let sustainedTicksNeeded = Int(sustainedTriggerSec / elapsed)
+                if !fansCurrentlyRunning && sustainedTicksCount < sustainedTicksNeeded {
+                    // Not enough sustained time yet — wait
+                    targetPct = 0.0
+                } else {
+                    // S-curve: pos²(3-2pos) — ThermalForge uncalibrated path
+                    let range = ceilingTemp - startTemp  // 85 - 53 = 32
+                    let position = min(max((calculatedTemp - startTemp) / range, 0), 1)
+                    targetPct = position * position * (3.0 - 2.0 * position)
+
+                    // Velocity booster: if temp rising, boost proportionally
+                    if rateOfChange > 0 {
+                        targetPct = min(targetPct + rateOfChange * 0.2, 1.0)
+                    }
+
+                    // Above ceiling → 100%
+                    if calculatedTemp > ceilingTemp {
+                        targetPct = 1.0
+                    }
+
+                    // Clamp and enforce minimum RPM fraction
+                    targetPct = min(max(targetPct, 0), 1.0)
+                    if targetPct > 0 && targetPct < minPct {
+                        targetPct = minPct
+                    }
+                }
+            }
+        } else {
+            // ── Balanced Profile (ThermalForge ThermalMonitor.tickCurve + Curve.targetPercent) ──
+
+            // Step 1: Get raw target from curve (ThermalForge Curve.targetPercent)
+            var rawTarget: Double? = nil
+
+            if calculatedTemp <= stopTemp && !fansCurrentlyRunning {
+                rawTarget = nil  // Below stop, not running → stay off
+            } else if calculatedTemp <= stopTemp && fansCurrentlyRunning {
+                rawTarget = nil  // Below stop, was running → turn off
+            } else if calculatedTemp > stopTemp && calculatedTemp < startTemp {
+                // Hysteresis band: keep at minimum if running, stay off if not
+                rawTarget = fansCurrentlyRunning ? 0.001 : nil
+            } else if calculatedTemp >= ceilingTemp {
+                rawTarget = maxPercent  // At/above ceiling → maxPercent (60%)
+            } else if calculatedTemp >= startTemp {
+                // easeIn curve: pos² × maxPercent
+                let position = (calculatedTemp - startTemp) / (ceilingTemp - startTemp)
+                rawTarget = position * position * maxPercent
+            }
+
+            // Step 2: Handle nil (fans should be off)
+            if rawTarget == nil {
+                if fansCurrentlyRunning {
+                    shouldTurnOff = true
+                }
+                targetPct = 0.0
+            } else {
+                // Sustained trigger check
+                let sustainedTicksNeeded = Int(sustainedTriggerSec / elapsed)
+                if !fansCurrentlyRunning && sustainedTicksCount < sustainedTicksNeeded {
+                    targetPct = 0.0
+                } else {
+                    // 0.001 signals "keep at minimum RPM" (hysteresis band)
+                    targetPct = rawTarget! <= 0.001 ? minPct : rawTarget!
+                    // Clamp to valid range
+                    targetPct = min(max(targetPct, minPct), maxPercent)
+                }
+            }
+        }
+
+        // ── Handle fans-off transition (one-shot, not every tick) ──
+        if shouldTurnOff {
+            FanHelperManager.shared.sendCommand("auto")
+            fansCurrentlyRunning = false
+            lastRampPercent = 0
+            let effectiveFanPct = 0
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = baselineFanPct
+                self.currentFanSpeedPercent = effectiveFanPct
+                self.currentFanRPM = realRPM
+                self.isHardwareFanAvailable = isAvailable
+            }
+            return
+        }
+
+        // If targetPct is 0 and fans not running → nothing to do
+        if targetPct <= 0 && !fansCurrentlyRunning {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = baselineFanPct
+                self.currentFanSpeedPercent = 0
+                self.currentFanRPM = realRPM
+                self.isHardwareFanAvailable = isAvailable
+            }
+            return
+        }
+
+        // ── Ramp governor (ThermalForge: per-profile rates × elapsed time) ──
+        let rampUp = rampUpPerSec * elapsed
+        let rampDown = rampDownPerSec * elapsed
+
+        if targetPct > lastRampPercent {
+            targetPct = min(targetPct, lastRampPercent + rampUp)
+        } else if targetPct < lastRampPercent {
+            targetPct = max(targetPct, lastRampPercent - rampDown)
+        }
+
+        // Apply if changed meaningfully (ThermalForge threshold: 0.002)
+        if abs(targetPct - lastRampPercent) > 0.002 || !fansCurrentlyRunning {
+            let targetRPM = max(Int(maxRpm * targetPct), Int(minRpm))
+            FanHelperManager.shared.sendCommand("set \(targetRPM)")
+
+            lastRampPercent = targetPct
+            fansCurrentlyRunning = true
+        }
+
+        // Keepalive heartbeat
+        FanHelperManager.shared.sendHeartbeat()
 
         let effectiveFanPct = Int(round(lastRampPercent * 100.0))
+        let targetRPM = (effectiveFanPct <= 0) ? 0 : Int(minRpm + ((Double(effectiveFanPct) / 100.0) * (maxRpm - minRpm)))
 
-        // Fetch real hardware fan RPM from SMC if available
-        let fans = SMCService.shared.getFans()
-        let realRPM = fans.map { $0.currentRPM }.max() ?? 0
-
-        let maxRpm: Double = Double(fans.first?.maxRPM ?? 6550)
-        let minRpm: Double = Double(fans.first?.minRPM ?? 2000)
-        let targetRPM: Int = (effectiveFanPct <= 0) ? 0 : Int(minRpm + ((Double(effectiveFanPct) / 100.0) * (maxRpm - minRpm)))
-
-        let isAvailable = SMCService.shared.isHardwareFanAvailable || (fans.count > 0 && maxRpm > 0)
-
-        // HARDWARE FAN CONTROL VIA NOTCHPULSE DAEMON (ThermalForge Core Port):
-        // 1. Dispatch directly to NotchPulse's native privileged fan daemon socket
-        if selectedFanProfile == .auto {
-            FanHelperManager.shared.sendCommand("auto")
-        } else if selectedFanProfile == .max {
-            FanHelperManager.shared.sendCommand("max")
-        } else if targetRPM > 0 && effectiveFanPct > 0 {
-            FanHelperManager.shared.sendCommand("set \(targetRPM)")
-        } else {
-            // Below threshold in Smart/Balanced: hand back to Apple auto
-            FanHelperManager.shared.sendCommand("auto")
-        }
-
-        // 2. Keepalive heartbeat to maintain manual control hold
-        if selectedFanProfile != .auto {
-            FanHelperManager.shared.sendHeartbeat()
-        }
-
-        // 3. Secondary fallback: Dispatches to external ThermalForge daemon socket if present
+        // Secondary fallback: ThermalForge daemon socket if present
         dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: targetRPM)
 
         DispatchQueue.main.async { [weak self] in
