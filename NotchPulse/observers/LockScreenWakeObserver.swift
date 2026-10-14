@@ -86,6 +86,23 @@ final class LockScreenWakeObserver: ObservableObject {
         }
         distributedTokens.append(lockToken)
         
+        // 1b. Listen for screensaver start
+        let screensaverToken = DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("com.apple.screensaver.didstart"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                    self.isScreenLocked = true
+                    self.startLockSessionSupervisor()
+                    self.updateLockScreenMediaWindowVisibility()
+                }
+            }
+        }
+        distributedTokens.append(screensaverToken)
+        
         // 2. Listen for screen unlock
         let unlockToken = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name("com.apple.screenIsUnlocked"),
@@ -168,63 +185,19 @@ final class LockScreenWakeObserver: ObservableObject {
     private func shouldShowLockScreenMedia() -> Bool {
         let actuallyLocked = isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
         guard actuallyLocked && Defaults[.enableLockScreenPlayer] else { return false }
-        
-        // CRITICAL: Once the lock screen media player is visible during an active lock session,
-        // it must ALWAYS remain visible! Never hide or flash on track change, button clicks, pause, or seek.
-        if LockScreenMediaWindow.shared.isWindowVisible {
-            // Only hide if the underlying media app was explicitly quit by the user
-            if let bundleId = MusicManager.shared.bundleIdentifier, !bundleId.isEmpty {
-                if bundleId == "com.apple.Music" || bundleId == "com.spotify.client" {
-                    let isAppRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
-                    if !isAppRunning && !MusicManager.shared.isPlaying {
-                        return false
-                    }
-                }
-            }
-            return true
-        }
-        
-        let title = MusicManager.shared.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !title.isEmpty {
-            if let bundleId = MusicManager.shared.bundleIdentifier, !bundleId.isEmpty {
-                // If it's a known dedicated music app, verify app is still running
-                if bundleId == "com.apple.Music" || bundleId == "com.spotify.client" {
-                    let isAppRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
-                    if !isAppRunning {
-                        return false
-                    }
-                }
-            }
-            return true
-        }
-        
-        if MusicManager.shared.isPlaying {
-            return true
-        }
-        
-        // Also show if a media player bundle is known and running
-        if let bundleId = MusicManager.shared.bundleIdentifier, !bundleId.isEmpty {
-            let isAppRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleId }
-            if isAppRunning && (bundleId == "com.apple.Music" || bundleId == "com.spotify.client") {
-                return true
-            }
-        }
-        
-        return false
+        return true
     }
 
     func updateLockScreenMediaWindowVisibility() {
         let actuallyLocked = isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
         let shouldShow = shouldShowLockScreenMedia()
         
+        hideDebounceTask?.cancel()
+        hideDebounceTask = nil
+        
         if shouldShow {
-            hideDebounceTask?.cancel()
-            hideDebounceTask = nil
             LockScreenMediaWindow.shared.show()
         } else {
-            hideDebounceTask?.cancel()
-            hideDebounceTask = nil
-            // Only dismiss when the user actually unlocks the Mac or explicitly disables the player
             if !actuallyLocked || !Defaults[.enableLockScreenPlayer] {
                 LockScreenMediaWindow.shared.hide()
             }

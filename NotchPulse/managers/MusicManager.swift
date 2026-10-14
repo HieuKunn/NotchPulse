@@ -709,11 +709,6 @@ class MusicManager: ObservableObject {
                 try? await Task.sleep(for: .seconds(Defaults[.waitInterval]))
                 withAnimation {
                     self.isPlayerIdle = !self.isPlaying
-                    if self.isPlayerIdle {
-                        self.artworkData = nil
-                        self.albumArt = defaultImage
-                        UniversalArtworkResolver.shared.clear()
-                    }
                 }
             }
         }

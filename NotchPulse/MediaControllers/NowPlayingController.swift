@@ -944,10 +944,40 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
         
-        newPlaybackState.title = payload.title ?? (diff ? self.playbackState.title : "")
-        newPlaybackState.artist = payload.artist ?? (diff ? self.playbackState.artist : "")
-        newPlaybackState.album = payload.album ?? (diff ? self.playbackState.album : "")
-        newPlaybackState.duration = payload.duration ?? (diff ? self.playbackState.duration : 0)
+        let titleCandidate = payload.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let titleCandidate = titleCandidate, !titleCandidate.isEmpty {
+            newPlaybackState.title = titleCandidate
+        } else if diff || (!self.playbackState.title.isEmpty && (payload.bundleIdentifier == nil || payload.bundleIdentifier == self.playbackState.bundleIdentifier)) {
+            newPlaybackState.title = self.playbackState.title
+        } else {
+            newPlaybackState.title = ""
+        }
+        
+        let artistCandidate = payload.artist?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let artistCandidate = artistCandidate, !artistCandidate.isEmpty {
+            newPlaybackState.artist = artistCandidate
+        } else if diff || (!self.playbackState.artist.isEmpty && (payload.bundleIdentifier == nil || payload.bundleIdentifier == self.playbackState.bundleIdentifier)) {
+            newPlaybackState.artist = self.playbackState.artist
+        } else {
+            newPlaybackState.artist = ""
+        }
+        
+        let albumCandidate = payload.album?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let albumCandidate = albumCandidate, !albumCandidate.isEmpty {
+            newPlaybackState.album = albumCandidate
+        } else if diff || (!self.playbackState.album.isEmpty && (payload.bundleIdentifier == nil || payload.bundleIdentifier == self.playbackState.bundleIdentifier)) {
+            newPlaybackState.album = self.playbackState.album
+        } else {
+            newPlaybackState.album = ""
+        }
+        
+        if let dur = payload.duration, dur > 0 {
+            newPlaybackState.duration = dur
+        } else if diff || self.playbackState.duration > 0 {
+            newPlaybackState.duration = self.playbackState.duration
+        } else {
+            newPlaybackState.duration = 0
+        }
         
         if let elapsedTime = payload.elapsedTime {
             newPlaybackState.currentTime = elapsedTime
@@ -994,8 +1024,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: newPlaybackState.title, artist: newPlaybackState.artist) {
             newPlaybackState.artwork = cached
         } else {
-            // When payload has no artwork and track changed or non-diff, never retain previous track's artwork
-            newPlaybackState.artwork = trackChanged ? nil : (diff ? self.playbackState.artwork : nil)
+            // Retain existing artwork if same track has not changed
+            newPlaybackState.artwork = trackChanged ? nil : self.playbackState.artwork
         }
 
         if let dateString = payload.timestamp,
@@ -1009,11 +1039,12 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : 1.0)
         newPlaybackState.isPlaying = payload.playing ?? (diff ? self.playbackState.isPlaying : false)
-        newPlaybackState.bundleIdentifier = (
-            payload.parentApplicationBundleIdentifier ??
-            payload.bundleIdentifier ??
-            (diff ? self.playbackState.bundleIdentifier : "")
-        )
+        let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
+        if let newBundle = newBundle, !newBundle.isEmpty {
+            newPlaybackState.bundleIdentifier = newBundle
+        } else {
+            newPlaybackState.bundleIdentifier = self.playbackState.bundleIdentifier
+        }
         
         newPlaybackState.volume = payload.volume ?? self.playbackState.volume
         
