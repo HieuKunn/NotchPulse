@@ -185,6 +185,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cleanupDragDetectors()
         cleanupWindows()
         MusicManager.shared.destroy()
+        FanHelperManager.shared.resetToAutoOnQuit()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         LockScreenWakeObserver.shared.cleanup()
         SystemAuthPromptObserver.shared.cleanup()

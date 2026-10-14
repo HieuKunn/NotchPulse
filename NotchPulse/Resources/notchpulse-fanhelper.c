@@ -3,7 +3,7 @@
 //  NotchPulse
 //
 //  Privileged native helper daemon for Apple Silicon and Intel fan control.
-//  Zero-dependency, standalone IOKit C binary matching ThermalForge kernel algorithms.
+//  Direct 1:1 C port of ThermalForge kernel SMC architecture (SMCConnection + FanControl + Daemon).
 //  Runs as root via launchd and communicates through /var/run/notchpulse_fan.sock.
 //
 
@@ -15,10 +15,15 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <pthread.h>
+#include <time.h>
 #include <mach/mach.h>
 #include <IOKit/IOKitLib.h>
 
 #define SOCKET_PATH "/var/run/notchpulse_fan.sock"
+#define DAEMON_VERSION "2.1.0"
+#define HEARTBEAT_TIMEOUT_SEC 15.0
+#define SAFETY_OVERRIDE_TEMP 95.0f
 
 #pragma pack(push, 1)
 typedef struct {
@@ -60,10 +65,21 @@ typedef struct {
 } SMCParamStruct;
 #pragma pack(pop)
 
+typedef struct {
+    float actual;
+    float target;
+    float min;
+    float max;
+    int isManual;
+} FanData;
+
 static io_connect_t g_conn = 0;
 static char g_modeKeyTemplate[8] = "F%dMd";
 static int g_hasFtst = 0;
 static volatile int g_running = 1;
+static volatile int g_manualEngaged = 0;
+static volatile time_t g_lastHeartbeat = 0;
+static pthread_mutex_t g_smcMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static uint32_t fourCC(const char* s) {
     uint32_t ans = 0;
@@ -131,7 +147,6 @@ static int smcReadKey(const char* key, uint8_t* outBytes, uint32_t* outSize) {
 static int smcWriteKey(const char* key, const uint8_t* bytes, uint32_t size) {
     uint32_t keyDataSize = 0;
     uint32_t keyDataType = 0;
-    // CRITICAL: ThermalForge requirement - query key info before write
     if (!smcGetKeyInfo(key, &keyDataSize, &keyDataType)) {
         return 0;
     }
@@ -146,6 +161,30 @@ static int smcWriteKey(const char* key, const uint8_t* bytes, uint32_t size) {
     memcpy(in.bytes, bytes, copyLen);
     kern_return_t kr = callSMC(&in, &out);
     return (kr == kIOReturnSuccess && out.result == 0);
+}
+
+static float readFloatKey(const char* key) {
+    uint8_t bytes[32];
+    uint32_t sz = 0;
+    if (smcReadKey(key, bytes, &sz)) {
+        if (sz == 4) {
+            float val = 0.0f;
+            memcpy(&val, bytes, 4);
+            return val;
+        } else if (sz == 8) {
+            // ioft 16.16 fixed point (ThermalForge GPU format)
+            uint32_t raw = 0;
+            memcpy(&raw, bytes, 4);
+            float integer = (float)(raw >> 16);
+            float fraction = (float)(raw & 0xFFFF) / 65536.0f;
+            return integer + fraction;
+        } else if (sz == 2) {
+            // fpe2 legacy fixed point
+            uint16_t raw = ((uint16_t)bytes[0] << 8) | (uint16_t)bytes[1];
+            return (float)raw / 4.0f;
+        }
+    }
+    return 0.0f;
 }
 
 static void initHardware(void) {
@@ -183,50 +222,40 @@ static int getFanCount(void) {
 }
 
 static int unlockFans(void) {
+    if (g_manualEngaged) return 1;
     int count = getFanCount();
     if (count <= 0) return 0;
 
     if (g_hasFtst) {
-        // M1-M4 path: Ftst unlock suppresses thermalmonitord
+        // M1-M4 path: Ftst=1 suppresses thermalmonitord
         uint8_t one = 1;
         smcWriteKey("Ftst", &one, 1);
-        usleep(500000); // 500ms
+        usleep(250000); // 250ms
     }
 
-    // Set each fan to manual mode with retry loop (up to 10s like ThermalForge)
+    // Set each fan to manual mode with retry deadline (up to 2s)
     for (int i = 0; i < count; i++) {
         char modeKey[16];
         snprintf(modeKey, sizeof(modeKey), g_modeKeyTemplate, i);
         uint8_t one = 1;
         int unlocked = 0;
-        for (int retry = 0; retry < 100; retry++) {
+        for (int retry = 0; retry < 25; retry++) {
             if (smcWriteKey(modeKey, &one, 1)) {
                 unlocked = 1;
                 break;
             }
-            usleep(100000); // 100ms
+            usleep(50000); // 50ms
         }
         if (!unlocked) {
             return 0;
         }
     }
-    return 1;
-}
-
-static int setFanRPM(float rpm) {
-    int count = getFanCount();
-    if (count <= 0) return 0;
-    unlockFans();
-
-    for (int i = 0; i < count; i++) {
-        char targetKey[16];
-        snprintf(targetKey, sizeof(targetKey), "F%dTg", i);
-        smcWriteKey(targetKey, (const uint8_t*)&rpm, 4);
-    }
+    g_manualEngaged = 1;
     return 1;
 }
 
 static void resetAuto(void) {
+    pthread_mutex_lock(&g_smcMutex);
     int count = getFanCount();
     uint8_t zero = 0;
     float zeroF = 0.0f;
@@ -244,6 +273,150 @@ static void resetAuto(void) {
     }
     uint16_t zero16 = 0;
     smcWriteKey("FS! ", (const uint8_t*)&zero16, 2);
+    g_manualEngaged = 0;
+    pthread_mutex_unlock(&g_smcMutex);
+}
+
+static int setFanMax(void) {
+    pthread_mutex_lock(&g_smcMutex);
+    int count = getFanCount();
+    if (count <= 0) {
+        pthread_mutex_unlock(&g_smcMutex);
+        return 0;
+    }
+    if (!g_manualEngaged) {
+        unlockFans();
+    }
+
+    for (int i = 0; i < count; i++) {
+        char maxKey[16];
+        snprintf(maxKey, sizeof(maxKey), "F%dMx", i);
+        float maxRPM = readFloatKey(maxKey);
+        if (maxRPM <= 0.0f) maxRPM = 6550.0f;
+
+        char targetKey[16];
+        snprintf(targetKey, sizeof(targetKey), "F%dTg", i);
+        smcWriteKey(targetKey, (const uint8_t*)&maxRPM, 4);
+    }
+    g_manualEngaged = 1;
+    g_lastHeartbeat = time(NULL);
+    pthread_mutex_unlock(&g_smcMutex);
+    return 1;
+}
+
+static int setFanRPM(float rpm) {
+    pthread_mutex_lock(&g_smcMutex);
+    int count = getFanCount();
+    if (count <= 0) {
+        pthread_mutex_unlock(&g_smcMutex);
+        return 0;
+    }
+    if (!g_manualEngaged) {
+        unlockFans();
+    }
+
+    for (int i = 0; i < count; i++) {
+        char minKey[16];
+        snprintf(minKey, sizeof(minKey), "F%dMn", i);
+        float minRPM = readFloatKey(minKey);
+        if (minRPM <= 0.0f) minRPM = 2000.0f;
+
+        char maxKey[16];
+        snprintf(maxKey, sizeof(maxKey), "F%dMx", i);
+        float maxRPM = readFloatKey(maxKey);
+        if (maxRPM <= 0.0f) maxRPM = 6550.0f;
+
+        float clamped = rpm;
+        if (clamped < minRPM) clamped = minRPM;
+        if (clamped > maxRPM) clamped = maxRPM;
+
+        char targetKey[16];
+        snprintf(targetKey, sizeof(targetKey), "F%dTg", i);
+        smcWriteKey(targetKey, (const uint8_t*)&clamped, 4);
+    }
+    g_manualEngaged = 1;
+    g_lastHeartbeat = time(NULL);
+    pthread_mutex_unlock(&g_smcMutex);
+    return 1;
+}
+
+static int setSingleFanRPM(int fanIndex, float rpm) {
+    pthread_mutex_lock(&g_smcMutex);
+    int count = getFanCount();
+    if (fanIndex < 0 || fanIndex >= count) {
+        pthread_mutex_unlock(&g_smcMutex);
+        return 0;
+    }
+    if (!g_manualEngaged) {
+        unlockFans();
+    }
+
+    char minKey[16];
+    snprintf(minKey, sizeof(minKey), "F%dMn", fanIndex);
+    float minRPM = readFloatKey(minKey);
+    if (minRPM <= 0.0f) minRPM = 2000.0f;
+
+    char maxKey[16];
+    snprintf(maxKey, sizeof(maxKey), "F%dMx", fanIndex);
+    float maxRPM = readFloatKey(maxKey);
+    if (maxRPM <= 0.0f) maxRPM = 6550.0f;
+
+    float clamped = rpm;
+    if (clamped < minRPM) clamped = minRPM;
+    if (clamped > maxRPM) clamped = maxRPM;
+
+    char targetKey[16];
+    snprintf(targetKey, sizeof(targetKey), "F%dTg", fanIndex);
+    smcWriteKey(targetKey, (const uint8_t*)&clamped, 4);
+
+    g_manualEngaged = 1;
+    g_lastHeartbeat = time(NULL);
+    pthread_mutex_unlock(&g_smcMutex);
+    return 1;
+}
+
+static float getPeakTemperature(void) {
+    // ThermalForge safety sensor keys
+    static const char* tempKeys[] = {
+        "TCDX", "TCHP", "TCMb",
+        "Tp01", "Tp02", "Tp03", "Tp04", "Tp05", "Tp06", "Tp07", "Tp08",
+        "Tp09", "Tp0A", "Tp0B", "Tp0C", "Tp0D", "Tp0W", "Tp0X", "Tp0b",
+        "Tg05", "Tg0D", "Tg0L", "Tg0j", "TG0B", "TG0H", "TG0V"
+    };
+    int numKeys = sizeof(tempKeys) / sizeof(tempKeys[0]);
+    float peak = 0.0f;
+    for (int i = 0; i < numKeys; i++) {
+        float t = readFloatKey(tempKeys[i]);
+        if (t > 0.0f && t < 125.0f && t > peak) {
+            peak = t;
+        }
+    }
+    return peak;
+}
+
+// ThermalForge Heartbeat Watchdog & Safety Floor thread
+static void* watchdogThread(void* arg) {
+    (void)arg;
+    while (g_running) {
+        sleep(2);
+        if (!g_running) break;
+
+        // 1. Safety floor: if temperature > 95°C, force max fans immediately
+        float peakTemp = getPeakTemperature();
+        if (peakTemp >= SAFETY_OVERRIDE_TEMP) {
+            setFanMax();
+            continue;
+        }
+
+        // 2. Heartbeat watchdog: if manual hold has expired, revert to auto
+        if (g_manualEngaged) {
+            time_t now = time(NULL);
+            if (difftime(now, g_lastHeartbeat) > HEARTBEAT_TIMEOUT_SEC) {
+                resetAuto();
+            }
+        }
+    }
+    return NULL;
 }
 
 static void sigHandler(int sig) {
@@ -253,14 +426,24 @@ static void sigHandler(int sig) {
 
 int main(int argc, char** argv) {
     (void)argc; (void)argv;
+
+    // CRITICAL: Ignore SIGPIPE so writing to disconnected client never terminates the daemon
+    signal(SIGPIPE, SIG_IGN);
     signal(SIGTERM, sigHandler);
     signal(SIGINT, sigHandler);
 
     initHardware();
 
+    pthread_t wdThread;
+    pthread_create(&wdThread, NULL, watchdogThread, NULL);
+
     unlink(SOCKET_PATH);
     int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (server_fd < 0) return 1;
+
+    // Do not generate SIGPIPE on this socket
+    int opt = 1;
+    setsockopt(server_fd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
@@ -273,21 +456,31 @@ int main(int argc, char** argv) {
     }
 
     chmod(SOCKET_PATH, 0666);
-    listen(server_fd, 8);
+    listen(server_fd, 16);
 
     while (g_running) {
         int client_fd = accept(server_fd, NULL, NULL);
-        if (client_fd < 0) break;
+        if (client_fd < 0) {
+            if (!g_running) break;
+            continue;
+        }
 
-        char buf[128];
+        setsockopt(client_fd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+
+        char buf[256];
         ssize_t n = read(client_fd, buf, sizeof(buf) - 1);
         if (n > 0) {
             buf[n] = '\0';
-            if (strncmp(buf, "auto", 4) == 0) {
+            // Trim trailing newline or whitespace
+            while (n > 0 && (buf[n - 1] == '\n' || buf[n - 1] == '\r' || buf[n - 1] == ' ')) {
+                buf[--n] = '\0';
+            }
+
+            if (strcmp(buf, "auto") == 0) {
                 resetAuto();
                 write(client_fd, "OK\n", 3);
-            } else if (strncmp(buf, "max", 3) == 0) {
-                setFanRPM(6500.0f);
+            } else if (strcmp(buf, "max") == 0) {
+                setFanMax();
                 write(client_fd, "OK\n", 3);
             } else if (strncmp(buf, "set ", 4) == 0) {
                 float rpm = (float)atof(buf + 4);
@@ -295,11 +488,64 @@ int main(int argc, char** argv) {
                     setFanRPM(rpm);
                 }
                 write(client_fd, "OK\n", 3);
-            } else if (strncmp(buf, "ping", 4) == 0) {
+            } else if (strncmp(buf, "setfan ", 7) == 0) {
+                int fanIdx = 0;
+                float rpm = 0.0f;
+                if (sscanf(buf + 7, "%d %f", &fanIdx, &rpm) == 2 && rpm > 0.0f) {
+                    setSingleFanRPM(fanIdx, rpm);
+                }
+                write(client_fd, "OK\n", 3);
+            } else if (strcmp(buf, "heartbeat") == 0) {
+                g_lastHeartbeat = time(NULL);
+                write(client_fd, "OK\n", 3);
+            } else if (strcmp(buf, "version") == 0) {
+                write(client_fd, DAEMON_VERSION "\n", strlen(DAEMON_VERSION) + 1);
+            } else if (strncmp(buf, "upgrade ", 8) == 0) {
+                const char* srcPath = buf + 8;
+                char cmd[512];
+                snprintf(cmd, sizeof(cmd), "cp -f '%s' /Library/PrivilegedHelperTools/notchpulse-fanhelper && chmod 755 /Library/PrivilegedHelperTools/notchpulse-fanhelper && chown root:wheel /Library/PrivilegedHelperTools/notchpulse-fanhelper", srcPath);
+                int ret = system(cmd);
+                if (ret == 0) {
+                    write(client_fd, "OK\n", 3);
+                    close(client_fd);
+                    close(server_fd);
+                    unlink(SOCKET_PATH);
+                    exit(0); // launchd KeepAlive restarts with the updated binary
+                } else {
+                    write(client_fd, "ERR\n", 4);
+                }
+            } else if (strcmp(buf, "ping") == 0) {
                 write(client_fd, "PONG\n", 5);
-            } else if (strncmp(buf, "status", 6) == 0) {
-                char reply[64];
-                snprintf(reply, sizeof(reply), "FANS:%d MODE:%s\n", getFanCount(), g_modeKeyTemplate);
+            } else if (strcmp(buf, "status") == 0) {
+                int count = getFanCount();
+                float peakT = getPeakTemperature();
+                char reply[512];
+                int offset = snprintf(reply, sizeof(reply), "{\"fans\":[");
+                for (int i = 0; i < count; i++) {
+                    char acKey[16], tgKey[16], mnKey[16], mxKey[16], mdKey[16];
+                    snprintf(acKey, sizeof(acKey), "F%dAc", i);
+                    snprintf(tgKey, sizeof(tgKey), "F%dTg", i);
+                    snprintf(mnKey, sizeof(mnKey), "F%dMn", i);
+                    snprintf(mxKey, sizeof(mxKey), "F%dMx", i);
+                    snprintf(mdKey, sizeof(mdKey), g_modeKeyTemplate, i);
+
+                    float actual = readFloatKey(acKey);
+                    float target = readFloatKey(tgKey);
+                    float minRPM = readFloatKey(mnKey);
+                    float maxRPM = readFloatKey(mxKey);
+
+                    uint8_t mdBytes[8];
+                    uint32_t mdSz = 0;
+                    int isMan = 0;
+                    if (smcReadKey(mdKey, mdBytes, &mdSz) && mdSz >= 1) {
+                        isMan = (mdBytes[0] == 1);
+                    }
+
+                    offset += snprintf(reply + offset, sizeof(reply) - offset,
+                        "%s{\"index\":%d,\"actual\":%d,\"target\":%d,\"min\":%d,\"max\":%d,\"manual\":%d}",
+                        (i > 0 ? "," : ""), i, (int)actual, (int)target, (int)minRPM, (int)maxRPM, isMan);
+                }
+                snprintf(reply + offset, sizeof(reply) - offset, "],\"temp\":%.1f,\"manual_engaged\":%d}\n", peakT, g_manualEngaged);
                 write(client_fd, reply, strlen(reply));
             } else {
                 write(client_fd, "ERR\n", 4);

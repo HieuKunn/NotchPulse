@@ -144,6 +144,9 @@ public class SystemMonitorManager: ObservableObject {
     // In-memory thermal history & ramp governor (identically matched to ThermalForge)
     private var temperatureHistory: [Double] = []
     private var lastRampPercent: Double = 0.0
+    private var sustainedTicksCount: Int = 0
+    private var backgroundProfileTimer: DispatchSourceTimer?
+    private let backgroundEngineQueue = DispatchQueue(label: "com.notchpulse.fanprofile.engine", qos: .utility)
 
     // MARK: - Top Processes
     @Published public var topCpuProcesses: [MonitorProcessItem] = []
@@ -246,6 +249,16 @@ public class SystemMonitorManager: ObservableObject {
 
     public func setFanProfile(_ profile: NotchPulseFanProfile) {
         self.selectedFanProfile = profile
+        self.sustainedTicksCount = 0
+        if profile != .auto {
+            FanHelperManager.shared.ensureHelperUpToDate()
+            FanHelperManager.shared.startBackgroundHeartbeat()
+            startBackgroundProfileEngine()
+        } else {
+            FanHelperManager.shared.stopBackgroundHeartbeat()
+            FanHelperManager.shared.sendCommand("auto")
+            stopBackgroundProfileEngine()
+        }
         self.queue.async {
             self.updateThermalMetrics()
         }
@@ -258,8 +271,45 @@ public class SystemMonitorManager: ObservableObject {
     public func setCustomFanPercent(_ percent: Int) {
         self.customFanPercent = max(0, min(100, percent))
         self.selectedFanProfile = .custom
+        self.sustainedTicksCount = 0
+        FanHelperManager.shared.ensureHelperUpToDate()
+        FanHelperManager.shared.startBackgroundHeartbeat()
+        startBackgroundProfileEngine()
         self.queue.async {
             self.updateThermalMetrics()
+        }
+    }
+
+    public func reapplyActiveProfileOnWake() {
+        guard selectedFanProfile != .auto else { return }
+        self.sustainedTicksCount = 0
+        self.queue.async { [weak self] in
+            self?.updateThermalMetrics()
+        }
+    }
+
+    private func startBackgroundProfileEngine() {
+        backgroundEngineQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.backgroundProfileTimer?.cancel()
+            let timer = DispatchSource.makeTimerSource(queue: self.backgroundEngineQueue)
+            timer.schedule(deadline: .now() + 2.0, repeating: 2.0)
+            timer.setEventHandler { [weak self] in
+                guard let self = self else { return }
+                guard !self.isThermalMonitoring else { return }
+                self.queue.async {
+                    self.updateThermalMetrics()
+                }
+            }
+            timer.resume()
+            self.backgroundProfileTimer = timer
+        }
+    }
+
+    private func stopBackgroundProfileEngine() {
+        backgroundEngineQueue.async { [weak self] in
+            self?.backgroundProfileTimer?.cancel()
+            self?.backgroundProfileTimer = nil
         }
     }
 
@@ -736,6 +786,32 @@ public class SystemMonitorManager: ObservableObject {
             rateOfChange = 0.0
         }
 
+        // ThermalForge sustained trigger logic (filters brief spikes)
+        let startTemp: Double
+        let sustainedSecondsNeeded: Double
+        switch selectedFanProfile {
+        case .balanced:
+            startTemp = 55.0
+            sustainedSecondsNeeded = 8.0
+        case .smart:
+            startTemp = 53.0
+            sustainedSecondsNeeded = 6.0
+        case .max, .custom:
+            startTemp = 0.0
+            sustainedSecondsNeeded = 0.0
+        case .auto:
+            startTemp = 75.0
+            sustainedSecondsNeeded = 0.0
+        }
+
+        if calculatedTemp >= startTemp {
+            sustainedTicksCount += 1
+        } else {
+            sustainedTicksCount = 0
+        }
+
+        let isSustained = sustainedTicksCount >= Int(sustainedSecondsNeeded) || lastRampPercent > 0.01
+
         var targetFraction: Double = 0.0
         switch selectedFanProfile {
         case .auto:
@@ -745,23 +821,27 @@ public class SystemMonitorManager: ObservableObject {
             // ThermalForge Balanced Profile:
             // Below 50°C: Fans off / idle
             // 50°C - 55°C: Hysteresis
-            // 55°C - 70°C: Ease-In (pos^2) up to 60%
+            // 55°C - 70°C: Ease-In (pos^2) up to 60% with 8s sustained filter
             if calculatedTemp <= 50.0 {
                 targetFraction = 0.0
             } else if calculatedTemp < 55.0 {
                 targetFraction = lastRampPercent > 0.01 ? 0.20 : 0.0
             } else if calculatedTemp >= 70.0 {
-                targetFraction = 0.60
+                targetFraction = isSustained ? 0.60 : (lastRampPercent > 0.01 ? lastRampPercent : 0.0)
             } else {
-                let pos = (calculatedTemp - 55.0) / 15.0
-                targetFraction = pos * pos * 0.60
+                if isSustained {
+                    let pos = (calculatedTemp - 55.0) / 15.0
+                    targetFraction = pos * pos * 0.60
+                } else {
+                    targetFraction = lastRampPercent > 0.01 ? lastRampPercent : 0.0
+                }
             }
 
         case .smart:
             // ThermalForge Smart Profile:
             // Below 50°C: Fans off / idle
             // 50°C - 53°C: Hysteresis
-            // 53°C - 85°C: S-Curve (pos^2 * (3 - 2*pos)) with Velocity Booster
+            // 53°C - 85°C: S-Curve (pos^2 * (3 - 2*pos)) with Velocity Booster and 6s sustained filter
             if calculatedTemp <= 50.0 {
                 targetFraction = 0.0
             } else if calculatedTemp < 53.0 {
@@ -769,12 +849,16 @@ public class SystemMonitorManager: ObservableObject {
             } else if calculatedTemp >= 85.0 {
                 targetFraction = 1.0
             } else {
-                let pos = (calculatedTemp - 53.0) / 32.0
-                var sCurve = pos * pos * (3.0 - 2.0 * pos)
-                if rateOfChange > 0 {
-                    sCurve = min(1.0, sCurve + (rateOfChange * 0.20))
+                if isSustained {
+                    let pos = (calculatedTemp - 53.0) / 32.0
+                    var sCurve = pos * pos * (3.0 - 2.0 * pos)
+                    if rateOfChange > 0 {
+                        sCurve = min(1.0, sCurve + (rateOfChange * 0.20))
+                    }
+                    targetFraction = min(1.0, max(0.0, sCurve))
+                } else {
+                    targetFraction = lastRampPercent > 0.01 ? lastRampPercent : 0.0
                 }
-                targetFraction = min(1.0, max(0.0, sCurve))
             }
 
         case .max:
@@ -812,40 +896,32 @@ public class SystemMonitorManager: ObservableObject {
         let fans = SMCService.shared.getFans()
         let realRPM = fans.map { $0.currentRPM }.max() ?? 0
 
-        let rpm: Int
-        if realRPM > 0 {
-            rpm = realRPM
-        } else if effectiveFanPct == 0 {
-            rpm = 0
-        } else {
-            let maxRpm: Double = Double(fans.first?.maxRPM ?? 5800)
-            let minRpm: Double = Double(fans.first?.minRPM ?? 1200)
-            rpm = Int(minRpm + ((Double(effectiveFanPct) / 100.0) * (maxRpm - minRpm)))
-        }
+        let maxRpm: Double = Double(fans.first?.maxRPM ?? 6550)
+        let minRpm: Double = Double(fans.first?.minRPM ?? 2000)
+        let targetRPM: Int = (effectiveFanPct <= 0) ? 0 : Int(minRpm + ((Double(effectiveFanPct) / 100.0) * (maxRpm - minRpm)))
 
-        let isAvailable = SMCService.shared.isHardwareFanAvailable
+        let isAvailable = SMCService.shared.isHardwareFanAvailable || (fans.count > 0 && maxRpm > 0)
 
-        // DIRECT HARDWARE FAN CONTROL (NotchPulse Native Port):
-        // 1. Direct Kernel SMC call in-process
-        if isAvailable {
-            if selectedFanProfile == .auto {
-                SMCService.shared.restoreAutoFanControl()
-            } else if rpm > 0 {
-                SMCService.shared.setAllFans(rpm: Double(rpm))
-            }
-        }
-
-        // 2. Dispatch directly to NotchPulse's native privileged fan daemon socket
+        // HARDWARE FAN CONTROL VIA NOTCHPULSE DAEMON (ThermalForge Core Port):
+        // 1. Dispatch directly to NotchPulse's native privileged fan daemon socket
         if selectedFanProfile == .auto {
             FanHelperManager.shared.sendCommand("auto")
         } else if selectedFanProfile == .max {
             FanHelperManager.shared.sendCommand("max")
-        } else if rpm > 0 {
-            FanHelperManager.shared.sendCommand("set \(rpm)")
+        } else if targetRPM > 0 && effectiveFanPct > 0 {
+            FanHelperManager.shared.sendCommand("set \(targetRPM)")
+        } else {
+            // Below threshold in Smart/Balanced: hand back to Apple auto
+            FanHelperManager.shared.sendCommand("auto")
         }
 
-        // 3. Secondary fallback: Dispatches to external daemon socket if present on system
-        dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: rpm)
+        // 2. Keepalive heartbeat to maintain manual control hold
+        if selectedFanProfile != .auto {
+            FanHelperManager.shared.sendHeartbeat()
+        }
+
+        // 3. Secondary fallback: Dispatches to external ThermalForge daemon socket if present
+        dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: targetRPM)
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -853,7 +929,7 @@ public class SystemMonitorManager: ObservableObject {
             self.temperatureLevel = level
             self.hardwareBaselineFanPercent = baselineFanPct
             self.currentFanSpeedPercent = effectiveFanPct
-            self.currentFanRPM = rpm
+            self.currentFanRPM = realRPM
             self.isHardwareFanAvailable = isAvailable
         }
     }
