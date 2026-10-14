@@ -1,35 +1,19 @@
-## 🚀 What's New in NotchPulse v5.4
+## 🚀 What's New in NotchPulse v8.4
 
-### 🔋 Ultra-Low Idle CPU & Memory Footprint
-- **Near-Zero Background Overhead**: Background CPU usage has been reduced dramatically from 5–10% down to under 0.5%, giving your battery life and processing power back to your workflow.
-- **Over 80–100MB Memory Saved**: The Face ID recognition model now sleeps completely in the background during normal desktop usage, waking up instantaneously in parallel only when your screen locks or an authentication dialog appears.
-- **Throttled Media State Rendering**: Media playback and position tracking now render smoothly with 90% fewer redundant screen redraws.
+### 🎵 Persistent Lock Screen Media Player
+- **Continuous Uninterrupted Playback Display**: The Lock Screen media player now remains smoothly and continuously visible throughout your locked session. It never flickers, vanishes, or unmounts when changing tracks, scrubbing through songs, pausing, or pressing playback buttons.
+- **Full-Screen & Compact Persistence**: Whether expanded into full-screen immersive lyrics or resting as a compact player card, your chosen view stays perfectly preserved across track transitions and control interactions.
+- **Instant Artwork & Lyric Updates**: Cover artwork, song titles, artist info, and synchronized lyrics update seamlessly in-place the moment a new song begins.
+
+### ❄️ Native Thermal & Fan Controls
+- **Dedicated Apple Silicon Cooling Engine**: Monitor live hardware temperatures and adjust fan profiles directly from the Notch with automated keepalive and seamless wake recovery.
+- **Interactive Fan & Temperature Dashboard**: Easily switch between Auto, Balanced, Smart, and Full Speed cooling modes with real-time fan RPM readings.
 
 ### ⚡️ Activity Monitor Parity & Symmetrical Dashboard
-- **True Real-Time RAM Metrics**: Memory consumption now precisely reflects Apple's official physical footprint standard, displaying exact real-time RAM usage without compressed memory distortion.
-- **Full Process Names**: App and helper names are now displayed completely without abbreviation or cut-off text.
-- **Instant Top Apps Inspection**: The top resource-consuming apps now appear instantly the moment you expand the dashboard with zero kernel delay or system stalls.
-- **Symmetrical 3-Column Layout**: Perfectly balanced CPU, RAM, and GPU dashboard cards (33% each) with responsive typography, giving your GPU model name extra breathing room while keeping all labels clean and legible.
+- **True Real-Time RAM Metrics**: Memory consumption accurately matches Apple's official physical memory standard without compressed memory distortion.
+- **Instant Top Apps Inspection**: Identify top resource-consuming applications immediately upon opening the dashboard.
+- **Balanced 3-Column Layout**: Clean, symmetrical CPU, RAM, and GPU dashboard cards with responsive typography.
 
-### ❄️ Interactive Thermal & Fan Controls
-- **Dedicated Native Fan Helper**: NotchPulse now features its own high-performance helper daemon for direct Apple Silicon SMC fan speed control without third-party app dependencies.
-- **Continuous Background Cooling Engine**: Fan curves and profiles run reliably in the background even when NotchPulse is collapsed, with automatic keepalive and sleep/wake recovery.
-- **Zero-Prompt Fan Activation**: If you've enrolled your master password with Face ID, fan control installs, activates, and auto-updates in the background with zero extra prompts or popups.
-- **70/30 Fan & Temperature Card**: Enjoy a dedicated thermal card featuring a 70/30 split between interactive fan controls and a real-time hardware temperature gauge.
-- **One-Click Fan Profiles**: Instantly switch between Auto, Balanced, Smart, Full Speed, and custom fan percentages directly from the Notch.
-
-### 🎵 Refined Lock Screen Media Player
-- **Intuitive Artwork Zoom & Collapse**: Seamlessly expand to full-screen immersive lyrics or collapse back to the compact card simply by clicking the album cover art.
-- **Immersive Full-Screen Blurred Artwork Background**: The full-screen player now fills your entire display edge-to-edge with beautiful dynamic blurred artwork.
-- **Clean Border & Zero Blurred Artifacts**: Eliminated unsightly diffuse shadows and window margins around the compact player for a clean, seamless card presentation.
-- **Unified Control Button Icons**: Synchronized icon color fidelity across all media buttons (Shuffle, Previous, Play/Pause, Next, Repeat, Volume, Favorite, and Seek).
-- **Reactive Dark & Light Mode Appearance**: Card background, borders, text, and icons dynamically transition between pure white and dark gray in sync with macOS system appearance.
-
-### 🔒 Smarter Face ID Biometrics & Instant Verification
-- **Seamless Parallel Pre-Warming**: AI facial models warm up concurrently while camera hardware starts up, ensuring instant recognition without perceptible wait times.
-- **Single-Prompt Authorization**: System and password prompts verify your face once without annoying camera cycling.
-- **Instant Wrong Face Rejection**: Quickly detects and signals unrecognized faces within a fraction of a second instead of waiting until timeout.
-- **Seamless Sleep Recovery**: Camera connections now reliably re-negotiate upon waking from sleep so Face ID is always ready.
-
-### 📋 Instant Event-Driven Clipboard
-- **Lightning-Fast Copying**: Captures copy and cut actions (`Cmd + C` / `Cmd + X`) instantaneously without missing rapid copy sequences, while drawing 0% CPU in the background.
+### 🔒 Fast & Seamless Face ID Biometrics
+- **Instant Recognition on Wake**: AI facial recognition models warm up in parallel with camera hardware for zero-delay unlocking.
+- **Single-Prompt Authorization**: Confirms password prompts and lock screen sessions with fluid, unobtrusive verification.
