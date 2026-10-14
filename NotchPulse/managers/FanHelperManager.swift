@@ -55,8 +55,7 @@ public final class FanHelperManager: ObservableObject {
     @Published public private(set) var lastCommandLog: String = "Ready"
     @Published public private(set) var lastCommandTimestamp: Date? = nil
 
-    private var heartbeatTimer: DispatchSourceTimer?
-    private let heartbeatQueue = DispatchQueue(label: "com.notchpulse.fanheartbeat", qos: .utility)
+    private var lastInstallAttemptTime: Date = .distantPast
 
     private init() {
         checkHelperStatus()
@@ -66,7 +65,7 @@ public final class FanHelperManager: ObservableObject {
             name: NSWorkspace.didWakeNotification,
             object: nil
         )
-        // If not installed yet but user already enrolled password in Vault, install silently
+        // If not installed yet but user already enrolled password in Vault, install silently once
         if !isHelperInstalled && NotchPulseVault.hasStoredPassword() {
             DispatchQueue.global(qos: .utility).async { [weak self] in
                 self?.installWithStoredPassword()
@@ -94,55 +93,60 @@ public final class FanHelperManager: ObservableObject {
 
     /// Automatically installs helper if needed:
     /// - Uses NotchPulseVault master password silently if present (0 clicks / 0 prompts)
-    /// - Otherwise presents unified NotchPulse password dialog
-    public func promptInstallIfNeeded(onSuccess: (() -> Void)? = nil) {
+    /// - Otherwise presents native macOS prompt if userInitiated is true
+    public func promptInstallIfNeeded(userInitiated: Bool = false, onSuccess: (() -> Void)? = nil) {
         if checkHelperStatus() {
             onSuccess?()
             return
         }
         guard !isInstalling else { return }
 
+        // Cooldown: If an attempt was made in the last 60 seconds, don't spam prompts
+        if !userInitiated && Date().timeIntervalSince(lastInstallAttemptTime) < 60 {
+            return
+        }
+
         // 1. Silent install via NotchPulseVault if password already exists
         if NotchPulseVault.hasStoredPassword() {
             installWithStoredPassword { [weak self] success in
                 if success {
                     onSuccess?()
-                } else {
-                    // Stored password was rejected or session locked -> present unified prompt
+                } else if userInitiated {
+                    // Only prompt native administrator dialog if user explicitly initiated
                     DispatchQueue.main.async {
-                        self?.presentUnifiedPasswordPrompt(onSuccess: onSuccess)
+                        self?.installHelperViaAppleScript { success2 in
+                            if success2 { onSuccess?() }
+                        }
                     }
                 }
             }
             return
         }
 
-        // 2. Present unified NotchPulse master auth prompt
-        DispatchQueue.main.async { [weak self] in
-            self?.presentUnifiedPasswordPrompt(onSuccess: onSuccess)
+        // 2. Only present native prompt if user explicitly initiated
+        if userInitiated {
+            DispatchQueue.main.async { [weak self] in
+                self?.installHelperViaAppleScript { success in
+                    if success { onSuccess?() }
+                }
+            }
         }
     }
 
-    /// Presents unified Notch overlay password prompt (shared with Face ID & App unlock)
+    /// Presents native administrator authorization dialog
     public func presentUnifiedPasswordPrompt(onSuccess: (() -> Void)? = nil) {
-        Task { @MainActor in
-            FaceIDEnrollmentController.startPasswordOnly(onComplete: {
-                Self.shared.installWithStoredPassword { success in
-                    if success {
-                        onSuccess?()
-                    } else {
-                        Self.shared.installHelperViaAppleScript { success2 in
-                            if success2 { onSuccess?() }
-                        }
-                    }
-                }
-            })
+        installHelperViaAppleScript { success in
+            if success { onSuccess?() }
         }
     }
 
     /// Tries silent installation using the password stored in NotchPulseVault
     @discardableResult
     public func installWithStoredPassword(completion: ((Bool) -> Void)? = nil) -> Bool {
+        guard !isInstalling else {
+            completion?(false)
+            return false
+        }
         guard NotchPulseVault.hasStoredPassword() else {
             completion?(false)
             return false
@@ -164,12 +168,17 @@ public final class FanHelperManager: ObservableObject {
     /// Installs helper daemon directly using administrator password via sudo standard input
     @discardableResult
     public func installWithPassword(_ password: String, completion: ((Bool) -> Void)? = nil) -> Bool {
+        guard !isInstalling else {
+            completion?(false)
+            return false
+        }
         guard !password.isEmpty else {
             completion?(false)
             return false
         }
 
         isInstalling = true
+        lastInstallAttemptTime = Date()
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
@@ -207,7 +216,7 @@ public final class FanHelperManager: ObservableObject {
             let tmpPlistPath = "/tmp/com.notchpulse.fanhelper.plist"
             try? plistContent.write(toFile: tmpPlistPath, atomically: true, encoding: .utf8)
 
-            let shellScript = "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && (launchctl enable system/com.notchpulse.fanhelper 2>/dev/null || true) && (launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl kickstart -k system/com.notchpulse.fanhelper 2>/dev/null || true)"
+            let shellScript = "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && (xattr -cr '\(Self.installedBinaryPath)' 2>/dev/null || true) && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && (xattr -cr '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl bootout system/com.notchpulse.fanhelper 2>/dev/null || launchctl unload -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl enable system/com.notchpulse.fanhelper 2>/dev/null || true) && (launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl kickstart -kp system/com.notchpulse.fanhelper 2>/dev/null || true)"
 
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
@@ -249,9 +258,14 @@ public final class FanHelperManager: ObservableObject {
         return true
     }
 
-    /// Legacy fallback: Prompts user with native macOS AppleScript security dialog
     public func installHelperViaAppleScript(completion: @escaping (Bool) -> Void) {
+        guard !isInstalling else {
+            completion(false)
+            return
+        }
+
         isInstalling = true
+        lastInstallAttemptTime = Date()
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
@@ -289,7 +303,7 @@ public final class FanHelperManager: ObservableObject {
             try? plistContent.write(toFile: tmpPlistPath, atomically: true, encoding: .utf8)
 
             let script = """
-            do shell script "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && (launchctl enable system/com.notchpulse.fanhelper 2>/dev/null || true) && (launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl kickstart -k system/com.notchpulse.fanhelper 2>/dev/null || true)" with administrator privileges with prompt "NotchPulse requires administrator privileges to enable direct hardware fan speed control."
+            do shell script "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && (xattr -cr '\(Self.installedBinaryPath)' 2>/dev/null || true) && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && (xattr -cr '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl bootout system/com.notchpulse.fanhelper 2>/dev/null || launchctl unload -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl enable system/com.notchpulse.fanhelper 2>/dev/null || true) && (launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl kickstart -kp system/com.notchpulse.fanhelper 2>/dev/null || true)" with administrator privileges with prompt "NotchPulse requires administrator privileges to enable direct hardware fan speed control."
             """
 
             var errorDict: NSDictionary?
@@ -367,18 +381,11 @@ public final class FanHelperManager: ObservableObject {
         return String(cString: buffer).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Sends command to daemon socket and returns reply string, automatically kickstarting helper if socket is offline
+    /// Sends command to daemon socket and returns reply string
     public func sendCommandWithReply(_ command: String) -> String? {
         let sock = Self.socketPath
-        if !FileManager.default.fileExists(atPath: sock) {
-            // Attempt auto-kickstart in background if password exists
-            if !Thread.isMainThread && NotchPulseVault.hasStoredPassword() {
-                installWithStoredPassword()
-                for _ in 0..<15 {
-                    Thread.sleep(forTimeInterval: 0.1)
-                    if FileManager.default.fileExists(atPath: sock) { break }
-                }
-            }
+        guard FileManager.default.fileExists(atPath: sock) else {
+            return nil
         }
         let reply = sendCommandRaw(command)
         let trimmedCmd = command.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -490,7 +497,7 @@ public final class FanHelperManager: ObservableObject {
     public func ensureHelperUpToDate(completion: ((Bool) -> Void)? = nil) {
         let installed = checkHelperStatus()
         guard installed else {
-            promptInstallIfNeeded(onSuccess: { completion?(true) })
+            promptInstallIfNeeded(userInitiated: false, onSuccess: { completion?(true) })
             return
         }
 
@@ -513,19 +520,15 @@ public final class FanHelperManager: ObservableObject {
             }
         }
 
-        // Fallback to silent Vault install or unified prompt
+        // Fallback to silent Vault install only (never prompt in background)
         if NotchPulseVault.hasStoredPassword() {
-            installWithStoredPassword { [weak self] success in
+            installWithStoredPassword { success in
                 DispatchQueue.main.async {
-                    if success {
-                        completion?(true)
-                    } else {
-                        self?.presentUnifiedPasswordPrompt(onSuccess: { completion?(true) })
-                    }
+                    completion?(success)
                 }
             }
         } else {
-            presentUnifiedPasswordPrompt(onSuccess: { completion?(true) })
+            completion?(false)
         }
     }
 

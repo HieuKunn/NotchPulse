@@ -1134,7 +1134,7 @@ private struct HardwareFanDiagnosticsView: View {
 
                 Button {
                     isReconnecting = true
-                    fanHelper.promptInstallIfNeeded {
+                    fanHelper.promptInstallIfNeeded(userInitiated: true) {
                         fanHelper.checkHelperStatus()
                         fanHelper.refreshTelemetry()
                         isReconnecting = false
