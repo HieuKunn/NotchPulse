@@ -780,13 +780,35 @@ class MusicManager: ObservableObject {
 
     func play() {
         Task {
-            await activeController?.play()
+            if let activeController = activeController {
+                await activeController.play()
+            } else {
+                let bundleID = bundleIdentifier ?? ""
+                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
+                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+                } else {
+                    await NowPlayingController.sendUniversalCommand("send", arg: "0")
+                }
+            }
         }
     }
 
     func pause() {
         Task {
-            await activeController?.pause()
+            if let activeController = activeController {
+                await activeController.pause()
+            } else {
+                let bundleID = bundleIdentifier ?? ""
+                if bundleID.contains("Music") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
+                } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
+                } else {
+                    await NowPlayingController.sendUniversalCommand("send", arg: "1")
+                }
+            }
         }
     }
 
@@ -798,8 +820,7 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.toggleShuffle()
             } else {
-                NowPlayingController.sendUniversalCommand("send", arg: "6")
-                NowPlayingController.sendUniversalCommand("shuffle", arg: self.isShuffled ? "3" : "1")
+                await NowPlayingController.sendUniversalCommand("shuffle", arg: self.isShuffled ? "3" : "1")
             }
         }
     }
@@ -827,8 +848,7 @@ class MusicManager: ObservableObject {
                 case .one: adapterRepeatMode = "2"
                 case .all: adapterRepeatMode = "3"
                 }
-                NowPlayingController.sendUniversalCommand("send", arg: "7")
-                NowPlayingController.sendUniversalCommand("repeat", arg: adapterRepeatMode)
+                await NowPlayingController.sendUniversalCommand("repeat", arg: adapterRepeatMode)
             }
         }
     }
@@ -849,8 +869,9 @@ class MusicManager: ObservableObject {
                     try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
                 } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
                     try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+                } else {
+                    await NowPlayingController.sendUniversalCommand("send", arg: "2")
                 }
-                NowPlayingController.sendUniversalCommand("send", arg: "2")
             }
         }
     }
@@ -868,8 +889,9 @@ class MusicManager: ObservableObject {
                     try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
                 } else if bundleID.contains("Spotify") || !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
                     try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+                } else {
+                    await NowPlayingController.sendUniversalCommand("send", arg: "4")
                 }
-                NowPlayingController.sendUniversalCommand("send", arg: "4")
             }
         }
     }
@@ -893,8 +915,9 @@ class MusicManager: ObservableObject {
                     end tell
                     """
                     try? await AppleScriptHelper.executeVoid(script)
+                } else {
+                    await NowPlayingController.sendUniversalCommand("send", arg: "5")
                 }
-                NowPlayingController.sendUniversalCommand("send", arg: "5")
             }
         }
     }
@@ -904,7 +927,7 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.seek(to: position)
             } else {
-                NowPlayingController.sendUniversalCommand("seek", arg: "\(Int64(position * 1_000_000))")
+                await NowPlayingController.sendUniversalCommand("seek", arg: "\(Int64(position * 1_000_000))")
             }
         }
     }

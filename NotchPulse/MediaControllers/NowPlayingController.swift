@@ -224,10 +224,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         switch bundleID {
         case "company.thebrowser.Browser":
             return ("Arc", false)
-        case "app.zen-browser.zen":
-            return ("Zen", false)
-        case "org.mozilla.firefox":
-            return ("Firefox", false)
         case "com.google.Chrome":
             return ("Google Chrome", false)
         case "com.google.Chrome.canary":
@@ -264,11 +260,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             return ("Orion", true)
         default:
             let lower = bundleID.lowercased()
-            if lower.contains("zen") {
-                return ("Zen", false)
-            } else if lower.contains("firefox") {
-                return ("Firefox", false)
-            } else if lower.contains("arc") || lower.contains("thebrowser") {
+            if lower.contains("arc") || lower.contains("thebrowser") {
                 return ("Arc", false)
             } else if lower.contains("chrome") {
                 return ("Google Chrome", false)
@@ -680,12 +672,13 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     /// Dispatches a command to the mediaremote adapter perl process (running with necessary Mach connection)
-    public static func sendUniversalCommand(_ command: String, arg: String? = nil) {
+    @discardableResult
+    public static func sendUniversalCommand(_ command: String, arg: String? = nil) async -> Bool {
         guard let paths = getAdapterPaths() else {
             NSLog("NowPlayingController: Cannot send command \(command), adapter paths not found")
-            return
+            return false
         }
-        Task.detached(priority: .userInitiated) {
+        return await Task.detached(priority: .userInitiated) {
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
             var args = [paths.script, paths.framework, command]
@@ -693,72 +686,83 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 args.append(arg)
             }
             proc.arguments = args
+            proc.standardOutput = Pipe()
+            proc.standardError = Pipe()
             do {
                 try proc.run()
+                proc.waitUntilExit()
+                return proc.terminationStatus == 0
             } catch {
                 NSLog("NowPlayingController: Failed to run adapter command \(command): \(error)")
+                return false
             }
-        }
+        }.value
     }
 
     // MARK: - Protocol Implementation
     func play() async {
+        if await Self.sendUniversalCommand("send", arg: "0") {
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
-        } else if isBrowser(bundleID) {
-            Task { await self.executeBrowserScript(for: .play) }
+        } else {
+            postMediaKeyEvent(for: 0)
         }
-        // Universal MediaRemote play (command 0)
-        Self.sendUniversalCommand("send", arg: "0")
-        MRMediaRemoteSendCommandFunction(0, nil)
     }
 
     func pause() async {
+        if await Self.sendUniversalCommand("send", arg: "1") {
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
-        } else if isBrowser(bundleID) {
-            Task { await self.executeBrowserScript(for: .pause) }
+        } else {
+            postMediaKeyEvent(for: 1)
         }
-        // Universal MediaRemote pause (command 1)
-        Self.sendUniversalCommand("send", arg: "1")
-        MRMediaRemoteSendCommandFunction(1, nil)
     }
 
     func togglePlay() async {
+        // Universal MediaRemote toggle play/pause (command 2) via Mach adapter
+        if await Self.sendUniversalCommand("send", arg: "2") {
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+        } else {
+            postMediaKeyEvent(for: 2)
         }
-        // Universal MediaRemote toggle play/pause (command 2) via working Mach adapter
-        Self.sendUniversalCommand("send", arg: "2")
-        MRMediaRemoteSendCommandFunction(2, nil)
-        postMediaKeyEvent(for: 2)
     }
 
     func nextTrack() async {
+        // Universal MediaRemote next track (command 4)
+        if await Self.sendUniversalCommand("send", arg: "4") {
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
-        } else if isBrowser(bundleID) {
-            Task { await self.executeBrowserScript(for: .next) }
+        } else {
+            postMediaKeyEvent(for: 4)
         }
-        // Universal MediaRemote next track (command 4)
-        Self.sendUniversalCommand("send", arg: "4")
-        MRMediaRemoteSendCommandFunction(4, nil)
-        postMediaKeyEvent(for: 4)
     }
 
     func previousTrack() async {
+        // Universal MediaRemote previous track (command 5)
+        if await Self.sendUniversalCommand("send", arg: "5") {
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
@@ -770,35 +774,24 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             end tell
             """
             try? await AppleScriptHelper.executeVoid(script)
-        } else if isBrowser(bundleID) {
-            Task { await self.executeBrowserScript(for: .previous) }
+        } else {
+            postMediaKeyEvent(for: 5)
         }
-        // Universal MediaRemote previous track (command 5)
-        Self.sendUniversalCommand("send", arg: "5")
-        MRMediaRemoteSetElapsedTimeFunction(0.0)
-        MRMediaRemoteSendCommandFunction(5, nil)
-        postMediaKeyEvent(for: 5)
     }
 
     func seek(to time: Double) async {
-        MRMediaRemoteSetElapsedTimeFunction(time)
+        let micros = Int64(time * 1_000_000)
+        if await Self.sendUniversalCommand("seek", arg: "\(micros)") {
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
-            Task {
-                let script = "tell application \"Music\" to set player position to \(time)"
-                try? await AppleScriptHelper.executeVoid(script)
-            }
+            let script = "tell application \"Music\" to set player position to \(time)"
+            try? await AppleScriptHelper.executeVoid(script)
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
-            Task {
-                let script = "tell application \"Spotify\" to set player position to \(time)"
-                try? await AppleScriptHelper.executeVoid(script)
-            }
-        } else if isBrowser(bundleID) {
-            Task {
-                await self.executeBrowserScript(for: .seek(time))
-            }
+            let script = "tell application \"Spotify\" to set player position to \(time)"
+            try? await AppleScriptHelper.executeVoid(script)
         }
-        Self.sendUniversalCommand("seek", arg: "\(Int64(time * 1_000_000))")
     }
 
     func isActive() -> Bool {
@@ -807,8 +800,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     
     func toggleShuffle() async {
         let isShuffled = playbackState.isShuffled
-        MRMediaRemoteSendCommandFunction(6, nil)
-        MRMediaRemoteSetShuffleModeFunction(isShuffled ? 1 : 3)
+        let targetShuffleMode = isShuffled ? "1" : "3"
+        if await Self.sendUniversalCommand("shuffle", arg: targetShuffleMode) {
+            playbackState.isShuffled.toggle()
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let script = "tell application \"Music\" to set shuffle enabled to (not shuffle enabled)"
@@ -816,27 +812,28 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set shuffling to (not shuffling)"
             try? await AppleScriptHelper.executeVoid(script)
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .toggleShuffle)
         }
-        Self.sendUniversalCommand("send", arg: "6")
-        Self.sendUniversalCommand("shuffle", arg: isShuffled ? "1" : "3")
         playbackState.isShuffled.toggle()
     }
     
     func toggleRepeat() async {
-        MRMediaRemoteSendCommandFunction(7, nil)
         let nextMode: RepeatMode
+        let adapterRepeatMode: String
         switch playbackState.repeatMode {
         case .off:
             nextMode = .all
+            adapterRepeatMode = "3"
         case .all:
             nextMode = .one
+            adapterRepeatMode = "2"
         case .one:
             nextMode = .off
+            adapterRepeatMode = "1"
         }
-        playbackState.repeatMode = nextMode
-        MRMediaRemoteSetRepeatModeFunction(nextMode.rawValue)
+        if await Self.sendUniversalCommand("repeat", arg: adapterRepeatMode) {
+            playbackState.repeatMode = nextMode
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let script = """
@@ -854,17 +851,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set repeating to (not repeating)"
             try? await AppleScriptHelper.executeVoid(script)
-        } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .toggleRepeat(nextMode))
         }
-        let adapterRepeatMode: String
-        switch nextMode {
-        case .off: adapterRepeatMode = "1"
-        case .one: adapterRepeatMode = "2"
-        case .all: adapterRepeatMode = "3"
-        }
-        Self.sendUniversalCommand("send", arg: "7")
-        Self.sendUniversalCommand("repeat", arg: adapterRepeatMode)
+        playbackState.repeatMode = nextMode
     }
     
     func setVolume(_ level: Double) async {
