@@ -1,10 +1,3 @@
-//
-//  ShelfItemViewModel.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-09-24.
-//
-
 import Foundation
 import AppKit
 import SwiftUI

@@ -1,8 +1,3 @@
-//
-//  PasswordSettingsPage.swift
-//  NotchPulse
-//
-
 import SwiftUI
 
 struct PasswordSettingsPage: View {

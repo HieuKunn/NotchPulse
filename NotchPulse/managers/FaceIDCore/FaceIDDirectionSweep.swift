@@ -1,11 +1,3 @@
-//
-//  FaceIDDirectionSweep.swift
-//  NotchPulse
-//
-//  Layered blurred ribbons that sweep toward an enrollment direction; intentionally
-//  not an arrow — the motion itself is the cue.
-//
-
 import SwiftUI
 
 enum EnrollmentSweepDirection: CaseIterable, Hashable {

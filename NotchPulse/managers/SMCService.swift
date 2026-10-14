@@ -1,28 +1,3 @@
-//
-//  SMCService.swift
-//  NotchPulse
-//
-//  ========================================================================================
-//  HARDWARE MONITORING & THERMAL ARCHITECTURE ARCHETYPE
-//  ========================================================================================
-//  - OPTIMIZATION GUARANTEE:
-//    Zero-overhead, in-memory Darwin C / IOKit kernel calls. No child process forks, no heap
-//    allocations inside polling loops. Polling execution consumes < 0.05% CPU and zero extra RAM.
-//
-//  - UNIVERSAL ARCHITECTURE SUPPORT (ALL MAC GENERATIONS):
-//    1. Intel Macs (Core i3/i5/i7/i9, Xeon): Decodes fixed-point sp78 / sp87 / fpe2 keys.
-//    2. Apple Silicon M-Series (M1, M2, M3, M4, M5 Base / Pro / Max / Ultra):
-//       - Full 4-byte IEEE 754 Float32 (flt ) decoding for M1-M4 CPU/GPU/NAND sensors.
-//       - Full 8-byte 16.16 Fixed-Point (ioft) decoding for M3/M4/M5 Max GPU and thermal sensors.
-//       - 35+ verified physical sensor keys covering CPU cores (Tp*), CPU aggregate (TCDX, TCHP),
-//         GPU clusters (TG*, Tg*), Unified RAM (Tm*, TRDX), SSD NAND (TH0*), PMU, and Ambient.
-//    3. Multi-tier Failover Architecture:
-//       Direct AppleSMC Kernel Query -> IOHIDEventSystemClient Service -> Calibrated Thermal State.
-//       Guarantees 100% stable, crash-free operation on both fanless Macs (MacBook Air) and
-//       high-performance active cooling Macs (MacBook Pro, Mac Studio, Mac mini, Mac Pro).
-//  ========================================================================================
-//
-
 import Darwin
 import Foundation
 import IOKit

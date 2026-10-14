@@ -1,10 +1,3 @@
-//
-//  EditPanelView.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 12/08/2024.
-//
-
 import SwiftUI
 
 struct EditPanelView: View {

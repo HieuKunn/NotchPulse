@@ -1,10 +1,3 @@
-//
-//  OpenNotchHUD.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2024-11-23.
-//
-
 import SwiftUI
 import Defaults
 

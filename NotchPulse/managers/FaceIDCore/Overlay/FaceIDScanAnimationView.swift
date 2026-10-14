@@ -1,11 +1,3 @@
-//
-//  FaceIDScanAnimationView.swift
-//  NotchPulse
-//
-//  Plays a scan animation once and holds its final frame — deliberately not
-//  looping, since each video ends on a meaningful resolved state.
-//
-
 import SwiftUI
 import AVFoundation
 import AppKit

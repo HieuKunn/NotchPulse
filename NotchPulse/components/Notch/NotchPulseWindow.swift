@@ -1,10 +1,3 @@
-//
-//  NotchPulseWindow.swift
-//  NotchPulse
-//
-//  Created by Harsh Vardhan  Goswami  on 06/08/24.
-//
-
 import Cocoa
 
 class NotchPulseWindow: NSPanel {

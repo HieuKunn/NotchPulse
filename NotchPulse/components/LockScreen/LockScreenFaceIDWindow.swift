@@ -1,10 +1,3 @@
-//
-//  LockScreenFaceIDWindow.swift
-//  NotchPulse
-//
-//  Created for NotchPulse - Lock Screen Face ID Large Drop-Down Notch Overlay
-//
-
 import Cocoa
 import Combine
 import Defaults

@@ -1,11 +1,3 @@
-//
-//  LoopingVideoView.swift
-//  NotchPulse
-//
-//  Plays a bundled video on loop, holding its last frame for `pauseBetweenLoops`
-//  before restarting. Distinct from ScanAnimationView, which plays once and holds.
-//
-
 import SwiftUI
 import AVFoundation
 import AppKit

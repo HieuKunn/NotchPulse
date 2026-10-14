@@ -1,10 +1,3 @@
-//
-//  FullscreenMediaDetection.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 06/09/2024.
-//
-
 import Cocoa
 import Foundation
 import Combine

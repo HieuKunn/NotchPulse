@@ -1,10 +1,3 @@
-//
-//  Bookmark.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-08.
-//
-
 import Foundation
 import AppKit
 

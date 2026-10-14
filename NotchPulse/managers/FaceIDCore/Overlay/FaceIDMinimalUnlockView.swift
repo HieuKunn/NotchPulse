@@ -1,10 +1,3 @@
-//
-//  FaceIDMinimalUnlockView.swift
-//  NotchPulse
-//
-//  Layout: [ lock ][ gap ][ video ]. For `.notch` the gap is the physical
-//  cutout (nothing may be drawn there); for `.pill` it's just negative space.
-
 import SwiftUI
 
 struct FaceIDMinimalUnlockView: View {

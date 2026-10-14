@@ -1,11 +1,3 @@
-//
-//  NotchPulseLandmarkGeometry.swift
-//  NotchPulse
-//
-//  Shared landmark math used by `NotchPulseFaceAligner` and the liveness analyzer —
-//  moved out of `NotchPulseFaceAligner` so the two call sites can't drift apart.
-//
-
 import Vision
 import CoreGraphics
 

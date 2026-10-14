@@ -1,10 +1,3 @@
-//
-//  AppleFaceIDGlyphView.swift
-//  NotchPulse
-//
-//  Vector Apple Face ID Glyph with 3D Swivel and Unlock Animation
-//
-
 import SwiftUI
 
 // MARK: - Apple Face ID Corner Brackets (Vector)

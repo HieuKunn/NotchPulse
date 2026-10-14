@@ -1,9 +1,3 @@
-//
-//  CameraPreviewView.swift
-//  NotchPulse
-//
-
-
 import SwiftUI
 import AVFoundation
 import AppKit

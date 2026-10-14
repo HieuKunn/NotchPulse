@@ -1,14 +1,3 @@
-//
-//  FaceIDOverlayController.swift
-//  NotchPulse
-//
-//  The only file other code should touch to show the notch overlay.
-//
-//  Interaction is hover-driven, not click-driven: a non-activating panel
-//  otherwise needs a first click just to gain focus before a second click
-//  registers — hover avoids that "have to double-click" bug entirely.
-//
-
 import AppKit
 import SwiftUI
 import Observation

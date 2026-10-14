@@ -1,10 +1,3 @@
-//
-//  QuickLookService.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-07.
-//
-
 import Foundation
 import UniformTypeIdentifiers
 import SwiftUI

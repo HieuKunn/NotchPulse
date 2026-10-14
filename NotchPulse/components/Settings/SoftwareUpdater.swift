@@ -1,10 +1,3 @@
-//
-//  SoftwareUpdater.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 09/08/2024.
-//
-
 import SwiftUI
 import Sparkle
 import Defaults

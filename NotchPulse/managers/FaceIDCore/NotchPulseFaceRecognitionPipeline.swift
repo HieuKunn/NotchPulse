@@ -1,10 +1,3 @@
-//
-//  NotchPulseFaceRecognitionPipeline.swift
-//  NotchPulse
-//
-//  Only place that should construct a FaceEmbedder — keeps all consumers in sync.
-//
-
 import Foundation
 import CoreGraphics
 import Observation

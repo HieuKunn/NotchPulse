@@ -1,10 +1,3 @@
-//
-//  YouTubeMusicNetworking.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-09-14.
-//
-
 import Foundation
 
 // MARK: - HTTP Client

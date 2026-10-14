@@ -1,10 +1,3 @@
-//
-//  TabButton.swift
-//  NotchPulse
-//
-//  Created by Hugo Persson on 2024-08-24.
-//
-
 import SwiftUI
 
 struct TabButton: View {

@@ -1,12 +1,3 @@
-//
-//  SettingsControls.swift
-//  NotchPulse
-//
-//  Reusable pieces for the Settings window: a pill-shaped setting row, a
-//  custom toggle, a slider row, an action-button row, the background blur,
-//  and the NSWindow chrome configurator.
-//
-
 import SwiftUI
 import AppKit
 import CoreImage

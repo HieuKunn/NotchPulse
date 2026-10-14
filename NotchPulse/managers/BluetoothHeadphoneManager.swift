@@ -1,15 +1,3 @@
-//
-//  BluetoothHeadphoneManager.swift
-//  NotchPulse
-//
-//  Purpose:
-//  Real-time Bluetooth audio peripheral connection listener and HUD sneak peek manager.
-//  Accurately queries live battery telemetry via dynamic IOBluetoothDevice selectors
-//  (batteryPercentLeft, batteryPercentRight, batteryPercentSingle, batteryPercentCase, batteryPercentCombined)
-//  with zero subprocess overhead, gracefully handling single active earbuds without false 0% readings
-//  or defaulting to fake 100%.
-//
-
 import AppKit
 import CoreAudio
 import Defaults

@@ -1,17 +1,3 @@
-//
-//  NotchPulseFaceUnlockCoordinator.swift
-//  NotchPulse
-//
-//  CRITICAL COMPONENT: Orchestrates macOS Lock Screen Face ID biometric unlock and credential delivery.
-//  DO NOT REMOVE OR BYPASS: Essential for hands-free Mac unlock, secure lock screen detection, and biometric security.
-//  OPTIMIZATIONS & FIXES:
-//  1. Lock Screen Hover Gating: Enforces intentional hover gate delay (isHoverTriggeredOnLockScreen) so cursor movements
-//     across the notch don't trigger camera unlock unintentionally.
-//  2. Fail-Fast Face Rejection: If an unrecognized face is clearly observed for 5 consecutive frames (~160ms), the system
-//     immediately cuts the scan and triggers the wrong face animation without hanging until the full timeout.
-//  3. Sleep Wake Hardware Re-negotiation: Coordinates camera capture lifecycle with lock events to prevent frozen sessions.
-//
-
 import Foundation
 import CoreGraphics
 import Observation

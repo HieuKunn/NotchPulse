@@ -1,10 +1,3 @@
-//
-//  DragDetector.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-11-20.
-//
-
 import Cocoa
 import UniformTypeIdentifiers
 

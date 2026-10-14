@@ -1,11 +1,3 @@
-//
-//  SettingsTab.swift
-//  NotchPulse
-//
-//  The sidebar's tab list and section grouping. DEBUG currently holds only
-//  Face Lab — the remaining live test harness, kept for ongoing tuning.
-//
-
 import SwiftUI
 
 enum SettingsSection: String, CaseIterable, Hashable {

@@ -1,12 +1,3 @@
-//
-//  NotchPulseDeviceBezelDetector.swift
-//  NotchPulse
-//
-//  Looks for a device bezel (phone/tablet) around the face via
-//  VNDetectRectanglesRequest; only ever produces positive evidence of
-//  spoofing, never positive evidence of liveness.
-//
-
 import Vision
 import CoreGraphics
 

@@ -1,10 +1,3 @@
-//
-//  SettingsWindowController.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-06-14.
-//
-
 import AppKit
 import SwiftUI
 import Defaults

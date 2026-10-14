@@ -1,8 +1,3 @@
-//
-//  ShelfDropZoneWindow.swift
-//  NotchPulse
-//
-
 import Cocoa
 import UniformTypeIdentifiers
 

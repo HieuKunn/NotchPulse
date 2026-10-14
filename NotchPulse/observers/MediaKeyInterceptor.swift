@@ -1,9 +1,3 @@
-//
-//  MediaKeyInterceptor.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-11-23.
-
 import Foundation
 import AppKit
 import ApplicationServices

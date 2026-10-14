@@ -1,11 +1,3 @@
-//
-//  NotchPulseNotchPulseGlareCueExtractor.swift
-//  NotchPulse
-//
-//  Turns a native-resolution face crop into a `GlareSample`. One decode-and-scan
-//  pass, no frequency-domain work — cheap enough to run on every liveness frame.
-//
-
 import CoreGraphics
 
 enum NotchPulseGlareCueExtractor {

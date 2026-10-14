@@ -1,11 +1,3 @@
-//
-//  NotchPulseFaceEnrollmentStore.swift
-//  NotchPulse
-//
-//  Persisted encrypted under the same Touch-ID-gated session key as the stored Mac password (see NotchPulseSecureFaceStore);
-//  `isLocked`/`reloadIfUnlocked()` let the UI distinguish "locked" from "nothing enrolled."
-//
-
 import Foundation
 import Observation
 

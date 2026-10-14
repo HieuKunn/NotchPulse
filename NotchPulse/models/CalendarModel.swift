@@ -1,11 +1,3 @@
-//
-//  CalendarModel.swift
-//  Calendr
-//
-//  Created by Paker on 31/12/20.
-//  Original source: https://github.com/pakerwreah/Calendr
-//
-
 import Cocoa
 
 struct CalendarModel: Equatable {

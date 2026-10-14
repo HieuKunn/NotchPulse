@@ -1,10 +1,3 @@
-//
-//  sizeMatters.swift
-//  NotchPulse
-//
-//  Created by Harsh Vardhan  Goswami  on 05/08/24.
-//
-
 import Defaults
 import Foundation
 import SwiftUI

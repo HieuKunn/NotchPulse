@@ -1,17 +1,3 @@
-//
-//  NotchPulseSystemAuthCoordinator.swift
-//  NotchPulse
-//
-//  CRITICAL COMPONENT: Intercepts macOS SecurityAgent, CoreAuthUI, and sudo prompts for biometric Face ID auto-fill.
-//  DO NOT REMOVE OR BYPASS: Required for hands-free system authorization, administrator prompts, and Terminal quick-auth.
-//  OPTIMIZATIONS & FIXES:
-//  1. Single-Prompt Locking: Tracks lastPromptPid and triggers authentication strictly ONCE per prompt PID, eliminating the
-//     incessant 3-second retry loop that previously caused the camera and Face ID to cycle on and off continuously.
-//  2. Fail-Fast Recognition: Immediately stops and presents failure animation if an unrecognized face is seen for 5 consecutive frames.
-//  3. Resource Efficiency: ArcFace ML model is warmed up in background when camera starts and automatically unloaded after 30s.
-//  4. Window-List Throttling: Skips expensive CGWindowListCopyWindowInfo checks if no SecurityAgent/CoreAuthUI process is active.
-//
-
 import AppKit
 import ApplicationServices
 import LocalAuthentication

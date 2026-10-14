@@ -1,11 +1,3 @@
-//
-//  NotchPulseSecureFaceStore.swift
-//  NotchPulse
-//
-//  Low-level encrypted persistence for enrolled face identities — AES-GCM under the same session key NotchPulseVault
-//  uses for the Mac password, rather than a second key. `NotchPulseFaceEnrollmentStore` delegates its load/save here; no plaintext fallback.
-//
-
 import Foundation
 
 enum NotchPulseSecureFaceStoreError: LocalizedError {

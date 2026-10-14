@@ -1,14 +1,3 @@
-//
-//  FanHelperManager.swift
-//  NotchPulse
-//
-//  Unified manager for NotchPulse's native privileged fan helper daemon.
-//  Supports:
-//  1. Silent installation via stored master credentials in NotchPulseVault (zero prompts)
-//  2. Unified NotchPulse password overlay integration (one password for Face ID, App, & Fans)
-//  3. Native AppleScript admin prompt fallback if needed.
-//
-
 import Foundation
 import AppKit
 

@@ -1,16 +1,3 @@
-//
-//  FaceIDSettingsSidebar.swift
-//  NotchPulse
-//
-//  CRITICAL DESIGN REQUIREMENT (MANDATORY):
-//  ========================================================================================
-//  GIỮ NGUYÊN GIAO DIỆN SIDEBAR NÀY Ở PHÍA BÊN TRÁI. TUYỆT ĐỐI KHÔNG TỰ Ý THAY ĐỔI
-//  SANG DẠNG SEGMENTED BAR HOẶC DẠNG NÀO KHÁC NẾU NGƯỜI DÙNG KHÔNG YÊU CẦU!
-//  KEEP THIS LEFT SIDEBAR LAYOUT AS-IS. DO NOT CHANGE TO SEGMENTED CONTROL OR ANYTHING ELSE
-//  UNLESS EXPLICITLY INSTRUCTED BY THE USER!
-//  ========================================================================================
-//
-
 import SwiftUI
 
 struct FaceIDSettingsSidebar: View {

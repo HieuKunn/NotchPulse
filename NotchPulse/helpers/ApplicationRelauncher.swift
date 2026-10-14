@@ -1,10 +1,3 @@
-//
-//  ApplicationRelauncher.swift
-//  NotchPulse
-//
-//  Created by Corentin132 on 03/10/2025.
-//
-
 import AppKit
 
 enum ApplicationRelauncher {

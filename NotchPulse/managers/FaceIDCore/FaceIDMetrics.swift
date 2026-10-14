@@ -1,11 +1,3 @@
-//
-//  FaceIDMetrics.swift
-//  NotchPulse
-//
-//  Onboarding's layout numbers, centralized so panel-fit tuning happens in
-//  one place instead of being scattered across the step views.
-//
-
 import SwiftUI
 
 enum FaceIDMetrics {

@@ -1,11 +1,3 @@
-//
-//  NotchPulseLivenessCues.swift
-//  NotchPulse
-//
-//  Liveness decision model: five independent cues, no combined score. DENY
-//  cues override CONFIRM cues unconditionally; a confirm cue's absence is never a failure.
-//
-
 import CoreGraphics
 
 /// One cue's latest reading. `confidence` 0 is always an abstention, never a reading of

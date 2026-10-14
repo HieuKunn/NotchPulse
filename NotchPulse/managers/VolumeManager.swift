@@ -1,10 +1,3 @@
-//
-//  VolumeManager.swift
-//  NotchPulse
-//
-//  Created by JeanLouis on 22/08/2025.
-//
-
 import AppKit
 import Combine
 import CoreAudio

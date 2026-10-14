@@ -1,8 +1,3 @@
-//
-//  FaceIDGeneralSettingsPage.swift
-//  NotchPulse
-//
-
 import OSLog
 import SwiftUI
 

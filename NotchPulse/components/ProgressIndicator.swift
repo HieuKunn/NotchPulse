@@ -1,10 +1,3 @@
-    //
-    //  ProgressIndicator.swift
-    //  NotchPulse
-    //
-    //  Created by Harsh Vardhan  Goswami  on 11/08/24.
-    //
-
 import Foundation
 import SwiftUI
 

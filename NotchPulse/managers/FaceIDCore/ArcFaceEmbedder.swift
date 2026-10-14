@@ -1,15 +1,3 @@
-//
-//  ArcFaceEmbedder.swift
-//  NotchPulse Face ID Core
-//
-//  CRITICAL COMPONENT: ArcFace MobileFaceNet embedding extraction (512-D) via Apple Neural Engine / CoreML.
-//  DO NOT REMOVE OR BYPASS: Required for offline, private biometric face unlock and system auth verification.
-//  MEMORY OPTIMIZATION: Dynamically loaded on-demand when screen locks or Face ID is triggered, and automatically
-//  unloaded from RAM after a 10s grace period upon desktop unlock (0MB RAM footprint during normal desktop usage).
-//
-//  Requires a canonically-aligned 112x112 input (see NotchPulseFaceAligner) — unlike VisionFeaturePrintEmbedder, accuracy depends on alignment.
-//
-
 import CoreML
 import CoreGraphics
 import CoreVideo

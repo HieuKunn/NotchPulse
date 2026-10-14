@@ -1,9 +1,3 @@
-//
-//  ShelfStateViewModel.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-09.
-
 import Foundation
 import AppKit
 

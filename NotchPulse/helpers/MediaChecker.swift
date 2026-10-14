@@ -1,10 +1,3 @@
-//
-//  MediaChecker.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-07-26.
-//
-
 import Foundation
 
 final class MediaChecker: Sendable {

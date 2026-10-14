@@ -1,10 +1,3 @@
-//
-//  NotchPulseViewModel.swift
-//  NotchPulse
-//
-//  Created by Harsh Vardhan  Goswami  on 04/08/24.
-//
-
 import Combine
 import Defaults
 import SwiftUI

@@ -1,10 +1,3 @@
-//
-//  NotchPulseLockMonitor.swift
-//  NotchPulse
-//
-//  Detects macOS lock/unlock state for the CGEvent injection POC.
-//
-
 import Foundation
 import AppKit
 import CoreGraphics

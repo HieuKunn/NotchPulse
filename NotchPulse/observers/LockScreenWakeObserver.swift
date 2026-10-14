@@ -1,10 +1,3 @@
-//
-//  LockScreenWakeObserver.swift
-//  NotchPulse
-//
-//  Created for NotchPulse v2.0 - Lock Screen & Wake Coordination
-//
-
 import Cocoa
 import Combine
 import Defaults

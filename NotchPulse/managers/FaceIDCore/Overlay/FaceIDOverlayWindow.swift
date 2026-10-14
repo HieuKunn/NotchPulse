@@ -1,12 +1,3 @@
-//
-//  FaceIDOverlayWindow.swift
-//  NotchPulse
-//
-//  Borderless, transparent, click-through panel. Created once and never resized —
-//  all expansion/collapse is SwiftUI animating content inside this fixed window
-//  (never call setFrame/setContentSize on it; only setFrameOrigin, to reposition).
-//
-
 import AppKit
 
 final class FaceIDOverlayWindow: NSPanel {

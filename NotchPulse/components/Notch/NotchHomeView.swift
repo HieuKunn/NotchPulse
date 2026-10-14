@@ -1,11 +1,3 @@
-//
-//  NotchHomeView.swift
-//  NotchPulse
-//
-//  Created by Hugo Persson on 2024-08-18.
-//  Modified by Harsh Vardhan Goswami & Richard Kunkli & Mustafa Ramadan
-//
-
 import Combine
 import Defaults
 import SwiftUI

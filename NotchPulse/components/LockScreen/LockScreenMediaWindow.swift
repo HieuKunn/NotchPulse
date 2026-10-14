@@ -1,10 +1,3 @@
-//
-//  LockScreenMediaWindow.swift
-//  NotchPulse
-//
-//  Created for NotchPulse - Lock Screen Media Player Window Controller
-//
-
 import Cocoa
 import Combine
 import Defaults

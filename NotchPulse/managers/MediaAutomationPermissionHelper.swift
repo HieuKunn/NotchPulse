@@ -1,11 +1,3 @@
-//
-//  MediaAutomationPermissionHelper.swift
-//  NotchPulse
-//
-//  Helper to determine and request AppleEvents Automation permissions
-//  for Spotify and Apple Music to ensure synchronized playback & lyrics.
-//
-
 import Foundation
 import CoreServices
 import AppKit

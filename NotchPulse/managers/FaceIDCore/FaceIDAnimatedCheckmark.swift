@@ -1,10 +1,3 @@
-//
-//  AnimatedCheckmark.swift
-//  NotchPulse
-//
-//  Draws itself on with a trim animation; scales to whatever frame the caller gives it.
-//
-
 import SwiftUI
 
 private struct CheckmarkShape: Shape {

@@ -1,11 +1,3 @@
-//
-//  FaceIDOverlayPanelStyle.swift
-//  NotchPulse
-//
-//  Which silhouette the overlay panel wears on a given screen — passed down
-//  through the environment so onboarding's step views can adapt without a parameter.
-//
-
 import SwiftUI
 
 enum FaceIDOverlayPanelStyle {

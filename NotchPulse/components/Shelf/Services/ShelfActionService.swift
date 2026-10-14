@@ -1,10 +1,3 @@
-//
-//  ShelfActionService.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-07.
-//
-
 import AppKit
 import Foundation
 

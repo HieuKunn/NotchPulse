@@ -1,10 +1,3 @@
-//
-//  AudioHubNotchView.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2026-10-02.
-//
-
 import AppKit
 import Defaults
 import SwiftUI

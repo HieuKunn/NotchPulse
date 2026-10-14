@@ -1,10 +1,3 @@
-//
-//  AppIcons.swift
-//  NotchPulse
-//
-//  Created by Harsh Vardhan  Goswami  on 16/08/24.
-//
-
 import SwiftUI
 import AppKit
 

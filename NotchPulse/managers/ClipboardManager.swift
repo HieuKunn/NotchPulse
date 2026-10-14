@@ -1,17 +1,3 @@
-//
-//  ClipboardManager.swift
-//  NotchPulse
-//
-//  CRITICAL COMPONENT: System clipboard history tracker and pasteboard item management.
-//  DO NOT REMOVE OR BYPASS: Required for clipboard shelf, search, and copy-paste history in NotchPulse.
-//  OPTIMIZATIONS & FIXES:
-//  1. Event-Driven Shortcut Monitoring: Employs NSEvent.addGlobalMonitorForEvents to capture Cmd+C / Cmd+X events
-//     instantly (80ms debounce) without relying solely on timer ticks, eliminating missed rapid copies.
-//  2. 0% Idle CPU: Relaxed background polling timer to 0.8s with 100ms OS timer tolerance, preventing CPU wakeups.
-//  3. Native History Buffer: Overcomes macOS's native single-item NSPasteboard limitation by maintaining an internal
-//     persistent multi-item history cache.
-//
-
 import AppKit
 import Combine
 import Defaults

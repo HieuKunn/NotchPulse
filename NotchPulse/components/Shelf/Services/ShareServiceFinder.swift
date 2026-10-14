@@ -1,10 +1,3 @@
-//
-//  ShareServiceFinder.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-06.
-//
-
 import Cocoa
 
 class ShareServiceFinder: NSObject, NSSharingServicePickerDelegate {

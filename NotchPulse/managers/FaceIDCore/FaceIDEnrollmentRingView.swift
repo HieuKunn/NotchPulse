@@ -1,12 +1,3 @@
-//
-//  FaceIDEnrollmentRingView.swift
-//  NotchPulse
-//
-//  80 ticks tile the circle in 45deg sectors that light up once captured; center has no
-//  sector of its own and pulses every tick instead (see `centerPulseTick`). A short band
-//  also tracks where the head is currently turned.
-//
-
 import SwiftUI
 
 struct FaceIDEnrollmentRingView: View {

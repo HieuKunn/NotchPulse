@@ -1,10 +1,3 @@
-//
-//  KeystrokeInjector.swift
-//  NotchPulse
-//
-//  Synthesizes keystrokes via CGEvent, posted at the HID tap so they reach the lock screen's secure text field.
-//
-
 import Foundation
 import ApplicationServices
 import CoreGraphics

@@ -1,11 +1,3 @@
-//
-//  LockScreenMediaView.swift
-//  NotchPulse
-//
-//  Created for NotchPulse v2.0 - iPhone-style Lock Screen Media Player
-//  Supports Compact Card & Full-Screen Immersive Lyrics Modes
-//
-
 import AppKit
 import Combine
 import Defaults

@@ -1,11 +1,3 @@
-//
-//  NotchPulseFaceAligner.swift
-//  NotchPulse
-//
-//  ArcFace requires faces warped into a canonical pose (eyes level, fixed positions) — a loose crop tanks its accuracy.
-//  Solves the 2D similarity transform mapping 5 detected landmarks onto the standard ArcFace template, then warps.
-//
-
 import Vision
 import CoreGraphics
 

@@ -1,12 +1,3 @@
-//
-//  YourFaceSettingsPage.swift
-//  NotchPulse
-//
-//  The multi-identity Your Face page. Every enrolled person gets a card:
-//  name, an enable switch, per-sample capture-quality ticks, and
-//  Recapture/Delete.
-//
-
 import SwiftUI
 
 struct YourFaceSettingsPage: View {

@@ -1,11 +1,3 @@
-//
-//  NotchPulsePOCController.swift
-//  NotchPulse
-//
-//  Orchestration for credential storage: wires NotchPulseVault to
-//  KeystrokeInjector and exposes session/password status for Settings.
-//
-
 import Foundation
 import Observation
 

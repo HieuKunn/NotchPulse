@@ -1,11 +1,3 @@
-//
-//  NotchPulseGeometryLiveness.swift
-//  NotchPulse
-//
-//  Planar-vs-3D liveness (the `flatVs3D` cue). No `import Vision`, so this
-//  compiles into `tools/liveness_selftest.swift`. Higher `planarResidualScore` = more like a live face.
-//
-
 import Foundation
 import CoreGraphics
 

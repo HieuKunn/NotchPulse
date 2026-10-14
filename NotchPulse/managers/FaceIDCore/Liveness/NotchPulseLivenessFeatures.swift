@@ -1,11 +1,3 @@
-//
-//  NotchPulseLivenessFeatures.swift
-//  NotchPulse
-//
-//  Vision-facing half of liveness: turns a `FaceRecognitionResult` into a plain,
-//  Vision-free `LivenessFrame` — keeps the decision logic compilable standalone.
-//
-
 import Vision
 import CoreGraphics
 

@@ -1,12 +1,3 @@
-//
-//  NotchPulseLivenessScoring.swift
-//  NotchPulse
-//
-//  `LivenessFrame` plus the two cross-frame confirm cues that read it directly:
-//  `poseDepthConsistency` and `blinkDynamics`. No `import Vision`/AppKit, so it
-//  compiles standalone for `tools/liveness_selftest.swift`.
-//
-
 import Foundation
 import CoreGraphics
 

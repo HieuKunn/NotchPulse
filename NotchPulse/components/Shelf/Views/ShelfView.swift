@@ -1,10 +1,3 @@
-//
-//  ShelfView.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-09-24.
-//
-
 import SwiftUI
 import AppKit
 import Defaults

@@ -1,10 +1,3 @@
-//
-//  NotchPulseSkyLightWindow.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-20.
-//
-
 import Cocoa
 import SkyLightWindow
 import Defaults

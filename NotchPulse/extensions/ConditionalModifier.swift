@@ -1,10 +1,3 @@
-//
-//  ConditionalModifier.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 20/08/2024.
-//
-
 import SwiftUI
 
 extension View {

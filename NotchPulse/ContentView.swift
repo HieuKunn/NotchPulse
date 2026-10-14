@@ -1,14 +1,3 @@
-//
-//  ContentView.swift
-//  NotchPulseApp
-//
-//  Created by Harsh Vardhan Goswami on 02/08/24.
-//  Modified by Richard Kunkli on 24/08/2024.
-//
-//  ⚠️ [UI Policy Rule]: Notch and Dynamic Island styles MUST always render identical internal views,
-//  contents, layout metrics, tabs, and components unless specifically requested otherwise by the user.
-//
-
 import AVFoundation
 import Combine
 import Defaults

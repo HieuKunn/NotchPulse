@@ -1,10 +1,3 @@
-//
-//  FeatureTourController.swift
-//  NotchPulse
-//
-//  Created for NotchPulse - Spotlight Feature Tour & What's New Presenter
-//
-
 import AppKit
 import SwiftUI
 import Defaults

@@ -1,10 +1,3 @@
-//
-//  Color+AccentColor.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-24.
-//
-
 import SwiftUI
 import Defaults
 

@@ -1,17 +1,3 @@
-//
-//  NotchPulseApp.swift
-//  NotchPulseApp
-//
-//  Created by Harsh Vardhan  Goswami  on 02/08/24.
-//
-//  RELEASE CHECKLIST REMINDER FOR DEVELOPERS & AI AGENTS:
-//  When releasing a new version, ALWAYS verify:
-//  1. Bump MARKETING_VERSION (e.g. 4.8.7) & CURRENT_PROJECT_VERSION (build number, e.g. 149) in project.pbxproj.
-//  2. Update RELEASE_NOTES.md with user-friendly release details.
-//  3. Update appcast.xml (Sparkle feed).
-//  4. Git tag & push: git push origin main --tags
-//
-
 import AppKit
 import AVFoundation
 import Combine

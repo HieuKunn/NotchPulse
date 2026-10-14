@@ -1,11 +1,3 @@
-//
-//  NotchPulseFaceIDSettings.swift
-//  NotchPulse
-//
-//  Backed directly by `UserDefaults.standard` — each property's `didSet`
-//  writes through immediately, so there's no explicit "save" step.
-//
-
 import Foundation
 import Observation
 import Defaults

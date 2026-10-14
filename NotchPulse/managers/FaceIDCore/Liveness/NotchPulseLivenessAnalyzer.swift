@@ -1,12 +1,3 @@
-//
-//  NotchPulseLivenessAnalyzer.swift
-//  NotchPulse
-//
-//  Rolling-window driver for the liveness cues. Takes `LivenessFrame`, not
-//  `FaceRecognitionResult`, keeping this file's dependency graph shallow enough
-//  to compile standalone in `tools/liveness_selftest.swift`.
-//
-
 import Foundation
 
 @MainActor

@@ -1,17 +1,3 @@
-//
-//  FaceIDOverlayShape.swift
-//  NotchPulse
-//
-//  The notch silhouette. Inverted (concave) top corners flare the panel into the
-//  menu bar; the flare has no standard-shape equivalent so it's a hand-built quad
-//  curve, while the bottom corners use Apple's real `.continuous` curve (see
-//  `ContinuousCorner`) for pixel parity with system UI. Body is inset by `topRadius`
-//  per side for the flare (see `FaceIDOverlayGeometry.flareAllowance`).
-//
-//  `style` is fixed per screen, so deliberately excluded from `animatableData` —
-//  only the radii interpolate.
-//
-
 import SwiftUI
 
 struct FaceIDOverlayShape: Shape {

@@ -1,10 +1,3 @@
-//
-//  Image2Color.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 07/08/2024.
-//
-
 import SwiftUI
 import AppKit
 import Cocoa

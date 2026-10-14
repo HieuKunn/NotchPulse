@@ -1,15 +1,3 @@
-//
-//  FaceIDEnrollmentController.swift
-//  NotchPulse
-//
-//  State machine behind the notch-hosted guided onboarding flow: permissions, guided
-//  nine-pose face enrollment, and password setup. Reuses the same camera/detection/
-//  embedding/storage pieces as the Face Lab debug tab rather than reimplementing them.
-//
-//  Still not milestone G: finishing onboarding stores an encrypted password and a face
-//  template, but nothing here triggers an unlock.
-//
-
 import Foundation
 import Observation
 import AVFoundation

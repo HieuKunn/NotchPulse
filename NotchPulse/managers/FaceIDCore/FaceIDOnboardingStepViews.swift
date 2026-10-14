@@ -1,11 +1,3 @@
-//
-//  FaceIDOnboardingStepViews.swift
-//  NotchPulse
-//
-//  The screens of the notch-hosted onboarding flow. Each fills whatever panel size
-//  FaceIDEnrollmentController reports for its step — sizing itself is the notch window's job.
-//
-
 import SwiftUI
 import AppKit
 

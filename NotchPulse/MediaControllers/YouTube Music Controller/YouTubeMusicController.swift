@@ -1,11 +1,3 @@
-//
-//  YouTubeMusicController.swift
-//  NotchPulse
-//
-//  Created By Alexander on 2025-03-30.
-//  Modified by Pranav on 2025-06-16.
-//
-
 import Foundation
 import Combine
 import SwiftUI

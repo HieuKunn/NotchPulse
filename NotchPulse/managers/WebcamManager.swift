@@ -1,9 +1,3 @@
-//
-//  WebcamManager.swift
-//  NotchPulse
-//
-//  Created by Harsh Vardhan  Goswami  on 19/08/24.
-//
 import AVFoundation
 import SwiftUI
 

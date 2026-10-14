@@ -1,10 +1,3 @@
-//
-//  AppleScriptHelper.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-03-29.
-//
-
 import Foundation
 
 class AppleScriptHelper {

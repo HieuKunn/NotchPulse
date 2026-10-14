@@ -1,10 +1,3 @@
-//
-//  InlineHUDs.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 14/09/2024.
-//
-
 import SwiftUI
 import Defaults
 

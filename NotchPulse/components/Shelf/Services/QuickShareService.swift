@@ -1,10 +1,3 @@
-//
-//  QuickShareService.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-09-24.
-//
-
 import AppKit
 import Foundation
 import UniformTypeIdentifiers

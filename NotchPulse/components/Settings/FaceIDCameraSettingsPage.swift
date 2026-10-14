@@ -1,8 +1,3 @@
-//
-//  CameraSettingsPage.swift
-//  NotchPulse
-//
-
 import SwiftUI
 
 struct CameraSettingsPage: View {

@@ -1,10 +1,3 @@
-//
-//  LottieView.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-11-14.
-//
-
 import SwiftUI
 import Lottie
 import ObjectiveC

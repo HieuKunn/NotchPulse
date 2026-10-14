@@ -1,10 +1,3 @@
-//
-//  TestView.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 14/08/2024.
-//
-
 import SwiftUI
 
 struct FluidSlider: View {

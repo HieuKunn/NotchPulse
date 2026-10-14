@@ -1,12 +1,3 @@
-//
-//  notchpulse-fanhelper.c
-//  NotchPulse
-//
-//  Privileged native helper daemon for Apple Silicon and Intel fan control.
-//  Direct 1:1 C port of ThermalForge kernel SMC architecture (SMCConnection + FanControl + Daemon).
-//  Runs as root via launchd and communicates through /var/run/notchpulse_fan.sock.
-//
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

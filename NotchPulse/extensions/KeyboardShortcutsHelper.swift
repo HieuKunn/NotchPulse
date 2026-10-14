@@ -1,10 +1,3 @@
-//
-//  KeyboardShortcutsHelper.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 16/08/2024.
-//
-
 import KeyboardShortcuts
 import SwiftUI
 import Carbon

@@ -1,10 +1,3 @@
-//
-//  NotchPulseXPCHelperProtocol.swift
-//  NotchPulseXPCHelper
-//
-//  Created by Alexander on 2025-11-16.
-//
-
 import Foundation
 
 /// The protocol that this service will vend as its API. This protocol will also need to be visible to the process hosting the service.

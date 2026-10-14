@@ -1,9 +1,3 @@
-//
-//  Button+Bouncing.swift
-//  NotchPulse
-//
-//  Created by Harsh Vardhan  Goswami  on 19/08/24.
-//
 import SwiftUI
 import Defaults
 

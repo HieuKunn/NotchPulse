@@ -1,10 +1,3 @@
-//
-//  NotchPulseKeychainManager.swift
-//  NotchPulse
-//
-//  Thin, password-agnostic wrapper around Keychain Services — save/read/delete/exists by account, plus a Touch-ID access control helper.
-//
-
 import Foundation
 import Security
 import LocalAuthentication

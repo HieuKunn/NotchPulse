@@ -1,10 +1,3 @@
-//
-//  HoverButton.swift
-//  NotchPulse
-//
-//  Created by Kraigo on 04.09.2024.
-//
-
 import SwiftUI
 
 struct HoverButton: View {

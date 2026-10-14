@@ -1,10 +1,3 @@
-//
-//  ShelfDropService.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-09-26.
-//
-
 import AppKit
 import Foundation
 import UniformTypeIdentifiers

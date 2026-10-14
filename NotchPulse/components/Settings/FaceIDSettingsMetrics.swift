@@ -1,11 +1,3 @@
-//
-//  SettingsMetrics.swift
-//  NotchPulse
-//
-//  Design tokens for the Settings window — one file to tune sizing/color
-//  in rather than scattered literals.
-//
-
 import SwiftUI
 
 enum SettingsMetrics {

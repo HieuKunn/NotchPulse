@@ -1,19 +1,3 @@
-//
-//  FaceIDOverlaySkyLight.swift
-//  NotchPulse
-//
-//  Private, undocumented SkyLight window-server API — the only way found to make
-//  a window visible on the real macOS lock screen. Adapted from Lakr233/SkyLightWindow
-//  (MIT) — https://github.com/Lakr233/SkyLightWindow.
-//
-//  RISK: dlopen's a private Apple framework and calls undocumented C symbols. Apple
-//  can change or remove them in any macOS update, and their use would disqualify Mac
-//  App Store distribution. `shared` is nil if loading fails, so the app degrades to
-//  "no lock-screen visibility" instead of crashing.
-//
-//  Toggle delegation ONLY while the screen is actually locked — see FaceIDOverlayWindowController.
-//
-
 import AppKit
 
 /// What Notification Center itself renders at while the screen is locked — higher

@@ -1,17 +1,3 @@
-//
-//  NotchPulseSpaceKeyMonitor.swift
-//  NotchPulse
-//
-//  Detects the space key on the lock screen via raw IOKit HID reads — Secure Event Input suppresses every other keyboard tap there.
-//
-//  NotchPulse never appears under Input Monitoring: TCC resolves that gate against Accessibility first, and NotchPulse already requires
-//  Accessibility to type the password, so `IOHIDCheckAccess` grants without ever registering it there. Correct, not a bug.
-//
-//  Graceful degradation: if access isn't granted or `IOHIDManagerOpen` fails, `start()` no-ops rather than crashing.
-//
-//  Not a keylogger: only runs while locked + opted into "On space", and the callback checks only whether the key is the spacebar.
-//
-
 import Foundation
 import IOKit.hid
 import OSLog

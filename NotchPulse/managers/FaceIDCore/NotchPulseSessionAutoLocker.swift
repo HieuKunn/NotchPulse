@@ -1,10 +1,3 @@
-//
-//  NotchPulseSessionAutoLocker.swift
-//  NotchPulse
-//
-//  Enforces `NotchPulseFaceIDSettings.autoLockInterval`: re-locks the session once idle past the user's chosen limit.
-//
-
 import Foundation
 import AppKit
 

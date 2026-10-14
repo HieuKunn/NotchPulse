@@ -1,8 +1,3 @@
-//
-//  RecognitionSettingsPage.swift
-//  NotchPulse
-//
-
 import SwiftUI
 
 struct RecognitionSettingsPage: View {

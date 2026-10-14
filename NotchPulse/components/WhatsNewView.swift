@@ -1,10 +1,3 @@
-//
-//  WhatsNewView.swift
-//  NotchPulse
-//
-//  Created by Richard Kunkli on 09/08/2024.
-//
-
 import SwiftUI
 
 struct WhatsNewView: View {

@@ -1,11 +1,3 @@
-//
-//  FaceIDSettingsView.swift
-//  NotchPulse
-//
-//  Continuous scrollable settings page for Face ID, credentials, camera, recognition, and lock screen media player.
-//  NOTE: All labels, descriptions, and UI text in Settings MUST be in English.
-//
-
 import Defaults
 import SwiftUI
 import AVFoundation

@@ -1,17 +1,3 @@
-//
-//  SystemMonitorManager.swift
-//  NotchPulse
-//
-//  CRITICAL COMPONENT: Low-level system hardware metrics collector (CPU, RAM, GPU, Thermal Sensors, Fan Control, Top Processes).
-//  DO NOT REMOVE OR BYPASS: Required for hardware monitoring dashboard, live fans/temperature gauge, and process inspection.
-//  OPTIMIZATIONS & FIXES:
-//  - Activity Monitor Parity: Queries proc_pid_rusage (RUSAGE_INFO_V4) for ri_phys_footprint (Physical Memory Footprint)
-//    rather than raw BSD resident RSS, achieving 1:1 parity with Apple Activity Monitor's "Memory" column.
-//  - Full Process Names: Uses proc_pidpath to prevent 16-character truncation from BSD p_comm.
-//  - Stale CPU Interval Discard: Drops intervals > 3.5s to avoid distorted multi-minute averages when opening the view.
-//  - Zero Shell Forks: 100% in-process Darwin & Mach C kernel queries. Zero child subprocesses (/bin/ps, top forbidden).
-//
-
 import Combine
 import Darwin
 import Foundation

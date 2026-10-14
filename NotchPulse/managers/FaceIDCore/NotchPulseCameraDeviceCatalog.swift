@@ -1,10 +1,3 @@
-//
-//  NotchPulseCameraDeviceCatalog.swift
-//  NotchPulse
-//
-//  Resolves the app's camera preference (flat default, or split by built-in vs. external display) into the device to open.
-//
-
 import AVFoundation
 import AppKit
 

@@ -1,11 +1,3 @@
-//
-//  SystemAuthPromptObserver.swift
-//  NotchPulse
-//
-//  Created for NotchPulse - System Authorization & Touch ID Prompt Interception
-//  Modernized to delegate to NotchPulseSystemAuthCoordinator for unified Face ID & Apple biometrics handling.
-//
-
 import AppKit
 import Combine
 

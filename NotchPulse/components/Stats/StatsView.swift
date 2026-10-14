@@ -1,15 +1,3 @@
-//
-//  StatsView.swift
-//  NotchPulse
-//
-//  CRITICAL COMPONENT: Hardware monitoring dashboard (CPU, RAM, GPU, Thermal/Fan, Top Consuming Processes).
-//  DO NOT REMOVE OR BYPASS: Powers the primary System Monitor view in the Notch UI with Apple Activity Monitor styling.
-//  OPTIMIZATIONS & FIXES:
-//  1. Instant Process Availability: Fetches top processes whenever monitoring is active so cards immediately display
-//     top consumers and expanded 8-process inspection displays instantaneously without a 1.5s lag.
-//  2. Activity Monitor Parity: Displays organic memory pressure curves, exact CPU load distributions, and 70/30 thermal split.
-//
-
 import Defaults
 import SwiftUI
 

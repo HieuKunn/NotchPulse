@@ -1,10 +1,3 @@
-//
-//  ScanAnimationView.swift
-//  NotchPulse
-//
-//  Plays the authentic Face ID scan & green checkmark unlock animation from video assets.
-//
-
 import AVFoundation
 import AppKit
 import SwiftUI

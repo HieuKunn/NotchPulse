@@ -1,10 +1,3 @@
-//
-//  FaceIDOverlayGeometry.swift
-//  NotchPulse
-//
-//  Pure geometry — no AppKit window knowledge.
-//
-
 import AppKit
 import CoreGraphics
 import Defaults

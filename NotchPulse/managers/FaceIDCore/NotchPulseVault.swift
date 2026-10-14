@@ -1,12 +1,3 @@
-//
-//  NotchPulseVault.swift
-//  NotchPulse
-//
-//  Two-tier storage on NotchPulseKeychainManager: a Touch-ID-gated session key (unwrapped once per launch) wraps an ungated encrypted
-//  password blob, safe to read anytime — including the lock screen, where no app UI exists to host a Touch ID prompt.
-//  Touch ID authorizes the session; nothing yet authorizes each individual unlock beyond that (face recognition will).
-//
-
 import Foundation
 import CryptoKit
 import LocalAuthentication

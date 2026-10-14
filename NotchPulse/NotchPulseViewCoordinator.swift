@@ -1,10 +1,3 @@
-//
-//  NotchPulseViewCoordinator.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2024-11-20.
-//
-
 import AppKit
 import Combine
 import Defaults

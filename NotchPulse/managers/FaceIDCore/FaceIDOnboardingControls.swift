@@ -1,11 +1,3 @@
-//
-//  OnboardingControls.swift
-//  NotchPulse
-//
-//  Shared pill-shaped primitives (buttons, permission rows, the password field) so each
-//  step view stays a plain layout description instead of re-deriving this chrome.
-//
-
 import SwiftUI
 import AppKit
 

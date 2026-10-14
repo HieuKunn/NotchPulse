@@ -1,18 +1,3 @@
-//
-//  FaceIDOverlayView.swift
-//  NotchPulse
-//
-//  SwiftUI root hosted inside the fixed-size FaceIDOverlayWindow — only content moves/resizes.
-//  Two silhouettes per screen (see FaceIDOverlayPanelStyle): `.notch` sits on the physical
-//  cutout; `.pill` is a detached island that slides on/off screen (and docks in place
-//  on the lock screen instead of sliding).
-//
-//  Enter/exit choreography (pill only, see `scheduleChoreography()`) staggers slide vs.
-//  expansion using real `Task.sleep` delays on separate `@State` mirrors, not two
-//  `.animation(value:)` modifiers — those don't stagger reliably, since SwiftUI can't
-//  cleanly split which properties belong to which modifier when both fire in one transaction.
-//
-
 import SwiftUI
 import AppKit
 

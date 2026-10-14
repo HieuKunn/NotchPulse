@@ -1,11 +1,3 @@
-//
-//  FaceIDTheme.swift
-//  NotchPulse
-//
-//  Color and type tokens, kept here so FaceIDOnboardingStepViews/OnboardingControls don't
-//  repeat the same hex literals everywhere.
-//
-
 import SwiftUI
 
 enum FaceIDTheme {

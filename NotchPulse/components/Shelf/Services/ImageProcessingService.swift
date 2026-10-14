@@ -1,10 +1,3 @@
-//
-//  ImageProcessingService.swift
-//  NotchPulse
-//
-//  Created by Alexander on 2025-10-16.
-//
-
 import Foundation
 import AppKit
 import CoreImage

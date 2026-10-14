@@ -1,8 +1,3 @@
-//
-//  FaceIDManager.swift
-//  NotchPulse
-//
-
 import AVFoundation
 import Cocoa
 import Combine
