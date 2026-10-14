@@ -50,15 +50,12 @@ public final class FanHelperManager: ObservableObject {
     /// Checks if the helper binary, plist, and control socket are active
     @discardableResult
     public func checkHelperStatus() -> Bool {
-        let binExists = FileManager.default.fileExists(atPath: Self.installedBinaryPath)
-        let plistExists = FileManager.default.fileExists(atPath: Self.daemonPlistPath)
         let sockExists = FileManager.default.fileExists(atPath: Self.socketPath)
-
-        let installed = (binExists && plistExists) || sockExists
+        let active = sockExists && (sendCommandRaw("ping") == "PONG")
         DispatchQueue.main.async { [weak self] in
-            self?.isHelperInstalled = installed
+            self?.isHelperInstalled = active
         }
-        return installed
+        return active
     }
 
     /// Automatically installs helper if needed:
@@ -96,12 +93,13 @@ public final class FanHelperManager: ObservableObject {
     public func presentUnifiedPasswordPrompt(onSuccess: (() -> Void)? = nil) {
         Task { @MainActor in
             FaceIDEnrollmentController.startPasswordOnly(onComplete: {
-                if Self.shared.checkHelperStatus() {
-                    onSuccess?()
-                } else {
-                    // As fallback if notch was cancelled or unsupported, fallback to AppleScript
-                    Self.shared.installHelperViaAppleScript { success in
-                        if success { onSuccess?() }
+                Self.shared.installWithStoredPassword { success in
+                    if success {
+                        onSuccess?()
+                    } else {
+                        Self.shared.installHelperViaAppleScript { success2 in
+                            if success2 { onSuccess?() }
+                        }
                     }
                 }
             })
@@ -175,7 +173,7 @@ public final class FanHelperManager: ObservableObject {
             let tmpPlistPath = "/tmp/com.notchpulse.fanhelper.plist"
             try? plistContent.write(toFile: tmpPlistPath, atomically: true, encoding: .utf8)
 
-            let shellScript = "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && (launchctl bootout system/com.notchpulse.fanhelper 2>/dev/null || true); (launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)' 2>/dev/null)"
+            let shellScript = "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && (launchctl enable system/com.notchpulse.fanhelper 2>/dev/null || true) && (launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl kickstart -k system/com.notchpulse.fanhelper 2>/dev/null || true)"
 
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
@@ -199,8 +197,14 @@ public final class FanHelperManager: ObservableObject {
 
             try? FileManager.default.removeItem(atPath: tmpPlistPath)
 
-            Thread.sleep(forTimeInterval: 0.5)
-            let success = self.checkHelperStatus()
+            var success = false
+            for _ in 0..<20 {
+                Thread.sleep(forTimeInterval: 0.1)
+                if self.checkHelperStatus() {
+                    success = true
+                    break
+                }
+            }
 
             DispatchQueue.main.async {
                 self.isInstalling = false
@@ -251,7 +255,7 @@ public final class FanHelperManager: ObservableObject {
             try? plistContent.write(toFile: tmpPlistPath, atomically: true, encoding: .utf8)
 
             let script = """
-            do shell script "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && launchctl bootout system/com.notchpulse.fanhelper 2>/dev/null; launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)'" with administrator privileges with prompt "NotchPulse requires administrator privileges to enable direct hardware fan speed control."
+            do shell script "mkdir -p /Library/PrivilegedHelperTools && cp -f '\(sourceBinaryPath)' '\(Self.installedBinaryPath)' && chown root:wheel '\(Self.installedBinaryPath)' && chmod 755 '\(Self.installedBinaryPath)' && cp -f '\(tmpPlistPath)' '\(Self.daemonPlistPath)' && chown root:wheel '\(Self.daemonPlistPath)' && chmod 644 '\(Self.daemonPlistPath)' && (launchctl enable system/com.notchpulse.fanhelper 2>/dev/null || true) && (launchctl bootstrap system '\(Self.daemonPlistPath)' 2>/dev/null || launchctl load -w '\(Self.daemonPlistPath)' 2>/dev/null || true) && (launchctl kickstart -k system/com.notchpulse.fanhelper 2>/dev/null || true)" with administrator privileges with prompt "NotchPulse requires administrator privileges to enable direct hardware fan speed control."
             """
 
             var errorDict: NSDictionary?
@@ -260,8 +264,14 @@ public final class FanHelperManager: ObservableObject {
 
             try? FileManager.default.removeItem(atPath: tmpPlistPath)
 
-            Thread.sleep(forTimeInterval: 0.5)
-            let success = self.checkHelperStatus()
+            var success = false
+            for _ in 0..<20 {
+                Thread.sleep(forTimeInterval: 0.1)
+                if self.checkHelperStatus() {
+                    success = true
+                    break
+                }
+            }
 
             DispatchQueue.main.async {
                 self.isInstalling = false
@@ -276,8 +286,8 @@ public final class FanHelperManager: ObservableObject {
         return sendCommandWithReply(command) != nil
     }
 
-    /// Sends command to daemon socket and returns reply string
-    public func sendCommandWithReply(_ command: String) -> String? {
+    /// Internal raw socket communication without auto-recovery recursion
+    public func sendCommandRaw(_ command: String) -> String? {
         let sock = Self.socketPath
         guard FileManager.default.fileExists(atPath: sock) else { return nil }
 
@@ -288,9 +298,9 @@ public final class FanHelperManager: ObservableObject {
         var nosigpipe: Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, socklen_t(MemoryLayout<Int32>.size))
 
-        var sendTimeout = timeval(tv_sec: 2, tv_usec: 500_000)
+        var sendTimeout = timeval(tv_sec: 1, tv_usec: 500_000)
         setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &sendTimeout, socklen_t(MemoryLayout<timeval>.size))
-        var recvTimeout = timeval(tv_sec: 2, tv_usec: 500_000)
+        var recvTimeout = timeval(tv_sec: 1, tv_usec: 500_000)
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, socklen_t(MemoryLayout<timeval>.size))
 
         var addr = sockaddr_un()
@@ -321,6 +331,22 @@ public final class FanHelperManager: ObservableObject {
 
         buffer[bytesRead] = 0
         return String(cString: buffer).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Sends command to daemon socket and returns reply string, automatically kickstarting helper if socket is offline
+    public func sendCommandWithReply(_ command: String) -> String? {
+        let sock = Self.socketPath
+        if !FileManager.default.fileExists(atPath: sock) {
+            // Attempt auto-kickstart in background if password exists
+            if !Thread.isMainThread && NotchPulseVault.hasStoredPassword() {
+                installWithStoredPassword()
+                for _ in 0..<15 {
+                    Thread.sleep(forTimeInterval: 0.1)
+                    if FileManager.default.fileExists(atPath: sock) { break }
+                }
+            }
+        }
+        return sendCommandRaw(command)
     }
 
     /// Fetches running daemon version string

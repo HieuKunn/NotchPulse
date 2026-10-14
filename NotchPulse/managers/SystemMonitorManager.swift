@@ -924,10 +924,14 @@ public class SystemMonitorManager: ObservableObject {
 
         // ── Max profile: instant 100% always ──
         if selectedFanProfile == .max {
-            if !fansCurrentlyRunning {
-                FanHelperManager.shared.sendCommand("max")
-                fansCurrentlyRunning = true
-                lastRampPercent = 1.0
+            if !fansCurrentlyRunning || realRPM == 0 {
+                let success = FanHelperManager.shared.sendCommand("max")
+                if success {
+                    fansCurrentlyRunning = true
+                    lastRampPercent = 1.0
+                } else {
+                    fansCurrentlyRunning = false
+                }
             }
             FanHelperManager.shared.sendHeartbeat()
             DispatchQueue.main.async { [weak self] in
@@ -947,11 +951,15 @@ public class SystemMonitorManager: ObservableObject {
         if selectedFanProfile == .custom {
             let targetPct = maxPercent
             let targetRPM = Int(minRpm + (targetPct * (maxRpm - minRpm)))
-            let changed = abs(targetPct - lastRampPercent) > 0.002 || !fansCurrentlyRunning
+            let changed = abs(targetPct - lastRampPercent) > 0.002 || !fansCurrentlyRunning || (targetPct > 0.05 && realRPM == 0)
             if changed {
-                FanHelperManager.shared.sendCommand("set \(targetRPM)")
-                lastRampPercent = targetPct
-                fansCurrentlyRunning = true
+                let success = FanHelperManager.shared.sendCommand("set \(targetRPM)")
+                if success {
+                    lastRampPercent = targetPct
+                    fansCurrentlyRunning = true
+                } else {
+                    fansCurrentlyRunning = false
+                }
             }
             FanHelperManager.shared.sendHeartbeat()
             let effectiveFanPct = Int(round(lastRampPercent * 100.0))
@@ -1107,12 +1115,15 @@ public class SystemMonitorManager: ObservableObject {
         }
 
         // Apply if changed meaningfully (ThermalForge threshold: 0.002)
-        if abs(targetPct - lastRampPercent) > 0.002 || !fansCurrentlyRunning {
+        if abs(targetPct - lastRampPercent) > 0.002 || !fansCurrentlyRunning || (targetPct > 0.05 && realRPM == 0) {
             let targetRPM = max(Int(maxRpm * targetPct), Int(minRpm))
-            FanHelperManager.shared.sendCommand("set \(targetRPM)")
-
-            lastRampPercent = targetPct
-            fansCurrentlyRunning = true
+            let success = FanHelperManager.shared.sendCommand("set \(targetRPM)")
+            if success {
+                lastRampPercent = targetPct
+                fansCurrentlyRunning = true
+            } else {
+                fansCurrentlyRunning = false
+            }
         }
 
         // Keepalive heartbeat

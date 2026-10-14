@@ -870,7 +870,9 @@ private struct CoolingSliderView: View {
                         }
                         .onEnded { _ in
                             dragPercent = nil
-                            FanHelperManager.shared.promptInstallIfNeeded()
+                            FanHelperManager.shared.promptInstallIfNeeded {
+                                monitor.reapplyActiveProfileOnWake()
+                            }
                         }
                 )
             }
@@ -902,7 +904,9 @@ private struct CoolingProfileButtonsView: View {
                         monitor.setFanProfile(profile)
                     }
                     if profile != .auto {
-                        FanHelperManager.shared.promptInstallIfNeeded()
+                        FanHelperManager.shared.promptInstallIfNeeded {
+                            monitor.reapplyActiveProfileOnWake()
+                        }
                     }
                 }) {
                     Text(profile.title)
