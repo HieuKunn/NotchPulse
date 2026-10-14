@@ -1251,58 +1251,43 @@ private struct HardwareFanDiagnosticsView: View {
                     Spacer()
                     Text(loc("Controlled via Notch"))
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(.secondary)
                 }
 
                 VStack(spacing: 6) {
                     FanProfileRow(
-                        icon: "apple.logo",
-                        tint: .secondary,
                         title: loc("Auto (Apple Default)"),
                         summary: loc("macOS kernel handles fan speed automatically. Fans stay at minimum RPM or turn off completely during light tasks to save battery and maintain silence.")
                     )
 
                     FanProfileRow(
-                        icon: "speedometer",
-                        tint: .blue,
                         title: loc("Balanced"),
                         summary: loc("Maintains optimal thermal-to-noise balance, capping fan speed around ~60% (~4,400 RPM) to keep the system cool without excessive noise.")
                     )
 
                     FanProfileRow(
-                        icon: "brain.head.profile",
-                        tint: .cyan,
                         title: loc("Smart (Predictive)"),
                         summary: loc("Monitors SoC thermal acceleration to ramp up fans preemptively before sudden heat spikes, preventing thermal throttling.")
                     )
 
                     FanProfileRow(
-                        icon: "flame.fill",
-                        tint: .red,
                         title: loc("Max 100%"),
                         summary: loc("Locks fans to maximum hardware RPM (~6,550 RPM) for intensive rendering, video export, heavy compilation, or gaming.")
                     )
 
                     FanProfileRow(
-                        icon: "slider.horizontal.3",
-                        tint: .orange,
                         title: loc("Custom (Manual)"),
                         summary: loc("Drag the fan slider directly from the Notch interface to lock fans at any specific percentage or RPM target.")
                     )
                 }
 
-                // Tip callout
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(.cyan)
-                        .font(.system(size: 12))
-                    Text(loc("Tip: You can switch fan profiles or drag the custom speed slider directly inside the Notch / Dynamic Island without opening Settings."))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Color.cyan.opacity(0.08)))
+                // Tip callout without icon
+                Text(loc("Tip: You can switch fan profiles or drag the custom speed slider directly inside the Notch / Dynamic Island without opening Settings."))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.04)))
             }
 
             // 4. Console Log & Daemon Response
@@ -1355,31 +1340,22 @@ private struct HardwareFanDiagnosticsView: View {
 }
 
 private struct FanProfileRow: View {
-    let icon: String
-    let tint: Color
     let title: String
     let summary: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 24, height: 24)
-                .background(RoundedRectangle(cornerRadius: 6).fill(tint.opacity(0.12)))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.primary)
-                Text(summary)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer()
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+            Text(summary)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.03)))
     }
 }
