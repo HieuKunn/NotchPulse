@@ -564,7 +564,7 @@ struct StatsView: View {
             .frame(height: 4)
 
             // Breakdown Labels
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 HStack(spacing: 2.5) {
                     Circle().fill(Color.green).frame(width: 4.5, height: 4.5)
                     Text(String(format: "App:%.1fG", monitor.ramAppGB))
@@ -581,7 +581,6 @@ struct StatsView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
-                Spacer(minLength: 2)
                 HStack(spacing: 2.5) {
                     Circle().fill(monitor.swapUsedMB > 0 ? Color.purple : Color.gray.opacity(0.6)).frame(width: 4.5, height: 4.5)
                     Text("Swap:\(monitor.swapUsedFormatted)")
