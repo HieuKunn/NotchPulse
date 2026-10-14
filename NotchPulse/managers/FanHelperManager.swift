@@ -1,6 +1,37 @@
 import Foundation
 import AppKit
 
+public struct FanDaemonTelemetry: Equatable {
+    public let fanCount: Int
+    public let actualRPM: Int
+    public let targetRPM: Int
+    public let minRPM: Int
+    public let maxRPM: Int
+    public let isManual: Bool
+    public let peakTemp: Double
+    public let manualEngaged: Bool
+
+    public init(
+        fanCount: Int = 1,
+        actualRPM: Int = 0,
+        targetRPM: Int = 0,
+        minRPM: Int = 2317,
+        maxRPM: Int = 6550,
+        isManual: Bool = false,
+        peakTemp: Double = 0.0,
+        manualEngaged: Bool = false
+    ) {
+        self.fanCount = fanCount
+        self.actualRPM = actualRPM
+        self.targetRPM = targetRPM
+        self.minRPM = minRPM
+        self.maxRPM = maxRPM
+        self.isManual = isManual
+        self.peakTemp = peakTemp
+        self.manualEngaged = manualEngaged
+    }
+}
+
 public final class FanHelperManager: ObservableObject {
     public static let shared = FanHelperManager()
 
@@ -20,6 +51,9 @@ public final class FanHelperManager: ObservableObject {
 
     @Published public private(set) var isHelperInstalled: Bool = false
     @Published public private(set) var isInstalling: Bool = false
+    @Published public private(set) var latestTelemetry: FanDaemonTelemetry?
+    @Published public private(set) var lastCommandLog: String = "Ready"
+    @Published public private(set) var lastCommandTimestamp: Date? = nil
 
     private var heartbeatTimer: DispatchSourceTimer?
     private let heartbeatQueue = DispatchQueue(label: "com.notchpulse.fanheartbeat", qos: .utility)
@@ -346,7 +380,72 @@ public final class FanHelperManager: ObservableObject {
                 }
             }
         }
-        return sendCommandRaw(command)
+        let reply = sendCommandRaw(command)
+        let trimmedCmd = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedCmd != "heartbeat" && trimmedCmd != "ping" && trimmedCmd != "status" {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                if let reply = reply {
+                    self.lastCommandLog = "\(trimmedCmd) ➔ \(reply)"
+                } else {
+                    self.lastCommandLog = "\(trimmedCmd) ➔ (No reply)"
+                }
+                self.lastCommandTimestamp = Date()
+            }
+        }
+        return reply
+    }
+
+    /// Fetches structured real-time status from the privileged daemon and updates latestTelemetry
+    public func refreshTelemetry(completion: ((FanDaemonTelemetry?) -> Void)? = nil) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else {
+                completion?(nil)
+                return
+            }
+            guard let jsonStr = self.sendCommandRaw("status"),
+                  let data = jsonStr.data(using: .utf8) else {
+                DispatchQueue.main.async {
+                    self.latestTelemetry = nil
+                    completion?(nil)
+                }
+                return
+            }
+
+            do {
+                if let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let fans = obj["fans"] as? [[String: Any]],
+                   let firstFan = fans.first {
+                    let actual = firstFan["actual"] as? Int ?? 0
+                    let target = firstFan["target"] as? Int ?? 0
+                    let min = firstFan["min"] as? Int ?? 2317
+                    let max = firstFan["max"] as? Int ?? 6550
+                    let isMan = (firstFan["manual"] as? Int ?? 0) == 1
+                    let temp = obj["temp"] as? Double ?? 0.0
+                    let engaged = (obj["manual_engaged"] as? Int ?? 0) == 1
+
+                    let telemetry = FanDaemonTelemetry(
+                        fanCount: fans.count,
+                        actualRPM: actual,
+                        targetRPM: target,
+                        minRPM: min,
+                        maxRPM: max,
+                        isManual: isMan,
+                        peakTemp: temp,
+                        manualEngaged: engaged
+                    )
+                    DispatchQueue.main.async {
+                        self.latestTelemetry = telemetry
+                        self.isHelperInstalled = true
+                        completion?(telemetry)
+                    }
+                } else {
+                    DispatchQueue.main.async { completion?(nil) }
+                }
+            } catch {
+                DispatchQueue.main.async { completion?(nil) }
+            }
+        }
     }
 
     /// Fetches running daemon version string

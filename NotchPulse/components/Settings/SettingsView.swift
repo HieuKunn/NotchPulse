@@ -1063,6 +1063,15 @@ struct SystemMonitorSettingsView: View {
                 Text(loc("Preview"))
             }
             .disabled(!enableSystemMonitor)
+            Section {
+                HardwareFanDiagnosticsView()
+            } header: {
+                Text(loc("Hardware Fan Control & Diagnostics"))
+            } footer: {
+                Text(loc("Directly test Apple Silicon SMC fan override levels and inspect daemon response telemetry in real-time. Matches ThermalForge kernel driver 1:1."))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .scrollContentBackground(.hidden)
         .hideScrollbar()
@@ -1075,6 +1084,338 @@ struct SystemMonitorSettingsView: View {
             expandedMetric = nil
             monitor.shouldFetchProcesses = false
         }
+    }
+}
+
+/// Hardware SMC fan speed testing & privileged helper telemetry inspection panel.
+private struct HardwareFanDiagnosticsView: View {
+    @ObservedObject private var monitor = SystemMonitorManager.shared
+    @ObservedObject private var fanHelper = FanHelperManager.shared
+    @State private var customSliderPercent: Double = 50.0
+    @State private var isReconnecting: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // 1. Daemon Status Header
+            HStack(spacing: 10) {
+                if fanHelper.isHelperInstalled {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(.green)
+                        .font(.system(size: 16))
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(loc("Privileged Daemon Active"))
+                                .font(.subheadline.weight(.semibold))
+                            Text("v\(FanHelperManager.expectedDaemonVersion)")
+                                .font(.caption2.weight(.medium))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.green.opacity(0.15)))
+                                .foregroundStyle(.green)
+                        }
+                        Text(FanHelperManager.socketPath)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.system(size: 16))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Daemon Offline / Reconnect Needed"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.orange)
+                        Text(loc("Click to kickstart privileged fan control daemon"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Button {
+                    isReconnecting = true
+                    fanHelper.promptInstallIfNeeded {
+                        fanHelper.checkHelperStatus()
+                        fanHelper.refreshTelemetry()
+                        isReconnecting = false
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        if isReconnecting || fanHelper.isInstalling {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.caption)
+                        }
+                        Text(loc("Reinstall / Reconnect"))
+                            .font(.caption.weight(.medium))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(fanHelper.isHelperInstalled ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
+            )
+
+            // 2. Telemetry Stat Tiles
+            HStack(spacing: 12) {
+                // Live RPM Tile
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "fan.fill")
+                            .foregroundStyle(.blue)
+                        Text(loc("Actual RPM"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("\(monitor.currentFanRPM)")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    Text("\(monitor.currentFanSpeedPercent)% \(loc("Load"))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+
+                // Target RPM Tile
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "target")
+                            .foregroundStyle(.orange)
+                        Text(loc("Target RPM"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("\(fanHelper.latestTelemetry?.targetRPM ?? 0)")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    Text((fanHelper.latestTelemetry?.isManual ?? false) ? loc("Manual SMC") : loc("Apple Auto"))
+                        .font(.caption2)
+                        .foregroundStyle((fanHelper.latestTelemetry?.isManual ?? false) ? .orange : .secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+
+                // Range Tile
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "slider.horizontal.2.square")
+                            .foregroundStyle(.purple)
+                        Text(loc("Hardware Range"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("\(fanHelper.latestTelemetry?.minRPM ?? 2317) - \(fanHelper.latestTelemetry?.maxRPM ?? 6550)")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                    Text("\(fanHelper.latestTelemetry?.fanCount ?? 1) \(loc("Fan(s)"))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+
+                // Temperature Tile
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "thermometer.medium")
+                            .foregroundStyle(.red)
+                        Text(loc("SoC Heat"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(String(format: "%.1f°C", monitor.temperature))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    Text((fanHelper.latestTelemetry?.manualEngaged ?? false) ? "Ftst Locked" : "Apple Kernel")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+            }
+
+            // 3. Interactive Test Command Buttons
+            VStack(alignment: .leading, spacing: 8) {
+                Text(loc("Direct Fan Speed Override Tests"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    // Auto Button
+                    FanTestButton(
+                        title: loc("Auto (Apple Default)"),
+                        subtitle: loc("Reset SMC"),
+                        icon: "apple.logo",
+                        tint: .secondary,
+                        isSelected: monitor.selectedFanProfile == .auto
+                    ) {
+                        monitor.setFanProfile(.auto)
+                        _ = fanHelper.sendCommandWithReply("auto")
+                        fanHelper.refreshTelemetry()
+                    }
+
+                    // Balanced Button
+                    FanTestButton(
+                        title: loc("Balanced"),
+                        subtitle: loc("Dynamic Curve"),
+                        icon: "speedometer",
+                        tint: .blue,
+                        isSelected: monitor.selectedFanProfile == .balanced
+                    ) {
+                        monitor.setFanProfile(.balanced)
+                        fanHelper.refreshTelemetry()
+                    }
+
+                    // 50% Speed Button
+                    FanTestButton(
+                        title: loc("50% Speed"),
+                        subtitle: "~4,400 RPM",
+                        icon: "wind",
+                        tint: .orange,
+                        isSelected: monitor.selectedFanProfile == .custom && monitor.customFanPercent == 50
+                    ) {
+                        customSliderPercent = 50.0
+                        monitor.setCustomFanPercent(50)
+                        fanHelper.refreshTelemetry()
+                    }
+
+                    // Max 100% Button
+                    FanTestButton(
+                        title: loc("Max 100%"),
+                        subtitle: "~6,550 RPM",
+                        icon: "flame.fill",
+                        tint: .red,
+                        isSelected: monitor.selectedFanProfile == .max
+                    ) {
+                        monitor.setFanProfile(.max)
+                        fanHelper.refreshTelemetry()
+                    }
+                }
+
+                // Custom Slider
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(loc("Custom Override:"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(Int(customSliderPercent))%")
+                            .font(.caption.weight(.bold))
+                        Spacer()
+                        let minR = Double(fanHelper.latestTelemetry?.minRPM ?? 2317)
+                        let maxR = Double(fanHelper.latestTelemetry?.maxRPM ?? 6550)
+                        let estRPM = Int(minR + (customSliderPercent / 100.0) * (maxR - minR))
+                        Text("≈ \(estRPM) RPM")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $customSliderPercent, in: 0...100, step: 5) {
+                        Text("Custom Fan Speed")
+                    } onEditingChanged: { isEditing in
+                        if !isEditing {
+                            monitor.setCustomFanPercent(Int(customSliderPercent))
+                            fanHelper.refreshTelemetry()
+                        }
+                    }
+                    .controlSize(.small)
+                }
+                .padding(.top, 4)
+            }
+
+            // 4. Console Log & Daemon Response
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(loc("Daemon Command & Hardware Reply Log"))
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if let ts = fanHelper.lastCommandTimestamp {
+                        Text(ts.formatted(date: .omitted, time: .standard))
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "terminal.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.green)
+                    Text(fanHelper.lastCommandLog)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Spacer()
+                    Button {
+                        fanHelper.refreshTelemetry()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(loc("Poll SMC Hardware Now"))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.12)))
+            }
+        }
+        .padding(.vertical, 4)
+        .onAppear {
+            customSliderPercent = Double(monitor.customFanPercent)
+            fanHelper.checkHelperStatus()
+            fanHelper.refreshTelemetry()
+        }
+        .onReceive(Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()) { _ in
+            fanHelper.refreshTelemetry()
+        }
+    }
+}
+
+private struct FanTestButton: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let tint: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(isSelected ? tint : .secondary)
+                Text(title)
+                    .font(.caption.weight(isSelected ? .bold : .medium))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Text(subtitle)
+                    .font(.system(size: 9))
+                    .foregroundStyle(isSelected ? tint : .secondary.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? tint.opacity(0.15) : Color.primary.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? tint.opacity(0.6) : Color.clear, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
