@@ -1,8 +1,3 @@
-//  BrightnessManager.swift
-//  NotchPulse
-//
-//  Created by JeanLouis on 08/22/24.
-//
 
 import AppKit
 import CoreGraphics

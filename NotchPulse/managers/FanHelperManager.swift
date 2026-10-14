@@ -10,10 +10,11 @@ public final class FanHelperManager: ObservableObject {
     public static let expectedDaemonVersion = "2.1.0"
 
     public static var bundledBinaryPath: String {
+        if let resPath = Bundle.main.path(forResource: "notchpulse-fanhelper", ofType: nil),
+           FileManager.default.fileExists(atPath: resPath) {
+            return resPath
+        }
         let inApp = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/notchpulse-fanhelper").path
-        if FileManager.default.fileExists(atPath: inApp) { return inApp }
-        let fallback = "/Users/hieukunn/Learning ITM/My project/NotchPulse/NotchPulse/Resources/notchpulse-fanhelper"
-        if FileManager.default.fileExists(atPath: fallback) { return fallback }
         return inApp
     }
 
@@ -142,13 +143,7 @@ public final class FanHelperManager: ObservableObject {
             guard let self = self else { return }
 
             // Locate bundled helper binary
-            var sourceBinaryPath = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/notchpulse-fanhelper").path
-            if !FileManager.default.fileExists(atPath: sourceBinaryPath) {
-                let fallback = "/Users/hieukunn/Learning ITM/My project/NotchPulse/NotchPulse/Resources/notchpulse-fanhelper"
-                if FileManager.default.fileExists(atPath: fallback) {
-                    sourceBinaryPath = fallback
-                }
-            }
+            let sourceBinaryPath = Self.bundledBinaryPath
 
             guard FileManager.default.fileExists(atPath: sourceBinaryPath) else {
                 DispatchQueue.main.async {
@@ -223,13 +218,7 @@ public final class FanHelperManager: ObservableObject {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            var sourceBinaryPath = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/notchpulse-fanhelper").path
-            if !FileManager.default.fileExists(atPath: sourceBinaryPath) {
-                let fallback = "/Users/hieukunn/Learning ITM/My project/NotchPulse/NotchPulse/Resources/notchpulse-fanhelper"
-                if FileManager.default.fileExists(atPath: fallback) {
-                    sourceBinaryPath = fallback
-                }
-            }
+            let sourceBinaryPath = Self.bundledBinaryPath
 
             guard FileManager.default.fileExists(atPath: sourceBinaryPath) else {
                 DispatchQueue.main.async {

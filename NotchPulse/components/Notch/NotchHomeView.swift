@@ -141,7 +141,7 @@ struct MusicControlsView: View {
 
     private func songInfo(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(musicManager.songTitle)
+            Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
                 .font(.headline)
                 .foregroundStyle(.white)
                 .lineLimit(1)

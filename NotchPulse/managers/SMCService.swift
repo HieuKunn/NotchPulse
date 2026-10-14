@@ -435,13 +435,13 @@ public final class SMCService {
         let n = count ?? max(1, fanCount)
         if hasFtst {
             _ = writeSMCBytes("Ftst", bytes: [1])
-            Thread.sleep(forTimeInterval: 0.3)
+            Thread.sleep(forTimeInterval: 0.5)
         }
 
         var successCount = 0
         for i in 0..<n {
             let modeKey = String(format: modeKeyTemplate, i)
-            let deadline = Date().addingTimeInterval(2.0)
+            let deadline = Date().addingTimeInterval(5.0)
             while Date() < deadline {
                 if writeSMCBytes(modeKey, bytes: [1]) {
                     successCount += 1

@@ -1,4 +1,5 @@
 import Defaults
+import Metal
 import SwiftUI
 
 struct AppleActivityGraphView: View {
@@ -625,6 +626,17 @@ struct StatsView: View {
     }
 
     // MARK: - GPU Card
+    private var metalVersionText: String {
+        guard let dev = MTLCreateSystemDefaultDevice() else { return "Metal" }
+        if #available(macOS 13.0, *), dev.supportsFamily(.metal3) {
+            return "Metal 3"
+        }
+        if dev.supportsFamily(.apple7) || dev.supportsFamily(.mac2) {
+            return "Metal 2"
+        }
+        return "Metal"
+    }
+
     private var gpuCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Header
@@ -682,7 +694,7 @@ struct StatsView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer()
-                Text("Metal 3")
+                Text(metalVersionText)
                     .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(.purple.opacity(0.8))
                     .padding(.horizontal, 4)
@@ -806,12 +818,22 @@ private struct CoolingHeaderView: View {
 
 private struct CoolingSliderView: View {
     @ObservedObject var monitor: SystemMonitorManager
+    @State private var dragPercent: Double? = nil
 
     var body: some View {
         VStack(spacing: 2) {
             GeometryReader { sliderGeo in
                 let sw: CGFloat = sliderGeo.size.width
-                let progress: CGFloat = CGFloat(min(1.0, max(0.0, Double(monitor.currentFanSpeedPercent) / 100.0)))
+                let activeFraction: Double = {
+                    if let drag = dragPercent {
+                        return drag
+                    }
+                    if monitor.selectedFanProfile == .custom {
+                        return Double(monitor.customFanPercent) / 100.0
+                    }
+                    return Double(monitor.currentFanSpeedPercent) / 100.0
+                }()
+                let progress: CGFloat = CGFloat(min(1.0, max(0.0, activeFraction)))
                 let barWidth: CGFloat = max(0, sw * progress)
                 let knobOffset: CGFloat = max(0, min(sw - 11, sw * progress - 5.5))
 
@@ -841,10 +863,13 @@ private struct CoolingSliderView: View {
                     DragGesture(minimumDistance: 0)
                         .onChanged { val in
                             let clampedX = max(0, min(sw, val.location.x))
-                            let pct = Int(round((clampedX / max(1.0, sw)) * 100.0))
+                            let fraction = Double(clampedX / max(1.0, sw))
+                            dragPercent = fraction
+                            let pct = Int(round(fraction * 100.0))
                             monitor.setCustomFanPercent(pct)
                         }
                         .onEnded { _ in
+                            dragPercent = nil
                             FanHelperManager.shared.promptInstallIfNeeded()
                         }
                 )
@@ -856,7 +881,8 @@ private struct CoolingSliderView: View {
                     .font(.system(size: 8, weight: .medium, design: .monospaced))
                     .foregroundStyle(.secondary.opacity(0.7))
                 Spacer()
-                Text(monitor.isHardwareFanAvailable ? loc("Max ~6,500 RPM") : loc("Passive cooling (Fanless)"))
+                let maxRpmVal = monitor.currentFanMaxRPM > 0 ? monitor.currentFanMaxRPM : 6550
+                Text(monitor.isHardwareFanAvailable ? loc("Max ~\(maxRpmVal.formatted()) RPM") : loc("Passive cooling (Fanless)"))
                     .font(.system(size: 8, weight: .medium, design: .monospaced))
                     .foregroundStyle(.secondary.opacity(0.7))
             }
@@ -931,7 +957,7 @@ private struct SocGaugeView: View {
                     .rotationEffect(.degrees(-90))
 
                 VStack(spacing: 0) {
-                    Text("\(Int(round(monitor.temperature)))°C")
+                    Text(monitor.temperature > 0 ? "\(Int(round(monitor.temperature)))°C" : "--°C")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(monitor.temperatureLevel.color)
 

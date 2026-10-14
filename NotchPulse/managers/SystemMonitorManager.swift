@@ -82,8 +82,8 @@ public class SystemMonitorManager: ObservableObject {
     @Published public var cpuUser: Double = 0.0
     @Published public var cpuSystem: Double = 0.0
     @Published public var cpuIdle: Double = 100.0
-    @Published public var cpuHistory: [Double] = Array(repeating: 5.0, count: 32)
-    @Published public var cpuSystemHistory: [Double] = Array(repeating: 2.0, count: 32)
+    @Published public var cpuHistory: [Double] = Array(repeating: 0.0, count: 32)
+    @Published public var cpuSystemHistory: [Double] = Array(repeating: 0.0, count: 32)
 
     // MARK: - RAM Properties
     @Published public var ramUsedGB: Double = 0.0
@@ -94,7 +94,7 @@ public class SystemMonitorManager: ObservableObject {
     @Published public var ramCompressedGB: Double = 0.0
     @Published public var ramFreeGB: Double = 0.0
     @Published public var ramPressure: String = "Normal"
-    @Published public var ramHistory: [Double] = Array(repeating: 35.0, count: 32)
+    @Published public var ramHistory: [Double] = Array(repeating: 0.0, count: 32)
     @Published public var swapUsedMB: Double = 0.0
     @Published public var swapTotalMB: Double = 0.0
 
@@ -109,18 +109,22 @@ public class SystemMonitorManager: ObservableObject {
     // MARK: - GPU Properties
     @Published public var gpuUsage: Double = 0.0
     @Published public var gpuModel: String = "Apple Silicon GPU"
-    @Published public var gpuHistory: [Double] = Array(repeating: 2.0, count: 32)
+    @Published public var gpuHistory: [Double] = Array(repeating: 0.0, count: 32)
 
     // MARK: - Thermal & Fan Properties
-    @Published public var temperature: Double = 42.0
+    @Published public var temperature: Double = 0.0
     @Published public var temperatureLevel: TemperatureLevel = .cool
     @Published public var currentFanSpeedPercent: Int = 0
     @Published public var currentFanRPM: Int = 0
+    @Published public var currentFanMaxRPM: Int = 6550
     @Published public var hardwareBaselineFanPercent: Int = 0
     @Published public var selectedFanProfile: NotchPulseFanProfile = .auto
     @Published public var customFanPercent: Int = 50
     @Published public var isThermalMonitoring: Bool = false
     @Published public var isHardwareFanAvailable: Bool = false
+
+    public static let fanProfileDefaultsKey = "notchpulse.fan_profile"
+    public static let fanCustomPercentDefaultsKey = "notchpulse.fan_custom_percent"
 
     public var selectedFanOption: FanSpeedOption {
         get { selectedFanProfile }
@@ -166,15 +170,36 @@ public class SystemMonitorManager: ObservableObject {
         self.ramCompressedGB = compRAM
         self.ramFreeGB = freeRAM
         self.ramPressure = pressure
-        self.ramHistory = Self.generateInitialRAMHistory(baseline: pressurePercent, count: 32)
-    }
+        self.ramHistory = Array(repeating: pressurePercent, count: 32)
 
-    private static func generateInitialRAMHistory(baseline: Double, count: Int = 32) -> [Double] {
-        let base = max(5.0, min(95.0, baseline))
-        return (0..<count).map { i in
-            let progress = Double(i) / Double(max(1, count - 1))
-            let wave = sin(progress * .pi * 2.8) * 1.1 + cos(progress * .pi * 4.6) * 0.6
-            return max(5.0, min(100.0, base + wave))
+        // Seed initial CPU load info for delta computation
+        _ = fetchCPUUsage()
+        let initialGpu = fetchGPUUsage()
+        self.gpuUsage = initialGpu
+        self.gpuHistory = Array(repeating: initialGpu, count: 32)
+
+        if let initialTemp = SMCService.shared.getHardwareTemperature(), initialTemp > 20.0 && initialTemp < 115.0 {
+            self.temperature = initialTemp
+            if initialTemp < 60.0 {
+                self.temperatureLevel = .cool
+            } else if initialTemp < 80.0 {
+                self.temperatureLevel = .warm
+            } else {
+                self.temperatureLevel = .hot
+            }
+        }
+
+        // Restore fan profile and custom percentage from persistent storage
+        if let savedRaw = UserDefaults.standard.string(forKey: Self.fanProfileDefaultsKey),
+           let savedProfile = NotchPulseFanProfile(rawValue: savedRaw) {
+            self.selectedFanProfile = savedProfile
+        }
+        if UserDefaults.standard.object(forKey: Self.fanCustomPercentDefaultsKey) != nil {
+            self.customFanPercent = max(0, min(100, UserDefaults.standard.integer(forKey: Self.fanCustomPercentDefaultsKey)))
+        }
+        if self.selectedFanProfile != .auto {
+            FanHelperManager.shared.startBackgroundHeartbeat()
+            startBackgroundProfileEngine()
         }
     }
 
@@ -237,10 +262,7 @@ public class SystemMonitorManager: ObservableObject {
 
     public func setFanProfile(_ profile: NotchPulseFanProfile) {
         self.selectedFanProfile = profile
-        self.sustainedTicksCount = 0
-        self.lastRampPercent = 0
-        self.fansCurrentlyRunning = false
-        self.temperatureHistory.removeAll()
+        UserDefaults.standard.set(profile.rawValue, forKey: Self.fanProfileDefaultsKey)
         if profile != .auto {
             FanHelperManager.shared.ensureHelperUpToDate()
             FanHelperManager.shared.startBackgroundHeartbeat()
@@ -250,7 +272,12 @@ public class SystemMonitorManager: ObservableObject {
             FanHelperManager.shared.sendCommand("auto")
             stopBackgroundProfileEngine()
         }
-        self.queue.async {
+        self.queue.async { [weak self] in
+            guard let self = self else { return }
+            self.sustainedTicksCount = 0
+            self.lastRampPercent = 0
+            self.fansCurrentlyRunning = false
+            self.temperatureHistory.removeAll()
             self.updateThermalMetrics()
         }
     }
@@ -260,24 +287,31 @@ public class SystemMonitorManager: ObservableObject {
     }
 
     public func setCustomFanPercent(_ percent: Int) {
-        self.customFanPercent = max(0, min(100, percent))
+        let clamped = max(0, min(100, percent))
+        self.customFanPercent = clamped
+        UserDefaults.standard.set(clamped, forKey: Self.fanCustomPercentDefaultsKey)
         self.selectedFanProfile = .custom
-        self.sustainedTicksCount = 0
-        self.fansCurrentlyRunning = false
-        self.lastRampPercent = 0
+        UserDefaults.standard.set(NotchPulseFanProfile.custom.rawValue, forKey: Self.fanProfileDefaultsKey)
         FanHelperManager.shared.ensureHelperUpToDate()
         FanHelperManager.shared.startBackgroundHeartbeat()
         startBackgroundProfileEngine()
-        self.queue.async {
+        self.queue.async { [weak self] in
+            guard let self = self else { return }
+            self.sustainedTicksCount = 0
+            self.fansCurrentlyRunning = false
+            self.lastRampPercent = 0
             self.updateThermalMetrics()
         }
     }
 
     public func reapplyActiveProfileOnWake() {
         guard selectedFanProfile != .auto else { return }
-        self.sustainedTicksCount = 0
         self.queue.async { [weak self] in
-            self?.updateThermalMetrics()
+            guard let self = self else { return }
+            self.sustainedTicksCount = 0
+            self.fansCurrentlyRunning = false
+            self.lastRampPercent = 0
+            self.updateThermalMetrics()
         }
     }
 
@@ -399,7 +433,7 @@ public class SystemMonitorManager: ObservableObject {
             previousCpuLoadInfo = cpuLoadInfo
         }
 
-        return (5.0, 3.0, 2.0, 95.0)
+        return (0.0, 0.0, 0.0, 100.0)
     }
 
     // MARK: - RAM Fetch
@@ -721,26 +755,15 @@ public class SystemMonitorManager: ObservableObject {
         let gpuUsage = fetchGPUUsage()
 
         // 1. Fetch real hardware sensor temperature from SMC / IOHID
-        var calculatedTemp: Double
-        if let realHardwareTemp = SMCService.shared.getHardwareTemperature(), realHardwareTemp > 20.0 && realHardwareTemp < 115.0 {
-            calculatedTemp = realHardwareTemp
-        } else {
-            // Calibrated physics thermal curve fallback
-            switch thermalState {
-            case .nominal:
-                calculatedTemp = 39.0 + (cpuTotal * 0.18) + (gpuUsage * 0.12)
-            case .fair:
-                calculatedTemp = 62.0 + (cpuTotal * 0.14) + (gpuUsage * 0.10)
-            case .serious:
-                calculatedTemp = 78.0 + (cpuTotal * 0.12) + (gpuUsage * 0.08)
-            case .critical:
-                calculatedTemp = 91.0 + (cpuTotal * 0.08)
-            @unknown default:
-                calculatedTemp = 42.0 + (cpuTotal * 0.15)
+        guard let realHardwareTemp = SMCService.shared.getHardwareTemperature(), realHardwareTemp > 20.0 && realHardwareTemp < 115.0 else {
+            // No real hardware temperature sensors found on this machine — strictly refuse to fabricate fake readings
+            DispatchQueue.main.async { [weak self] in
+                self?.temperature = 0.0
+                self?.temperatureLevel = .cool
             }
+            return
         }
-
-        calculatedTemp = max(30.0, min(105.0, calculatedTemp))
+        let calculatedTemp = min(115.0, max(20.0, realHardwareTemp))
 
         // Classify temperature level
         let level: TemperatureLevel
@@ -820,6 +843,7 @@ public class SystemMonitorManager: ObservableObject {
                 self.hardwareBaselineFanPercent = baselineFanPct
                 self.currentFanSpeedPercent = effectiveFanPct
                 self.currentFanRPM = realRPM
+                self.currentFanMaxRPM = Int(maxRpm)
                 self.isHardwareFanAvailable = isAvailable
             }
             return
@@ -836,6 +860,7 @@ public class SystemMonitorManager: ObservableObject {
                 self.hardwareBaselineFanPercent = baselineFanPct
                 self.currentFanSpeedPercent = effectiveFanPct
                 self.currentFanRPM = realRPM
+                self.currentFanMaxRPM = Int(maxRpm)
                 self.isHardwareFanAvailable = isAvailable
             }
             return
@@ -891,6 +916,7 @@ public class SystemMonitorManager: ObservableObject {
                 self.hardwareBaselineFanPercent = baselineFanPct
                 self.currentFanSpeedPercent = 0
                 self.currentFanRPM = realRPM
+                self.currentFanMaxRPM = Int(maxRpm)
                 self.isHardwareFanAvailable = isAvailable
             }
             return
@@ -911,6 +937,7 @@ public class SystemMonitorManager: ObservableObject {
                 self.hardwareBaselineFanPercent = baselineFanPct
                 self.currentFanSpeedPercent = 100
                 self.currentFanRPM = realRPM
+                self.currentFanMaxRPM = Int(maxRpm)
                 self.isHardwareFanAvailable = isAvailable
             }
             return
@@ -918,14 +945,17 @@ public class SystemMonitorManager: ObservableObject {
 
         // ── Custom profile: fixed percentage, direct set ──
         if selectedFanProfile == .custom {
-            let targetRPM = Int(minRpm + (maxPercent * (maxRpm - minRpm)))
-            lastRampPercent = maxPercent
-            if !fansCurrentlyRunning {
+            let targetPct = maxPercent
+            let targetRPM = Int(minRpm + (targetPct * (maxRpm - minRpm)))
+            let changed = abs(targetPct - lastRampPercent) > 0.002 || !fansCurrentlyRunning
+            if changed {
+                FanHelperManager.shared.sendCommand("set \(targetRPM)")
+                lastRampPercent = targetPct
                 fansCurrentlyRunning = true
             }
-            FanHelperManager.shared.sendCommand("set \(targetRPM)")
             FanHelperManager.shared.sendHeartbeat()
-            let effectiveFanPct = Int(round(maxPercent * 100.0))
+            let effectiveFanPct = Int(round(lastRampPercent * 100.0))
+            dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: targetRPM)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.temperature = calculatedTemp
@@ -933,6 +963,7 @@ public class SystemMonitorManager: ObservableObject {
                 self.hardwareBaselineFanPercent = baselineFanPct
                 self.currentFanSpeedPercent = effectiveFanPct
                 self.currentFanRPM = realRPM
+                self.currentFanMaxRPM = Int(maxRpm)
                 self.isHardwareFanAvailable = isAvailable
             }
             return
@@ -1044,6 +1075,7 @@ public class SystemMonitorManager: ObservableObject {
                 self.hardwareBaselineFanPercent = baselineFanPct
                 self.currentFanSpeedPercent = effectiveFanPct
                 self.currentFanRPM = realRPM
+                self.currentFanMaxRPM = Int(maxRpm)
                 self.isHardwareFanAvailable = isAvailable
             }
             return
@@ -1058,6 +1090,7 @@ public class SystemMonitorManager: ObservableObject {
                 self.hardwareBaselineFanPercent = baselineFanPct
                 self.currentFanSpeedPercent = 0
                 self.currentFanRPM = realRPM
+                self.currentFanMaxRPM = Int(maxRpm)
                 self.isHardwareFanAvailable = isAvailable
             }
             return
@@ -1098,6 +1131,7 @@ public class SystemMonitorManager: ObservableObject {
             self.hardwareBaselineFanPercent = baselineFanPct
             self.currentFanSpeedPercent = effectiveFanPct
             self.currentFanRPM = realRPM
+            self.currentFanMaxRPM = Int(maxRpm)
             self.isHardwareFanAvailable = isAvailable
         }
     }
@@ -1110,6 +1144,9 @@ public class SystemMonitorManager: ObservableObject {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else { return }
         defer { close(fd) }
+
+        var nosigpipe: Int32 = 1
+        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, socklen_t(MemoryLayout<Int32>.size))
 
         var timeout = timeval(tv_sec: 0, tv_usec: 100_000)
         setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))

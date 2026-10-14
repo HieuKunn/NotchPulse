@@ -159,7 +159,7 @@ final class LockScreenWakeObserver: ObservableObject {
         guard actuallyLocked && Defaults[.enableLockScreenPlayer] else { return false }
         
         let title = MusicManager.shared.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !title.isEmpty && title != "I'm Handsome" {
+        if !title.isEmpty {
             if let bundleId = MusicManager.shared.bundleIdentifier, !bundleId.isEmpty {
                 // If it's a known dedicated music app, verify app is still running
                 if bundleId == "com.apple.Music" || bundleId == "com.spotify.client" {

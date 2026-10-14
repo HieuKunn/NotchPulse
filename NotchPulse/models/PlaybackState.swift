@@ -9,9 +9,9 @@ enum RepeatMode: Int, Codable {
 struct PlaybackState {
     var bundleIdentifier: String
     var isPlaying: Bool = false
-    var title: String = "I'm Handsome"
-    var artist: String = "Me"
-    var album: String = "Self Love"
+    var title: String = ""
+    var artist: String = ""
+    var album: String = ""
     var currentTime: Double = 0
     var duration: Double = 0
     var playbackRate: Double = 1

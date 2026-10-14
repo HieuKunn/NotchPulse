@@ -739,7 +739,8 @@ struct ContentView: View {
                             if vm.notchState == .closed && !isEffectivelyHiddenInFullscreen && Defaults[.sneakPeekStyles] == .standard {
                                 HStack(alignment: .center) {
                                     Image(systemName: "music.note")
-                                    Text(musicManager.songTitle + " - " + musicManager.artistName)
+                                    let musicText = musicManager.artistName.isEmpty ? musicManager.songTitle : "\(musicManager.songTitle) - \(musicManager.artistName)"
+                                    Text(musicText)
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundStyle(Defaults[.playerColorTinting] ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray)
                                         .lineLimit(1)

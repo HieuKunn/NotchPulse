@@ -157,7 +157,7 @@ struct LockScreenMediaView: View {
             
             // Tên bài hát & Ca sĩ hiển thị cố định, dài quá thì "..."
             VStack(alignment: .leading, spacing: 2) {
-                Text(musicManager.songTitle)
+                Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(compactPrimaryText)
                     .lineLimit(1)
@@ -426,7 +426,7 @@ struct LockScreenMediaView: View {
             
             // Thông tin bài hát
             VStack(spacing: albumSize * 0.02) {
-                Text(musicManager.songTitle)
+                Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
                     .font(.system(size: max(albumSize * 0.075, 20), weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)

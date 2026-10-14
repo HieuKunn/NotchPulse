@@ -951,21 +951,10 @@ struct HUD: View {
 struct SystemMonitorSettingsView: View {
     @Default(.enableSystemMonitor) var enableSystemMonitor
     @Default(.systemMonitorShowProcesses) var showProcesses
+    @ObservedObject private var monitor = SystemMonitorManager.shared
 
     private enum MonitorMetric { case cpu, ram }
     @State private var expandedMetric: MonitorMetric?
-
-    private let sampleCpuProcesses = [
-        MonitorProcessItem(name: "WindowServer", value: "6.8%"),
-        MonitorProcessItem(name: "NotchPulse", value: "2.1%"),
-        MonitorProcessItem(name: "Safari", value: "1.4%")
-    ]
-
-    private let sampleRamProcesses = [
-        MonitorProcessItem(name: "Xcode", value: "2.4 GB"),
-        MonitorProcessItem(name: "Safari", value: "1.1 GB"),
-        MonitorProcessItem(name: "WindowServer", value: "480 MB")
-    ]
 
     var body: some View {
         Form {
@@ -1014,7 +1003,7 @@ struct SystemMonitorSettingsView: View {
                             icon: "cpu",
                             tint: .blue,
                             title: loc("CPU"),
-                            value: "14%",
+                            value: String(format: "%.0f%%", monitor.cpuTotal),
                             subtitle: nil,
                             isExpanded: expandedMetric == .cpu,
                             action: { expandedMetric = (expandedMetric == .cpu) ? nil : .cpu }
@@ -1028,8 +1017,8 @@ struct SystemMonitorSettingsView: View {
                             icon: "memorychip",
                             tint: .green,
                             title: loc("RAM"),
-                            value: "8.4 / 16 GB",
-                            subtitle: "\(loc("Swap")): 0 MB",
+                            value: String(format: "%.1f / %.0f GB", monitor.ramUsedGB, monitor.ramTotalGB),
+                            subtitle: "\(loc("Swap")): \(monitor.swapUsedFormatted)",
                             isExpanded: expandedMetric == .ram,
                             action: { expandedMetric = (expandedMetric == .ram) ? nil : .ram }
                         )
@@ -1042,7 +1031,7 @@ struct SystemMonitorSettingsView: View {
                             icon: "display",
                             tint: .purple,
                             title: loc("GPU"),
-                            value: "18%",
+                            value: String(format: "%.0f%%", monitor.gpuUsage),
                             subtitle: nil,
                             isExpanded: false,
                             action: {}
@@ -1054,7 +1043,7 @@ struct SystemMonitorSettingsView: View {
                     if showProcesses, expandedMetric == .cpu {
                         MonitorProcessList(
                             title: loc("CPU"), icon: "cpu", tint: .blue,
-                            items: sampleCpuProcesses,
+                            items: monitor.topCpuProcesses,
                             emptyText: loc("No processes using CPU right now")
                         )
                         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1063,7 +1052,7 @@ struct SystemMonitorSettingsView: View {
                     if showProcesses, expandedMetric == .ram {
                         MonitorProcessList(
                             title: loc("RAM"), icon: "memorychip", tint: .green,
-                            items: sampleRamProcesses,
+                            items: monitor.topRamProcesses,
                             emptyText: loc("No processes using memory right now")
                         )
                         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1078,8 +1067,13 @@ struct SystemMonitorSettingsView: View {
         .scrollContentBackground(.hidden)
         .hideScrollbar()
         .accentColor(.effectiveAccent)
+        .onAppear {
+            monitor.shouldFetchProcesses = true
+            monitor.startMonitoring()
+        }
         .onDisappear {
             expandedMetric = nil
+            monitor.shouldFetchProcesses = false
         }
     }
 }
