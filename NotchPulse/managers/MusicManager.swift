@@ -240,48 +240,30 @@ class MusicManager: ObservableObject {
             if titleChanged || artistChanged {
                 self.syncedLyrics = []
                 self.currentLyrics = ""
+                self.artworkData = nil
+                UniversalArtworkResolver.shared.clear()
             }
             self.triggerFlipAnimation()
 
             if let artwork = state.artwork {
                 self.usingAppIconForArtwork = false
-                self.artworkData = artwork
-                self.updateArtwork(artwork)
-                UniversalArtworkResolver.shared.cacheArtworkData(artwork, title: state.title, artist: state.artist)
+                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 500)
+                self.artworkData = optimized
+                self.updateArtwork(optimized)
+                UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: state.title, artist: state.artist)
             } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: state.title, artist: state.artist) {
                 self.usingAppIconForArtwork = false
                 self.artworkData = cached
                 self.updateArtwork(cached)
             } else {
-                // If not yet cached, temporarily display host app icon so card is never blank
+                // If media does not embed artwork, do NOT call external APIs.
+                // Fall back to host app icon so it is zero CPU, zero RAM, zero network.
                 let effectiveBundleID = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "com.apple.Music")
                 if let appIconImage = AppIconAsNSImage(for: effectiveBundleID) {
                     self.usingAppIconForArtwork = true
                     self.updateAlbumArt(newAlbumArt: appIconImage)
                 }
                 self.artworkData = nil
-
-                // Asynchronously resolve true high-resolution media cover art (iTunes / YouTube / Deezer)
-                let currentTitle = state.title
-                let currentArtist = state.artist
-                let currentAlbum = state.album
-                let currentBundle = state.bundleIdentifier
-                UniversalArtworkResolver.shared.resolveArtwork(
-                    title: currentTitle,
-                    artist: currentArtist,
-                    album: currentAlbum,
-                    bundleIdentifier: currentBundle
-                ) { [weak self] resolvedData in
-                    guard let self = self, let data = resolvedData else { return }
-                    DispatchQueue.main.async {
-                        // Verify track hasn't changed while resolving
-                        guard self.songTitle == currentTitle else { return }
-                        self.usingAppIconForArtwork = false
-                        self.artworkData = data
-                        self.updateArtwork(data)
-                        self.triggerFlipAnimation()
-                    }
-                }
             }
 
             // Update last artwork change values
@@ -694,10 +676,13 @@ class MusicManager: ObservableObject {
             if let source = CGImageSourceCreateWithData(artworkData as CFData, nil),
                let cgImage = CGImageSourceCreateImageAtIndex(source, 0, [
                    kCGImageSourceCreateThumbnailFromImageAlways: true,
-                   kCGImageSourceThumbnailMaxPixelSize: 512,
+                   kCGImageSourceThumbnailMaxPixelSize: 500,
                    kCGImageSourceCreateThumbnailWithTransform: true
                ] as CFDictionary) {
-                let artworkImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+                // Display at 2x Retina backing scale
+                let pointWidth = CGFloat(cgImage.width) / 2.0
+                let pointHeight = CGFloat(cgImage.height) / 2.0
+                let artworkImage = NSImage(cgImage: cgImage, size: NSSize(width: pointWidth, height: pointHeight))
                 DispatchQueue.main.async { [weak self] in
                     self?.usingAppIconForArtwork = false
                     self?.updateAlbumArt(newAlbumArt: artworkImage)
@@ -722,6 +707,11 @@ class MusicManager: ObservableObject {
                 try? await Task.sleep(for: .seconds(Defaults[.waitInterval]))
                 withAnimation {
                     self.isPlayerIdle = !self.isPlaying
+                    if self.isPlayerIdle {
+                        self.artworkData = nil
+                        self.albumArt = defaultImage
+                        UniversalArtworkResolver.shared.clear()
+                    }
                 }
             }
         }

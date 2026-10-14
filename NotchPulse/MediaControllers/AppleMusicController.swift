@@ -147,7 +147,23 @@ class AppleMusicController: MediaControllerProtocol {
         updatedState.repeatMode = RepeatMode(rawValue: Int(repeatModeValue)) ?? .off
         let volumePercentage = descriptor.atIndex(9)?.int32Value ?? 50
         updatedState.volume = Double(volumePercentage) / 100.0
-        updatedState.artwork = descriptor.atIndex(10)?.data as Data?
+        let trackChanged = (updatedState.title != self.playbackState.title) || (updatedState.artist != self.playbackState.artist)
+        if trackChanged {
+            UniversalArtworkResolver.shared.clear()
+        }
+
+        if let rawArt = descriptor.atIndex(10)?.data as Data? {
+            if trackChanged || self.playbackState.artwork == nil {
+                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(rawArt, maxDimension: 500)
+                updatedState.artwork = optimized
+                UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: updatedState.title, artist: updatedState.artist)
+            } else {
+                updatedState.artwork = self.playbackState.artwork
+            }
+        } else {
+            updatedState.artwork = nil
+        }
+
         let lovedState = descriptor.atIndex(11)?.booleanValue ?? false
         updatedState.isFavorite = lovedState
         updatedState.lastUpdated = Date()

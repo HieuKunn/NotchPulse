@@ -974,25 +974,28 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         }
 
+        let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
+        if trackChanged {
+            UniversalArtworkResolver.shared.clear()
+        }
+
         if let artworkDataString = payload.artworkData, !artworkDataString.isEmpty {
-            let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
             if trackChanged || self.playbackState.artwork == nil {
-                let data = Data(
-                    base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
-                newPlaybackState.artwork = data
-                if let d = data {
-                    UniversalArtworkResolver.shared.cacheArtworkData(d, title: newPlaybackState.title, artist: newPlaybackState.artist)
+                if let rawData = Data(base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                    let optimized = UniversalArtworkResolver.shared.optimizeArtwork(rawData, maxDimension: 500)
+                    newPlaybackState.artwork = optimized
+                    UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: newPlaybackState.title, artist: newPlaybackState.artist)
+                } else {
+                    newPlaybackState.artwork = nil
                 }
             } else {
                 newPlaybackState.artwork = self.playbackState.artwork
             }
         } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: newPlaybackState.title, artist: newPlaybackState.artist) {
             newPlaybackState.artwork = cached
-        } else if !diff {
-            newPlaybackState.artwork = nil
         } else {
-            newPlaybackState.artwork = self.playbackState.artwork
+            // When payload has no artwork and track changed or non-diff, never retain previous track's artwork
+            newPlaybackState.artwork = trackChanged ? nil : (diff ? self.playbackState.artwork : nil)
         }
 
         if let dateString = payload.timestamp,

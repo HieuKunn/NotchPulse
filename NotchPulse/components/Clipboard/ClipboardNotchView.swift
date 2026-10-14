@@ -285,9 +285,17 @@ struct ClipboardRowView: View {
             }
         }
         .onAppear {
-            if item.isImage && cachedImage == nil, let data = item.imageData {
-                cachedImage = NSImage(data: data)
+            if item.isImage && cachedImage == nil {
+                if let thumb = item.thumbnailData {
+                    cachedImage = NSImage(data: thumb)
+                } else if let data = item.imageData {
+                    cachedImage = NSImage(data: data)
+                }
             }
+        }
+        .onDisappear {
+            // Immediately purge preview image from RAM when view disappears
+            cachedImage = nil
         }
     }
     

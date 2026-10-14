@@ -1,7 +1,9 @@
 import AppKit
 import Combine
+import CoreGraphics
 import Defaults
 import Foundation
+import ImageIO
 
 enum ClipboardType: String, Codable {
     case text
@@ -15,11 +17,12 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
     var type: ClipboardType = .text
     let contentString: String?
     var urlString: String? = nil
-    let imageData: Data?
+    var thumbnailData: Data? = nil
+    var diskFilePath: String? = nil
     let timestamp: Date
 
     var isImage: Bool {
-        return type == .image || imageData != nil
+        return type == .image || thumbnailData != nil || diskFilePath != nil
     }
     
     var displayString: String {
@@ -38,16 +41,51 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
         return "Image / Rich Data"
     }
 
-    enum CodingKeys: String, CodingKey {
-        case id, type, contentString, urlString, imageData, timestamp
+    /// Dynamically loads full image data from disk cache file on demand; never hoarded in RAM.
+    var imageData: Data? {
+        if let path = diskFilePath, FileManager.default.fileExists(atPath: path) {
+            return try? Data(contentsOf: URL(fileURLWithPath: path))
+        }
+        return thumbnailData
     }
 
-    init(id: UUID = UUID(), type: ClipboardType = .text, contentString: String?, urlString: String? = nil, imageData: Data?, timestamp: Date = Date()) {
+    enum CodingKeys: String, CodingKey {
+        case id, type, contentString, urlString, thumbnailData, diskFilePath, timestamp, imageData
+    }
+
+    init(
+        id: UUID = UUID(),
+        type: ClipboardType = .text,
+        contentString: String?,
+        urlString: String? = nil,
+        thumbnailData: Data? = nil,
+        diskFilePath: String? = nil,
+        timestamp: Date = Date()
+    ) {
         self.id = id
         self.type = type
         self.contentString = contentString
         self.urlString = urlString
-        self.imageData = imageData
+        self.thumbnailData = thumbnailData
+        self.diskFilePath = diskFilePath
+        self.timestamp = timestamp
+    }
+
+    // Compatibility initializer
+    init(
+        id: UUID = UUID(),
+        type: ClipboardType = .text,
+        contentString: String?,
+        urlString: String? = nil,
+        imageData: Data?,
+        timestamp: Date = Date()
+    ) {
+        self.id = id
+        self.type = type
+        self.contentString = contentString
+        self.urlString = urlString
+        self.thumbnailData = imageData
+        self.diskFilePath = nil
         self.timestamp = timestamp
     }
 
@@ -57,8 +95,24 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
         type = try container.decodeIfPresent(ClipboardType.self, forKey: .type) ?? .text
         contentString = try container.decodeIfPresent(String.self, forKey: .contentString)
         urlString = try container.decodeIfPresent(String.self, forKey: .urlString)
-        imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
+        thumbnailData = try container.decodeIfPresent(Data.self, forKey: .thumbnailData)
+        diskFilePath = try container.decodeIfPresent(String.self, forKey: .diskFilePath)
         timestamp = try container.decode(Date.self, forKey: .timestamp)
+
+        if thumbnailData == nil, let legacy = try container.decodeIfPresent(Data.self, forKey: .imageData) {
+            thumbnailData = legacy
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(type, forKey: .type)
+        try container.encodeIfPresent(contentString, forKey: .contentString)
+        try container.encodeIfPresent(urlString, forKey: .urlString)
+        try container.encodeIfPresent(thumbnailData, forKey: .thumbnailData)
+        try container.encodeIfPresent(diskFilePath, forKey: .diskFilePath)
+        try container.encode(timestamp, forKey: .timestamp)
     }
 }
 
@@ -96,6 +150,7 @@ final class ClipboardManager: ObservableObject {
 
     private init() {
         loadHistory()
+        cleanupOrphanedTempFiles()
         self.lastChangeCount = pasteboard.changeCount - 1
         if isEnabled {
             startMonitoring()
@@ -266,46 +321,39 @@ final class ClipboardManager: ObservableObject {
         let canInitImage = NSImage.canInit(with: pasteboard)
 
         if hasImageTypes || canInitImage {
-            if let image = NSImage(pasteboard: pasteboard) {
-                // Downscale oversized images (e.g. 4K/8K screenshots) to max 800px to prevent multi-megabyte RAM bloat per clipboard item
-                let maxDimension: CGFloat = 800
-                let finalImage: NSImage
-                if image.size.width > maxDimension || image.size.height > maxDimension {
-                    let aspectRatio = image.size.width / max(1.0, image.size.height)
-                    let newSize: NSSize
-                    if image.size.width > image.size.height {
-                        newSize = NSSize(width: maxDimension, height: max(1.0, maxDimension / aspectRatio))
-                    } else {
-                        newSize = NSSize(width: max(1.0, maxDimension * aspectRatio), height: maxDimension)
-                    }
-                    let resized = NSImage(size: newSize)
-                    resized.lockFocus()
-                    image.draw(in: NSRect(origin: .zero, size: newSize), from: NSRect(origin: .zero, size: image.size), operation: .copy, fraction: 1.0)
-                    resized.unlockFocus()
-                    finalImage = resized
-                } else {
-                    finalImage = image
-                }
+            var itemToInsert: ClipboardItem? = nil
+            autoreleasepool {
+                guard let image = NSImage(pasteboard: pasteboard) else { return }
 
-                if let tiff = finalImage.tiffRepresentation,
-                   let bitmap = NSBitmapImageRep(data: tiff),
-                   let pngData = bitmap.representation(using: .png, properties: [:]) {
+                // 1. Generate lightweight thumbnail for UI (max 96x96 px, optimal for 32x32 pt on Retina @3x, only ~3KB)
+                guard let thumbData = Self.generateThumbnailData(from: image, maxDimension: 96) else { return }
 
-                    if history.first?.imageData == pngData {
-                        return
-                    }
-
-                    let newItem = ClipboardItem(
-                        id: UUID(),
-                        type: .image,
-                        contentString: nil,
-                        urlString: nil,
-                        imageData: pngData,
-                        timestamp: Date()
-                    )
-                    insertItem(newItem)
+                // Check duplicate with top history item
+                if let first = history.first, first.isImage, first.thumbnailData == thumbData {
                     return
                 }
+
+                // 2. Save full image to disk temp file so it is NOT hoarded in RAM
+                let itemId = UUID()
+                let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).png")
+                if let fullData = Self.generateOptimizedImageData(from: image, maxDimension: 1600) {
+                    try? fullData.write(to: tempFile, options: .atomic)
+                }
+
+                itemToInsert = ClipboardItem(
+                    id: itemId,
+                    type: .image,
+                    contentString: nil,
+                    urlString: nil,
+                    thumbnailData: thumbData,
+                    diskFilePath: tempFile.path,
+                    timestamp: Date()
+                )
+            }
+
+            if let item = itemToInsert {
+                insertItem(item)
+                return
             }
         }
     }
@@ -321,14 +369,24 @@ final class ClipboardManager: ObservableObject {
     }
 
     private func applyInsertion(_ item: ClipboardItem) {
-        // Remove any identical content string or duplicate ID
+        // Remove any identical content string or duplicate image
         self.history.removeAll { existing in
-            if existing.id == item.id { return true }
+            if existing.id == item.id {
+                if let path = existing.diskFilePath, path != item.diskFilePath {
+                    try? FileManager.default.removeItem(atPath: path)
+                }
+                return true
+            }
             if let newContent = item.contentString, let existingContent = existing.contentString {
                 return newContent == existingContent
             }
-            if item.isImage && existing.isImage, let d1 = item.imageData, let d2 = existing.imageData {
-                return d1 == d2
+            if item.isImage && existing.isImage {
+                if let d1 = item.thumbnailData, let d2 = existing.thumbnailData, d1 == d2 {
+                    if let path = existing.diskFilePath, path != item.diskFilePath {
+                        try? FileManager.default.removeItem(atPath: path)
+                    }
+                    return true
+                }
             }
             return false
         }
@@ -340,18 +398,18 @@ final class ClipboardManager: ObservableObject {
     private func trimHistory() {
         let limit = max(5, maxItems)
         if history.count > limit {
+            let removed = history.suffix(from: limit)
+            for item in removed {
+                if let path = item.diskFilePath {
+                    try? FileManager.default.removeItem(atPath: path)
+                }
+            }
             history = Array(history.prefix(limit))
         }
     }
 
     private func saveHistory() {
-        let itemsToSave = Array(history.prefix(30)).map { item in
-            // Exclude huge images from UserDefaults (> 1MB)
-            if let data = item.imageData, data.count > 1_000_000 {
-                return ClipboardItem(id: item.id, type: item.type, contentString: item.contentString, urlString: item.urlString, imageData: nil, timestamp: item.timestamp)
-            }
-            return item
-        }
+        let itemsToSave = Array(history.prefix(30))
         if let data = try? JSONEncoder().encode(itemsToSave) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
@@ -366,11 +424,23 @@ final class ClipboardManager: ObservableObject {
 
     func copyToPasteboard(_ item: ClipboardItem) {
         pasteboard.clearContents()
-        
-        if item.isImage, let data = item.imageData, let image = NSImage(data: data) {
-            pasteboard.writeObjects([image])
-            pasteboard.setData(data, forType: .png)
-            pasteboard.setData(data, forType: NSPasteboard.PasteboardType("public.png"))
+
+        if item.isImage {
+            // Autoreleasepool ensures full image representation is purged from RAM as soon as written to pasteboard
+            autoreleasepool {
+                let fullData: Data? = {
+                    if let path = item.diskFilePath, FileManager.default.fileExists(atPath: path) {
+                        return try? Data(contentsOf: URL(fileURLWithPath: path))
+                    }
+                    return item.thumbnailData
+                }()
+
+                if let data = fullData, let image = NSImage(data: data) {
+                    pasteboard.writeObjects([image])
+                    pasteboard.setData(data, forType: .png)
+                    pasteboard.setData(data, forType: NSPasteboard.PasteboardType("public.png"))
+                }
+            }
         } else if item.type == .file || (item.urlString?.hasPrefix("file://") == true),
                   let fileStr = item.urlString ?? item.contentString,
                   let fileURL = URL(string: fileStr) {
@@ -390,7 +460,68 @@ final class ClipboardManager: ObservableObject {
     }
 
     func clearHistory() {
+        for item in history {
+            if let path = item.diskFilePath {
+                try? FileManager.default.removeItem(atPath: path)
+            }
+        }
         history.removeAll()
         UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
+    // MARK: - Temp Cache & Image Downscaling Helpers
+
+    private static let clipboardTempDir: URL = {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("NotchPulseClipboard", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+
+    private static func generateThumbnailData(from image: NSImage, maxDimension: CGFloat = 96) -> Data? {
+        guard let tiff = image.tiffRepresentation,
+              let source = CGImageSourceCreateWithData(tiff as CFData, nil) else {
+            return nil
+        }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
+            kCGImageSourceCreateThumbnailWithTransform: true
+        ]
+        guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        let bitmap = NSBitmapImageRep(cgImage: cgImage)
+        return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85])
+    }
+
+    private static func generateOptimizedImageData(from image: NSImage, maxDimension: CGFloat = 1600) -> Data? {
+        guard let tiff = image.tiffRepresentation,
+              let source = CGImageSourceCreateWithData(tiff as CFData, nil) else {
+            return nil
+        }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
+            kCGImageSourceCreateThumbnailWithTransform: true
+        ]
+        guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        let bitmap = NSBitmapImageRep(cgImage: cgImage)
+        return bitmap.representation(using: .png, properties: [:])
+    }
+
+    private func cleanupOrphanedTempFiles() {
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self = self else { return }
+            let validPaths = Set(self.history.compactMap { $0.diskFilePath })
+            if let files = try? FileManager.default.contentsOfDirectory(at: Self.clipboardTempDir, includingPropertiesForKeys: nil) {
+                for file in files {
+                    if !validPaths.contains(file.path) {
+                        try? FileManager.default.removeItem(at: file)
+                    }
+                }
+            }
+        }
     }
 }
