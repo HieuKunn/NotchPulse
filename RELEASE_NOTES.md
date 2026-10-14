@@ -1,4 +1,4 @@
-## 🚀 What's New in NotchPulse v8.4
+## 🚀 What's New in NotchPulse v5.4
 
 ### 🎵 Persistent Lock Screen Media Player
 - **Continuous Uninterrupted Playback Display**: The Lock Screen media player now remains smoothly and continuously visible throughout your locked session. It never flickers, vanishes, or unmounts when changing tracks, scrubbing through songs, pausing, or pressing playback buttons.
