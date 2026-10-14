@@ -10,28 +10,28 @@ let defaultImage: NSImage = .init(
     accessibilityDescription: "Album Art"
 )!
 
-public struct MediaSessionSnapshot: Identifiable, Equatable {
-    public let id: String
-    public var bundleIdentifier: String?
-    public var title: String
-    public var artist: String
-    public var album: String
-    public var albumArt: NSImage?
-    public var artworkData: Data?
-    public var isPlaying: Bool
-    public var currentTime: TimeInterval
-    public var duration: TimeInterval
-    public var playbackRate: Double
-    public var isShuffled: Bool
-    public var repeatMode: RepeatMode
-    public var volume: Double
-    public var isFavorite: Bool
-    public var usingAppIconForArtwork: Bool
-    public var lastUpdated: Date
-    public var syncedLyrics: [(time: Double, text: String)]
-    public var currentLyrics: String
+struct MediaSessionSnapshot: Identifiable, Equatable {
+    let id: String
+    var bundleIdentifier: String?
+    var title: String
+    var artist: String
+    var album: String
+    var albumArt: NSImage?
+    var artworkData: Data?
+    var isPlaying: Bool
+    var currentTime: TimeInterval
+    var duration: TimeInterval
+    var playbackRate: Double
+    var isShuffled: Bool
+    var repeatMode: RepeatMode
+    var volume: Double
+    var isFavorite: Bool
+    var usingAppIconForArtwork: Bool
+    var lastUpdated: Date
+    var syncedLyrics: [(time: Double, text: String)]
+    var currentLyrics: String
 
-    public init(
+    init(
         id: String,
         bundleIdentifier: String?,
         title: String,
@@ -73,7 +73,7 @@ public struct MediaSessionSnapshot: Identifiable, Equatable {
         self.currentLyrics = currentLyrics
     }
 
-    public static func == (lhs: MediaSessionSnapshot, rhs: MediaSessionSnapshot) -> Bool {
+    static func == (lhs: MediaSessionSnapshot, rhs: MediaSessionSnapshot) -> Bool {
         return lhs.id == rhs.id
     }
 }
@@ -95,7 +95,7 @@ class MusicManager: ObservableObject {
     private var activeController: (any MediaControllerProtocol)?
 
     // Multi-media session stack (LIFO) for automatic fallback
-    @Published public private(set) var mediaSessionStack: [MediaSessionSnapshot] = []
+    @Published private(set) var mediaSessionStack: [MediaSessionSnapshot] = []
 
     // Published properties for UI
     @Published var songTitle: String = ""
@@ -1677,7 +1677,9 @@ public final class UniversalArtworkResolver {
         guard let url = components.url else { return nil }
 
         do {
-            let (data, response) = try await urlSession.data(for: url)
+            var request = URLRequest(url: url)
+            request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
+            let (data, response) = try await urlSession.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
 
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

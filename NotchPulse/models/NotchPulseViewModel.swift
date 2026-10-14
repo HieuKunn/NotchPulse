@@ -318,7 +318,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             MusicManager.shared.isUIActive = false
         }
         Task(priority: .background) {
-            await ThumbnailService.shared.clearCache()
+            ThumbnailService.shared.clearCache()
         }
 
         if self.isCameraExpanded || self.webcamManager.isSessionRunning {
