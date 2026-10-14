@@ -334,31 +334,6 @@ struct LockScreenMediaView: View {
         ZStack {
             // Nền Ambient lấy trực tiếp ảnh bìa bài hát phóng to và làm mờ tràn viền toàn màn hình
             ambientDynamicBackground
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    windowController.setFullScreen(false)
-                }
-            
-            // Nút thu nhỏ ở góc trên bên trái
-            VStack {
-                HStack {
-                    Button {
-                        windowController.setFullScreen(false)
-                    } label: {
-                        Image(systemName: "chevron.down.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(.white.opacity(0.65))
-                            .background(Circle().fill(Color.black.opacity(0.2)))
-                            .padding(.leading, 36)
-                            .padding(.top, 36)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Collapse to compact player")
-                    
-                    Spacer()
-                }
-                Spacer()
-            }
             
             GeometryReader { geo in
                 let w = geo.size.width
