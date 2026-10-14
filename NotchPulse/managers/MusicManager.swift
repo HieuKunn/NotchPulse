@@ -1380,9 +1380,8 @@ public final class UniversalArtworkResolver {
 
     /// Attempts to retrieve cached artwork data synchronously.
     public func cachedArtwork(title: String, artist: String) -> Data? {
-        let cleanTitle = sanitizeTitle(title)
-        let cleanArtist = sanitizeArtist(artist)
-        let key = cacheKey(title: cleanTitle, artist: cleanArtist)
+        guard !isAdTitle(title: title, artist: artist) else { return nil }
+        let key = cacheKey(title: title, artist: artist)
         guard !key.isEmpty else { return nil }
 
         lock.lock()
@@ -1405,9 +1404,8 @@ public final class UniversalArtworkResolver {
 
     /// Stores artwork data in cache for a given title/artist pair.
     public func cacheArtworkData(_ data: Data, title: String, artist: String) {
-        let cleanTitle = sanitizeTitle(title)
-        let cleanArtist = sanitizeArtist(artist)
-        let key = cacheKey(title: cleanTitle, artist: cleanArtist)
+        guard !isAdTitle(title: title, artist: artist) else { return }
+        let key = cacheKey(title: title, artist: artist)
         guard !key.isEmpty else { return }
 
         let optimized = optimizeArtwork(data, maxDimension: 500)
@@ -1430,6 +1428,11 @@ public final class UniversalArtworkResolver {
         bundleIdentifier: String? = nil,
         completion: @escaping (Data?) -> Void
     ) {
+        guard !isAdTitle(title: title, artist: artist) else {
+            completion(nil)
+            return
+        }
+
         let cleanTitle = sanitizeTitle(title)
         let cleanArtist = sanitizeArtist(artist)
         guard !cleanTitle.isEmpty else {
@@ -1437,9 +1440,9 @@ public final class UniversalArtworkResolver {
             return
         }
 
-        let key = cacheKey(title: cleanTitle, artist: cleanArtist)
+        let key = cacheKey(title: title, artist: artist)
 
-        if let cached = cachedArtwork(title: cleanTitle, artist: cleanArtist) {
+        if let cached = cachedArtwork(title: title, artist: artist) {
             completion(cached)
             return
         }
@@ -1460,39 +1463,46 @@ public final class UniversalArtworkResolver {
             let isBrowser = self.isBrowserSource(bundleIdentifier: bundleIdentifier, artist: cleanArtist, title: title)
 
             if isBrowser {
-                // 1. For web browsers, YouTube, and web media: YouTube video thumbnail has 100% fidelity
+                // 1. Direct browser tab extraction for supported Chromium / Safari browsers (instant, 100% fidelity)
+                if let bundle = bundleIdentifier,
+                   let directThumb = await self.fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: bundle, targetTitle: title) {
+                    self.cacheArtworkData(directThumb, title: title, artist: artist)
+                    return directThumb
+                }
+
+                // 2. High-precision YouTube search targeting real videoRenderer results only (skips all ads)
                 if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
-                    self.cacheArtworkData(ytData, title: cleanTitle, artist: cleanArtist)
+                    self.cacheArtworkData(ytData, title: title, artist: artist)
                     return ytData
                 }
 
-                // 2. Fallback to iTunes (with strict match verification)
+                // 3. Fallback to iTunes (with strict match verification)
                 if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(itunesData, title: cleanTitle, artist: cleanArtist)
+                    self.cacheArtworkData(itunesData, title: title, artist: artist)
                     return itunesData
                 }
 
-                // 3. Fallback to Deezer (with strict match verification)
+                // 4. Fallback to Deezer (with strict match verification)
                 if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(deezerData, title: cleanTitle, artist: cleanArtist)
+                    self.cacheArtworkData(deezerData, title: title, artist: artist)
                     return deezerData
                 }
             } else {
                 // 1. For dedicated music apps (Apple Music, Spotify, Tidal): iTunes official cover art is best
                 if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(itunesData, title: cleanTitle, artist: cleanArtist)
+                    self.cacheArtworkData(itunesData, title: title, artist: artist)
                     return itunesData
                 }
 
                 // 2. Try Deezer Public Music Search
                 if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(deezerData, title: cleanTitle, artist: cleanArtist)
+                    self.cacheArtworkData(deezerData, title: title, artist: artist)
                     return deezerData
                 }
 
                 // 3. Fallback to YouTube Video Thumbnail
                 if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
-                    self.cacheArtworkData(ytData, title: cleanTitle, artist: cleanArtist)
+                    self.cacheArtworkData(ytData, title: title, artist: artist)
                     return ytData
                 }
             }
@@ -1533,7 +1543,73 @@ public final class UniversalArtworkResolver {
     public func clear() {
         lock.lock()
         inFlightTasks.removeAll()
+        memoryCache.removeAllObjects()
         lock.unlock()
+    }
+
+    // MARK: - Direct Browser Integration
+
+    /// Queries the browser window via AppleScript to extract the active YouTube watch URL and its thumbnail
+    private func fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: String, targetTitle: String) async -> Data? {
+        let lower = bundleIdentifier.lowercased()
+        let isSafari = lower.contains("safari")
+        let appName: String
+        if isSafari {
+            appName = "Safari"
+        } else if lower.contains("chrome") {
+            appName = "Google Chrome"
+        } else if lower.contains("brave") {
+            appName = "Brave Browser"
+        } else if lower.contains("edge") {
+            appName = "Microsoft Edge"
+        } else if lower.contains("arc") || lower.contains("thebrowser") {
+            appName = "Arc"
+        } else {
+            return nil
+        }
+
+        let script = """
+        tell application "\(appName)"
+            try
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        set u to (URL of t as text)
+                        if u contains "youtube.com/watch" then
+                            return u
+                        end if
+                    end repeat
+                end repeat
+            end try
+            return ""
+        end tell
+        """
+
+        do {
+            guard let res = try await AppleScriptHelper.execute(script),
+                  let urlStr = res?.stringValue, !urlStr.isEmpty,
+                  let url = URL(string: urlStr),
+                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                  let vItem = components.queryItems?.first(where: { $0.name == "v" }),
+                  let vId = vItem.value, vId.count == 11 else {
+                return nil
+            }
+
+            let candidateURLs = [
+                "https://i.ytimg.com/vi/\(vId)/maxresdefault.jpg",
+                "https://i.ytimg.com/vi/\(vId)/hq720.jpg",
+                "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg"
+            ]
+
+            for thumbUrlStr in candidateURLs {
+                if let thumbURL = URL(string: thumbUrlStr),
+                   let imgData = await downloadImage(from: thumbURL) {
+                    return imgData
+                }
+            }
+        } catch {
+            return nil
+        }
+        return nil
     }
 
     // MARK: - Resolvers
@@ -1584,7 +1660,7 @@ public final class UniversalArtworkResolver {
                         if let artUrlStr = item["artworkUrl100"] as? String {
                             let highResStr = artUrlStr.replacingOccurrences(of: "100x100bb", with: "600x600bb")
                             if let imgUrl = URL(string: highResStr),
-                               let imgData = await downloadImage(from: imgUrl) {
+                                let imgData = await downloadImage(from: imgUrl) {
                                 return imgData
                             }
                         }
@@ -1598,8 +1674,9 @@ public final class UniversalArtworkResolver {
     }
 
     /// Queries YouTube search to extract the official high-resolution video thumbnail
+    /// Parses ytInitialData JSON to target videoRenderer only, strictly avoiding all ads (promotedVideoRenderer / adSlotRenderer)
     private func fetchFromYouTube(title: String, artist: String) async -> Data? {
-        var query = title
+        var query = sanitizeTitle(title)
         let cleanArt = sanitizeArtist(artist)
         if !cleanArt.isEmpty && cleanArt.lowercased() != "youtube" && !query.lowercased().contains(cleanArt.lowercased()) {
             query = "\(query) \(cleanArt)"
@@ -1615,40 +1692,138 @@ public final class UniversalArtworkResolver {
 
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
-        request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        request.setValue("vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
 
         do {
             let (data, response) = try await urlSession.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let html = String(data: data, encoding: .utf8) else { return nil }
 
-            // Extract videoId from YouTube response
-            var videoId: String? = nil
-            if let match = html.range(of: "\"videoId\":\"([a-zA-Z0-9_-]{11})\"", options: .regularExpression) {
-                let snippet = String(html[match])
-                videoId = snippet
-                    .replacingOccurrences(of: "\"videoId\":\"", with: "")
-                    .replacingOccurrences(of: "\"", with: "")
+            var candidateVideoIds: [String] = []
+
+            // 1. Structured JSON parsing via ytInitialData
+            if let ytData = extractInitialData(from: html) {
+                let parsed = extractVideosFromInitialData(ytData, targetTitle: title, targetArtist: cleanArt)
+                if !parsed.isEmpty {
+                    candidateVideoIds = parsed
+                }
             }
 
-            guard let vId = videoId, !vId.isEmpty else { return nil }
+            // 2. Fallback: targeted regex matching "videoRenderer" (never matches promotedVideoRenderer or adSlotRenderer)
+            if candidateVideoIds.isEmpty {
+                let pattern = #""videoRenderer":\{.*?"videoId":"([a-zA-Z0-9_-]{11})""#
+                if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+                    let nsString = html as NSString
+                    let matches = regex.matches(in: html, options: [], range: NSRange(location: 0, length: nsString.length))
+                    for m in matches {
+                        if m.numberOfRanges >= 2 {
+                            let vid = nsString.substring(with: m.range(at: 1))
+                            if !candidateVideoIds.contains(vid) {
+                                candidateVideoIds.append(vid)
+                            }
+                        }
+                    }
+                }
+            }
 
-            let candidateURLs = [
-                "https://i.ytimg.com/vi/\(vId)/maxresdefault.jpg",
-                "https://i.ytimg.com/vi/\(vId)/hq720.jpg",
-                "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg"
-            ]
+            for vId in candidateVideoIds.prefix(3) {
+                let candidateURLs = [
+                    "https://i.ytimg.com/vi/\(vId)/maxresdefault.jpg",
+                    "https://i.ytimg.com/vi/\(vId)/hq720.jpg",
+                    "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg"
+                ]
 
-            for thumbUrlStr in candidateURLs {
-                if let thumbURL = URL(string: thumbUrlStr),
-                   let imgData = await downloadImage(from: thumbURL) {
-                    return imgData
+                for thumbUrlStr in candidateURLs {
+                    if let thumbURL = URL(string: thumbUrlStr),
+                       let imgData = await downloadImage(from: thumbURL) {
+                        return imgData
+                    }
                 }
             }
         } catch {
             return nil
         }
         return nil
+    }
+
+    private func extractInitialData(from html: String) -> [String: Any]? {
+        let patterns = [
+            #"var ytInitialData\s*=\s*(\{.*?\});</script>"#,
+            #"window\["ytInitialData"\]\s*=\s*(\{.*?\});</script>"#
+        ]
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]),
+                  let match = regex.firstMatch(in: html, options: [], range: NSRange(location: 0, length: (html as NSString).length)),
+                  match.numberOfRanges >= 2 else { continue }
+
+            let jsonString = (html as NSString).substring(with: match.range(at: 1))
+            if let jsonData = jsonString.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                return json
+            }
+        }
+        return nil
+    }
+
+    private func extractVideosFromInitialData(_ data: [String: Any], targetTitle: String, targetArtist: String) -> [String] {
+        guard let contents = data["contents"] as? [String: Any],
+              let twoCol = contents["twoColumnSearchResultsRenderer"] as? [String: Any],
+              let primary = twoCol["primaryContents"] as? [String: Any],
+              let secList = primary["sectionListRenderer"] as? [String: Any],
+              let sections = secList["contents"] as? [[String: Any]] else {
+            return []
+        }
+
+        var scoredVideos: [(videoId: String, score: Int)] = []
+        let lowerTargetTitle = targetTitle.lowercased()
+        let lowerTargetArtist = targetArtist.lowercased()
+        let words = Set(lowerTargetTitle.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { $0.count > 1 })
+
+        for sec in sections {
+            guard let itemSection = sec["itemSectionRenderer"] as? [String: Any],
+                  let items = itemSection["contents"] as? [[String: Any]] else { continue }
+
+            for item in items {
+                guard let vr = item["videoRenderer"] as? [String: Any],
+                      let videoId = vr["videoId"] as? String, !videoId.isEmpty else {
+                    continue
+                }
+
+                var titleText = ""
+                if let titleDict = vr["title"] as? [String: Any] {
+                    if let runs = titleDict["runs"] as? [[String: Any]] {
+                        titleText = runs.compactMap { $0["text"] as? String }.joined()
+                    } else if let simple = titleDict["simpleText"] as? String {
+                        titleText = simple
+                    }
+                }
+
+                var channelText = ""
+                if let ownerDict = vr["ownerText"] as? [String: Any],
+                   let runs = ownerDict["runs"] as? [[String: Any]] {
+                    channelText = runs.compactMap { $0["text"] as? String }.joined()
+                }
+
+                let lowerTitle = titleText.lowercased()
+                let lowerChannel = channelText.lowercased()
+
+                var score = 0
+                if !lowerTargetArtist.isEmpty && (lowerChannel.contains(lowerTargetArtist) || lowerTargetArtist.contains(lowerChannel)) {
+                    score += 50
+                }
+
+                for word in words {
+                    if lowerTitle.contains(word) {
+                        score += 10
+                    }
+                }
+
+                scoredVideos.append((videoId: videoId, score: score))
+            }
+        }
+
+        scoredVideos.sort { $0.score > $1.score }
+        return scoredVideos.map { $0.videoId }
     }
 
     /// Queries Deezer public API for cover art
@@ -1705,7 +1880,7 @@ public final class UniversalArtworkResolver {
             var req = URLRequest(url: url)
             req.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
             let (data, response) = try await urlSession.data(for: req)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200, data.count > 1024 else {
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200, data.count > 2048 else {
                 return nil
             }
             guard NSImage(data: data) != nil else { return nil }
@@ -1717,6 +1892,21 @@ public final class UniversalArtworkResolver {
 
     // MARK: - Sanitization & Helpers
 
+    private func isAdTitle(title: String, artist: String) -> Bool {
+        let lowerT = title.lowercased()
+        let lowerA = artist.lowercased()
+        let adKeywords = ["advertisement", "quảng cáo", "sponsor", "skip ad", "ad ·"]
+        for kw in adKeywords {
+            if lowerT.contains(kw) || lowerA.contains(kw) {
+                return true
+            }
+        }
+        if lowerT == "ad" || lowerA == "ad" {
+            return true
+        }
+        return false
+    }
+
     private func sanitizeTitle(_ raw: String) -> String {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -1727,8 +1917,10 @@ public final class UniversalArtworkResolver {
             s = "\(left) \(right)"
         }
 
+        // Only remove trailing media descriptor labels after | (e.g. | Official MV, | Lyrics, | Audio, | 4K)
+        // Never remove track names or playlist contents separated by |
         let noisePatterns = [
-            #"(?i)\|.*$"#,
+            #"(?i)\|\s*(official\s*(music\s*video|mv|video|audio)?|mv|lyrics?|visualizer|remix|hd|4k|live).*$"#,
             #"(?i)\[.*?official.*?\]"#,
             #"(?i)\(.*?(official|music video|mv|audio|video|lyric|lyrics|visualizer|remix).*?\)"#,
             #"(?i)\[.*?(mv|official|lyrics|hd|4k|audio|remix).*?\]"#,
@@ -1739,6 +1931,10 @@ public final class UniversalArtworkResolver {
         for pat in noisePatterns {
             s = s.replacingOccurrences(of: pat, with: "", options: .regularExpression)
         }
+
+        // Replace any remaining | with space so words aren't glued together
+        s = s.replacingOccurrences(of: "|", with: " ")
+        s = s.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
 
         return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -1753,7 +1949,9 @@ public final class UniversalArtworkResolver {
     }
 
     private func cacheKey(title: String, artist: String) -> String {
-        let raw = "\(title.lowercased())_\(artist.lowercased())"
+        let cleanTitle = sanitizeTitle(title)
+        let cleanArtist = sanitizeArtist(artist)
+        let raw = "\(cleanTitle.lowercased())_\(cleanArtist.lowercased())"
         let allowed = CharacterSet.alphanumerics
         return raw.unicodeScalars
             .map { allowed.contains($0) ? Character($0) : "_" }
