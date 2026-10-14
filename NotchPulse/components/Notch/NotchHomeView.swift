@@ -141,12 +141,36 @@ struct MusicControlsView: View {
 
     private func songInfo(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
-                .font(.headline)
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(maxWidth: width, alignment: .leading)
+            HStack(spacing: 6) {
+                Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                if musicManager.mediaSessionStack.count > 1 {
+                    Button {
+                        musicManager.dismissCurrentMedia()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 11, weight: .bold))
+                            if musicManager.mediaSessionStack.count > 2 {
+                                Text("\(musicManager.mediaSessionStack.count)")
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                        }
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.18)))
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help("Close this media and return to previous media")
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .frame(maxWidth: width, alignment: .leading)
             Text(musicManager.artistName)
                 .font(.headline)
                 .fontWeight(.medium)

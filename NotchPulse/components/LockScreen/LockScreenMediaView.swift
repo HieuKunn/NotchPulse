@@ -155,12 +155,36 @@ struct LockScreenMediaView: View {
             
             // Tên bài hát & Ca sĩ hiển thị cố định, dài quá thì "..."
             VStack(alignment: .leading, spacing: 2) {
-                Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(compactPrimaryText)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: 268, alignment: .leading)
+                HStack(spacing: 6) {
+                    Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(compactPrimaryText)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    if musicManager.mediaSessionStack.count > 1 {
+                        Button {
+                            musicManager.dismissCurrentMedia()
+                        } label: {
+                            HStack(spacing: 2) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                if musicManager.mediaSessionStack.count > 2 {
+                                    Text("\(musicManager.mediaSessionStack.count)")
+                                        .font(.system(size: 9, weight: .bold))
+                                }
+                            }
+                            .foregroundStyle(isLightMode ? Color.black.opacity(0.65) : Color.white.opacity(0.75))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(isLightMode ? Color.black.opacity(0.08) : Color.white.opacity(0.15)))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Close this media and return to previous media")
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .frame(maxWidth: 268, alignment: .leading)
                 
                 Text(musicManager.artistName)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
@@ -424,12 +448,36 @@ struct LockScreenMediaView: View {
             
             // Thông tin bài hát
             VStack(spacing: albumSize * 0.02) {
-                Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
-                    .font(.system(size: max(albumSize * 0.075, 20), weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .multilineTextAlignment(.center)
+                HStack(spacing: 8) {
+                    Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
+                        .font(.system(size: max(albumSize * 0.075, 20), weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .multilineTextAlignment(.center)
+
+                    if musicManager.mediaSessionStack.count > 1 {
+                        Button {
+                            musicManager.dismissCurrentMedia()
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 13, weight: .bold))
+                                if musicManager.mediaSessionStack.count > 2 {
+                                    Text("\(musicManager.mediaSessionStack.count)")
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                            }
+                            .foregroundStyle(Color.white.opacity(0.85))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.white.opacity(0.18)))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Close this media and return to previous media")
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
                 
                 Text(musicManager.artistName)
                     .font(.system(size: max(albumSize * 0.055, 15), weight: .medium, design: .rounded))
