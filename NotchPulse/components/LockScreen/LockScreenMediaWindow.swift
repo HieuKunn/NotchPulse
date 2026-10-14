@@ -113,6 +113,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     private func getTargetScreen() -> NSScreen? {
+        let mouseLocation = NSEvent.mouseLocation
+        if let cursorScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) {
+            return cursorScreen
+        }
         if Defaults[.showOnAllDisplays] {
             return NSScreen.main
                 ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
@@ -171,10 +175,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             hostingView.wantsLayer = true
             hostingView.layer?.backgroundColor = NSColor.clear.cgColor
             contentView = hostingView
-            
-            let targetRect = targetFrame(for: screen)
-            setFrame(targetRect, display: true)
         }
+        
+        let targetRect = targetFrame(for: screen)
+        setFrame(targetRect, display: true)
         
         if !isSkyLightAttached {
             SkyLightOperator.shared.delegateWindow(self)
@@ -196,7 +200,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func hide() {
-        guard isVisible else { return }
+        guard isVisible || isWindowVisible else { return }
         hideGeneration += 1
         let currentGen = hideGeneration
         

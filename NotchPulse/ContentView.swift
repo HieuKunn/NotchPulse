@@ -57,8 +57,16 @@ struct ContentView: View {
     }
     @State private var isFaceIDSettlingAfterClose: Bool = false
 
+    private var isEffectivelyLocked: Bool {
+        NotchPulseLockMonitor.isScreenActuallyLocked()
+            || LockScreenWakeObserver.shared.isScreenLocked
+            || faceIDOverlay.isSessionActive
+            || faceIDOverlay.isArmed
+            || faceIDOverlay.phase == .scanning
+    }
+
     private var isFaceIDActive: Bool {
-        let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked())
+        let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && isEffectivelyLocked)
         if isSessionActive || faceIDOverlay.phase != .closed || visualIsFaceIDExpanded {
             let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
             if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
@@ -224,8 +232,8 @@ struct ContentView: View {
     }
 
     private var baseChinWidth: CGFloat {
-        // When screen is locked or waking from sleep, strictly stay at physical notch / closed island width without expanding for inline/media
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+        // When screen is locked, authenticating Face ID, or waking from sleep, strictly stay at physical notch / closed island width without expanding for inline/media
+        if isEffectivelyLocked {
             return vm.closedNotchSize.width
         }
 
@@ -275,7 +283,7 @@ struct ContentView: View {
     }
 
     private var isEffectivelyHiddenInFullscreen: Bool {
-        vm.hideOnClosed && !vm.isHoverRevealed && !NotchPulseLockMonitor.isScreenActuallyLocked()
+        vm.hideOnClosed && !vm.isHoverRevealed && !isEffectivelyLocked
     }
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
     private var baseClosedHeight: CGFloat {
@@ -317,6 +325,9 @@ struct ContentView: View {
         }
         if vm.notchState == .open {
             return vm.customOpenHeight ?? vm.notchSize.height
+        }
+        if isEffectivelyLocked {
+            return baseClosedHeight
         }
         return isDefaultHUDActive ? baseClosedHeight + 42 : baseClosedHeight
     }
@@ -671,8 +682,11 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
-                } else if NotchPulseLockMonitor.isScreenActuallyLocked() && !Defaults[.showOnLockScreen] && !isFaceIDActive {
-                    Rectangle().fill(.clear).frame(width: max(190, vm.closedNotchSize.width) - 20, height: vm.effectiveClosedNotchHeight)
+                } else if isEffectivelyLocked && !Defaults[.showOnLockScreen] && !isFaceIDActive {
+                    Rectangle().fill(.clear).frame(
+                        width: max(190, vm.closedNotchSize.width) - 20,
+                        height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight
+                    )
                 } else {
                     ZStack {
                         Group {
@@ -952,7 +966,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var topEdgeHoverSensor: some View {
-        if vm.hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() {
+        if vm.hideOnClosed && !isEffectivelyLocked {
             let sensorWidth = max(currentNotchWidth + 120, 380)
             let sensorHeight: CGFloat = vm.isHoverRevealed
                 ? (vm.notchState == .open ? (vm.customOpenHeight ?? openNotchSize.height) + 40 : 64)
@@ -967,7 +981,7 @@ struct ContentView: View {
     }
 
     private func handleFullscreenHoverSensor(_ hovering: Bool) {
-        guard vm.hideOnClosed && !NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
+        guard vm.hideOnClosed && !isEffectivelyLocked else { return }
         fullscreenHoverDebounceTask?.cancel()
 
         if hovering {
@@ -1015,25 +1029,25 @@ struct ContentView: View {
     // MARK: - Hover Management
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
-        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
+        if isEffectivelyLocked { return true }
         if isFaceIDActive && (faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .failure) { return true }
         return false
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
-        if NotchPulseLockMonitor.isScreenActuallyLocked() { return true }
+        if isEffectivelyLocked { return true }
         if isFaceIDActive && (faceIDOverlay.phase == .failure || faceIDOverlay.phase == .scanning) { return true }
         return false
     }
 
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
-        if faceIDOverlay.phase != .closed || (faceIDOverlay.isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || isFaceIDSettlingAfterClose { return }
+        if faceIDOverlay.phase != .closed || (faceIDOverlay.isArmed && isEffectivelyLocked) || isFaceIDSettlingAfterClose { return }
         hoverTask?.cancel()
         fullscreenHoverDebounceTask?.cancel()
         
         if hovering {
-            if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            if isEffectivelyLocked {
                 FaceIDOverlayController.shared.activate()
                 return
             }
@@ -1064,7 +1078,7 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
-                    guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
+                    guard !self.isEffectivelyLocked,
                           self.vm.notchState == .closed,
                           self.isHovering,
                           !self.coordinator.sneakPeek.show else { return }

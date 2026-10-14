@@ -20,7 +20,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 return (val as? Bool) ?? ((val as? NSNumber)?.boolValue ?? false)
             }
         }
-        return false
+        return NotchPulseLockMonitor.isScreenActuallyLocked()
     }
 
     private init() {
@@ -133,11 +133,14 @@ final class LockScreenWakeObserver: ObservableObject {
                     self.startLockSessionSupervisor()
                     self.updateLockScreenMediaWindowVisibility()
                 }
-                // Also re-verify after 400ms when display has fully powered on
-                try? await Task.sleep(for: .milliseconds(400))
-                if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
-                    self.isScreenLocked = true
-                    self.updateLockScreenMediaWindowVisibility()
+                // Verify progressively after wake as display powers on
+                for delayMs in [150, 400, 800] {
+                    try? await Task.sleep(for: .milliseconds(delayMs))
+                    guard let self = self else { return }
+                    if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
+                        self.isScreenLocked = true
+                        self.updateLockScreenMediaWindowVisibility()
+                    }
                 }
             }
         }
@@ -155,16 +158,22 @@ final class LockScreenWakeObserver: ObservableObject {
         // 4. Listen for screen sleep (lid closed, screensaver sleep, display sleep)
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidSleepNotification)
             .receive(on: DispatchQueue.main)
-            .sink { _ in
-                // Handled natively by NotchPulseFaceUnlockCoordinator
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.isScreenLocked = true
+                self.startLockSessionSupervisor()
+                self.updateLockScreenMediaWindowVisibility()
             }
             .store(in: &cancellables)
 
         // 4b. Listen for will sleep (e.g. lid closed)
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.willSleepNotification)
             .receive(on: DispatchQueue.main)
-            .sink { _ in
-                // Handled natively by NotchPulseFaceUnlockCoordinator
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.isScreenLocked = true
+                self.startLockSessionSupervisor()
+                self.updateLockScreenMediaWindowVisibility()
             }
             .store(in: &cancellables)
             
