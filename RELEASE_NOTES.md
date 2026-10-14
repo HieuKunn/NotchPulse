@@ -12,12 +12,15 @@
 - **Symmetrical 3-Column Layout**: Perfectly balanced CPU, RAM, and GPU dashboard cards (33% each) with responsive typography, giving your GPU model name extra breathing room while keeping all labels clean and legible.
 
 ### ❄️ Interactive Thermal & Fan Controls
-- **Dedicated Native Fan Helper**: NotchPulse now features its own native helper daemon for direct Apple Silicon SMC fan speed control without third-party app dependencies.
-- **Zero-Prompt Fan Activation**: If you've enrolled your master password with Face ID, fan control installs and activates automatically in the background with zero extra prompts or popups.
+- **Dedicated Native Fan Helper**: NotchPulse now features its own high-performance helper daemon for direct Apple Silicon SMC fan speed control without third-party app dependencies.
+- **Continuous Background Cooling Engine**: Fan curves and profiles run reliably in the background even when NotchPulse is collapsed, with automatic keepalive and sleep/wake recovery.
+- **Zero-Prompt Fan Activation**: If you've enrolled your master password with Face ID, fan control installs, activates, and auto-updates in the background with zero extra prompts or popups.
 - **70/30 Fan & Temperature Card**: Enjoy a dedicated thermal card featuring a 70/30 split between interactive fan controls and a real-time hardware temperature gauge.
-- **One-Click Fan Profiles**: Instantly switch between Silent, Auto, Full Speed, and custom fan percentages directly from the Notch.
+- **One-Click Fan Profiles**: Instantly switch between Auto, Balanced, Smart, Full Speed, and custom fan percentages directly from the Notch.
 
 ### 🎵 Refined Lock Screen Media Player
+- **Intuitive Artwork Zoom & Collapse**: Seamlessly expand to full-screen immersive lyrics or collapse back to the compact card simply by clicking the album cover art.
+- **Immersive Full-Screen Blurred Artwork Background**: The full-screen player now fills your entire display edge-to-edge with beautiful dynamic blurred artwork.
 - **Clean Border & Zero Blurred Artifacts**: Eliminated unsightly diffuse shadows and window margins around the compact player for a clean, seamless card presentation.
 - **Unified Control Button Icons**: Synchronized icon color fidelity across all media buttons (Shuffle, Previous, Play/Pause, Next, Repeat, Volume, Favorite, and Seek).
 - **Reactive Dark & Light Mode Appearance**: Card background, borders, text, and icons dynamically transition between pure white and dark gray in sync with macOS system appearance.
