@@ -1066,9 +1066,9 @@ struct SystemMonitorSettingsView: View {
             Section {
                 HardwareFanDiagnosticsView()
             } header: {
-                Text(loc("Hardware Fan Control & Diagnostics"))
+                Text(loc("Hardware Fan Control & Profiles"))
             } footer: {
-                Text(loc("Directly test Apple Silicon SMC fan override levels and inspect daemon response telemetry in real-time. Matches ThermalForge kernel driver 1:1."))
+                Text(loc("Apple Silicon SMC fan hardware controls & operational profiles guide. Matches ThermalForge kernel driver 1:1."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -1087,11 +1087,10 @@ struct SystemMonitorSettingsView: View {
     }
 }
 
-/// Hardware SMC fan speed testing & privileged helper telemetry inspection panel.
+/// Hardware SMC fan status & operational profile guide.
 private struct HardwareFanDiagnosticsView: View {
     @ObservedObject private var monitor = SystemMonitorManager.shared
     @ObservedObject private var fanHelper = FanHelperManager.shared
-    @State private var customSliderPercent: Double = 50.0
     @State private var isReconnecting: Bool = false
 
     var body: some View {
@@ -1243,91 +1242,67 @@ private struct HardwareFanDiagnosticsView: View {
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
             }
 
-            // 3. Interactive Test Command Buttons
-            VStack(alignment: .leading, spacing: 8) {
-                Text(loc("Direct Fan Speed Override Tests"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            // 3. Operational Fan Profiles Guide
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(loc("Fan Profiles & Behavior"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(loc("Controlled via Notch"))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.cyan)
+                }
 
-                HStack(spacing: 8) {
-                    // Auto Button
-                    FanTestButton(
-                        title: loc("Auto (Apple Default)"),
-                        subtitle: loc("Reset SMC"),
+                VStack(spacing: 6) {
+                    FanProfileRow(
                         icon: "apple.logo",
                         tint: .secondary,
-                        isSelected: monitor.selectedFanProfile == .auto
-                    ) {
-                        monitor.setFanProfile(.auto)
-                        _ = fanHelper.sendCommandWithReply("auto")
-                        fanHelper.refreshTelemetry()
-                    }
+                        title: loc("Auto (Apple Default)"),
+                        summary: loc("macOS kernel handles fan speed automatically. Fans stay at minimum RPM or turn off completely during light tasks to save battery and maintain silence.")
+                    )
 
-                    // Balanced Button
-                    FanTestButton(
-                        title: loc("Balanced"),
-                        subtitle: loc("Dynamic Curve"),
+                    FanProfileRow(
                         icon: "speedometer",
                         tint: .blue,
-                        isSelected: monitor.selectedFanProfile == .balanced
-                    ) {
-                        monitor.setFanProfile(.balanced)
-                        fanHelper.refreshTelemetry()
-                    }
+                        title: loc("Balanced"),
+                        summary: loc("Maintains optimal thermal-to-noise balance, capping fan speed around ~60% (~4,400 RPM) to keep the system cool without excessive noise.")
+                    )
 
-                    // 50% Speed Button
-                    FanTestButton(
-                        title: loc("50% Speed"),
-                        subtitle: "~4,400 RPM",
-                        icon: "wind",
-                        tint: .orange,
-                        isSelected: monitor.selectedFanProfile == .custom && monitor.customFanPercent == 50
-                    ) {
-                        customSliderPercent = 50.0
-                        monitor.setCustomFanPercent(50)
-                        fanHelper.refreshTelemetry()
-                    }
+                    FanProfileRow(
+                        icon: "brain.head.profile",
+                        tint: .cyan,
+                        title: loc("Smart (Predictive)"),
+                        summary: loc("Monitors SoC thermal acceleration to ramp up fans preemptively before sudden heat spikes, preventing thermal throttling.")
+                    )
 
-                    // Max 100% Button
-                    FanTestButton(
-                        title: loc("Max 100%"),
-                        subtitle: "~6,550 RPM",
+                    FanProfileRow(
                         icon: "flame.fill",
                         tint: .red,
-                        isSelected: monitor.selectedFanProfile == .max
-                    ) {
-                        monitor.setFanProfile(.max)
-                        fanHelper.refreshTelemetry()
-                    }
+                        title: loc("Max 100%"),
+                        summary: loc("Locks fans to maximum hardware RPM (~6,550 RPM) for intensive rendering, video export, heavy compilation, or gaming.")
+                    )
+
+                    FanProfileRow(
+                        icon: "slider.horizontal.3",
+                        tint: .orange,
+                        title: loc("Custom (Manual)"),
+                        summary: loc("Drag the fan slider directly from the Notch interface to lock fans at any specific percentage or RPM target.")
+                    )
                 }
 
-                // Custom Slider
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(loc("Custom Override:"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(Int(customSliderPercent))%")
-                            .font(.caption.weight(.bold))
-                        Spacer()
-                        let minR = Double(fanHelper.latestTelemetry?.minRPM ?? 2317)
-                        let maxR = Double(fanHelper.latestTelemetry?.maxRPM ?? 6550)
-                        let estRPM = Int(minR + (customSliderPercent / 100.0) * (maxR - minR))
-                        Text("≈ \(estRPM) RPM")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $customSliderPercent, in: 0...100, step: 5) {
-                        Text("Custom Fan Speed")
-                    } onEditingChanged: { isEditing in
-                        if !isEditing {
-                            monitor.setCustomFanPercent(Int(customSliderPercent))
-                            fanHelper.refreshTelemetry()
-                        }
-                    }
-                    .controlSize(.small)
+                // Tip callout
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(.cyan)
+                        .font(.system(size: 12))
+                    Text(loc("Tip: You can switch fan profiles or drag the custom speed slider directly inside the Notch / Dynamic Island without opening Settings."))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                .padding(.top, 4)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.cyan.opacity(0.08)))
             }
 
             // 4. Console Log & Daemon Response
@@ -1370,7 +1345,6 @@ private struct HardwareFanDiagnosticsView: View {
         }
         .padding(.vertical, 4)
         .onAppear {
-            customSliderPercent = Double(monitor.customFanPercent)
             fanHelper.checkHelperStatus()
             fanHelper.refreshTelemetry()
         }
@@ -1380,42 +1354,33 @@ private struct HardwareFanDiagnosticsView: View {
     }
 }
 
-private struct FanTestButton: View {
-    let title: String
-    let subtitle: String
+private struct FanProfileRow: View {
     let icon: String
     let tint: Color
-    let isSelected: Bool
-    let action: () -> Void
+    let title: String
+    let summary: String
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(isSelected ? tint : .secondary)
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 24, height: 24)
+                .background(RoundedRectangle(cornerRadius: 6).fill(tint.opacity(0.12)))
+
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.caption.weight(isSelected ? .bold : .medium))
-                    .foregroundStyle(isSelected ? .primary : .secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                Text(subtitle)
-                    .font(.system(size: 9))
-                    .foregroundStyle(isSelected ? tint : .secondary.opacity(0.8))
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.primary)
+                Text(summary)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? tint.opacity(0.15) : Color.primary.opacity(0.04))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? tint.opacity(0.6) : Color.clear, lineWidth: 1.5)
-            )
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.03)))
     }
 }
 
