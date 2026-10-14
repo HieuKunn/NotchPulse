@@ -1,13 +1,13 @@
 ## 🚀 What's New in NotchPulse v5.4
 
-### 🎵 Universal Media Controls & Playback
-- **Unified Media Command Dispatch**: Media playback controls (play/pause, next, previous) now work smoothly and reliably across all media players, web browsers (Zen Browser, Safari, Chrome, Firefox), and streaming services without missed clicks or conflicting actions.
-- **Ultra-Low Memory Artwork Engine**: Album art is now automatically optimized to crisp Retina dimensions while cutting memory usage by over 95%. Removed external network searches to keep background CPU and network activity at absolute zero.
-- **Active Track Ephemeral Memory**: Only artwork for the currently playing track is kept in memory. Previous songs are purged immediately when tracks change or when playback stops.
-- **Continuous Lock Screen Player**: The Lock Screen media card and full-screen lyrics stay smoothly visible throughout your locked session without flickering or disappearing.
+### 🎵 Universal Media Controls & High-Res Artwork
+- **Intelligent Video & Browser Artwork**: Video thumbnails (YouTube, Zen Browser, Arc, Safari, Chrome, Firefox) and album covers now resolve accurately at high definition without reverting to browser application icons.
+- **Smart Multi-Media Session Stack**: Seamlessly switch between multiple concurrent playback sessions with automatic fallback to previous media when an active player closes.
+- **Permanent Lock Screen Media Presence**: The Lock Screen media card and lyrics remain continuously visible throughout your locked session, even when playback is paused or idle.
+- **Unified Media Command Dispatch**: Media playback controls (play/pause, next, previous) route reliably across all players, browsers, and streaming platforms.
 
-### 📋 Lightweight Clipboard Memory
-- **Instant RAM Release**: Image clipboard history now stores lightweight previews in memory while offloading heavy data. Full image data is cleared from RAM immediately once copied or when the clipboard panel is dismissed.
+### 📋 Zero-RAM Clipboard Memory
+- **Lightweight Zero-Copy Decoding**: Clipboard image history decodes thumbnails on demand with sub-sampling, completely eliminating RAM spikes when copying high-resolution images or screenshots.
 
 ### ❄️ Native Thermal & Cooling Profiles
 - **Real-Time SMC Fan Control**: Directly control cooling profiles (Auto, Balanced, Smart, Max 100%, and Custom) from the Notch interface with real-time fan RPM readings.
