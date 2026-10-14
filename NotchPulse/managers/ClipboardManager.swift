@@ -323,21 +323,37 @@ final class ClipboardManager: ObservableObject {
         if hasImageTypes || canInitImage {
             var itemToInsert: ClipboardItem? = nil
             autoreleasepool {
-                guard let image = NSImage(pasteboard: pasteboard) else { return }
+                // Zero-copy / lazy decoding path: extract compressed data directly from pasteboard
+                // to avoid allocating massive uncompressed TIFF/pixel buffers in RAM.
+                let rawImageData: Data? = {
+                    for t in [.png, NSPasteboard.PasteboardType("public.png"), NSPasteboard.PasteboardType("public.jpeg"), .tiff, NSPasteboard.PasteboardType("public.tiff")] {
+                        if let d = pasteboard.data(forType: t), !d.isEmpty {
+                            return d
+                        }
+                    }
+                    if let image = NSImage(pasteboard: pasteboard) {
+                        return Self.extractRawData(from: image)
+                    }
+                    return nil
+                }()
 
-                // 1. Generate lightweight thumbnail for UI (max 96x96 px, optimal for 32x32 pt on Retina @3x, only ~3KB)
-                guard let thumbData = Self.generateThumbnailData(from: image, maxDimension: 96) else { return }
+                guard let rawData = rawImageData else { return }
+
+                // 1. Generate lightweight thumbnail for UI (max 96x96 px, optimal for Retina, only ~2-3KB)
+                guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 96) else { return }
 
                 // Check duplicate with top history item
                 if let first = history.first, first.isImage, first.thumbnailData == thumbData {
                     return
                 }
 
-                // 2. Save full image to disk temp file so it is NOT hoarded in RAM
+                // 2. Save full image to disk temp file so it is NEVER hoarded in RAM
                 let itemId = UUID()
-                let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).png")
-                if let fullData = Self.generateOptimizedImageData(from: image, maxDimension: 1600) {
+                let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).dat")
+                if let fullData = Self.generateOptimizedImageData(from: rawData, maxDimension: 1600) {
                     try? fullData.write(to: tempFile, options: .atomic)
+                } else {
+                    try? rawData.write(to: tempFile, options: .atomic)
                 }
 
                 itemToInsert = ClipboardItem(
@@ -418,7 +434,17 @@ final class ClipboardManager: ObservableObject {
     private func loadHistory() {
         if let data = UserDefaults.standard.data(forKey: storageKey),
            let items = try? JSONDecoder().decode([ClipboardItem].self, from: data) {
-            self.history = items
+            // Sanitize history: ensure legacy items don't hoard large uncompressed images in thumbnailData
+            var sanitized: [ClipboardItem] = []
+            for var item in items {
+                if item.isImage, let thumb = item.thumbnailData, thumb.count > 40_000 {
+                    if let downscaled = Self.generateThumbnailData(from: thumb, maxDimension: 96) {
+                        item.thumbnailData = downscaled
+                    }
+                }
+                sanitized.append(item)
+            }
+            self.history = sanitized
         }
     }
 
@@ -469,7 +495,7 @@ final class ClipboardManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
-    // MARK: - Temp Cache & Image Downscaling Helpers
+    // MARK: - Temp Cache & Zero-RAM-Spike Image Downscaling Helpers
 
     private static let clipboardTempDir: URL = {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("NotchPulseClipboard", isDirectory: true)
@@ -477,38 +503,80 @@ final class ClipboardManager: ObservableObject {
         return dir
     }()
 
-    private static func generateThumbnailData(from image: NSImage, maxDimension: CGFloat = 96) -> Data? {
-        guard let tiff = image.tiffRepresentation,
-              let source = CGImageSourceCreateWithData(tiff as CFData, nil) else {
-            return nil
+    private static func extractRawData(from image: NSImage) -> Data? {
+        var proposedRect = NSRect(origin: .zero, size: image.size)
+        if let cgImage = image.cgImage(forProposedRect: &proposedRect, context: nil, hints: nil) {
+            let bitmap = NSBitmapImageRep(cgImage: cgImage)
+            return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85])
+                ?? bitmap.representation(using: .png, properties: [:])
         }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
-            kCGImageSourceCreateThumbnailWithTransform: true
-        ]
-        guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, options as CFDictionary) else {
-            return nil
-        }
-        let bitmap = NSBitmapImageRep(cgImage: cgImage)
-        return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85])
+        return image.tiffRepresentation
     }
 
-    private static func generateOptimizedImageData(from image: NSImage, maxDimension: CGFloat = 1600) -> Data? {
-        guard let tiff = image.tiffRepresentation,
-              let source = CGImageSourceCreateWithData(tiff as CFData, nil) else {
+    /// Generates lightweight thumbnail without ever loading the full-sized pixel buffer into RAM.
+    /// Uses `kCGImageSourceShouldCache: false` to decode exclusively at thumbnail dimensions.
+    private static func generateThumbnailData(from rawData: Data, maxDimension: CGFloat = 96) -> Data? {
+        let sourceOptions: [CFString: Any] = [
+            kCGImageSourceShouldCache: false,
+            kCGImageSourceShouldCacheImmediately: false
+        ]
+        guard let source = CGImageSourceCreateWithData(rawData as CFData, sourceOptions as CFDictionary) else {
             return nil
         }
-        let options: [CFString: Any] = [
+        let thumbnailOptions: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceThumbnailMaxPixelSize: maxDimension,
-            kCGImageSourceCreateThumbnailWithTransform: true
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true
         ]
-        guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, options as CFDictionary) else {
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions as CFDictionary) else {
             return nil
         }
         let bitmap = NSBitmapImageRep(cgImage: cgImage)
-        return bitmap.representation(using: .png, properties: [:])
+        return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.80])
+    }
+
+    private static func generateThumbnailData(from image: NSImage, maxDimension: CGFloat = 96) -> Data? {
+        var proposedRect = NSRect(origin: .zero, size: image.size)
+        if let cgImage = image.cgImage(forProposedRect: &proposedRect, context: nil, hints: nil) {
+            let bitmap = NSBitmapImageRep(cgImage: cgImage)
+            if let data = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.80]) {
+                return generateThumbnailData(from: data, maxDimension: maxDimension)
+            }
+        }
+        if let tiff = image.tiffRepresentation {
+            return generateThumbnailData(from: tiff, maxDimension: maxDimension)
+        }
+        return nil
+    }
+
+    /// Resizes high-res images to a maximum dimension of 1600px and saves as optimized JPEG/PNG on disk,
+    /// decoding on-demand with zero full-size uncompressed memory allocation.
+    private static func generateOptimizedImageData(from rawData: Data, maxDimension: CGFloat = 1600) -> Data? {
+        let sourceOptions: [CFString: Any] = [
+            kCGImageSourceShouldCache: false,
+            kCGImageSourceShouldCacheImmediately: false
+        ]
+        guard let source = CGImageSourceCreateWithData(rawData as CFData, sourceOptions as CFDictionary) else {
+            return nil
+        }
+        let downscaleOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downscaleOptions as CFDictionary) else {
+            return nil
+        }
+        let bitmap = NSBitmapImageRep(cgImage: cgImage)
+        let alpha = cgImage.alphaInfo
+        let hasAlpha = alpha == .first || alpha == .last || alpha == .premultipliedFirst || alpha == .premultipliedLast
+        if hasAlpha {
+            return bitmap.representation(using: .png, properties: [:])
+        } else {
+            return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85])
+        }
     }
 
     private func cleanupOrphanedTempFiles() {

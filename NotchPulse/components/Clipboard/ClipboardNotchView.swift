@@ -87,6 +87,9 @@ struct ClipboardNotchView: View {
         .onAppear {
             clipboardManager.checkImmediately()
         }
+        .onDisappear {
+            clipboardThumbnailCache.removeAllObjects()
+        }
     }
 }
 
@@ -178,6 +181,13 @@ private struct ClipboardScrollWheelHelper: NSViewRepresentable {
         }
     }
 }
+
+private let clipboardThumbnailCache: NSCache<NSUUID, NSImage> = {
+    let cache = NSCache<NSUUID, NSImage>()
+    cache.countLimit = 30
+    cache.totalCostLimit = 2 * 1024 * 1024
+    return cache
+}()
 
 struct ClipboardRowView: View {
     let item: ClipboardItem
@@ -286,10 +296,15 @@ struct ClipboardRowView: View {
         }
         .onAppear {
             if item.isImage && cachedImage == nil {
-                if let thumb = item.thumbnailData {
-                    cachedImage = NSImage(data: thumb)
-                } else if let data = item.imageData {
-                    cachedImage = NSImage(data: data)
+                let uuid = item.id as NSUUID
+                if let cached = clipboardThumbnailCache.object(forKey: uuid) {
+                    cachedImage = cached
+                } else if let thumb = item.thumbnailData, let img = NSImage(data: thumb) {
+                    clipboardThumbnailCache.setObject(img, forKey: uuid, cost: thumb.count)
+                    cachedImage = img
+                } else if let data = item.imageData, let img = NSImage(data: data) {
+                    clipboardThumbnailCache.setObject(img, forKey: uuid, cost: data.count)
+                    cachedImage = img
                 }
             }
         }
