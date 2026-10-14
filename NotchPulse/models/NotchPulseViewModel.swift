@@ -175,9 +175,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     // Computed property for effective notch height
     var effectiveClosedNotchHeight: CGFloat {
-        if hideOnClosed && !isHoverRevealed && !NotchPulseLockMonitor.isScreenActuallyLocked() {
-            return 0
-        }
         return closedNotchSize.height
     }
 
