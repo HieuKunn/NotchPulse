@@ -86,7 +86,7 @@ final class NotchPulseFaceUnlockCoordinator {
                     return
                 }
                 // Brief settle delay: CGSession's reported state can lag the true state right after wake.
-                try? await Task.sleep(nanoseconds: 100_000_000)
+                try? await Task.sleep(nanoseconds: 300_000_000)
                 self.evaluateTrigger()
             }
         }
@@ -205,8 +205,6 @@ final class NotchPulseFaceUnlockCoordinator {
         camera.stop()
         FaceIDOverlayController.shared.dismissImmediately()
         FaceIDOverlayController.shared.disarm()
-        // Retain ArcFace CoreML model for a grace period to avoid cold-start lag on rapid relocks
-        ArcFaceEmbedder.scheduleUnload(after: 10.0)
         // Covers isEnabled being switched off directly, keeping "disarmed" and "not listening for space" in lockstep.
         spaceKeyMonitor.stop()
     }
@@ -344,8 +342,6 @@ final class NotchPulseFaceUnlockCoordinator {
 
         switch outcome {
         case .matched:
-            // Retain ArcFace CoreML model for a grace period so rapid re-auth doesn't pay cold-start penalty
-            ArcFaceEmbedder.scheduleUnload(after: 10.0)
             if showsUI {
                 FaceIDOverlayController.shared.finish(success: true)
             }
@@ -354,7 +350,7 @@ final class NotchPulseFaceUnlockCoordinator {
             if showsUI {
                 if FaceIDOverlayController.shared.phase == .scanning {
                     FaceIDOverlayController.shared.finish(success: false)
-                    scheduleAutoRetryIfEnabled(after: .seconds(5))
+                    scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.failureHoldDuration)
                 } else {
                     await FaceIDOverlayController.shared.collapse()
                     scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
@@ -427,8 +423,6 @@ final class NotchPulseFaceUnlockCoordinator {
         let firstFrameCap = Date().addingTimeInterval(10)
         var effectiveDeadline = deadline
         var firstFrameSeen = false
-
-        var sawWrongFace = false
 
         while Date() < effectiveDeadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -533,7 +527,6 @@ final class NotchPulseFaceUnlockCoordinator {
             } else {
                 consecutiveMatchedFrames = 0
                 if isQualityAcceptable {
-                    sawWrongFace = true
                     if isCameraWarmedUp {
                         consecutiveWrongFaceFrames += 1
                         // If someone's face is clearly visible but does NOT match enrolled face for 5 frames (~160ms),
@@ -550,6 +543,6 @@ final class NotchPulseFaceUnlockCoordinator {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 
-        return sawWrongFace ? .consistentlyWrongFace : .noResolution
+        return .noResolution
     }
 }

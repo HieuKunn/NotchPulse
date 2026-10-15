@@ -230,11 +230,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             disableSkyLightOnAllWindows()
         }
-
-        // Unload ArcFace ML model from RAM after a 10s grace period upon desktop unlock
-        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
-            ArcFaceEmbedder.scheduleUnload(after: 10.0)
-        }
     }
     
     @MainActor
@@ -625,8 +620,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Start clipboard monitoring immediately at app launch
         _ = ClipboardManager.shared
 
-        // Ensure ArcFace Neural Engine model is completely unloaded from RAM at startup (loads on-demand only)
-        ArcFaceEmbedder.unload()
+        // Pre-warm ArcFace Neural Engine model if FaceID is enabled
+        if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+            ArcFaceEmbedder.warmUp()
+        }
 
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil

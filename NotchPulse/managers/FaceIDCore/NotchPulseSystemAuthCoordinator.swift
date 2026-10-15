@@ -368,7 +368,6 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         await camera.start()
         defer {
             camera.stop()
-            ArcFaceEmbedder.scheduleUnload(after: 5.0)
         }
 
         let timeoutSeconds: Double = Double(settings.faceDetectionSeconds)

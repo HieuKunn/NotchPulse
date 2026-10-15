@@ -244,7 +244,6 @@ final class FaceIDManager: NSObject, ObservableObject {
         recognitionTask?.cancel()
         unlockTask?.cancel()
         camera.stop()
-        ArcFaceEmbedder.unload()
         isScanning = false
         isEnrollmentMode = false
         isTestingMode = false
@@ -285,7 +284,6 @@ final class FaceIDManager: NSObject, ObservableObject {
         await camera.requestAccessAndStart()
         defer {
             camera.stop()
-            ArcFaceEmbedder.scheduleUnload(after: 5.0)
             isScanning = false
         }
         
@@ -394,7 +392,6 @@ final class FaceIDManager: NSObject, ObservableObject {
             await self.camera.requestAccessAndStart()
             defer {
                 self.camera.stop()
-                ArcFaceEmbedder.scheduleUnload(after: 5.0)
                 self.isScanning = false
                 self.isEnrollmentMode = false
             }
@@ -519,7 +516,6 @@ final class FaceIDManager: NSObject, ObservableObject {
             await self.camera.requestAccessAndStart()
             defer {
                 self.camera.stop()
-                ArcFaceEmbedder.scheduleUnload(after: 5.0)
                 self.isScanning = false
                 self.isTestingMode = false
                 if self.testResultText == "Looking for face..." || self.testResultText == "Searching..." {

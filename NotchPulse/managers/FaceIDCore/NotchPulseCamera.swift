@@ -117,10 +117,6 @@ final class NotchPulseCamera: NSObject {
         }
         isRunning = false
         currentFrame = nil
-        // Tear down device input and configuration state so subsequent wake/start
-        // negotiates a completely fresh, live hardware connection with macOS
-        currentInput = nil
-        isConfigured = false
     }
 
     private func describe(_ status: AVAuthorizationStatus) -> String {
@@ -247,18 +243,12 @@ final class NotchPulseCamera: NSObject {
         /// is unaffected. The undownscaled `source` is kept alongside for callers needing native pixels (`renderCrop`).
         private let maxLongEdge: CGFloat = 640
         private var nextFrameID: UInt64 = 0
-        private var lastPublishedTime: ContinuousClock.Instant?
-        private let minFrameInterval: Duration = .milliseconds(45) // Caps at ~22 FPS for ultra-low CPU load
 
         func captureOutput(
             _ output: AVCaptureOutput,
             didOutput sampleBuffer: CMSampleBuffer,
             from connection: AVCaptureConnection
         ) {
-            let now = ContinuousClock.now
-            if let last = lastPublishedTime, now - last < minFrameInterval { return }
-            lastPublishedTime = now
-
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
             let sourceImage = CIImage(cvPixelBuffer: pixelBuffer)
             let sourceExtent = sourceImage.extent

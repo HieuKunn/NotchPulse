@@ -48,28 +48,16 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let inputName = "input_image"
     private static let outputName = "embedding"
 
-    private static let instanceLock = NSLock()
-    private static var _sharedInstance: ArcFaceEmbedder? = nil
-    private static var unloadTask: Task<Void, Never>?
-
-    /// On-demand ArcFace model instance: allocated when needed for authentication, unloaded when desktop is active.
-    static var shared: ArcFaceEmbedder? {
-        instanceLock.lock()
-        defer { instanceLock.unlock() }
-        unloadTask?.cancel()
-        unloadTask = nil
-        if let existing = _sharedInstance {
-            return existing
-        }
+    // Loaded once and reused — model load dominates a single inference (~6.6MB, negligible memory footprint).
+    static let shared: ArcFaceEmbedder? = {
         do {
             let instance = try ArcFaceEmbedder()
-            _sharedInstance = instance
             return instance
         } catch {
             NSLog("[ArcFaceEmbedder] Failed to initialize shared instance: \(error.localizedDescription)")
             return nil
         }
-    }
+    }()
 
     /// Pre-warms the ArcFace ML model so the Neural Engine pipeline is compiled and ready before camera frames arrive.
     static func warmUp() {
@@ -85,25 +73,15 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         }.value
     }
 
-    /// Automatically unloads the model from RAM after `delay` seconds of inactivity.
+    /// Kept for backward compatibility. Model remains resident in RAM to avoid expensive cold-start compilation.
     static func scheduleUnload(after delay: TimeInterval = 10.0) {
-        instanceLock.lock()
-        unloadTask?.cancel()
-        unloadTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            guard !Task.isCancelled else { return }
-            ArcFaceEmbedder.unload()
-        }
-        instanceLock.unlock()
+        // No-op: ArcFace model is lightweight (~6.6 MB) and retained in memory
+        // to guarantee instant recognition on every lock screen wake.
     }
 
-    /// Immediately frees the ArcFace CoreML model and neural network allocations from RAM.
+    /// Kept for backward compatibility.
     static func unload() {
-        instanceLock.lock()
-        defer { instanceLock.unlock() }
-        unloadTask?.cancel()
-        unloadTask = nil
-        _sharedInstance = nil
+        // No-op: do not unload CoreML model
     }
 
     // Loaded once and reused — model load dominates a single inference.
