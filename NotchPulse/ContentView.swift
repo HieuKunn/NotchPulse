@@ -35,7 +35,6 @@ struct ContentView: View {
     @Default(.useMusicVisualizer) var useMusicVisualizer
     @Default(.appLanguage) var appLanguage
 
-    @Default(.showNotHumanFace) var showNotHumanFace
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
@@ -265,16 +264,6 @@ struct ContentView: View {
                 let extraWidth: CGFloat = isInlineMediaActive ? 120 : 4
                 chinWidth = vm.closedNotchSize.width + (artSize * 2) + extraWidth + gestureProgress
             }
-        } else if !coordinator.expandingView.show && vm.notchState == .closed
-            && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
-        {
-            let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
-            let artSize: CGFloat = max(18, liveHeight - 12)
-            if isDynamicIsland {
-                chinWidth = (artSize * 2) + 110 + gestureProgress
-            } else {
-                chinWidth = vm.closedNotchSize.width + (artSize * 2) + 4 + gestureProgress
-            }
         }
         return chinWidth
     }
@@ -389,25 +378,21 @@ struct ContentView: View {
                             .padding(.horizontal, topCornerRadius)
                     }
                     .overlay {
-                        if isDynamicIsland && vm.notchState == .open {
-                            currentNotchShape
-                                .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
-                        }
+                        currentNotchShape
+                            .stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0), lineWidth: 0.8)
                     }
             }
-            .conditionalModifier(
-                (isIsland && Defaults[.enableShadow]) ||
-                ((vm.notchState == .open || isOverallHovered || isFaceIDContentVisible) && Defaults[.enableShadow])
-            ) { view in
-                view.shadow(
-                    color: isIsland
-                        ? .black.opacity(0.65)
-                        : .black.opacity(0.7),
-                    radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
-                    x: 0,
-                    y: isIsland ? 4 : 0
-                )
-            }
+            .shadow(
+                color: isIsland
+                    ? (Defaults[.enableShadow] ? .black.opacity(0.65) : .clear)
+                    : (((vm.notchState == .open || isOverallHovered || isFaceIDContentVisible) && Defaults[.enableShadow])
+                        ? .black.opacity(0.7) : .clear),
+                radius: isIsland
+                    ? (Defaults[.enableShadow] ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : 0)
+                    : (((vm.notchState == .open || isOverallHovered || isFaceIDContentVisible) && Defaults[.enableShadow]) ? (Defaults[.cornerRadiusScaling] ? 6 : 4) : 0),
+                x: 0,
+                y: isIsland ? 4 : 0
+            )
             .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
             .offset(y: slideOffset)
             .opacity(isHiddenInFS ? 0 : 1)
@@ -697,9 +682,6 @@ struct ContentView: View {
                                 MusicLiveActivity()
                                     .frame(alignment: .center)
                                     .transition(.opacity)
-                            } else if !coordinator.expandingView.show && vm.notchState == .closed && !musicManager.isPlaying && Defaults[.showNotHumanFace]  {
-                                NotchPulseFaceAnimation()
-                                    .transition(.opacity)
                             } else if vm.notchState == .open {
                                 NotchPulseHeader()
                                     .frame(height: max(32, vm.closedNotchSize.height))
@@ -838,29 +820,6 @@ struct ContentView: View {
         .onTapGesture {
             FaceIDOverlayController.shared.activate()
         }
-    }
-
-    @ViewBuilder
-    func NotchPulseFaceAnimation() -> some View {
-        let isDynamicIsland = notchStyle == .dynamicIsland
-        let faceHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
-        HStack {
-            HStack {
-                Rectangle()
-                    .fill(.clear)
-                    .frame(
-                        width: max(0, faceHeight - 12),
-                        height: max(0, faceHeight - 12)
-                    )
-                Rectangle()
-                    .fill(.black)
-                    .frame(width: max(0, vm.closedNotchSize.width - 20))
-                MinimalFaceFeatures()
-            }
-        }.frame(
-            height: faceHeight,
-            alignment: .center
-        )
     }
 
     @ViewBuilder

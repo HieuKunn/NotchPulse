@@ -2085,9 +2085,6 @@ struct Appearance: View {
                     Text(loc("Square"))
                         .tag(MirrorShapeEnum.rectangle)
                 }
-                Defaults.Toggle(key: .showNotHumanFace) {
-                    Text(loc("Show cool face animation while inactive"))
-                }
             } header: {
                 HStack {
                     Text(loc("Additional features"))

@@ -1,13 +1,15 @@
 ## 🚀 What's New in NotchPulse v5.4
 
 ### 🎵 Refined Lock Screen Media Player & Media Controls
+- **Immediate Notch Collapsing on Pause**: Pausing media now immediately collapses the closed Notch back to its standard resting width, eliminating lingering expanded frames or visualizer bars.
+- **Lazy Lyrics Loading**: Lyrics are now loaded on demand only when viewing the Notch Home or Lock Screen player, eliminating background web requests when the Notch is closed.
 - **Continuous Uninterrupted Playback Display**: The Lock Screen media card and full-screen lyrics remain smoothly and continuously visible throughout your locked session. It never flickers, vanishes, or unmounts when changing tracks, scrubbing, pausing, or pressing playback buttons.
 - **Universal High-Definition Artwork**: Video thumbnails (YouTube, Zen Browser, Arc, Safari, Chrome, Firefox) and album covers resolve accurately at high definition without reverting to browser application icons.
 - **Reliable Next & Previous Controls**: Next track and previous track controls dispatch seamlessly across Spotify, Apple Music, and web players (YouTube, SoundCloud, Spotify Web), with instant track metadata updates on both Lock Screen and Notch.
-- **Clean Inline Media Behavior**: Pausing media cleanly hides the mini collapsed inline indicator so it doesn't pop out on accidental mouse hover, while keeping your track ready to resume instantly inside Notch Home.
 - **Smart Multi-Media Session Stack**: Seamlessly switch between multiple concurrent playback sessions with automatic fallback to previous media when an active player closes.
 
-### ⚡️ Fluid Notch & Dynamic Island Animations
+### ⚡️ Fluid Notch & Dynamic Island Performance
+- **Zero Closed-Notch Overhead**: Removed the inactive face animation and its background polling timer, keeping the closed Notch completely still and silent with zero CPU/timer overhead.
 - **Lighter Memory Footprint**: Optimized internal shadow rendering across cards, sliders, and buttons, reducing offscreen layer allocations for fluid 120Hz ProMotion animations.
 - **Parity with Windowed Mode**: Fullscreen auto-hide reveal and close transitions now mirror windowed desktop behavior with zero awkward accordion stretching.
 - **Seamless Spring Morphing**: Matched geometry animations for album art and audio spectrum expand and retract smoothly without view recreation or visual popping.
