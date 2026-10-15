@@ -82,7 +82,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         backgroundColor = .clear
         hasShadow = false
         isMovable = false
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 1)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
         acceptsMouseMovedEvents = true
         ignoresMouseEvents = false
         
@@ -123,7 +123,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }
         if Defaults[.showOnAllDisplays] {
             return NSScreen.main
-                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil })
                 ?? NSScreen.screens.first
         }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
@@ -131,7 +131,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             return screen
         }
         return NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
-            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil })
             ?? NSScreen.main
             ?? NSScreen.screens.first
     }
@@ -189,6 +189,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             isSkyLightAttached = true
         }
         
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
         orderFrontRegardless()
         
         if !isVisible || alphaValue < 1.0 {

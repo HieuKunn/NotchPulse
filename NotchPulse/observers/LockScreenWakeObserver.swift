@@ -27,6 +27,7 @@ final class LockScreenWakeObserver: ObservableObject {
         if Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
             self.isScreenLocked = true
             startLockSessionSupervisor()
+            MusicManager.shared.forceUpdate()
             updateLockScreenMediaWindowVisibility()
         }
         setupObservers()
@@ -82,6 +83,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 guard let self = self else { return }
                 self.isScreenLocked = true
                 self.startLockSessionSupervisor()
+                MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
             }
         }
@@ -98,6 +100,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
                     self.isScreenLocked = true
                     self.startLockSessionSupervisor()
+                    MusicManager.shared.forceUpdate()
                     self.updateLockScreenMediaWindowVisibility()
                 }
             }
@@ -132,6 +135,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 if locked {
                     self.isScreenLocked = true
                     self.startLockSessionSupervisor()
+                    MusicManager.shared.forceUpdate()
                     self.updateLockScreenMediaWindowVisibility()
                 }
                 // Verify progressively after wake as display powers on
@@ -139,6 +143,7 @@ final class LockScreenWakeObserver: ObservableObject {
                     try? await Task.sleep(for: .milliseconds(delayMs))
                     if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
                         self.isScreenLocked = true
+                        MusicManager.shared.forceUpdate()
                         self.updateLockScreenMediaWindowVisibility()
                     }
                 }
@@ -162,6 +167,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 guard let self = self else { return }
                 self.isScreenLocked = true
                 self.startLockSessionSupervisor()
+                MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
             }
             .store(in: &cancellables)
@@ -173,6 +179,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 guard let self = self else { return }
                 self.isScreenLocked = true
                 self.startLockSessionSupervisor()
+                MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
             }
             .store(in: &cancellables)
