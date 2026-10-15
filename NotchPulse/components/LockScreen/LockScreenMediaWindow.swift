@@ -82,7 +82,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         backgroundColor = .clear
         hasShadow = false
         isMovable = false
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
         acceptsMouseMovedEvents = true
         ignoresMouseEvents = false
         
@@ -189,16 +189,9 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             isSkyLightAttached = true
         }
         
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
+        self.alphaValue = 1.0
         orderFrontRegardless()
-        
-        if !isVisible || alphaValue < 1.0 {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.25
-                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                self.animator().alphaValue = 1.0
-            }
-        }
         isWindowVisible = true
         MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()

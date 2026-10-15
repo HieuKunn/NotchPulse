@@ -1123,7 +1123,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         newPlaybackState.volume = payload.volume ?? self.playbackState.volume
         
-        self.playbackState = newPlaybackState
+        await MainActor.run {
+            self.playbackState = newPlaybackState
+        }
         
         // Fetch favorite state for supported apps asynchronously
         // await fetchFavoriteStateIfSupported()
@@ -1146,9 +1148,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
              end tell
              """
              if let result = try? await AppleScriptHelper.execute(script) {
-                 var updated = self.playbackState
-                 updated.isFavorite = result.booleanValue
-                 self.playbackState = updated
+                 await MainActor.run {
+                     var updated = self.playbackState
+                     updated.isFavorite = result.booleanValue
+                     self.playbackState = updated
+                 }
              }
          }
      }
