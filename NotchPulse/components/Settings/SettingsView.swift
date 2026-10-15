@@ -1083,6 +1083,7 @@ struct SystemMonitorSettingsView: View {
         .onDisappear {
             expandedMetric = nil
             monitor.shouldFetchProcesses = false
+            monitor.stopMonitoring()
         }
     }
 }

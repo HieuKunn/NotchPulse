@@ -1326,8 +1326,8 @@ public final class UniversalArtworkResolver {
     private let lock = NSLock()
 
     private init() {
-        memoryCache.countLimit = 150
-        memoryCache.totalCostLimit = 64 * 1024 * 1024 // 64 MB
+        memoryCache.countLimit = 35
+        memoryCache.totalCostLimit = 8 * 1024 * 1024 // 8 MB (downsampled covers are ~50-80 KB)
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 4.0
@@ -1346,9 +1346,9 @@ public final class UniversalArtworkResolver {
 
     // MARK: - Public API
 
-    /// Downsamples raw image data to a max dimension (default 500px) with sub-sampling decode.
-    /// This keeps artwork razor-sharp on Retina displays while cutting memory usage from 20-36 MB to ~50-90 KB.
-    public func optimizeArtwork(_ data: Data, maxDimension: CGFloat = 500) -> Data {
+    /// Downsamples raw image data to a max dimension (default 400px) with sub-sampling decode.
+    /// This keeps artwork razor-sharp on Retina displays while cutting memory usage from 20-36 MB to ~50-80 KB.
+    public func optimizeArtwork(_ data: Data, maxDimension: CGFloat = 400) -> Data {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             return data
         }
@@ -1357,7 +1357,7 @@ public final class UniversalArtworkResolver {
         if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
            let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
            let height = properties[kCGImagePropertyPixelHeight] as? CGFloat,
-           width <= maxDimension && height <= maxDimension && data.count <= 150_000 {
+           width <= maxDimension && height <= maxDimension && data.count <= 100_000 {
             return data
         }
 
@@ -1372,7 +1372,7 @@ public final class UniversalArtworkResolver {
         }
 
         let bitmap = NSBitmapImageRep(cgImage: cgImage)
-        if let jpeg = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85]) {
+        if let jpeg = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.80]) {
             return jpeg
         }
         return data
@@ -1408,7 +1408,7 @@ public final class UniversalArtworkResolver {
         let key = cacheKey(title: title, artist: artist)
         guard !key.isEmpty else { return }
 
-        let optimized = optimizeArtwork(data, maxDimension: 500)
+        let optimized = optimizeArtwork(data, maxDimension: 400)
         lock.lock()
         memoryCache.setObject(optimized as NSData, forKey: key as NSString, cost: optimized.count)
         lock.unlock()

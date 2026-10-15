@@ -188,6 +188,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         collapseAllNotches(force: true)
         ClipboardManager.shared.stopMonitoring()
+        SystemMonitorManager.shared.stopMonitoring()
         
         let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
         if !shouldKeepWindow {
@@ -215,6 +216,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.coordinator.dismissExpandingView(animated: false)
         self.coordinator.toggleSneakPeek(status: false, type: .music)
+        SystemMonitorManager.shared.stopMonitoring()
     }
 
     @MainActor

@@ -56,6 +56,10 @@ struct TabSelectionView: View {
                 vm.customOpenHeight = nil
             }
         }
+        if tabView != .stats {
+            SystemMonitorManager.shared.stopMonitoring()
+            SystemMonitorManager.shared.stopThermalMonitoring()
+        }
         MusicManager.shared.isUIActive = (tabView == .home)
         withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
             coordinator.currentView = tabView
