@@ -279,10 +279,10 @@ class MusicManager: ObservableObject {
     private func updateFromPlaybackState(_ state: PlaybackState) {
         let trimmedTitle = state.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
-            if self.mediaSessionStack.count > 1 {
-                self.fallbackToPreviousMedia()
+            if let activePrevious = self.mediaSessionStack.dropLast().last(where: { $0.isPlaying }) {
+                self.restoreSession(activePrevious)
                 return
-            } else if self.mediaSessionStack.count == 1 {
+            } else {
                 self.mediaSessionStack.removeAll()
                 self.resetToIdle()
                 return
@@ -809,22 +809,26 @@ class MusicManager: ObservableObject {
     }
 
     private func updateIdleState(state: Bool) {
+        debounceIdleTask?.cancel()
         if state {
-            isPlayerIdle = false
-            debounceIdleTask?.cancel()
+            withAnimation(.smooth) {
+                self.isPlayerIdle = false
+            }
         } else {
-            debounceIdleTask?.cancel()
-            debounceIdleTask = Task { [weak self] in
+            debounceIdleTask = Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                try? await Task.sleep(for: .seconds(Defaults[.waitInterval]))
-                withAnimation {
-                    self.isPlayerIdle = !self.isPlaying
+                // Check if an older session in the stack is actually still playing
+                if let activePrevious = self.mediaSessionStack.dropLast().last(where: { $0.isPlaying }) {
+                    self.restoreSession(activePrevious)
+                    return
                 }
-                // When paused and idle, if there are older sessions waiting in the stack,
-                // automatically step back to the previous session!
-                if !self.isPlaying && self.mediaSessionStack.count > 1 {
-                    await self.fallbackToPreviousMedia()
+
+                // No other media is playing: do NOT fallback to old paused sessions via LIFO.
+                // Temporarily close inline / default media while keeping current track metadata intact.
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                    self.isPlayerIdle = true
                 }
+                NotchPulseViewCoordinator.shared.dismissExpandingView(animated: true)
             }
         }
     }
@@ -968,8 +972,8 @@ class MusicManager: ObservableObject {
         self.syncedLyrics = snapshot.syncedLyrics
         self.currentLyrics = snapshot.currentLyrics
         self.timestampDate = Date()
-        self.isPlaying = false
-        self.isPlayerIdle = false
+        self.isPlaying = snapshot.isPlaying
+        self.isPlayerIdle = !snapshot.isPlaying
 
         if let bid = snapshot.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bid) {
             self.usingAppIconForArtwork = true
