@@ -121,6 +121,9 @@ class MusicManager: ObservableObject {
         didSet {
             guard oldValue != isUIActive else { return }
             activeController?.setUIActive(isUIActive)
+            if isUIActive && Defaults[.enableLyrics] {
+                ensureLyricsLoaded()
+            }
         }
     }
 
@@ -384,8 +387,14 @@ class MusicManager: ObservableObject {
                 self.updateSneakPeek()
             }
 
-            // Fetch lyrics on content change
-            self.fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
+            // Fetch lyrics on content change only if UI is visible (Lazy loading)
+            if self.isUIActive && Defaults[.enableLyrics] {
+                self.fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
+            } else {
+                self.currentLyrics = ""
+                self.syncedLyrics = []
+                self.isFetchingLyrics = false
+            }
         }
 
         let timeChanged: Bool
@@ -511,6 +520,7 @@ class MusicManager: ObservableObject {
     }
 
     func fetchLyricsIfAvailable(bundleIdentifier: String?, title: String, artist: String) {
+        guard isUIActive && Defaults[.enableLyrics] else { return }
         guard !title.isEmpty else {
             DispatchQueue.main.async {
                 self.isFetchingLyrics = false

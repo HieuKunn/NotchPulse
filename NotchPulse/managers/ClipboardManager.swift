@@ -199,10 +199,10 @@ final class ClipboardManager: ObservableObject {
             }
 
             // 2. Background polling fallback for right-click context menu "Copy" operations
-            let timer = Timer(timeInterval: 1.6, repeats: true) { [weak self] _ in
+            let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
-            timer.tolerance = 0.3
+            timer.tolerance = 0.2
             RunLoop.main.add(timer, forMode: .common)
             self.pollTimer = timer
 
