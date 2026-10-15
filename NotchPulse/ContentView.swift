@@ -389,19 +389,25 @@ struct ContentView: View {
                             .padding(.horizontal, topCornerRadius)
                     }
                     .overlay {
-                        currentNotchShape
-                            .stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0), lineWidth: 0.8)
+                        if isDynamicIsland && vm.notchState == .open {
+                            currentNotchShape
+                                .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
+                        }
                     }
             }
-            .shadow(
-                color: isIsland
-                    ? .black.opacity(0.65)
-                    : (((vm.notchState == .open || isOverallHovered || isFaceIDContentVisible) && Defaults[.enableShadow])
-                        ? .black.opacity(0.7) : .clear),
-                radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
-                x: 0,
-                y: isIsland ? 4 : 0
-            )
+            .conditionalModifier(
+                (isIsland && Defaults[.enableShadow]) ||
+                ((vm.notchState == .open || isOverallHovered || isFaceIDContentVisible) && Defaults[.enableShadow])
+            ) { view in
+                view.shadow(
+                    color: isIsland
+                        ? .black.opacity(0.65)
+                        : .black.opacity(0.7),
+                    radius: isIsland ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : (Defaults[.cornerRadiusScaling] ? 6 : 4),
+                    x: 0,
+                    y: isIsland ? 4 : 0
+                )
+            }
             .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
             .offset(y: slideOffset)
             .opacity(isHiddenInFS ? 0 : 1)
