@@ -167,13 +167,10 @@ struct LockScreenMediaView: View {
                     .foregroundStyle(compactArtistColor)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(maxWidth: 268, alignment: .leading)
+                    .frame(maxWidth: 290, alignment: .leading)
             }
             
             Spacer(minLength: 4)
-            
-            // Cột sóng nhạc sống động góc phải
-            soundWaveform
         }
     }
 
@@ -856,22 +853,7 @@ struct LockScreenMediaView: View {
         }
     }
     
-    // MARK: - Animated Waveform Helper
-    private var soundWaveform: some View {
-        HStack(spacing: 2.5) {
-            ForEach(0..<5) { i in
-                WaveBar(
-                    isPlaying: musicManager.isPlaying,
-                    index: i,
-                    tintColor: isLightMode
-                        ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
-                        : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85),
-                    isLight: isLightMode
-                )
-            }
-        }
-        .frame(height: 14)
-    }
+
     
     private func scrollToActiveLyric(proxy: ScrollViewProxy, forceTop: Bool = false) {
         guard !musicManager.syncedLyrics.isEmpty else { return }
@@ -1135,45 +1117,4 @@ private struct LockScreenVolumeSlider: View {
     }
 }
 
-// =========================================================================
-// MARK: - WaveBar Component (Cột sóng nhạc nhảy theo nhạc)
-// =========================================================================
 
-private struct WaveBar: View {
-    let isPlaying: Bool
-    let index: Int
-    let tintColor: Color
-    var isLight: Bool = false
-    
-    @State private var animatingHeight: CGFloat = 3
-    
-    var body: some View {
-        Capsule()
-            .fill(isPlaying ? tintColor : (isLight ? Color.black.opacity(0.20) : Color.white.opacity(0.35)))
-            .frame(width: 3, height: isPlaying ? animatingHeight : 3)
-            .onAppear {
-                if isPlaying {
-                    startAnimation()
-                }
-            }
-            .onChange(of: isPlaying) { _, playing in
-                if playing {
-                    startAnimation()
-                } else {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        animatingHeight = 3
-                    }
-                }
-            }
-    }
-    
-    private func startAnimation() {
-        let randomDuration = Double.random(in: 0.35...0.65)
-        let targetHeights: [CGFloat] = [7, 14, 11, 15, 9]
-        let h = targetHeights[index % targetHeights.count]
-        
-        withAnimation(.easeInOut(duration: randomDuration).repeatForever(autoreverses: true)) {
-            animatingHeight = h
-        }
-    }
-}
