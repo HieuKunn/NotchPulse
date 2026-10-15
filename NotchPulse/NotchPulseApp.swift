@@ -253,6 +253,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if let skyCam = self.faceIDCameraWindow as? NotchPulseSkyLightWindow {
                     skyCam.enableSkyLight()
                 }
+                
+                // Keep Lock Screen media card visible in lock space synchronously with Notch
+                LockScreenWakeObserver.shared.updateLockScreenMediaWindowVisibility()
             }
         }
     }
@@ -621,6 +624,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start clipboard monitoring immediately at app launch
         _ = ClipboardManager.shared
+
+        // Pre-warm MusicManager immediately at app launch
+        _ = MusicManager.shared
 
         // Pre-warm ArcFace Neural Engine model if FaceID is enabled
         if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {

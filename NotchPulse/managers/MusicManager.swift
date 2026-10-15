@@ -146,6 +146,8 @@ class MusicManager: ObservableObject {
 
     // MARK: - Initialization
     init() {
+        restoreLastKnownTrack()
+
         // Listen for changes to the default controller preference
         NotificationCenter.default.publisher(for: Notification.Name.mediaControllerChanged)
             .receive(on: DispatchQueue.main)
@@ -456,6 +458,7 @@ class MusicManager: ObservableObject {
         
         self.timestampDate = state.lastUpdated
         self.recordMediaSession(from: state)
+        self.persistCurrentTrack()
     }
 
     func toggleFavoriteTrack() {
@@ -808,11 +811,13 @@ class MusicManager: ObservableObject {
                 DispatchQueue.main.async { [weak self] in
                     self?.usingAppIconForArtwork = false
                     self?.updateAlbumArt(newAlbumArt: artworkImage)
+                    self?.persistCurrentTrack()
                 }
             } else if let artworkImage = NSImage(data: artworkData) {
                 DispatchQueue.main.async { [weak self] in
                     self?.usingAppIconForArtwork = false
                     self?.updateAlbumArt(newAlbumArt: artworkImage)
+                    self?.persistCurrentTrack()
                 }
             }
         }
@@ -1011,6 +1016,91 @@ class MusicManager: ObservableObject {
         self.songDuration = 0
         self.syncedLyrics = []
         self.currentLyrics = ""
+        self.clearPersistedTrack()
+    }
+
+    // MARK: - Last Known Track Persistence (Instant Lock Screen Restoration)
+    private let lastTrackTitleKey = "NP_LastTrackTitle"
+    private let lastTrackArtistKey = "NP_LastTrackArtist"
+    private let lastTrackAlbumKey = "NP_LastTrackAlbum"
+    private let lastTrackBundleKey = "NP_LastTrackBundleID"
+    private let lastTrackDurationKey = "NP_LastTrackDuration"
+    private let lastTrackElapsedKey = "NP_LastTrackElapsed"
+    private let lastTrackIsPlayingKey = "NP_LastTrackIsPlaying"
+    private let lastTrackArtworkKey = "NP_LastTrackArtworkData"
+
+    @MainActor
+    private func persistCurrentTrack() {
+        let cleanTitle = self.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTitle.isEmpty else { return }
+        let defaults = UserDefaults.standard
+        defaults.set(cleanTitle, forKey: lastTrackTitleKey)
+        defaults.set(self.artistName, forKey: lastTrackArtistKey)
+        defaults.set(self.album, forKey: lastTrackAlbumKey)
+        defaults.set(self.bundleIdentifier, forKey: lastTrackBundleKey)
+        defaults.set(self.songDuration, forKey: lastTrackDurationKey)
+        defaults.set(self.elapsedTime, forKey: lastTrackElapsedKey)
+        defaults.set(self.isPlaying, forKey: lastTrackIsPlayingKey)
+        if let artData = self.artworkData {
+            defaults.set(artData, forKey: lastTrackArtworkKey)
+        }
+    }
+
+    @MainActor
+    private func clearPersistedTrack() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: lastTrackTitleKey)
+        defaults.removeObject(forKey: lastTrackArtistKey)
+        defaults.removeObject(forKey: lastTrackAlbumKey)
+        defaults.removeObject(forKey: lastTrackBundleKey)
+        defaults.removeObject(forKey: lastTrackDurationKey)
+        defaults.removeObject(forKey: lastTrackElapsedKey)
+        defaults.removeObject(forKey: lastTrackIsPlayingKey)
+        defaults.removeObject(forKey: lastTrackArtworkKey)
+    }
+
+    @MainActor
+    private func restoreLastKnownTrack() {
+        let defaults = UserDefaults.standard
+        guard let title = defaults.string(forKey: lastTrackTitleKey), !title.isEmpty else { return }
+        self.songTitle = title
+        self.artistName = defaults.string(forKey: lastTrackArtistKey) ?? ""
+        self.album = defaults.string(forKey: lastTrackAlbumKey) ?? ""
+        self.bundleIdentifier = defaults.string(forKey: lastTrackBundleKey)
+        self.songDuration = defaults.double(forKey: lastTrackDurationKey)
+        self.elapsedTime = defaults.double(forKey: lastTrackElapsedKey)
+        self.isPlaying = defaults.bool(forKey: lastTrackIsPlayingKey)
+        self.isPlayerIdle = false
+        
+        self.lastArtworkTitle = self.songTitle
+        self.lastArtworkArtist = self.artistName
+        self.lastArtworkAlbum = self.album
+        self.lastArtworkBundleIdentifier = self.bundleIdentifier
+        
+        if let data = defaults.data(forKey: lastTrackArtworkKey), let img = NSImage(data: data) {
+            self.artworkData = data
+            self.albumArt = img
+            self.usingAppIconForArtwork = false
+            self.calculateAverageColor()
+        } else if let bundleID = self.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bundleID) {
+            self.albumArt = appIcon
+            self.usingAppIconForArtwork = true
+            self.calculateAverageColor()
+        }
+        
+        self.mediaSessionStack = [
+            MediaSession(
+                title: self.songTitle,
+                artist: self.artistName,
+                album: self.album,
+                bundleIdentifier: self.bundleIdentifier ?? "",
+                artwork: self.artworkData,
+                isPlaying: self.isPlaying,
+                duration: self.songDuration,
+                elapsedTime: self.elapsedTime,
+                lastUpdated: Date()
+            )
+        ]
     }
 
     // MARK: - Playback Position Estimation
