@@ -1,6 +1,8 @@
 ## 🚀 What's New in NotchPulse v5.4
 
 ### 🎵 Refined Lock Screen Media Player & Media Controls
+- **Instant Play & Pause Across All Interfaces**: Restored seamless toggle, pause, and resume playback response across Notch, Dynamic Island, and Lock Screen by streamlining Universal MediaRemote command routing.
+- **Immediate First-Launch Lock Screen State**: Actively retrieves current song and artist metadata on application launch and system wake, ensuring the Lock Screen media card immediately displays active or paused media without requiring manual playback toggles.
 - **Immediate Notch Collapsing on Pause**: Pausing media now immediately collapses the closed Notch back to its standard resting width, eliminating lingering expanded frames or visualizer bars.
 - **Lazy Lyrics Loading**: Lyrics are now loaded on demand only when viewing the Notch Home or Lock Screen player, eliminating background web requests when the Notch is closed.
 - **Continuous Uninterrupted Playback Display**: The Lock Screen media card and full-screen lyrics remain smoothly and continuously visible throughout your locked session. It never flickers, vanishes, or unmounts when changing tracks, scrubbing, pausing, or pressing playback buttons.
