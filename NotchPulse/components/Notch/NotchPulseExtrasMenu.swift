@@ -17,7 +17,7 @@ struct NotchPulseLargeButtons: View {
                         Text(title).font(.body)
                     }
                 }
-            }).buttonStyle(PlainButtonStyle()).shadow(color: .black.opacity(0.5), radius: 10)
+            }).buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -63,7 +63,7 @@ struct NotchPulseExtrasMenu : View {
                 }
             }
         }
-        .buttonStyle(PlainButtonStyle()).shadow(color: .black.opacity(0.5), radius: 10)
+        .buttonStyle(PlainButtonStyle())
     }
     
     var hide: some View {

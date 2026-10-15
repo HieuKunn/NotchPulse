@@ -48,7 +48,6 @@ private struct NotchPulseLogoView: View {
                 .resizable()
                 .scaledToFit()
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
         } else {
             Image(systemName: "teddybear.fill")
                 .font(.system(size: 64))
@@ -319,14 +318,12 @@ private struct EnrollmentTooFarChevron: View {
             Image(systemName: "chevron.up.2")
                 .font(.system(size: FaceIDMetrics.enrollTooFarChevronSize, weight: .semibold))
                 .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.45), radius: 6, y: 1)
                 .symbolEffect(.bounce.up.byLayer, options: .repeating)
                 .accessibilityHidden(true)
         } else {
             Image(systemName: "chevron.up.2")
                 .font(.system(size: FaceIDMetrics.enrollTooFarChevronSize, weight: .semibold))
                 .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.45), radius: 6, y: 1)
                 .symbolEffect(.pulse, options: .repeating)
                 .accessibilityHidden(true)
         }

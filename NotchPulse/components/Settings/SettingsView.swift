@@ -233,7 +233,6 @@ struct NotchWidthLivePreview: View {
                             ).fill(Color.black)
                         )
                     )
-                    .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 2)
                     .animation(.spring(response: 0.25, dampingFraction: 0.8), value: width)
                     .animation(.spring(response: 0.25, dampingFraction: 0.8), value: style)
                 }

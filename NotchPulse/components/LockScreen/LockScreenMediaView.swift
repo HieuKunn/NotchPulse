@@ -118,8 +118,6 @@ struct LockScreenMediaView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
-                .shadow(color: isLightMode ? Color.black.opacity(0.18) : Color.black.opacity(0.35), radius: 6, x: 0, y: 3)
-                .shadow(color: Color(nsColor: musicManager.avgColor).opacity(isLightMode ? 0.22 : 0.3), radius: 8, x: 0, y: 4)
             
             // Lớp phủ tối khi tạm dừng
             if !musicManager.isPlaying {
@@ -137,7 +135,6 @@ struct LockScreenMediaView: View {
                     .frame(width: 16, height: 16)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                     .offset(x: 3, y: 3)
-                    .shadow(radius: 3)
             }
         }
     }
@@ -395,8 +392,6 @@ struct LockScreenMediaView: View {
                         .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
                         .scaleEffect(musicManager.isPlaying ? 1.0 : 0.94)
                         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
-                        .shadow(color: Color(nsColor: musicManager.avgColor).opacity(0.55), radius: albumSize * 0.1, x: 0, y: albumSize * 0.05)
-                        .shadow(color: .black.opacity(0.6), radius: albumSize * 0.06, x: 0, y: albumSize * 0.02)
                     
                     if !musicManager.isPlaying {
                         RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
@@ -412,7 +407,6 @@ struct LockScreenMediaView: View {
                             .frame(width: albumSize * 0.11, height: albumSize * 0.11)
                             .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.025, style: .continuous))
                             .offset(x: albumSize * 0.02, y: albumSize * 0.02)
-                            .shadow(radius: 6)
                     }
                 }
             }
@@ -512,7 +506,6 @@ struct LockScreenMediaView: View {
                                             ? Color.white.opacity(0.32)
                                             : Color.white.opacity(0.65)
                                         )
-                                        .shadow(color: isCurrent ? Color(nsColor: musicManager.avgColor).opacity(0.9) : .clear, radius: 12)
                                         .multilineTextAlignment(.leading)
                                         .fixedSize(horizontal: false, vertical: true)
                                         .padding(.vertical, 4)
@@ -950,7 +943,6 @@ private struct LockScreenScrubberView: View {
                         Circle()
                             .fill((isCompact && isLight) ? Color.black : Color.white)
                             .frame(width: height + 6, height: height + 6)
-                            .shadow(color: Color.black.opacity(isLight ? 0.22 : 0.4), radius: 3, x: 0, y: 1)
                             .offset(x: max(0, min(width - (height + 6), filledWidth - (height + 6) / 2)))
                             .transition(.scale.combined(with: .opacity))
                     }

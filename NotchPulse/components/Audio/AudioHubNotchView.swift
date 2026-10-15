@@ -343,7 +343,6 @@ private struct CustomAudioSlider: View {
                 Circle()
                     .fill(Color.white)
                     .frame(width: 10, height: 10)
-                    .shadow(color: .black.opacity(0.4), radius: 2, x: 0, y: 1)
                     .offset(x: max(0, min(width - 10, width * progress - 5)))
             }
             .frame(height: height)

@@ -93,7 +93,6 @@ struct ShelfItemView: View {
             .aspectRatio(contentMode: .fit)
             .frame(width: 56, height: 56)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 2)
     }
 
     private var textView: some View {

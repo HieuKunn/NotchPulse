@@ -866,7 +866,6 @@ private struct CoolingSliderView: View {
                     Circle()
                         .fill(Color.white)
                         .frame(width: 11, height: 11)
-                        .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
                         .offset(x: knobOffset)
                 }
                 .contentShape(Rectangle())

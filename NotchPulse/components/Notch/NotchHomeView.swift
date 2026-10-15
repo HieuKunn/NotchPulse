@@ -95,7 +95,6 @@ struct AlbumArtView: View {
                     style: .continuous
                 )
             )
-            .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
     }
 
     @ViewBuilder
