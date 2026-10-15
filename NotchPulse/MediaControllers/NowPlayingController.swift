@@ -968,7 +968,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 proc.waitUntilExit()
                 guard proc.terminationStatus == 0, !data.isEmpty else { return nil }
                 let payload = try JSONDecoder().decode(NowPlayingPayload.self, from: data)
-                return NowPlayingUpdate(type: "data", diff: false, payload: payload)
+                return NowPlayingUpdate(payload: payload, diff: false)
             } catch {
                 NSLog("NowPlayingController: Failed to fetch initial now playing info: \(error)")
                 return nil
