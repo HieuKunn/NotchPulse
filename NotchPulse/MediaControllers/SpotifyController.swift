@@ -66,7 +66,11 @@ class SpotifyController: MediaControllerProtocol {
         try? await Task.sleep(for: commandUpdateDelay)
         await updatePlaybackInfo()
     }
-    func nextTrack() async { await executeCommand("next track") }
+    func nextTrack() async {
+        await executeCommand("next track")
+        try? await Task.sleep(for: commandUpdateDelay)
+        await updatePlaybackInfo()
+    }
     func previousTrack() async {
         let script = """
         tell application "Spotify"

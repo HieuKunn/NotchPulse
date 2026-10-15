@@ -68,6 +68,8 @@ class AppleMusicController: MediaControllerProtocol {
     
     func nextTrack() async {
         await executeCommand("next track")
+        try? await Task.sleep(for: .milliseconds(150))
+        await updatePlaybackInfo()
     }
     
     func previousTrack() async {

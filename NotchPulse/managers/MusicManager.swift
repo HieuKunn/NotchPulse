@@ -1157,18 +1157,18 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.nextTrack()
             } else {
-                let ok = await NowPlayingController.sendUniversalCommand("send", arg: "4")
-                if !ok {
-                    let bundleID = bundleIdentifier ?? ""
-                    if bundleID == "com.apple.Music" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
-                    } else if bundleID == "com.spotify.client" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
-                    } else {
-                        NowPlayingController.postMediaKeyEvent(for: 4)
-                    }
+                let bundleID = bundleIdentifier ?? ""
+                if bundleID == "com.apple.Music" {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
+                } else if bundleID == "com.spotify.client" {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
+                } else {
+                    await NowPlayingController.sendUniversalCommand("send", arg: "4")
+                    NowPlayingController.postMediaKeyEvent(for: 4)
                 }
             }
+            try? await Task.sleep(for: .milliseconds(350))
+            await self.forceUpdate()
         }
     }
 
@@ -1180,24 +1180,24 @@ class MusicManager: ObservableObject {
             if let activeController = activeController {
                 await activeController.previousTrack()
             } else {
-                let ok = await NowPlayingController.sendUniversalCommand("send", arg: "5")
-                if !ok {
-                    let bundleID = bundleIdentifier ?? ""
-                    if bundleID == "com.apple.Music" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
-                    } else if bundleID == "com.spotify.client" {
-                        let script = """
-                        tell application "Spotify"
-                            set player position to 0
-                            previous track
-                        end tell
-                        """
-                        try? await AppleScriptHelper.executeVoid(script)
-                    } else {
-                        NowPlayingController.postMediaKeyEvent(for: 5)
-                    }
+                let bundleID = bundleIdentifier ?? ""
+                if bundleID == "com.apple.Music" {
+                    try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
+                } else if bundleID == "com.spotify.client" {
+                    let script = """
+                    tell application "Spotify"
+                        set player position to 0
+                        previous track
+                    end tell
+                    """
+                    try? await AppleScriptHelper.executeVoid(script)
+                } else {
+                    await NowPlayingController.sendUniversalCommand("send", arg: "5")
+                    NowPlayingController.postMediaKeyEvent(for: 5)
                 }
             }
+            try? await Task.sleep(for: .milliseconds(350))
+            await self.forceUpdate()
         }
     }
 

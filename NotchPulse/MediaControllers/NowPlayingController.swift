@@ -765,10 +765,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func nextTrack() async {
-        // Universal MediaRemote next track (command 4)
-        if await Self.sendUniversalCommand("send", arg: "4") {
-            return
-        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
@@ -782,14 +778,12 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 return
             }
         }
+        // Universal MediaRemote next track (command 4) and hardware media key
+        await Self.sendUniversalCommand("send", arg: "4")
         Self.postMediaKeyEvent(for: 4)
     }
 
     func previousTrack() async {
-        // Universal MediaRemote previous track (command 5)
-        if await Self.sendUniversalCommand("send", arg: "5") {
-            return
-        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
@@ -809,6 +803,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 return
             }
         }
+        // Universal MediaRemote previous track (command 5) and hardware media key
+        await Self.sendUniversalCommand("send", arg: "5")
         Self.postMediaKeyEvent(for: 5)
     }
 
