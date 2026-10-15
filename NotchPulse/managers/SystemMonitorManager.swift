@@ -340,12 +340,34 @@ public class SystemMonitorManager: ObservableObject {
         }
     }
 
+    public func requestMetricsUpdate() {
+        queue.async { [weak self] in
+            self?.updateMetrics()
+        }
+    }
+
     // MARK: - Metrics Fetching
     private func updateMetrics() {
         let (totalCPU, userCPU, sysCPU, idleCPU) = fetchCPUUsage()
         let (usedRAM, totalRAM, percentRAM, appRAM, wiredRAM, compRAM, freeRAM, pressure, pressurePercent) = fetchRAMUsage()
         let (usedSwap, totalSwap) = fetchSwapUsage()
         let gpu = fetchGPUUsage()
+
+        // Read real hardware temperature sensor from SMC / IOHID for compact live display
+        var hwTemp: Double? = nil
+        var hwTempLevel: TemperatureLevel = .cool
+        if let realTemp = SMCService.shared.getHardwareTemperature(), realTemp > 20.0 && realTemp < 115.0 {
+            let clamped = min(115.0, max(20.0, realTemp))
+            hwTemp = clamped
+            if clamped < 60.0 {
+                hwTempLevel = .cool
+            } else if clamped < 80.0 {
+                hwTempLevel = .warm
+            } else {
+                hwTempLevel = .hot
+            }
+        }
+
         let (topCpu, topRam): ([MonitorProcessItem], [MonitorProcessItem])
         if shouldFetchProcesses {
             (topCpu, topRam) = fetchTopProcesses()
@@ -391,6 +413,12 @@ public class SystemMonitorManager: ObservableObject {
             self.gpuHistory.append(gpu)
             if self.gpuHistory.count > 32 {
                 self.gpuHistory.removeFirst()
+            }
+
+            // Update Temperature
+            if let temp = hwTemp {
+                self.temperature = temp
+                self.temperatureLevel = hwTempLevel
             }
 
             // Update Processes

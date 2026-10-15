@@ -312,7 +312,7 @@ struct StatsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .onAppear {
-            monitor.shouldFetchProcesses = showProcesses
+            monitor.shouldFetchProcesses = showProcesses && (expandedMetric != nil)
             monitor.startMonitoring()
             if isThermalExpanded || vm.featureTourTarget == "fan" {
                 if vm.featureTourTarget == "fan" {
@@ -322,7 +322,16 @@ struct StatsView: View {
             }
         }
         .onChange(of: showProcesses) { _, enabled in
-            monitor.shouldFetchProcesses = enabled
+            monitor.shouldFetchProcesses = enabled && (expandedMetric != nil)
+            if monitor.shouldFetchProcesses {
+                monitor.requestMetricsUpdate()
+            }
+        }
+        .onChange(of: expandedMetric) { _, metric in
+            monitor.shouldFetchProcesses = showProcesses && (metric != nil)
+            if monitor.shouldFetchProcesses {
+                monitor.requestMetricsUpdate()
+            }
         }
         .onChange(of: vm.featureTourTarget) { _, target in
             if target == "fan" {
@@ -361,6 +370,7 @@ struct StatsView: View {
         guard showProcesses else { return }
         if expandedMetric == metric {
             expandedMetric = nil
+            monitor.shouldFetchProcesses = false
             if isThermalExpanded {
                 monitor.startThermalMonitoring()
                 withAnimation(NotchPulseViewModel.notchSpring) {
@@ -373,6 +383,8 @@ struct StatsView: View {
             }
         } else {
             expandedMetric = metric
+            monitor.shouldFetchProcesses = true
+            monitor.requestMetricsUpdate()
             if isThermalExpanded {
                 isThermalExpanded = false
                 monitor.stopThermalMonitoring()

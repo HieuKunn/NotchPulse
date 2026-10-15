@@ -1077,8 +1077,14 @@ struct SystemMonitorSettingsView: View {
         .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onAppear {
-            monitor.shouldFetchProcesses = true
+            monitor.shouldFetchProcesses = (expandedMetric != nil)
             monitor.startMonitoring()
+        }
+        .onChange(of: expandedMetric) { _, metric in
+            monitor.shouldFetchProcesses = (metric != nil)
+            if monitor.shouldFetchProcesses {
+                monitor.requestMetricsUpdate()
+            }
         }
         .onDisappear {
             expandedMetric = nil
