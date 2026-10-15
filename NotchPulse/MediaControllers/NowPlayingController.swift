@@ -704,7 +704,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Protocol Implementation
     func play() async {
-        MRMediaRemoteSendCommandFunction(0, nil)
         if await Self.sendUniversalCommand("send", arg: "0") {
             return
         }
@@ -725,7 +724,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func pause() async {
-        MRMediaRemoteSendCommandFunction(1, nil)
         if await Self.sendUniversalCommand("send", arg: "1") {
             return
         }
@@ -746,7 +744,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func togglePlay() async {
-        MRMediaRemoteSendCommandFunction(2, nil)
         // Universal MediaRemote toggle play/pause (command 2) via Mach adapter
         if await Self.sendUniversalCommand("send", arg: "2") {
             return
@@ -768,9 +765,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func nextTrack() async {
-        // 1. Direct in-process MediaRemote command 4 (Next Track)
-        MRMediaRemoteSendCommandFunction(4, nil)
-
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
@@ -790,9 +784,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func previousTrack() async {
-        // 1. Direct in-process MediaRemote command 5 (Previous Track)
-        MRMediaRemoteSendCommandFunction(5, nil)
-
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
@@ -818,7 +809,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func seek(to time: Double) async {
-        MRMediaRemoteSetElapsedTimeFunction(time)
         let micros = Int64(time * 1_000_000)
         if await Self.sendUniversalCommand("seek", arg: "\(micros)") {
             return
@@ -940,6 +930,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             NSLog("NowPlayingController: Could not find mediaremote-adapter.pl script or framework path")
             return
         }
+
+        // Proactively fetch initial playback metadata immediately on startup/wake
+        // so we never wait for a track change event or show empty state on lock screen
+        await fetchInitialNowPlayingInfo(paths: paths)
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
         process.arguments = [paths.script, paths.framework, "stream", "--debounce=250"]
@@ -957,6 +951,32 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             }
         } catch {
             NSLog("NowPlayingController: Failed to launch mediaremote-adapter.pl: \(error)")
+        }
+    }
+
+    private func fetchInitialNowPlayingInfo(paths: (script: String, framework: String)) async {
+        let update = await Task.detached(priority: .userInitiated) { () -> NowPlayingUpdate? in
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
+            proc.arguments = [paths.script, paths.framework, "get"]
+            let outPipe = Pipe()
+            proc.standardOutput = outPipe
+            proc.standardError = Pipe()
+            do {
+                try proc.run()
+                let data = outPipe.fileHandleForReading.readDataToEndOfFile()
+                proc.waitUntilExit()
+                guard proc.terminationStatus == 0, !data.isEmpty else { return nil }
+                let payload = try JSONDecoder().decode(NowPlayingPayload.self, from: data)
+                return NowPlayingUpdate(type: "data", diff: false, payload: payload)
+            } catch {
+                NSLog("NowPlayingController: Failed to fetch initial now playing info: \(error)")
+                return nil
+            }
+        }.value
+
+        if let update = update {
+            await handleAdapterUpdate(update)
         }
     }
 
@@ -980,6 +1000,19 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private func handleAdapterUpdate(_ update: NowPlayingUpdate) async {
         let payload = update.payload
         let diff = update.diff ?? false
+
+        // Guard against initial empty payload handshake from mediaremote-adapter stream:
+        // {"type":"data","diff":false,"payload":{}}
+        let isEmptyPayload = (payload.title == nil || payload.title?.isEmpty == true) &&
+            (payload.artist == nil || payload.artist?.isEmpty == true) &&
+            (payload.album == nil || payload.album?.isEmpty == true) &&
+            payload.playing == nil &&
+            payload.bundleIdentifier == nil &&
+            payload.parentApplicationBundleIdentifier == nil &&
+            payload.elapsedTime == nil
+        if isEmptyPayload {
+            return
+        }
 
         var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
         

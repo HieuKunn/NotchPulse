@@ -27,6 +27,7 @@ final class LockScreenWakeObserver: ObservableObject {
         if Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
             self.isScreenLocked = true
             startLockSessionSupervisor()
+            updateLockScreenMediaWindowVisibility()
         }
         setupObservers()
     }
