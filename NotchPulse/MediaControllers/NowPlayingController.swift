@@ -277,10 +277,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 return ("Chromium", false)
             } else if lower.contains("orion") {
                 return ("Orion", true)
-            } else if lower.contains("zen") {
-                return ("Zen Browser", false)
-            } else if lower.contains("firefox") || lower.contains("mozilla") {
-                return ("Firefox", false)
+            } else if lower.contains("zen") || lower.contains("firefox") || lower.contains("mozilla") {
+                // Zen Browser and Firefox do not support Chromium/Safari AppleScript tab scripting.
+                // Returning nil allows MediaRemote / system media fallback to handle them cleanly.
+                return nil
             }
             return nil
         }
@@ -704,6 +704,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Protocol Implementation
     func play() async {
+        MRMediaRemoteSendCommandFunction(0, nil)
         if await Self.sendUniversalCommand("send", arg: "0") {
             return
         }
@@ -724,6 +725,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func pause() async {
+        MRMediaRemoteSendCommandFunction(1, nil)
         if await Self.sendUniversalCommand("send", arg: "1") {
             return
         }
@@ -744,6 +746,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func togglePlay() async {
+        MRMediaRemoteSendCommandFunction(2, nil)
         // Universal MediaRemote toggle play/pause (command 2) via Mach adapter
         if await Self.sendUniversalCommand("send", arg: "2") {
             return
@@ -765,6 +768,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func nextTrack() async {
+        // 1. Direct in-process MediaRemote command 4 (Next Track)
+        MRMediaRemoteSendCommandFunction(4, nil)
+
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
@@ -781,9 +787,20 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         // Universal MediaRemote next track (command 4) and hardware media key
         await Self.sendUniversalCommand("send", arg: "4")
         Self.postMediaKeyEvent(for: 4)
+
+        // For long standalone tracks / videos (e.g. YouTube mix without a playlist next button):
+        // If track duration is known and long (> 30s), also skip forward +30s so user gets immediate response
+        if playbackState.duration > 30 {
+            let current = playbackState.elapsedTime
+            let nextPos = min(playbackState.duration, current + 30)
+            await seek(to: nextPos)
+        }
     }
 
     func previousTrack() async {
+        // 1. Direct in-process MediaRemote command 5 (Previous Track)
+        MRMediaRemoteSendCommandFunction(5, nil)
+
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
@@ -806,9 +823,17 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         // Universal MediaRemote previous track (command 5) and hardware media key
         await Self.sendUniversalCommand("send", arg: "5")
         Self.postMediaKeyEvent(for: 5)
+
+        // For long standalone tracks / videos: rewind back 15s or back to 0
+        if playbackState.duration > 30 {
+            let current = playbackState.elapsedTime
+            let prevPos = max(0, current - 15)
+            await seek(to: prevPos)
+        }
     }
 
     func seek(to time: Double) async {
+        MRMediaRemoteSetElapsedTimeFunction(time)
         let micros = Int64(time * 1_000_000)
         if await Self.sendUniversalCommand("seek", arg: "\(micros)") {
             return

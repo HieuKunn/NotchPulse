@@ -1165,6 +1165,10 @@ class MusicManager: ObservableObject {
                 } else {
                     await NowPlayingController.sendUniversalCommand("send", arg: "4")
                     NowPlayingController.postMediaKeyEvent(for: 4)
+                    if self.songDuration > 30 {
+                        let newPos = min(self.songDuration, self.currentEstimatedTime + 30)
+                        self.seek(to: newPos)
+                    }
                 }
             }
             try? await Task.sleep(for: .milliseconds(350))
@@ -1194,6 +1198,10 @@ class MusicManager: ObservableObject {
                 } else {
                     await NowPlayingController.sendUniversalCommand("send", arg: "5")
                     NowPlayingController.postMediaKeyEvent(for: 5)
+                    if self.songDuration > 30 {
+                        let newPos = max(0, self.currentEstimatedTime - 15)
+                        self.seek(to: newPos)
+                    }
                 }
             }
             try? await Task.sleep(for: .milliseconds(350))
