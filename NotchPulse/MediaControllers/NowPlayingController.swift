@@ -787,14 +787,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         // Universal MediaRemote next track (command 4) and hardware media key
         await Self.sendUniversalCommand("send", arg: "4")
         Self.postMediaKeyEvent(for: 4)
-
-        // For long standalone tracks / videos (e.g. YouTube mix without a playlist next button):
-        // If track duration is known and long (> 30s), also skip forward +30s so user gets immediate response
-        if playbackState.duration > 30 {
-            let current = playbackState.elapsedTime
-            let nextPos = min(playbackState.duration, current + 30)
-            await seek(to: nextPos)
-        }
     }
 
     func previousTrack() async {
@@ -823,13 +815,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         // Universal MediaRemote previous track (command 5) and hardware media key
         await Self.sendUniversalCommand("send", arg: "5")
         Self.postMediaKeyEvent(for: 5)
-
-        // For long standalone tracks / videos: rewind back 15s or back to 0
-        if playbackState.duration > 30 {
-            let current = playbackState.elapsedTime
-            let prevPos = max(0, current - 15)
-            await seek(to: prevPos)
-        }
     }
 
     func seek(to time: Double) async {
