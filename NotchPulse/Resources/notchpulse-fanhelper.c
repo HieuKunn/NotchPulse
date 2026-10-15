@@ -167,7 +167,7 @@ static float readFloatKey(const char* key) {
             memcpy(&val, bytes, 4);
             return val;
         } else if ((dataType == fourCC("ioft") || sz >= 8) && sz >= 4) {
-            // ioft 16.16 fixed point (ThermalForge GPU format on M3/M4/M5 Max)
+            // ioft 16.16 fixed point (GPU format on M3/M4/M5 Max)
             uint32_t raw = 0;
             memcpy(&raw, bytes, 4);
             float integer = (float)(raw >> 16);
@@ -209,7 +209,7 @@ static int writeFanTargetRPM(const char* key, float rpm) {
 static void initHardware(void) {
     uint8_t bytes[32];
     uint32_t sz = 0;
-    // ThermalForge hardware detection: M5 Max uses F%dmd, M1-M4 use F%dMd
+    // Apple Silicon hardware detection: M5 Max uses F%dmd, M1-M4 use F%dMd
     if (smcReadKey("F0md", bytes, &sz)) {
         strncpy(g_modeKeyTemplate, "F%dmd", sizeof(g_modeKeyTemplate));
     } else {
@@ -246,7 +246,7 @@ static int unlockFans(void) {
     if (count <= 0) return 0;
 
     if (g_hasFtst) {
-        // M1-M4 path: Ftst=1 suppresses thermalmonitord (500ms match ThermalForge)
+        // M1-M4 path: Ftst=1 suppresses thermalmonitord (500ms delay)
         uint8_t one = 1;
         smcWriteKey("Ftst", &one, 1);
         usleep(500000); // 500ms
@@ -403,7 +403,7 @@ static int setSingleFanRPM(int fanIndex, float rpm) {
 }
 
 static float getPeakTemperature(void) {
-    // ThermalForge safety sensor keys
+    // Hardware safety sensor keys
     static const char* tempKeys[] = {
         "TCDX", "TCHP", "TCMb",
         "Tp01", "Tp02", "Tp03", "Tp04", "Tp05", "Tp06", "Tp07", "Tp08",
@@ -421,7 +421,7 @@ static float getPeakTemperature(void) {
     return peak;
 }
 
-// ThermalForge Heartbeat Watchdog & Safety Floor thread
+// Hardware Heartbeat Watchdog & Safety Floor thread
 static void* watchdogThread(void* arg) {
     (void)arg;
     while (g_running) {

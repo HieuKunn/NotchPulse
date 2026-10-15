@@ -1068,7 +1068,7 @@ struct SystemMonitorSettingsView: View {
             } header: {
                 Text(loc("Hardware Fan Control & Profiles"))
             } footer: {
-                Text(loc("Apple Silicon SMC fan hardware controls & operational profiles guide. Matches ThermalForge kernel driver 1:1."))
+                Text(loc("Apple Silicon SMC fan hardware controls & operational profiles guide."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -1094,255 +1094,62 @@ struct SystemMonitorSettingsView: View {
     }
 }
 
-/// Hardware SMC fan status & operational profile guide.
+/// Hardware SMC fan operational profile guide.
 private struct HardwareFanDiagnosticsView: View {
-    @ObservedObject private var monitor = SystemMonitorManager.shared
-    @ObservedObject private var fanHelper = FanHelperManager.shared
-    @State private var isReconnecting: Bool = false
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // 1. Daemon Status Header
-            HStack(spacing: 10) {
-                if fanHelper.isHelperInstalled {
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundStyle(.green)
-                        .font(.system(size: 16))
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(loc("Privileged Daemon Active"))
-                                .font(.subheadline.weight(.semibold))
-                            Text("v\(FanHelperManager.expectedDaemonVersion)")
-                                .font(.caption2.weight(.medium))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Color.green.opacity(0.15)))
-                                .foregroundStyle(.green)
-                        }
-                        Text(FanHelperManager.socketPath)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .font(.system(size: 16))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(loc("Daemon Offline / Reconnect Needed"))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.orange)
-                        Text(loc("Click to kickstart privileged fan control daemon"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(loc("Fan Profiles & Behavior"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 Spacer()
-
-                Button {
-                    isReconnecting = true
-                    fanHelper.promptInstallIfNeeded(userInitiated: true) {
-                        fanHelper.checkHelperStatus()
-                        fanHelper.refreshTelemetry()
-                        isReconnecting = false
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        if isReconnecting || fanHelper.isInstalling {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.caption)
-                        }
-                        Text(loc("Reinstall / Reconnect"))
-                            .font(.caption.weight(.medium))
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(10)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(fanHelper.isHelperInstalled ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
-            )
-
-            // 2. Telemetry Stat Tiles
-            HStack(spacing: 12) {
-                // Live RPM Tile
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "fan.fill")
-                            .foregroundStyle(.blue)
-                        Text(loc("Actual RPM"))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("\(monitor.currentFanRPM)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                    Text("\(monitor.currentFanSpeedPercent)% \(loc("Load"))")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
-
-                // Target RPM Tile
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "target")
-                            .foregroundStyle(.orange)
-                        Text(loc("Target RPM"))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("\(fanHelper.latestTelemetry?.targetRPM ?? 0)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                    Text((fanHelper.latestTelemetry?.isManual ?? false) ? loc("Manual SMC") : loc("Apple Auto"))
-                        .font(.caption2)
-                        .foregroundStyle((fanHelper.latestTelemetry?.isManual ?? false) ? .orange : .secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
-
-                // Range Tile
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "slider.horizontal.2.square")
-                            .foregroundStyle(.purple)
-                        Text(loc("Hardware Range"))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("\(fanHelper.latestTelemetry?.minRPM ?? 2317) - \(fanHelper.latestTelemetry?.maxRPM ?? 6550)")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                    Text("\(fanHelper.latestTelemetry?.fanCount ?? 1) \(loc("Fan(s)"))")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
-
-                // Temperature Tile
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "thermometer.medium")
-                            .foregroundStyle(.red)
-                        Text(loc("SoC Heat"))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(String(format: "%.1f°C", monitor.temperature))
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                    Text((fanHelper.latestTelemetry?.manualEngaged ?? false) ? "Ftst Locked" : "Apple Kernel")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.04)))
+                Text(loc("Controlled via Notch"))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
 
-            // 3. Operational Fan Profiles Guide
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(loc("Fan Profiles & Behavior"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(loc("Controlled via Notch"))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
+            VStack(spacing: 6) {
+                FanProfileRow(
+                    title: loc("Auto (Apple Default)"),
+                    summary: loc("macOS kernel handles fan speed automatically. Fans stay at minimum RPM or turn off completely during light tasks to save battery and maintain silence.")
+                )
 
-                VStack(spacing: 6) {
-                    FanProfileRow(
-                        title: loc("Auto (Apple Default)"),
-                        summary: loc("macOS kernel handles fan speed automatically. Fans stay at minimum RPM or turn off completely during light tasks to save battery and maintain silence.")
-                    )
+                FanProfileRow(
+                    title: loc("Balanced"),
+                    summary: loc("Maintains optimal thermal-to-noise balance, capping fan speed around ~60% (~4,400 RPM) to keep the system cool without excessive noise.")
+                )
 
-                    FanProfileRow(
-                        title: loc("Balanced"),
-                        summary: loc("Maintains optimal thermal-to-noise balance, capping fan speed around ~60% (~4,400 RPM) to keep the system cool without excessive noise.")
-                    )
+                FanProfileRow(
+                    title: loc("Smart (Predictive)"),
+                    summary: loc("Monitors SoC thermal acceleration to ramp up fans preemptively before sudden heat spikes, preventing thermal throttling.")
+                )
 
-                    FanProfileRow(
-                        title: loc("Smart (Predictive)"),
-                        summary: loc("Monitors SoC thermal acceleration to ramp up fans preemptively before sudden heat spikes, preventing thermal throttling.")
-                    )
+                FanProfileRow(
+                    title: loc("Max 100%"),
+                    summary: loc("Locks fans to maximum hardware RPM (~6,550 RPM) for intensive rendering, video export, heavy compilation, or gaming.")
+                )
 
-                    FanProfileRow(
-                        title: loc("Max 100%"),
-                        summary: loc("Locks fans to maximum hardware RPM (~6,550 RPM) for intensive rendering, video export, heavy compilation, or gaming.")
-                    )
+                FanProfileRow(
+                    title: loc("Custom (Manual)"),
+                    summary: loc("Drag the fan slider directly from the Notch interface to lock fans at any specific percentage or RPM target.")
+                )
+            }
 
-                    FanProfileRow(
-                        title: loc("Custom (Manual)"),
-                        summary: loc("Drag the fan slider directly from the Notch interface to lock fans at any specific percentage or RPM target.")
-                    )
-                }
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 1)
 
-                // Tip callout without icon
-                Text(loc("Tip: You can switch fan profiles or drag the custom speed slider directly inside the Notch / Dynamic Island without opening Settings."))
+                Text(loc("You can switch fan profiles or drag the custom speed slider directly inside the Notch / Dynamic Island without opening Settings."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.04)))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            // 4. Console Log & Daemon Response
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(loc("Daemon Command & Hardware Reply Log"))
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    if let ts = fanHelper.lastCommandTimestamp {
-                        Text(ts.formatted(date: .omitted, time: .standard))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                HStack(spacing: 8) {
-                    Image(systemName: "terminal.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.green)
-                    Text(fanHelper.lastCommandLog)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    Spacer()
-                    Button {
-                        fanHelper.refreshTelemetry()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help(loc("Poll SMC Hardware Now"))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.12)))
-            }
+            .padding(.top, 4)
+            .padding(.horizontal, 2)
         }
         .padding(.vertical, 4)
-        .onAppear {
-            fanHelper.checkHelperStatus()
-            fanHelper.refreshTelemetry()
-        }
-        .onReceive(Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()) { _ in
-            fanHelper.refreshTelemetry()
-        }
     }
 }
 

@@ -70,7 +70,7 @@ public final class SMCService {
     public var isHardwareFanAvailable: Bool = false
     public private(set) var fanCount: Int = 0
 
-    // ThermalForge hardware adaptation
+    // Hardware fan mode adaptation
     private var modeKeyTemplate: String = "F%dMd"
     private var hasFtst: Bool = false
     private var isUnlocked: Bool = false
@@ -106,7 +106,7 @@ public final class SMCService {
         self.fanCount = fans.count
         self.isHardwareFanAvailable = (fans.count > 0 && (fans.first?.maxRPM ?? 0) > 0)
 
-        // ThermalForge hardware detection:
+        // Apple Silicon hardware detection:
         // M5 Max uses F%dmd (lowercase), M1-M4 use F%dMd (uppercase)
         if readKeyInfo("F0md") != nil {
             self.modeKeyTemplate = "F%dmd"
@@ -360,7 +360,7 @@ public final class SMCService {
         return temps.isEmpty ? nil : temps.max()
     }
 
-    // MARK: - Fan Reading & Direct Control (ThermalForge Direct Port)
+    // MARK: - Fan Reading & Direct Control
 
     public func getFans() -> [FanInfo] {
         var count = 0
@@ -427,7 +427,7 @@ public final class SMCService {
         return false
     }
 
-    /// ThermalForge Unlock Sequence:
+    /// Hardware Fan Unlock Sequence:
     /// On M1-M4: Writes Ftst=1 to suppress thermalmonitord, sleeps 0.3s, then writes mode=1.
     /// On M5+: Ftst doesn't exist; directly attempts mode write.
     @discardableResult
@@ -455,7 +455,7 @@ public final class SMCService {
         return self.isUnlocked
     }
 
-    /// ThermalForge Float to SMC Bytes encoding (flt 4-byte or fpe2 fixed-point)
+    /// Float to SMC Bytes encoding (flt 4-byte or fpe2 fixed-point)
     private func floatToSMCBytes(_ value: Float, for key: String) -> [UInt8] {
         let info = readKeyInfo(key)
         if let info = info, info.type == fourCCToUInt32("fpe2") {
@@ -467,7 +467,7 @@ public final class SMCService {
         }
     }
 
-    /// Sets target RPM for a specific fan (ThermalForge setSpeed port)
+    /// Sets target RPM for a specific fan
     @discardableResult
     public func setFanSpeed(index: Int, rpm: Double) -> Bool {
         guard isHardwareFanAvailable || fanCount > 0 else { return false }
@@ -480,7 +480,7 @@ public final class SMCService {
         return writeSMCBytes(targetKey, bytes: bytes)
     }
 
-    /// Sets target RPM for all fans (ThermalForge setAllFans port)
+    /// Sets target RPM for all fans
     @discardableResult
     public func setAllFans(rpm: Double) -> Bool {
         let fans = getFans()
@@ -502,7 +502,7 @@ public final class SMCService {
         return anySuccess
     }
 
-    /// Restores all fans to macOS default automatic control (ThermalForge resetAuto port)
+    /// Restores all fans to macOS default automatic control
     @discardableResult
     public func restoreAutoFanControl() -> Bool {
         let fans = getFans()

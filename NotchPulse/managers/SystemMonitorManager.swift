@@ -131,7 +131,7 @@ public class SystemMonitorManager: ObservableObject {
         set { selectedFanProfile = newValue }
     }
 
-    // Thermal regulation state — 1:1 port of ThermalForge ThermalMonitor
+    // Thermal regulation state
     private var temperatureHistory: [Double] = []
     private var lastRampPercent: Double = 0.0
     private var sustainedTicksCount: Int = 0
@@ -816,8 +816,7 @@ public class SystemMonitorManager: ObservableObject {
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // ThermalForge 1:1 Thermal Regulation Engine Port
-        // Source: ThermalMonitor.swift (tickCurve + tickSmart) + Profile.swift
+        // Hardware Thermal Regulation Engine
         // ═══════════════════════════════════════════════════════════════════
 
         // Compute elapsed time since last tick for time-based ramp governor
@@ -844,7 +843,7 @@ public class SystemMonitorManager: ObservableObject {
             temperatureHistory.removeFirst()
         }
 
-        // Rate of change in °C/s (ThermalForge: sampled at monitor cadence)
+        // Rate of change in °C/s: sampled at monitor cadence
         let rateOfChange: Double
         if temperatureHistory.count >= 2 {
             let seconds = Double(temperatureHistory.count - 1) * elapsed
@@ -853,7 +852,7 @@ public class SystemMonitorManager: ObservableObject {
             rateOfChange = 0.0
         }
 
-        // Safety override: any sensor > 95°C → force max (ThermalForge safetyTempThreshold)
+        // Safety override: any sensor > 95°C → force max safety threshold
         let safetyThreshold = 95.0
         let safetyHysteresis = 5.0
         if calculatedTemp >= safetyThreshold {
@@ -876,7 +875,7 @@ public class SystemMonitorManager: ObservableObject {
             }
             return
         }
-        // Clear safety with hysteresis (ThermalForge: safetyTempThreshold - hysteresisDegrees)
+        // Clear safety with hysteresis band
         if lastRampPercent >= 1.0 && calculatedTemp >= (safetyThreshold - safetyHysteresis) && fansCurrentlyRunning {
             // Still in safety hysteresis band — maintain max
             FanHelperManager.shared.sendHeartbeat()
@@ -894,7 +893,7 @@ public class SystemMonitorManager: ObservableObject {
             return
         }
 
-        // Per-profile constants (ThermalForge Profile.swift built-in profiles)
+        // Per-profile thermal constants
         let stopTemp: Double    // Below this: fans off
         let startTemp: Double   // Above this: fans engage (after sustained)
         let ceilingTemp: Double // Fans at maxPercent
@@ -991,7 +990,6 @@ public class SystemMonitorManager: ObservableObject {
             }
             FanHelperManager.shared.sendHeartbeat()
             let effectiveFanPct = Int(round(lastRampPercent * 100.0))
-            dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: targetRPM)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.temperature = calculatedTemp
@@ -1006,14 +1004,14 @@ public class SystemMonitorManager: ObservableObject {
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // Balanced / Smart — ThermalForge curve-based thermal regulation
+        // Balanced / Smart — curve-based thermal regulation
         // ═══════════════════════════════════════════════════════════════
 
         var targetPct: Double = 0.0
         var shouldTurnOff = false
 
         if selectedFanProfile == .smart {
-            // ── Smart Profile (ThermalForge ThermalMonitor.tickSmart) ──
+            // ── Smart Profile ──
 
             // Below stop threshold AND fans running AND temp falling → turn off
             if calculatedTemp < stopTemp && fansCurrentlyRunning && rateOfChange <= 0 {
@@ -1035,7 +1033,7 @@ public class SystemMonitorManager: ObservableObject {
                     // Not enough sustained time yet — wait
                     targetPct = 0.0
                 } else {
-                    // S-curve: pos²(3-2pos) — ThermalForge uncalibrated path
+                    // S-curve: pos²(3-2pos) path
                     let range = ceilingTemp - startTemp  // 85 - 53 = 32
                     let position = min(max((calculatedTemp - startTemp) / range, 0), 1)
                     targetPct = position * position * (3.0 - 2.0 * position)
@@ -1058,9 +1056,9 @@ public class SystemMonitorManager: ObservableObject {
                 }
             }
         } else {
-            // ── Balanced Profile (ThermalForge ThermalMonitor.tickCurve + Curve.targetPercent) ──
+            // ── Balanced Profile ──
 
-            // Step 1: Get raw target from curve (ThermalForge Curve.targetPercent)
+            // Step 1: Get raw target from curve
             var rawTarget: Double? = nil
 
             if calculatedTemp <= stopTemp && !fansCurrentlyRunning {
@@ -1132,7 +1130,7 @@ public class SystemMonitorManager: ObservableObject {
             return
         }
 
-        // ── Ramp governor (ThermalForge: per-profile rates × elapsed time) ──
+        // ── Ramp governor: per-profile rates × elapsed time ──
         let rampUp = rampUpPerSec * elapsed
         let rampDown = rampDownPerSec * elapsed
 
@@ -1142,7 +1140,7 @@ public class SystemMonitorManager: ObservableObject {
             targetPct = max(targetPct, lastRampPercent - rampDown)
         }
 
-        // Apply if changed meaningfully (ThermalForge threshold: 0.002)
+        // Apply if changed meaningfully (threshold: 0.002)
         if abs(targetPct - lastRampPercent) > 0.002 || !fansCurrentlyRunning || (targetPct > 0.05 && realRPM == 0) {
             let targetRPM = max(Int(maxRpm * targetPct), Int(minRpm))
             let success = FanHelperManager.shared.sendCommand("set \(targetRPM)")
@@ -1158,10 +1156,6 @@ public class SystemMonitorManager: ObservableObject {
         FanHelperManager.shared.sendHeartbeat()
 
         let effectiveFanPct = Int(round(lastRampPercent * 100.0))
-        let targetRPM = (effectiveFanPct <= 0) ? 0 : Int(minRpm + ((Double(effectiveFanPct) / 100.0) * (maxRpm - minRpm)))
-
-        // Secondary fallback: ThermalForge daemon socket if present
-        dispatchToThermalForgeDaemon(profile: selectedFanProfile, rpm: targetRPM)
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -1172,71 +1166,6 @@ public class SystemMonitorManager: ObservableObject {
             self.currentFanRPM = realRPM
             self.currentFanMaxRPM = Int(maxRpm)
             self.isHardwareFanAvailable = isAvailable
-        }
-    }
-
-    /// Communicates with ThermalForge root daemon via Unix socket if installed
-    private func dispatchToThermalForgeDaemon(profile: NotchPulseFanProfile, rpm: Int) {
-        let socketPath = "/var/run/thermalforge.sock"
-        guard FileManager.default.fileExists(atPath: socketPath) else { return }
-
-        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
-        guard fd >= 0 else { return }
-        defer { close(fd) }
-
-        var nosigpipe: Int32 = 1
-        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, socklen_t(MemoryLayout<Int32>.size))
-
-        var timeout = timeval(tv_sec: 0, tv_usec: 100_000)
-        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
-
-        var addr = sockaddr_un()
-        addr.sun_family = sa_family_t(AF_UNIX)
-        let maxLen = MemoryLayout.size(ofValue: addr.sun_path)
-        _ = socketPath.withCString {
-            strncpy(&addr.sun_path.0, $0, maxLen - 1)
-        }
-
-        let connectResult = withUnsafePointer(to: &addr) { ptr in
-            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-            }
-        }
-        guard connectResult == 0 else { return }
-
-        let verb: String
-        let reqRPM: Int?
-        switch profile {
-        case .auto:
-            verb = "auto"
-            reqRPM = nil
-        case .max:
-            verb = "max"
-            reqRPM = nil
-        case .custom, .smart, .balanced:
-            verb = "set"
-            reqRPM = rpm
-        }
-
-        struct WireRequest: Encodable {
-            let v: Int = 1
-            let verb: String
-            let rpm: Int?
-            let oneshot: Bool = true
-        }
-
-        guard let payload = try? JSONEncoder().encode(WireRequest(verb: verb, rpm: reqRPM)) else { return }
-        let len = payload.count
-        var frame = [UInt8]()
-        frame.reserveCapacity(4 + len)
-        frame.append(UInt8(truncatingIfNeeded: len >> 24))
-        frame.append(UInt8(truncatingIfNeeded: len >> 16))
-        frame.append(UInt8(truncatingIfNeeded: len >> 8))
-        frame.append(UInt8(truncatingIfNeeded: len))
-        frame.append(contentsOf: payload)
-
-        _ = frame.withUnsafeBytes { ptr in
-            write(fd, ptr.baseAddress!, frame.count)
         }
     }
 }
