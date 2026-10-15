@@ -1590,7 +1590,7 @@ public final class UniversalArtworkResolver {
 
         do {
             guard let res = try await AppleScriptHelper.execute(script),
-                  let urlStr = res?.stringValue, !urlStr.isEmpty,
+                  let urlStr = res.stringValue, !urlStr.isEmpty,
                   let url = URL(string: urlStr),
                   let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                   let vItem = components.queryItems?.first(where: { $0.name == "v" }),

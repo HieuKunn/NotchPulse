@@ -56,6 +56,8 @@ public final class FanHelperManager: ObservableObject {
     @Published public private(set) var lastCommandTimestamp: Date? = nil
 
     private var lastInstallAttemptTime: Date = .distantPast
+    private let heartbeatQueue = DispatchQueue(label: "com.notchpulse.fanhelper.heartbeat", qos: .utility)
+    private var heartbeatTimer: DispatchSourceTimer?
 
     private init() {
         checkHelperStatus()
