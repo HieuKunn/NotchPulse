@@ -163,10 +163,8 @@ final class NotchPulseLockMonitor {
         let now = ProcessInfo.processInfo.systemUptime
         if now - cachedLockTimestamp > 0.25 {
             if let dict = CGSessionCopyCurrentDictionary() as? [String: Any] {
-                if let lockedNum = dict["CGSSessionScreenIsLocked"] {
-                    let locked = (lockedNum as? Bool) ?? ((lockedNum as? NSNumber)?.boolValue ?? false)
-                    cachedLockState = locked
-                }
+                let lockedNum = dict["CGSSessionScreenIsLocked"]
+                cachedLockState = (lockedNum as? Bool) ?? ((lockedNum as? NSNumber)?.boolValue ?? false)
             }
             // If dict is nil (during display sleep/wake transition), DO NOT clear cachedLockState to false!
             cachedLockTimestamp = now

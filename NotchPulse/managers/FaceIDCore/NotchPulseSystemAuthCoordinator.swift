@@ -370,23 +370,23 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             camera.stop()
         }
 
-        let timeoutSeconds: Double = Double(settings.faceDetectionSeconds)
-        let startTime = ContinuousClock.now
-        let threshold = settings.matchThreshold
-        var lastProcessedFrameID: UInt64?
-        var lastFaceBoundingBox: CGRect?
-        var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 10
-        var readyMatch: ScoredIdentity?
+        let windowDuration = Duration.seconds(timeoutSeconds)
+        let firstFrameCap = ContinuousClock.now + .seconds(8)
+        var effectiveDeadline = ContinuousClock.now + windowDuration
+        var firstFrameSeen = false
 
-        let liveness = NotchPulseLivenessAnalyzer()
-        liveness.modeProvider = { [weak self] in self?.settings.livenessMode ?? .light }
-        var livenessConfirmed = !settings.livenessChecksEnabled
-
-        while ContinuousClock.now - startTime < .seconds(timeoutSeconds), !Task.isCancelled {
+        while ContinuousClock.now < effectiveDeadline, !Task.isCancelled {
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
+                if !firstFrameSeen {
+                    if ContinuousClock.now > firstFrameCap { break }
+                    effectiveDeadline = ContinuousClock.now + windowDuration
+                }
                 try? await Task.sleep(for: .milliseconds(20))
                 continue
+            }
+            if !firstFrameSeen {
+                firstFrameSeen = true
+                effectiveDeadline = ContinuousClock.now + windowDuration
             }
             lastProcessedFrameID = frame.id
 

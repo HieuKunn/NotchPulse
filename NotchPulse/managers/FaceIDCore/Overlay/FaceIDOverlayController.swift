@@ -251,26 +251,18 @@ final class FaceIDOverlayController {
             isPillDocked = true
             windowController.show()
             windowController.displaySynchronously()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                guard let self else { return }
-                withAnimation(FaceIDOverlayGeometry.springAnimation) {
-                    self.phase = .scanning
-                }
-                self.updateInteractivity()
-            }
-        } else {
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
-                phase = .scanning
-            }
-            updateInteractivity()
         }
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = .scanning
+        }
+        updateInteractivity()
 
         // Safety fallback timeout in case coordinator hangs
         scanTimeoutTask = Task { @MainActor [weak self] in
             let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
             try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            self.finish(success: false)
+            await self.collapse()
         }
     }
 
@@ -294,7 +286,7 @@ final class FaceIDOverlayController {
             let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
             try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            self.finish(success: false)
+            await self.collapse()
         }
     }
 
@@ -336,24 +328,20 @@ final class FaceIDOverlayController {
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         
         content = .scan(.idle)
-        phase = .closed
         isPillDocked = true
         windowController.show()
         windowController.displaySynchronously()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            guard let self else { return }
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
-                self.phase = .scanning
-            }
-            self.updateInteractivity()
+        withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            phase = .scanning
         }
+        updateInteractivity()
 
         scanTimeoutTask = Task { @MainActor [weak self] in
             let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
             try? await Task.sleep(for: duration)
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            self.finish(success: false)
+            await self.collapse()
         }
     }
 
@@ -507,7 +495,7 @@ final class FaceIDOverlayController {
                 let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
                 try? await Task.sleep(for: duration)
                 guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-                self.finish(success: false)
+                await self.collapse()
             }
 
             if let onActivate = self.onActivate {

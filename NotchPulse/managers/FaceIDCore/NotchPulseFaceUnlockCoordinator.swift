@@ -130,7 +130,7 @@ final class NotchPulseFaceUnlockCoordinator {
         if isWake {
             lastHandledWakeCount = lockMonitor.wakeEventCount
             ArcFaceEmbedder.warmUp()
-            if !isWithinRecentArmBurst && scanTask == nil {
+            if !isWithinRecentArmBurst {
                 hasArmedForCurrentLock = false
             }
         }
@@ -157,9 +157,8 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        // Explicit screen lock (`.screenLocked` e.g. Ctrl + Cmd + Q) only arms the silhouette if selected, leaving hover/wake/space to scan.
         let isSelectedTrigger = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
-        let shouldAutoScan = (signal != .onLock) && isSelectedTrigger
+        let shouldAutoScan = isSelectedTrigger
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do.
         guard showsUI || shouldAutoScan else { return }
