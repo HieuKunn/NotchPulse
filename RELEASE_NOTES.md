@@ -1,30 +1,7 @@
-## 🚀 What's New in NotchPulse v5.4
+## 🚀 What's New in NotchPulse v5.4.1
 
-### 🎵 Refined Lock Screen Media Player & Media Controls
-- **Instant Play & Pause Across All Interfaces**: Restored seamless toggle, pause, and resume playback response across Notch, Dynamic Island, and Lock Screen by streamlining Universal MediaRemote command routing.
-- **Immediate First-Launch Lock Screen State**: Actively retrieves current song and artist metadata on application launch and system wake, ensuring the Lock Screen media card immediately displays active or paused media without requiring manual playback toggles.
-- **Immediate Notch Collapsing on Pause**: Pausing media now immediately collapses the closed Notch back to its standard resting width, eliminating lingering expanded frames or visualizer bars.
-- **Lazy Lyrics Loading**: Lyrics are now loaded on demand only when viewing the Notch Home or Lock Screen player, eliminating background web requests when the Notch is closed.
-- **Continuous Uninterrupted Playback Display**: The Lock Screen media card and full-screen lyrics remain smoothly and continuously visible throughout your locked session. It never flickers, vanishes, or unmounts when changing tracks, scrubbing, pausing, or pressing playback buttons.
-- **Universal High-Definition Artwork**: Video thumbnails (YouTube, Zen Browser, Arc, Safari, Chrome, Firefox) and album covers resolve accurately at high definition without reverting to browser application icons.
-- **Reliable Next & Previous Controls**: Next track and previous track controls dispatch seamlessly across Spotify, Apple Music, and web players (YouTube, SoundCloud, Spotify Web), with instant track metadata updates on both Lock Screen and Notch.
-- **Smart Multi-Media Session Stack**: Seamlessly switch between multiple concurrent playback sessions with automatic fallback to previous media when an active player closes.
-
-### ⚡️ Fluid Notch & Dynamic Island Performance
-- **Zero Closed-Notch Overhead**: Removed the inactive face animation and its background polling timer, keeping the closed Notch completely still and silent with zero CPU/timer overhead.
-- **Lighter Memory Footprint**: Optimized internal shadow rendering across cards, sliders, and buttons, reducing offscreen layer allocations for fluid 120Hz ProMotion animations.
-- **Parity with Windowed Mode**: Fullscreen auto-hide reveal and close transitions now mirror windowed desktop behavior with zero awkward accordion stretching.
-- **Seamless Spring Morphing**: Matched geometry animations for album art and audio spectrum expand and retract smoothly without view recreation or visual popping.
-- **Eliminated Multi-Monitor Face ID Flapping**: Unlocking with Face ID on multi-monitor setups cleanly presents inline activities without double opening/closing cycles.
-
-### ❄️ Native Thermal & Fan Controls
-- **Dedicated Apple Silicon Cooling Engine**: Monitor live hardware temperatures and adjust fan profiles (Auto, Balanced, Smart, Max 100%, and Custom) directly from the Notch interface with real-time fan RPM readings.
-- **Synced Dashboard Temperatures**: Live temperature readings stay synchronized with CPU, RAM, and GPU metrics in compact view, with heavy process inspection active only when expanding the card.
-
-### ⚡️ Activity Monitor Parity & Symmetrical Dashboard
-- **True Real-Time RAM Metrics**: Memory consumption accurately matches Apple's official physical memory standard without compressed memory distortion.
-- **Balanced 3-Column Layout**: Clean, symmetrical CPU, RAM, and GPU dashboard cards with responsive typography.
-
-### 🔒 Fast & Seamless Face ID Biometrics
-- **Instant Recognition on Wake**: AI facial recognition models stay resident in memory and warm up alongside camera hardware for instantaneous face unlock.
-- **Single-Prompt Authorization**: Confirms password prompts and lock screen sessions with fluid, unobtrusive verification.
+### 🔒 Face ID Reliability & Lock Screen Polish
+- **Smart Camera Activation**: Fixed an issue where the camera would immediately turn on to scan when putting your Mac to sleep or locking the screen. The camera now activates only when you wake your Mac, hover over the notch, or press the spacebar.
+- **Accurate & Consistent Face Recognition**: Resolved a recognition issue where enrolled faces were not properly evaluated on the lock screen. Facial recognition now matches quickly and reliably under standard and low-light environments.
+- **Calibrated Recognition Sensitivity**: Adjusted the confidence threshold levels so that "Less strict", "Default", and "Strict" options in Settings provide dependable unlocks without unexpected recognition rejections.
+- **Seamless Keychain Access**: Eliminated recurring system keychain permission prompts when verifying passwords and enrolling faces.
