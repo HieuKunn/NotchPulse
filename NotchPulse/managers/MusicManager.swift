@@ -154,13 +154,6 @@ class MusicManager: ObservableObject {
             }
             .store(in: &cancellables)
 
-        Defaults.publisher(.mediaController)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.setActiveControllerBasedOnPreference()
-            }
-            .store(in: &cancellables)
-
         // Keep music volume synchronized with active system output volume
         VolumeManager.shared.$rawVolume
             .receive(on: DispatchQueue.main)
@@ -282,8 +275,16 @@ class MusicManager: ObservableObject {
     private func updateFromPlaybackState(_ state: PlaybackState) {
         let trimmedTitle = state.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
+            // Guard against resetting if we currently have an active playing track or during launch handshake
+            if self.isPlaying && !self.songTitle.isEmpty {
+                return
+            }
             if let activePrevious = self.mediaSessionStack.dropLast().last(where: { $0.isPlaying }) {
                 self.restoreSession(activePrevious)
+                return
+            } else if !self.songTitle.isEmpty {
+                // Delay reset to idle rather than snapping shut on transient empty packets
+                self.updateIdleState(state: false)
                 return
             } else {
                 self.mediaSessionStack.removeAll()
@@ -326,18 +327,53 @@ class MusicManager: ObservableObject {
             }
             self.triggerFlipAnimation()
 
-            if artworkChanged, let artwork = state.artwork {
+            if let artwork = state.artwork {
                 self.usingAppIconForArtwork = false
-                self.updateArtwork(artwork)
-            } else if state.artwork == nil {
-                // Try to use app icon if no artwork but track changed
+                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 500)
+                self.artworkData = optimized
+                self.updateArtwork(optimized)
+                UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: state.title, artist: state.artist)
+            } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: state.title, artist: state.artist) {
+                self.usingAppIconForArtwork = false
+                self.artworkData = cached
+                self.updateArtwork(cached)
+            } else if self.artworkData != nil && self.songTitle == state.title && !state.title.isEmpty {
+                // If we already resolved and loaded the artwork for this song, keep it!
+                self.usingAppIconForArtwork = false
+            } else {
+                // If not yet cached, temporarily display host app icon so card is never blank
                 let effectiveBundleID = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "com.apple.Music")
                 if let appIconImage = AppIconAsNSImage(for: effectiveBundleID) {
                     self.usingAppIconForArtwork = true
                     self.updateAlbumArt(newAlbumArt: appIconImage)
                 }
+                self.artworkData = nil
+
+                // Asynchronously resolve true high-resolution media cover art (YouTube thumbnail / iTunes / Deezer)
+                let currentTitle = state.title
+                let currentArtist = state.artist
+                let currentAlbum = state.album
+                let currentBundle = state.bundleIdentifier
+                UniversalArtworkResolver.shared.resolveArtwork(
+                    title: currentTitle,
+                    artist: currentArtist,
+                    album: currentAlbum,
+                    bundleIdentifier: currentBundle
+                ) { [weak self] resolvedData in
+                    guard let self = self, let data = resolvedData else { return }
+                    DispatchQueue.main.async {
+                        // Verify track hasn't changed while resolving
+                        guard self.songTitle == currentTitle else { return }
+                        self.usingAppIconForArtwork = false
+                        self.artworkData = data
+                        self.updateArtwork(data)
+                        self.triggerFlipAnimation()
+                        if let lastIdx = self.mediaSessionStack.indices.last {
+                            self.mediaSessionStack[lastIdx].artworkData = data
+                        }
+                    }
+                }
             }
-            self.artworkData = state.artwork
 
             // Update last artwork change values
             self.lastArtworkTitle = state.title
@@ -790,6 +826,10 @@ class MusicManager: ObservableObject {
         } else {
             debounceIdleTask = Task { @MainActor [weak self] in
                 guard let self = self else { return }
+                try? await Task.sleep(for: .seconds(Defaults[.waitInterval]))
+                guard !Task.isCancelled else { return }
+                guard !self.isPlaying else { return }
+
                 // Check if an older session in the stack is actually still playing
                 if let activePrevious = self.mediaSessionStack.dropLast().last(where: { $0.isPlaying }) {
                     self.restoreSession(activePrevious)
@@ -1886,6 +1926,7 @@ public final class UniversalArtworkResolver {
 
     private func sanitizeTitle(_ raw: String) -> String {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
 
         let parts = s.components(separatedBy: " - ")
         if parts.count == 2 {

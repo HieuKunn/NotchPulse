@@ -4,9 +4,6 @@ import Foundation
 
 final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     func updatePlaybackInfo() async {
-        if let paths = Self.getAdapterPaths() {
-            await fetchInitialNowPlayingInfo(paths: paths)
-        }
         await fetchFavoriteStateIfSupported()
     }
 
@@ -97,7 +94,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         MRMediaRemoteSetRepeatModeFunction = unsafeBitCast(
             MRMediaRemoteSetRepeatModePointer, to: (@convention(c) (Int) -> Void).self)
 
-        // Auto-reconnect adapter whenever Mac wakes from sleep to prevent stale Mach connections
+        // Auto-reconnect adapter whenever Mac wakes from sleep if the process terminated
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
@@ -105,7 +102,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         ) { [weak self] _ in
             Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(600))
-                await self?.setupNowPlayingObserver()
+                guard let self = self else { return }
+                if self.process == nil || self.process?.isRunning == false {
+                    await self.setupNowPlayingObserver()
+                }
             }
         }
 
@@ -935,7 +935,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
 
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.script, paths.framework, "stream"]
+        process.arguments = [paths.script, paths.framework, "stream", "--debounce=100"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
