@@ -934,12 +934,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             return
         }
 
-        // Proactively fetch initial playback metadata immediately on startup/wake
-        // so we never wait for a track change event or show empty state on lock screen
-        await fetchInitialNowPlayingInfo(paths: paths)
-        
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.script, paths.framework, "stream", "--debounce=250"]
+        process.arguments = [paths.script, paths.framework, "stream"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
@@ -1079,28 +1075,19 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         }
 
-        let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
-        if trackChanged {
-            UniversalArtworkResolver.shared.clear()
-        }
-
         if let artworkDataString = payload.artworkData, !artworkDataString.isEmpty {
+            let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
             if trackChanged || self.playbackState.artwork == nil {
-                if let rawData = Data(base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)) {
-                    let optimized = UniversalArtworkResolver.shared.optimizeArtwork(rawData, maxDimension: 500)
-                    newPlaybackState.artwork = optimized
-                    UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: newPlaybackState.title, artist: newPlaybackState.artist)
-                } else {
-                    newPlaybackState.artwork = nil
-                }
+                newPlaybackState.artwork = Data(
+                    base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
             } else {
                 newPlaybackState.artwork = self.playbackState.artwork
             }
-        } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: newPlaybackState.title, artist: newPlaybackState.artist) {
-            newPlaybackState.artwork = cached
+        } else if !diff {
+            newPlaybackState.artwork = nil
         } else {
-            // Retain existing artwork if same track has not changed
-            newPlaybackState.artwork = trackChanged ? nil : self.playbackState.artwork
+            newPlaybackState.artwork = self.playbackState.artwork
         }
 
         if let dateString = payload.timestamp,

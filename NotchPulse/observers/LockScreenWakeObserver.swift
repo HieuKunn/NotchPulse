@@ -83,7 +83,7 @@ final class LockScreenWakeObserver: ObservableObject {
             // Progressively re-assert visibility as WindowServer transitions into lock screen space
             for delayMs in [150, 350, 650, 1000] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
-                guard let self = self, self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
+                guard self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
                 self.isScreenLocked = true
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
@@ -120,7 +120,9 @@ final class LockScreenWakeObserver: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.handleLockTransition()
+            Task { @MainActor [weak self] in
+                self?.handleLockTransition()
+            }
         }
         distributedTokens.append(lockToken)
         
@@ -130,7 +132,9 @@ final class LockScreenWakeObserver: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.handleLockTransition()
+            Task { @MainActor [weak self] in
+                self?.handleLockTransition()
+            }
         }
         distributedTokens.append(screensaverToken)
         
@@ -167,7 +171,9 @@ final class LockScreenWakeObserver: ObservableObject {
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidSleepNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.handleLockTransition()
+                Task { @MainActor [weak self] in
+                    self?.handleLockTransition()
+                }
             }
             .store(in: &cancellables)
 
@@ -175,7 +181,9 @@ final class LockScreenWakeObserver: ObservableObject {
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.willSleepNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.handleLockTransition()
+                Task { @MainActor [weak self] in
+                    self?.handleLockTransition()
+                }
             }
             .store(in: &cancellables)
             
@@ -199,6 +207,8 @@ final class LockScreenWakeObserver: ObservableObject {
     private func shouldShowLockScreenMedia() -> Bool {
         let actuallyLocked = isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
         guard actuallyLocked && Defaults[.enableLockScreenPlayer] else { return false }
+        let title = MusicManager.shared.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty && title != "I'm Handsome" else { return false }
         return true
     }
 

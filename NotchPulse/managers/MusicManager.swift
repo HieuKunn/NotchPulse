@@ -146,8 +146,6 @@ class MusicManager: ObservableObject {
 
     // MARK: - Initialization
     init() {
-        restoreLastKnownTrack()
-
         // Listen for changes to the default controller preference
         NotificationCenter.default.publisher(for: Notification.Name.mediaControllerChanged)
             .receive(on: DispatchQueue.main)
@@ -325,58 +323,21 @@ class MusicManager: ObservableObject {
             if titleChanged || artistChanged {
                 self.syncedLyrics = []
                 self.currentLyrics = ""
-                // Only clear artworkData if song title or artist actually changed
-                if state.title != self.lastArtworkTitle || state.artist != self.lastArtworkArtist {
-                    self.artworkData = nil
-                    UniversalArtworkResolver.shared.clear()
-                }
             }
             self.triggerFlipAnimation()
 
-            if let artwork = state.artwork {
+            if artworkChanged, let artwork = state.artwork {
                 self.usingAppIconForArtwork = false
-                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 500)
-                self.artworkData = optimized
-                self.updateArtwork(optimized)
-                UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: state.title, artist: state.artist)
-            } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: state.title, artist: state.artist) {
-                self.usingAppIconForArtwork = false
-                self.artworkData = cached
-                self.updateArtwork(cached)
-            } else if self.artworkData != nil && self.songTitle == state.title && !state.title.isEmpty {
-                // If we already resolved and loaded the artwork for this song, keep it!
-                self.usingAppIconForArtwork = false
-            } else {
-                // If not yet cached, temporarily display host app icon so card is never blank
+                self.updateArtwork(artwork)
+            } else if state.artwork == nil {
+                // Try to use app icon if no artwork but track changed
                 let effectiveBundleID = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "com.apple.Music")
                 if let appIconImage = AppIconAsNSImage(for: effectiveBundleID) {
                     self.usingAppIconForArtwork = true
                     self.updateAlbumArt(newAlbumArt: appIconImage)
                 }
-                self.artworkData = nil
-
-                // Asynchronously resolve true high-resolution media cover art (iTunes / YouTube / Deezer)
-                let currentTitle = state.title
-                let currentArtist = state.artist
-                let currentAlbum = state.album
-                let currentBundle = state.bundleIdentifier
-                UniversalArtworkResolver.shared.resolveArtwork(
-                    title: currentTitle,
-                    artist: currentArtist,
-                    album: currentAlbum,
-                    bundleIdentifier: currentBundle
-                ) { [weak self] resolvedData in
-                    guard let self = self, let data = resolvedData else { return }
-                    DispatchQueue.main.async {
-                        // Verify track hasn't changed while resolving
-                        guard self.songTitle == currentTitle else { return }
-                        self.usingAppIconForArtwork = false
-                        self.artworkData = data
-                        self.updateArtwork(data)
-                        self.triggerFlipAnimation()
-                    }
-                }
             }
+            self.artworkData = state.artwork
 
             // Update last artwork change values
             self.lastArtworkTitle = state.title
@@ -458,7 +419,6 @@ class MusicManager: ObservableObject {
         
         self.timestampDate = state.lastUpdated
         self.recordMediaSession(from: state)
-        self.persistCurrentTrack()
     }
 
     func toggleFavoriteTrack() {
@@ -811,13 +771,11 @@ class MusicManager: ObservableObject {
                 DispatchQueue.main.async { [weak self] in
                     self?.usingAppIconForArtwork = false
                     self?.updateAlbumArt(newAlbumArt: artworkImage)
-                    self?.persistCurrentTrack()
                 }
             } else if let artworkImage = NSImage(data: artworkData) {
                 DispatchQueue.main.async { [weak self] in
                     self?.usingAppIconForArtwork = false
                     self?.updateAlbumArt(newAlbumArt: artworkImage)
-                    self?.persistCurrentTrack()
                 }
             }
         }
@@ -1016,91 +974,6 @@ class MusicManager: ObservableObject {
         self.songDuration = 0
         self.syncedLyrics = []
         self.currentLyrics = ""
-        self.clearPersistedTrack()
-    }
-
-    // MARK: - Last Known Track Persistence (Instant Lock Screen Restoration)
-    private let lastTrackTitleKey = "NP_LastTrackTitle"
-    private let lastTrackArtistKey = "NP_LastTrackArtist"
-    private let lastTrackAlbumKey = "NP_LastTrackAlbum"
-    private let lastTrackBundleKey = "NP_LastTrackBundleID"
-    private let lastTrackDurationKey = "NP_LastTrackDuration"
-    private let lastTrackElapsedKey = "NP_LastTrackElapsed"
-    private let lastTrackIsPlayingKey = "NP_LastTrackIsPlaying"
-    private let lastTrackArtworkKey = "NP_LastTrackArtworkData"
-
-    @MainActor
-    private func persistCurrentTrack() {
-        let cleanTitle = self.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanTitle.isEmpty else { return }
-        let defaults = UserDefaults.standard
-        defaults.set(cleanTitle, forKey: lastTrackTitleKey)
-        defaults.set(self.artistName, forKey: lastTrackArtistKey)
-        defaults.set(self.album, forKey: lastTrackAlbumKey)
-        defaults.set(self.bundleIdentifier, forKey: lastTrackBundleKey)
-        defaults.set(self.songDuration, forKey: lastTrackDurationKey)
-        defaults.set(self.elapsedTime, forKey: lastTrackElapsedKey)
-        defaults.set(self.isPlaying, forKey: lastTrackIsPlayingKey)
-        if let artData = self.artworkData {
-            defaults.set(artData, forKey: lastTrackArtworkKey)
-        }
-    }
-
-    @MainActor
-    private func clearPersistedTrack() {
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: lastTrackTitleKey)
-        defaults.removeObject(forKey: lastTrackArtistKey)
-        defaults.removeObject(forKey: lastTrackAlbumKey)
-        defaults.removeObject(forKey: lastTrackBundleKey)
-        defaults.removeObject(forKey: lastTrackDurationKey)
-        defaults.removeObject(forKey: lastTrackElapsedKey)
-        defaults.removeObject(forKey: lastTrackIsPlayingKey)
-        defaults.removeObject(forKey: lastTrackArtworkKey)
-    }
-
-    @MainActor
-    private func restoreLastKnownTrack() {
-        let defaults = UserDefaults.standard
-        guard let title = defaults.string(forKey: lastTrackTitleKey), !title.isEmpty else { return }
-        self.songTitle = title
-        self.artistName = defaults.string(forKey: lastTrackArtistKey) ?? ""
-        self.album = defaults.string(forKey: lastTrackAlbumKey) ?? ""
-        self.bundleIdentifier = defaults.string(forKey: lastTrackBundleKey)
-        self.songDuration = defaults.double(forKey: lastTrackDurationKey)
-        self.elapsedTime = defaults.double(forKey: lastTrackElapsedKey)
-        self.isPlaying = defaults.bool(forKey: lastTrackIsPlayingKey)
-        self.isPlayerIdle = false
-        
-        self.lastArtworkTitle = self.songTitle
-        self.lastArtworkArtist = self.artistName
-        self.lastArtworkAlbum = self.album
-        self.lastArtworkBundleIdentifier = self.bundleIdentifier
-        
-        if let data = defaults.data(forKey: lastTrackArtworkKey), let img = NSImage(data: data) {
-            self.artworkData = data
-            self.albumArt = img
-            self.usingAppIconForArtwork = false
-            self.calculateAverageColor()
-        } else if let bundleID = self.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bundleID) {
-            self.albumArt = appIcon
-            self.usingAppIconForArtwork = true
-            self.calculateAverageColor()
-        }
-        
-        self.mediaSessionStack = [
-            MediaSession(
-                title: self.songTitle,
-                artist: self.artistName,
-                album: self.album,
-                bundleIdentifier: self.bundleIdentifier ?? "",
-                artwork: self.artworkData,
-                isPlaying: self.isPlaying,
-                duration: self.songDuration,
-                elapsedTime: self.elapsedTime,
-                lastUpdated: Date()
-            )
-        ]
     }
 
     // MARK: - Playback Position Estimation
@@ -1268,7 +1141,7 @@ class MusicManager: ObservableObject {
                 }
             }
             try? await Task.sleep(for: .milliseconds(350))
-            await self.forceUpdate()
+            self.forceUpdate()
         }
     }
 
@@ -1297,7 +1170,7 @@ class MusicManager: ObservableObject {
                 }
             }
             try? await Task.sleep(for: .milliseconds(350))
-            await self.forceUpdate()
+            self.forceUpdate()
         }
     }
 

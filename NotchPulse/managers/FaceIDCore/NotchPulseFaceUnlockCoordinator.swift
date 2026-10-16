@@ -431,9 +431,7 @@ final class NotchPulseFaceUnlockCoordinator {
             // Midway into scan duration, show the looking-around searching animation if still scanning
             let remaining = effectiveDeadline.timeIntervalSinceNow
             if remaining < windowDuration * 0.60 && showsUI {
-                await MainActor.run {
-                    FaceIDOverlayController.shared.showSearchingAnimation()
-                }
+                FaceIDOverlayController.shared.showSearchingAnimation()
             }
 
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
@@ -448,6 +446,9 @@ final class NotchPulseFaceUnlockCoordinator {
             if !firstFrameSeen {
                 firstFrameSeen = true
                 effectiveDeadline = Date().addingTimeInterval(windowDuration)
+                if showsUI {
+                    FaceIDOverlayController.shared.restartScanTimeout()
+                }
             }
             lastProcessedFrameID = frame.id
 

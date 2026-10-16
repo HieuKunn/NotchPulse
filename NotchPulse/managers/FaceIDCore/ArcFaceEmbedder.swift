@@ -48,16 +48,24 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let inputName = "input_image"
     private static let outputName = "embedding"
 
-    // Loaded once and reused — model load dominates a single inference (~6.6MB, negligible memory footprint).
-    static let shared: ArcFaceEmbedder? = {
+    private static let lock = NSLock()
+    private static var _sharedInstance: ArcFaceEmbedder?
+
+    // Loaded and reused — model load dominates a single inference (~6.6MB, negligible memory footprint).
+    // Lazily retries if initial startup instantiation failed during cold boot.
+    static var shared: ArcFaceEmbedder? {
+        lock.lock()
+        defer { lock.unlock() }
+        if let existing = _sharedInstance { return existing }
         do {
             let instance = try ArcFaceEmbedder()
+            _sharedInstance = instance
             return instance
         } catch {
             NSLog("[ArcFaceEmbedder] Failed to initialize shared instance: \(error.localizedDescription)")
             return nil
         }
-    }()
+    }
 
     /// Pre-warms the ArcFace ML model so the Neural Engine pipeline is compiled and ready before camera frames arrive.
     static func warmUp() {

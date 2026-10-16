@@ -138,11 +138,6 @@ class SpotifyController: MediaControllerProtocol {
             volume: Double(volumePercentage) / 100.0
         )
 
-        let trackChanged = (state.title != self.playbackState.title) || (state.artist != self.playbackState.artist)
-        if trackChanged {
-            UniversalArtworkResolver.shared.clear()
-        }
-
         if artworkURL == lastArtworkURL, let existingArtwork = self.playbackState.artwork {
             state.artwork = existingArtwork
         }
@@ -164,13 +159,11 @@ class SpotifyController: MediaControllerProtocol {
             artworkFetchTask = Task {
                 do {
                     let data = try await ImageService.shared.fetchImageData(from: url)
-                    let optimized = UniversalArtworkResolver.shared.optimizeArtwork(data, maxDimension: 500)
 
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
                         var updatedState = currentState
-                        updatedState.artwork = optimized
-                        UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: updatedState.title, artist: updatedState.artist)
+                        updatedState.artwork = data
                         self.playbackState = updatedState
                         self.lastArtworkURL = artworkURL
                         self.artworkFetchTask = nil
