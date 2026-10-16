@@ -47,34 +47,17 @@ struct AlbumArtView: View {
     }
 
     private var albumArtButton: some View {
-        ZStack {
-            Button {
-                musicManager.openMusicApp()
-            } label: {
-                ZStack(alignment: .bottomTrailing) {
-                    albumArtImage
-                    appIconOverlay
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-            .scaleEffect(musicManager.isPlaying ? 1 : 0.88)
-            
-            if !musicManager.isPlaying {
-                albumArtDarkOverlay
+        Button {
+            musicManager.openMusicApp()
+        } label: {
+            ZStack(alignment: .bottomTrailing) {
+                albumArtImage
+                appIconOverlay
             }
         }
-    }
-
-    private var albumArtDarkOverlay: some View {
-        RoundedRectangle(
-            cornerRadius: Defaults[.cornerRadiusScaling]
-                ? MusicPlayerImageSizes.cornerRadiusInset.opened
-                : MusicPlayerImageSizes.cornerRadiusInset.closed,
-            style: .continuous
-        )
-        .frame(width: size, height: size)
-        .foregroundColor(Color.black.opacity(0.4))
-        .allowsHitTesting(false)
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(musicManager.isPlaying ? 1 : 0.88)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
     }
 
     private var albumArtImage: some View {

@@ -116,16 +116,6 @@ struct LockScreenMediaView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 54, height: 54)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
-                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
-            
-            // Lớp phủ tối khi tạm dừng
-            if !musicManager.isPlaying {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.black.opacity(0.35))
-                    .frame(width: 54, height: 54)
-                    .allowsHitTesting(false)
-            }
             
             // Icon app phát nhạc (Apple Music, Spotify, ...)
             if !musicManager.usingAppIconForArtwork {
@@ -137,6 +127,8 @@ struct LockScreenMediaView: View {
                     .offset(x: 3, y: 3)
             }
         }
+        .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
     }
 
     private var compactHeaderRow: some View {
@@ -390,15 +382,6 @@ struct LockScreenMediaView: View {
                         .aspectRatio(contentMode: .fill)
                         .frame(width: albumSize, height: albumSize)
                         .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
-                        .scaleEffect(musicManager.isPlaying ? 1.0 : 0.94)
-                        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
-                    
-                    if !musicManager.isPlaying {
-                        RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
-                            .fill(Color.black.opacity(0.35))
-                            .frame(width: albumSize, height: albumSize)
-                            .allowsHitTesting(false)
-                    }
                     
                     if !musicManager.usingAppIconForArtwork {
                         AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
@@ -409,6 +392,8 @@ struct LockScreenMediaView: View {
                             .offset(x: albumSize * 0.02, y: albumSize * 0.02)
                     }
                 }
+                .scaleEffect(musicManager.isPlaying ? 1.0 : 0.94)
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
             }
             .buttonStyle(.plain)
             .help("Click artwork to collapse")

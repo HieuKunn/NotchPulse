@@ -28,6 +28,7 @@ struct MediaSessionSnapshot: Identifiable, Equatable {
     var lastUpdated: Date
     var syncedLyrics: [(time: Double, text: String)]
     var currentLyrics: String
+    var artworkData: Data?
 
     init(
         id: String,
@@ -46,7 +47,8 @@ struct MediaSessionSnapshot: Identifiable, Equatable {
         usingAppIconForArtwork: Bool = false,
         lastUpdated: Date = Date(),
         syncedLyrics: [(time: Double, text: String)] = [],
-        currentLyrics: String = ""
+        currentLyrics: String = "",
+        artworkData: Data? = nil
     ) {
         self.id = id
         self.bundleIdentifier = bundleIdentifier
@@ -65,6 +67,7 @@ struct MediaSessionSnapshot: Identifiable, Equatable {
         self.lastUpdated = lastUpdated
         self.syncedLyrics = syncedLyrics
         self.currentLyrics = currentLyrics
+        self.artworkData = artworkData
     }
 
     static func == (lhs: MediaSessionSnapshot, rhs: MediaSessionSnapshot) -> Bool {
