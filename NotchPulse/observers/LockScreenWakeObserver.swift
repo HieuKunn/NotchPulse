@@ -15,16 +15,11 @@ final class LockScreenWakeObserver: ObservableObject {
     private var hideDebounceTask: Task<Void, Never>?
     
     nonisolated static var isSessionLocked: Bool {
-        if let dict = CGSessionCopyCurrentDictionary() as? [String: Any] {
-            if let val = dict["CGSSessionScreenIsLocked"] {
-                return (val as? Bool) ?? ((val as? NSNumber)?.boolValue ?? false)
-            }
-        }
-        return NotchPulseLockMonitor.isScreenActuallyLocked()
+        NotchPulseLockMonitor.isScreenActuallyLocked()
     }
 
     private init() {
-        if Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
             self.isScreenLocked = true
             startLockSessionSupervisor()
             MusicManager.shared.forceUpdate()
@@ -53,14 +48,14 @@ final class LockScreenWakeObserver: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(1500))
                 guard let self = self, self.isScreenLocked else { break }
                 
-                let actuallyLocked = Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
+                let actuallyLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
                 if actuallyLocked {
                     consecutiveUnlockedCount = 0
                 } else {
                     // CGSessionCopyCurrentDictionary can return nil/empty during wake and sleep transitions.
-                    // Only conclude unlocked if it remains unlocked for multiple consecutive checks (4.5s)
+                    // Only conclude unlocked if it remains unlocked for multiple consecutive checks (3.0s)
                     consecutiveUnlockedCount += 1
-                    if consecutiveUnlockedCount >= 3 {
+                    if consecutiveUnlockedCount >= 2 {
                         self.isScreenLocked = false
                         self.hideDebounceTask?.cancel()
                         self.hideDebounceTask = nil
@@ -83,7 +78,7 @@ final class LockScreenWakeObserver: ObservableObject {
             // Progressively re-assert visibility as WindowServer transitions into lock screen space
             for delayMs in [150, 350, 650, 1000] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
-                guard self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
+                guard self.isScreenLocked || NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
                 self.isScreenLocked = true
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
@@ -94,18 +89,26 @@ final class LockScreenWakeObserver: ObservableObject {
     private func handleWake() {
         Task { @MainActor [weak self] in
             guard let self = self else { return }
-            let locked = self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
+            NotchPulseLockMonitor.invalidateLockCache()
+            let locked = NotchPulseLockMonitor.isScreenActuallyLocked()
+            self.isScreenLocked = locked
             if locked {
-                self.isScreenLocked = true
                 self.startLockSessionSupervisor()
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
+            } else {
+                self.lockSessionTimer?.cancel()
+                self.lockSessionTimer = nil
+                self.hideDebounceTask?.cancel()
+                self.hideDebounceTask = nil
+                self.updateLockScreenMediaWindowVisibility()
             }
             // Verify progressively after wake as display powers on
-            for delayMs in [150, 350, 650, 1000] {
+            for delayMs in [250, 600, 1000] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
-                if self.isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked() {
-                    self.isScreenLocked = true
+                let recheck = NotchPulseLockMonitor.isScreenActuallyLocked()
+                if self.isScreenLocked != recheck {
+                    self.isScreenLocked = recheck
                     MusicManager.shared.forceUpdate()
                     self.updateLockScreenMediaWindowVisibility()
                 }

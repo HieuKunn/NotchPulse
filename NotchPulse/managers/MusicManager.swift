@@ -1591,7 +1591,7 @@ public final class UniversalArtworkResolver {
                 repeat with w in windows
                     repeat with t in tabs of w
                         set u to (URL of t as text)
-                        if u contains "youtube.com/watch" then
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
                             return u
                         end if
                     end repeat
@@ -1603,18 +1603,35 @@ public final class UniversalArtworkResolver {
 
         do {
             guard let res = try await AppleScriptHelper.execute(script),
-                  let urlStr = res.stringValue, !urlStr.isEmpty,
-                  let url = URL(string: urlStr),
-                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                  let vItem = components.queryItems?.first(where: { $0.name == "v" }),
-                  let vId = vItem.value, vId.count == 11 else {
+                  let urlStr = res.stringValue, !urlStr.isEmpty else {
+                return nil
+            }
+
+            var foundVideoID: String?
+            let ytPatterns = [
+                #"[?&]v=([a-zA-Z0-9_-]{11})"#,
+                #"youtu\.be\/([a-zA-Z0-9_-]{11})"#,
+                #"\/shorts\/([a-zA-Z0-9_-]{11})"#,
+                #"\/embed\/([a-zA-Z0-9_-]{11})"#
+            ]
+            for pat in ytPatterns {
+                if let regex = try? NSRegularExpression(pattern: pat, options: []),
+                   let match = regex.firstMatch(in: urlStr, options: [], range: NSRange(location: 0, length: (urlStr as NSString).length)),
+                   match.numberOfRanges >= 2 {
+                    foundVideoID = (urlStr as NSString).substring(with: match.range(at: 1))
+                    break
+                }
+            }
+
+            guard let vId = foundVideoID, vId.count == 11 else {
                 return nil
             }
 
             let candidateURLs = [
                 "https://i.ytimg.com/vi/\(vId)/maxresdefault.jpg",
                 "https://i.ytimg.com/vi/\(vId)/hq720.jpg",
-                "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg"
+                "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg",
+                "https://i.ytimg.com/vi/\(vId)/mqdefault.jpg"
             ]
 
             for thumbUrlStr in candidateURLs {
@@ -1726,10 +1743,10 @@ public final class UniversalArtworkResolver {
                 }
             }
 
-            // 2. Fallback: targeted regex matching "videoRenderer" (never matches promotedVideoRenderer or adSlotRenderer)
+            // 2. Targeted regex matching "videoRenderer" (never matches promotedVideoRenderer or adSlotRenderer)
             if candidateVideoIds.isEmpty {
                 let pattern = #""videoRenderer":\{.*?"videoId":"([a-zA-Z0-9_-]{11})""#
-                if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+                if let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
                     let nsString = html as NSString
                     let matches = regex.matches(in: html, options: [], range: NSRange(location: 0, length: nsString.length))
                     for m in matches {
@@ -1743,11 +1760,29 @@ public final class UniversalArtworkResolver {
                 }
             }
 
-            for vId in candidateVideoIds.prefix(3) {
+            // 3. Fallback: direct videoId capture from results
+            if candidateVideoIds.isEmpty {
+                let broadPattern = #""videoId":"([a-zA-Z0-9_-]{11})""#
+                if let regex = try? NSRegularExpression(pattern: broadPattern, options: []) {
+                    let nsString = html as NSString
+                    let matches = regex.matches(in: html, options: [], range: NSRange(location: 0, length: nsString.length))
+                    for m in matches {
+                        if m.numberOfRanges >= 2 {
+                            let vid = nsString.substring(with: m.range(at: 1))
+                            if !candidateVideoIds.contains(vid) {
+                                candidateVideoIds.append(vid)
+                            }
+                        }
+                    }
+                }
+            }
+
+            for vId in candidateVideoIds.prefix(4) {
                 let candidateURLs = [
                     "https://i.ytimg.com/vi/\(vId)/maxresdefault.jpg",
                     "https://i.ytimg.com/vi/\(vId)/hq720.jpg",
-                    "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg"
+                    "https://i.ytimg.com/vi/\(vId)/hqdefault.jpg",
+                    "https://i.ytimg.com/vi/\(vId)/mqdefault.jpg"
                 ]
 
                 for thumbUrlStr in candidateURLs {
@@ -1766,7 +1801,8 @@ public final class UniversalArtworkResolver {
     private func extractInitialData(from html: String) -> [String: Any]? {
         let patterns = [
             #"var ytInitialData\s*=\s*(\{.*?\});</script>"#,
-            #"window\["ytInitialData"\]\s*=\s*(\{.*?\});</script>"#
+            #"window\["ytInitialData"\]\s*=\s*(\{.*?\});</script>"#,
+            #"(?:var\s+|window\["ytInitialData"\]\s*=\s*|ytInitialData\s*=\s*)(\{.*?\});"#
         ]
         for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]),
@@ -1927,6 +1963,9 @@ public final class UniversalArtworkResolver {
     private func sanitizeTitle(_ raw: String) -> String {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         s = s.trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
+
+        // First strip trailing platform/service noise from browser window titles
+        s = s.replacingOccurrences(of: #"(?i)\s*-\s*(youtube\s*music|youtube|soundcloud|spotify|topic)$"#, with: "", options: .regularExpression)
 
         let parts = s.components(separatedBy: " - ")
         if parts.count == 2 {

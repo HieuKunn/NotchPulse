@@ -935,13 +935,16 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
 
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.script, paths.framework, "stream", "--debounce=100"]
+        process.arguments = [paths.script, paths.framework, "stream"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
         
         self.process = process
         self.pipeHandler = pipeHandler
+
+        // Immediately fetch the current active playback state on startup/update without waiting for a track change event
+        await fetchInitialNowPlayingInfo(paths: paths)
 
         do {
             try process.run()

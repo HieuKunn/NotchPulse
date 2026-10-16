@@ -403,10 +403,11 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 10
+        let wrongFaceStreakThreshold = 20
 
-        /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
+        /// Cleared when no match has been seen recently or a streak of non-matching frames occurs.
         var readyMatch: ScoredIdentity?
+        var readyMatchTimestamp: Date?
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
         /// Last frame's selected face, passed back so `selectDominantFace` stays on the same person instead of flip-flopping.
@@ -421,6 +422,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let firstFrameCap = Date().addingTimeInterval(10)
         var effectiveDeadline = deadline
         var firstFrameSeen = false
+        var scanStartTime: Date?
 
         while Date() < effectiveDeadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -443,6 +445,7 @@ final class NotchPulseFaceUnlockCoordinator {
             }
             if !firstFrameSeen {
                 firstFrameSeen = true
+                scanStartTime = Date()
                 effectiveDeadline = Date().addingTimeInterval(windowDuration)
                 if showsUI {
                     FaceIDOverlayController.shared.restartScanTimeout()
@@ -465,6 +468,7 @@ final class NotchPulseFaceUnlockCoordinator {
 
             guard let (result, livenessFrame) = outcome else {
                 readyMatch = nil
+                readyMatchTimestamp = nil
                 consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
@@ -492,12 +496,20 @@ final class NotchPulseFaceUnlockCoordinator {
             let scored = pipeline.score(result.embedding, against: activeIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: currentThreshold)
 
+            let isWarmingUp = scanStartTime.map { Date().timeIntervalSince($0) < 1.2 } ?? true
+
             if let matched {
                 consecutiveWrongFaceFrames = 0
                 readyMatch = matched
+                readyMatchTimestamp = Date()
             } else {
-                readyMatch = nil
-                consecutiveWrongFaceFrames += 1
+                if !isWarmingUp {
+                    consecutiveWrongFaceFrames += 1
+                }
+                if consecutiveWrongFaceFrames >= 3 {
+                    readyMatch = nil
+                    readyMatchTimestamp = nil
+                }
                 if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
                     statusMessage = "Face not recognized."
                     lastOutcome = "Unrecognized face detected."
@@ -505,12 +517,14 @@ final class NotchPulseFaceUnlockCoordinator {
                 }
             }
 
-            if let readyMatch, livenessConfirmed {
+            let candidateMatch = matched ?? (readyMatchTimestamp.map { Date().timeIntervalSince($0) < 0.4 } == true ? readyMatch : nil)
+
+            if let candidateMatch, livenessConfirmed {
                 statusMessage = "Recognized — unlocking…"
                 let livenessNote = livenessEnabled
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "live confirmed")
                     : "liveness off"
-                lastOutcome = "Matched \(readyMatch.identity.name) at \(String(format: "%.3f", max(readyMatch.centroidSimilarity, readyMatch.maxSampleSimilarity))), \(livenessNote)."
+                lastOutcome = "Matched \(candidateMatch.identity.name) at \(String(format: "%.3f", max(candidateMatch.centroidSimilarity, candidateMatch.maxSampleSimilarity))), \(livenessNote)."
                 if showsUI {
                     FaceIDOverlayController.shared.finish(success: true)
                 }

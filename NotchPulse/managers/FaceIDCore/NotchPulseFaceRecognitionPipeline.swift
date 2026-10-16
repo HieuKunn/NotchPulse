@@ -144,7 +144,10 @@ final class NotchPulseFaceRecognitionPipeline {
     /// filters out bystander faces below `minimumProminentFaceWidth`, then sorts by proximity to `previousBoundingBox`
     /// (if tracking) or by bounding box area (largest first).
     nonisolated static func prominentFaces(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> [DetectedFace] {
-        let candidates = faces.filter { $0.normalizedBoundingBox.width >= CGFloat(minimumProminentFaceWidth) }
+        var candidates = faces.filter { $0.normalizedBoundingBox.width >= CGFloat(minimumProminentFaceWidth) }
+        if candidates.isEmpty {
+            candidates = faces
+        }
         guard !candidates.isEmpty else { return [] }
 
         if let previous = previousBoundingBox {
@@ -205,10 +208,10 @@ extension NotchPulseFaceRecognitionPipeline {
         }
     }
 
-    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. Allows matching when either the averaged centroid meets threshold, or an individual enrolled pose sample matches strongly while centroid stays within a small tolerance.
+    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. Allows matching when either the averaged centroid meets threshold, or an individual enrolled pose sample matches strongly.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
         guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
-        let matched = (first.centroidSimilarity >= threshold) || (first.maxSampleSimilarity >= threshold && first.centroidSimilarity >= (threshold - 0.06))
+        let matched = (first.centroidSimilarity >= threshold) || (first.maxSampleSimilarity >= threshold)
         guard matched else { return nil }
         return first
     }
