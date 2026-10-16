@@ -268,7 +268,13 @@ final class NotchPulseFaceIDSettings {
         // password specifically to use Face Unlock.
         isFaceUnlockEnabled = defaults.object(forKey: Key.isFaceUnlockEnabled) as? Bool ?? true
         // Matches `MatchConfidenceLevel.standard` — see RecognitionSettingsPage.swift.
-        matchThreshold = defaults.object(forKey: Key.matchThreshold) as? Float ?? 0.64
+        if let stored = defaults.object(forKey: Key.matchThreshold) as? Float {
+            matchThreshold = stored
+        } else if let legacy = defaults.object(forKey: "faceIDMatchThreshold") as? Double {
+            matchThreshold = Float(legacy)
+        } else {
+            matchThreshold = 0.64
+        }
         livenessChecksEnabled = defaults.object(forKey: Key.livenessChecksEnabled) as? Bool ?? true
         // Light by default — Heavy requires a blink/pose/depth signal a
         // still, non-blinking user may never produce, while Light still

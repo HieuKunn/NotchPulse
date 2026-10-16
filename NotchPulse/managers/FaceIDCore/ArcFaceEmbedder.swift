@@ -28,16 +28,9 @@ enum ArcFaceEmbedderError: LocalizedError {
 final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     static let defaultModelIdentifier = "arcface-w600k_mbf-v1"
 
-    static let isModelBundled: Bool = {
-        for name in ["ArcFace", "w600k_mbf"] {
-            for ext in ["mlmodelc", "mlpackage"] {
-                if Bundle.main.url(forResource: name, withExtension: ext) != nil { return true }
-                if Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Models") != nil { return true }
-                if Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "FaceIDCore") != nil { return true }
-            }
-        }
-        return false
-    }()
+    static var isModelBundled: Bool {
+        locateModel() != nil
+    }
 
     nonisolated let name = "ArcFace (w600k_mbf)"
     nonisolated let modelIdentifier = ArcFaceEmbedder.defaultModelIdentifier

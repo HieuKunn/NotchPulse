@@ -376,6 +376,8 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         var lastProcessedFrameID: UInt64?
         var lastFaceBoundingBox: CGRect?
         var consecutiveWrongFaceFrames = 0
+        let wrongFaceStreakThreshold = 10
+        var readyMatch: ScoredIdentity?
 
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { [weak self] in self?.settings.livenessMode ?? .light }
@@ -399,15 +401,15 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(
                     in: frame.image,
-                    preferNear: previousBoundingBox,
-                    matchingAgainst: activeIdentities,
-                    threshold: threshold
+                    preferNear: previousBoundingBox
                 ) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
 
             guard let (result, livenessFrame) = outcome else {
+                readyMatch = nil
+                consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(for: .milliseconds(20))
                 continue
@@ -426,25 +428,26 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             }
 
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            if let _ = pipeline.bestMatch(in: scored, threshold: threshold) {
-                consecutiveWrongFaceFrames = 0
-                if !livenessConfirmed {
-                    try? await Task.sleep(for: .milliseconds(30))
-                    continue
-                }
+            let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
+            if let matched {
+                consecutiveWrongFaceFrames = 0
+                readyMatch = matched
+            } else {
+                readyMatch = nil
+                consecutiveWrongFaceFrames += 1
+                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                    FaceIDOverlayController.shared.finish(success: false)
+                    return false
+                }
+            }
+
+            if let _ = readyMatch, livenessConfirmed {
                 FaceIDOverlayController.shared.finish(success: true)
                 if Defaults[.faceIDSound] {
                     NSSound(named: "Glass")?.play()
                 }
                 return true
-            } else {
-                // Detected a face but not matching enrolled identity
-                consecutiveWrongFaceFrames += 1
-                if consecutiveWrongFaceFrames >= 5 {
-                    FaceIDOverlayController.shared.finish(success: false)
-                    return false
-                }
             }
 
             try? await Task.sleep(for: .milliseconds(25))

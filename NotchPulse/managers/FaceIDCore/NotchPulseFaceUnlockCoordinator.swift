@@ -403,19 +403,17 @@ final class NotchPulseFaceUnlockCoordinator {
         let livenessEnabled = NotchPulseFaceIDSettings.shared.livenessChecksEnabled
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
-        var consecutiveMatchedFrames = 0
         var consecutiveWrongFaceFrames = 0
+        let wrongFaceStreakThreshold = 10
 
+        /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
+        var readyMatch: ScoredIdentity?
         /// Turning liveness off in Settings makes this half permanently ready.
         var livenessConfirmed = !livenessEnabled
         /// Last frame's selected face, passed back so `selectDominantFace` stays on the same person instead of flip-flopping.
         var lastFaceBoundingBox: CGRect?
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
-
-        let scanStartInstant = ContinuousClock.now
-        let cameraWarmupDuration: Duration = .milliseconds(1200)
-        var processedFramesCount = 0
 
         // The user's scan window must measure FACE-SCANNING time, not camera boot time.
         // Wait up to 10s for the very first frame WITHOUT counting it against the
@@ -460,16 +458,14 @@ final class NotchPulseFaceUnlockCoordinator {
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(
                     in: frame.image,
-                    preferNear: previousBoundingBox,
-                    matchingAgainst: activeIdentities,
-                    threshold: currentThreshold
+                    preferNear: previousBoundingBox
                 ) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
 
             guard let (result, livenessFrame) = outcome else {
-                consecutiveMatchedFrames = 0
+                readyMatch = nil
                 consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
@@ -477,22 +473,14 @@ final class NotchPulseFaceUnlockCoordinator {
             }
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
-            processedFramesCount += 1
-            let isCameraWarmedUp = (ContinuousClock.now - scanStartInstant >= cameraWarmupDuration) && (processedFramesCount >= 8)
-            let isQualityAcceptable = (result.face.quality ?? 1.0) >= 0.10
-
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
-            var isLivenessRejected = false
             var confirmingCue: LivenessCue?
             if livenessEnabled {
                 let snapshot = liveness.observe(livenessFrame)
                 switch snapshot.decision {
                 case .denied:
-                    if isCameraWarmedUp {
-                        isLivenessRejected = true
-                        livenessConfirmed = false
-                        lastOutcome = snapshot.decision.denialReason
-                    }
+                    lastOutcome = snapshot.decision.denialReason
+                    return .spoofSuspected
                 case .confirmed(let cue):
                     livenessConfirmed = true
                     confirmingCue = cue
@@ -501,45 +489,34 @@ final class NotchPulseFaceUnlockCoordinator {
                 }
             }
 
-            // Match against active identities with calibrated threshold
+            // Match against active identities with user's selected threshold
             let scored = pipeline.score(result.embedding, against: activeIdentities)
-            let matchThresholdFloor = max(0.56, currentThreshold - 0.04)
-            let matched = isQualityAcceptable ? pipeline.bestMatch(in: scored, threshold: matchThresholdFloor) : nil
+            let matched = pipeline.bestMatch(in: scored, threshold: currentThreshold)
 
-            if let matched, !isLivenessRejected {
-                consecutiveMatchedFrames += 1
+            if let matched {
                 consecutiveWrongFaceFrames = 0
-                let effectiveSimilarity = max(matched.centroidSimilarity, matched.maxSampleSimilarity)
-                let isHighConfidence = effectiveSimilarity >= currentThreshold
-                let isMatchConfirmed = isHighConfidence || (consecutiveMatchedFrames >= 2)
-                let isLivenessPassed = !livenessEnabled || livenessConfirmed || (isHighConfidence && consecutiveMatchedFrames >= 2)
-
-                if isMatchConfirmed && isLivenessPassed {
-                    statusMessage = "Recognized — unlocking…"
-                    let livenessNote = livenessEnabled
-                        ? (confirmingCue.map { "live via \($0.title)" } ?? "live confirmed")
-                        : "liveness off"
-                    lastOutcome = "Matched \(matched.identity.name) at \(String(format: "%.3f", effectiveSimilarity)), \(livenessNote)."
-                    if showsUI {
-                        FaceIDOverlayController.shared.finish(success: true)
-                    }
-                    await pocController.injectStoredPassword(requireAuthoritativeLock: true)
-                    return .matched
-                }
+                readyMatch = matched
             } else {
-                consecutiveMatchedFrames = 0
-                if isQualityAcceptable {
-                    if isCameraWarmedUp {
-                        consecutiveWrongFaceFrames += 1
-                        // If someone's face is clearly visible but does NOT match enrolled face for 5 frames (~160ms),
-                        // fail fast immediately and show the wrong-face error animation instead of waiting for timeout!
-                        if consecutiveWrongFaceFrames >= 5 {
-                            statusMessage = "Face not recognized."
-                            lastOutcome = "Unrecognized face detected."
-                            return .consistentlyWrongFace
-                        }
-                    }
+                readyMatch = nil
+                consecutiveWrongFaceFrames += 1
+                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                    statusMessage = "Face not recognized."
+                    lastOutcome = "Unrecognized face detected."
+                    return .consistentlyWrongFace
                 }
+            }
+
+            if let readyMatch, livenessConfirmed {
+                statusMessage = "Recognized — unlocking…"
+                let livenessNote = livenessEnabled
+                    ? (confirmingCue.map { "live via \($0.title)" } ?? "live confirmed")
+                    : "liveness off"
+                lastOutcome = "Matched \(readyMatch.identity.name) at \(String(format: "%.3f", max(readyMatch.centroidSimilarity, readyMatch.maxSampleSimilarity))), \(livenessNote)."
+                if showsUI {
+                    FaceIDOverlayController.shared.finish(success: true)
+                }
+                await pocController.injectStoredPassword(requireAuthoritativeLock: true)
+                return .matched
             }
 
             try? await Task.sleep(nanoseconds: 20_000_000)

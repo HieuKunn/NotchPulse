@@ -78,11 +78,30 @@ struct FaceIdentity: Codable, Identifiable, Equatable, Sendable {
 
     /// True if samples came from a different embedder than the one currently active — should prompt re-enrollment.
     nonisolated func isStale(comparedTo embedder: FaceEmbedder) -> Bool {
-        modelIdentifier != embedder.modelIdentifier
+        if embeddingDimension != embedder.embeddingDimension {
+            return true
+        }
+        if modelIdentifier == embedder.modelIdentifier {
+            return false
+        }
+        let isArcFaceStored = modelIdentifier.hasPrefix("arcface") || modelIdentifier.contains("w600k")
+        let isArcFaceActive = embedder.modelIdentifier.hasPrefix("arcface") || embedder.modelIdentifier.contains("w600k")
+        if isArcFaceStored && isArcFaceActive {
+            return false
+        }
+        return true
     }
 
     nonisolated func isStale(comparedToModelIdentifier identifier: String) -> Bool {
-        modelIdentifier != identifier
+        if modelIdentifier == identifier {
+            return false
+        }
+        let isArcFaceStored = modelIdentifier.hasPrefix("arcface") || modelIdentifier.contains("w600k")
+        let isArcFaceActive = identifier.hasPrefix("arcface") || identifier.contains("w600k")
+        if isArcFaceStored && isArcFaceActive {
+            return false
+        }
+        return true
     }
 }
 

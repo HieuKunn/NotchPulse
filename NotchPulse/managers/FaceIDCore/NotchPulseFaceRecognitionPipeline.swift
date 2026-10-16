@@ -84,31 +84,24 @@ final class NotchPulseFaceRecognitionPipeline {
         threshold: Float = 0.55
     ) throws -> FaceRecognitionResult {
         let faces = try NotchPulseFaceDetector.detectFaces(in: frame)
-        let candidates = Self.prominentFaces(in: faces, preferNear: previousBoundingBox)
-        guard !candidates.isEmpty else {
+        guard !faces.isEmpty else {
             throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
         }
 
         // Multi-face resolution: If multiple candidates exist and active identities are provided,
         // iterate candidates in order of prominence. If a candidate matches an enrolled user, select them immediately.
+        let candidates = Self.prominentFaces(in: faces, preferNear: previousBoundingBox)
         if let identities, !identities.isEmpty, candidates.count > 1 {
-            var firstValidResult: FaceRecognitionResult?
             for candidate in candidates {
                 guard let result = try? recognize(candidate, in: frame) else { continue }
-                if firstValidResult == nil {
-                    firstValidResult = result
-                }
                 let scored = score(result.embedding, against: identities)
                 if bestMatch(in: scored, threshold: threshold) != nil {
                     return result
                 }
             }
-            if let first = firstValidResult {
-                return first
-            }
         }
 
-        guard let dominant = candidates.first else {
+        guard let dominant = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) ?? candidates.first ?? faces.max(by: { ($0.boundingBox.width * $0.boundingBox.height) < ($1.boundingBox.width * $1.boundingBox.height) }) else {
             throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
         }
         return try recognize(dominant, in: frame)
