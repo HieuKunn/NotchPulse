@@ -25,16 +25,15 @@ enum NotchPulseSecureFaceStore {
         FileManager.default.fileExists(atPath: fileURL.path)
     }
 
-    /// Throws `.sessionLocked` rather than returning an empty array, so callers can distinguish "nothing enrolled" from "enrolled, but locked".
+    /// Loads enrolled face identities directly from encrypted storage using the session key.
     static func load() throws -> [FaceIdentity] {
-        guard NotchPulseVault.isSessionUnlocked else { throw NotchPulseSecureFaceStoreError.sessionLocked }
-        guard let ciphertext = try? Data(contentsOf: fileURL) else { return [] }
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
+        let ciphertext = try Data(contentsOf: fileURL)
         let plaintext = try NotchPulseVault.decrypt(ciphertext)
         return try JSONDecoder().decode([FaceIdentity].self, from: plaintext)
     }
 
     static func save(_ identities: [FaceIdentity]) throws {
-        guard NotchPulseVault.isSessionUnlocked else { throw NotchPulseSecureFaceStoreError.sessionLocked }
         let plaintext = try JSONEncoder().encode(identities)
         let ciphertext = try NotchPulseVault.encrypt(plaintext)
         try ciphertext.write(to: fileURL, options: .atomic)

@@ -115,11 +115,14 @@ final class NotchPulseFaceIDSettings {
         didSet { defaults.set(isFaceUnlockEnabled, forKey: Key.isFaceUnlockEnabled) }
     }
     var matchThreshold: Float {
-        didSet { defaults.set(matchThreshold, forKey: Key.matchThreshold) }
+        didSet {
+            defaults.set(matchThreshold, forKey: Key.matchThreshold)
+            defaults.set(Double(matchThreshold), forKey: "faceIDMatchThreshold")
+        }
     }
     /// Nonisolated accessor so background verification routines can read the threshold without hop to MainActor.
     nonisolated static var currentMatchThreshold: Float {
-        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.64
+        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.60
     }
     /// Master switch for liveness checking. Off means face recognition
     /// alone decides an unlock — a photo of the enrolled user would pass.
@@ -273,7 +276,7 @@ final class NotchPulseFaceIDSettings {
         } else if let legacy = defaults.object(forKey: "faceIDMatchThreshold") as? Double {
             matchThreshold = Float(legacy)
         } else {
-            matchThreshold = 0.64
+            matchThreshold = 0.60
         }
         livenessChecksEnabled = defaults.object(forKey: Key.livenessChecksEnabled) as? Bool ?? true
         // Light by default — Heavy requires a blink/pose/depth signal a
@@ -311,7 +314,7 @@ final class NotchPulseFaceIDSettings {
                 return UnlockTrigger(rawValue: raw)
             }
         unlockTriggers = storedTriggers.map(Set.init).flatMap { $0.isEmpty ? nil : $0 }
-            ?? [.onWake, .onLock]
+            ?? [.onWake]
         retryOnHover = defaults.object(forKey: Key.retryOnHover) as? Bool ?? true
         faceDetectionSeconds = (defaults.object(forKey: Key.faceDetectionSeconds) as? Int)
             .map { min(max($0, Self.faceDetectionRange.lowerBound), Self.faceDetectionRange.upperBound) }

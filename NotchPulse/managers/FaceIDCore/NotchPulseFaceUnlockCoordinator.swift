@@ -157,8 +157,10 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
+        // ".onLock" arms the notch silhouette overlay on the lock screen, but NEVER activates the camera hardware
+        // immediately upon locking. Scanning is triggered on wake, hover, or space.
         let isSelectedTrigger = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
-        let shouldAutoScan = isSelectedTrigger
+        let shouldAutoScan = (signal != .onLock) && isSelectedTrigger
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do.
         guard showsUI || shouldAutoScan else { return }
@@ -455,7 +457,12 @@ final class NotchPulseFaceUnlockCoordinator {
 
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
-            let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            if activeIdentities.isEmpty {
+                if let directLoaded = try? NotchPulseSecureFaceStore.load(), !directLoaded.isEmpty {
+                    activeIdentities = directLoaded.filter(\.isEnabled)
+                }
+            }
             let currentThreshold = matchThreshold
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(

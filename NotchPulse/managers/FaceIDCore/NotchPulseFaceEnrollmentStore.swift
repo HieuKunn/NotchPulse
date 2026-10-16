@@ -135,7 +135,7 @@ final class NotchPulseFaceEnrollmentStore {
 
     /// Everyone the user hasn't switched off — what unlock actually scores against. `identities` stays the full list.
     var activeIdentities: [FaceIdentity] {
-        if identities.isEmpty && NotchPulseVault.isSessionUnlocked {
+        if identities.isEmpty {
             reloadIfUnlocked()
         }
         return identities.filter(\.isEnabled)
@@ -161,24 +161,22 @@ final class NotchPulseFaceEnrollmentStore {
         }
     }
 
-    /// Re-attempts loading from encrypted storage. A no-op (leaves
-    /// `isLocked = true`) if the session isn't unlocked yet.
+    /// Re-attempts loading from encrypted storage.
     func reloadIfUnlocked() {
-        guard NotchPulseVault.isSessionUnlocked else {
-            isLocked = true
-            return
-        }
         do {
-            identities = try NotchPulseSecureFaceStore.load()
-            hasLoadedSuccessfully = true
+            let loaded = try NotchPulseSecureFaceStore.load()
+            if !loaded.isEmpty || !hasLoadedSuccessfully {
+                identities = loaded
+                hasLoadedSuccessfully = true
+            }
             loadFailure = nil
+            isLocked = false
         } catch {
-            // Deliberately not `(try? load()) ?? []` — a store we couldn't read isn't an empty store, and the next
-            // write must not persist an empty array over a file that still holds every sample.
-            identities = []
-            loadFailure = error.localizedDescription
+            if identities.isEmpty {
+                loadFailure = error.localizedDescription
+                isLocked = true
+            }
         }
-        isLocked = false
     }
 
     /// Adds one captured sample to `name`'s identity (creating it if new). Existing samples from a different embedder

@@ -67,14 +67,25 @@ enum NotchPulseVault {
             NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
             return key
         }
-        // Generate new key and save to Keychain
+        // If encrypted data exists, do NOT overwrite with a fresh key
+        if hasSessionEncryptedData {
+            NSLog("[NotchPulseVault] Session key missing from cache but encrypted data exists. Retrying read...")
+            if let data = try? NotchPulseKeychainManager.read(account: sessionKeyAccount) {
+                let key = SymmetricKey(data: data)
+                _cachedKey = key
+                _lastActivityAt = Date()
+                sessionLock.unlock()
+                NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
+                return key
+            }
+        }
+        // Generate new key and save to Keychain with device-only unlock (no .userPresence gating)
         let key = SymmetricKey(size: .bits256)
         let keyData = key.withUnsafeBytes { Data($0) }
-        let access = NotchPulseKeychainManager.makeUserPresenceAccessControl()
         try? NotchPulseKeychainManager.save(
             account: sessionKeyAccount,
             data: keyData,
-            accessControl: access
+            accessControl: nil
         )
         _cachedKey = key
         _lastActivityAt = Date()
@@ -96,7 +107,7 @@ enum NotchPulseVault {
             return true
         }
         sessionLock.unlock()
-        return !hasSessionEncryptedData
+        return !hasSessionEncryptedData || _cachedKey != nil
     }
 
     /// `nil` whenever the session is locked — there is no activity to age.

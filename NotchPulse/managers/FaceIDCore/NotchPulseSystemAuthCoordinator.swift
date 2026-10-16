@@ -405,7 +405,12 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             }
             lastProcessedFrameID = frame.id
 
-            let activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            if activeIdentities.isEmpty {
+                if let directLoaded = try? NotchPulseSecureFaceStore.load(), !directLoaded.isEmpty {
+                    activeIdentities = directLoaded.filter(\.isEnabled)
+                }
+            }
             guard !activeIdentities.isEmpty else {
                 FaceIDOverlayController.shared.finish(success: false)
                 return false

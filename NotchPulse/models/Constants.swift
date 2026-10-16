@@ -268,7 +268,7 @@ extension Defaults.Keys {
     static let enableFaceIDForSystemPrompts = Key<Bool>("enableFaceIDForSystemPrompts", default: false)
     static let faceIDSound = Key<Bool>("faceIDSound", default: true)
     static let faceIDEnterPressCount = Key<Int>("faceIDEnterPressCount", default: 1)
-    static let faceIDMatchThreshold = Key<Double>("faceIDMatchThreshold", default: 0.64)
+    static let faceIDMatchThreshold = Key<Double>("faceIDMatchThreshold", default: 0.60)
     static let enableLockScreenPlayer = Key<Bool>("enableLockScreenPlayer", default: true)
     static let lockScreenPlayerShowLyrics = Key<Bool>("lockScreenPlayerShowLyrics", default: true)
     
