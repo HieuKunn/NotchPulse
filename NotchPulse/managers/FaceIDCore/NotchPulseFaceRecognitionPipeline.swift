@@ -33,27 +33,43 @@ final class NotchPulseFaceRecognitionPipeline {
         ArcFaceEmbedder.isModelBundled ? ArcFaceEmbedder.defaultModelIdentifier : VisionFeaturePrintEmbedder.defaultModelIdentifier
     }
 
-    nonisolated static var sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) {
-        if ArcFaceEmbedder.isModelBundled, let arcFace = ArcFaceEmbedder.shared {
-            return (arcFace, false, nil)
-        } else {
-            return (VisionFeaturePrintEmbedder(), true, ArcFaceEmbedder.isModelBundled ? "ArcFace model failed to load" : "ArcFace model not bundled")
-        }
+    private static let lock = NSLock()
+    private nonisolated(unsafe) static var _activeEmbedder: FaceEmbedder?
+
+    nonisolated static func registerActiveEmbedder(_ embedder: FaceEmbedder) {
+        lock.lock()
+        defer { lock.unlock() }
+        _activeEmbedder = embedder
     }
 
     nonisolated var embedder: FaceEmbedder {
-        Self.sharedEmbedderResult.embedder
+        Self.lock.lock()
+        if let current = Self._activeEmbedder {
+            Self.lock.unlock()
+            return current
+        }
+        Self.lock.unlock()
+
+        if let arcFace = ArcFaceEmbedder.shared {
+            return arcFace
+        }
+        return VisionFeaturePrintEmbedder()
     }
 
-    /// Set when ArcFace is not bundled in the app and the Vision feature-print embedder is in use instead.
+    /// Set when ArcFace is not bundled in the app or failed to load.
     var usingFallbackEmbedder: Bool {
-        !ArcFaceEmbedder.isModelBundled
+        !(embedder is ArcFaceEmbedder)
     }
     var fallbackReason: String? {
-        usingFallbackEmbedder ? "ArcFace model not bundled in app" : nil
+        usingFallbackEmbedder ? (ArcFaceEmbedder.isModelBundled ? "ArcFace model failed to load" : "ArcFace model not bundled in app") : nil
     }
 
-    init() {}
+    init() {
+        // Pre-load and cache the active embedder immediately on initialization
+        if let arcFace = ArcFaceEmbedder.shared {
+            Self.registerActiveEmbedder(arcFace)
+        }
+    }
 
     /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
     /// - Parameters:

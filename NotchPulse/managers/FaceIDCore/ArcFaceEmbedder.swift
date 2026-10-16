@@ -28,7 +28,7 @@ enum ArcFaceEmbedderError: LocalizedError {
 final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     static let defaultModelIdentifier = "arcface-w600k_mbf-v1"
 
-    static var isModelBundled: Bool {
+    static let isModelBundled: Bool = {
         for name in ["ArcFace", "w600k_mbf"] {
             for ext in ["mlmodelc", "mlpackage"] {
                 if Bundle.main.url(forResource: name, withExtension: ext) != nil { return true }
@@ -37,7 +37,7 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
             }
         }
         return false
-    }
+    }()
 
     nonisolated let name = "ArcFace (w600k_mbf)"
     nonisolated let modelIdentifier = ArcFaceEmbedder.defaultModelIdentifier
@@ -60,6 +60,7 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         do {
             let instance = try ArcFaceEmbedder()
             _sharedInstance = instance
+            NotchPulseFaceRecognitionPipeline.registerActiveEmbedder(instance)
             return instance
         } catch {
             NSLog("[ArcFaceEmbedder] Failed to initialize shared instance: \(error.localizedDescription)")
@@ -129,34 +130,43 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         prewarmPrediction()
     }
 
+    private static let _cachedModelURLLock = NSLock()
+    private static var _cachedModelURL: URL?
+
     /// Both names are checked in case the file was added under a different name.
-    /// Supports precompiled .mlmodelc, raw .mlpackage (compiled on demand), and bundle subdirectories.
+    /// Checks precompiled .mlmodelc first, then caches the URL to avoid repetitive disk traversal.
     private static func locateModel() -> URL? {
+        _cachedModelURLLock.lock()
+        defer { _cachedModelURLLock.unlock() }
+        if let cached = _cachedModelURL { return cached }
+
         let bundles = [Bundle.main, Bundle(for: ArcFaceEmbedder.self)]
         for bundle in bundles {
             for name in ["ArcFace", "w600k_mbf"] {
                 if let url = bundle.url(forResource: name, withExtension: "mlmodelc") {
+                    _cachedModelURL = url
                     return url
-                }
-                if let url = bundle.url(forResource: name, withExtension: "mlpackage") {
-                    if let compiled = try? MLModel.compileModel(at: url) {
-                        return compiled
-                    }
                 }
                 if let url = bundle.url(forResource: name, withExtension: "mlmodelc", subdirectory: "Models") {
+                    _cachedModelURL = url
                     return url
-                }
-                if let url = bundle.url(forResource: name, withExtension: "mlpackage", subdirectory: "Models") {
-                    if let compiled = try? MLModel.compileModel(at: url) {
-                        return compiled
-                    }
                 }
                 if let url = bundle.url(forResource: name, withExtension: "mlmodelc", subdirectory: "FaceIDCore") {
+                    _cachedModelURL = url
                     return url
                 }
-                if let url = bundle.url(forResource: name, withExtension: "mlpackage", subdirectory: "FaceIDCore") {
-                    if let compiled = try? MLModel.compileModel(at: url) {
-                        return compiled
+            }
+        }
+
+        // Fallback to on-demand compilation if only uncompiled .mlpackage is provided
+        for bundle in bundles {
+            for name in ["ArcFace", "w600k_mbf"] {
+                for subdir in [nil, "Models", "FaceIDCore"] {
+                    if let url = bundle.url(forResource: name, withExtension: "mlpackage", subdirectory: subdir) {
+                        if let compiled = try? MLModel.compileModel(at: url) {
+                            _cachedModelURL = compiled
+                            return compiled
+                        }
                     }
                 }
             }

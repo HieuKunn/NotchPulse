@@ -129,6 +129,7 @@ final class NotchPulseFaceUnlockCoordinator {
         // `isWithinRecentArmBurst` and active `scanTask` keep the burst of wake signals from re-arming and cancelling an in-flight scan.
         if isWake {
             lastHandledWakeCount = lockMonitor.wakeEventCount
+            ArcFaceEmbedder.warmUp()
             if !isWithinRecentArmBurst && scanTask == nil {
                 hasArmedForCurrentLock = false
             }
