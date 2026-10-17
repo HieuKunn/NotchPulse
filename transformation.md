@@ -172,10 +172,10 @@ graph TD
 ```
 
 ### 📍 Giai đoạn 1: Chuẩn hóa Cửa sổ Settings (Pure HIG)
-- [ ] Xóa bỏ `SettingsDetailHeaderBar` tự chế.
-- [ ] Chuyển các tab cài đặt sang cấu trúc thẻ Inset Grouped (`.formStyle(.grouped)`).
-- [ ] Đồng bộ hóa màu chữ, thanh trượt và toggle theo bảng màu hệ thống macOS.
-- [ ] Đảm bảo Settings hiển thị hoàn hảo trên cả Dark Mode và Light Mode.
+- [x] Xóa bỏ `SettingsDetailHeaderBar` tự chế.
+- [x] Chuyển các tab cài đặt sang cấu trúc thẻ Inset Grouped (`.formStyle(.grouped)`).
+- [x] Đồng bộ hóa màu chữ, thanh trượt và toggle theo bảng màu hệ thống macOS.
+- [x] Đảm bảo Settings hiển thị hoàn hảo trên cả Dark Mode và Light Mode.
 
 ### 📍 Giai đoạn 2: Nâng cấp Kính Mờ Native cho Lock Screen Media
 - [x] Thay nền bệt trắng/xám hiện tại trong `LockScreenMediaView.swift` bằng `.ultraThinMaterial` / `NSVisualEffectView`.
