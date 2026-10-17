@@ -21,11 +21,12 @@ final class PassthroughTourHostingView<Content: View>: NSHostingView<Content> {
 }
 
 @MainActor
-final class FeatureTourController: NSObject {
+final class FeatureTourController: NSObject, ObservableObject {
     static let shared = FeatureTourController()
 
-    public var isTourActive: Bool = false
-    public var interactiveCardRect: CGRect?
+    @Published public var isTourActive: Bool = false
+    @Published public var interactiveCardRect: CGRect?
+    @Published public var settingsGearScreenRect: CGRect?
     private var tourWindow: NSWindow?
 
     override private init() {
@@ -90,6 +91,7 @@ final class FeatureTourController: NSObject {
     func dismissTour() {
         isTourActive = false
         interactiveCardRect = nil
+        settingsGearScreenRect = nil
         tourWindow?.orderOut(nil)
         tourWindow = nil
 
@@ -113,3 +115,47 @@ final class FeatureTourController: NSObject {
         targetVM.close(force: true)
     }
 }
+
+struct ScreenFrameReader: NSViewRepresentable {
+    let onFrameChange: (CGRect) -> Void
+
+    func makeNSView(context: Context) -> FrameObserverView {
+        let view = FrameObserverView()
+        view.onFrameChange = onFrameChange
+        return view
+    }
+
+    func updateNSView(_ nsView: FrameObserverView, context: Context) {
+        nsView.onFrameChange = onFrameChange
+    }
+
+    class FrameObserverView: NSView {
+        var onFrameChange: ((CGRect) -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            reportFrame()
+        }
+
+        override func layout() {
+            super.layout()
+            reportFrame()
+        }
+
+        private func reportFrame() {
+            guard let window = self.window, let screen = window.screen else { return }
+            let windowRect = convert(bounds, to: nil)
+            let screenRect = window.convertToScreen(windowRect)
+            let swiftUIRect = CGRect(
+                x: screenRect.origin.x - screen.frame.origin.x,
+                y: screen.frame.maxY - screenRect.maxY,
+                width: screenRect.width,
+                height: screenRect.height
+            )
+            DispatchQueue.main.async {
+                self.onFrameChange?(swiftUIRect)
+            }
+        }
+    }
+}
+

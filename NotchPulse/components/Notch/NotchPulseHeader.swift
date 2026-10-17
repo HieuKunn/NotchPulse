@@ -97,7 +97,7 @@ struct NotchPulseHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        if Defaults[.settingsIconInNotch] {
+                        if Defaults[.settingsIconInNotch] || FeatureTourController.shared.isTourActive {
                             Button(action: {
                                 DispatchQueue.main.async {
                                     SettingsWindowController.shared.showWindow()
@@ -114,6 +114,11 @@ struct NotchPulseHeader: View {
                                     }
                             }
                             .buttonStyle(PlainButtonStyle())
+                            .background(
+                                ScreenFrameReader { frame in
+                                    FeatureTourController.shared.settingsGearScreenRect = frame
+                                }
+                            )
                         }
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))

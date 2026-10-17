@@ -54,6 +54,7 @@ struct FeatureTourView: View {
     @Default(.appLanguage) var appLanguage: AppLanguage
     @Default(.notchStyle) var notchStyle: NotchStyle
     @State private var currentStepIndex = 0
+    @ObservedObject var tourController = FeatureTourController.shared
     @EnvironmentObject var coordinator: NotchPulseViewCoordinator
     @EnvironmentObject var vm: NotchPulseViewModel
     
@@ -164,10 +165,12 @@ struct FeatureTourView: View {
             let topOffset: CGFloat = isDynamicIsland ? 12 : 0
             
             let isGearTarget = currentStep.target == "settingsGear"
-            let gearBoxSize: CGFloat = 38
-            let headerInset: CGFloat = isDynamicIsland ? 22 : 23
-            let gearCenterX = centerX + (openWidth / 2) - 14 - headerInset - 15
-            let gearCenterY = topOffset + (isDynamicIsland ? 28 : 17)
+            let gearRect = tourController.settingsGearScreenRect
+            let fallbackGearCenterX = centerX + (openWidth / 2) - 14 - (isDynamicIsland ? 22 : 23) - 15
+            let fallbackGearCenterY = topOffset + (isDynamicIsland ? 28 : 17)
+            let gearCenterX = isGearTarget ? (gearRect?.midX ?? fallbackGearCenterX) : fallbackGearCenterX
+            let gearCenterY = isGearTarget ? (gearRect?.midY ?? fallbackGearCenterY) : fallbackGearCenterY
+            let gearBoxSize: CGFloat = isGearTarget ? max(38, (gearRect?.width ?? 30) + 8) : 38
             let gearBoxX = gearCenterX - (gearBoxSize / 2)
             let gearBoxY = gearCenterY - (gearBoxSize / 2)
             
@@ -178,13 +181,14 @@ struct FeatureTourView: View {
             let currentCornerRadius: CGFloat = isGearTarget ? (gearBoxSize / 2) : (isDynamicIsland ? 28 : 22)
             
             let cardWidth: CGFloat = 350
-            let notchRight = centerX + (openWidth / 2)
             let totalCardWidth: CGFloat = cardWidth + 14
-            let desiredCardX = notchRight + 14 + (totalCardWidth / 2)
+            let notchRight = centerX + (openWidth / 2)
+            let anchorRight = isGearTarget ? max(notchRight, gearCenterX + (gearBoxSize / 2)) : notchRight
+            let desiredCardX = anchorRight + 14 + (totalCardWidth / 2)
             let maxCardX = screenWidth - (totalCardWidth / 2) - 16
             let cardX = isGearTarget ? min(maxCardX, desiredCardX) : centerX
             
-            let cardTop = max(10, topOffset)
+            let cardTop = isGearTarget ? max(10, gearCenterY - 16) : max(10, topOffset)
             let cardEstimatedHeight: CGFloat = 180
             let cardY = isGearTarget ? (cardTop + (cardEstimatedHeight / 2)) : (topOffset + openHeight + 14 + 105)
             let arrowTopPadding = max(8, min(120, gearCenterY - cardTop - 8))
@@ -285,6 +289,7 @@ struct FeatureTourView: View {
         .onDisappear {
             FeatureTourController.shared.isTourActive = false
             FeatureTourController.shared.interactiveCardRect = nil
+            FeatureTourController.shared.settingsGearScreenRect = nil
             teardownNotch()
         }
     }
