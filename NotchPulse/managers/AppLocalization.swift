@@ -26,7 +26,7 @@ struct L10n {
     
     private static let translations: [AppLanguage: [String: String]] = [
         .english: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.",
             "COOLING & FAN SPEED": "COOLING & FAN SPEED",
             "0 RPM (Silent)": "0 RPM (Silent)",
             "Max ~6,500 RPM": "Max ~6,500 RPM",
@@ -247,6 +247,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "Adjust volume sliders and mute states independently for each connected audio device.",
             "What's New in NotchPulse": "What's New in NotchPulse",
             "What's New & Feature Tour": "What's New & Feature Tour",
+            "Feature Tour": "Feature Tour",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "Interactive Spotlight walkthrough highlighting all Notch features.",
             "Explore the powerful features built right into your Mac's Notch.": "Explore the powerful features built right into your Mac's Notch.",
             "Next": "Next",
@@ -531,7 +532,7 @@ struct L10n {
             "Image Conversion Failed": "Image Conversion Failed"
         ],
         .vietnamese: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Mở rộng ngăn nhiệt độ để theo dõi nhiệt độ CPU/GPU và tốc độ quạt phần cứng theo thời gian thực.",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Mở rộng ngăn nhiệt độ để theo dõi nhiệt độ CPU/GPU và điều chỉnh tốc độ quạt của Mac theo thời gian thực.",
             "COOLING & FAN SPEED": "TẢN NHIỆT & TỐC ĐỘ QUẠT",
             "0 RPM (Silent)": "0 RPM (Yên tĩnh)",
             "Max ~6,500 RPM": "Tối đa ~6.500 RPM",
@@ -752,6 +753,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "Điều chỉnh thanh trượt âm lượng và trạng thái tắt tiếng độc lập cho từng thiết bị âm thanh đang kết nối.",
             "What's New in NotchPulse": "Tính năng mới trong NotchPulse",
             "What's New & Feature Tour": "Tính năng mới & Hướng dẫn sử dụng",
+            "Feature Tour": "Hướng dẫn tính năng",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "Hướng dẫn tương tác trực quan giới thiệu tất cả tính năng của Notch.",
             "Explore the powerful features built right into your Mac's Notch.": "Khám phá các tính năng mạnh mẽ được tích hợp trực tiếp vào tai thỏ Mac của bạn.",
             "Next": "Tiếp theo",
@@ -1036,7 +1038,7 @@ struct L10n {
             "Image Conversion Failed": "Chuyển đổi ảnh thất bại"
         ],
         .german: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Erweitern Sie die Wärmeschublade, um CPU/GPU-Temperaturen und die Lüfterdrehzahl der Hardware in Echtzeit zu überwachen.",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Erweitern Sie die Wärmeschublade, um CPU/GPU-Temperaturen zu überwachen und die Lüfterdrehzahl Ihres Mac in Echtzeit anzupassen.",
             "COOLING & FAN SPEED": "KÜHLUNG & LÜFTERDREHZAHL",
             "0 RPM (Silent)": "0 U/min (Lautlos)",
             "Max ~6,500 RPM": "Max. ~6.500 U/min",
@@ -1257,6 +1259,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "Passen Sie Lautstärkeregler und Stummschaltung für jedes angeschlossene Gerät unabhängig an.",
             "What's New in NotchPulse": "Neuheiten in NotchPulse",
             "What's New & Feature Tour": "Neuheiten & Funktions-Tour",
+            "Feature Tour": "Funktions-Tour",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "Interaktive Spotlight-Tour, die alle Notch-Funktionen vorstellt.",
             "Explore the powerful features built right into your Mac's Notch.": "Entdecken Sie die leistungsstarken Funktionen direkt in Ihrer Mac-Notch.",
             "Next": "Weiter",
@@ -1515,7 +1518,7 @@ struct L10n {
             "Image Conversion Failed": "Bildkonvertierung fehlgeschlagen"
         ],
         .traditionalChinese: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "展開溫度抽屜以即時監控 CPU/GPU 溫度與硬體風扇轉速。",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "展開溫度抽屜以即時監控 CPU/GPU 溫度並調節 Mac 風扇轉速。",
             "COOLING & FAN SPEED": "散熱與風扇轉速",
             "0 RPM (Silent)": "0 RPM (靜音)",
             "Max ~6,500 RPM": "最高 ~6,500 RPM",
@@ -1736,6 +1739,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "為每個已連接的音訊裝置單獨調整音量滑桿和靜音狀態。",
             "What's New in NotchPulse": "NotchPulse 新功能",
             "What's New & Feature Tour": "新功能與特色導覽",
+            "Feature Tour": "功能導覽",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "互動式焦點導覽，帶您全面瞭解 Notch 的所有強大功能。",
             "Explore the powerful features built right into your Mac's Notch.": "探索直接內建於 Mac 瀏海中的強大功能。",
             "Next": "下一個",
@@ -1994,7 +1998,7 @@ struct L10n {
             "Image Conversion Failed": "圖片轉換失敗"
         ],
         .simplifiedChinese: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "展开温度抽屉以实时监控 CPU/GPU 温度与硬件风扇转速。",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "展开温度抽屉以实时监控 CPU/GPU 温度并调节 Mac 风扇转速。",
             "COOLING & FAN SPEED": "散热与风扇转速",
             "0 RPM (Silent)": "0 RPM (静音)",
             "Max ~6,500 RPM": "最高 ~6,500 RPM",
@@ -2215,6 +2219,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "为每个已连接的音频设备单独调节音量滑块和静音状态。",
             "What's New in NotchPulse": "NotchPulse 新功能",
             "What's New & Feature Tour": "新功能与特色导览",
+            "Feature Tour": "功能导览",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "交互式聚焦导览，带您全面了解 Notch 的所有强大功能。",
             "Explore the powerful features built right into your Mac's Notch.": "探索直接内置于 Mac 刘海中的强大功能。",
             "Next": "下一个",
@@ -2473,7 +2478,7 @@ struct L10n {
             "Image Conversion Failed": "图像转换失败"
         ],
         .japanese: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "サーマルドロワーを展開して、CPU/GPU 温度とハードウェアファンの回転数をリアルタイムで監視します。",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "サーマルドロワーを展開して、CPU/GPU 温度の監視や Mac のファン速度をリアルタイムで調整できます。",
             "COOLING & FAN SPEED": "冷却とファン速度",
             "0 RPM (Silent)": "0 RPM (静音)",
             "Max ~6,500 RPM": "最大 ~6,500 RPM",
@@ -2694,6 +2699,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "接続されているオーディオデバイスごとに音量スライダーとミュート状態を個別に調整します。",
             "What's New in NotchPulse": "NotchPulse の新機能",
             "What's New & Feature Tour": "新機能と機能ツアー",
+            "Feature Tour": "機能ツアー",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "Notchのすべての機能を紹介するインタラクティブなスポットライトツアー。",
             "Explore the powerful features built right into your Mac's Notch.": "Macのノッチに組み込まれた強力な機能を体験しましょう。",
             "Next": "次へ",
@@ -2952,7 +2958,7 @@ struct L10n {
             "Image Conversion Failed": "画像の変換に失敗しました"
         ],
         .french: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Développez le tiroir thermique pour surveiller en temps réel les températures CPU/GPU et la vitesse du ventilateur.",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Développez le tiroir thermique pour surveiller en temps réel les températures CPU/GPU et ajuster la vitesse du ventilateur de votre Mac.",
             "COOLING & FAN SPEED": "REFROIDISSEMENT ET VITESSE DU VENTILATEUR",
             "0 RPM (Silent)": "0 RPM (Silencieux)",
             "Max ~6,500 RPM": "Max ~6 500 RPM",
@@ -3173,6 +3179,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "Ajustez les curseurs de volume et l'état de sourdine indépendamment pour chaque périphérique audio connecté.",
             "What's New in NotchPulse": "Nouveautés de NotchPulse",
             "What's New & Feature Tour": "Nouveautés & Visite guidée",
+            "Feature Tour": "Visite guidée",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "Visite interactive mettant en valeur toutes les fonctionnalités du Notch.",
             "Explore the powerful features built right into your Mac's Notch.": "Découvrez les fonctionnalités puissantes intégrées directement dans l'encoche de votre Mac.",
             "Next": "Suivant",
@@ -3431,7 +3438,7 @@ struct L10n {
             "Image Conversion Failed": "Échec de la conversion de l'image"
         ],
         .spanish: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "Expande el cajón térmico para monitorear las temperaturas de CPU/GPU y la velocidad del ventilador en tiempo real.",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Expande el cajón térmico para monitorear las temperaturas de CPU/GPU y ajustar la velocidad del ventilador de tu Mac en tiempo real.",
             "COOLING & FAN SPEED": "REFRIGERACIÓN Y VELOCIDAD DEL VENTILADOR",
             "0 RPM (Silent)": "0 RPM (Silencioso)",
             "Max ~6,500 RPM": "Máx. ~6.500 RPM",
@@ -3652,6 +3659,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "Ajusta los controles de volumen y silencio de forma independiente para cada dispositivo de audio conectado.",
             "What's New in NotchPulse": "Novedades de NotchPulse",
             "What's New & Feature Tour": "Novedades y Guía de funciones",
+            "Feature Tour": "Guía de funciones",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "Guía interactiva que destaca todas las características de Notch.",
             "Explore the powerful features built right into your Mac's Notch.": "Explora las potentes funciones integradas directamente en el notch de tu Mac.",
             "Next": "Siguiente",
@@ -3910,7 +3918,7 @@ struct L10n {
             "Image Conversion Failed": "Error al convertir la imagen"
         ],
         .arabic: [
-            "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.": "قم بتوسيع درج الحرارة لمراقبة درجات حرارة CPU/GPU وسرعة مروحة العتاد في الوقت الفعلي.",
+            "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "قم بتوسيع درج الحرارة لمراقبة درجات حرارة CPU/GPU وضبط سرعة مروحة جهاز Mac في الوقت الفعلي.",
             "COOLING & FAN SPEED": "التبريد وسرعة المروحة",
             "0 RPM (Silent)": "0 RPM (صامت)",
             "Max ~6,500 RPM": "الحد الأقصى ~6,500 RPM",
@@ -4131,6 +4139,7 @@ struct L10n {
             "Adjust volume sliders and mute states independently for each connected audio device.": "ضبط أشرطة تمرير مستوى الصوت وكتم الصوت بشكل مستقل لكل جهاز صوتي متصل.",
             "What's New in NotchPulse": "ما الجديد في NotchPulse",
             "What's New & Feature Tour": "ما الجديد وجولة الميزات",
+            "Feature Tour": "جولة الميزات",
             "Interactive Spotlight walkthrough highlighting all Notch features.": "جولة تفاعلية تسلط الضوء على جميع ميزات نوتش.",
             "Explore the powerful features built right into your Mac's Notch.": "استكشف الميزات القوية المدمجة مباشرة في نوتش جهاز Mac.",
             "Next": "التالي",

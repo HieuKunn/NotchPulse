@@ -114,7 +114,7 @@ struct FeatureTourView: View {
         ),
         FeatureTourStep(
             title: "Temperature & Fan",
-            description: "Expand the thermal drawer to monitor CPU/GPU temperatures and hardware fan speed in real-time.",
+            description: "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.",
             icon: "fanblades.fill",
             tabColor: .teal,
             viewType: .stats,
@@ -164,10 +164,10 @@ struct FeatureTourView: View {
             let topOffset: CGFloat = isDynamicIsland ? 12 : 0
             
             let isGearTarget = currentStep.target == "settingsGear"
-            let gearBoxSize: CGFloat = 34
-            let headerInset: CGFloat = isDynamicIsland ? 22 : 24
-            let gearCenterX = centerX + (openWidth / 2) - headerInset - 15
-            let gearCenterY = topOffset + (isDynamicIsland ? 22 : 20)
+            let gearBoxSize: CGFloat = 38
+            let headerInset: CGFloat = isDynamicIsland ? 22 : 23
+            let gearCenterX = centerX + (openWidth / 2) - 14 - headerInset - 15
+            let gearCenterY = topOffset + (isDynamicIsland ? 28 : 17)
             let gearBoxX = gearCenterX - (gearBoxSize / 2)
             let gearBoxY = gearCenterY - (gearBoxSize / 2)
             
@@ -177,12 +177,17 @@ struct FeatureTourView: View {
             
             let currentCornerRadius: CGFloat = isGearTarget ? (gearBoxSize / 2) : (isDynamicIsland ? 28 : 22)
             
-            let cardWidth: CGFloat = 380
-            let cardX = isGearTarget
-                ? min(screenWidth - (cardWidth / 2) - 20, max((cardWidth / 2) + 20, centerX + (openWidth / 2) - (cardWidth / 2)))
-                : centerX
-            let cardY = topOffset + openHeight + 14 + 105
-            let arrowOffset = isGearTarget ? max(-160, min(160, gearCenterX - cardX)) : 0
+            let cardWidth: CGFloat = 350
+            let notchRight = centerX + (openWidth / 2)
+            let totalCardWidth: CGFloat = cardWidth + 14
+            let desiredCardX = notchRight + 14 + (totalCardWidth / 2)
+            let maxCardX = screenWidth - (totalCardWidth / 2) - 16
+            let cardX = isGearTarget ? min(maxCardX, desiredCardX) : centerX
+            
+            let cardTop = max(10, topOffset)
+            let cardEstimatedHeight: CGFloat = 180
+            let cardY = isGearTarget ? (cardTop + (cardEstimatedHeight / 2)) : (topOffset + openHeight + 14 + 105)
+            let arrowTopPadding = max(8, min(120, gearCenterY - cardTop - 8))
             
             ZStack(alignment: .top) {
                 // Dimmed background with spotlight cutout
@@ -225,19 +230,33 @@ struct FeatureTourView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: openWidth)
                 
                 // Small Floating Instruction Card
-                VStack(spacing: 0) {
-                    // Upward pointer arrow
-                    Image(systemName: "arrowtriangle.up.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(Color.white.opacity(0.96))
-                        .shadow(color: Color.black.opacity(0.2), radius: 4, y: -2)
-                        .offset(x: arrowOffset)
-                        .zIndex(3)
-                    
-                    instructionCard
-                        .padding(.top, -4)
+                Group {
+                    if isGearTarget {
+                        HStack(alignment: .top, spacing: -4) {
+                            Image(systemName: "arrowtriangle.left.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(Color.white.opacity(0.96))
+                                .shadow(color: Color.black.opacity(0.2), radius: 4, x: -2)
+                                .padding(.top, arrowTopPadding)
+                                .zIndex(3)
+                            
+                            instructionCard
+                                .frame(width: cardWidth)
+                        }
+                    } else {
+                        VStack(spacing: 0) {
+                            Image(systemName: "arrowtriangle.up.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(Color.white.opacity(0.96))
+                                .shadow(color: Color.black.opacity(0.2), radius: 4, y: -2)
+                                .zIndex(3)
+                            
+                            instructionCard
+                                .frame(width: cardWidth)
+                                .padding(.top, -4)
+                        }
+                    }
                 }
-                .frame(width: cardWidth)
                 .background(
                     GeometryReader { geo in
                         Color.clear
@@ -389,7 +408,7 @@ struct FeatureTourView: View {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = .mainMenu + 2
+        window.level = .mainMenu + 4
         
         let screen = targetScreen
         window.setFrame(screen.frame, display: true, animate: true)

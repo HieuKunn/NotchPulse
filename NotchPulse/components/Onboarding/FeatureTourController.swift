@@ -64,7 +64,7 @@ final class FeatureTourController: NSObject {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = .mainMenu + 2
+        window.level = .mainMenu + 4
         window.ignoresMouseEvents = false
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.setFrame(screen.frame, display: true)

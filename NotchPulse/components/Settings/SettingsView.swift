@@ -635,12 +635,12 @@ struct GeneralSettings: View {
                 Button(action: {
                     FeatureTourController.shared.startTour()
                 }) {
-                    HStack {
+                    HStack(spacing: 12) {
                         Image(systemName: "sparkles")
                             .foregroundColor(.white)
                             .font(.system(size: 16))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(loc("What's New & Feature Tour"))
+                            Text(loc("Feature Tour"))
                                 .font(.system(size: 13, weight: .semibold))
                             Text(loc("Interactive Spotlight walkthrough highlighting all Notch features."))
                                 .font(.system(size: 11))
@@ -650,8 +650,12 @@ struct GeneralSettings: View {
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(PlainButtonStyle())
+                .contentShape(Rectangle())
             }
 
             styleSection
