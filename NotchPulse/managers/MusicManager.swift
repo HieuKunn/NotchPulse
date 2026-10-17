@@ -923,7 +923,8 @@ class MusicManager: ObservableObject {
             usingAppIconForArtwork: self.usingAppIconForArtwork,
             lastUpdated: state.lastUpdated,
             syncedLyrics: self.syncedLyrics,
-            currentLyrics: self.currentLyrics
+            currentLyrics: self.currentLyrics,
+            artworkData: self.artworkData
         )
 
         mediaSessionStack.append(snapshot)
@@ -997,7 +998,11 @@ class MusicManager: ObservableObject {
         self.isPlaying = snapshot.isPlaying
         self.isPlayerIdle = !snapshot.isPlaying
 
-        if let bid = snapshot.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bid) {
+        if let artData = snapshot.artworkData, let img = NSImage(data: artData) {
+            self.artworkData = artData
+            self.usingAppIconForArtwork = false
+            self.updateAlbumArt(newAlbumArt: img)
+        } else if let bid = snapshot.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bid) {
             self.usingAppIconForArtwork = true
             self.albumArt = appIcon
             self.calculateAverageColor()
@@ -1065,6 +1070,10 @@ class MusicManager: ObservableObject {
     }
 
     func play() {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
+            self.isPlaying = true
+            self.updateIdleState(state: true)
+        }
         Task {
             if let activeController = activeController {
                 await activeController.play()
@@ -1085,6 +1094,10 @@ class MusicManager: ObservableObject {
     }
 
     func pause() {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
+            self.isPlaying = false
+            self.updateIdleState(state: false)
+        }
         Task {
             if let activeController = activeController {
                 await activeController.pause()
@@ -1151,6 +1164,7 @@ class MusicManager: ObservableObject {
         lastTogglePlayTime = now
         withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
             self.isPlaying.toggle()
+            self.updateIdleState(state: self.isPlaying)
         }
         Task {
             if let activeController = activeController {
