@@ -40,6 +40,7 @@ enum NotchPulseVault {
 
     nonisolated private static let sessionLock = NSLock()
     nonisolated(unsafe) private static var _cachedKey: SymmetricKey?
+    nonisolated(unsafe) private static var _cachedPassword: Data?
     /// Last unlock or successful `readPassword` — what `NotchPulseSessionAutoLocker` compares against the idle limit. Guarded by
     /// `sessionLock` alongside the key so the two can never be observed out of step.
     nonisolated(unsafe) private static var _lastActivityAt: Date?
@@ -137,6 +138,12 @@ enum NotchPulseVault {
         let changed = (key != nil) != (_cachedKey != nil)
         _cachedKey = key
         _lastActivityAt = key == nil ? nil : Date()
+        if key == nil {
+            if var pwd = _cachedPassword {
+                pwd.resetBytes(in: 0..<pwd.count)
+            }
+            _cachedPassword = nil
+        }
         sessionLock.unlock()
         // Posted after releasing the lock — observers may call back into `isSessionUnlocked` (re-acquiring it) from a
         // background thread, so posting while still locked risks a real self-deadlock, not a theoretical one.
@@ -203,7 +210,13 @@ enum NotchPulseVault {
             // If macOS requires binary authorization after an app update, the system modal
             // will appear cleanly on the user's desktop right now!
             if NotchPulseKeychainManager.exists(account: passwordBlobAccount) {
-                _ = try? NotchPulseKeychainManager.read(account: passwordBlobAccount)
+                if let ciphertext = try? NotchPulseKeychainManager.read(account: passwordBlobAccount),
+                   let plaintext = try? decrypt(ciphertext) {
+                    sessionLock.lock()
+                    _cachedPassword = plaintext
+                    _lastActivityAt = Date()
+                    sessionLock.unlock()
+                }
             }
         }
     }
@@ -224,17 +237,43 @@ enum NotchPulseVault {
         guard !passwordBytes.isEmpty else { throw NotchPulseVaultError.emptyPassword }
         let combined = try encrypt(passwordBytes)
         try NotchPulseKeychainManager.save(account: passwordBlobAccount, data: combined)
+        sessionLock.lock()
+        _cachedPassword = passwordBytes
+        _lastActivityAt = Date()
+        sessionLock.unlock()
     }
 
     /// No separate Touch ID prompt — only the session key was gated, at unlock time. Caller MUST zero the returned bytes via
     /// `.resetBytes(in:)` after use. Blocking; call from a background task.
     nonisolated static func readPassword() throws -> Data {
+        sessionLock.lock()
+        if let cached = _cachedPassword {
+            _lastActivityAt = Date()
+            sessionLock.unlock()
+            return cached
+        }
+        sessionLock.unlock()
+
         guard cachedKey() != nil else { throw NotchPulseVaultError.sessionLocked }
         let ciphertext = try NotchPulseKeychainManager.read(account: passwordBlobAccount)
         let plaintext = try decrypt(ciphertext)
-        // Only on success: a failed read shouldn't extend the idle window.
-        recordActivity()
+        sessionLock.lock()
+        _cachedPassword = plaintext
+        _lastActivityAt = Date()
+        sessionLock.unlock()
         return plaintext
+    }
+
+    nonisolated static var hasCachedPasswordInMemory: Bool {
+        sessionLock.lock()
+        defer { sessionLock.unlock() }
+        return _cachedPassword != nil
+    }
+
+    nonisolated static var hasSessionKeyLoadedInMemory: Bool {
+        sessionLock.lock()
+        defer { sessionLock.unlock() }
+        return _cachedKey != nil
     }
 
     /// Deletes both Keychain items and clears the cached session key.

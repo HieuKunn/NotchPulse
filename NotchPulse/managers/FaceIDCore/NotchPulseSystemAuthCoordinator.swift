@@ -21,8 +21,31 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     @ObservationIgnored private var verificationTask: Task<Void, Never>?
     @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
     @ObservationIgnored private var promptDetectionTimer: Timer?
+    @ObservationIgnored private var promptCooldowns: [pid_t: Date] = [:]
+    @ObservationIgnored private var globalLastPromptDate: Date = .distantPast
     @ObservationIgnored private var lastPromptPid: pid_t = 0
     @ObservationIgnored private var lastPromptTimestamp: Date = .distantPast
+
+    private func shouldHandlePrompt(pid: pid_t) -> Bool {
+        let now = Date()
+        // Global throttle: at least 2.5 seconds between any two prompt authentications
+        if now.timeIntervalSince(globalLastPromptDate) < 2.5 {
+            return false
+        }
+        // Per-PID throttle: do not re-prompt the same PID within 8 seconds
+        if let lastDate = promptCooldowns[pid], now.timeIntervalSince(lastDate) < 8.0 {
+            return false
+        }
+        return true
+    }
+
+    private func recordPromptAttempt(pid: pid_t) {
+        let now = Date()
+        promptCooldowns[pid] = now
+        globalLastPromptDate = now
+        lastPromptPid = pid
+        lastPromptTimestamp = now
+    }
 
     override private init() {
         super.init()
@@ -154,6 +177,58 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         return false
     }
 
+    /// Detects if an auth dialog is asking for NotchPulse's own Keychain item
+    /// ("NotchPulse wants to access key 'com.hieukunn.notchpulse' in your keychain").
+    /// In this state, reading the Keychain from within NotchPulse can deadlock if not already in memory.
+    nonisolated static func isOwnKeychainPrompt(processIdentifier: pid_t) -> Bool {
+        let axApp = AXUIElementCreateApplication(processIdentifier)
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let windows = windowsRef as? [AXUIElement] else {
+            return false
+        }
+
+        func elementMentionsNotchPulse(_ el: AXUIElement) -> Bool {
+            var valueRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXValueAttribute as CFString, &valueRef) == .success,
+               let str = valueRef as? String {
+                let lower = str.lowercased()
+                if lower.contains("com.hieukunn.notchpulse") || lower.contains("notchpulse") {
+                    return true
+                }
+            }
+            var titleRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef) == .success,
+               let str = titleRef as? String {
+                let lower = str.lowercased()
+                if lower.contains("com.hieukunn.notchpulse") || lower.contains("notchpulse") {
+                    return true
+                }
+            }
+            var descRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXDescriptionAttribute as CFString, &descRef) == .success,
+               let str = descRef as? String {
+                let lower = str.lowercased()
+                if lower.contains("com.hieukunn.notchpulse") || lower.contains("notchpulse") {
+                    return true
+                }
+            }
+            var childrenRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+               let children = childrenRef as? [AXUIElement] {
+                for child in children {
+                    if elementMentionsNotchPulse(child) { return true }
+                }
+            }
+            return false
+        }
+
+        for win in windows {
+            if elementMentionsNotchPulse(win) { return true }
+        }
+        return false
+    }
+
     static func isTerminalApp(_ app: NSRunningApplication?) -> Bool {
         guard let id = app?.bundleIdentifier?.lowercased() else { return false }
         return id.contains("terminal")
@@ -181,11 +256,14 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         // Fast check 1: Check frontmost application directly in O(1)
         if let frontApp = NSWorkspace.shared.frontmostApplication, Self.isAuthAgent(frontApp) {
             let pid = frontApp.processIdentifier
-            if pid != lastPromptPid {
-                lastPromptPid = pid
-                lastPromptTimestamp = Date()
+            if shouldHandlePrompt(pid: pid) {
+                // If this is NotchPulse's own Keychain prompt and we don't already have the password in memory,
+                // do not intercept it — let the user approve it cleanly so we avoid a circular deadlock.
+                if Self.isOwnKeychainPrompt(processIdentifier: pid), !NotchPulseVault.hasCachedPasswordInMemory {
+                    return
+                }
+                recordPromptAttempt(pid: pid)
                 authenticateForSystemPrompt(targetApp: frontApp)
-                return
             }
             return
         }
@@ -211,9 +289,11 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                        let w = boundsDict["Width"] as? CGFloat,
                        let h = boundsDict["Height"] as? CGFloat,
                        w > 50, h > 50 {
-                        if ownerPid != lastPromptPid {
-                            lastPromptPid = ownerPid
-                            lastPromptTimestamp = Date()
+                        if shouldHandlePrompt(pid: ownerPid) {
+                            if Self.isOwnKeychainPrompt(processIdentifier: ownerPid), !NotchPulseVault.hasCachedPasswordInMemory {
+                                return
+                            }
+                            recordPromptAttempt(pid: ownerPid)
                             if let runningApp = NSRunningApplication(processIdentifier: ownerPid) {
                                 authenticateForSystemPrompt(targetApp: runningApp)
                             }
@@ -240,9 +320,11 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         }
 
         let pid = app.processIdentifier
-        if pid != lastPromptPid {
-            lastPromptPid = pid
-            lastPromptTimestamp = Date()
+        if shouldHandlePrompt(pid: pid) {
+            if Self.isOwnKeychainPrompt(processIdentifier: pid), !NotchPulseVault.hasCachedPasswordInMemory {
+                return
+            }
+            recordPromptAttempt(pid: pid)
             authenticateForSystemPrompt(targetApp: app)
         }
     }
@@ -253,8 +335,10 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             return
         }
 
-        if app.processIdentifier == lastPromptPid {
+        // Only clear tracking when the application is actually terminated, preventing focus-change infinite loops
+        if app.isTerminated {
             lastPromptPid = 0
+            promptCooldowns.removeValue(forKey: app.processIdentifier)
         }
 
         if isCurrentlyVerifying {
@@ -361,6 +445,19 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     // MARK: - Core Face Verification Loop with Notch Overlay
 
     private func runFaceVerification(promptTitle: String) async -> Bool {
+        // Fetch active enrolled identities ONCE up front to avoid querying Keychain on the MainActor per-frame
+        var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        if activeIdentities.isEmpty {
+            if let directLoaded = try? NotchPulseSecureFaceStore.load(), !directLoaded.isEmpty {
+                activeIdentities = directLoaded.filter(\.isEnabled)
+            }
+        }
+        guard !activeIdentities.isEmpty else {
+            print("[SystemAuth] No enrolled face identities available for verification.")
+            FaceIDOverlayController.shared.finish(success: false)
+            return false
+        }
+
         FaceIDOverlayController.shared.present()
 
         // Pre-warm ArcFace CoreML model in background concurrently while camera hardware starts up
@@ -404,17 +501,6 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                 effectiveDeadline = ContinuousClock.now + windowDuration
             }
             lastProcessedFrameID = frame.id
-
-            var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-            if activeIdentities.isEmpty {
-                if let directLoaded = try? NotchPulseSecureFaceStore.load(), !directLoaded.isEmpty {
-                    activeIdentities = directLoaded.filter(\.isEnabled)
-                }
-            }
-            guard !activeIdentities.isEmpty else {
-                FaceIDOverlayController.shared.finish(success: false)
-                return false
-            }
 
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
@@ -529,22 +615,38 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             return
         }
 
-        guard let passwordData = try? NotchPulseVault.readPassword(),
-              !passwordData.isEmpty else {
+        // Read password off the MainActor to guarantee zero UI hitching or main-thread Keychain deadlocks
+        guard let passwordData = await Task.detached(priority: .userInitiated, operation: {
+            try? NotchPulseVault.readPassword()
+        }).value, !passwordData.isEmpty else {
             return
         }
+
+        var isSecurityAgentTarget = false
+        var targetPid: pid_t = 0
 
         if let app = targetApp {
             app.activate()
             let bundle = app.bundleIdentifier ?? ""
-            let requiresPasswordButton = bundle.localizedCaseInsensitiveContains("LocalAuthentication")
-                || bundle.localizedCaseInsensitiveContains("CoreAuthUI")
-                || bundle.localizedCaseInsensitiveContains("AuthenticationServices")
-                || bundle.localizedCaseInsensitiveContains("coreservices.uiagent")
+            let bundleLower = bundle.lowercased()
+            isSecurityAgentTarget = bundleLower.contains("securityagent")
+                || app.localizedName?.localizedCaseInsensitiveContains("SecurityAgent") == true
+            targetPid = app.processIdentifier
+
+            let requiresPasswordButton = bundleLower.contains("localauthentication")
+                || bundleLower.contains("coreauthui")
+                || bundleLower.contains("authenticationservices")
+                || bundleLower.contains("coreservices.uiagent")
             if requiresPasswordButton {
-                let targetPid = app.processIdentifier
-                prepareLocalAuthenticationPasswordField(processIdentifier: targetPid)
+                await Task.detached(priority: .userInitiated) {
+                    Self.prepareLocalAuthenticationPasswordField(processIdentifier: targetPid)
+                }.value
                 try? await Task.sleep(for: .milliseconds(350))
+            } else if isSecurityAgentTarget {
+                await Task.detached(priority: .userInitiated) {
+                    Self.prepareSecurityAgentPasswordField(processIdentifier: targetPid)
+                }.value
+                try? await Task.sleep(for: .milliseconds(180))
             } else {
                 try? await Task.sleep(for: .milliseconds(120))
             }
@@ -552,10 +654,94 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             try? await Task.sleep(for: .milliseconds(80))
         }
 
-        try? KeystrokeInjector.typeAndReturn(passwordData)
+        await Task.detached(priority: .userInitiated) {
+            try? KeystrokeInjector.typeAndReturn(passwordData)
+        }.value
+
+        if isSecurityAgentTarget, targetPid > 0 {
+            try? await Task.sleep(for: .milliseconds(250))
+            await Task.detached(priority: .userInitiated) {
+                Self.confirmSecurityAgentSubmission(processIdentifier: targetPid)
+            }.value
+        }
     }
 
-    nonisolated private func prepareLocalAuthenticationPasswordField(processIdentifier: pid_t) {
+    nonisolated private static func prepareSecurityAgentPasswordField(processIdentifier: pid_t) {
+        let axApp = AXUIElementCreateApplication(processIdentifier)
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let windows = windowsRef as? [AXUIElement], let win = windows.first else {
+            return
+        }
+
+        func focusSecureTextField(_ el: AXUIElement) -> Bool {
+            var roleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &roleRef)
+            var subroleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXSubroleAttribute as CFString, &subroleRef)
+
+            let role = roleRef as? String
+            let subrole = subroleRef as? String
+
+            if role == (kAXTextFieldRole as String) && (subrole == (kAXSecureTextFieldSubrole as String) || subrole == nil) {
+                _ = AXUIElementSetAttributeValue(el, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+                return true
+            }
+
+            var childrenRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+               let children = childrenRef as? [AXUIElement] {
+                for child in children {
+                    if focusSecureTextField(child) { return true }
+                }
+            }
+            return false
+        }
+
+        _ = focusSecureTextField(win)
+    }
+
+    nonisolated private static func confirmSecurityAgentSubmission(processIdentifier: pid_t) {
+        let axApp = AXUIElementCreateApplication(processIdentifier)
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let windows = windowsRef as? [AXUIElement], let win = windows.first else {
+            return
+        }
+
+        func findConfirmButton(_ el: AXUIElement) -> AXUIElement? {
+            var roleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &roleRef)
+            if (roleRef as? String) == (kAXButtonRole as String) {
+                var titleRef: CFTypeRef?
+                AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef)
+                if let title = (titleRef as? String)?.lowercased() {
+                    // Prefer Always Allow, then Allow, OK, Unlock
+                    if title.contains("always allow") || title.contains("luôn cho phép") {
+                        return el
+                    }
+                    if title == "allow" || title == "cho phép" || title == "ok" || title.contains("unlock") {
+                        return el
+                    }
+                }
+            }
+
+            var childrenRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+               let children = childrenRef as? [AXUIElement] {
+                for child in children {
+                    if let found = findConfirmButton(child) { return found }
+                }
+            }
+            return false
+        }
+
+        if let btn = findConfirmButton(win) {
+            _ = AXUIElementPerformAction(btn, kAXPressAction as CFString)
+        }
+    }
+
+    nonisolated private static func prepareLocalAuthenticationPasswordField(processIdentifier: pid_t) {
         let axApp = AXUIElementCreateApplication(processIdentifier)
         var win: AXUIElement?
         let windowPollStart = Date()

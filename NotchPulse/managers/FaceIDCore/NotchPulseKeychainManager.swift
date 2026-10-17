@@ -66,7 +66,7 @@ enum NotchPulseKeychainManager {
             return data
         case errSecItemNotFound:
             throw KeychainError.itemNotFound
-        case errSecUserCanceled, errSecAuthFailed:
+        case errSecUserCanceled, errSecAuthFailed, errSecInteractionNotAllowed:
             throw KeychainError.authenticationFailed
         default:
             throw KeychainError.osStatus(status)

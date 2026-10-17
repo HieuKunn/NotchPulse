@@ -44,6 +44,9 @@ enum KeystrokeInjector {
         for char in text {
             try postUnicode(String(char), source: source)
         }
+        // Essential settling pause for system auth dialogs (SecurityAgent / CoreAuthUI)
+        // so that the text field state commits before the Return event tap is dispatched.
+        Thread.sleep(forTimeInterval: 0.18)
         try postReturn(source: source)
     }
 
