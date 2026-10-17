@@ -33,7 +33,7 @@ final class NotchPulseFaceRecognitionPipeline {
         ArcFaceEmbedder.isModelBundled ? ArcFaceEmbedder.defaultModelIdentifier : VisionFeaturePrintEmbedder.defaultModelIdentifier
     }
 
-    private static let lock = NSLock()
+    private nonisolated static let lock = NSLock()
     private nonisolated(unsafe) static var _activeEmbedder: FaceEmbedder?
 
     nonisolated static func registerActiveEmbedder(_ embedder: FaceEmbedder) {

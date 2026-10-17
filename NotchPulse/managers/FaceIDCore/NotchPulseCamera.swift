@@ -1,4 +1,5 @@
 @preconcurrency import AVFoundation
+import AppKit
 import CoreImage
 import Observation
 
@@ -31,7 +32,7 @@ final class NotchPulseCamera: NSObject {
 
     /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
     private let framePublisher = FramePublisher()
-    private var sessionObservers: [NSObjectProtocol] = []
+    private nonisolated(unsafe) var sessionObservers: [NSObjectProtocol] = []
 
     override init() {
         super.init()
