@@ -189,6 +189,14 @@ final class LockScreenWakeObserver: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        // 4c. Listen for screen parameter changes (connecting/disconnecting monitor, resolution change)
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateLockScreenMediaWindowVisibility()
+            }
+            .store(in: &cancellables)
             
         // 5. Listen for music state changes to show/hide lock screen window dynamically (deferred to prevent dispatch_once init deadlocks)
         DispatchQueue.main.async { [weak self] in

@@ -15,6 +15,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var isSkyLightAttached = false
     private var lyricsCancellables = Set<AnyCancellable>()
     private var hideGeneration: Int = 0
+    private var screenTrackingTimer: Timer?
     
     static func detectIsDark() -> Bool {
         if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") {
@@ -61,15 +62,8 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _, _, _ in
-            guard let self = self, self.isWindowVisible, !self.isFullScreen, let screen = self.getTargetScreen() else { return }
-            let newFrame = self.targetCompactFrame(for: screen)
-            if abs(self.frame.height - newFrame.height) > 1 {
-                NSAnimationContext.runAnimationGroup { ctx in
-                    ctx.duration = 0.25
-                    ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                    self.animator().setFrame(newFrame, display: true)
-                }
-            }
+            guard let self = self, self.isWindowVisible, !self.isFullScreen else { return }
+            self.checkAndRepositionIfNeeded(animated: true)
         }
         .store(in: &lyricsCancellables)
     }
@@ -110,6 +104,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.syncTheme()
+                self?.checkAndRepositionIfNeeded(animated: false)
             }
         }
         
@@ -118,7 +113,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     
     private func getTargetScreen() -> NSScreen? {
         let mouseLocation = NSEvent.mouseLocation
-        if let cursorScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) {
+        if let cursorScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) || $0.frame.contains(mouseLocation) }) {
             return cursorScreen
         }
         if Defaults[.showOnAllDisplays] {
@@ -152,6 +147,48 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         } else {
             return targetCompactFrame(for: screen)
         }
+    }
+    
+    func checkAndRepositionIfNeeded(animated: Bool = true) {
+        guard isWindowVisible, let targetScreen = getTargetScreen() else { return }
+        
+        let targetRect = targetFrame(for: targetScreen)
+        
+        let frameDiffX = abs(self.frame.origin.x - targetRect.origin.x)
+        let frameDiffY = abs(self.frame.origin.y - targetRect.origin.y)
+        let frameDiffW = abs(self.frame.width - targetRect.width)
+        let frameDiffH = abs(self.frame.height - targetRect.height)
+        
+        guard frameDiffX > 1 || frameDiffY > 1 || frameDiffW > 1 || frameDiffH > 1 else { return }
+        
+        let currentScreen = self.screen ?? NSScreen.screens.first(where: { $0.frame.intersects(self.frame) })
+        let isDifferentScreen = (currentScreen != targetScreen)
+        
+        if isDifferentScreen || !animated {
+            setFrame(targetRect, display: true)
+        } else {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.25
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                self.animator().setFrame(targetRect, display: true)
+            }
+        }
+    }
+    
+    private func startScreenTracking() {
+        screenTrackingTimer?.invalidate()
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkAndRepositionIfNeeded(animated: true)
+            }
+        }
+        screenTrackingTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+    
+    private func stopScreenTracking() {
+        screenTrackingTimer?.invalidate()
+        screenTrackingTimer = nil
     }
     
     func setFullScreen(_ fullScreen: Bool) {
@@ -197,12 +234,16 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         isWindowVisible = true
         MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()
+        
+        startScreenTracking()
     }
     
     func hide() {
         guard isVisible || isWindowVisible else { return }
         hideGeneration += 1
         let currentGen = hideGeneration
+        
+        stopScreenTracking()
         
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.25

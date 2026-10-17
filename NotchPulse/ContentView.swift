@@ -56,14 +56,13 @@ struct ContentView: View {
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
 
-    private var faceIDOverlay: FaceIDOverlayController {
-        FaceIDOverlayController.shared
-    }
+    @ObservedObject var faceIDOverlay = FaceIDOverlayController.shared
+    @ObservedObject var lockObserver = LockScreenWakeObserver.shared
     @State private var isFaceIDSettlingAfterClose: Bool = false
 
     private var isEffectivelyLocked: Bool {
-        NotchPulseLockMonitor.isScreenActuallyLocked()
-            || LockScreenWakeObserver.shared.isScreenLocked
+        lockObserver.isScreenLocked
+            || NotchPulseLockMonitor.isScreenActuallyLocked()
             || faceIDOverlay.isSessionActive
             || faceIDOverlay.isArmed
             || faceIDOverlay.phase == .scanning
@@ -674,7 +673,7 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
-                } else if isEffectivelyLocked && !Defaults[.showOnLockScreen] && !isEffectivelyLockedWithFaceID {
+                } else if isEffectivelyLocked && !isFaceIDContentActive {
                     Rectangle().fill(.clear).frame(
                         width: max(190, vm.closedNotchSize.width) - 20,
                         height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight
@@ -682,14 +681,14 @@ struct ContentView: View {
                 } else {
                     ZStack {
                         Group {
-                            if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
+                            if !isEffectivelyLocked && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                 InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                     .transition(.opacity)
-                            } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && musicManager.isPlaying && !musicManager.songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && coordinator.musicLiveActivityEnabled {
+                            } else if !isEffectivelyLocked && Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && musicManager.isPlaying && !musicManager.songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && coordinator.musicLiveActivityEnabled {
                                 MusicLiveActivity()
                                     .frame(alignment: .center)
                                     .transition(.opacity)
-                            } else if vm.notchState == .open {
+                            } else if !isEffectivelyLocked && vm.notchState == .open {
                                 NotchPulseHeader()
                                     .frame(height: max(32, vm.closedNotchSize.height))
                                     .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
@@ -715,7 +714,7 @@ struct ContentView: View {
                         }
                     }
 
-                    if coordinator.sneakPeek.show && !isFaceIDActive && !isFaceIDSettlingAfterClose {
+                    if !isEffectivelyLocked && coordinator.sneakPeek.show && !isFaceIDActive && !isFaceIDSettlingAfterClose {
                         if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
                             SystemEventIndicatorModifier(
                                 eventType: $coordinator.sneakPeek.type,
@@ -758,7 +757,7 @@ struct ContentView: View {
                 }
             }
             .zIndex(2)
-            if vm.notchState == .open && !isFaceIDActive {
+            if !isEffectivelyLocked && vm.notchState == .open && !isFaceIDActive {
                 VStack {
                     switch coordinator.currentView {
                     case .home:
