@@ -76,26 +76,14 @@ struct ContentView: View {
             if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
                let targetUUID = targetScreen.displayUUID {
                 let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                if thisScreenUUID == targetUUID {
-                    return true
-                }
-                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
-                    return true
-                }
-                return false
+                return thisScreenUUID == targetUUID
             }
             if let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }),
                let targetUUID = builtInScreen.displayUUID {
                 let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                if thisScreenUUID == targetUUID {
-                    return true
-                }
-                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
-                    return true
-                }
-                return false
+                return thisScreenUUID == targetUUID
             }
-            return true
+            return false
         }
         return false
     }
@@ -969,14 +957,16 @@ struct ContentView: View {
     // MARK: - Hover Management
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
+        guard isFaceIDActive else { return false }
         if isEffectivelyLocked { return true }
-        if isFaceIDActive && (faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .failure) { return true }
+        if faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .failure { return true }
         return false
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
+        guard isFaceIDActive else { return false }
         if isEffectivelyLocked { return true }
-        if isFaceIDActive && (faceIDOverlay.phase == .failure || faceIDOverlay.phase == .scanning) { return true }
+        if faceIDOverlay.phase == .failure || faceIDOverlay.phase == .scanning { return true }
         return false
     }
 
@@ -987,7 +977,7 @@ struct ContentView: View {
         fullscreenHoverDebounceTask?.cancel()
         
         if hovering {
-            if isEffectivelyLocked {
+            if isEffectivelyLocked && isFaceIDActive {
                 FaceIDOverlayController.shared.activate()
                 return
             }

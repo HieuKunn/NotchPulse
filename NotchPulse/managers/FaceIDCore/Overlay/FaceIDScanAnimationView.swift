@@ -251,7 +251,10 @@ final class FaceIDScanAnimationHostView: NSView {
             NotificationCenter.default.removeObserver(observer)
             loopObserver = nil
         }
-        player?.pause()
+        if let player = player {
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+        }
         player = nil
         playerLayer.player = nil
         playerLayer.isHidden = true

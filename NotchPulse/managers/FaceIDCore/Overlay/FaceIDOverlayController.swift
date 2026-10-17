@@ -234,12 +234,7 @@ final class FaceIDOverlayController {
     /// Shows the idle still first; after 2.5s switches to looking around animation;
     /// auto-collapses silently (no failure animation) after `scanTimeoutDuration` if no face is found.
     func beginScanning() {
-        // CRITICAL RULE: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
-        // thì mới chuyển sang bên màn hình có camera. KHÔNG ĐƯỢC ĐỔI LOGIC NÀY!
-        // (DO NOT CHANGE: Only route to camera screen at lock screen if triggered by hover!)
-        if !NotchPulseLockMonitor.isScreenActuallyLocked() || isHoverTriggeredOnLockScreen {
-            routeToCameraScreen()
-        }
+        routeToCameraScreen()
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         geometry = windowController.currentGeometry

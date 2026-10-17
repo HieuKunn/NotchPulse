@@ -523,32 +523,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             || FaceIDOverlayController.shared.phase == .collapsing
             || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed)
 
+        let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
+        let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice)
+        let camUUID = camScreen?.displayUUID
+
         if isLockScreen && isFaceIDScanning {
-            if let skyWindow = self.window as? NotchPulseSkyLightWindow {
-                skyWindow.enableSkyLight()
-                skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
-                skyWindow.alphaValue = 1.0
-                skyWindow.orderFrontRegardless()
+            // Only elevate windows that are physically on the camera screen
+            if let camUUID, coordinator.selectedScreenUUID == camUUID {
+                if let skyWindow = self.window as? NotchPulseSkyLightWindow {
+                    skyWindow.enableSkyLight()
+                    skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                    skyWindow.alphaValue = 1.0
+                    skyWindow.orderFrontRegardless()
+                }
             }
-            for skyWindow in self.windows.values.compactMap({ $0 as? NotchPulseSkyLightWindow }) {
-                skyWindow.enableSkyLight()
-                skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
-                skyWindow.alphaValue = 1.0
-                skyWindow.orderFrontRegardless()
+            if Defaults[.showOnAllDisplays], let camUUID, let targetSky = self.windows[camUUID] as? NotchPulseSkyLightWindow {
+                targetSky.enableSkyLight()
+                targetSky.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                targetSky.alphaValue = 1.0
+                targetSky.orderFrontRegardless()
             }
         }
 
-        // KHÔNG ĐƯỢC ĐỔI LOGIC NÀY: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
-        // thì mới chuyển sang bên màn hình có camera!
-        // (CRITICAL RULE: At lockscreen or wake/sleep, ONLY switch to camera screen if Face ID was triggered by hover!)
-        let canRouteForLockScreen = !isLockScreen || FaceIDOverlayController.shared.isHoverTriggeredOnLockScreen
-
         guard isFaceIDScanning,
-              canRouteForLockScreen,
               !Defaults[.showOnAllDisplays],
-              let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
-              let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-              let camUUID = camScreen.displayUUID,
+              let camScreen = camScreen,
+              let camUUID = camUUID,
               camUUID != coordinator.selectedScreenUUID else {
             if let window = faceIDCameraWindow {
                 window.close()

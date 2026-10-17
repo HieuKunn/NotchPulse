@@ -110,13 +110,13 @@ final class NotchPulseCamera: NSObject {
     }
 
     func stop() {
+        isRunning = false
+        currentFrame = nil
         sessionQueue.async { [session] in
             if session.isRunning {
                 session.stopRunning()
             }
         }
-        isRunning = false
-        currentFrame = nil
     }
 
     private func describe(_ status: AVAuthorizationStatus) -> String {
@@ -177,8 +177,14 @@ final class NotchPulseCamera: NSObject {
 
     /// Highest resolution regardless of fps — Vision still works from the downscaled frame; this only affects
     /// what `CameraFrame.source` (and therefore `renderCrop`) has to work with.
+    /// Selects an optimal resolution format (up to ~1080p), avoiding excessive 4K sensor modes that saturate GPU/bus memory.
     private func selectHighestResolutionFormat(for device: AVCaptureDevice) {
-        let best = device.formats.max { lhs, rhs in
+        let maxTargetPixels = 1920 * 1080
+        let suitable = device.formats.filter { format in
+            let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            return Int(dims.width) * Int(dims.height) <= maxTargetPixels
+        }
+        let best = (suitable.isEmpty ? device.formats : suitable).max { lhs, rhs in
             let l = CMVideoFormatDescriptionGetDimensions(lhs.formatDescription)
             let r = CMVideoFormatDescriptionGetDimensions(rhs.formatDescription)
             return Int(l.width) * Int(l.height) < Int(r.width) * Int(r.height)
@@ -189,7 +195,7 @@ final class NotchPulseCamera: NSObject {
             device.activeFormat = best
             device.unlockForConfiguration()
         } catch {
-            errorMessage = "Couldn't select the camera's highest-resolution format: \(error.localizedDescription)"
+            errorMessage = "Couldn't select the camera's format: \(error.localizedDescription)"
         }
     }
 
@@ -238,17 +244,25 @@ final class NotchPulseCamera: NSObject {
     /// Sample-buffer callbacks arrive on `sessionQueue`, off the main actor; this delegate converts there, then hops back.
     private final class FramePublisher: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         weak var owner: NotchPulseCamera?
-        private let ciContext = CIContext()
+        private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
         /// Detection only needs a modest resolution; the live preview renders from the capture session directly and
         /// is unaffected. The undownscaled `source` is kept alongside for callers needing native pixels (`renderCrop`).
         private let maxLongEdge: CGFloat = 640
         private var nextFrameID: UInt64 = 0
+        private var lastProcessedTimestamp: CFAbsoluteTime = 0
+        private let minFrameInterval: CFTimeInterval = 0.05 // Cap to max 20 FPS (every 50ms)
 
         func captureOutput(
             _ output: AVCaptureOutput,
             didOutput sampleBuffer: CMSampleBuffer,
             from connection: AVCaptureConnection
         ) {
+            guard let owner = owner, owner.isRunning else { return }
+
+            let now = CFAbsoluteTimeGetCurrent()
+            guard (now - lastProcessedTimestamp) >= minFrameInterval else { return }
+            lastProcessedTimestamp = now
+
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
             let sourceImage = CIImage(cvPixelBuffer: pixelBuffer)
             let sourceExtent = sourceImage.extent
@@ -269,7 +283,8 @@ final class NotchPulseCamera: NSObject {
             )
 
             Task { @MainActor [weak owner] in
-                owner?.publish(frame: frame)
+                guard let owner = owner, owner.isRunning else { return }
+                owner.publish(frame: frame)
             }
         }
     }

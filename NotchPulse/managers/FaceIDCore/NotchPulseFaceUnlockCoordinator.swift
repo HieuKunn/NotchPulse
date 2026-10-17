@@ -426,6 +426,17 @@ final class NotchPulseFaceUnlockCoordinator {
         var firstFrameSeen = false
         var scanStartTime: Date?
 
+        var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        if activeIdentities.isEmpty {
+            if let directLoaded = try? NotchPulseSecureFaceStore.load(), !directLoaded.isEmpty {
+                activeIdentities = directLoaded.filter(\.isEnabled)
+            }
+        }
+        guard !activeIdentities.isEmpty else {
+            statusMessage = "No enrolled face profiles found."
+            return .noResolution
+        }
+
         while Date() < effectiveDeadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
             guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
@@ -457,12 +468,6 @@ final class NotchPulseFaceUnlockCoordinator {
 
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
-            var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-            if activeIdentities.isEmpty {
-                if let directLoaded = try? NotchPulseSecureFaceStore.load(), !directLoaded.isEmpty {
-                    activeIdentities = directLoaded.filter(\.isEnabled)
-                }
-            }
             let currentThreshold = matchThreshold
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(
@@ -478,7 +483,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatchTimestamp = nil
                 consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
-                try? await Task.sleep(nanoseconds: 20_000_000)
+                try? await Task.sleep(nanoseconds: 35_000_000)
                 continue
             }
             lastFaceBoundingBox = result.face.normalizedBoundingBox
@@ -539,7 +544,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 return .matched
             }
 
-            try? await Task.sleep(nanoseconds: 20_000_000)
+            try? await Task.sleep(nanoseconds: 35_000_000)
         }
 
         return .noResolution
