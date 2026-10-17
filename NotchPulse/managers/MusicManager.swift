@@ -1591,6 +1591,10 @@ public final class UniversalArtworkResolver {
 
     /// Queries the browser window via AppleScript to extract the active YouTube watch URL and its thumbnail
     private func fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: String, targetTitle: String) async -> Data? {
+        guard !NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty else {
+            return nil
+        }
+
         let lower = bundleIdentifier.lowercased()
         let isSafari = lower.contains("safari")
         let appName: String

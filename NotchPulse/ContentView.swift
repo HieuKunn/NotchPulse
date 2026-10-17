@@ -666,7 +666,7 @@ struct ContentView: View {
                             if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                 InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                     .transition(.opacity)
-                            } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && musicManager.isPlaying && coordinator.musicLiveActivityEnabled {
+                            } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && musicManager.isPlaying && !musicManager.songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && coordinator.musicLiveActivityEnabled {
                                 MusicLiveActivity()
                                     .frame(alignment: .center)
                                     .transition(.opacity)

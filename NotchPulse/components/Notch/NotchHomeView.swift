@@ -96,7 +96,7 @@ struct AlbumArtView: View {
 
     @ViewBuilder
     private var appIconOverlay: some View {
-        if !musicManager.usingAppIconForArtwork {
+        if !musicManager.usingAppIconForArtwork && !musicManager.songTitle.isEmpty {
             let iconSize: CGFloat = max(22, size * 0.27)
             AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
                 .resizable()
@@ -542,7 +542,7 @@ struct MusicSliderView: View {
         VStack(spacing: 2) {
             CustomSlider(
                 value: $sliderValue,
-                range: 0...duration,
+                range: 0...max(0.001, duration),
                 color: .white,
                 dragging: $dragging,
                 lastDragged: $lastDragged,
