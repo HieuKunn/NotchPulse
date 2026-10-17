@@ -193,9 +193,9 @@ graph TD
 - [x] Thay thế thanh trượt Volume / Brightness / Fan sang Capsule chuẩn hệ thống.
 
 ### 📍 Giai đoạn 5: Kiểm thử và Hoàn thiện
-- [ ] Test thực tế khi đổi hình nền Desktop (sáng, tối, rực rỡ, ảnh phong cảnh).
-- [ ] Test chuyển đổi qua lại giữa Light Mode và Dark Mode trong System Settings.
-- [ ] Kiểm tra độ mượt 120Hz ProMotion và theo dõi RAM/CPU không bị rò rỉ.
+- [x] Test thực tế khi đổi hình nền Desktop (sáng, tối, rực rỡ, ảnh phong cảnh).
+- [x] Test chuyển đổi qua lại giữa Light Mode và Dark Mode trong System Settings.
+- [x] Kiểm tra độ mượt 120Hz ProMotion và theo dõi RAM/CPU không bị rò rỉ.
 
 ---
 
