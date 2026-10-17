@@ -41,6 +41,9 @@ This document outlines the core rules, architectural guidelines, and release pro
   - In `build-dmg.yml`, sign frameworks using the inside-out pattern without passing the parent app entitlements flag `--entitlements` to `--deep`, ensuring `Sparkle.framework` code signature integrity is preserved.
 - **Dynamic Release Name (Settings UI):**
   - Do NOT hardcode the "Release name" in `Constants.swift` or `UserDefaults`. It is now computed dynamically from the app version via `Bundle.main.releaseNameString` in `BundleInfos.swift` (e.g., automatically generating "Pulse 4.0 🚀" from version 4.0.0). Always rely on this dynamic property.
+- **Preventing Infinite Auto-Update Loops (CRITICAL - DO NOT DELETE):**
+  - **`AppUpdaterDelegate.updaterWillRelaunchApplication` MUST NEVER BE DELETED:** Sparkle calls this delegate method right before it terminates the running application to install the new update and relaunch. If windows and helpers are not cleaned up properly here (`AppDelegate.cleanupForTermination()`), macOS or running processes prevent termination, and Sparkle's `Autoupdate.app` fails to replace the running bundle in `/Applications`. This causes an infinite update loop where the app restarts into the old version and repeatedly asks to update.
+  - **Never wrap `@Observable` classes with `@ObservedObject`:** In `ContentView.swift`, `FaceIDOverlayController` is annotated with `@Observable` (Swift Observation framework), NOT `ObservableObject`. Wrapping it with `@ObservedObject` breaks Swift compiler contextual type inference on enum members (`.closed`, `.scanning`, etc.) and causes CI `xcodebuild` failures. When CI fails, the release archive is not uploaded, leaving users with old binaries and trapped in an update loop.
 
 ---
 

@@ -56,7 +56,13 @@ struct ContentView: View {
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
 
-    @ObservedObject var faceIDOverlay = FaceIDOverlayController.shared
+    // CRITICAL ARCHITECTURAL NOTE: DO NOT DELETE OR WRAP WITH @ObservedObject!
+    // FaceIDOverlayController is annotated with @Observable (Swift Observation framework),
+    // NOT ObservableObject. Wrapping it in @ObservedObject breaks contextual type inference
+    // across all phase comparisons (.closed, .scanning, etc.) and fails CI xcodebuild.
+    private var faceIDOverlay: FaceIDOverlayController {
+        FaceIDOverlayController.shared
+    }
     @ObservedObject var lockObserver = LockScreenWakeObserver.shared
     @State private var isFaceIDSettlingAfterClose: Bool = false
 
