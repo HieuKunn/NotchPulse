@@ -11,6 +11,8 @@ struct FaceIDUnlockOptionsPage: View {
             SettingsRowContent(title: loc("Enable Face Unlock")) {
                 NotchPulseToggle(isOn: $coordinator.isEnabled)
             }
+            SettingsGroupDivider()
+            UnlockTriggerPicker(selection: $settings.unlockTriggers, isEnabled: coordinator.isEnabled)
         }
 
         VStack(alignment: .leading, spacing: 6) {

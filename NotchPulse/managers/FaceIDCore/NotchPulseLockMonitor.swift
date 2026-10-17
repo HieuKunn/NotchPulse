@@ -9,8 +9,6 @@ enum LockEventKind {
     case screenLocked
     case screenUnlocked
     case willSleep
-    /// Display went to sleep (screen turned completely black).
-    case screensDidSleep
     /// Display turned back on, from system sleep, display sleep, or the screensaver stopping.
     case wake
 }
@@ -88,14 +86,8 @@ final class NotchPulseLockMonitor {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.recordSleep(kind: .willSleep)
-        })
-        workspaceObservers.append(workspace.addObserver(
-            forName: NSWorkspace.screensDidSleepNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.recordSleep(kind: .screensDidSleep)
+            self?.isSleeping = true
+            self?.record(.willSleep)
         })
         // Display- and system-level wake are treated as equivalent triggers — they land within ~100ms of each other in either order.
         workspaceObservers.append(workspace.addObserver(
@@ -114,18 +106,9 @@ final class NotchPulseLockMonitor {
         })
     }
 
-    private func recordSleep(kind: LockEventKind) {
-        isSleeping = true
-        // Entering sleep: preserve or lock state so wake does not flap
-        Self.setCachedLockState(true)
-        isScreenLocked = true
-        record(kind)
-    }
-
     private func recordWake() {
         isSleeping = false
         wakeEventCount += 1
-        isScreenLocked = Self.isScreenActuallyLocked()
         record(.wake)
     }
 
@@ -134,11 +117,6 @@ final class NotchPulseLockMonitor {
         eventCount += 1
     }
 
-    /// Cached authoritative lock state, refreshed at most once per 250ms.
-    /// `isScreenActuallyLocked()` is read from SwiftUI `body` (ContentView checks it
-    /// dozens of times per evaluation), and `CGSessionCopyCurrentDictionary()` is a
-    /// window-server round trip — calling it per read stalls frame pacing during
-    /// the notch's spring animation.
     private static let cacheLock = NSLock()
     nonisolated(unsafe) private static var cachedLockState: Bool = false
     nonisolated(unsafe) private static var cachedLockTimestamp: TimeInterval = -10
@@ -158,17 +136,12 @@ final class NotchPulseLockMonitor {
 
     /// Authoritative lock state from the CoreGraphics session server, not a spoofable notification. Fails closed if unavailable.
     nonisolated static func isScreenActuallyLocked() -> Bool {
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
-        let now = ProcessInfo.processInfo.systemUptime
-        if now - cachedLockTimestamp > 0.25 {
-            if let dict = CGSessionCopyCurrentDictionary() as? [String: Any] {
-                let lockedNum = dict["CGSSessionScreenIsLocked"]
-                cachedLockState = (lockedNum as? Bool) ?? ((lockedNum as? NSNumber)?.boolValue ?? false)
-            }
-            // If dict is nil (during display sleep/wake transition), DO NOT clear cachedLockState to false!
-            cachedLockTimestamp = now
+        guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
+            return false
         }
-        return cachedLockState
+        let lockedNum = dict["CGSSessionScreenIsLocked"]
+        let isLocked = (lockedNum as? Bool) ?? ((lockedNum as? NSNumber)?.boolValue ?? false)
+        setCachedLockState(isLocked)
+        return isLocked
     }
 }

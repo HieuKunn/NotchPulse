@@ -52,7 +52,6 @@ final class NotchPulseFaceUnlockCoordinator {
 
     /// Reads the space key on the lock screen for the "On space" trigger; only runs while locked + opted in.
     private let spaceKeyMonitor = NotchPulseSpaceKeyMonitor()
-    private var lastHandledWakeCount = 0
 
     init(pocController: NotchPulsePOCController) {
         self.pocController = pocController
@@ -78,72 +77,34 @@ final class NotchPulseFaceUnlockCoordinator {
             _ = lockMonitor.eventCount
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.observeLockAndWakeEvents()
-                if self.lockMonitor.isSleeping {
-                    // Instantly disarm, cancel tasks, and stop camera when screen or system sleeps
-                    self.disarmOverlay()
-                    return
-                }
+                self?.observeLockAndWakeEvents()
                 // Brief settle delay: CGSession's reported state can lag the true state right after wake.
                 try? await Task.sleep(nanoseconds: 300_000_000)
-                self.evaluateTrigger()
+                self?.evaluateTrigger()
             }
         }
     }
 
     private func evaluateTrigger() {
-        NotchPulseLockMonitor.invalidateLockCache()
-        let isWake = (lockMonitor.wakeEventCount > lastHandledWakeCount) || (lockMonitor.lastEvent == .wake)
-
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
-            if isWake {
-                // WindowServer lock state dictionary may take a few moments to update on wake
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    for _ in 0..<5 {
-                        try? await Task.sleep(nanoseconds: 120_000_000)
-                        NotchPulseLockMonitor.invalidateLockCache()
-                        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-                            self.evaluateTrigger()
-                            return
-                        }
-                    }
-                    self.hasArmedForCurrentLock = false
-                    self.hasAutoRetriedForCurrentLock = false
-                    self.disarmOverlay()
-                }
-                return
-            }
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
             disarmOverlay()
             return
         }
-        guard !lockMonitor.isSleeping else {
-            disarmOverlay()
-            return
-        }
+        guard !lockMonitor.isSleeping else { return }
 
-        // `.wake` (sleep, display sleep, screensaver stopping, lid open) is an explicit "let me back in," so clear the one-shot guard.
-        // `isWithinRecentArmBurst` and active `scanTask` keep the burst of wake signals from re-arming and cancelling an in-flight scan.
-        if isWake {
-            lastHandledWakeCount = lockMonitor.wakeEventCount
-            ArcFaceEmbedder.warmUp()
-            if !isWithinRecentArmBurst {
-                hasArmedForCurrentLock = false
-            }
+        // `.wake` (sleep, display sleep, or screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
+        // `isWithinRecentArmBurst` keeps the several wake signals from one lid-open from each re-arming and fighting over the camera.
+        if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
+            hasArmedForCurrentLock = false
         }
 
         // Runs before the hasArmedForCurrentLock guard — the space monitor's lifetime is tied to "locked + opted in," not to whether a scan already ran.
         updateSpaceMonitor()
 
         guard isEnabled, !hasArmedForCurrentLock else { return }
-        let signal: UnlockTrigger? = {
-            if isWake { return .onWake }
-            return requiredTrigger(for: lockMonitor.lastEvent)
-        }()
-        guard let signal else { return }
+        guard let signal = requiredTrigger(for: lockMonitor.lastEvent) else { return }
         // A pinned display that isn't connected bails entirely rather than showing up elsewhere; "Main display" (nil) always resolves.
         guard NotchGeometry.preferredScreen() != nil else { return }
 
@@ -157,27 +118,18 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        // ".onLock" arms the notch silhouette overlay on the lock screen, but NEVER activates the camera hardware
-        // immediately upon locking. Scanning is triggered on wake, hover, or space.
-        let isSelectedTrigger = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
-        let shouldAutoScan = (signal != .onLock) && isSelectedTrigger
+        let shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
 
-        // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do.
+        // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
+        // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
         guard showsUI || shouldAutoScan else { return }
 
         hasArmedForCurrentLock = true
         lastArmedAt = .now
-        // ML readiness guarantee: the ArcFace model is normally loaded once at app
-        // launch and kept resident in RAM forever (unload is a deliberate no-op).
-        // If that launch-time load FAILED (memory pressure, compile hiccup) it stayed
-        // dead silently and the first unlock attempt paid the multi-second load while
-        // the user hovered. warmUp() is idempotent — cheap dummy inference when
-        // already resident, a load+compile retry when not — so firing it on every
-        // lock/wake keeps the model ready 24/7 regardless of launch-time failures.
         ArcFaceEmbedder.warmUp()
         Task { [weak self] in
-            // Brief 30ms buffer past login window's entrance so overlay attaches cleanly
-            try? await Task.sleep(nanoseconds: 30_000_000)
+            // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
+            try? await Task.sleep(nanoseconds: 250_000_000)
             await self?.arm(autoScan: shouldAutoScan)
         }
     }
@@ -193,7 +145,7 @@ final class NotchPulseFaceUnlockCoordinator {
         switch event {
         case .wake: return .onWake
         case .screenLocked: return .onLock
-        case .screenUnlocked, .willSleep, .screensDidSleep, nil: return nil
+        case .screenUnlocked, .willSleep, nil: return nil
         }
     }
 
@@ -304,8 +256,6 @@ final class NotchPulseFaceUnlockCoordinator {
         if showsUI {
             FaceIDOverlayController.shared.beginScanning()
         }
-        // Wake the lock screen password prompt immediately so it is focused and ready
-        KeystrokeInjector.wakeLockScreenPasswordField()
         statusMessage = "Looking for your face…"
 
         // Pre-warm ArcFace CoreML model concurrently while camera hardware starts up and UI blooms open
