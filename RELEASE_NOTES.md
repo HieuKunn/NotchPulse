@@ -1,17 +1,18 @@
 ## 🚀 What's New in NotchPulse v5.4
 
-### ✨ Feature Tour & Spotlight Walkthrough
-- **Dynamic Gear Spotlight Tracking**: The setup spotlight now measures the exact on-screen position of the Settings gear icon in real time, guaranteeing a pixel-perfect circular highlight regardless of custom Notch widths or header resizing.
-- **Side Placement & Arrow Pointer**: The guidance card docks cleanly to the right edge of the Notch with a direct indicator pointing to the gear icon.
-- **Full Row Clickability**: You can now click anywhere on the Feature Tour row in Settings to launch the walkthrough immediately.
-- **Mac Fan Control Tour Update**: Step 5 now highlights real-time Mac fan speed controls alongside thermal monitoring.
+### 🔒 Lock Screen Experience & Face ID
+- **Pristine Collapsed Notch on Lock Screen**: The Notch strictly remains an empty, minimal black notch when locked—preventing media visualizers, song labels, or HUD popups from leaking into the chin until you unlock or authenticate.
+- **Smart Cross-Display Lock Screen Media**: The floating lock screen player card anchors directly to your assigned display without jumping between screens when you move the cursor. If an external monitor is disconnected, the player instantly relocates to the center of your Mac display.
+- **Hover-To-Scan Security**: Locking your Mac quietly arms Face ID without prematurely firing the camera; facial authentication activates only when you hover over the Notch, wake the screen, or interact.
+- **Enhanced Authentication Reliability**: Aligned Face ID routines directly with standard recognition logic to ensure consistent, accurate unlocking and prevent unwanted sleep deactivation.
 
-### 🔒 Face ID Core & Lock Screen Stability
-- **Hover-To-Scan on Lock Screen**: Locking your Mac now quietly arms Face ID without prematurely firing the camera; authentication only awakens when you hover over the Notch, wake the screen, or interact.
-- **Glance-Aligned Face ID Core**: Aligned Face ID routines directly with standard Glance core logic for 100% reliable continuous authentication.
-- **Persistent Wake**: Addressed sleep/idle timeouts so Face ID camera activation is always ready on demand without unexpected deactivation.
+### ✨ Feature Tour & Spotlight Walkthrough
+- **Dynamic Gear Spotlight Tracking**: The interactive setup spotlight measures the exact on-screen position of the Settings gear in real time, ensuring a perfectly aligned highlight cutout across all Notch sizes and header styles.
+- **Clean Side Guidance**: Onboarding cards dock neatly to the right of the Notch with a clear pointer indicating the Settings gear.
+- **Full Row Clickability**: Click anywhere across the Feature Tour item in Settings to quickly restart the tour at any time.
+- **Mac Fan Controls in Tour**: Tour step 5 showcases real-time fan speed sliders and hardware thermal statistics.
 
 ### 🎵 Media Display & Visual Polish
 - **Refined Paused Media Overlay**: Paused albums and tracks display an elegant, subtle dimmed overlay contoured to the album artwork edges.
-- **Reliable Launch & Update Sync**: Active music sessions detect instantly when NotchPulse launches or updates.
-- **Instant Control Feedback**: Playback controls (Play, Pause, and Skip) respond instantly upon clicking with zero latency.
+- **Instant Control Feedback**: Play, Pause, and Skip buttons react immediately with zero lag.
+- **Automatic Session Recovery**: Currently playing tracks detect and link seamlessly whenever NotchPulse launches or updates.
