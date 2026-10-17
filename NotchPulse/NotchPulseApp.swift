@@ -627,6 +627,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Pre-warm MusicManager immediately at app launch
         _ = MusicManager.shared
+        MusicManager.shared.forceUpdate()
 
         // Pre-warm ArcFace Neural Engine model if FaceID is enabled
         if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {

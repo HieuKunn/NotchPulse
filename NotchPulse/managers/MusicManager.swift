@@ -225,18 +225,6 @@ class MusicManager: ObservableObject {
             newController = YouTubeMusicController()
         }
 
-        // Set up state observation for the new controller
-        if let controller = newController {
-            controller.playbackStatePublisher
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] state in
-                    guard let self = self,
-                          self.activeController === controller else { return }
-                    self.updateFromPlaybackState(state)
-                }
-                .store(in: &controllerCancellables)
-        }
-
         return newController
     }
 
@@ -264,10 +252,21 @@ class MusicManager: ObservableObject {
         // Cancel any existing flip animation
         flipWorkItem?.cancel()
 
-        // Set new active controller
+        // Set new active controller first so activeController === controller check succeeds on initial emission
         activeController = controller
         
         self.canFavoriteTrack = controller.supportsFavorite
+
+        // Set up state observation for the active controller
+        controllerCancellables.removeAll()
+        controller.playbackStatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                guard let self = self,
+                      self.activeController === controller else { return }
+                self.updateFromPlaybackState(state)
+            }
+            .store(in: &controllerCancellables)
 
         // Get current state from active controller
         forceUpdate()
@@ -310,6 +309,13 @@ class MusicManager: ObservableObject {
             if state.isPlaying && !state.title.isEmpty && !state.artist.isEmpty {
                 self.updateSneakPeek()
             }
+        } else if self.isPlayerIdle && state.isPlaying {
+            withAnimation(.smooth) {
+                self.isPlayerIdle = false
+            }
+        } else if self.isPlayerIdle && !trimmedTitle.isEmpty && debounceIdleTask == nil {
+            // When track is present on startup/update, activate debounce rather than snapping to idle
+            self.updateIdleState(state: false)
         }
 
         // Check for changes in track metadata using last artwork change values

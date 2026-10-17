@@ -60,6 +60,12 @@ struct AlbumArtView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
     }
 
+    private var albumArtCornerRadius: CGFloat {
+        Defaults[.cornerRadiusScaling]
+            ? MusicPlayerImageSizes.cornerRadiusInset.opened
+            : MusicPlayerImageSizes.cornerRadiusInset.closed
+    }
+
     private var albumArtImage: some View {
         Image(nsImage: musicManager.albumArt)
             .resizable()
@@ -70,11 +76,19 @@ struct AlbumArtView: View {
             .scaledToFill()
             .frame(width: size, height: size)
             .clipped()
+            .overlay {
+                if !musicManager.isPlaying {
+                    RoundedRectangle(
+                        cornerRadius: albumArtCornerRadius,
+                        style: .continuous
+                    )
+                    .fill(Color.black.opacity(0.40))
+                    .allowsHitTesting(false)
+                }
+            }
             .clipShape(
                 RoundedRectangle(
-                    cornerRadius: Defaults[.cornerRadiusScaling]
-                        ? MusicPlayerImageSizes.cornerRadiusInset.opened
-                        : MusicPlayerImageSizes.cornerRadiusInset.closed,
+                    cornerRadius: albumArtCornerRadius,
                     style: .continuous
                 )
             )

@@ -115,6 +115,13 @@ struct LockScreenMediaView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 54, height: 54)
+                .overlay {
+                    if !musicManager.isPlaying {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.black.opacity(0.35))
+                            .allowsHitTesting(false)
+                    }
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             
             // Icon app phát nhạc (Apple Music, Spotify, ...)
@@ -381,6 +388,13 @@ struct LockScreenMediaView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: albumSize, height: albumSize)
+                        .overlay {
+                            if !musicManager.isPlaying {
+                                RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
+                                    .fill(Color.black.opacity(0.35))
+                                    .allowsHitTesting(false)
+                            }
+                        }
                         .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
                     
                     if !musicManager.usingAppIconForArtwork {

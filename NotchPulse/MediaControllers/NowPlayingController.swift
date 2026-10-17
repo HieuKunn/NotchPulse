@@ -4,6 +4,9 @@ import Foundation
 
 final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     func updatePlaybackInfo() async {
+        if let paths = Self.getAdapterPaths() {
+            await fetchInitialNowPlayingInfo(paths: paths)
+        }
         await fetchFavoriteStateIfSupported()
     }
 
