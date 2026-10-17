@@ -574,7 +574,11 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.notchState) { _, newState in
-                        if newState == .closed {
+                        if newState == .open {
+                            if Defaults[.enableClipboardManager] {
+                                ClipboardManager.shared.checkImmediately()
+                            }
+                        } else if newState == .closed {
                             if vm.hideOnClosed {
                                 Task { @MainActor in
                                     try? await Task.sleep(for: .milliseconds(350))
