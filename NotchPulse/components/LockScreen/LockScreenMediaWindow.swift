@@ -15,7 +15,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var isSkyLightAttached = false
     private var lyricsCancellables = Set<AnyCancellable>()
     private var hideGeneration: Int = 0
-    private var screenTrackingTimer: Timer?
+    private var assignedScreenUUID: String?
     
     static func detectIsDark() -> Bool {
         if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") {
@@ -111,7 +111,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         syncTheme()
     }
     
-    private func getTargetScreen() -> NSScreen? {
+    private func resolveInitialScreen() -> NSScreen? {
         let mouseLocation = NSEvent.mouseLocation
         if let cursorScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) || $0.frame.contains(mouseLocation) }) {
             return cursorScreen
@@ -129,6 +129,21 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil })
             ?? NSScreen.main
             ?? NSScreen.screens.first
+    }
+    
+    private func getTargetScreen() -> NSScreen? {
+        // 1. If assigned screen is still connected in NSScreen.screens, keep the player anchored to it!
+        // Moving the cursor to another screen will NOT cause the player to follow.
+        if let assignedUUID = assignedScreenUUID,
+           let existingScreen = NSScreen.screen(withUUID: assignedUUID) {
+            return existingScreen
+        }
+        
+        // 2. Otherwise (initial display detection on show, or the previous screen was unplugged/disconnected),
+        // resolve a new target screen and anchor to it.
+        let resolved = resolveInitialScreen()
+        assignedScreenUUID = resolved?.displayUUID
+        return resolved
     }
     
     func targetCompactFrame(for screen: NSScreen) -> NSRect {
@@ -175,22 +190,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }
     }
     
-    private func startScreenTracking() {
-        screenTrackingTimer?.invalidate()
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkAndRepositionIfNeeded(animated: true)
-            }
-        }
-        screenTrackingTimer = timer
-        RunLoop.main.add(timer, forMode: .common)
-    }
-    
-    private func stopScreenTracking() {
-        screenTrackingTimer?.invalidate()
-        screenTrackingTimer = nil
-    }
-    
     func setFullScreen(_ fullScreen: Bool) {
         guard let screen = getTargetScreen() else { return }
         self.isFullScreen = fullScreen
@@ -234,8 +233,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         isWindowVisible = true
         MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()
-        
-        startScreenTracking()
     }
     
     func hide() {
@@ -243,7 +240,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         hideGeneration += 1
         let currentGen = hideGeneration
         
-        stopScreenTracking()
+        assignedScreenUUID = nil
         
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.25
