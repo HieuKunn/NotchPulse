@@ -1,164 +1,165 @@
-# 💎 NotchPulse Native Transformation Blueprint
-> **Kế hoạch chuyển đổi toàn diện kiến trúc & giao diện NotchPulse đạt chuẩn Apple Native 100% (macOS Sequoia / Sonoma HIG & Liquid Glass Experience)**
+# 💎 NotchPulse Pure Native Transformation Blueprint
+> **Tài liệu Kế hoạch Chuyển đổi Toàn diện Kiến trúc & Giao diện NotchPulse đạt chuẩn Apple Native 100% (macOS Sequoia & Sonoma Pure HIG)**
 
 ---
 
-## 🎯 1. Tầm nhìn & Mục tiêu (Vision & Objectives)
+## 🧭 1. TÔN CHỈ BẤT KHẢ XÂM PHẠM (CORE MANIFESTO)
 
-### Thực trạng hiện tại
-- NotchPulse sở hữu nền tảng công nghệ rất mạnh (Face ID Neural Engine, điều khiển quạt phần cứng SMC, Audio Engine độc lập từng app, hỗ trợ đa màn hình).
-- **Hạn chế:** Giao diện đang bị **"hardcode"** (ép chết màu nền đen `#000000`, thanh trượt tự chế, các nút bấm bọc viên thuốc đen lì, cửa sổ Cài đặt dùng thanh header tự chế). Do đó, app chưa toát lên vẻ đẹp chuẩn mực của macOS và chưa tự động thích ứng với ngôn ngữ thiết kế của các bản macOS mới (như Sequoia hay Sonoma).
+> ⭐️ **"Tối đa Native – Không chế cháo – Tự động hòa nhập 100% với macOS"**
 
-### Mục tiêu chuyển đổi
-1. **Sánh ngang và vượt trội các app notch hàng đầu thế giới (NotchNook, MediaMate, Sleeve):**
-   - Tai thỏ khi đóng hòa làm một với viền máy.
-   - Khi mở ra: Biến hóa thành một **phiến kính mờ lơ lửng (Liquid Frosted Glass)** khúc xạ ánh sáng theo hình nền desktop, phản chiếu viền sáng tinh tế, tự động chuyển đổi Light/Dark mode mượt mà.
-2. **Chuẩn hóa Cửa sổ Cài đặt (Settings) theo 100% Apple HIG:**
-   - Sử dụng thanh công cụ hệ thống (macOS Native Window Toolbar).
-   - Nội dung dạng các thẻ bo góc viền kính (`.formStyle(.grouped)`) giống hệt ứng dụng System Settings của macOS Sequoia.
-3. **Giữ nguyên 100% hiệu năng và các tính năng cốt lõi:**
-   - RAM duy trì ở mức siêu nhẹ (~35–50MB).
-   - Đảm bảo 120Hz ProMotion mượt mà, không giật lag.
-   - Không phá vỡ kiến trúc Face ID (`.zIndex(999)`) và cử chỉ vuốt kéo.
+1. **Tuyệt đối KHÔNG chế tạo thêm tùy chọn giao diện (Zero Custom Appearance Toggles):**
+   - Không bắt người dùng phải chọn "kính mờ kiểu A, kính mờ kiểu B hay nền đen lì" trong Settings.
+   - Ứng dụng phải **tự động đồng bộ 100% với hệ thống macOS**:
+     - Khi máy ở **Dark Mode**: Notch mở ra tự động hóa thành phiến kính hun khói tối (`.regularMaterial` / `.ultraThinMaterial` dark vibrancy), chữ và biểu tượng màu trắng tương phản chuẩn HIG.
+     - Khi máy ở **Light Mode**: Notch mở ra tự động hóa thành phiến kính băng tuyết trong trẻo, chữ và biểu tượng màu đen/xám than (`.primary`, `.secondary`), khúc xạ trực tiếp màu sắc của hình nền desktop.
+     - Tự động thay đổi màu nhấn theo **Accent Color** mà người dùng cài trong *System Settings > Appearance* của Mac.
+
+2. **Quy tắc "Đen Tuyệt Đối" khi Đóng & Inline (The Black Anchor Rule):**
+   - **Khi ĐÓNG (Closed):** Thân notch ngoài PHẢI là **Đen Tuyền Tuyệt Đối (`#000000`)** để hòa làm một với viền bezel màn hình và che giấu hoàn toàn cụm camera vật lý của MacBook.
+   - **Khi INLINE (Mini HUD thu gọn):** Các trạng thái hiển thị mini gắn trên notch (như icon sạc pin, âm lượng mini, sóng âm mini cạnh tai thỏ) PHẢI nằm trọn trên nền đen nguyên bản để không làm lộ camera.
+
+3. **Quy tắc "Kính Mờ Native" khi MỞ RỘNG (The Liquid Expanded Drawer):**
+   - Khi hover hoặc click để mở bung Notch: Thân notch mở rộng mượt mà biến đổi thành **Phiến kính Native (`NSVisualEffectView` / SwiftUI Material)**.
+   - Vẫn duy trì một **Camera Anchor Mask (Mặt nạ Đen)** nhỏ ở đỉnh mép trên đúng vị trí camera vật lý để mắt thần camera không bị lộ khi thân kính mờ trượt xuống.
+   - Bao quanh phiến kính là đường viền tóc chuẩn Apple (`strokeBorder(Color.white.opacity(0.12))` ở Dark Mode và `Color.black.opacity(0.08)` ở Light Mode), tạo chiều sâu lơ lửng đẳng cấp.
+
+4. **Cửa sổ Cài đặt Chuẩn mực HIG (Pure Settings Window):**
+   - Xóa bỏ toàn bộ các thanh header tự chế, xóa bỏ nút Quit tự vẽ.
+   - Sử dụng 100% **macOS Unified Toolbar** và phong cách **Grouped Card (`.formStyle(.grouped)`)** giống hệt ứng dụng System Settings của macOS Sequoia.
 
 ---
 
-## 🏗️ 2. Kiến trúc diện mạo mới (The Liquid Glass Engine)
-
-### 2.1. Đánh tráo thị giác giữa Đóng (Closed) và Mở (Open)
+## 🏗️ 2. KIẾN TRÚC THỊ GIÁC: ĐÓNG vs INLINE vs MỞ
 
 ```
-        ┌─────────────────────────┐
-        │   Camera Notch (ĐEN)    │  <- [Trạng thái ĐÓNG]: 100% Black hòa vào bezel
-        └─────────────────────────┘
-                     │
-                     ▼ (Hover / Click mở rộng)
-   ┌───────────────────────────────────┐
-   │ █ █ █ Camera Mask (ĐEN NEO) █ █ █ │  <- Giữ 1 dải đen nhỏ che camera vật lý
-   │───────────────────────────────────│
-   │                                   │
-   │      LIQUID FROSTED GLASS         │  <- [Trạng thái MỞ]: Kính mờ xuyên thấu,
-   │   (Vibrancy & Desktop Tinting)    │     khúc xạ màu hình nền, viền hairline sáng
-   │                                   │
-   └───────────────────────────────────┘
+1. TRẠNG THÁI ĐÓNG (CLOSED):
+   ┌────────────────────────────────┐
+   │     █ █ █ █ █ █ █ █ █ █ █      │  <- ĐEN TUYỀN 100% (#000000)
+   └────────────────────────────────┘     Hòa hoàn toàn vào viền Bezel MacBook.
+
+2. TRẠNG THÁI INLINE MINI (INLINE HUD):
+   ┌────────────────────────────────┐
+   │ 🔊 50%  █ █ Camera █ █  🔋 98% │  <- VẪN GIỮ NỀN ĐEN 100%
+   └────────────────────────────────┘     Chữ và icon trắng nhỏ gọn gắn 2 bên tai.
+
+3. TRẠNG THÁI MỞ RỘNG (EXPANDED):
+   ┌────────────────────────────────┐
+   │ █ █ █ █ Camera Anchor █ █ █ █  │  <- Vẫn giữ dải đen nhỏ che camera vật lý
+   │────────────────────────────────│
+   │                                │  <- LIQUID NATIVE MATERIAL (NSVisualEffectView)
+   │     TỰ ĐỘNG THEO HỆ THỐNG:     │     - Light Mode: Kính băng tuyết xuyên thấu
+   │   - Khúc xạ hình nền Desktop   │     - Dark Mode: Kính hun khói chiều sâu
+   │   - Viền phản xạ ánh sáng mảnh │     - Chữ/Icon tự đảo màu tương phản
+   │                                │
+   └────────────────────────────────┘
 ```
 
-1. **Khi Đóng (Closed State):**
-   - Vỏ ngoài giữ màu đen tuyền tuyệt đối (`.black`), gắn liền với viền trên màn hình để giấu camera vật lý.
-2. **Khi Mở ra (Opened / Expanded State):**
-   - **Đỉnh neo (Camera Anchor):** Duy trì một dải mặt nạ đen nhỏ đúng vị trí camera để không làm lộ cụm cảm biến.
-   - **Thân mở rộng (Expanded Drawer):** Chuyển từ màu đen lì sang **Vật liệu kính mờ cao cấp (`.ultraThinMaterial` / `NSVisualEffectView`)**.
-   - **Tự động bắt màu hình nền (Wallpaper Tinting):** Tự khúc xạ ánh màu theo ảnh nền người dùng đang đặt.
-   - **Thích ứng giao diện:**
-     - *Light Mode:* Kính mờ băng tuyết (Frosted Ice Glass), chữ đen tương phản cao.
-     - *Dark Mode:* Kính hun khói sâu thẳm (Smoked Glass), chữ trắng nổi khối.
-   - **Viền phản quang (Specular Glass Border):** Viền bo cong mảnh `Color.white.opacity(0.12)` bao quanh, tạo cảm giác một phiến kính lơ lửng có chiều sâu 3D.
-
 ---
 
-## 🎨 3. Ba chế độ phong cách cho người dùng (Settings Appearance)
+## ⚙️ 3. CHUẨN HÓA CỬA SỔ CÀI ĐẶT (SETTINGS - 100% APPLE HIG)
 
-Cung cấp trong cài đặt 3 tùy chọn để người dùng tự do lựa chọn:
-
-| Chế độ | Mô tả trải nghiệm | Đối tượng phù hợp |
-| :--- | :--- | :--- |
-| **1. Liquid Frosted Glass (Mặc định mới)** | Kính mờ xuyên thấu cao cấp chuẩn Sequoia, tự đổi theo hình nền, viền ánh sáng phản xạ. | Người dùng thích phong cách hiện đại, giống Control Center và NotchNook. |
-| **2. Smoked Glass (Kính hun khói)** | Kính mờ tối màu trầm ấm, có chiều sâu viền nổi nhưng ít trong suốt hơn. | Người dùng thích sự kín đáo, tinh tế trên hình nền sáng. |
-| **3. Classic Solid Black (Truyền thống)** | Giữ nguyên màu đen tuyền 100% kiểu Dynamic Island của iPhone như hiện tại. | Người dùng thích sự tối giản, quen thuộc từ các bản trước. |
-
----
-
-## ⚙️ 4. Chuẩn hóa Cửa sổ Cài đặt (Settings Window - Pure HIG)
-
-Hiện tại, `SettingsView.swift` bị cảm giác "tự chế" do có thanh header riêng và màu sắc gán cứng. Kế hoạch chuẩn hóa:
+Hiện tại, `SettingsView.swift` sử dụng thanh header tự chế (`SettingsDetailHeaderBar`), làm mất đi vẻ sang trọng của macOS. Chúng ta sẽ chuẩn hóa toàn diện:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ [● ● ●]  General Settings                       (Search Bar) │ <- macOS Native Unified Toolbar
+│ [● ● ●]  General Settings                       (Search Bar) │ <- macOS Native Unified Window Toolbar
 ├───────────────┬──────────────────────────────────────────────┤
 │ ⚙️ General     │  ┌────────────────────────────────────────┐  │
-│ 🎨 Appearance  │  │ [✨ Feature Tour]                    > │  │ <- Grouped Card Style
-│ 🎵 Media       │  └────────────────────────────────────────┘  │    (Bo góc viền kính)
+│ 🎨 Appearance  │  │ [✨ Tính năng & Giới thiệu]          > │  │ <- macOS Sequoia Grouped Inset Card
+│ 🎵 Media       │  └────────────────────────────────────────┘  │    (Bo góc viền kính mờ tự nhiên)
 │ 📅 Calendar    │  ┌────────────────────────────────────────┐  │
-│ 🔒 Face ID     │  │ Notch Style      [ Dynamic Island v ] │  │
-│ 📊 Stats       │  │ Material Mode    [ Liquid Glass   v ] │  │
-│ ...           │  └────────────────────────────────────────┘  │
-│ (Sidebar Kính)│  (Nền màu kính mờ tự co giãn theo macOS)     │
+│ 🔒 Face ID     │  │ Khởi động cùng Mac           [ Bật ]  │  │
+│ 📊 Stats       │  │ Tự động kiểm tra bản mới     [ Bật ]  │  │
+│ 💨 Fan & SMC   │  └────────────────────────────────────────┘  │
+│ (Sidebar Kính)│  (Nền toàn bộ tự động theo Dark/Light macOS) │
 └───────────────┴──────────────────────────────────────────────┘
 ```
 
-1. **Loại bỏ `SettingsDetailHeaderBar`:** Thay bằng `.toolbar { ToolbarItem(placement: .principal) { ... } }` chuẩn của macOS.
-2. **Loại bỏ nút Quit tự chế ở góc trang:** Dùng menu Quit chuẩn hoặc đưa vào mục About/General đúng chuẩn Apple.
-3. **Sidebar Kính mờ:** Dùng `SidebarListStyle()` kết hợp hiệu ứng rung động (`.material(.sidebar)`).
-4. **Form Grouped:** Sử dụng `.formStyle(.grouped)` để toàn bộ cài đặt chia thành các thẻ bo góc viền sáng, đổ bóng nhẹ y hệt **System Settings trên macOS Sequoia**.
+### Các việc cụ thể trong Settings:
+1. **Loại bỏ hoàn toàn code tùy chọn "giao diện kính A, B, C":** App tự động nhận diện chế độ hiển thị của hệ thống qua `@Environment(\.colorScheme)`.
+2. **Áp dụng `.formStyle(.grouped)`:**
+   - Toàn bộ các trang cài đặt (General, Media, Calendar, Face ID, Stats...) chuyển sang dạng các thẻ bo góc (Inset Grouped Cards) với đường viền mờ tinh tế và đổ bóng chuẩn hệ thống.
+3. **Thanh Toolbar Hệ thống:**
+   - Sử dụng `.toolbar` chuẩn của macOS SwiftUI, tự động tích hợp nút đóng/mở/thu nhỏ góc trái và tiêu đề căn giữa đồng bộ.
+4. **Sidebar chuẩn mực:**
+   - Sử dụng `SidebarListStyle()` với hiệu ứng nền kính mờ `sidebar` của AppKit/SwiftUI.
 
 ---
 
-## 🧩 5. Nâng cấp các thành phần bên trong Notch
+## 🧩 4. NÂNG CẤP CÁC LINH KIỆN NỘI BỘ NOTCH (COMPONENTS)
 
-| Thành phần | Thiết kế hiện tại (Custom Cũ) | Thiết kế Native Mới (Liquid Native) |
+Loại bỏ toàn bộ các khối màu đen thô cứng bên trong thân notch khi mở rộng, chuyển sang linh kiện native:
+
+| Thành phần | Hiện tại (Custom cũ) | Thiết kế Pure Native Mới |
 | :--- | :--- | :--- |
-| **Thanh Tab (Home, Shelf, Stats, Audio...)** | Các viên thuốc `Capsule().fill(.black)` tự vẽ, viền thô. | Thanh chuyển tab kính mờ phân đoạn mượt mà, icon bắt sáng khi active. |
-| **Thanh trượt (Volume, Brightness, Fan Speed)** | DragGesture tự vẽ thanh màu xanh cố định. | Thanh trượt dạng Capsule kính mờ viền sáng, có phản hồi độ nảy lò xo khi kéo chạm biên. |
-| **Card nhạc & Visualizer** | Hộp màu đen vuông vức đè lên. | Bề mặt kính mờ phản chiếu màu sắc của bìa album (Dynamic Ambient Album Tinting). |
-| **Lịch Âm / Dương** | Bảng lịch nền đen lì. | Lịch hiển thị trên bề mặt kính mờ, ngày hiện tại nổi bật bằng màu nhấn hệ thống (`.controlAccentColor`). |
-| **Ngăn nhiệt độ & Quạt (Thermal Drawer)** | Ngăn kéo màu xám xịt. | Khung kính hun khói với đồng hồ nhiệt độ vòng tròn phát sáng tinh xảo. |
-| **Kệ file Shelf & Clipboard** | Ô màu xám thô. | Các ô kính mờ nhận diện tệp với hiệu ứng phát sáng nhẹ khi hover kéo thả file. |
+| **Thanh chuyển Tab** | Các viên thuốc `Capsule().fill(.black)` tự vẽ, viền sắc cạnh. | Thanh phân đoạn (Segmented Control) kính mờ, icon tự động bắt sáng khi active. |
+| **Thanh trượt (Slider)** | Tự vẽ hình chữ nhật màu xanh/cam cố định bằng DragGesture. | Thanh trượt Capsule kính mờ viền sáng chuẩn Apple, có độ nảy lò xo tự nhiên khi kéo chạm biên. |
+| **Trình phát Nhạc (Media)** | Khung nền đen đè lên. | Bề mặt kính mờ khúc xạ nhẹ màu sắc của bìa album (Dynamic Ambient Tinting) mà không dùng hộp đen. |
+| **Lịch Âm & Dương** | Bảng vuông nền đen lì. | Lịch kính mờ, ngày hiện tại tự động dùng màu nhấn hệ thống (`Color.accentColor`). |
+| **Kệ File & Clipboard** | Các ô xám đặc. | Ô kính mờ nhận diện dạng tệp, hover có hiệu ứng sáng viền mềm mại. |
+| **Văn bản & Biểu tượng** | Ép chết màu trắng hoặc màu xám hex. | Dùng màu ngữ nghĩa hệ thống: `.primary`, `.secondary`, `.tertiary` để luôn hiển thị hoàn hảo ở cả Light Mode lẫn Dark Mode. |
 
 ---
 
-## 🛡️ 6. Các quy tắc an toàn bất khả xâm phạm (Golden Rules)
+## 🛡️ 5. QUY TẮC AN TOÀN BẤT KHẢ XÂM PHẠM (GOLDEN RULES)
 
-Trong quá trình chuyển đổi, **TUYỆT ĐỐI TUÂN THỦ** các nguyên tắc cốt lõi đã đặt ra trong dự án:
+Khi thực thi mã nguồn, **bắt buộc tuân thủ 100%** các quy tắc sau:
 
-1. **Bảo toàn chuyển động mượt mà (Không làm vỡ Animation):**
-   - **CẤM** dùng `if/else` để đổi cấu trúc View khi đóng/mở vì sẽ gây ra lỗi "mở bùm / đóng bụp" (View Identity swap).
-   - Biến đổi màu nền và độ mờ kính bằng cách nội suy liên tục (Interpolation):
+1. **Bảo toàn Hoạt ảnh Đóng/Mở (Animation Continuity):**
+   - **TUYỆT ĐỐI CẤM** dùng cấu trúc `if vm.notchState == .open { ... } else { ... }` ở lớp vỏ ngoài của Notch. Việc tráo đổi danh tính View (View Identity Swap) sẽ gây hiện tượng vỡ khung hình hoặc mở giật bụp.
+   - Phải sử dụng phép biến đổi liên tục (Continuous Interpolation) cho lớp nền:
      ```swift
+     // Khi đóng: đen 100%. Khi mở: hòa vào vật liệu kính mờ tự nhiên
      .background(
-         MaterialBackgroundView(isOpen: vm.notchState == .open)
+         ZStack {
+             if vm.notchState == .closed {
+                 Color.black
+             } else {
+                 Rectangle().fill(.ultraThinMaterial)
+             }
+         }
      )
      ```
-2. **Quy tắc đối xứng Padding 14px:**
-   - Khi đóng: Padding ngang là 14px (`cornerRadiusInsets.closed.bottom`).
-   - Khi mở: Padding ngang là `10 + 4 = 14px`. Phải duy trì đối xứng tuyệt đối để không giật hình.
+2. **Quy tắc đối xứng hình học 14px:**
+   - Luôn duy trì padding ngang đối xứng tuyệt đối giữa trạng thái đóng và mở để khi co giãn notch không bị giật sang hai bên.
 3. **Face ID Top-Most Layer (`.zIndex(999)`):**
-   - Toàn bộ lớp phủ Face ID và hoạt ảnh quét camera luôn nằm ở tầng cao nhất, không bị lớp kính hay HUD che khuất.
-4. **Hỗ trợ Đa Màn Hình & Dynamic Island:**
-   - Màn hình có tai thỏ: Khớp chính xác với tai thỏ vật lý.
-   - Màn hình phụ / Màn hình không tai thỏ: Nở thành viên thuốc kính mờ lơ lửng (Floating Island Glass) đẹp mắt.
+   - Hệ thống camera Face ID và hoạt ảnh nhận diện luôn nằm ở lớp cao nhất, không bị bất kỳ lớp kính hay hiệu ứng nào che khuất.
+4. **Không làm tăng tải hệ thống (Performance First):**
+   - Tận dụng tối đa bộ kết xuất phần cứng Metal của Apple có sẵn trong `NSVisualEffectView` / `Material`.
+   - Mức tiêu thụ RAM duy trì ở mức siêu nhẹ (~35–50MB), đảm bảo tần số quét 120Hz mượt mà trên màn hình ProMotion.
 
 ---
 
-## 🚀 7. Lộ trình triển khai (Phased Implementation Roadmap)
+## 🚀 6. LỘ TRÌNH THỰC THI (IMPLEMENTATION PHASES)
 
 ```mermaid
 graph TD
-    A[Giai đoạn 1: Chuẩn hóa Settings] --> B[Giai đoạn 2: Liquid Glass Engine cho Notch]
-    B --> C[Giai đoạn 3: Nâng cấp linh kiện bên trong]
-    C --> D[Giai đoạn 4: Chuẩn hóa HUDs & Testing]
+    P1[Giai đoạn 1: Chuẩn hóa Cửa sổ Cài đặt Settings] --> P2[Giai đoạn 2: Liquid Material Engine cho Thân Notch]
+    P2 --> P3[Giai đoạn 3: Nâng cấp linh kiện bên trong Notch]
+    P3 --> P4[Giai đoạn 4: Kiểm thử hiển thị Dark/Light Mode & 120Hz]
 ```
 
-### 📍 Giai đoạn 1: Chuẩn hóa Cửa sổ Cài đặt (Settings HIG)
-- [ ] Xóa bỏ `SettingsDetailHeaderBar` tự chế, chuyển sang thanh macOS Toolbar chuẩn.
-- [ ] Áp dụng `.formStyle(.grouped)` cho toàn bộ các tab cài đặt (General, Appearance, Media, Fan...).
-- [ ] Bổ sung cài đặt lựa chọn phong cách: `Liquid Frosted Glass` / `Smoked Glass` / `Classic Black`.
+### 📍 Giai đoạn 1: Chuẩn hóa Cửa sổ Settings (Pure HIG)
+- [ ] Xóa bỏ `SettingsDetailHeaderBar` tự chế.
+- [ ] Chuyển các tab cài đặt sang cấu trúc thẻ Inset Grouped (`.formStyle(.grouped)`).
+- [ ] Đồng bộ hóa màu chữ, thanh trượt và toggle theo bảng màu hệ thống macOS.
+- [ ] Đảm bảo Settings hiển thị hoàn hảo trên cả Dark Mode và Light Mode.
 
-### 📍 Giai đoạn 2: Xây dựng Liquid Glass Engine cho Notch
-- [ ] Cập nhật [ContentView.swift](file:///Users/hieukunn/Learning%20ITM/My%20project/NotchPulse/NotchPulse/ContentView.swift): Thay thế `.background(.black)` cố định bằng lớp vật liệu thông minh (Đóng = Black, Mở = Material).
-- [ ] Xây dựng lớp mặt nạ neo giữ camera vật lý (Camera Anchor Mask) ở mép trên cùng.
-- [ ] Thêm viền phản quang kính `strokeBorder(Color.white.opacity(0.12))` khi mở.
+### 📍 Giai đoạn 2: Xây dựng Liquid Material Engine cho Notch
+- [ ] Cập nhật [ContentView.swift](file:///Users/hieukunn/Learning%20ITM/My%20project/NotchPulse/NotchPulse/ContentView.swift): Tích hợp lớp nền chuyển đổi Đóng (Black) -> Mở (Native Material).
+- [ ] Bố trí dải mặt nạ đen che cụm camera vật lý ở mép trên cùng khi mở.
+- [ ] Thêm đường viền tóc phản quang mảnh chuẩn Apple bao quanh thân mở rộng.
 
-### 📍 Giai đoạn 3: Nâng cấp các Card & Linh kiện bên trong Notch
-- [ ] Chuyển đổi Card nhạc, Bảng lịch, Ngăn quạt tản nhiệt sang vật liệu kính mờ (`.ultraThinMaterial`).
-- [ ] Tinh chỉnh thanh trượt âm lượng/quạt sang phong cách macOS Capsule bóng bẩy.
-- [ ] Đồng bộ hóa toàn bộ màu chữ theo Semantic Color (`.primary`, `.secondary`).
+### 📍 Giai đoạn 3: Nâng cấp Linh kiện bên trong Notch
+- [ ] Chuyển đổi Card nhạc, Bảng lịch, Ngăn quạt tản nhiệt, Kệ file sang vật liệu kính mờ.
+- [ ] Thay thế các nút Tab bọc đen lì sang thanh phân đoạn kính mờ tinh tế.
+- [ ] Thay thế thanh trượt Volume / Brightness / Fan sang Capsule chuẩn hệ thống.
 
-### 📍 Giai đoạn 4: Chuẩn hóa Inline HUDs & Tối ưu hóa kiểm thử
-- [ ] Nâng cấp các HUD nổi (Volume, Brightness, Mic, Battery) sang kính mờ đồng bộ.
-- [ ] Kiểm tra thực tế trên cả Dark Mode và Light Mode với các hình nền sáng/tối khác nhau.
-- [ ] Kiểm tra tỷ lệ khung hình ProMotion 120Hz, đảm bảo không có hiện tượng giật khung hình.
+### 📍 Giai đoạn 4: Kiểm thử và Hoàn thiện
+- [ ] Test thực tế khi đổi hình nền Desktop (sáng, tối, rực rỡ, ảnh phong cảnh).
+- [ ] Test chuyển đổi qua lại giữa Light Mode và Dark Mode trong System Settings.
+- [ ] Kiểm tra độ mượt 120Hz ProMotion và theo dõi RAM/CPU không bị rò rỉ.
 
 ---
 
-*Tài liệu này là kim chỉ nam chính thức cho quá trình nâng cấp toàn diện giao diện NotchPulse đạt đẳng cấp phần mềm macOS hàng đầu.*
+*Bản kế hoạch này là kim chỉ nam tối thượng cho quá trình đưa NotchPulse trở thành ứng dụng Native đỉnh cao nhất trên macOS.*
