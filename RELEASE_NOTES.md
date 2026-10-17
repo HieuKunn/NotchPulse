@@ -1,4 +1,4 @@
-## 🚀 What's New in NotchPulse v5.4.2
+## 🚀 What's New in NotchPulse v5.4
 
 ### 🎵 Media Display & Visual Polish
 - **Refined Paused Media Overlay**: Paused albums and tracks now display an elegant, subtle dimmed overlay perfectly contoured to the album artwork edges in both the Notch view and Lock Screen player.

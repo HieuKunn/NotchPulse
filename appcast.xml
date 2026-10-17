@@ -5,22 +5,7 @@
         <link>https://github.com/HieuKunn/NotchPulse</link>
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
-        <item>
-            <title>5.4.2</title>
-            <pubDate>Sat, 17 Oct 2026 14:20:00 +0800</pubDate>
-            <sparkle:version>327</sparkle:version>
-            <sparkle:shortVersionString>5.4.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v5.4.2/NotchPulse.app.zip" length="19771559" type="application/octet-stream" sparkle:edSignature="uErAS4erddqGdN0vOQ84hfg7f9aVep7o7kdXBp9+6FUfkDH1mqC3kq1JgFmGUpausvKMWF4HnWyeBvUzVZg3BQ=="/>
-        </item>
-        <item>
-            <title>5.4.1</title>
-            <pubDate>Sat, 17 Oct 2026 02:30:00 +0800</pubDate>
-            <sparkle:version>326</sparkle:version>
-            <sparkle:shortVersionString>5.4.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v5.4.1/NotchPulse.app.zip" length="19774344" type="application/octet-stream" sparkle:edSignature="tr3oD3O9G/exsNs7M558dKB8HP2gn+Mo08j0m/L0fClV5SO7qNL2a54FCo8jeZJ5S6zcH8PA0uJOCXXo1qWQCw=="/>
-        </item>
+
         <item>
             <title>5.4</title>
             <pubDate>Fri, 16 Oct 2026 23:59:00 +0800</pubDate>

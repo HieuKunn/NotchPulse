@@ -257,7 +257,7 @@ final class NotchPulseCamera: NSObject {
             didOutput sampleBuffer: CMSampleBuffer,
             from connection: AVCaptureConnection
         ) {
-            guard let owner = owner, owner.isRunning else { return }
+            guard owner != nil else { return }
 
             let now = CFAbsoluteTimeGetCurrent()
             guard (now - lastProcessedTimestamp) >= minFrameInterval else { return }
