@@ -69,21 +69,40 @@ struct ContentView: View {
             || faceIDOverlay.phase == .scanning
     }
 
+    private var isEffectivelyLockedWithFaceID: Bool {
+        isFaceIDActive || faceIDOverlay.isArmed || faceIDOverlay.phase != .closed || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
+    }
+
     private var isFaceIDActive: Bool {
         let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && isEffectivelyLocked)
         if isSessionActive || faceIDOverlay.phase != .closed || visualIsFaceIDExpanded {
+            if NSScreen.screens.count <= 1 {
+                return true
+            }
             let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
             if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
                let targetUUID = targetScreen.displayUUID {
                 let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                return thisScreenUUID == targetUUID
+                if thisScreenUUID == targetUUID {
+                    return true
+                }
+                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
+                    return true
+                }
+                return false
             }
             if let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }),
                let targetUUID = builtInScreen.displayUUID {
                 let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                return thisScreenUUID == targetUUID
+                if thisScreenUUID == targetUUID {
+                    return true
+                }
+                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
+                    return true
+                }
+                return false
             }
-            return false
+            return true
         }
         return false
     }
@@ -655,7 +674,7 @@ struct ContentView: View {
                     )
                     .padding(.top, 40)
                     Spacer()
-                } else if isEffectivelyLocked && !Defaults[.showOnLockScreen] && !isFaceIDActive {
+                } else if isEffectivelyLocked && !Defaults[.showOnLockScreen] && !isEffectivelyLockedWithFaceID {
                     Rectangle().fill(.clear).frame(
                         width: max(190, vm.closedNotchSize.width) - 20,
                         height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight
@@ -957,27 +976,25 @@ struct ContentView: View {
     // MARK: - Hover Management
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
-        guard isFaceIDActive else { return false }
         if isEffectivelyLocked { return true }
-        if faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .failure { return true }
+        if isFaceIDActive && (faceIDOverlay.phase == .scanning || faceIDOverlay.phase == .failure) { return true }
         return false
     }
 
     private func shouldHandleFaceIDTap() -> Bool {
-        guard isFaceIDActive else { return false }
         if isEffectivelyLocked { return true }
-        if faceIDOverlay.phase == .failure || faceIDOverlay.phase == .scanning { return true }
+        if isFaceIDActive && (faceIDOverlay.phase == .failure || faceIDOverlay.phase == .scanning) { return true }
         return false
     }
 
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
-        if faceIDOverlay.phase != .closed || (faceIDOverlay.isArmed && isEffectivelyLocked) || isFaceIDSettlingAfterClose { return }
+        if faceIDOverlay.phase != .closed || isFaceIDSettlingAfterClose { return }
         hoverTask?.cancel()
         fullscreenHoverDebounceTask?.cancel()
         
         if hovering {
-            if isEffectivelyLocked && isFaceIDActive {
+            if isEffectivelyLocked {
                 FaceIDOverlayController.shared.activate()
                 return
             }

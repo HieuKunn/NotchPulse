@@ -242,10 +242,13 @@ extension NSScreen {
     /// True for the Mac's own display (vs. an external monitor) — used to pin the Face
     /// Unlock panel there while the built-in camera is selected.
     var isBuiltIn: Bool {
-        guard let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
-            return false
+        if let number = (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value {
+            return CGDisplayIsBuiltin(number) != 0
         }
-        return CGDisplayIsBuiltin(number) != 0
+        if let direct = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID {
+            return CGDisplayIsBuiltin(direct) != 0
+        }
+        return false
     }
 }
 

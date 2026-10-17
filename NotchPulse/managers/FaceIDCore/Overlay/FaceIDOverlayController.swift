@@ -160,6 +160,7 @@ final class FaceIDOverlayController {
             guard let self, self.isArmed else { return }
             self.isPillDocked = true
         }
+        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
     }
 
     /// Truly hides the window. Only call once the lock-screen attempt is
@@ -176,6 +177,7 @@ final class FaceIDOverlayController {
         // Undocked before the guard: if a success collapse is already in flight, this
         // turns it into a full slide-off-screen exit rather than a shrink to a resting pill.
         isPillDocked = false
+        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
         guard phase != .success, phase != .collapsing else { return }
 
         // If the overlay is actively scanning when disarm is called (e.g. user unlocked via

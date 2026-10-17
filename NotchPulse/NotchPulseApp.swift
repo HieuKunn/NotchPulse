@@ -250,6 +250,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         skyWindow.enableSkyLight()
                     }
                 }
+                self.updateFaceIDCameraWindow()
                 if let skyCam = self.faceIDCameraWindow as? NotchPulseSkyLightWindow {
                     skyCam.enableSkyLight()
                 }
@@ -516,26 +517,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func updateFaceIDCameraWindow() {
         let isLockScreen = NotchPulseLockMonitor.isScreenActuallyLocked()
-        let isFaceIDScanning = FaceIDOverlayController.shared.phase == .scanning
+        let isFaceIDNeeded = FaceIDOverlayController.shared.phase == .scanning
             || FaceIDOverlayController.shared.phase == .success
             || FaceIDOverlayController.shared.phase == .failure
             || FaceIDOverlayController.shared.phase == .onboarding
             || FaceIDOverlayController.shared.phase == .collapsing
             || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed)
+            || (isLockScreen && (FaceIDOverlayController.shared.isArmed || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled))
 
         let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
         let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice)
         let camUUID = camScreen?.displayUUID
 
-        if isLockScreen && isFaceIDScanning {
-            // Only elevate windows that are physically on the camera screen
-            if let camUUID, coordinator.selectedScreenUUID == camUUID {
-                if let skyWindow = self.window as? NotchPulseSkyLightWindow {
-                    skyWindow.enableSkyLight()
-                    skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
-                    skyWindow.alphaValue = 1.0
-                    skyWindow.orderFrontRegardless()
-                }
+        if isLockScreen && isFaceIDNeeded {
+            // Elevate the primary window on lock screen
+            if let skyWindow = self.window as? NotchPulseSkyLightWindow {
+                skyWindow.enableSkyLight()
+                skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                skyWindow.alphaValue = 1.0
+                skyWindow.orderFrontRegardless()
             }
             if Defaults[.showOnAllDisplays], let camUUID, let targetSky = self.windows[camUUID] as? NotchPulseSkyLightWindow {
                 targetSky.enableSkyLight()
@@ -545,7 +545,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        guard isFaceIDScanning,
+        guard isFaceIDNeeded,
               !Defaults[.showOnAllDisplays],
               let camScreen = camScreen,
               let camUUID = camUUID,
