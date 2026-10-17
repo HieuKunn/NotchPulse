@@ -214,6 +214,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             let hostingView = FirstMouseHostingView(rootView: LockScreenMediaView(windowController: self))
             hostingView.wantsLayer = true
             hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+            hostingView.layer?.isOpaque = false
             contentView = hostingView
         }
         
