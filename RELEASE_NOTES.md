@@ -1,7 +1,11 @@
-## 🚀 What's New in NotchPulse v5.4.1
+## 🚀 What's New in NotchPulse v5.4.2
 
-### 🔒 Face ID Reliability & Lock Screen Polish
-- **Smart Camera Activation**: Fixed an issue where the camera would immediately turn on to scan when putting your Mac to sleep or locking the screen. The camera now activates only when you wake your Mac, hover over the notch, or press the spacebar.
-- **Accurate & Consistent Face Recognition**: Resolved a recognition issue where enrolled faces were not properly evaluated on the lock screen. Facial recognition now matches quickly and reliably under standard and low-light environments.
-- **Calibrated Recognition Sensitivity**: Adjusted the confidence threshold levels so that "Less strict", "Default", and "Strict" options in Settings provide dependable unlocks without unexpected recognition rejections.
-- **Seamless Keychain Access**: Eliminated recurring system keychain permission prompts when verifying passwords and enrolling faces.
+### 🎵 Media Display & Visual Polish
+- **Refined Paused Media Overlay**: Paused albums and tracks now display an elegant, subtle dimmed overlay perfectly contoured to the album artwork edges in both the Notch view and Lock Screen player.
+- **Reliable Launch & Update Sync**: Restored instant media detection when NotchPulse launches or updates, ensuring your active music session appears immediately without needing to toggle tracks.
+- **Instant Control Feedback**: Playback controls (Play, Pause, and Skip) respond instantly upon clicking with zero visual latency.
+- **Edge-Case Stability**: Fixed minor playback slider edge cases, protected background browser script calls, and ensured app icon badges remain hidden when idle.
+
+### 🔒 Face ID & Lock Screen Enhancements
+- **Multi-Monitor Face ID Routing**: Resolved an edge case during repeated facial scans to ensure Face ID authentication strictly appears on your camera-equipped display.
+- **Responsive Screen Wake**: Maintained battery-friendly smart camera activation so Face ID only wakes on intentional user interactions.
