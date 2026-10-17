@@ -31,11 +31,11 @@ struct AudioHubNotchView: View {
                     }) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(audioManager.selectedTab == .output ? .white : .secondary)
+                            .foregroundStyle(audioManager.selectedTab == .output ? .primary : .secondary)
                             .frame(width: 34, height: 26)
                             .background(
                                 audioManager.selectedTab == .output ?
-                                    Color.white.opacity(0.18) : Color.clear
+                                    Color.primary.opacity(0.14) : Color.clear
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                             .contentShape(Rectangle())
@@ -50,11 +50,11 @@ struct AudioHubNotchView: View {
                     }) {
                         Image(systemName: "mic.fill")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(audioManager.selectedTab == .input ? .white : .secondary)
+                            .foregroundStyle(audioManager.selectedTab == .input ? .primary : .secondary)
                             .frame(width: 34, height: 26)
                             .background(
                                 audioManager.selectedTab == .input ?
-                                    Color.white.opacity(0.18) : Color.clear
+                                    Color.primary.opacity(0.14) : Color.clear
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                             .contentShape(Rectangle())
@@ -62,7 +62,7 @@ struct AudioHubNotchView: View {
                     .buttonStyle(.plain)
                 }
                 .padding(2)
-                .background(Color.white.opacity(0.08))
+                .background(Color.primary.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                 // Active Devices Breadcrumb
@@ -74,7 +74,7 @@ struct AudioHubNotchView: View {
                         .font(.system(size: 10, weight: .medium))
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(.primary)
 
                     Text("·")
                         .font(.system(size: 10))
@@ -87,7 +87,7 @@ struct AudioHubNotchView: View {
                         .font(.system(size: 10, weight: .medium))
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(.primary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -240,17 +240,17 @@ private struct AudioDeviceRow: View {
                 HStack(spacing: 8) {
                     ZStack {
                         Circle()
-                            .fill(device.isDefault ? Color.blue : Color.white.opacity(0.12))
+                            .fill(device.isDefault ? Color.accentColor : Color.primary.opacity(0.10))
                             .frame(width: 24, height: 24)
 
                         Image(systemName: device.iconName)
                             .font(.system(size: 11))
-                            .foregroundStyle(device.isDefault ? .white : .white.opacity(0.85))
+                            .foregroundStyle(device.isDefault ? Color.white : Color.primary.opacity(0.85))
                     }
 
                     Text(device.name)
                         .font(.system(size: 12, weight: device.isDefault ? .semibold : .regular))
-                        .foregroundStyle(device.isDefault ? .white : .white.opacity(0.85))
+                        .foregroundStyle(device.isDefault ? Color.primary : Color.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
 
@@ -275,7 +275,7 @@ private struct AudioDeviceRow: View {
             Button(action: onMuteToggle) {
                 Image(systemName: isEffectivelyMuted ? (isInput ? "mic.slash.fill" : "speaker.slash.fill") : (isInput ? "mic.fill" : "speaker.wave.2.fill"))
                     .font(.system(size: 10))
-                    .foregroundStyle(isEffectivelyMuted ? Color.red.opacity(0.9) : Color.white.opacity(0.9))
+                    .foregroundStyle(isEffectivelyMuted ? Color.red.opacity(0.9) : Color.primary.opacity(0.85))
                     .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }
@@ -288,7 +288,7 @@ private struct AudioDeviceRow: View {
                     set: { onVolumeChange(Float($0)) }
                 ),
                 range: 0...1,
-                tintColor: device.isDefault ? Color.blue : Color.white.opacity(0.7)
+                tintColor: device.isDefault ? Color.accentColor : Color.primary.opacity(0.65)
             )
             .frame(width: 100, height: 16)
 
@@ -302,7 +302,7 @@ private struct AudioDeviceRow: View {
         .padding(.vertical, 4)
         .background(
             device.isDefault ?
-                Color.white.opacity(0.08) : Color.clear
+                Color.primary.opacity(0.08) : Color.clear
         )
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -314,12 +314,14 @@ private struct CustomAudioSlider: View {
     @Binding var value: CGFloat
     var range: ClosedRange<CGFloat> = 0...1
     var tintColor: Color = .blue
+    @State private var isDragging: Bool = false
 
     var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
             let height = geo.size.height
             let progress = max(0, min(1, (value - range.lowerBound) / (range.upperBound - range.lowerBound)))
+            let trackHeight: CGFloat = isDragging ? 6 : 4
 
             ZStack(alignment: .leading) {
                 // Scroll wheel listener covering full slider area
@@ -331,28 +333,34 @@ private struct CustomAudioSlider: View {
 
                 // Background Track
                 Capsule()
-                    .fill(Color.white.opacity(0.12))
-                    .frame(width: width, height: 4)
+                    .fill(Color.primary.opacity(0.12))
+                    .frame(width: width, height: trackHeight)
 
                 // Filled Track
                 Capsule()
                     .fill(tintColor)
-                    .frame(width: max(4, width * progress), height: 4)
+                    .frame(width: max(trackHeight, width * progress), height: trackHeight)
 
                 // Thumb handle
                 Circle()
                     .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.25), radius: 2, y: 1)
                     .frame(width: 10, height: 10)
                     .offset(x: max(0, min(width - 10, width * progress - 5)))
             }
             .frame(height: height)
             .contentShape(Rectangle())
+            .animation(.spring(response: 0.2, dampingFraction: 0.75), value: isDragging)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
+                        isDragging = true
                         let newProgress = max(0, min(1, gesture.location.x / width))
                         let newValue = range.lowerBound + newProgress * (range.upperBound - range.lowerBound)
                         self.value = newValue
+                    }
+                    .onEnded { _ in
+                        isDragging = false
                     }
             )
         }

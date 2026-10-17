@@ -6,6 +6,8 @@ import SwiftUI
 
 struct MusicPlayerView: View {
     @EnvironmentObject var vm: NotchPulseViewModel
+    @ObservedObject var musicManager = MusicManager.shared
+    @Environment(\.colorScheme) private var colorScheme
     let albumArtNamespace: Namespace.ID
     var allocatedWidth: CGFloat? = nil
 
@@ -26,7 +28,48 @@ struct MusicPlayerView: View {
             MusicControlsView(allocatedWidth: controlsWidth)
                 .compositingGroup()
         }
+        .padding(.trailing, 8)
         .frame(maxHeight: .infinity, alignment: .center)
+        .background {
+            ZStack {
+                // 1. Frosted translucent base surface
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.05 : 0.03))
+
+                // 2. Dynamic Ambient Tint from Album Art
+                if musicManager.isPlaying {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Color(nsColor: musicManager.avgColor).opacity(colorScheme == .dark ? 0.22 : 0.14),
+                                    Color(nsColor: musicManager.avgColor).opacity(0.04),
+                                    Color.clear
+                                ],
+                                center: .leading,
+                                startRadius: 10,
+                                endRadius: 260
+                            )
+                        )
+                        .blur(radius: 6)
+                }
+
+                // 3. Hairline specular highlight border
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.14 : 0.08),
+                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.02)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.8
+                    )
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -139,14 +182,14 @@ struct MusicControlsView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primary)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: width, alignment: .leading)
             Text(musicManager.artistName)
                 .font(.headline)
                 .fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(Color.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: width, alignment: .leading)
@@ -169,8 +212,8 @@ struct MusicControlsView: View {
                     Text(line)
                         .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
                         .foregroundStyle(musicManager.isFetchingLyrics
-                            ? .gray.opacity(0.7)
-                            : (activeIndex != nil ? .white.opacity(0.95) : .gray))
+                            ? Color.secondary.opacity(0.7)
+                            : (activeIndex != nil ? Color.primary : Color.secondary))
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: width, alignment: .leading)
@@ -288,7 +331,7 @@ struct MusicControlsView: View {
     private var repeatIconColor: Color {
         switch musicManager.repeatMode {
         case .off:
-            return .white.opacity(0.55)
+            return Color.secondary
         case .all, .one:
             return .red
         }
@@ -353,7 +396,7 @@ struct VolumeControlView: View {
         HStack(spacing: 4) {
             HoverButton(
                 icon: volumeIcon,
-                iconColor: isCurrentlyMuted ? .gray : .white.opacity(0.9),
+                iconColor: isCurrentlyMuted ? Color.secondary : Color.primary,
                 scale: .medium
             ) {
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
@@ -387,7 +430,7 @@ struct VolumeControlView: View {
                         }
                     ),
                     range: 0.0...1.0,
-                    color: .white,
+                    color: Color.effectiveAccent,
                     dragging: $dragging,
                     lastDragged: .constant(Date.distantPast),
                     onValueChange: { newValue in
@@ -537,18 +580,17 @@ struct MusicSliderView: View {
     let isPlaying: Bool
     var onValueChange: (Double) -> Void
 
-
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             CustomSlider(
                 value: $sliderValue,
                 range: 0...max(0.001, duration),
-                color: .white,
+                color: Color(nsColor: color),
                 dragging: $dragging,
                 lastDragged: $lastDragged,
                 onValueChange: onValueChange
             )
-            .frame(height: 8, alignment: .center)
+            .frame(height: 10, alignment: .center)
 
             HStack {
                 Text(timeString(from: sliderValue))
@@ -556,7 +598,7 @@ struct MusicSliderView: View {
                 Text(timeString(from: duration))
             }
             .fontWeight(.medium)
-            .foregroundStyle(.white.opacity(0.75))
+            .foregroundStyle(Color.secondary)
             .font(.caption2)
         }
         .onChange(of: currentDate) {
@@ -582,47 +624,79 @@ struct MusicSliderView: View {
 struct CustomSlider: View {
     @Binding var value: Double
     var range: ClosedRange<Double>
-    var color: Color = .white
+    var color: Color = .effectiveAccent
     @Binding var dragging: Bool
     @Binding var lastDragged: Date
     var onValueChange: ((Double) -> Void)?
     var onDragChange: ((Double) -> Void)?
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var localDragValue: Double? = nil
+    @State private var bounceOffset: CGFloat = 0
 
     var body: some View {
         GeometryReader { geometry in
             let width = max(1, geometry.size.width)
-            let height = CGFloat(dragging ? 9 : 5)
+            let height = CGFloat(dragging ? 9 : 6)
             let rangeSpan = range.upperBound - range.lowerBound
 
             let currentVal = localDragValue ?? value
             let progress = rangeSpan <= .zero ? 0 : (currentVal - range.lowerBound) / rangeSpan
-            let filledTrackWidth = min(max(progress, 0), 1) * width
+            let clampedProgress = min(max(progress, 0), 1)
+            let filledTrackWidth = clampedProgress * width
 
             ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(.gray.opacity(0.3))
+                // Control Center-style frosted glass background track
+                Capsule()
+                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08))
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(
+                                colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06),
+                                lineWidth: 0.8
+                            )
+                    }
                     .frame(height: height)
 
-                Rectangle()
+                // Filled active progress
+                Capsule()
                     .fill(color)
-                    .frame(width: filledTrackWidth, height: height)
+                    .frame(width: max(height, filledTrackWidth), height: height)
+                    .overlay(alignment: .trailing) {
+                        if dragging {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: height + 2, height: height + 2)
+                                .shadow(color: Color.black.opacity(0.35), radius: 2, y: 1)
+                        }
+                    }
             }
-            .cornerRadius(height / 2)
-            .frame(height: 10)
+            .clipShape(Capsule())
+            .offset(x: bounceOffset)
+            .frame(height: 12)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         if !dragging {
-                            withAnimation(.easeInOut(duration: 0.1)) {
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
                                 dragging = true
                             }
                         }
-                        let fraction = width > 0 ? (gesture.location.x / width) : 0
+                        let rawLocationX = gesture.location.x
+                        let fraction = width > 0 ? (rawLocationX / width) : 0
                         let computed = range.lowerBound + Double(fraction) * rangeSpan
                         let clamped = min(max(computed, range.lowerBound), range.upperBound)
+
+                        // Natural rubber-band spring elasticity at boundaries (0% and 100%)
+                        if rawLocationX < 0 {
+                            bounceOffset = -log(1 + abs(rawLocationX) * 0.12) * 3
+                        } else if rawLocationX > width {
+                            bounceOffset = log(1 + (rawLocationX - width) * 0.12) * 3
+                        } else {
+                            bounceOffset = 0
+                        }
+
                         localDragValue = clamped
                         value = clamped
                         onDragChange?(clamped)
@@ -634,11 +708,15 @@ struct CustomSlider: View {
                         localDragValue = nil
                         value = finalValue
                         onValueChange?(finalValue)
-                        dragging = false
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                            dragging = false
+                            bounceOffset = 0
+                        }
                         lastDragged = Date()
                     }
             )
-            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: dragging)
+            .animation(.spring(response: 0.32, dampingFraction: 0.75), value: dragging)
+            .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.7), value: bounceOffset)
         }
     }
 }

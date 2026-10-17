@@ -66,29 +66,55 @@ struct TabSelectionView: View {
         }
     }
 
-    @ViewBuilder
-    private func tabBackground(isSelected: Bool) -> some View {
-        if isSelected {
-            Capsule()
-                .fill(Color(nsColor: .secondarySystemFill))
-                .matchedGeometryEffect(id: "capsule", in: animation)
-        }
-    }
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(tabs) { tab in
                 let isSelected = (tab.view == coordinator.currentView)
-                let isSpotlight = (vm.featureTourTarget == String(describing: tab.view))
-                TabButton(label: tab.label, icon: tab.icon, selected: isSelected) {
+                Button {
                     selectTab(tab.view)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                    }
+                    .padding(.horizontal, 11)
+                    .frame(height: 22)
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                    .background {
+                        if isSelected {
+                            ZStack {
+                                Capsule()
+                                    .fill(colorScheme == .dark ? Color.white.opacity(0.20) : Color.white.opacity(0.85))
+                                Capsule()
+                                    .strokeBorder(
+                                        colorScheme == .dark ? Color.white.opacity(0.28) : Color.black.opacity(0.10),
+                                        lineWidth: 0.8
+                                    )
+                            }
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.08), radius: 2, y: 1)
+                            .matchedGeometryEffect(id: "activeTab", in: animation)
+                        }
+                    }
+                    .contentShape(Capsule())
                 }
-                .frame(height: 26)
-                .foregroundStyle(isSelected ? Color.white : Color.gray)
-                .background(tabBackground(isSelected: isSelected))
+                .buttonStyle(PlainButtonStyle())
             }
         }
-        .clipShape(Capsule())
+        .padding(2)
+        .background {
+            ZStack {
+                Capsule()
+                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05))
+                Capsule()
+                    .strokeBorder(
+                        colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08),
+                        lineWidth: 0.8
+                    )
+            }
+        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: coordinator.currentView)
     }
 }
 

@@ -188,9 +188,9 @@ graph TD
 - [x] Thêm đường viền tóc phản quang mảnh chuẩn Apple bao quanh thân mở rộng.
 
 ### 📍 Giai đoạn 4: Nâng cấp Linh kiện bên trong Notch
-- [ ] Chuyển đổi Card nhạc, Bảng lịch, Ngăn quạt tản nhiệt, Kệ file sang vật liệu kính mờ.
-- [ ] Thay thế các nút Tab bọc đen lì sang thanh phân đoạn kính mờ tinh tế.
-- [ ] Thay thế thanh trượt Volume / Brightness / Fan sang Capsule chuẩn hệ thống.
+- [x] Chuyển đổi Card nhạc, Bảng lịch, Ngăn quạt tản nhiệt, Kệ file sang vật liệu kính mờ.
+- [x] Thay thế các nút Tab bọc đen lì sang thanh phân đoạn kính mờ tinh tế.
+- [x] Thay thế thanh trượt Volume / Brightness / Fan sang Capsule chuẩn hệ thống.
 
 ### 📍 Giai đoạn 5: Kiểm thử và Hoàn thiện
 - [ ] Test thực tế khi đổi hình nền Desktop (sáng, tối, rực rỡ, ảnh phong cảnh).

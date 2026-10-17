@@ -60,7 +60,10 @@ struct NotchPulseHeader: View {
                 } else {
                     HStack(spacing: 6) {
                         if Defaults[.enableAudioHub] && Defaults[.showAudioHubInNotch] {
-                            Button(action: {
+                            HeaderActionButton(
+                                icon: "speaker.wave.2.fill",
+                                isActive: coordinator.currentView == .audio
+                            ) {
                                 withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                                     if coordinator.currentView == .audio {
                                         coordinator.currentView = .home
@@ -68,52 +71,25 @@ struct NotchPulseHeader: View {
                                         coordinator.currentView = .audio
                                     }
                                 }
-                            }) {
-                                Capsule()
-                                    .fill(coordinator.currentView == .audio ? Color.white.opacity(0.2) : .black)
-                                    .frame(width: 30, height: 30)
-                                    .overlay {
-                                        Image(systemName: "speaker.wave.2.fill")
-                                            .foregroundColor(coordinator.currentView == .audio ? .white : .gray)
-                                            .padding()
-                                            .imageScale(.medium)
-                                    }
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                         if Defaults[.showMirror] {
-                            Button(action: {
+                            HeaderActionButton(
+                                icon: "camera.fill",
+                                isActive: vm.isCameraExpanded
+                            ) {
                                 vm.toggleCameraPreview()
-                            }) {
-                                Capsule()
-                                    .fill(.black)
-                                    .frame(width: 30, height: 30)
-                                    .overlay {
-                                        Image(systemName: "camera.fill")
-                                            .foregroundColor(.white)
-                                            .padding()
-                                            .imageScale(.medium)
-                                    }
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                         if Defaults[.settingsIconInNotch] || FeatureTourController.shared.isTourActive {
-                            Button(action: {
+                            HeaderActionButton(
+                                icon: "gearshape.fill",
+                                isActive: false
+                            ) {
                                 DispatchQueue.main.async {
                                     SettingsWindowController.shared.showWindow()
                                 }
-                            }) {
-                                Capsule()
-                                    .fill(.black)
-                                    .frame(width: 30, height: 30)
-                                    .overlay {
-                                        Image(systemName: "gearshape.fill")
-                                            .foregroundColor(.white)
-                                            .padding()
-                                            .imageScale(.medium)
-                                    }
                             }
-                            .buttonStyle(PlainButtonStyle())
                             .background(
                                 ScreenFrameReader { frame in
                                     FeatureTourController.shared.settingsGearScreenRect = frame
@@ -130,7 +106,6 @@ struct NotchPulseHeader: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
             .zIndex(2)
         }
-        .foregroundColor(.gray)
         .environmentObject(vm)
     }
 
@@ -140,6 +115,53 @@ struct NotchPulseHeader: View {
             return true
         default:
             return false
+        }
+    }
+}
+
+/// Native frosted glass circular action button for the Notch header
+struct HeaderActionButton: View {
+    let icon: String
+    var isActive: Bool = false
+    var activeTint: Color? = nil
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(isActive
+                        ? (activeTint ?? (colorScheme == .dark ? Color.white.opacity(0.24) : Color.black.opacity(0.14)))
+                        : (isHovering
+                            ? (colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.08))
+                            : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)))
+                    )
+
+                Circle()
+                    .strokeBorder(
+                        isActive
+                            ? (colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.20))
+                            : (isHovering
+                                ? (colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.12))
+                                : (colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06))),
+                        lineWidth: 0.8
+                    )
+
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: isActive ? .semibold : .medium))
+                    .foregroundStyle(isActive ? .primary : (isHovering ? .primary : .secondary))
+            }
+            .frame(width: 26, height: 26)
+            .contentShape(Circle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+            withAnimation(.smooth(duration: 0.2)) {
+                isHovering = hovering
+            }
         }
     }
 }
