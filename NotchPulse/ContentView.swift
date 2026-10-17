@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 
 @MainActor
 struct ContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var webcamManager = WebcamManager.shared
 
@@ -247,6 +248,38 @@ struct ContentView: View {
         )
     }
 
+    private var currentNotchContourShape: NotchShape {
+        NotchShape(
+            topCornerRadius: topCornerRadius,
+            bottomCornerRadius: bottomCornerRadius,
+            isClosed: false
+        )
+    }
+
+    private var specularBorderGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [
+                    Color.white.opacity(0.18),
+                    Color.white.opacity(0.08),
+                    Color.white.opacity(0.12)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        } else {
+            return LinearGradient(
+                colors: [
+                    Color.black.opacity(0.12),
+                    Color.black.opacity(0.05),
+                    Color.black.opacity(0.08)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
+
     private var baseChinWidth: CGFloat {
         // When screen is locked, authenticating Face ID, or waking from sleep, strictly stay at physical notch / closed island width without expanding for inline/media
         if isEffectivelyLocked {
@@ -349,6 +382,52 @@ struct ContentView: View {
     }
 
     @ViewBuilder
+    private var liquidMaterialBackground: some View {
+        let isOpen = vm.notchState == .open
+        let isIsland = isDynamicIsland && !hasPhysicalNotch
+
+        ZStack(alignment: .top) {
+            // 1. Apple Native Liquid Glass Material Layer (Metal GPU-accelerated backdrop blur)
+            Rectangle()
+                .fill(.ultraThinMaterial)
+
+            // 2. Optical Vibrancy Adaptive Depth Tint (smoked obsidian in dark mode; crisp snowy frost in light mode)
+            Group {
+                if colorScheme == .dark {
+                    Color.black.opacity(0.32)
+                } else {
+                    Color.white.opacity(0.32)
+                }
+            }
+            .opacity(isOpen ? 1 : 0)
+
+            // 3. Black Anchor Layer (The Black Anchor Rule)
+            if isIsland {
+                // Dynamic Island: Pure solid black pill when closed/inline,
+                // smoothly dissolves into the liquid glass card when expanded
+                Color.black
+                    .opacity(isOpen ? 0 : 1)
+            } else {
+                // Notch: Fixed camera anchor at the top edge covering physical MacBook camera & bezel
+                VStack(spacing: 0) {
+                    Color.black
+                        .frame(height: baseClosedHeight)
+
+                    // Hairline specular accent separating the camera anchor from the liquid drawer
+                    Rectangle()
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08))
+                        .frame(height: 0.8)
+                        .opacity(isOpen ? 1 : 0)
+
+                    // Remaining expanded drawer space: pure black when closed, completely clear when open
+                    Color.black
+                        .opacity(isOpen ? 0 : 1)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private var mainNotchContainer: some View {
         let isIsland = isDynamicIsland && !hasPhysicalNotch
         let isHiddenInFS = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
@@ -366,32 +445,28 @@ struct ContentView: View {
                 (vm.notchState == .open)
                 ? 10
                 : (isIsland
-                    ? (isFaceIDContentVisible ? 0 : 12)
+                    ? (isFaceIDContentVisible ? 0 : 14)
                     : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
             )
             .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
             .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
-            .background(.black)
+            .background(liquidMaterialBackground)
             .conditionalModifier(isIsland) { view in
                 view
                     .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                            .strokeBorder(specularBorderGradient, lineWidth: 0.8)
+                            .opacity(vm.notchState == .open ? 1.0 : 0.4)
                     }
             }
             .conditionalModifier(!isIsland) { view in
                 view
                     .clipShape(currentNotchShape)
-                    .overlay(alignment: .top) {
-                        Rectangle()
-                            .fill(.black)
-                            .frame(height: 1)
-                            .padding(.horizontal, topCornerRadius)
-                    }
                     .overlay {
-                        currentNotchShape
-                            .stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0), lineWidth: 0.8)
+                        currentNotchContourShape
+                            .stroke(specularBorderGradient, lineWidth: 0.8)
+                            .opacity(vm.notchState == .open ? 1.0 : 0.0)
                     }
             }
             .shadow(
@@ -584,7 +659,7 @@ struct ContentView: View {
             anchor: .top
         )
         .animation(.smooth, value: gestureProgress)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(vm.notchState == .open ? nil : .dark)
         .environmentObject(vm)
         .onChange(of: coordinator.currentView) { _, newView in
             guard !SharingStateManager.shared.preventNotchClose else { return }

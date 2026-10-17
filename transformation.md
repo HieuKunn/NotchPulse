@@ -183,9 +183,9 @@ graph TD
 - [x] Tự động thích ứng màu sắc và chữ theo hình nền khoá và chế độ Dark/Light.
 
 ### 📍 Giai đoạn 3: Xây dựng Liquid Material Engine cho Notch
-- [ ] Cập nhật [ContentView.swift](file:///Users/hieukunn/Learning%20ITM/My%20project/NotchPulse/NotchPulse/ContentView.swift): Tích hợp lớp nền chuyển đổi Đóng (Black Anchor) -> Mở (Native Material).
-- [ ] Duy trì cụm đen che đỉnh camera vật lý khi ở kiểu Notch (cả màn MacBook và màn ngoài).
-- [ ] Thêm đường viền tóc phản quang mảnh chuẩn Apple bao quanh thân mở rộng.
+- [x] Cập nhật ContentView.swift: Tích hợp lớp nền chuyển đổi Đóng (Black Anchor) -> Mở (Native Material).
+- [x] Duy trì cụm đen che đỉnh camera vật lý khi ở kiểu Notch (cả màn MacBook và màn ngoài).
+- [x] Thêm đường viền tóc phản quang mảnh chuẩn Apple bao quanh thân mở rộng.
 
 ### 📍 Giai đoạn 4: Nâng cấp Linh kiện bên trong Notch
 - [ ] Chuyển đổi Card nhạc, Bảng lịch, Ngăn quạt tản nhiệt, Kệ file sang vật liệu kính mờ.
