@@ -31,10 +31,73 @@ final class NotchPulseCamera: NSObject {
 
     /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
     private let framePublisher = FramePublisher()
+    private var sessionObservers: [NSObjectProtocol] = []
 
     override init() {
         super.init()
         framePublisher.owner = self
+        setupSessionObservers()
+    }
+
+    deinit {
+        for observer in sessionObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    private func setupSessionObservers() {
+        sessionObservers.append(
+            NotificationCenter.default.addObserver(
+                forName: .AVCaptureSessionRuntimeError,
+                object: session,
+                queue: .main
+            ) { [weak self] notification in
+                Task { @MainActor [weak self] in
+                    self?.handleSessionRuntimeError(notification)
+                }
+            }
+        )
+        sessionObservers.append(
+            NotificationCenter.default.addObserver(
+                forName: .AVCaptureSessionWasInterrupted,
+                object: session,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.isRunning = false
+                }
+            }
+        )
+        sessionObservers.append(
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didWakeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.handleWakeReset()
+                }
+            }
+        )
+    }
+
+    private func handleSessionRuntimeError(_ notification: Notification) {
+        if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError {
+            NSLog("[NotchPulseCamera] AVCaptureSession runtime error: \(error.localizedDescription)")
+        }
+        // Invalidate stale input so next start cleanly re-binds device hardware
+        currentInput = nil
+        isConfigured = false
+        isRunning = false
+    }
+
+    private func handleWakeReset() {
+        // When waking from sleep, camera hardware power states change.
+        // If not running, invalidate input so the next scan acquires fresh hardware handles.
+        if !isRunning {
+            currentInput = nil
+            isConfigured = false
+        }
     }
 
     func start() async {
@@ -212,27 +275,29 @@ final class NotchPulseCamera: NSObject {
             didOutput sampleBuffer: CMSampleBuffer,
             from connection: AVCaptureConnection
         ) {
-            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-            let sourceImage = CIImage(cvPixelBuffer: pixelBuffer)
-            let sourceExtent = sourceImage.extent
-            var ciImage = sourceImage
-            let longEdge = max(ciImage.extent.width, ciImage.extent.height)
-            if longEdge > maxLongEdge {
-                let scale = maxLongEdge / longEdge
-                ciImage = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-            }
-            guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
+            autoreleasepool {
+                guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+                let sourceImage = CIImage(cvPixelBuffer: pixelBuffer)
+                let sourceExtent = sourceImage.extent
+                var ciImage = sourceImage
+                let longEdge = max(ciImage.extent.width, ciImage.extent.height)
+                if longEdge > maxLongEdge {
+                    let scale = maxLongEdge / longEdge
+                    ciImage = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+                }
+                guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
 
-            nextFrameID &+= 1
-            let frame = CameraFrame(
-                id: nextFrameID,
-                image: cgImage,
-                source: sourceImage,
-                sourceSize: sourceExtent.size
-            )
+                nextFrameID &+= 1
+                let frame = CameraFrame(
+                    id: nextFrameID,
+                    image: cgImage,
+                    source: sourceImage,
+                    sourceSize: sourceExtent.size
+                )
 
-            Task { @MainActor [weak owner] in
-                owner?.publish(frame: frame)
+                Task { @MainActor [weak owner] in
+                    owner?.publish(frame: frame)
+                }
             }
         }
     }

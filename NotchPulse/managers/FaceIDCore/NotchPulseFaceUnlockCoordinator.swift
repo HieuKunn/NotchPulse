@@ -86,7 +86,28 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func evaluateTrigger() {
-        guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
+        if !NotchPulseLockMonitor.isScreenActuallyLocked() {
+            // When waking from sleep, CGSessionCopyCurrentDictionary often lags by 300-800ms
+            if lockMonitor.lastEvent == .wake {
+                Task { @MainActor [weak self] in
+                    for delay in [300, 500, 800] {
+                        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000))
+                        guard let self, !self.hasArmedForCurrentLock else { return }
+                        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                            self.evaluateTrigger()
+                            return
+                        }
+                    }
+                    guard let self else { return }
+                    if !NotchPulseLockMonitor.isScreenActuallyLocked() {
+                        self.hasArmedForCurrentLock = false
+                        self.hasAutoRetriedForCurrentLock = false
+                        self.disarmOverlay()
+                    }
+                }
+                return
+            }
+
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
             disarmOverlay()
@@ -151,7 +172,8 @@ final class NotchPulseFaceUnlockCoordinator {
         switch event {
         case .wake: return .onWake
         case .screenLocked: return .onLock
-        case .screenUnlocked, .willSleep, nil: return nil
+        case .screenUnlocked, .willSleep: return nil
+        case nil: return .onWake
         }
     }
 
@@ -426,12 +448,14 @@ final class NotchPulseFaceUnlockCoordinator {
             let previousBoundingBox = lastFaceBoundingBox
             let currentThreshold = matchThreshold
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                guard let result = try? pipeline.recognize(
-                    in: frame.image,
-                    preferNear: previousBoundingBox
-                ) else { return nil }
-                let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
-                return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
+                autoreleasepool {
+                    guard let result = try? pipeline.recognize(
+                        in: frame.image,
+                        preferNear: previousBoundingBox
+                    ) else { return nil }
+                    let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
+                    return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
+                }
             }.value
 
             guard let (result, livenessFrame) = outcome else {

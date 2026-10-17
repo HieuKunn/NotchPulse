@@ -91,7 +91,7 @@ enum NotchPulseKeychainManager {
         if let accessControl {
             addQuery[kSecAttrAccessControl as String] = accessControl
         } else {
-            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         }
 
         var status = SecItemAdd(addQuery as CFDictionary, nil)
@@ -99,7 +99,7 @@ enum NotchPulseKeychainManager {
             // Missing entitlement (e.g. ad-hoc signed local build).
             // Fall back to device-only unlock without SecAccessControl.
             addQuery.removeValue(forKey: kSecAttrAccessControl as String)
-            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             status = SecItemAdd(addQuery as CFDictionary, nil)
         }
         guard status == errSecSuccess else { throw KeychainError.osStatus(status) }
