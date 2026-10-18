@@ -8,10 +8,13 @@
 
 ### 🔒 Face ID Core & Lock Screen Elegance
 - **Calibrated Face ID Dimensions**: Face ID drop-down geometry now precisely mirrors Glance’s soft square card design with continuous corner radii, completely covering the physical camera notch and dropping down naturally from the display bezel.
-- **Seamless Lock Screen Transitions**: The lock screen media player disappears instantaneously the exact millisecond you unlock your Mac, creating a clean and cohesive transition to your desktop with zero lingering delay.
+- **Uncompromised Sleep & Wake Reliability**: Completely overhauled Face ID session recovery across deep sleep, lid closure, and display idle cycles. Camera hardware sessions automatically rebind on display wake, and session keys seamlessly refresh so Face ID remains fully operational without needing an app restart.
+- **Instantaneous Lock Detection**: Bypasses system screen-lock notification lag during password injection, guaranteeing Face ID reliably unlocks your Mac on the first attempt without getting trapped behind stale lock state.
 - **Silent Security Access**: Repetitive system authorization dialogs are completely eliminated; credentials are authenticated silently in the background with zero popups.
-- **Instant Wake Authentication**: Face ID seamlessly recognizes you immediately when waking your Mac or opening the MacBook lid.
-- **Continuous Camera Stability**: Automatically recovers camera hardware handles after prolonged sleep and power-down cycles, keeping Face ID reliable throughout days of use.
+- **Seamless Lock Screen Transitions**: The lock screen media player disappears instantaneously the exact millisecond you unlock your Mac, creating a clean and cohesive transition to your desktop with zero lingering delay.
+
+### 🧹 Performance & Codebase Streamlining
+- **Streamlined Architecture**: Purged legacy unused components, prototype modules, and heavy redundant assets, resulting in a cleaner footprint and faster app launch performance.
 
 ### 🎵 Media Display & Visual Polish
 - **Dynamic Island Inline Media Refinement**: Re-engineered media inline sizing for Dynamic Island. The collapsed island maintains its natural capsule width, while expanding into a wide pill with ample breathing room for song title and artist labels without awkward truncation.

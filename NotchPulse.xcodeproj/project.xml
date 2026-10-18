@@ -1528,7 +1528,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>348</string>
+				<string>349</string>
 				<key>DEVELOPMENT_TEAM</key>
 				<string></string>
 				<key>GENERATE_INFOPLIST_FILE</key>
@@ -1576,7 +1576,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>348</string>
+				<string>349</string>
 				<key>DEVELOPMENT_TEAM</key>
 				<string></string>
 				<key>GENERATE_INFOPLIST_FILE</key>
@@ -3064,7 +3064,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>348</string>
+				<string>349</string>
 				<key>DEAD_CODE_STRIPPING</key>
 				<string>YES</string>
 				<key>DEVELOPMENT_ASSET_PATHS</key>
@@ -3161,7 +3161,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>348</string>
+				<string>349</string>
 				<key>DEAD_CODE_STRIPPING</key>
 				<string>YES</string>
 				<key>DEVELOPMENT_ASSET_PATHS</key>
