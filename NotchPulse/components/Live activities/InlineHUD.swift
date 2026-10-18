@@ -225,9 +225,9 @@ struct InlineHUD: View {
 
     static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat, type: SneakContentType = .volume) -> CGFloat {
         if type == .battery {
-            return max(0, closedNotchWidth + 4)
+            return max(0, closedNotchWidth + 24)
         }
-        return max(0, closedNotchWidth - 16)
+        return max(0, closedNotchWidth + 8)
     }
 
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {

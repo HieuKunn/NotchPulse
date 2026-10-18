@@ -277,10 +277,10 @@ struct ContentView: View {
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
             if isDynamicIsland {
-                let spacerWidth: CGFloat = isInlineMediaActive ? (vm.closedNotchSize.width + 140) : 56
+                let spacerWidth: CGFloat = isInlineMediaActive ? (vm.closedNotchSize.width + 160) : 56
                 chinWidth = (artSize * 2) + spacerWidth + 24 + gestureProgress
             } else {
-                let extraWidth: CGFloat = isInlineMediaActive ? 120 : 4
+                let extraWidth: CGFloat = isInlineMediaActive ? 144 : 16
                 chinWidth = vm.closedNotchSize.width + (artSize * 2) + extraWidth + 28 + gestureProgress
             }
         }
@@ -852,8 +852,8 @@ struct ContentView: View {
             && Defaults[.sneakPeekStyles] == .inline
 
         let spacerWidth: CGFloat = isDynamicIsland
-            ? (isInlineExpanded ? vm.closedNotchSize.width + 140 : 56)
-            : (isInlineExpanded ? vm.closedNotchSize.width + 120 : vm.closedNotchSize.width + 4)
+            ? (isInlineExpanded ? vm.closedNotchSize.width + 160 : 56)
+            : (isInlineExpanded ? vm.closedNotchSize.width + 144 : vm.closedNotchSize.width + 16)
 
         HStack(spacing: 0) {
             Image(nsImage: musicManager.albumArt)
@@ -888,7 +888,7 @@ struct ContentView: View {
                                 .frame(maxWidth: isDynamicIsland ? 65 : 55, alignment: .leading)
                                 .opacity(isInlineExpanded ? 1 : 0)
 
-                            Spacer(minLength: vm.closedNotchSize.width + 8)
+                            Spacer(minLength: vm.closedNotchSize.width + 24)
 
                             // Song Artist
                             Text(musicManager.artistName)
