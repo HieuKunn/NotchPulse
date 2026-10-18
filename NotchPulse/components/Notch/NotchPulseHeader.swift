@@ -26,7 +26,7 @@ struct NotchPulseHeader: View {
                     TabSelectionView()
                 }
             }
-            .padding(.leading, headerInset)
+            .padding(.leading, isDynamicIsland ? headerInset : (headerInset + cornerRadiusInsets.opened.top))
             .frame(maxWidth: .infinity, alignment: .leading)
             .zIndex(2)
 
@@ -128,7 +128,7 @@ struct NotchPulseHeader: View {
             }
             .animation(.smooth(duration: 0.22), value: coordinator.sneakPeek.show)
             .font(.system(.headline, design: .rounded))
-            .padding(.trailing, headerInset)
+            .padding(.trailing, isDynamicIsland ? headerInset : (headerInset + cornerRadiusInsets.opened.top))
             .frame(maxWidth: .infinity, alignment: .trailing)
             .zIndex(2)
         }

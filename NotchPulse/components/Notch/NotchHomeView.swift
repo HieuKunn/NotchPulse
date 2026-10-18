@@ -457,7 +457,7 @@ struct NotchHomeView: View {
         let horizontalPadding: CGFloat = 0
         let spacing: CGFloat = 16
         let baseWidth = totalWidth > 0 ? totalWidth : notchOpenWidth
-        let availableWidth = max(280, baseWidth - (isDynamicIsland ? 16 : 32))
+        let availableWidth = max(280, baseWidth - 24)
 
         let (mediaWidth, calendarWidth, cameraWidth): (CGFloat, CGFloat, CGFloat) = {
             // Calendar full page: media and camera are hidden

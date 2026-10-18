@@ -329,7 +329,7 @@ struct ContentView: View {
             return targetFaceIDSize.width
         }
         if vm.notchState == .open {
-            return notchOpenWidth
+            return isDynamicIsland ? notchOpenWidth : (notchOpenWidth + topCornerRadius * 2)
         }
         return computedChinWidth
     }
@@ -789,6 +789,7 @@ struct ContentView: View {
                             .id(NotchViews.audio)
                     }
                 }
+                .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
                 .transition(
                     .scale(scale: 0.8, anchor: .top)
                     .combined(with: .opacity)

@@ -996,6 +996,7 @@ struct CalendarView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
         }
+        .padding(.trailing, 8)
         .padding(.bottom, 8)
         .listRowBackground(Color.clear)
     }

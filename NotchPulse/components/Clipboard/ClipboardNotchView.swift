@@ -77,7 +77,7 @@ struct ClipboardNotchView: View {
                 }
             }
         }
-        .padding(.horizontal, (Defaults[.notchStyle] == .dynamicIsland) ? 10 : 20)
+        .padding(.horizontal, 10)
         .padding(.top, 2)
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
