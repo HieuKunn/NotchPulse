@@ -187,7 +187,7 @@ struct StatsView: View {
     @State private var isThermalExpanded: Bool = false
 
     // Keep the 3 cards at identical constant height both when collapsed and when expanded
-    private let cardRowHeight: CGFloat = 118
+    private let cardRowHeight: CGFloat = 96
 
     var body: some View {
         GeometryReader { geo in
@@ -305,7 +305,7 @@ struct StatsView: View {
             }
             .padding(.horizontal, horizontalMargin)
             .padding(.top, 2)
-            .padding(.bottom, 8)
+            .padding(.bottom, 12)
             .animation(.smooth(duration: 0.25), value: expandedMetric)
             .animation(.smooth(duration: 0.25), value: isThermalExpanded)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -396,24 +396,24 @@ struct StatsView: View {
 
     // MARK: - CPU Card
     private var cpuCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4.5) {
             // Header
             HStack(alignment: .center, spacing: 6) {
                 Image(systemName: "cpu")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 18, height: 18)
                     .background(Color.blue.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .clipShape(RoundedRectangle(cornerRadius: 4.5))
 
                 Text("CPU")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11.5, weight: .semibold))
                     .foregroundStyle(.white)
 
                 Spacer()
 
                 Text(String(format: "%.0f%%", monitor.cpuTotal))
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(size: 14.5, weight: .bold, design: .rounded))
                     .foregroundStyle(.blue)
             }
 
@@ -425,7 +425,7 @@ struct StatsView: View {
                 secondaryColor: .orange,
                 maxVal: 100.0
             )
-            .frame(height: 28)
+            .frame(height: 24)
 
             // Segmented Bar (User | System | Idle)
             GeometryReader { geo in
@@ -441,60 +441,40 @@ struct StatsView: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 4)
+            .frame(height: 3.5)
 
             // Breakdown Labels
-            HStack(spacing: 6) {
-                HStack(spacing: 3) {
-                    Circle().fill(Color.blue).frame(width: 5, height: 5)
+            HStack(spacing: 5) {
+                HStack(spacing: 2.5) {
+                    Circle().fill(Color.blue).frame(width: 4.5, height: 4.5)
                     Text(String(format: "U:%.0f%%", monitor.cpuUser))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-                HStack(spacing: 3) {
-                    Circle().fill(Color.orange).frame(width: 5, height: 5)
+                HStack(spacing: 2.5) {
+                    Circle().fill(Color.orange).frame(width: 4.5, height: 4.5)
                     Text(String(format: "S:%.0f%%", monitor.cpuSystem))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-                HStack(spacing: 3) {
-                    Circle().fill(Color.gray).frame(width: 5, height: 5)
+                HStack(spacing: 2.5) {
+                    Circle().fill(Color.gray).frame(width: 4.5, height: 4.5)
                     Text(String(format: "I:%.0f%%", monitor.cpuIdle))
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 8.5, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-            }
-
-            // Top Process
-            if showProcesses, let topProc = monitor.topCpuProcesses.first {
-                HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.orange)
-                    Text(topProc.name)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    Spacer()
-                    Text(topProc.value)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.orange)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.white.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 5))
             }
         }
-        .padding(10)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 11)
                 .stroke(expandedMetric == .cpu ? Color.blue.opacity(0.8) : Color.white.opacity(0.1), lineWidth: expandedMetric == .cpu ? 1.5 : 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .contentShape(RoundedRectangle(cornerRadius: 11))
         .onTapGesture { toggleMetric(.cpu) }
     }
 
@@ -508,27 +488,27 @@ struct StatsView: View {
             }
         }()
 
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: 4.5) {
             // Header
             HStack(alignment: .center, spacing: 6) {
                 Image(systemName: "memorychip")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 18, height: 18)
                     .background(Color.green.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .clipShape(RoundedRectangle(cornerRadius: 4.5))
 
                 Text("RAM")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11.5, weight: .semibold))
                     .foregroundStyle(.white)
 
                 // Pressure Pill
                 HStack(spacing: 3) {
                     Circle()
                         .fill(pressureColor)
-                        .frame(width: 4, height: 4)
+                        .frame(width: 3.5, height: 3.5)
                     Text(monitor.ramPressure)
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 7.5, weight: .bold))
                         .foregroundStyle(pressureColor)
                 }
                 .padding(.horizontal, 4)
@@ -553,7 +533,7 @@ struct StatsView: View {
                 referenceFraction: 0.75,
                 isSolidFill: true
             )
-            .frame(height: 28)
+            .frame(height: 24)
 
             // Segmented Bar (App | Wired | Compressed | Free)
             GeometryReader { geo in
@@ -572,66 +552,45 @@ struct StatsView: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 4)
+            .frame(height: 3.5)
 
             // Breakdown Labels
-            HStack(spacing: 6) {
-                HStack(spacing: 2.5) {
-                    Circle().fill(Color.green).frame(width: 4.5, height: 4.5)
+            HStack(spacing: 5) {
+                HStack(spacing: 2) {
+                    Circle().fill(Color.green).frame(width: 4, height: 4)
                     Text(String(format: "App:%.1fG", monitor.ramAppGB))
-                        .font(.system(size: 8.5, weight: .medium))
+                        .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
-                HStack(spacing: 2.5) {
-                    Circle().fill(Color.orange).frame(width: 4.5, height: 4.5)
+                HStack(spacing: 2) {
+                    Circle().fill(Color.orange).frame(width: 4, height: 4)
                     Text(String(format: "Wired:%.1fG", monitor.ramWiredGB))
-                        .font(.system(size: 8.5, weight: .medium))
+                        .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
-                HStack(spacing: 2.5) {
-                    Circle().fill(monitor.swapUsedMB > 0 ? Color.purple : Color.gray.opacity(0.6)).frame(width: 4.5, height: 4.5)
+                HStack(spacing: 2) {
+                    Circle().fill(monitor.swapUsedMB > 0 ? Color.purple : Color.gray.opacity(0.6)).frame(width: 4, height: 4)
                     Text("Swap:\(monitor.swapUsedFormatted)")
-                        .font(.system(size: 8.5, weight: .medium))
+                        .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(monitor.swapUsedMB > 500 ? Color.orange : .secondary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.85)
                 }
-            }
-
-            // Top Process
-            if showProcesses, let topProc = monitor.topRamProcesses.first {
-                HStack(spacing: 4) {
-                    Image(systemName: "app.badge.fill")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.green)
-                    Text(topProc.name)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    Spacer()
-                    Text(topProc.value)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.green)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.white.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 5))
             }
         }
-        .padding(10)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 11)
                 .stroke(expandedMetric == .ram ? Color.green.opacity(0.8) : Color.white.opacity(0.1), lineWidth: expandedMetric == .ram ? 1.5 : 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .contentShape(RoundedRectangle(cornerRadius: 11))
         .onTapGesture { toggleMetric(.ram) }
     }
 
@@ -648,18 +607,18 @@ struct StatsView: View {
     }
 
     private var gpuCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4.5) {
             // Header
             HStack(alignment: .center, spacing: 6) {
                 Image(systemName: "display")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 18, height: 18)
                     .background(Color.purple.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .clipShape(RoundedRectangle(cornerRadius: 4.5))
 
                 Text("GPU")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11.5, weight: .semibold))
                     .foregroundStyle(.white)
 
                 Spacer(minLength: 4)
@@ -676,7 +635,7 @@ struct StatsView: View {
                 color: .purple,
                 maxVal: 100.0
             )
-            .frame(height: 28)
+            .frame(height: 24)
 
             // Progress Bar
             GeometryReader { geo in
@@ -695,51 +654,33 @@ struct StatsView: View {
                     .frame(width: usageW)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 3.5)
 
             // GPU Model & Status
             HStack {
                 Text(monitor.gpuModel)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 8.5, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer()
                 Text(metalVersionText)
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.purple.opacity(0.8))
+                    .foregroundStyle(.purple.opacity(0.85))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1.5)
                     .background(Color.purple.opacity(0.15))
                     .clipShape(Capsule())
             }
-
-            // Additional Info
-            HStack(spacing: 4) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.yellow)
-                Text(loc("Hardware Acceleration"))
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Spacer()
-                Text(loc("Active"))
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.green)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Color.white.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 5))
         }
-        .padding(10)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.35))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 11)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 11))
     }
 }
 
