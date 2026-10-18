@@ -177,6 +177,8 @@ struct ContentView: View {
                     height: max(vm.effectiveClosedNotchHeight, FaceIDOverlayGeometry.minimalPillOpenHeight)
                 )
             }
+        }
+
         if isDynamicIsland {
             return CGSize(width: 250, height: 180)
         } else {

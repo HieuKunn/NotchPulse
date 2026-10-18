@@ -29,82 +29,46 @@ typealias NotchPulseNotchPulseFaceRecognitionPipelineError = NotchPulseFaceRecog
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
-    nonisolated static var activeModelIdentifier: String {
-        ArcFaceEmbedder.isModelBundled ? ArcFaceEmbedder.defaultModelIdentifier : VisionFeaturePrintEmbedder.defaultModelIdentifier
-    }
-
-    private nonisolated static let lock = NSLock()
-    private nonisolated(unsafe) static var _activeEmbedder: FaceEmbedder?
-
-    nonisolated static func registerActiveEmbedder(_ embedder: FaceEmbedder) {
-        lock.lock()
-        defer { lock.unlock() }
-        _activeEmbedder = embedder
-    }
+    nonisolated static let sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) = {
+        if let arcFace = ArcFaceEmbedder.shared {
+            return (arcFace, false, nil)
+        } else {
+            NSLog("[FaceIDPipeline] ArcFaceEmbedder failed to load. Using VisionFeaturePrint fallback.")
+            return (VisionFeaturePrintEmbedder(), true, "ArcFace model not available")
+        }
+    }()
 
     nonisolated var embedder: FaceEmbedder {
-        Self.lock.lock()
-        if let current = Self._activeEmbedder {
-            Self.lock.unlock()
-            return current
-        }
-        Self.lock.unlock()
-
-        if let arcFace = ArcFaceEmbedder.shared {
-            return arcFace
-        }
-        return VisionFeaturePrintEmbedder()
+        Self.sharedEmbedderResult.embedder
     }
 
-    /// Set when ArcFace is not bundled in the app or failed to load.
+    /// Set when ArcFace failed to load and the weaker Vision feature-print embedder is in use instead.
     var usingFallbackEmbedder: Bool {
-        !(embedder is ArcFaceEmbedder)
+        Self.sharedEmbedderResult.isFallback
     }
     var fallbackReason: String? {
-        usingFallbackEmbedder ? (ArcFaceEmbedder.isModelBundled ? "ArcFace model failed to load" : "ArcFace model not bundled in app") : nil
+        Self.sharedEmbedderResult.reason
     }
 
-    init() {
-        // Pre-load and cache the active embedder immediately on initialization
-        if let arcFace = ArcFaceEmbedder.shared {
-            Self.registerActiveEmbedder(arcFace)
-        }
+    nonisolated static var activeModelIdentifier: String {
+        Self.sharedEmbedderResult.embedder.modelIdentifier
     }
+
+    init() {}
 
     /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
     /// - Parameters:
     ///   - frame: The camera frame to analyze.
     ///   - previousBoundingBox: previous frame's selected box, if any — lets continuous tracking stay locked to the user.
-    ///   - identities: If provided and multiple prominent faces are detected, tries each candidate until one matches an enrolled identity.
-    ///   - threshold: Match threshold used to determine if a candidate belongs to an enrolled user.
     nonisolated func recognize(
         in frame: CGImage,
-        preferNear previousBoundingBox: CGRect? = nil,
-        matchingAgainst identities: [FaceIdentity]? = nil,
-        threshold: Float = 0.55
+        preferNear previousBoundingBox: CGRect? = nil
     ) throws -> FaceRecognitionResult {
         let faces = try NotchPulseFaceDetector.detectFaces(in: frame)
-        guard !faces.isEmpty else {
+        guard let face = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) else {
             throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
         }
-
-        // Multi-face resolution: If multiple candidates exist and active identities are provided,
-        // iterate candidates in order of prominence. If a candidate matches an enrolled user, select them immediately.
-        let candidates = Self.prominentFaces(in: faces, preferNear: previousBoundingBox)
-        if let identities, !identities.isEmpty, candidates.count > 1 {
-            for candidate in candidates {
-                guard let result = try? recognize(candidate, in: frame) else { continue }
-                let scored = score(result.embedding, against: identities)
-                if bestMatch(in: scored, threshold: threshold) != nil {
-                    return result
-                }
-            }
-        }
-
-        guard let dominant = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) ?? candidates.first ?? faces.max(by: { ($0.boundingBox.width * $0.boundingBox.height) < ($1.boundingBox.width * $1.boundingBox.height) }) else {
-            throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
-        }
-        return try recognize(dominant, in: frame)
+        return try recognize(face, in: frame)
     }
 
     /// Aligns and embeds an already-chosen face; enrollment uses this to bypass the prominence filter so a too-small face reads as "move closer" rather than "nobody there".

@@ -104,6 +104,13 @@ enum NotchPulseVault {
                 NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
                 return key
             }
+            // CRITICAL: Existing encrypted data on disk must NEVER be orphaned by overwriting Keychain with a random key.
+            NSLog("[NotchPulseVault] WARNING: Session key unreadable while encrypted data exists. Returning ephemeral key.")
+            let ephemeralKey = SymmetricKey(size: .bits256)
+            _cachedKey = ephemeralKey
+            _lastActivityAt = Date()
+            sessionLock.unlock()
+            return ephemeralKey
         }
         // Generate new key and save as unified payload into Keychain (device-only unlock, no .userPresence gating)
         let key = SymmetricKey(size: .bits256)

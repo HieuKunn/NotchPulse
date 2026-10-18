@@ -41,38 +41,19 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let inputName = "input_image"
     private static let outputName = "embedding"
 
-    private static let lock = NSLock()
-    private static var _sharedInstance: ArcFaceEmbedder?
+    // Loaded once and reused — model load dominates a single inference (~6.6MB, negligible memory footprint).
+    static let shared: ArcFaceEmbedder? = try? ArcFaceEmbedder()
 
-    // Loaded and reused — model load dominates a single inference (~6.6MB, negligible memory footprint).
-    // Lazily retries if initial startup instantiation failed during cold boot.
-    static var shared: ArcFaceEmbedder? {
-        lock.lock()
-        defer { lock.unlock() }
-        if let existing = _sharedInstance { return existing }
-        do {
-            let instance = try ArcFaceEmbedder()
-            _sharedInstance = instance
-            NotchPulseFaceRecognitionPipeline.registerActiveEmbedder(instance)
-            return instance
-        } catch {
-            NSLog("[ArcFaceEmbedder] Failed to initialize shared instance: \(error.localizedDescription)")
-            return nil
-        }
-    }
-
-    /// Pre-warms the ArcFace ML model so the Neural Engine pipeline is compiled and ready before camera frames arrive.
+    /// Pre-warms the ArcFace ML model ahead of real frames.
     static func warmUp() {
         Task.detached(priority: .userInitiated) {
-            shared?.prewarmPrediction()
+            _ = shared
         }
     }
 
-    /// Asynchronously ensures prewarmPrediction has run before scanning begins.
+    /// Asynchronously ensures the model is resident in memory.
     static func prepare() async {
-        await Task.detached(priority: .userInitiated) {
-            shared?.prewarmPrediction()
-        }.value
+        _ = shared
     }
 
     /// Kept for backward compatibility. Model remains resident in RAM to avoid expensive cold-start compilation.
@@ -89,15 +70,6 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     // Loaded once and reused — model load dominates a single inference.
     private let model: MLModel
     private let pixelBufferPool: CVPixelBufferPool
-
-    /// Compiles and warms up the Neural Engine / GPU compute pipeline ahead of real frames.
-    nonisolated func prewarmPrediction() {
-        var pixelBufferOut: CVPixelBuffer?
-        let status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pixelBufferPool, &pixelBufferOut)
-        guard status == kCVReturnSuccess, let pixelBuffer = pixelBufferOut else { return }
-        guard let input = try? MLDictionaryFeatureProvider(dictionary: [Self.inputName: MLFeatureValue(pixelBuffer: pixelBuffer)]) else { return }
-        _ = try? model.prediction(from: input)
-    }
 
     /// Throws immediately if the model isn't bundled, so callers can fall back to `VisionFeaturePrintEmbedder`.
     init() throws {
@@ -120,7 +92,6 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
             throw ArcFaceEmbedderError.pixelBufferCreationFailed
         }
         pixelBufferPool = pool
-        prewarmPrediction()
     }
 
     private static let _cachedModelURLLock = NSLock()

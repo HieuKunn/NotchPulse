@@ -281,17 +281,9 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         let showsUI = self.showsUI
-        if showsUI {
-            FaceIDOverlayController.shared.beginScanning()
-        }
         statusMessage = "Looking for your face…"
 
-        // Pre-warm ArcFace CoreML model concurrently while camera hardware starts up and UI blooms open
-        async let modelWarmup: Void = ArcFaceEmbedder.prepare()
-        async let cameraStart: Void = camera.start()
-        _ = await (modelWarmup, cameraStart)
-        NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
-
+        await camera.start()
         guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
@@ -303,10 +295,8 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
-        // The camera is now producing frames — anchor the overlay's timeout HERE, not at
-        // beginScanning(), so the multi-second cold start never eats the user's scan
-        // window (first activation after wake used to time out before scanning began).
         if showsUI {
+            FaceIDOverlayController.shared.beginScanning()
             FaceIDOverlayController.shared.restartScanTimeout()
         }
 
@@ -383,7 +373,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 20
+        let wrongFaceStreakThreshold = 65
 
         /// Cleared when no match has been seen recently or a streak of non-matching frames occurs.
         var readyMatch: ScoredIdentity?
@@ -403,17 +393,6 @@ final class NotchPulseFaceUnlockCoordinator {
         var effectiveDeadline = deadline
         var firstFrameSeen = false
         var scanStartTime: Date?
-
-        var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-        if activeIdentities.isEmpty {
-            if let directLoaded = try? NotchPulseSecureFaceStore.load(), !directLoaded.isEmpty {
-                activeIdentities = directLoaded.filter(\.isEnabled)
-            }
-        }
-        guard !activeIdentities.isEmpty else {
-            statusMessage = "No enrolled face profiles found."
-            return .noResolution
-        }
 
         while Date() < effectiveDeadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -485,7 +464,7 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             // Match against active identities with user's selected threshold
-            let scored = pipeline.score(result.embedding, against: activeIdentities)
+            let scored = pipeline.score(result.embedding, against: NotchPulseFaceEnrollmentStore.shared.activeIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: currentThreshold)
 
             let isWarmingUp = scanStartTime.map { Date().timeIntervalSince($0) < 1.2 } ?? true
@@ -495,17 +474,17 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatch = matched
                 readyMatchTimestamp = Date()
             } else {
-                if !isWarmingUp {
-                    consecutiveWrongFaceFrames += 1
-                }
-                if consecutiveWrongFaceFrames >= 3 {
+                if let ts = readyMatchTimestamp, Date().timeIntervalSince(ts) > 0.4 {
                     readyMatch = nil
                     readyMatchTimestamp = nil
                 }
-                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                    statusMessage = "Face not recognized."
-                    lastOutcome = "Unrecognized face detected."
-                    return .consistentlyWrongFace
+                if !isWarmingUp {
+                    consecutiveWrongFaceFrames += 1
+                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                        statusMessage = "Face not recognized."
+                        lastOutcome = "Unrecognized face detected."
+                        return .consistentlyWrongFace
+                    }
                 }
             }
 
