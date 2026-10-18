@@ -88,7 +88,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var screenLockedObservers: [Any] = []
     private var workspaceLockObservers: [NSObjectProtocol] = []
     private var isScreenLocked: Bool = false
-    private var windowScreenDidChangeObserver: Any?
+    private var windowScreenDidChangeObservers: [Any] = []
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
     var dragAutoCloseTasks: [String: Task<Void, Never>] = [:]
@@ -298,12 +298,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else if let window = window {
             window.close()
             NotchSpaceManager.shared.notchSpace.windows.remove(window)
-            if let obs = windowScreenDidChangeObserver {
-                NotificationCenter.default.removeObserver(obs)
-                windowScreenDidChangeObserver = nil
-            }
             self.window = nil
         }
+        windowScreenDidChangeObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        windowScreenDidChangeObservers.removeAll()
 
         if let camWin = faceIDCameraWindow {
             camWin.close()
@@ -502,7 +500,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotchSpaceManager.shared.notchSpace.windows.insert(window)
 
         // Observe when the window's screen changes so we can update drag detectors
-        windowScreenDidChangeObserver = NotificationCenter.default.addObserver(
+        let obs = NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeScreenNotification,
             object: window,
             queue: .main) { [weak self] _ in
@@ -510,6 +508,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.setupDetectors()
                 }
         }
+        windowScreenDidChangeObservers.append(obs)
         return window
     }
 

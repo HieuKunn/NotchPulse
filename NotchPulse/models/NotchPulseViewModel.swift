@@ -179,7 +179,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     }
 
     var chinHeight: CGFloat {
-        if !Defaults[.hideTitleBar] {
+        if !Defaults[.hideTitleBar] || Defaults[.notchStyle] == .dynamicIsland {
             return 0
         }
 
@@ -260,8 +260,8 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         let screen = resolveScreen(screenUUID: screenUUID)
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
         let topOffset = isDynamicIsland ? effectiveDynamicIslandTopOffset(for: screen) : 0
-        let currentWidth = notchState == .open ? (isDynamicIsland ? openNotchWidth : (openNotchWidth + cornerRadiusInsets.opened.top * 2)) : (isDynamicIsland ? compactDynamicIslandWidth : closedNotchSize.width)
-        let currentHeight = notchState == .open ? (customOpenHeight ?? openNotchSize.height) : (isDynamicIsland ? 32 : closedNotchSize.height)
+        let currentWidth = notchState == .open ? (isDynamicIsland ? notchSize.width : (notchSize.width + cornerRadiusInsets.opened.top * 2)) : (isDynamicIsland ? compactDynamicIslandWidth : closedNotchSize.width)
+        let currentHeight = notchState == .open ? (customOpenHeight ?? notchSize.height) : (isDynamicIsland ? 32 : closedNotchSize.height)
         
         let baseY = frame.maxY - currentHeight - topOffset
         let baseX = frame.midX - currentWidth / 2

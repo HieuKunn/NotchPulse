@@ -30,30 +30,18 @@ struct NotchPulseHeader: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .zIndex(2)
 
-            if !isDynamicIsland {
-                Rectangle()
-                    .fill(.black)
-                    .frame(width: vm.closedNotchSize.width)
-                    .mask {
-                        NotchShape()
+            Rectangle()
+                .fill(isDynamicIsland ? Color.clear : Color.black)
+                .frame(width: isDynamicIsland ? 120 : vm.closedNotchSize.width)
+                .conditionalModifier(!isDynamicIsland) { view in
+                    view.mask { NotchShape() }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+                        vm.close()
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
-                            vm.close()
-                        }
-                    }
-            } else {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(width: 120)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
-                            vm.close()
-                        }
-                    }
-            }
+                }
 
             HStack(spacing: 6) {
                 if isHUDType(coordinator.sneakPeek.type) && coordinator.sneakPeek.show && Defaults[.showOpenNotchHUD] {

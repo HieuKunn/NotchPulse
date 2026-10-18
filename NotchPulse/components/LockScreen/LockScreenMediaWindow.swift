@@ -232,10 +232,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         isSkyLightAttached = true
         
         level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0
-            self.animator().alphaValue = 1.0
-        }
         self.alphaValue = 1.0
         orderFrontRegardless()
         isWindowVisible = true

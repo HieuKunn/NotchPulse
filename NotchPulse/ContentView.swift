@@ -271,17 +271,20 @@ struct ContentView: View {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
-            if isDynamicIsland {
-                let baseSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 16) : 56
-                let expandedSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 160) : 170
-                let spacerWidth: CGFloat = isInlineMediaActive ? expandedSpacer : baseSpacer
-                chinWidth = (artSize * 2) + spacerWidth + 24 + gestureProgress
-            } else {
-                let extraWidth: CGFloat = isInlineMediaActive ? 144 : 16
-                chinWidth = vm.closedNotchSize.width + (artSize * 2) + extraWidth + 28 + gestureProgress
-            }
+            let spacerWidth = mediaSpacerWidth(isDynamicIsland: isDynamicIsland, isInlineActive: isInlineMediaActive)
+            chinWidth = (artSize * 2) + spacerWidth + (isDynamicIsland ? 24 : 28) + gestureProgress
         }
         return chinWidth
+    }
+
+    private func mediaSpacerWidth(isDynamicIsland: Bool, isInlineActive: Bool) -> CGFloat {
+        if isDynamicIsland {
+            let baseSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 16) : 56
+            let expandedSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 160) : 170
+            return isInlineActive ? expandedSpacer : baseSpacer
+        } else {
+            return vm.closedNotchSize.width + (isInlineActive ? 144 : 16)
+        }
     }
 
     private var computedChinWidth: CGFloat {
@@ -828,11 +831,7 @@ struct ContentView: View {
             && coordinator.expandingView.type == .music
             && Defaults[.sneakPeekStyles] == .inline
 
-        let baseSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 16) : 56
-        let expandedSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 160) : 170
-        let spacerWidth: CGFloat = isDynamicIsland
-            ? (isInlineExpanded ? expandedSpacer : baseSpacer)
-            : (isInlineExpanded ? vm.closedNotchSize.width + 144 : vm.closedNotchSize.width + 16)
+        let spacerWidth = mediaSpacerWidth(isDynamicIsland: isDynamicIsland, isInlineActive: isInlineExpanded)
 
         HStack(spacing: 0) {
             Image(nsImage: musicManager.albumArt)
