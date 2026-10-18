@@ -70,10 +70,11 @@ struct SettingsView: View {
                     Label(tabTitle(for: "About"), systemImage: "info.circle.fill")
                 }
             }
+            .font(.system(size: 14.5, weight: .medium))
             .listStyle(SidebarListStyle())
             .tint(.effectiveAccent)
             .toolbar(removing: .sidebarToggle)
-            .navigationSplitViewColumnWidth(200)
+            .navigationSplitViewColumnWidth(min: 210, ideal: 225, max: 250)
         } detail: {
             VStack(spacing: 0) {
                 SettingsDetailHeaderBar(
@@ -163,7 +164,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 700)
+        .frame(minWidth: 740, minHeight: 600)
         .applyGlassEffect()
         .tint(.effectiveAccent)
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
