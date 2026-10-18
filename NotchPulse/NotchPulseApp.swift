@@ -26,7 +26,6 @@ struct DynamicNotchApp: App {
         SettingsWindowController.shared.setUpdaterController(updaterController)
         
         // Pre-warm Face ID initial static frame cache for zero-delay rendering from frame 0
-        ScanAnimationHostView.prewarm()
         FaceIDScanAnimationHostView.prewarm()
     }
 
