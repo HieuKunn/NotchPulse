@@ -57,7 +57,16 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
         DispatchQueue.main.async {
             for window in NSApp.windows {
                 let className = String(describing: type(of: window))
-                if className.contains("Alert") || window is NSPanel || window.level == .floating || window.level == .normal || window.level == .modalPanel {
+                // Only elevate and center actual Sparkle modal dialogs / system alerts.
+                // NEVER touch, re-level, or center Notch windows or background panels!
+                guard !(window is NotchPulseSkyLightWindow),
+                      !(window is NotchPulseWindow),
+                      !(window is LockScreenMediaWindow),
+                      className != "NSStatusBarWindow" else {
+                    continue
+                }
+
+                if className.contains("Alert") || className.contains("SU") || window.level == .modalPanel {
                     window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
                     window.center()
                     window.orderFrontRegardless()
@@ -73,6 +82,7 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
             if SettingsWindowController.shared.window?.isVisible != true {
                 NSApp.setActivationPolicy(.accessory)
             }
+            AppDelegate.shared?.updateNotchPulseWindowPosition(changeAlpha: false)
         }
     }
 }
