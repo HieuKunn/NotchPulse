@@ -277,7 +277,7 @@ struct ContentView: View {
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
             if isDynamicIsland {
-                let spacerWidth: CGFloat = isInlineMediaActive ? 220 : 56
+                let spacerWidth: CGFloat = isInlineMediaActive ? (vm.closedNotchSize.width + 140) : 56
                 chinWidth = (artSize * 2) + spacerWidth + 24 + gestureProgress
             } else {
                 let extraWidth: CGFloat = isInlineMediaActive ? 120 : 4
@@ -852,7 +852,7 @@ struct ContentView: View {
             && Defaults[.sneakPeekStyles] == .inline
 
         let spacerWidth: CGFloat = isDynamicIsland
-            ? (isInlineExpanded ? 220 : 56)
+            ? (isInlineExpanded ? vm.closedNotchSize.width + 140 : 56)
             : (isInlineExpanded ? vm.closedNotchSize.width + 120 : vm.closedNotchSize.width + 4)
 
         HStack(spacing: 0) {
@@ -885,10 +885,10 @@ struct ContentView: View {
                                     Defaults[.coloredSpectrogram]
                                         ? Color(nsColor: musicManager.avgColor) : Color.white
                                 )
-                                .frame(maxWidth: isDynamicIsland ? 95 : 55, alignment: .leading)
+                                .frame(maxWidth: isDynamicIsland ? 65 : 55, alignment: .leading)
                                 .opacity(isInlineExpanded ? 1 : 0)
 
-                            Spacer(minLength: isDynamicIsland ? 12 : vm.closedNotchSize.width + 8)
+                            Spacer(minLength: vm.closedNotchSize.width + 8)
 
                             // Song Artist
                             Text(musicManager.artistName)
@@ -900,7 +900,7 @@ struct ContentView: View {
                                         ? Color(nsColor: musicManager.avgColor).opacity(0.85)
                                         : Color.white.opacity(0.7)
                                 )
-                                .frame(maxWidth: isDynamicIsland ? 85 : 55, alignment: .trailing)
+                                .frame(maxWidth: isDynamicIsland ? 65 : 55, alignment: .trailing)
                                 .opacity(isInlineExpanded ? 1 : 0)
                         }
                     }
