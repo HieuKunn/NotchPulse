@@ -135,16 +135,15 @@ final class NotchPulseFaceEnrollmentStore {
 
     /// Everyone the user hasn't switched off — what unlock actually scores against. `identities` stays the full list.
     var activeIdentities: [FaceIdentity] {
-        if identities.isEmpty {
-            reloadIfUnlocked()
-        }
-        return identities.filter(\.isEnabled)
+        identities.filter(\.isEnabled)
     }
 
     /// True if there is at least one active enrolled face identity.
     var hasEnrolledFace: Bool {
         !activeIdentities.isEmpty
     }
+
+    private var lastReloadAttempt: Date = .distantPast
 
     private init() {
         reloadIfUnlocked()
@@ -163,6 +162,12 @@ final class NotchPulseFaceEnrollmentStore {
 
     /// Re-attempts loading from encrypted storage.
     func reloadIfUnlocked() {
+        let now = Date()
+        if identities.isEmpty && now.timeIntervalSince(lastReloadAttempt) < 2.0 {
+            return
+        }
+        lastReloadAttempt = now
+
         do {
             let loaded = try NotchPulseSecureFaceStore.load()
             if !loaded.isEmpty || !hasLoadedSuccessfully {

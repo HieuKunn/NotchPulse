@@ -153,6 +153,7 @@ public final class FanHelperManager: ObservableObject {
             completion?(false)
             return false
         }
+        lastInstallAttemptTime = Date()
         do {
             let passwordData = try NotchPulseVault.readPassword()
             guard !passwordData.isEmpty else {

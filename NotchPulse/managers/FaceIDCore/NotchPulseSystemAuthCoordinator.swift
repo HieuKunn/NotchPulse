@@ -153,9 +153,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                 || bundleId.contains("coreauthui")
                 || bundleId.contains("localauthentication")
                 || bundleId.contains("authenticationservices")
-                || bundleId.contains("credential")
                 || bundleId.contains("coreservices.uiagent")
-                || bundleId == "com.apple.cryptotokenkit.pkitoken"
         }
         // Avoid calling app.localizedName if bundleIdentifier exists (prevents LaunchServices XPC storms)
         if app.bundleIdentifier == nil, let localizedName = app.localizedName {

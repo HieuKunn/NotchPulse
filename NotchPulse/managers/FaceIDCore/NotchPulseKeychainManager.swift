@@ -31,15 +31,35 @@ enum NotchPulseKeychainManager {
 
     /// Attributes-only existence check — never prompts, even for access-controlled items.
     nonisolated static func exists(account: String) -> Bool {
+        let context = LAContext()
+        context.interactionNotAllowed = true
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: context
         ]
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        var status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecMissingEntitlement {
+            let fallback: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account,
+                kSecMatchLimit as String: kSecMatchLimitOne
+            ]
+            status = SecItemCopyMatching(fallback as CFDictionary, &item)
+        }
         return status != errSecItemNotFound
+    }
+
+    /// Reads an item without presenting any UI/dialog to the user.
+    /// If user interaction or authentication prompt is needed, throws immediately.
+    nonisolated static func readSilently(account: String) throws -> Data {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        return try read(account: account, context: context)
     }
 
     /// Pass an `LAContext` to authorize a read on an access-controlled item — the OS presents the prompt during this call.
@@ -56,7 +76,7 @@ enum NotchPulseKeychainManager {
         }
         var item: CFTypeRef?
         var status = SecItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecMissingEntitlement && context != nil {
+        if status == errSecMissingEntitlement && context != nil && !(context?.interactionNotAllowed ?? false) {
             query.removeValue(forKey: kSecUseAuthenticationContext as String)
             status = SecItemCopyMatching(query as CFDictionary, &item)
         }
