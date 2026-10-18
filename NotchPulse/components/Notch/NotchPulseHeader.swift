@@ -11,13 +11,8 @@ struct NotchPulseHeader: View {
         Defaults[.notchStyle] == .dynamicIsland
     }
 
-    private var hasPhysicalNotch: Bool {
-        let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
-        return (activeScreen?.safeAreaInsets.top ?? 0) > 0 || activeScreen?.auxiliaryTopLeftArea != nil
-    }
-
     private var headerInset: CGFloat {
-        hasPhysicalNotch ? max(22, cornerRadiusInsets.opened.top + 4) : 16
+        max(22, cornerRadiusInsets.opened.top + 4)
     }
 
     var body: some View {
@@ -31,6 +26,8 @@ struct NotchPulseHeader: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .zIndex(2)
 
+            let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
+            let hasPhysicalNotch = (activeScreen?.safeAreaInsets.top ?? 0) > 0 || activeScreen?.auxiliaryTopLeftArea != nil
             if hasPhysicalNotch && !isDynamicIsland {
                 Rectangle()
                     .fill(.black)
