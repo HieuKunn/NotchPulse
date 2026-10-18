@@ -448,7 +448,11 @@ struct FeatureTourView: View {
         // Ensure open Notch window stays in front and interactive on every tour step
         let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared
         appDelegate?.window?.orderFrontRegardless()
-        appDelegate?.skyWindow?.orderFrontRegardless()
+        if let winMap = appDelegate?.windows {
+            for win in winMap.values {
+                win.orderFrontRegardless()
+            }
+        }
     }
     
     private func teardownNotch() {

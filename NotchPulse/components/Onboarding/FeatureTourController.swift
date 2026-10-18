@@ -88,7 +88,11 @@ final class FeatureTourController: NSObject, ObservableObject {
         
         // Ensure open Notch window is in front and directly interactive
         appDelegate?.window?.orderFrontRegardless()
-        appDelegate?.skyWindow?.orderFrontRegardless()
+        if let winMap = appDelegate?.windows {
+            for win in winMap.values {
+                win.orderFrontRegardless()
+            }
+        }
     }
 
     func dismissTour() {
