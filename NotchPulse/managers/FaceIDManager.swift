@@ -309,9 +309,7 @@ final class FaceIDManager: NSObject, ObservableObject {
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
                 guard let result = try? pipeline.recognize(
                     in: frame.image,
-                    preferNear: previousBoundingBox,
-                    matchingAgainst: activeIdentities,
-                    threshold: threshold
+                    preferNear: previousBoundingBox
                 ) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))

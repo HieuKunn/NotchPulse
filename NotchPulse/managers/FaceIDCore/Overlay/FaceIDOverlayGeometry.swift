@@ -166,6 +166,7 @@ struct FaceIDOverlayGeometry {
     static let notchShadowPadding: CGFloat = 24
     static let pillShadowPadding: CGFloat = 24
 
+    @MainActor
     static func windowSize(for style: FaceIDOverlayPanelStyle) -> CGSize {
         switch style {
         case .notch:
