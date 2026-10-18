@@ -1,8 +1,10 @@
 ## 🚀 What's New in NotchPulse v5.4
 
 ### 🖥️ Notch & Dynamic Island Geometry Refinements
+- **Spacious Open Notch & Dynamic Island Parity**: Re-balanced the open Notch layout by accounting for top corner flares in the notch body width and harmonizing internal padding. Album art, calendar events, time markers, and header tabs now enjoy the exact same generous, comfortable black side borders as Dynamic Island, completely eliminating cramped or clipped corners.
+- **Wing-Spanned Dynamic Island Inline Displays**: Inline HUD popups (volume, brightness, battery, microphone) now expand comfortably across the left and right wings with a wide center spacer spanning the physical camera notch. Labels (e.g. "Volume"), slider bars, and percentages sit symmetrically on each side with zero truncation.
+- **Hardware-Aware Music Pill Clearance**: When playing music on MacBooks with a physical camera notch, Dynamic Island automatically provisions clearance across the hardware notch even in collapsed mode, keeping album art and audio visualizers cleanly placed on each wing.
 - **Seamless Top Alignment**: Dynamic Island now rests cleanly at your configured position without forced downward clearance on physical notch MacBooks, completely removing unwanted side gaps or extrusions.
-- **Flawless Inline Sizing Across Physical Notches**: When displaying Inline HUD indicators (volume, brightness, battery) or inline media sneak peeks, Dynamic Island automatically provisions a dedicated center spacer matching your exact physical notch width. Content flows symmetrically across the left and right wings so the camera cut-out never covers text, icons, or sliders.
 
 ### 🔒 Face ID Core & Lock Screen Elegance
 - **Calibrated Face ID Dimensions**: Face ID drop-down geometry now precisely mirrors Glance’s soft square card design with continuous corner radii, completely covering the physical camera notch and dropping down naturally from the display bezel.
