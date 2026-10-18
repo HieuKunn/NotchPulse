@@ -54,7 +54,7 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
-        DispatchQueue.main.async {
+        func elevateAlertWindows() {
             for window in NSApp.windows {
                 let className = String(describing: type(of: window))
                 // Only elevate and center actual Sparkle modal dialogs / system alerts.
@@ -62,17 +62,27 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
                 guard !(window is NotchPulseSkyLightWindow),
                       !(window is NotchPulseWindow),
                       !(window is LockScreenMediaWindow),
-                      className != "NSStatusBarWindow" else {
+                      className != "NSStatusBarWindow",
+                      window != SettingsWindowController.shared.window else {
                     continue
                 }
 
                 if className.contains("Alert") || className.contains("SU") || window.level == .modalPanel {
-                    window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
+                    window.level = .modalPanel
                     window.center()
                     window.orderFrontRegardless()
                     window.makeKeyAndOrderFront(nil)
                 }
             }
+        }
+
+        // Run immediately and across the next runloop ticks as Sparkle presents the alert asynchronously
+        elevateAlertWindows()
+        DispatchQueue.main.async {
+            elevateAlertWindows()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            elevateAlertWindows()
         }
     }
 
