@@ -499,6 +499,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 if showsUI {
                     FaceIDOverlayController.shared.finish(success: true)
                 }
+                LockScreenMediaWindow.shared.hideImmediately()
                 await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                 return .matched
             }

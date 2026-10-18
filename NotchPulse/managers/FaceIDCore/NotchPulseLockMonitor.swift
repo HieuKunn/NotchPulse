@@ -136,6 +136,15 @@ final class NotchPulseLockMonitor {
 
     /// Authoritative lock state from the CoreGraphics session server, not a spoofable notification. Fails closed if unavailable.
     nonisolated static func isScreenActuallyLocked() -> Bool {
+        cacheLock.lock()
+        let now = ProcessInfo.processInfo.systemUptime
+        // If an explicit unlock occurred recently (< 2.0s), don't let stale CGSession lag claim it is still locked
+        if !cachedLockState && (now - cachedLockTimestamp) < 2.0 {
+            cacheLock.unlock()
+            return false
+        }
+        cacheLock.unlock()
+
         guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
             return false
         }

@@ -243,15 +243,29 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         MusicManager.shared.ensureLyricsLoaded()
     }
     
-    func hide() {
+    func hide(immediately: Bool = false) {
         guard isVisible || isWindowVisible else { return }
         hideGeneration += 1
         let currentGen = hideGeneration
         
         assignedScreenUUID = nil
         
+        if immediately {
+            self.alphaValue = 0.0
+            self.orderOut(nil)
+            self.contentView = nil
+            self.isFullScreen = false
+            self.isWindowVisible = false
+            MusicManager.shared.isUIActive = false
+            if self.isSkyLightAttached {
+                SkyLightOperator.shared.undelegateWindow(self)
+                self.isSkyLightAttached = false
+            }
+            return
+        }
+        
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.25
+            context.duration = 0.15
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             self.animator().alphaValue = 0.0
         }, completionHandler: { [weak self] in
@@ -266,6 +280,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
                 self.isSkyLightAttached = false
             }
         })
+    }
+    
+    func hideImmediately() {
+        hide(immediately: true)
     }
     
     override var canBecomeKey: Bool { false }

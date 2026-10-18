@@ -43,28 +43,27 @@ final class LockScreenWakeObserver: ObservableObject {
     private func startLockSessionSupervisor() {
         lockSessionTimer?.cancel()
         lockSessionTimer = Task { @MainActor [weak self] in
-            var consecutiveUnlockedCount = 0
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(1500))
+                try? await Task.sleep(for: .milliseconds(800))
                 guard let self = self, self.isScreenLocked else { break }
                 
                 let actuallyLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
-                if actuallyLocked {
-                    consecutiveUnlockedCount = 0
-                } else {
-                    // CGSessionCopyCurrentDictionary can return nil/empty during wake and sleep transitions.
-                    // Only conclude unlocked if it remains unlocked for multiple consecutive checks (3.0s)
-                    consecutiveUnlockedCount += 1
-                    if consecutiveUnlockedCount >= 2 {
-                        self.isScreenLocked = false
-                        self.hideDebounceTask?.cancel()
-                        self.hideDebounceTask = nil
-                        self.updateLockScreenMediaWindowVisibility()
-                        break
-                    }
+                if !actuallyLocked {
+                    self.handleUnlockTransition()
+                    break
                 }
             }
         }
+    }
+
+    func handleUnlockTransition() {
+        self.isScreenLocked = false
+        NotchPulseLockMonitor.setCachedLockState(false)
+        self.lockSessionTimer?.cancel()
+        self.lockSessionTimer = nil
+        self.hideDebounceTask?.cancel()
+        self.hideDebounceTask = nil
+        LockScreenMediaWindow.shared.hideImmediately()
     }
     
     private func handleLockTransition() {
@@ -97,11 +96,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
             } else {
-                self.lockSessionTimer?.cancel()
-                self.lockSessionTimer = nil
-                self.hideDebounceTask?.cancel()
-                self.hideDebounceTask = nil
-                self.updateLockScreenMediaWindowVisibility()
+                self.handleUnlockTransition()
             }
             // Verify progressively after wake as display powers on
             for delayMs in [250, 600, 1000] {
@@ -109,8 +104,13 @@ final class LockScreenWakeObserver: ObservableObject {
                 let recheck = NotchPulseLockMonitor.isScreenActuallyLocked()
                 if self.isScreenLocked != recheck {
                     self.isScreenLocked = recheck
-                    MusicManager.shared.forceUpdate()
-                    self.updateLockScreenMediaWindowVisibility()
+                    if recheck {
+                        self.startLockSessionSupervisor()
+                        MusicManager.shared.forceUpdate()
+                        self.updateLockScreenMediaWindowVisibility()
+                    } else {
+                        self.handleUnlockTransition()
+                    }
                 }
             }
         }
@@ -148,13 +148,7 @@ final class LockScreenWakeObserver: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                self.isScreenLocked = false
-                self.lockSessionTimer?.cancel()
-                self.lockSessionTimer = nil
-                self.hideDebounceTask?.cancel()
-                self.hideDebounceTask = nil
-                self.updateLockScreenMediaWindowVisibility()
+                self?.handleUnlockTransition()
             }
         }
         distributedTokens.append(unlockToken)
@@ -175,6 +169,7 @@ final class LockScreenWakeObserver: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 Task { @MainActor [weak self] in
+                    LockScreenMediaWindow.shared.hideImmediately()
                     self?.handleLockTransition()
                 }
             }
@@ -185,6 +180,7 @@ final class LockScreenWakeObserver: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 Task { @MainActor [weak self] in
+                    LockScreenMediaWindow.shared.hideImmediately()
                     self?.handleLockTransition()
                 }
             }
@@ -216,15 +212,14 @@ final class LockScreenWakeObserver: ObservableObject {
     }
     
     private func shouldShowLockScreenMedia() -> Bool {
-        let actuallyLocked = isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
-        guard actuallyLocked && Defaults[.enableLockScreenPlayer] else { return false }
+        guard isScreenLocked else { return false }
+        guard NotchPulseLockMonitor.isScreenActuallyLocked() && Defaults[.enableLockScreenPlayer] else { return false }
         let title = MusicManager.shared.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty && title != "I'm Handsome" else { return false }
         return true
     }
 
-    func updateLockScreenMediaWindowVisibility() {
-        let actuallyLocked = isScreenLocked || Self.isSessionLocked || NotchPulseLockMonitor.isScreenActuallyLocked()
+    func updateLockScreenMediaWindowVisibility(immediately: Bool = false) {
         let shouldShow = shouldShowLockScreenMedia()
         
         hideDebounceTask?.cancel()
@@ -233,7 +228,9 @@ final class LockScreenWakeObserver: ObservableObject {
         if shouldShow {
             LockScreenMediaWindow.shared.show()
         } else {
-            if !actuallyLocked || !Defaults[.enableLockScreenPlayer] {
+            if immediately || !isScreenLocked {
+                LockScreenMediaWindow.shared.hideImmediately()
+            } else {
                 LockScreenMediaWindow.shared.hide()
             }
         }

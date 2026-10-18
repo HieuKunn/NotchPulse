@@ -221,6 +221,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenUnlocked(_ notification: Notification) {
         isScreenLocked = false
+        LockScreenWakeObserver.shared.handleUnlockTransition()
         setupDetectors() // Re-enable Ghost Windows, Radar and Hover Detectors after unlocking
         ClipboardManager.shared.startMonitoring()
         FullscreenMediaDetector.shared.reevaluate()
