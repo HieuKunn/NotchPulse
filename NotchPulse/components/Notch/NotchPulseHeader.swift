@@ -15,6 +15,10 @@ struct NotchPulseHeader: View {
         max(22, cornerRadiusInsets.opened.top + 4)
     }
 
+    private var topPadding: CGFloat {
+        isDynamicIsland ? 3 : 0
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             HStack {
@@ -128,6 +132,7 @@ struct NotchPulseHeader: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
             .zIndex(2)
         }
+        .padding(.top, topPadding)
         .foregroundColor(.gray)
         .environmentObject(vm)
     }
