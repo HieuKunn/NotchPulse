@@ -124,6 +124,18 @@ final class LockScreenFaceIDWindow: NSPanel {
             .canJoinAllSpaces,
             .ignoresCycle
         ]
+        
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                if self?.isVisible == true {
+                    self?.show()
+                }
+            }
+        }
     }
     
     func show() {
@@ -164,7 +176,9 @@ final class LockScreenFaceIDWindow: NSPanel {
             physicalNotchWidth: closedSize.width,
             notchStyle: notchStyle
         ))
-        trackingHostingView.notchClosedSize = CGSize(width: hasPhysicalNotch ? max(190, closedSize.width) : 190, height: hasPhysicalNotch ? notchHardwareHeight : max(32, notchHardwareHeight))
+        let closedW: CGFloat = (notchStyle == .dynamicIsland) ? 126 : max(212, closedSize.width)
+        let closedH: CGFloat = (notchStyle == .dynamicIsland) ? 32 : (screen.safeAreaInsets.top > 0 ? notchHardwareHeight : max(32, notchHardwareHeight))
+        trackingHostingView.notchClosedSize = CGSize(width: closedW, height: closedH)
         trackingHostingView.wantsLayer = true
         trackingHostingView.layer?.backgroundColor = NSColor.clear.cgColor
         trackingHostingView.onHoverChanged = { hovering in
@@ -265,9 +279,13 @@ struct LockScreenFaceIDPillView: View {
     
     //  Native NotchPulse Face ID biometric implementation.
     private var closedBodySize: CGSize {
-        let width = max(190, physicalNotchWidth)
-        let height = max(32, notchHardwareHeight)
-        return CGSize(width: width, height: height)
+        if notchStyle == .dynamicIsland {
+            return CGSize(width: 126, height: 32)
+        } else {
+            let width = max(212, physicalNotchWidth)
+            let height = max(32, notchHardwareHeight)
+            return CGSize(width: width, height: height)
+        }
     }
     
     private var openBodySize: CGSize {
@@ -278,36 +296,48 @@ struct LockScreenFaceIDPillView: View {
                 return CGSize(width: physicalNotchWidth + 148, height: closedBodySize.height)
             }
         }
-        let width = max(190, physicalNotchWidth)
+        let width = max(212, physicalNotchWidth)
         return CGSize(width: width, height: 180)
     }
     
     private var topRadius: CGFloat {
+        if notchStyle == .dynamicIsland {
+            return isExpanded ? FaceIDOverlayGeometry.pillOpenCornerRadius : 16
+        }
         if isExpanded {
             if isMinimalScan {
-                return hasPhysicalNotch ? 10 : (closedBodySize.height / 2)
+                return 10
             }
-            return hasPhysicalNotch ? 19 : 26
+            return 19
         } else {
-            return hasPhysicalNotch ? 6 : (closedBodySize.height / 2)
+            return 6
         }
     }
     
     private var bottomRadius: CGFloat {
+        if notchStyle == .dynamicIsland {
+            return isExpanded ? FaceIDOverlayGeometry.pillOpenCornerRadius : 16
+        }
         if isExpanded {
             if isMinimalScan {
-                return hasPhysicalNotch ? 16 : (closedBodySize.height / 2)
+                return 16
             }
-            return hasPhysicalNotch ? FaceIDOverlayGeometry.openBottomRadius : FaceIDOverlayGeometry.pillOpenCornerRadius
+            return FaceIDOverlayGeometry.openBottomRadius
         } else {
-            return hasPhysicalNotch ? 14 : (closedBodySize.height / 2)
+            return 14
         }
     }
     
     private var currentSize: CGSize {
-        let body = isExpanded ? openBodySize : closedBodySize
-        let flare: CGFloat = hasPhysicalNotch ? (topRadius * 2) : 0
-        return CGSize(width: body.width + flare, height: body.height)
+        if notchStyle == .dynamicIsland {
+            let baseWidth = isExpanded ? (openBodySize.width + 38) : closedBodySize.width
+            let baseHeight = isExpanded ? openBodySize.height : closedBodySize.height
+            return CGSize(width: baseWidth, height: baseHeight)
+        } else {
+            let body = isExpanded ? openBodySize : closedBodySize
+            let flare: CGFloat = topRadius * 2
+            return CGSize(width: body.width + flare, height: body.height)
+        }
     }
     
     @ViewBuilder

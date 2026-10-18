@@ -357,8 +357,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             let padding = CGFloat(Defaults[.dragDetectionPadding])
             
-            let hasPhysicalNotch = (screen.safeAreaInsets.top > 0) || (screen.auxiliaryTopLeftArea != nil)
-            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland && !hasPhysicalNotch
+            let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
             let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
             
             if targetVM.notchState == .open {
@@ -374,8 +373,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
                 let closedSize = targetVM.closedNotchSize
-                let closedWidth = isDynamicIsland ? 210.0 : (closedSize.width > 0 ? closedSize.width : 190.0)
-                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 36.0)
+                let closedWidth = isDynamicIsland ? 126.0 : (closedSize.width > 0 ? closedSize.width : 212.0)
+                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 34.0)
                 return CGRect(
                     x: screenFrame.midX - (closedWidth / 2 + padding),
                     y: screenFrame.maxY - (closedHeight + padding + topOffset),
@@ -588,6 +587,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 y: screenFrame.origin.y + screenFrame.height - window.frame.height
             ))
         window.alphaValue = 1
+        window.orderFrontRegardless()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -965,23 +965,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor func screenConfigurationDidChange() {
         NSScreenUUIDCache.shared.rebuildCache()
         NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
-        let currentScreens = NSScreen.screens
+        previousScreens = NSScreen.screens
 
-        let screensChanged =
-            currentScreens.count != previousScreens?.count
-            || Set(currentScreens.compactMap { $0.displayUUID })
-                != Set(previousScreens?.compactMap { $0.displayUUID } ?? [])
-            || currentScreens.map { $0.frame } != (previousScreens?.map { $0.frame } ?? [])
-
-        previousScreens = currentScreens
-
-        if screensChanged {
-            DispatchQueue.main.async { [weak self] in
-                self?.cleanupWindows()
-                self?.adjustWindowPosition(changeAlpha: true)
-                self?.setupDetectors()
-            }
-        }
+        adjustWindowPosition(changeAlpha: false)
+        setupDetectors()
     }
 
     func adjustWindowPosition(changeAlpha: Bool = false) {

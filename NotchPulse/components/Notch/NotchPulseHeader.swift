@@ -26,9 +26,7 @@ struct NotchPulseHeader: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .zIndex(2)
 
-            let activeScreen = NSScreen.screen(withUUID: vm.screenUUID ?? coordinator.selectedScreenUUID)
-            let hasPhysicalNotch = (activeScreen?.safeAreaInsets.top ?? 0) > 0 || activeScreen?.auxiliaryTopLeftArea != nil
-            if hasPhysicalNotch && !isDynamicIsland {
+            if !isDynamicIsland {
                 Rectangle()
                     .fill(.black)
                     .frame(width: vm.closedNotchSize.width)
@@ -44,7 +42,7 @@ struct NotchPulseHeader: View {
             } else {
                 Rectangle()
                     .fill(Color.clear)
-                    .frame(width: isDynamicIsland ? 120 : vm.closedNotchSize.width)
+                    .frame(width: 120)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {

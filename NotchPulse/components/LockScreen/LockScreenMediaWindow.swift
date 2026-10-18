@@ -132,14 +132,20 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     private func getTargetScreen() -> NSScreen? {
-        // 1. If assigned screen is still connected in NSScreen.screens, keep the player anchored to it!
-        // Moving the cursor to another screen will NOT cause the player to follow.
+        // 1. If preferred screen is connected, prioritize it!
+        if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
+           let preferredScreen = NSScreen.screen(withUUID: prefUUID) {
+            assignedScreenUUID = prefUUID
+            return preferredScreen
+        }
+        
+        // 2. If assigned screen is still connected in NSScreen.screens, keep the player anchored to it!
         if let assignedUUID = assignedScreenUUID,
            let existingScreen = NSScreen.screen(withUUID: assignedUUID) {
             return existingScreen
         }
         
-        // 2. Otherwise (initial display detection on show, or the previous screen was unplugged/disconnected),
+        // 3. Otherwise (initial display detection on show, or the previous screen was unplugged/disconnected),
         // resolve a new target screen and anchor to it.
         let resolved = resolveInitialScreen()
         assignedScreenUUID = resolved?.displayUUID
@@ -174,20 +180,22 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         let frameDiffW = abs(self.frame.width - targetRect.width)
         let frameDiffH = abs(self.frame.height - targetRect.height)
         
-        guard frameDiffX > 1 || frameDiffY > 1 || frameDiffW > 1 || frameDiffH > 1 else { return }
-        
         let currentScreen = self.screen ?? NSScreen.screens.first(where: { $0.frame.intersects(self.frame) })
         let isDifferentScreen = (currentScreen != targetScreen)
         
-        if isDifferentScreen || !animated {
-            setFrame(targetRect, display: true)
-        } else {
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.25
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                self.animator().setFrame(targetRect, display: true)
+        if isDifferentScreen || !animated || frameDiffX > 1 || frameDiffY > 1 || frameDiffW > 1 || frameDiffH > 1 {
+            if isDifferentScreen || !animated {
+                setFrame(targetRect, display: true)
+            } else {
+                NSAnimationContext.runAnimationGroup { ctx in
+                    ctx.duration = 0.25
+                    ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    self.animator().setFrame(targetRect, display: true)
+                }
             }
         }
+        alphaValue = 1.0
+        orderFrontRegardless()
     }
     
     func setFullScreen(_ fullScreen: Bool) {

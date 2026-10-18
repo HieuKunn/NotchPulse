@@ -179,24 +179,18 @@ struct ContentView: View {
             }
         }
 
-        if isDynamicIsland {
-            return CGSize(
-                width: vm.closedNotchSize.width,
-                height: 180
-            )
-        } else {
-            let topR = hasPhysicalNotch ? cornerRadiusInsets.closed.top : FaceIDOverlayGeometry.openTopRadius
-            return CGSize(
-                width: vm.closedNotchSize.width + (topR * 2),
-                height: 180
-            )
-        }
+        let baseWidth = max(212, vm.closedNotchSize.width)
+        let topR = cornerRadiusInsets.closed.top
+        return CGSize(
+            width: baseWidth + (topR * 2),
+            height: 180
+        )
     }
 
     private var targetFaceIDSize: CGSize {
         if !visualIsFaceIDExpanded {
             return CGSize(
-                width: vm.closedNotchSize.width,
+                width: isDynamicIsland ? 126 : vm.closedNotchSize.width,
                 height: baseClosedHeight
             )
         }
@@ -213,7 +207,7 @@ struct ContentView: View {
             if isMinimalScan {
                 return FaceIDOverlayGeometry.minimalNotchTopRadius
             }
-            return hasPhysicalNotch ? cornerRadiusInsets.closed.top : FaceIDOverlayGeometry.openTopRadius
+            return cornerRadiusInsets.closed.top
         }
         return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
                  ? cornerRadiusInsets.opened.top
@@ -248,13 +242,13 @@ struct ContentView: View {
     }
 
     private var baseChinWidth: CGFloat {
+        let isDynamicIsland = notchStyle == .dynamicIsland
         // When screen is locked, authenticating Face ID, or waking from sleep, strictly stay at physical notch / closed island width without expanding for inline/media
         if isEffectivelyLocked {
-            return vm.closedNotchSize.width
+            return isDynamicIsland ? 126 : vm.closedNotchSize.width
         }
 
-        let isDynamicIsland = notchStyle == .dynamicIsland
-        var chinWidth: CGFloat = vm.closedNotchSize.width // Always match notch width like the user requested
+        var chinWidth: CGFloat = isDynamicIsland ? 126 : vm.closedNotchSize.width // Always match notch width or compact island
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
@@ -292,10 +286,10 @@ struct ContentView: View {
     }
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
     private var baseClosedHeight: CGFloat {
-        if hasPhysicalNotch {
+        if hasPhysicalNotch && !isDynamicIsland {
             return vm.effectiveClosedNotchHeight
         }
-        return isDynamicIsland ? max(32, vm.closedNotchSize.height) : max(vm.closedNotchSize.height, 0)
+        return isDynamicIsland ? 32 : max(vm.closedNotchSize.height, 0)
     }
     private var islandRadius: CGFloat {
         if isFaceIDActive {
@@ -341,7 +335,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private func applyHitShape<V: View>(_ view: V) -> some View {
-        if isDynamicIsland && !hasPhysicalNotch {
+        if isDynamicIsland {
             view.contentShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
         } else {
             view.contentShape(currentNotchShape)
@@ -350,7 +344,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var mainNotchContainer: some View {
-        let isIsland = isDynamicIsland && !hasPhysicalNotch
+        let isIsland = isDynamicIsland
         let isHiddenInFS = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
         let offscreenDistance = currentNotchHeight + (isIsland ? dynamicIslandTopOffset : 0) + 30
         let slideOffset: CGFloat = isHiddenInFS ? -offscreenDistance : 0
