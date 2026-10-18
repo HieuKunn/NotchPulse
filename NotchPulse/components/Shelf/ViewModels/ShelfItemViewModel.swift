@@ -992,7 +992,14 @@ final class ShelfItemViewModel: ObservableObject {
             
             alert.accessoryView = accessoryView
             
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+            alert.window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
+            
             let response = alert.runModal()
+            if SettingsWindowController.shared.window?.isVisible != true {
+                NSApp.setActivationPolicy(.accessory)
+            }
             
             if response == .alertFirstButtonReturn {
                 // Get selected options
@@ -1060,12 +1067,18 @@ final class ShelfItemViewModel: ObservableObject {
         
         @MainActor
         private func showErrorAlert(title: String, message: String) {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
             let alert = NSAlert()
             alert.messageText = title
             alert.informativeText = message
             alert.alertStyle = .warning
             alert.addButton(withTitle: loc("OK"))
+            alert.window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
             alert.runModal()
+            if SettingsWindowController.shared.window?.isVisible != true {
+                NSApp.setActivationPolicy(.accessory)
+            }
         }
     }
 

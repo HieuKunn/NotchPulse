@@ -1,17 +1,34 @@
 import Foundation
 import Sparkle
 import Combine
+import AppKit
 
-class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, ObservableObject {
+class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate, ObservableObject {
     static let shared = AppUpdaterDelegate()
     
     @Published var isUpdateAvailable = false
     @Published var latestVersionString = ""
     
+    // MARK: - SPUUpdaterDelegate
+    
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         DispatchQueue.main.async {
             self.isUpdateAvailable = true
             self.latestVersionString = item.displayVersionString
+        }
+    }
+
+    func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: any Error) {
+        DispatchQueue.main.async {
+            self.isUpdateAvailable = false
+        }
+    }
+
+    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
+        DispatchQueue.main.async {
+            if let error = error as NSError?, error.domain == "SUSparkleErrorDomain" && error.code == 1001 {
+                self.isUpdateAvailable = false
+            }
         }
     }
 
@@ -26,4 +43,37 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, ObservableObject {
             AppDelegate.shared?.cleanupForTermination()
         }
     }
+
+    // MARK: - SPUStandardUserDriverDelegate
+    
+    /// Called before showing a modal alert window (e.g. "You're up to date!").
+    /// In an accessory (LSUIElement) app, showing a modal alert without switching to .regular
+    /// activation policy and raising window level causes the alert to be trapped behind
+    /// high-level overlay windows, deadlocking the main thread runloop.
+    func standardUserDriverWillShowModalAlert() {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+
+        DispatchQueue.main.async {
+            for window in NSApp.windows {
+                let className = String(describing: type(of: window))
+                if className.contains("Alert") || window is NSPanel || window.level == .floating || window.level == .normal || window.level == .modalPanel {
+                    window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
+                    window.center()
+                    window.orderFrontRegardless()
+                    window.makeKeyAndOrderFront(nil)
+                }
+            }
+        }
+    }
+
+    /// Called after showing a modal alert window. Restores accessory mode if Settings is not visible.
+    func standardUserDriverDidShowModalAlert() {
+        DispatchQueue.main.async {
+            if SettingsWindowController.shared.window?.isVisible != true {
+                NSApp.setActivationPolicy(.accessory)
+            }
+        }
+    }
 }
+

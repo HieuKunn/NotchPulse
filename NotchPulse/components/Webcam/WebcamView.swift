@@ -61,16 +61,24 @@ struct CameraPreviewView: View {
             }
         case .denied, .restricted:
             DispatchQueue.main.async {
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+
                 let alert = NSAlert()
                 alert.messageText = "Camera Access Required"
                 alert.informativeText = "Please allow camera access in System Settings to use the mirror feature."
                 alert.addButton(withTitle: "Open System Settings")
                 alert.addButton(withTitle: "Cancel")
+                alert.window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
 
                 if alert.runModal() == .alertFirstButtonReturn {
                     if let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
                         NSWorkspace.shared.open(settingsURL)
                     }
+                }
+
+                if SettingsWindowController.shared.window?.isVisible != true {
+                    NSApp.setActivationPolicy(.accessory)
                 }
             }
         case .notDetermined:

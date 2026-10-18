@@ -102,7 +102,13 @@ class QuickShareService: ObservableObject {
             }
         }
 
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        panel.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
         let response = panel.runModal()
+        if SettingsWindowController.shared.window?.isVisible != true {
+            NSApp.setActivationPolicy(.accessory)
+        }
         completion(response)
     }
     

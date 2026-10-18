@@ -113,14 +113,16 @@ struct SettingsView: View {
                         case "Language":
                             LanguageSettingsView()
                         case "About":
-                            if let controller = updaterController {
+                            let controller = updaterController ?? SettingsWindowController.shared.updaterController
+                            if let controller = controller {
                                 About(updaterController: controller)
                             } else {
-                                // Fallback with a default controller
+                                // Fallback with shared updater delegates
                                 About(
                                     updaterController: SPUStandardUpdaterController(
-                                        startingUpdater: false, updaterDelegate: nil,
-                                        userDriverDelegate: nil))
+                                        startingUpdater: false,
+                                        updaterDelegate: AppUpdaterDelegate.shared,
+                                        userDriverDelegate: AppUpdaterDelegate.shared))
                             }
                         default:
                             GeneralSettings()
