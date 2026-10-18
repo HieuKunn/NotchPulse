@@ -85,12 +85,8 @@
 		11FA00062E80E27000EC13B2 /* unlockstatic.png in Resources */ = {isa = PBXBuildFile; fileRef = 11FA00052E80E27000EC13B2 /* unlockstatic.png */; };
 		11FA00082E80E27000EC13B2 /* idleanimation.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 11FA00072E80E27000EC13B2 /* idleanimation.mp4 */; };
 		11FA00122E80E27000EC13B2 /* logoanimation.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 11FA00112E80E27000EC13B2 /* logoanimation.mp4 */; };
-		11FA000A2E80E27000EC13B2 /* ScanAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA00092E80E27000EC13B2 /* ScanAnimationView.swift */; };
-		11FA000B2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */; };
-		11FA000E2E80E27000EC13B2 /* unlockstatic.tiff in Resources */ = {isa = PBXBuildFile; fileRef = 11FA000D2E80E27000EC13B2 /* unlockstatic.tiff */; };
 		11FA00102E80E27000EC13B2 /* unlockstatic.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 11FA000F2E80E27000EC13B2 /* unlockstatic.pdf */; };
 		14288DDC2C6E015000B9F80C /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14288DD62C6E015000B9F80C /* AudioPlayer.swift */; };
-		14288DE82C6E01C800B9F80C /* ProgressIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14288DE72C6E01C800B9F80C /* ProgressIndicator.swift */; };
 		14288E0C2C6F8EC000B9F80C /* AppIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14288E0B2C6F8EC000B9F80C /* AppIcons.swift */; };
 		1443E7F32C609DCE0027C1FC /* matters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1443E7F22C609DCE0027C1FC /* matters.swift */; };
 		144E3A3B7D2D0D96FB939CA4 /* NotchPulseLandmarkGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1FEFD6CEDA3049FF64861E /* NotchPulseLandmarkGeometry.swift */; };
@@ -112,7 +108,6 @@
 		14D0321D2C68F3350096E6A1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 14D0321C2C68F3350096E6A1 /* Sparkle */; };
 		14D570B92C5E98A20011E668 /* drop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570B82C5E98A20011E668 /* drop.swift */; };
 		14D570BC2C5E98EB0011E668 /* generic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570BB2C5E98EB0011E668 /* generic.swift */; };
-		14D570C22C5EAFBF0011E668 /* EmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570C12C5EAFBF0011E668 /* EmptyState.swift */; };
 		14D570C62C5F38210011E668 /* NotchPulseHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570C52C5F38210011E668 /* NotchPulseHeader.swift */; };
 		14D570C92C5F38890011E668 /* NotchPulseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570C82C5F38890011E668 /* NotchPulseViewModel.swift */; };
 		14D570D22C5F6C6A0011E668 /* NotchPulseExtrasMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D570D12C5F6C6A0011E668 /* NotchPulseExtrasMenu.swift */; };
@@ -129,7 +124,6 @@
 		24BBBB221A1E37F5E403E404 /* NotchPulseDeviceBezelDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01D3A636300D547621DBC6C /* NotchPulseDeviceBezelDetector.swift */; };
 		2DF809B2C72744C782CA5EEE /* ClipboardNotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */; };
 		2E74A97DE6DD82121026817E /* NotchPulseLivenessScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */; };
-		2F750F0D97E6A53588BEB7A0 /* FaceIDSettingsSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5670D992D012E18747264037 /* FaceIDSettingsSidebar.swift */; };
 		3942A45DCBD0DD8CB3BC1C06 /* NotchPulseFaceUnlockCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B5FEFA534C2DFF5BD32667 /* NotchPulseFaceUnlockCoordinator.swift */; };
 		3945421C14D60D0B09B52EE4 /* NotchPulseVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = E337E26DE7B6044D535EF392 /* NotchPulseVault.swift */; };
 		3E7E6AA58351E696B44D4F0D /* NotchPulsePOCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4543B173B40F16A7D04EBC21 /* NotchPulsePOCController.swift */; };
@@ -173,16 +167,13 @@
 		AA0000082ED0000400000008 /* FanHelperManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000092ED0000400000009 /* FanHelperManager.swift */; };
 		AA0000102ED0000500000010 /* notchpulse-fanhelper in Resources */ = {isa = PBXBuildFile; fileRef = AA0000112ED0000500000011 /* notchpulse-fanhelper */; };
 		AA0000042ED0000200000004 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000032ED0000200000003 /* StatsView.swift */; };
-		ABA2A7AE47F39E6F8606A677 /* FaceIDSettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */; };
 		AEC91CAB43968E85ACCEEC60 /* FaceIDAnimatedCheckmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0DAA5C994C088A7532D1A9 /* FaceIDAnimatedCheckmark.swift */; };
 		AF5A2653ECC64C3F17EB1019 /* NotchPulseCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E3F44E629EE5B4762E12F7 /* NotchPulseCamera.swift */; };
 		B10348D92C74E56000475897 /* ConditionalModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10348D82C74E56000475897 /* ConditionalModifier.swift */; };
-		B10F84A32C6C9596009F3026 /* TestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10F84A22C6C9596009F3026 /* TestView.swift */; };
 		B141C2412CA5F53F00AC8CC8 /* SparkleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B141C2402CA5F53E00AC8CC8 /* SparkleView.swift */; };
 		B1628B922CC260C0003D8DF3 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = B1628B912CC260C0003D8DF3 /* SwiftUIIntrospect */; };
 		B17266DF2C64DFA00031BA0D /* BundleInfos.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17266DE2C64DFA00031BA0D /* BundleInfos.swift */; };
 		B17266E12C6532560031BA0D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B17266E02C6532560031BA0D /* Localizable.xcstrings */; };
-		B17266E32C65F7FB0031BA0D /* WhatsNewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17266E22C65F7FB0031BA0D /* WhatsNewView.swift */; };
 		B172AAC02C95DA0B001623F1 /* InlineHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B172AABF2C95DA0B001623F1 /* InlineHUD.swift */; };
 		B18654392C6F4990000B926A /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = B18654382C6F4990000B926A /* KeyboardShortcuts */; };
 		B186543C2C6F49AE000B926A /* ShortcutConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B186543B2C6F49AE000B926A /* ShortcutConstants.swift */; };
@@ -194,7 +185,6 @@
 		B1B112932C6A577E00093D8F /* MouseTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B112922C6A577E00093D8F /* MouseTracker.swift */; };
 		B1C448962C9712C4001F0858 /* ActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C448952C9712C4001F0858 /* ActionBar.swift */; };
 		B1C448982C972CC4001F0858 /* ListItemPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C448972C972CC4001F0858 /* ListItemPopover.swift */; };
-		B1C4489B2C97376A001F0858 /* TipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C4489A2C97376A001F0858 /* TipStore.swift */; };
 		B1C974342C642B6D0000E707 /* MarqueeTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C974332C642B6D0000E707 /* MarqueeTextView.swift */; };
 		B1CE8CFE2C6F659400DD9871 /* KeyboardShortcutsHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE8CFD2C6F659400DD9871 /* KeyboardShortcutsHelper.swift */; };
 		B1D365CE2C6A979C0047BDBC /* LiveActivityModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D365CD2C6A979C0047BDBC /* LiveActivityModifier.swift */; };
@@ -214,12 +204,10 @@
 		DCACCD684E9749C3DA8A7229 /* NotchPulseSpaceKeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA39B15AD9E14C3C5413C53B /* NotchPulseSpaceKeyMonitor.swift */; };
 		DFFDFC505F834EB59D426BA5 /* ShelfDropZoneWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1427EE773FE4158AC14BEC3 /* ShelfDropZoneWindow.swift */; };
 		EEA0D0DF26024F46991752B0 /* NotchPulseSystemAuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBC0381629524A3C898B467A /* NotchPulseSystemAuthCoordinator.swift */; };
-		F1D200032ED0000100000001 /* FaceIDManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200042ED0000100000001 /* FaceIDManager.swift */; };
 		F1D200052ED0000100000001 /* LockScreenWakeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */; };
 		F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200082ED0000100000001 /* FaceIDSettingsView.swift */; };
 		F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */; };
 		F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */; };
-		F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */; };
 		F1D200152ED0000100000001 /* SystemAuthPromptObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */; };
 		F1D200502ED0000100000001 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200512ED0000100000001 /* AppLocalization.swift */; };
 		F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */; };
@@ -356,12 +344,8 @@
 		11FA00052E80E27000EC13B2 /* unlockstatic.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = unlockstatic.png; sourceTree = "<group>"; };
 		11FA00072E80E27000EC13B2 /* idleanimation.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = idleanimation.mp4; sourceTree = "<group>"; };
 		11FA00112E80E27000EC13B2 /* logoanimation.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = logoanimation.mp4; sourceTree = "<group>"; };
-		11FA00092E80E27000EC13B2 /* ScanAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanAnimationView.swift; sourceTree = "<group>"; };
-		11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleFaceIDGlyphView.swift; sourceTree = "<group>"; };
-		11FA000D2E80E27000EC13B2 /* unlockstatic.tiff */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = unlockstatic.tiff; sourceTree = "<group>"; };
 		11FA000F2E80E27000EC13B2 /* unlockstatic.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = unlockstatic.pdf; sourceTree = "<group>"; };
 		14288DD62C6E015000B9F80C /* AudioPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
-		14288DE72C6E01C800B9F80C /* ProgressIndicator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProgressIndicator.swift; sourceTree = "<group>"; };
 		14288E0B2C6F8EC000B9F80C /* AppIcons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIcons.swift; sourceTree = "<group>"; };
 		1443E7F22C609DCE0027C1FC /* matters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = matters.swift; sourceTree = "<group>"; };
 		1443E7F42C609E650027C1FC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -385,7 +369,6 @@
 		14D031EF2C689DC00096E6A1 /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
 		14D570B82C5E98A20011E668 /* drop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = drop.swift; sourceTree = "<group>"; };
 		14D570BB2C5E98EB0011E668 /* generic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = generic.swift; sourceTree = "<group>"; };
-		14D570C12C5EAFBF0011E668 /* EmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyState.swift; sourceTree = "<group>"; };
 		14D570C52C5F38210011E668 /* NotchPulseHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPulseHeader.swift; sourceTree = "<group>"; };
 		14D570C82C5F38890011E668 /* NotchPulseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPulseViewModel.swift; sourceTree = "<group>"; };
 		14D570D12C5F6C6A0011E668 /* NotchPulseExtrasMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPulseExtrasMenu.swift; sourceTree = "<group>"; };
@@ -409,7 +392,6 @@
 		507266DA2C908E2E00A2D00D /* HoverButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverButton.swift; sourceTree = "<group>"; };
 		50B5FEFA534C2DFF5BD32667 /* NotchPulseFaceUnlockCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseFaceUnlockCoordinator.swift; sourceTree = "<group>"; };
 		523C6C0F6EAC452DE1EE0F48 /* FaceIDOnboardingStepViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingStepViews.swift; sourceTree = "<group>"; };
-		5670D992D012E18747264037 /* FaceIDSettingsSidebar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsSidebar.swift; sourceTree = "<group>"; };
 		5733E02C8B4FAEFAE79D1E82 /* FaceIDOverlaySkyLight.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOverlaySkyLight.swift; sourceTree = "<group>"; };
 		5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyInterceptor.swift; sourceTree = "<group>"; };
 		5955950C2E900ED800C66711 /* ApplicationRelauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationRelauncher.swift; sourceTree = "<group>"; };
@@ -438,7 +420,6 @@
 		9AB0C6BB2C73C9CB00F7CD30 /* NotchHomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NotchHomeView.swift; sourceTree = "<group>"; };
 		9C1EE35AA9D378F53E063146 /* FaceIDOverlayWindowController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOverlayWindowController.swift; sourceTree = "<group>"; };
 		A3FECCD1F2AA1B8FA937450A /* NotchPulseCameraPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseCameraPreviewView.swift; sourceTree = "<group>"; };
-		A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsTab.swift; sourceTree = "<group>"; };
 		A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothHeadphoneManager.swift; sourceTree = "<group>"; };
 		AA0000012ED0000100000001 /* SystemMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorManager.swift; sourceTree = "<group>"; };
 		AA0000072ED0000300000007 /* SMCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCService.swift; sourceTree = "<group>"; };
@@ -447,11 +428,9 @@
 		AA0000032ED0000200000003 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		ACFDA37691670AECB9259C4B /* NotchPulseLivenessScoring.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessScoring.swift; sourceTree = "<group>"; };
 		B10348D82C74E56000475897 /* ConditionalModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalModifier.swift; sourceTree = "<group>"; };
-		B10F84A22C6C9596009F3026 /* TestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestView.swift; sourceTree = "<group>"; };
 		B141C2402CA5F53E00AC8CC8 /* SparkleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleView.swift; sourceTree = "<group>"; };
 		B17266DE2C64DFA00031BA0D /* BundleInfos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleInfos.swift; sourceTree = "<group>"; };
 		B17266E02C6532560031BA0D /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		B17266E22C65F7FB0031BA0D /* WhatsNewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewView.swift; sourceTree = "<group>"; };
 		B172AABF2C95DA0B001623F1 /* InlineHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineHUD.swift; sourceTree = "<group>"; };
 		B186543B2C6F49AE000B926A /* ShortcutConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutConstants.swift; sourceTree = "<group>"; };
 		B19016232CC15B4D00E3F12E /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -461,7 +440,6 @@
 		B1B112922C6A577E00093D8F /* MouseTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseTracker.swift; sourceTree = "<group>"; };
 		B1C448952C9712C4001F0858 /* ActionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionBar.swift; sourceTree = "<group>"; };
 		B1C448972C972CC4001F0858 /* ListItemPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListItemPopover.swift; sourceTree = "<group>"; };
-		B1C4489A2C97376A001F0858 /* TipStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipStore.swift; sourceTree = "<group>"; };
 		B1C974332C642B6D0000E707 /* MarqueeTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarqueeTextView.swift; sourceTree = "<group>"; };
 		B1CE8CFD2C6F659400DD9871 /* KeyboardShortcutsHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsHelper.swift; sourceTree = "<group>"; };
 		B1D365CD2C6A979C0047BDBC /* LiveActivityModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityModifier.swift; sourceTree = "<group>"; };
@@ -493,12 +471,10 @@
 		ECC7DF92B8FE14000CC68008 /* NotchPulseLivenessCues.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseLivenessCues.swift; sourceTree = "<group>"; };
 		EE278E7A1F4A9D243EDABD95 /* FaceIDOverlayShape.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOverlayShape.swift; sourceTree = "<group>"; };
 		EFC55C6A1A692A11F637F5B1 /* NotchPulseCameraDeviceCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseCameraDeviceCatalog.swift; sourceTree = "<group>"; };
-		F1D200042ED0000100000001 /* FaceIDManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDManager.swift; sourceTree = "<group>"; };
 		F1D200062ED0000100000001 /* LockScreenWakeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWakeObserver.swift; sourceTree = "<group>"; };
 		F1D200082ED0000100000001 /* FaceIDSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDSettingsView.swift; sourceTree = "<group>"; };
 		F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaView.swift; sourceTree = "<group>"; };
 		F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenMediaWindow.swift; sourceTree = "<group>"; };
-		F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenFaceIDWindow.swift; sourceTree = "<group>"; };
 		F1D200162ED0000100000001 /* SystemAuthPromptObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAuthPromptObserver.swift; sourceTree = "<group>"; };
 		F1D200512ED0000100000001 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -669,7 +645,6 @@
 				11FA00012E80E27000EC13B2 /* unlockanimation.mp4 */,
 				11FA00032E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 */,
 				11FA00052E80E27000EC13B2 /* unlockstatic.png */,
-				11FA000D2E80E27000EC13B2 /* unlockstatic.tiff */,
 				11FA000F2E80E27000EC13B2 /* unlockstatic.pdf */,
 				11FA00072E80E27000EC13B2 /* idleanimation.mp4 */,
 				11FA00112E80E27000EC13B2 /* logoanimation.mp4 */,
@@ -718,7 +693,6 @@
 				B1CB00012ED0000100000001 /* Clipboard */,
 				F1D2000D2ED0000100000001 /* LockScreen */,
 				B141C23B2CA5F50900AC8CC8 /* Onboarding */,
-				B1C448992C97375A001F0858 /* Tips */,
 				14C08BB72C8DE49E000F8AA0 /* Calendar */,
 				9A987A042C73CA66005CA465 /* Shelf */,
 				149E0B982C737D26006418B1 /* Webcam */,
@@ -727,10 +701,6 @@
 				B186542F2C6F455E000B926A /* Notch */,
 				9A0887332C7AFF7E00C160EA /* Tabs */,
 				B186542E2C6F453B000B926A /* Music */,
-				14288DE72C6E01C800B9F80C /* ProgressIndicator.swift */,
-				14D570C12C5EAFBF0011E668 /* EmptyState.swift */,
-				B17266E22C65F7FB0031BA0D /* WhatsNewView.swift */,
-				B10F84A22C6C9596009F3026 /* TestView.swift */,
 				507266DA2C908E2E00A2D00D /* HoverButton.swift */,
 				B1F747F82EC7E94000F841DB /* LottieView.swift */,
 				AA0000052ED0000300000005 /* Stats */,
@@ -743,7 +713,6 @@
 			children = (
 				B1AD00042ED0000100000004 /* AudioDeviceManager.swift */,
 				B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */,
-				F1D200042ED0000100000001 /* FaceIDManager.swift */,
 				11D58EA12E760AE100FA8377 /* ImageService.swift */,
 				112FB7342CCF16F70015238C /* NotchSpaceManager.swift */,
 				147163992C5D35FF0068B555 /* MusicManager.swift */,
@@ -1003,7 +972,6 @@
 			isa = PBXGroup;
 			children = (
 				F1D200082ED0000100000001 /* FaceIDSettingsView.swift */,
-				11FA000C2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift */,
 				11F748832ECB27DC00F841DB /* MusicSlotConfigurationView.swift */,
 				11C5E3152DFE88510065821E /* SettingsView.swift */,
 				11C5E3112DFE85970065821E /* SettingsWindowController.swift */,
@@ -1016,8 +984,6 @@
 				CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */,
 				0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */,
 				3BDED7E8A637E89DD68E5BD7 /* FaceIDSettingsMetrics.swift */,
-				5670D992D012E18747264037 /* FaceIDSettingsSidebar.swift */,
-				A799E049816522624FBFDC8A /* FaceIDSettingsTab.swift */,
 				C85C12921DFB812E651BDC87 /* FaceIDYourFaceSettingsPage.swift */,
 			);
 			path = Settings;
@@ -1042,14 +1008,6 @@
 				B186543B2C6F49AE000B926A /* ShortcutConstants.swift */,
 			);
 			path = Shortcuts;
-			sourceTree = "<group>";
-		};
-		B1C448992C97375A001F0858 /* Tips */ = {
-			isa = PBXGroup;
-			children = (
-				B1C4489A2C97376A001F0858 /* TipStore.swift */,
-			);
-			path = Tips;
 			sourceTree = "<group>";
 		};
 		B1AD00012ED0000100000001 /* Audio */ = {
@@ -1123,8 +1081,6 @@
 			children = (
 				F1D2000A2ED0000100000001 /* LockScreenMediaView.swift */,
 				F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */,
-				F1D200102ED0000100000001 /* LockScreenFaceIDWindow.swift */,
-				11FA00092E80E27000EC13B2 /* ScanAnimationView.swift */,
 			);
 			path = LockScreen;
 			sourceTree = "<group>";
@@ -1260,7 +1216,6 @@
 				11FA00022E80E27000EC13B2 /* unlockanimation.mp4 in Resources */,
 				11FA00042E80E27000EC13B2 /* unsuccessfulunlockanimation.mp4 in Resources */,
 				11FA00062E80E27000EC13B2 /* unlockstatic.png in Resources */,
-				11FA000E2E80E27000EC13B2 /* unlockstatic.tiff in Resources */,
 				11FA00102E80E27000EC13B2 /* unlockstatic.pdf in Resources */,
 				11FA00082E80E27000EC13B2 /* idleanimation.mp4 in Resources */,
 				11FA00122E80E27000EC13B2 /* logoanimation.mp4 in Resources */,
@@ -1290,15 +1245,11 @@
 				AA0000062ED0000300000006 /* SMCService.swift in Sources */,
 				AA0000082ED0000400000008 /* FanHelperManager.swift in Sources */,
 				AA0000042ED0000200000004 /* StatsView.swift in Sources */,
-				F1D200032ED0000100000001 /* FaceIDManager.swift in Sources */,
 				F1D200052ED0000100000001 /* LockScreenWakeObserver.swift in Sources */,
 				F1D200152ED0000100000001 /* SystemAuthPromptObserver.swift in Sources */,
 				F1D200072ED0000100000001 /* FaceIDSettingsView.swift in Sources */,
-				11FA000B2E80E27000EC13B2 /* AppleFaceIDGlyphView.swift in Sources */,
 				F1D200092ED0000100000001 /* LockScreenMediaView.swift in Sources */,
 				F1D2000B2ED0000100000001 /* LockScreenMediaWindow.swift in Sources */,
-				F1D2000F2ED0000100000001 /* LockScreenFaceIDWindow.swift in Sources */,
-				11FA000A2E80E27000EC13B2 /* ScanAnimationView.swift in Sources */,
 				14C08BB92C8DE4B1000F8AA0 /* NotchPulseCalendar.swift in Sources */,
 				5955950D2E900ED800C66711 /* ApplicationRelauncher.swift in Sources */,
 				1100292A2E8691B400035A57 /* FileShareView.swift in Sources */,
@@ -1332,7 +1283,6 @@
 				B19424092CD0FF01003E5DC2 /* LottieAnimationView.swift in Sources */,
 				B1F747F92EC7E94000F841DB /* LottieView.swift in Sources */,
 				B1C974342C642B6D0000E707 /* MarqueeTextView.swift in Sources */,
-				14288DE82C6E01C800B9F80C /* ProgressIndicator.swift in Sources */,
 				1113ABC52E80E27000EC13B2 /* ShelfItemView.swift in Sources */,
 				1113ABC62E80E27000EC13B2 /* ShelfPersistenceService.swift in Sources */,
 				1113ABC82E80E27000EC13B2 /* ShelfItem.swift in Sources */,
@@ -1357,7 +1307,6 @@
 				B172AAC02C95DA0B001623F1 /* InlineHUD.swift in Sources */,
 				14E9FEAA2C70BF610062E83F /* DownloadView.swift in Sources */,
 				B1B112912C6A572100093D8F /* EditPanelView.swift in Sources */,
-				B1C4489B2C97376A001F0858 /* TipStore.swift in Sources */,
 				1153BD912D986DB300979FB0 /* PlaybackState.swift in Sources */,
 				B1A78C822C8BA08100BD51B0 /* FullscreenMediaDetection.swift in Sources */,
 				14E9FEAE2C7325770062E83F /* Button+Bouncing.swift in Sources */,
@@ -1366,10 +1315,8 @@
 				118EBE272E92DE8400D54B5A /* NSMenu+AssociatedObject.swift in Sources */,
 				B1CE8CFE2C6F659400DD9871 /* KeyboardShortcutsHelper.swift in Sources */,
 				14D570C62C5F38210011E668 /* NotchPulseHeader.swift in Sources */,
-				B17266E32C65F7FB0031BA0D /* WhatsNewView.swift in Sources */,
 				14C08BB62C8DE42D000F8AA0 /* CalendarManager.swift in Sources */,
 				F1D200502ED0000100000001 /* AppLocalization.swift in Sources */,
-				B10F84A32C6C9596009F3026 /* TestView.swift in Sources */,
 				1443E7F32C609DCE0027C1FC /* matters.swift in Sources */,
 				11C5E3162DFE88510065821E /* SettingsView.swift in Sources */,
 				1153BD932D986E4300979FB0 /* AppleMusicController.swift in Sources */,
@@ -1389,7 +1336,6 @@
 				11F747CE2EC75CEA00F841DB /* DragPreviewView.swift in Sources */,
 				B10348D92C74E56000475897 /* ConditionalModifier.swift in Sources */,
 				118D1FD12E98FF5F00A2FF63 /* SharingStateManager.swift in Sources */,
-				14D570C22C5EAFBF0011E668 /* EmptyState.swift in Sources */,
 				118EBE252E92DCCB00D54B5A /* AssociatedObject.swift in Sources */,
 				11F748682EC9AC9600F841DB /* NotchPulseXPCHelperProtocol.swift in Sources */,
 				11F748692EC9AC9600F841DB /* XPCHelperClient.swift in Sources */,
@@ -1448,8 +1394,6 @@
 				F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */,
 				468E0EBFAA211E5F5C17920C /* FaceIDSettingsControls.swift in Sources */,
 				7501C53D9A45D8C00225AEEA /* FaceIDSettingsMetrics.swift in Sources */,
-				2F750F0D97E6A53588BEB7A0 /* FaceIDSettingsSidebar.swift in Sources */,
-				ABA2A7AE47F39E6F8606A677 /* FaceIDSettingsTab.swift in Sources */,
 				07091DD5105732B2E5354ED8 /* FaceIDYourFaceSettingsPage.swift in Sources */,
 				87B56C3C7BDE4D0CE8F93382 /* ArcFaceEmbedder.swift in Sources */,
 				AEC91CAB43968E85ACCEEC60 /* FaceIDAnimatedCheckmark.swift in Sources */,

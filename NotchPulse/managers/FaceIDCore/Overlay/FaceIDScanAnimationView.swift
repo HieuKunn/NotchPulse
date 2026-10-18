@@ -270,9 +270,9 @@ final class FaceIDScanAnimationHostView: NSView {
     static func loadStillCGImage() -> CGImage? {
         if let cached = cachedStillCGImage { return cached }
 
-        // Last-resort fallback chain mirrors ScanAnimationView: if every unlockstatic
-        // variant fails to decode, fall back to the first frame of the pre-warmed
-        // videos so the panel never renders as a plain black rectangle.
+        // Last-resort fallback chain: if every unlockstatic variant fails to decode,
+        // fall back to the first frame of the pre-warmed videos so the panel never
+        // renders as a plain black rectangle.
         func cache(_ image: CGImage) -> CGImage {
             cachedStillCGImage = image
             return image
@@ -290,11 +290,6 @@ final class FaceIDScanAnimationHostView: NSView {
             return cache(cgImage)
         }
         if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "pdf") as CFURL?,
-           let source = CGImageSourceCreateWithURL(url, nil),
-           let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
-            return cache(cgImage)
-        }
-        if let url = Bundle.main.url(forResource: "unlockstatic", withExtension: "tiff") as CFURL?,
            let source = CGImageSourceCreateWithURL(url, nil),
            let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
             return cache(cgImage)

@@ -103,7 +103,7 @@ class SettingsWindowController: NSWindowController {
     }
     
     private func relinquishFocus() {
-        FaceIDManager.shared.cancelCurrentSession()
+        FaceIDOverlayController.shared.disarm()
         window?.orderOut(nil)
         
         // Removed: Freeing contentView here causes a white screen bug in macOS when switching app policies.

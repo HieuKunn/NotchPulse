@@ -137,7 +137,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cleanupWindows()
         cleanupDragDetectors()
         FaceIDOverlayController.shared.disarm()
-        LockScreenFaceIDWindow.shared.orderOut(nil)
         LockScreenMediaWindow.shared.orderOut(nil)
         MusicManager.shared.destroy()
     }
