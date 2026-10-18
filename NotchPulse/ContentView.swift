@@ -183,12 +183,10 @@ struct ContentView: View {
         }
 
         if isDynamicIsland {
-            return CGSize(width: 250, height: 180)
+            return CGSize(width: compactDynamicIslandWidth, height: 180)
         } else {
-            let baseWidth = max(212, vm.closedNotchSize.width)
-            let topR = FaceIDOverlayGeometry.openTopRadius
             return CGSize(
-                width: baseWidth + (topR * 2),
+                width: vm.closedNotchSize.width,
                 height: 180
             )
         }
@@ -197,7 +195,7 @@ struct ContentView: View {
     private var targetFaceIDSize: CGSize {
         if !visualIsFaceIDExpanded {
             return CGSize(
-                width: isDynamicIsland ? 126 : vm.closedNotchSize.width,
+                width: isDynamicIsland ? compactDynamicIslandWidth : vm.closedNotchSize.width,
                 height: baseClosedHeight
             )
         }
@@ -234,7 +232,7 @@ struct ContentView: View {
             if case .onboarding(let controller) = faceIDOverlay.content {
                 return controller.panelBottomRadius
             }
-            return isDynamicIsland ? FaceIDOverlayGeometry.pillOpenCornerRadius : FaceIDOverlayGeometry.openBottomRadius
+            return isDynamicIsland ? FaceIDOverlayGeometry.pillOpenCornerRadius : min(26, FaceIDOverlayGeometry.openBottomRadius)
         }
         return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
             ? cornerRadiusInsets.opened.bottom
@@ -252,10 +250,10 @@ struct ContentView: View {
         let isDynamicIsland = notchStyle == .dynamicIsland
         // When screen is locked, authenticating Face ID, or waking from sleep, strictly stay at physical notch / closed island width without expanding for inline/media
         if isEffectivelyLocked {
-            return isDynamicIsland ? 126 : vm.closedNotchSize.width
+            return isDynamicIsland ? compactDynamicIslandWidth : vm.closedNotchSize.width
         }
 
-        var chinWidth: CGFloat = isDynamicIsland ? 126 : vm.closedNotchSize.width // Always match notch width or compact island
+        var chinWidth: CGFloat = isDynamicIsland ? compactDynamicIslandWidth : vm.closedNotchSize.width // Always match notch width or compact island
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
@@ -683,7 +681,7 @@ struct ContentView: View {
                     Spacer()
                 } else if isEffectivelyLocked && !isFaceIDContentActive {
                     Rectangle().fill(.clear).frame(
-                        width: (notchStyle == .dynamicIsland) ? 126 : vm.closedNotchSize.width,
+                        width: (notchStyle == .dynamicIsland) ? compactDynamicIslandWidth : vm.closedNotchSize.width,
                         height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight
                     )
                 } else {
@@ -703,7 +701,7 @@ struct ContentView: View {
                                     .transition(.opacity)
                             } else {
                                 Rectangle().fill(.clear).frame(
-                                    width: (notchStyle == .dynamicIsland) ? 126 : vm.closedNotchSize.width,
+                                    width: (notchStyle == .dynamicIsland) ? compactDynamicIslandWidth : vm.closedNotchSize.width,
                                     height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight
                                 )
                                 .transition(.opacity)
@@ -820,10 +818,13 @@ struct ContentView: View {
                     pulseOpacity: isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseOpacity : 1.0
                 )
             } else {
+                let topPadding: CGFloat = (hasPhysicalNotch && !isDynamicIsland)
+                    ? vm.effectiveClosedNotchHeight + 4
+                    : (isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
                 FaceIDScanAnimationView(media: controller.media)
                     .padding(.leading, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingLeading : FaceIDOverlayGeometry.notchContentPaddingLeading)
                     .padding(.trailing, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTrailing : FaceIDOverlayGeometry.notchContentPaddingTrailing)
-                    .padding(.top, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingTop : FaceIDOverlayGeometry.notchContentPaddingTop)
+                    .padding(.top, topPadding)
                     .padding(.bottom, isDynamicIsland ? FaceIDOverlayGeometry.pillContentPaddingBottom : FaceIDOverlayGeometry.notchContentPaddingBottom)
                     .scaleEffect(0.80)
                     .scaleEffect(isScanPulseDimmed ? FaceIDOverlayGeometry.scanPulseScale : 1.0)

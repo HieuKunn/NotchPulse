@@ -679,7 +679,7 @@ struct UnlockAnimationPicker: View {
                             .frame(width: 17, height: 17)
                     }
                     .padding(.horizontal, 10)
-                    .frame(width: 126, height: 24)
+                    .frame(width: compactDynamicIslandWidth, height: 24)
                     .background(Color.black, in: Capsule(style: .continuous))
                     .overlay {
                         Capsule(style: .continuous)

@@ -19,13 +19,13 @@ struct FaceIDOverlayGeometry {
     }
 
     /// Fixed footprint of expanded scan-mode content in notch style.
-    static let notchOpenSize = CGSize(width: 212, height: 180)
+    static let notchOpenSize = CGSize(width: 164, height: 180)
 
     /// Corner radii matching Glance & Apple notch curvature.
     static let closedTopRadius: CGFloat = 8
     static let closedBottomRadius: CGFloat = 12
     static let openTopRadius: CGFloat = 16
-    static let openBottomRadius: CGFloat = 42
+    static let openBottomRadius: CGFloat = 26
 
     /// A shape drawn in a rect of width `w` has a visible body of `w - 2 * topRadius`;
     /// zero in pill style, which has no flare.
@@ -36,10 +36,10 @@ struct FaceIDOverlayGeometry {
     // MARK: - Pill style (Dynamic Island)
 
     /// Resting capsule size matching compact dynamic island
-    static let pillClosedSize = CGSize(width: 126, height: 32)
+    static let pillClosedSize = CGSize(width: compactDynamicIslandWidth, height: 32)
 
-    /// Expanded footprint matching notch open size with identical drop width
-    static let pillOpenSize = CGSize(width: 250, height: 180)
+    /// Expanded footprint matching compact island width with downward vertical drop
+    static let pillOpenSize = CGSize(width: compactDynamicIslandWidth, height: 180)
 
     /// Pinned to NotchPulse's active dynamic island top offset, adjusted to clear any physical notch.
     @MainActor
