@@ -70,9 +70,10 @@ struct FaceIDOverlayView: View {
 
     private var scanOpenSize: CGSize {
         if style == .notch {
-            return CGSize(width: closedBodySize.width, height: FaceIDOverlayGeometry.notchOpenSize.height)
+            let width = max(closedBodySize.width, FaceIDOverlayGeometry.notchOpenSize.width)
+            return CGSize(width: width, height: FaceIDOverlayGeometry.notchOpenSize.height)
         } else {
-            return CGSize(width: closedBodySize.width, height: FaceIDOverlayGeometry.pillOpenSize.height)
+            return FaceIDOverlayGeometry.pillOpenSize
         }
     }
 

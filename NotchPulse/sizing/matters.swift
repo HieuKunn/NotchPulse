@@ -130,12 +130,12 @@ enum MusicPlayerImageSizes {
     return resolveScreen(screenUUID: screenUUID)?.frame
 }
 
-public let compactDynamicIslandWidth: CGFloat = 102
+public let compactDynamicIslandWidth: CGFloat = 134
 public let compactDynamicIslandHeight: CGFloat = 32
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
     var notchHeight: CGFloat = Defaults[.nonNotchHeight]
-    var notchWidth: CGFloat = 130 // Scaled down ~20% from 162 (162 * 0.8 = 129.6)
+    var notchWidth: CGFloat = 185
 
     let screen = resolveScreen(screenUUID: screenUUID)
 
@@ -146,10 +146,8 @@ public let compactDynamicIslandHeight: CGFloat = 32
         {
             let rawWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
             if rawWidth > 0 {
-                // On MacBook Pro (14" & 16"), rawWidth (~204pt) includes status item padding margins,
-                // which is ~20% wider than the actual physical hardware camera notch (~164-172pt).
-                // Reduce rawWidth by ~18-20% to snugly fit the physical hardware notch without excess side width:
-                notchWidth = max(130, rawWidth * 0.80)
+                // Must cover the physical hardware notch cut-out completely (exactly as in Glance and original NotchPulse)
+                notchWidth = max(185, rawWidth)
             }
         }
 

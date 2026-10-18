@@ -8,7 +8,7 @@ import SwiftUI
 final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content> {
     var onHoverChanged: ((Bool) -> Void)?
     var onClicked: (() -> Void)?
-    var notchClosedSize: CGSize = CGSize(width: 164, height: 38)
+    var notchClosedSize: CGSize = CGSize(width: 185, height: 38)
     private var trackingArea: NSTrackingArea?
 
     private func currentActiveRect() -> NSRect {
@@ -252,7 +252,7 @@ struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
-    var physicalNotchWidth: CGFloat = 164
+    var physicalNotchWidth: CGFloat = 185
     var notchStyle: NotchStyle = .notch
     
     @State private var isHovered: Bool = false
@@ -297,9 +297,9 @@ struct LockScreenFaceIDPillView: View {
                 return CGSize(width: physicalNotchWidth + 148, height: closedBodySize.height)
             }
         }
-        // Face ID width strictly matches closed notch width (does not flare out sideways)
-        let width = (notchStyle == .dynamicIsland) ? compactDynamicIslandWidth : physicalNotchWidth
-        return CGSize(width: width, height: 180)
+        let width = (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillOpenSize.width : max(FaceIDOverlayGeometry.notchOpenSize.width, physicalNotchWidth)
+        let height = (notchStyle == .dynamicIsland) ? FaceIDOverlayGeometry.pillOpenSize.height : FaceIDOverlayGeometry.notchOpenSize.height
+        return CGSize(width: width, height: height)
     }
     
     private var topRadius: CGFloat {
@@ -310,7 +310,7 @@ struct LockScreenFaceIDPillView: View {
             if isMinimalScan {
                 return 10
             }
-            return 8
+            return FaceIDOverlayGeometry.openTopRadius
         } else {
             return 6
         }
@@ -324,7 +324,7 @@ struct LockScreenFaceIDPillView: View {
             if isMinimalScan {
                 return 16
             }
-            return min(26, FaceIDOverlayGeometry.openBottomRadius)
+            return FaceIDOverlayGeometry.openBottomRadius
         } else {
             return 14
         }
@@ -337,7 +337,8 @@ struct LockScreenFaceIDPillView: View {
             return CGSize(width: baseWidth, height: baseHeight)
         } else {
             let body = isExpanded ? openBodySize : closedBodySize
-            return CGSize(width: body.width, height: body.height)
+            let flare: CGFloat = isExpanded ? (topRadius * 2) : 0
+            return CGSize(width: body.width + flare, height: body.height)
         }
     }
     
@@ -357,7 +358,7 @@ struct LockScreenFaceIDPillView: View {
         } else {
             ScanAnimationView(media: scanMedia)
                 .padding(.top, (hasPhysicalNotch && notchStyle == .notch) ? 26 : 0)
-                .scaleEffect(0.80)
+                .scaleEffect(0.92)
         }
     }
 

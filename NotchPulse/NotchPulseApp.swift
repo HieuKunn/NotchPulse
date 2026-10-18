@@ -374,7 +374,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
                 let closedSize = targetVM.closedNotchSize
-                let closedWidth = isDynamicIsland ? compactDynamicIslandWidth : (closedSize.width > 0 ? closedSize.width : 130.0)
+                let closedWidth = isDynamicIsland ? compactDynamicIslandWidth : (closedSize.width > 0 ? closedSize.width : 185.0)
                 let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 34.0)
                 return CGRect(
                     x: screenFrame.midX - (closedWidth / 2 + padding),
