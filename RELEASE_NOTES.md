@@ -12,7 +12,7 @@
 - **Hover-To-Scan Security**: Locking your Mac quietly arms Face ID without prematurely firing the camera; facial authentication activates only when you hover over the Notch, wake the screen, or interact.
 
 ### 🖥️ Multi-Display & Visual Stability
-- **Graceful Sleep & Wake Display Reconnection**: Prevents the Notch from prematurely jumping back to your MacBook screen when waking from sleep with an external display connected; the Notch stays pinned to your chosen display, while smoothly switching to your Mac screen if the external monitor is unplugged.
+- **Instant Multi-Display & Sleep-Wake Reconnection**: The Notch remains strictly pinned to your chosen display without jumping to the MacBook screen on wake-up; dynamically routes to the camera screen only during active Face ID scans, and instantly relocates to your Mac screen if the external monitor is unplugged.
 - **Symmetric Notch & Dynamic Island Geometry**: Perfectly preserves authentic Apple-grade curve geometry and symmetric alignments across both external monitors and built-in displays without unwanted margin shifts.
 
 ### ⚡️ Software Update & System Responsiveness
