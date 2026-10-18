@@ -1,7 +1,7 @@
 ## 🚀 What's New in NotchPulse v5.4
 
 ### 🔒 Face ID Core & Lock Screen Elegance
-- **Streamlined Face ID Drop-Down Silhouette**: When Face ID expands to scan or authenticate, its width stays strictly locked to the closed notch width—expanding downward into a clean, modern card without flaring or bulging awkwardly sideways.
+- **Glance-Calibrated Face ID Dimensions**: Face ID drop-down geometry now precisely mirrors Glance’s soft square card design (`180x180pt` on Dynamic Island, `252x190pt` on Notch style) with continuous corner radii, completely covering the physical camera notch and dropping down naturally from the display bezel.
 - **Seamless Lock Screen Transitions**: The lock screen media player now disappears instantaneously the exact millisecond you unlock your Mac, creating a clean and cohesive transition to your desktop with zero lingering delay.
 - **Silent Security Access**: Completely eliminated repetitive system authorization dialogs; credentials are handled silently in the background with zero modal popups.
 - **Instant Wake Authentication**: Face ID seamlessly recognizes you immediately when waking your Mac or opening the MacBook lid, eliminating initial settle delays.
@@ -9,7 +9,7 @@
 - **Continuous Camera Stability**: Automatically recovers camera hardware handles after prolonged sleep and power-down cycles, ensuring Face ID remains responsive throughout days of use.
 
 ### 🖥️ Multi-Display Freedom & Notch Design Harmony
-- **Snug 20% Reduced Notch Width**: Scaled down collapsed notch and compact Dynamic Island widths to snuggly hug the physical MacBook camera cutout with zero excess black margin.
+- **Pixel-Perfect Physical Notch Coverage**: The closed notch silhouette dynamically matches your exact hardware bezel cut-out, keeping Inline HUD indicators (volume, brightness, battery) perfectly aligned on each side of the camera.
 - **Hardware-Aware Dynamic Island**: On MacBooks with a physical notch, Dynamic Island mode automatically calculates clearance below the notch bezel so it never hides behind the physical display cut-out.
 - **Universal Dynamic Island & Notch Modes**: Dynamic Island and standard Notch modes can now be freely chosen across any monitor—including MacBooks with a physical notch and external screens.
 - **Instant Cable Hotplug Detection**: Unplugging or reconnecting external displays immediately reroutes NotchPulse to the active screen with zero delay or manual app restart required.

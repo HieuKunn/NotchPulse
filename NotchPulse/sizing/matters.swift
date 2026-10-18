@@ -130,7 +130,7 @@ enum MusicPlayerImageSizes {
     return resolveScreen(screenUUID: screenUUID)?.frame
 }
 
-public let compactDynamicIslandWidth: CGFloat = 134
+public let compactDynamicIslandWidth: CGFloat = 126
 public let compactDynamicIslandHeight: CGFloat = 32
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
