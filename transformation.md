@@ -109,9 +109,22 @@
    - Đường viền tóc chuẩn Apple: Viền sáng phản quang siêu mỏng `0.75pt` bắt sáng theo nguồn sáng của hình nền.
    - Typography dùng `.primary` (tự động đảo màu sáng/tối với độ tương phản cao) và `.secondary` cho tên nghệ sĩ.
    - Neo cố định trên màn hình chính, không giật theo chuột khi sử dụng đa màn hình.
-3. **Full-Screen Immersive Player (Chế độ Phóng to Toàn màn hình):**
-   - Giữ nền Ambient Blur phóng to từ ảnh bìa album art.
-   - Cột lời bài hát hiển thị font SF Pro Rounded cỡ lớn, dòng đang hát sáng rực rỡ, dòng chưa hát mờ dần chuẩn Apple Music Sing.
+3. **Full-Screen Immersive Player (Khi Phóng To Toàn Màn Hình ở Lock Screen):**
+   - **Hoạt ảnh Chuyển cảnh (Zoom Transition):** Khi bấm vào thẻ mini hoặc nút phóng to, thẻ bung nở toàn màn hình bằng lò xo mượt mà (`.spring(response: 0.45, dampingFraction: 0.85)`), ảnh bìa album nở to và đẩy trôi dạt sang cột bên trái.
+   - **Nền Ambient Gradient Động (Dynamic Fluid Ambient Blur):** 
+     - Trích xuất bảng màu chủ đạo (Dominant Palette) từ bìa Album, phóng to làm mờ quang học (`blur(radius: 70)` kết hợp với `Material`) phủ kín màn hình.
+     - Nền chuyển động nhẹ nhàng theo nhịp thở của bài hát (Subtle Breathing Motion), tự động thích ứng để dù hình nền sáng hay tối thì chữ và controller vẫn đạt độ tương phản chuẩn Accessibility của Apple.
+   - **Bố cục 2 Cột Chuẩn Apple Music Sing:**
+     - **Cột Trái (Artwork & Controller):** 
+       - Ảnh bìa kích thước lớn (bo góc 24px) có bóng đổ mềm (soft ambient shadow).
+       - Tên bài hát, ca sĩ hiển thị lớn, sắc nét với độ phân cấp quang học chuẩn (`.primary` / `.secondary`).
+       - Thanh Scrubber thời gian và nút Play/Pause, Next, Volume dạng Capsule kính mờ có phản hồi ánh sáng khi hover/bấm.
+       - Bấm vào ảnh bìa để thu nhỏ mượt mà trở lại về thẻ compact mini.
+     - **Cột Phải (Live Karaoke Synced Lyrics):**
+       - Lời bài hát cuộn thời gian thực đồng bộ theo từng mili-giây.
+       - Dòng đang hát: Font SF Pro Rounded cỡ lớn, sáng rực rỡ (100% white glow), tự động cuộn vào trung tâm mắt nhìn.
+       - Các dòng trước/sau: Mờ dần (opacity 35%) và áp dụng hiệu ứng làm mờ nhẹ (Gaussian blur) tạo chiều sâu sân khấu chuẩn Apple Music Sing trên Apple TV/iPad.
+       - Cho phép click vào bất kỳ câu hát nào để tua nhanh (seek) đến đúng đoạn nhạc đó.
 
 ---
 
