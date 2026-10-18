@@ -25,7 +25,7 @@ final class FeatureTourController: NSObject, ObservableObject {
     static let shared = FeatureTourController()
 
     @Published public var isTourActive: Bool = false
-    public var interactiveCardRect: CGRect?
+    @Published public var interactiveCardRect: CGRect?
     @Published public var settingsGearScreenRect: CGRect?
     private var tourWindow: NSWindow?
 
@@ -65,7 +65,7 @@ final class FeatureTourController: NSObject, ObservableObject {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = .mainMenu + 4
+        window.level = .mainMenu + 2
         window.ignoresMouseEvents = false
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.setFrame(screen.frame, display: true)
@@ -85,7 +85,10 @@ final class FeatureTourController: NSObject, ObservableObject {
         // Bring to front
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
+        
+        // Ensure open Notch window is in front and directly interactive
+        appDelegate?.window?.orderFrontRegardless()
+        appDelegate?.skyWindow?.orderFrontRegardless()
     }
 
     func dismissTour() {

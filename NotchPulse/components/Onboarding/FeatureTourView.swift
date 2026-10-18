@@ -413,7 +413,7 @@ struct FeatureTourView: View {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = .mainMenu + 4
+        window.level = .mainMenu + 2
         
         let screen = targetScreen
         window.setFrame(screen.frame, display: true, animate: true)
@@ -444,6 +444,11 @@ struct FeatureTourView: View {
             }
             targetVM.open()
         }
+        
+        // Ensure open Notch window stays in front and interactive on every tour step
+        let appDelegate = (NSApp.delegate as? AppDelegate) ?? AppDelegate.shared
+        appDelegate?.window?.orderFrontRegardless()
+        appDelegate?.skyWindow?.orderFrontRegardless()
     }
     
     private func teardownNotch() {

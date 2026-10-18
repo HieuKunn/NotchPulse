@@ -1147,7 +1147,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.backgroundColor = .clear
                 window.isOpaque = false
                 window.hasShadow = false
-                window.level = .mainMenu + 4
+                window.level = .mainMenu + 2
                 window.ignoresMouseEvents = false
                 window.setFrame(screen.frame, display: true)
             } else {
