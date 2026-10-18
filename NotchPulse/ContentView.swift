@@ -18,14 +18,8 @@ struct ContentView: View {
     @ObservedObject var volumeManager = VolumeManager.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
-    @State private var isTopSensorHovered: Bool = false
-    @State private var isNotchContainerHovered: Bool = false
-    private var isOverallHovered: Bool {
-        isTopSensorHovered || isNotchContainerHovered
-    }
     @State private var anyDropDebounceTask: Task<Void, Never>?
     @State private var fullscreenHoverDebounceTask: Task<Void, Never>?
-    @State private var openWatchdogTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
 
@@ -402,11 +396,11 @@ struct ContentView: View {
             .shadow(
                 color: isIsland
                     ? (Defaults[.enableShadow] ? .black.opacity(0.65) : .clear)
-                    : (((vm.notchState == .open || isOverallHovered || isFaceIDContentVisible) && Defaults[.enableShadow])
+                    : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
                         ? .black.opacity(0.7) : .clear),
                 radius: isIsland
                     ? (Defaults[.enableShadow] ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : 0)
-                    : (((vm.notchState == .open || isOverallHovered || isFaceIDContentVisible) && Defaults[.enableShadow]) ? (Defaults[.cornerRadiusScaling] ? 6 : 4) : 0),
+                    : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow]) ? (Defaults[.cornerRadiusScaling] ? 6 : 4) : 0),
                 x: 0,
                 y: isIsland ? 4 : 0
             )
@@ -418,7 +412,6 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            topEdgeHoverSensor
             dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
@@ -437,8 +430,7 @@ struct ContentView: View {
                             .animation(.smooth, value: gestureProgress)
                     }
                     .onHover { hovering in
-                        isNotchContainerHovered = hovering
-                        handleHover(isOverallHovered)
+                        handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
                             if hovering && faceIDOverlay.phase != .onboarding {
@@ -491,35 +483,20 @@ struct ContentView: View {
                         updateFaceIDExpansion()
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .sharingDidFinish)) { _ in
-                        if vm.notchState == .open && !isOverallHovered && !vm.isBatteryPopoverActive {
-                            hoverTask?.cancel()
-                            hoverTask = Task {
-                                try? await Task.sleep(for: .milliseconds(100))
-                                guard !Task.isCancelled else { return }
-                                await MainActor.run {
-                                    if self.vm.notchState == .open && !self.isOverallHovered && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                                        self.doClose()
-                                    }
-                                }
-                            }
+                        if vm.notchState == .open && !isHovering && canCloseOnHoverExit {
+                            self.doClose()
                         }
                     }
                     .onChange(of: vm.notchState) { _, newState in
-                        if newState == .closed {
-                            openWatchdogTask?.cancel()
-                            openWatchdogTask = nil
-                            if vm.hideOnClosed {
-                                Task { @MainActor in
-                                    try? await Task.sleep(for: .milliseconds(350))
-                                    if !self.isOverallHovered && self.vm.notchState == .closed {
-                                        withAnimation(animationSpring) {
-                                            self.vm.isHoverRevealed = false
-                                        }
+                        if newState == .closed && vm.hideOnClosed {
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(350))
+                                if !self.isHovering && self.vm.notchState == .closed {
+                                    withAnimation(animationSpring) {
+                                        self.vm.isHoverRevealed = false
                                     }
                                 }
                             }
-                        } else if newState == .open {
-                            startOpenWatchdog()
                         }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .previewNotchWidth)) { notification in
@@ -546,17 +523,8 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.isBatteryPopoverActive) {
-                        if !vm.isBatteryPopoverActive && !isOverallHovered && vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                            hoverTask?.cancel()
-                            hoverTask = Task {
-                                try? await Task.sleep(for: .milliseconds(100))
-                                guard !Task.isCancelled else { return }
-                                await MainActor.run {
-                                    if !self.vm.isBatteryPopoverActive && !self.isOverallHovered && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
-                                        self.doClose()
-                                    }
-                                }
-                            }
+                        if !vm.isBatteryPopoverActive && !isHovering && vm.notchState == .open && canCloseOnHoverExit {
+                            self.doClose()
                         }
                     }
                     .sensoryFeedback(.alignment, trigger: haptics)
@@ -637,8 +605,6 @@ struct ContentView: View {
         }
         .onDisappear {
             stopScanPulse()
-            openWatchdogTask?.cancel()
-            openWatchdogTask = nil
         }
     }
 
@@ -957,26 +923,14 @@ struct ContentView: View {
         )
     }
 
-    @ViewBuilder
-    private var topEdgeHoverSensor: some View {
-        if (vm.hideOnClosed || isDynamicIsland) && !isEffectivelyLocked {
-            let sensorWidth = max(currentNotchWidth + (isDynamicIsland ? 28 : 120), 260)
-            let sensorHeight: CGFloat = vm.notchState == .open
-                ? (vm.customOpenHeight ?? openNotchSize.height) + 24
-                : max(baseClosedHeight + effectiveTopOffset + 8, 44)
-            Color.clear
-                .contentShape(Rectangle())
-                .frame(width: sensorWidth, height: sensorHeight)
-                .onHover { hovering in
-                    handleFullscreenHoverSensor(hovering)
-                }
-        }
-    }
-
-    private func handleFullscreenHoverSensor(_ hovering: Bool) {
-        guard (vm.hideOnClosed || isDynamicIsland) && !isEffectivelyLocked else { return }
-        isTopSensorHovered = hovering
-        handleHover(isOverallHovered)
+    private var canCloseOnHoverExit: Bool {
+        !vm.isBatteryPopoverActive &&
+        !SharingStateManager.shared.preventNotchClose &&
+        !ShelfStateViewModel.shared.isPinned &&
+        !CalendarStateViewModel.shared.isPinned &&
+        !FeatureTourController.shared.isTourActive &&
+        !vm.anyDropZoneTargeting &&
+        !vm.dropEvent
     }
 
     @ViewBuilder
@@ -1018,15 +972,15 @@ struct ContentView: View {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
         if faceIDOverlay.phase != .closed || isFaceIDSettlingAfterClose { return }
         fullscreenHoverDebounceTask?.cancel()
-        
+        hoverTask?.cancel()
+
         if hovering {
             if isEffectivelyLocked {
                 FaceIDOverlayController.shared.activate()
                 return
             }
 
-            let wasHovering = isHovering
-            if !wasHovering {
+            if !isHovering {
                 withAnimation(animationSpring) {
                     isHovering = true
                     if vm.hideOnClosed {
@@ -1036,111 +990,42 @@ struct ContentView: View {
                 if vm.notchState == .closed && Defaults[.enableHaptics] {
                     haptics.toggle()
                 }
-            } else if vm.hideOnClosed && !vm.isHoverRevealed {
-                withAnimation(animationSpring) {
-                    vm.isHoverRevealed = true
-                }
             }
 
             guard vm.notchState == .closed,
                   !coordinator.sneakPeek.show,
                   Defaults[.openNotchOnHover] else { return }
-            
-            // If an open task is already in flight and the user is still hovering, let it complete
-            if hoverTask != nil && wasHovering { return }
-            
-            hoverTask?.cancel()
+
             let delay = max(0.0, Defaults[.minimumHoverDuration])
             if delay <= 0.02 {
                 self.doOpen()
                 return
             }
-            
+
             hoverTask = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(delay))
-                guard !Task.isCancelled else { return }
-                guard !self.isEffectivelyLocked,
+                guard !Task.isCancelled,
+                      !self.isEffectivelyLocked,
                       self.vm.notchState == .closed,
-                      self.isOverallHovered,
+                      self.isHovering,
                       !self.coordinator.sneakPeek.show else { return }
                 self.doOpen()
-                self.hoverTask = nil
             }
         } else {
-            hoverTask?.cancel()
             hoverTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(220))
+                try? await Task.sleep(for: .milliseconds(200))
                 guard !Task.isCancelled else { return }
-                guard !self.isOverallHovered else { return }
 
                 withAnimation(animationSpring) {
                     self.isHovering = false
                 }
-                
-                if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !FeatureTourController.shared.isTourActive && !self.vm.anyDropZoneTargeting && !self.vm.dropEvent {
-                    withAnimation(animationSpring) {
-                        self.vm.close()
-                    }
-                    if self.vm.hideOnClosed {
-                        try? await Task.sleep(for: .milliseconds(350))
-                        guard !Task.isCancelled else { return }
-                        guard !self.isOverallHovered && self.vm.notchState == .closed else { return }
-                        withAnimation(animationSpring) {
-                            self.vm.isHoverRevealed = false
-                        }
-                    }
-                } else if self.vm.hideOnClosed && self.vm.notchState == .closed {
+
+                if self.vm.notchState == .open && self.canCloseOnHoverExit {
+                    self.doClose()
+                }
+                if self.vm.hideOnClosed && self.vm.notchState == .closed {
                     withAnimation(animationSpring) {
                         self.vm.isHoverRevealed = false
-                    }
-                }
-                self.hoverTask = nil
-            }
-        }
-    }
-
-    private func isMouseInsideNotchArea() -> Bool {
-        guard let screen = currentScreen else { return false }
-        let mouse = NSEvent.mouseLocation
-        let screenFrame = screen.frame
-
-        let topOffset = isDynamicIsland ? effectiveTopOffset : 0
-        let totalHeight = currentNotchHeight + topOffset
-        let midX = screenFrame.midX
-        let halfWidth = (currentNotchWidth / 2) + 24
-
-        let notchRect = NSRect(
-            x: midX - halfWidth,
-            y: screenFrame.maxY - totalHeight - 24,
-            width: halfWidth * 2,
-            height: totalHeight + 24
-        )
-
-        return notchRect.contains(mouse)
-    }
-
-    private func startOpenWatchdog() {
-        openWatchdogTask?.cancel()
-        openWatchdogTask = Task { @MainActor in
-            while vm.notchState == .open && !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(160))
-                guard !Task.isCancelled, vm.notchState == .open else { break }
-
-                guard !vm.isBatteryPopoverActive,
-                      !SharingStateManager.shared.preventNotchClose,
-                      !ShelfStateViewModel.shared.isPinned,
-                      !CalendarStateViewModel.shared.isPinned,
-                      !FeatureTourController.shared.isTourActive,
-                      !vm.anyDropZoneTargeting,
-                      !vm.dropEvent else {
-                    continue
-                }
-
-                if !isMouseInsideNotchArea() {
-                    if isNotchContainerHovered || isTopSensorHovered || isHovering {
-                        isNotchContainerHovered = false
-                        isTopSensorHovered = false
-                        handleHover(false)
                     }
                 }
             }
