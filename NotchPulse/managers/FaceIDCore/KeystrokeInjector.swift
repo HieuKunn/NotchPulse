@@ -101,6 +101,8 @@ enum KeystrokeInjector {
               let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else {
             throw KeystrokeError.eventCreationFailed
         }
+        keyDown.flags = []
+        keyUp.flags = []
         utf16.withUnsafeBufferPointer { buf in
             if let base = buf.baseAddress {
                 keyDown.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: base)
@@ -120,6 +122,8 @@ enum KeystrokeInjector {
               let keyUp = CGEvent(keyboardEventSource: source, virtualKey: returnKey, keyDown: false) else {
             throw KeystrokeError.eventCreationFailed
         }
+        keyDown.flags = []
+        keyUp.flags = []
         keyDown.post(tap: .cghidEventTap)
         Thread.sleep(forTimeInterval: 0.012)
         keyUp.post(tap: .cghidEventTap)

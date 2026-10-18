@@ -95,7 +95,7 @@ final class NotchPulsePOCController {
         }
 
         if requireAuthoritativeLock {
-            guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
+            guard NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: true) else {
                 statusMessage = "Skipped: CGSession reports screen is not actually locked."
                 return
             }

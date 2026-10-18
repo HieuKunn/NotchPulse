@@ -107,6 +107,9 @@ final class NotchPulseSpaceKeyMonitor {
     }
 
     deinit {
-        // Always stopped before teardown (on unlock/disable), so nothing to unwind here.
+        if let mgr = manager {
+            IOHIDManagerUnscheduleFromRunLoop(mgr, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+            IOHIDManagerClose(mgr, IOOptionBits(kIOHIDOptionsTypeNone))
+        }
     }
 }

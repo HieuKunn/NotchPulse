@@ -94,21 +94,21 @@ enum NotchPulseVault {
             sessionLock.unlock()
             return key
         }
+        sessionLock.unlock()
+
         if let key = tryAutoLoadKey() {
+            sessionLock.lock()
             _cachedKey = key
             _lastActivityAt = Date()
             sessionLock.unlock()
             NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
             return key
         }
-        // If encrypted data exists, do NOT overwrite with a fresh key
+        // If encrypted data exists, do NOT poison _cachedKey with an ephemeral key!
+        // Return an uncached ephemeral key so subsequent calls can still load the real key from Keychain.
         if hasSessionEncryptedData {
-            NSLog("[NotchPulseVault] Session key missing from cache but encrypted data exists. Returning ephemeral key.")
-            let ephemeralKey = SymmetricKey(size: .bits256)
-            _cachedKey = ephemeralKey
-            _lastActivityAt = Date()
-            sessionLock.unlock()
-            return ephemeralKey
+            NSLog("[NotchPulseVault] Session key missing from cache but encrypted data exists. Returning uncached ephemeral key.")
+            return SymmetricKey(size: .bits256)
         }
         // Generate new key and save as unified payload into Keychain (device-only unlock, no .userPresence gating)
         let key = SymmetricKey(size: .bits256)
@@ -121,6 +121,7 @@ enum NotchPulseVault {
                 accessControl: nil
             )
         }
+        sessionLock.lock()
         _cachedKey = key
         _cachedPassword = nil
         _lastActivityAt = Date()
@@ -135,13 +136,18 @@ enum NotchPulseVault {
             sessionLock.unlock()
             return true
         }
+        sessionLock.unlock()
+
         if let key = tryAutoLoadKey() {
+            sessionLock.lock()
             _cachedKey = key
             _lastActivityAt = Date()
             sessionLock.unlock()
             return true
         }
-        sessionLock.unlock()
+
+        sessionLock.lock()
+        defer { sessionLock.unlock() }
         return !hasSessionEncryptedData || _cachedKey != nil
     }
 
@@ -223,18 +229,14 @@ enum NotchPulseVault {
             sessionLock.unlock()
             return true
         }
-        // If not loaded into memory yet, try silent auto-load
-        if _cachedKey == nil {
-            sessionLock.unlock()
-            _ = tryAutoLoadKey()
-            sessionLock.lock()
-            if let pwd = _cachedPassword, !pwd.isEmpty {
-                sessionLock.unlock()
-                return true
-            }
-        }
         sessionLock.unlock()
-        return false
+
+        // Always try silent auto-load if password is not loaded into memory yet
+        _ = tryAutoLoadKey()
+
+        sessionLock.lock()
+        defer { sessionLock.unlock() }
+        return _cachedPassword != nil && !(_cachedPassword?.isEmpty ?? true)
     }
 
     nonisolated static func hasSessionKey() -> Bool {
@@ -289,13 +291,15 @@ enum NotchPulseVault {
     /// `.resetBytes(in:)` after use. Blocking; call from a background task.
     nonisolated static func readPassword() throws -> Data {
         sessionLock.lock()
-        if let cached = _cachedPassword {
+        if let cached = _cachedPassword, !cached.isEmpty {
             _lastActivityAt = Date()
             sessionLock.unlock()
             return cached
         }
         sessionLock.unlock()
 
+        // If not in cache, reload unified payload and ensure session key
+        _ = tryAutoLoadKey()
         _ = ensureSessionKey()
 
         sessionLock.lock()
