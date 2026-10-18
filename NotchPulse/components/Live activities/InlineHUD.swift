@@ -12,6 +12,10 @@ struct InlineHUD: View {
     @Binding var gestureProgress: CGFloat
     var body: some View {
         let isDynamicIsland = notchStyle == .dynamicIsland
+        let screen = vm.screenUUID.flatMap { NSScreen.screen(withUUID: $0) }
+            ?? NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
+            ?? NSScreen.main
+        let hasPhysicalNotch = screenHasPhysicalNotch(screen)
         let hudHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
         HStack(spacing: type == .battery ? 0 : 8) {
             HStack(spacing: 5) {
@@ -85,7 +89,7 @@ struct InlineHUD: View {
             
             Rectangle()
                 .fill(.black)
-                .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width, type: type))
+                .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: vm.closedNotchSize.width, type: type))
             
             HStack(spacing: 5) {
                 if (type == .battery) {
@@ -223,17 +227,23 @@ struct InlineHUD: View {
         }
     }
 
-    static func centerSpacerWidth(isDynamicIsland: Bool, closedNotchWidth: CGFloat, type: SneakContentType = .volume) -> CGFloat {
+    static func centerSpacerWidth(isDynamicIsland: Bool, hasPhysicalNotch: Bool = false, closedNotchWidth: CGFloat, type: SneakContentType = .volume) -> CGFloat {
+        if isDynamicIsland && !hasPhysicalNotch {
+            if type == .battery {
+                return 12
+            }
+            return 20
+        }
         if type == .battery {
             return max(0, closedNotchWidth + 24)
         }
         return max(0, closedNotchWidth + 8)
     }
 
-    static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, closedNotchWidth: CGFloat) -> CGFloat {
+    static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, hasPhysicalNotch: Bool = false, closedNotchWidth: CGFloat) -> CGFloat {
         let left = leftColumnWidth(for: type)
         let right = rightColumnWidth(for: type)
-        let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, closedNotchWidth: closedNotchWidth, type: type)
+        let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: closedNotchWidth, type: type)
         let padding: CGFloat
         if type == .battery {
             padding = isDynamicIsland ? 8 : 4

@@ -263,7 +263,7 @@ struct ContentView: View {
             chinWidth = openNotchSize.width
         } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
             if Defaults[.inlineHUD] {
-                chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
+                chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
             } else {
                 chinWidth = max(240, vm.closedNotchSize.width) + gestureProgress
             }
@@ -277,8 +277,9 @@ struct ContentView: View {
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
             if isDynamicIsland {
-                let baseSpacer: CGFloat = (Defaults[.sneakPeekStyles] == .inline || hasPhysicalNotch) ? (vm.closedNotchSize.width + 16) : 56
-                let spacerWidth: CGFloat = isInlineMediaActive ? (vm.closedNotchSize.width + 160) : baseSpacer
+                let baseSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 16) : 56
+                let expandedSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 160) : 170
+                let spacerWidth: CGFloat = isInlineMediaActive ? expandedSpacer : baseSpacer
                 chinWidth = (artSize * 2) + spacerWidth + 24 + gestureProgress
             } else {
                 let extraWidth: CGFloat = isInlineMediaActive ? 144 : 16
@@ -853,9 +854,10 @@ struct ContentView: View {
             && coordinator.expandingView.type == .music
             && Defaults[.sneakPeekStyles] == .inline
 
-        let baseSpacer: CGFloat = (Defaults[.sneakPeekStyles] == .inline || hasPhysicalNotch) ? (vm.closedNotchSize.width + 16) : 56
+        let baseSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 16) : 56
+        let expandedSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 160) : 170
         let spacerWidth: CGFloat = isDynamicIsland
-            ? (isInlineExpanded ? vm.closedNotchSize.width + 160 : baseSpacer)
+            ? (isInlineExpanded ? expandedSpacer : baseSpacer)
             : (isInlineExpanded ? vm.closedNotchSize.width + 144 : vm.closedNotchSize.width + 16)
 
         HStack(spacing: 0) {
@@ -888,10 +890,10 @@ struct ContentView: View {
                                     Defaults[.coloredSpectrogram]
                                         ? Color(nsColor: musicManager.avgColor) : Color.white
                                 )
-                                .frame(maxWidth: isDynamicIsland ? 65 : 55, alignment: .leading)
+                                .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .leading)
                                 .opacity(isInlineExpanded ? 1 : 0)
 
-                            Spacer(minLength: vm.closedNotchSize.width + 24)
+                            Spacer(minLength: hasPhysicalNotch ? (vm.closedNotchSize.width + 24) : 16)
 
                             // Song Artist
                             Text(musicManager.artistName)
@@ -903,7 +905,7 @@ struct ContentView: View {
                                         ? Color(nsColor: musicManager.avgColor).opacity(0.85)
                                         : Color.white.opacity(0.7)
                                 )
-                                .frame(maxWidth: isDynamicIsland ? 65 : 55, alignment: .trailing)
+                                .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .trailing)
                                 .opacity(isInlineExpanded ? 1 : 0)
                         }
                     }

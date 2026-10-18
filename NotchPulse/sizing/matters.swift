@@ -48,13 +48,8 @@ enum DeviceHardwareInfo {
         return true
     }
     // If device is a notch model and this is the built-in screen
-    if DeviceHardwareInfo.deviceHasPhysicalNotch {
-        if screen.isBuiltIn {
-            return true
-        }
-        if NSScreen.screens.count == 1 {
-            return true
-        }
+    if DeviceHardwareInfo.deviceHasPhysicalNotch && screen.isBuiltIn {
+        return true
     }
     return false
 }
