@@ -96,6 +96,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentViewObserver: AnyCancellable?
     private(set) var faceIDCameraWindow: NSWindow?
     private(set) var faceIDCameraVM: NotchPulseViewModel?
+    private var displayFallbackTask: Task<Void, Never>?
 
     func resetAllDropAndDragTargeting() {
         for vm in viewModels.values {
@@ -133,6 +134,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     func cleanupForTermination() {
+        displayFallbackTask?.cancel()
+        displayFallbackTask = nil
         NSApplication.shared.windows.forEach { $0.orderOut(nil) }
         cleanupWindows()
         cleanupDragDetectors()
@@ -522,13 +525,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             || FaceIDOverlayController.shared.phase == .onboarding
             || FaceIDOverlayController.shared.phase == .collapsing
             || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed)
-            || (isLockScreen && (FaceIDOverlayController.shared.isArmed || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled))
 
         let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
         let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice)
         let camUUID = camScreen?.displayUUID
 
-        if isLockScreen && isFaceIDNeeded {
+        if isLockScreen {
             // Elevate the primary window on lock screen
             if let skyWindow = self.window as? NotchPulseSkyLightWindow {
                 skyWindow.enableSkyLight()
@@ -1025,22 +1027,51 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // 1. Prioritize explicitly preferred display chosen by user
             if let preferredUUID = coordinator.preferredScreenUUID,
                let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
+                displayFallbackTask?.cancel()
+                displayFallbackTask = nil
                 coordinator.selectedScreenUUID = preferredUUID
                 targetScreen = preferredScreen
             } else if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
                 targetScreen = activeScreen
             } else {
                 // The preferred display was disconnected or not found.
-                // Fall back gracefully so the notch never disappears!
-                let fallback = NSScreen.main
-                    ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
-                    ?? NSScreen.screens.first
+                // If the user configured a preferred display, grant a 1.5s grace period
+                // to let external monitors wake up and complete handshake before falling back.
+                if let preferredUUID = coordinator.preferredScreenUUID, displayFallbackTask == nil {
+                    displayFallbackTask = Task { @MainActor [weak self] in
+                        try? await Task.sleep(for: .milliseconds(1500))
+                        guard let self = self, !Task.isCancelled else { return }
+                        self.displayFallbackTask = nil
 
-                if let fallback, let fallbackUUID = fallback.displayUUID {
-                    coordinator.selectedScreenUUID = fallbackUUID
-                    targetScreen = fallback
-                } else {
+                        // Re-check after grace period: if preferred display is truly gone, execute fallback
+                        if NSScreen.screen(withUUID: preferredUUID) == nil {
+                            let fallback = NSScreen.main
+                                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+                                ?? NSScreen.screens.first
+
+                            if let fallback, let fallbackUUID = fallback.displayUUID {
+                                self.coordinator.selectedScreenUUID = fallbackUUID
+                                self.adjustWindowPosition(changeAlpha: true)
+                                self.setupDetectors()
+                            }
+                        }
+                    }
+                }
+
+                // If within grace period for an existing preferred display, do not immediately force to camera screen
+                if coordinator.preferredScreenUUID != nil && displayFallbackTask != nil {
                     targetScreen = nil
+                } else {
+                    let fallback = NSScreen.main
+                        ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+                        ?? NSScreen.screens.first
+
+                    if let fallback, let fallbackUUID = fallback.displayUUID {
+                        coordinator.selectedScreenUUID = fallbackUUID
+                        targetScreen = fallback
+                    } else {
+                        targetScreen = nil
+                    }
                 }
             }
 
