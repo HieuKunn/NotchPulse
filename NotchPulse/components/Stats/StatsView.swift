@@ -850,7 +850,7 @@ private struct CoolingSliderView: View {
 
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.primary.opacity(0.12))
+                        .fill(Color.white.opacity(0.09))
                         .frame(height: 7)
 
                     Capsule()
@@ -865,7 +865,6 @@ private struct CoolingSliderView: View {
 
                     Circle()
                         .fill(Color.white)
-                        .shadow(color: Color.black.opacity(0.25), radius: 2, y: 1)
                         .frame(width: 11, height: 11)
                         .offset(x: knobOffset)
                 }

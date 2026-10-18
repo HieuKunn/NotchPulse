@@ -73,77 +73,95 @@ struct SettingsView: View {
             .listStyle(SidebarListStyle())
             .tint(.effectiveAccent)
             .toolbar(removing: .sidebarToggle)
-            .navigationSplitViewColumnWidth(min: 200, ideal: 215, max: 250)
+            .navigationSplitViewColumnWidth(200)
         } detail: {
-            Group {
-                switch selectedTab {
-                case "General":
-                    GeneralSettings()
-                case "Appearance":
-                    Appearance()
-                case "Media":
-                    Media()
-                case "Calendar":
-                    CalendarSettings()
-                case "HUD":
-                    HUD()
-                case "SystemMonitor":
-                    SystemMonitorSettingsView()
-                case "FaceID":
-                    FaceIDSettingsView()
-                case "Shelf":
-                    Shelf()
-                case "Clipboard":
-                    ClipboardSettingsView()
-                case "Audio":
-                    AudioSettingsView()
-                case "Shortcuts":
-                    Shortcuts()
-                case "Extensions":
-                    GeneralSettings()
-                case "Advanced":
-                    Advanced()
-                case "Language":
-                    LanguageSettingsView()
-                case "About":
-                    if let controller = updaterController {
-                        About(updaterController: controller)
-                    } else {
-                        // Fallback with a default controller
-                        About(
-                            updaterController: SPUStandardUpdaterController(
-                                startingUpdater: false, updaterDelegate: nil,
-                                userDriverDelegate: nil))
-                    }
-                default:
-                    GeneralSettings()
-                }
-            }
-            .navigationTitle(tabTitle(for: selectedTab))
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        if let appDelegate = NSApp.delegate as? AppDelegate {
-                            appDelegate.isUserInitiatedQuit = true
-                            appDelegate.quitApplication()
-                        } else if let appDelegate = AppDelegate.shared {
-                            appDelegate.isUserInitiatedQuit = true
-                            appDelegate.quitApplication()
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "power")
-                            Text(loc("Quit app"))
+            VStack(spacing: 0) {
+                SettingsDetailHeaderBar(
+                    title: tabTitle(for: selectedTab),
+                    showQuitButton: true
+                )
+
+                ZStack(alignment: .top) {
+                    Group {
+                        switch selectedTab {
+                        case "General":
+                            GeneralSettings()
+                        case "Appearance":
+                            Appearance()
+                        case "Media":
+                            Media()
+                        case "Calendar":
+                            CalendarSettings()
+                        case "HUD":
+                            HUD()
+                        case "SystemMonitor":
+                            SystemMonitorSettingsView()
+                        case "FaceID":
+                            FaceIDSettingsView()
+                        case "Shelf":
+                            Shelf()
+                        case "Clipboard":
+                            ClipboardSettingsView()
+                        case "Audio":
+                            AudioSettingsView()
+                        case "Shortcuts":
+                            Shortcuts()
+                        case "Extensions":
+                            GeneralSettings()
+                        case "Advanced":
+                            Advanced()
+                        case "Language":
+                            LanguageSettingsView()
+                        case "About":
+                            if let controller = updaterController {
+                                About(updaterController: controller)
+                            } else {
+                                // Fallback with a default controller
+                                About(
+                                    updaterController: SPUStandardUpdaterController(
+                                        startingUpdater: false, updaterDelegate: nil,
+                                        userDriverDelegate: nil))
+                            }
+                        default:
+                            GeneralSettings()
                         }
                     }
-                    .help(loc("Quit NotchPulse"))
+                    .hideScrollbar()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .mask {
+                        VStack(spacing: 0) {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0.0),
+                                    .init(color: .black, location: 1.0)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 20)
+
+                            Rectangle()
+                                .fill(Color.black)
+                        }
+                    }
+                    .clipped()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(edges: .top)
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("")
+                    .frame(width: 0, height: 0)
+                    .accessibilityHidden(true)
+            }
+        }
         .formStyle(.grouped)
-        .frame(minWidth: 700, idealWidth: 750, minHeight: 520, idealHeight: 600)
+        .frame(width: 700)
         .applyGlassEffect()
         .tint(.effectiveAccent)
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
@@ -1461,21 +1479,17 @@ struct CalendarSettings: View {
                         .controlSize(.large)
                 }
             }
-            Section {
-                Defaults.Toggle(key: .hideCompletedReminders) {
-                    Text(loc("Hide completed reminders"))
-                }
-                Defaults.Toggle(key: .hideAllDayEvents) {
-                    Text(loc("Hide all-day events"))
-                }
-                Defaults.Toggle(key: .autoScrollToNextEvent) {
-                    Text(loc("Auto-scroll to next event"))
-                }
-                Defaults.Toggle(key: .showFullEventTitles) {
-                    Text(loc("Always show full event titles"))
-                }
-            } header: {
-                Text(loc("Display Options"))
+            Defaults.Toggle(key: .hideCompletedReminders) {
+                Text(loc("Hide completed reminders"))
+            }
+            Defaults.Toggle(key: .hideAllDayEvents) {
+                Text(loc("Hide all-day events"))
+            }
+            Defaults.Toggle(key: .autoScrollToNextEvent) {
+                Text(loc("Auto-scroll to next event"))
+            }
+            Defaults.Toggle(key: .showFullEventTitles) {
+                Text(loc("Always show full event titles"))
             }
 
             Section(header: Text(loc("Lunar Calendar Region"))) {
@@ -2605,6 +2619,55 @@ extension View {
     }
 }
 
+/// Dedicated top header bar displayed across all settings tabs in the detail column.
+/// Provides an Apple-standard frosted glass backdrop and divider so scrolling content
+/// disappears cleanly behind it rather than colliding with title text.
+struct SettingsDetailHeaderBar: View {
+    let title: String
+    var showQuitButton: Bool = false
+    @Default(.appLanguage) private var appLanguage
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Color.primary)
+                .lineLimit(1)
+
+            Spacer()
+
+            if showQuitButton {
+                Button {
+                    if let appDelegate = NSApp.delegate as? AppDelegate {
+                        appDelegate.isUserInitiatedQuit = true
+                        appDelegate.quitApplication()
+                    } else if let appDelegate = AppDelegate.shared {
+                        appDelegate.isUserInitiatedQuit = true
+                        appDelegate.quitApplication()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "power")
+                        Text(loc("Quit app"))
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .contentShape(Rectangle())
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .frame(minHeight: 52)
+        .background {
+            Color(nsColor: .windowBackgroundColor)
+        }
+        .zIndex(100)
+    }
+}
+
 // MARK: - Language Settings View
 struct LanguageSettingsView: View {
     @Default(.appLanguage) private var appLanguage
@@ -2626,7 +2689,9 @@ struct LanguageSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .padding(.bottom, 24)
     }
 }
 

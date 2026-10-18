@@ -11,7 +11,7 @@ struct ClipboardNotchView: View {
             HStack {
                 Text(loc("Clipboard History"))
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
                 Spacer()
                 Text("\(clipboardManager.history.count) \(loc("items"))")
                     .font(.caption)
@@ -245,13 +245,13 @@ struct ClipboardRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayString)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 
                 Text(formatTimestamp(item.timestamp))
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.6))
             }
             
             Spacer()
@@ -275,11 +275,7 @@ struct ClipboardRowView: View {
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.primary.opacity(isHovered ? 0.08 : 0.03))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(isHovered ? 0.12 : 0.05), lineWidth: 0.8)
-                }
+                .fill(Color.white.opacity(isHovered ? 0.08 : 0.04))
         )
         .contentShape(Rectangle())
         .onHover { hovering in
@@ -288,7 +284,6 @@ struct ClipboardRowView: View {
             }
         }
         .onTapGesture {
-            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .default)
             onCopy?()
             withAnimation(.easeInOut(duration: 0.2)) {
                 isCopied = true

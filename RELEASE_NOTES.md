@@ -1,30 +1,18 @@
-# 🌟 Important Release: NotchPulse v6.0 — The Apple Native Liquid Glass Transformation
+## 🚀 What's New in NotchPulse v5.4
 
-This is a major milestone release for NotchPulse, completely reimagining the app with 100% Apple Native Liquid Glass design and fluid 120Hz ProMotion physics. Every component inside and outside the Notch now looks and feels like it was crafted by Apple for macOS Sequoia and Sonoma.
+### 🔒 Face ID Core & Lock Screen Reliability
+- **Instant Wake Authentication**: Face ID seamlessly recognizes you immediately when waking your Mac or opening the MacBook lid, eliminating initial settle delays.
+- **Continuous Camera Stability**: Automatically recovers camera hardware handles after prolonged sleep and power-down cycles, ensuring Face ID remains responsive throughout days of use.
+- **Unified Keychain Security**: Streamlined credential access so authentication works reliably on the lock screen without repeated system permission dialogs.
+- **Memory & Performance Optimization**: High-frequency camera and facial recognition passes are immediately released from memory, keeping NotchPulse ultralight and responsive.
 
----
+### 🎵 Media Display & Visual Polish
+- **Pristine Collapsed Notch on Lock Screen**: The Notch strictly remains an empty, minimal black notch when locked—preventing media visualizers, song labels, or HUD popups from leaking into the chin until you unlock or authenticate.
+- **Smart Cross-Display Lock Screen Media**: The floating lock screen player card anchors directly to your assigned display without jumping between screens when you move the cursor. If an external monitor is disconnected, the player instantly relocates to the center of your Mac display.
+- **Hover-To-Scan Security**: Locking your Mac quietly arms Face ID without prematurely firing the camera; facial authentication activates only when you hover over the Notch, wake the screen, or interact.
 
-### 🪟 Apple Native Liquid Glass Notch
-- **Translucent Liquid Glass Body**: When expanded, the Notch is now composed of genuine Apple frosted liquid glass that softly refracts your desktop wallpaper with a hairline specular highlight border.
-- **The Camera Anchor**: The physical camera area remains pitch black, seamlessly hiding your MacBook camera aperture while the lower drawer opens into translucent frosted glass.
-- **Dark & Light Mode Adaptation**: Automatically shifts between a deep smoked obsidian finish in Dark Mode and a crisp, snowy frost in Light Mode.
-
-### ⚙️ Pure macOS HIG Settings Window
-- **Native Inset Grouped Design**: The Settings window has been completely rebuilt using macOS standard Inset Grouped cards and a clean unified toolbar, removing all non-standard custom header bars.
-- **System-Synced Accents**: Every toggle, slider, and icon follows macOS system colors naturally.
-
-### 🎵 Lock Screen Media Player
-- **Frosted Glass Floating Card**: Replaced flat solid backgrounds with genuine frosted glass that looks breathtaking across all lock screen wallpapers (dark, vibrant, scenic, or bright).
-- **Adaptive Text Legibility**: Song titles and artist names automatically balance contrast so lyrics never wash out on bright backgrounds.
-
-### 🎛️ Upgraded Notch Internal Components
-- **Segmented Glass Tab Bar**: Switch between Home, Shelf, Stats, and Clipboard with a smooth sliding frosted pill and specular lighting.
-- **Control Center-Style Sliders**: Volume, brightness, and cooling sliders now feature Apple Control Center capsules with dynamic drag expansion and natural rubber-band spring elasticity at 0% and 100% bounds.
-- **Dynamic Ambient Glow for Music**: The music player card now gently refracts the dominant color of your current album cover, creating a subtle, warm ambient glow.
-- **Refined Action Buttons**: Header controls (Audio Hub, Camera Mirror, Settings) now feature native circular frosted glass buttons with responsive hover lighting.
-
-### 📋 Ultra-Responsive Clipboard Manager
-- **Zero-Latency Copy Capture**: Optimized clipboard detection to an ultra-responsive 250ms interval with hardware-level keypress detection (Cmd+C and Cmd+X) across all keyboard layouts, ensuring rapid successive copies are never missed.
-- **Multi-File Copy Support**: Copying multiple files from Finder now tracks the entire file collection and lets you paste them all together.
-- **Instant Sync on Interaction**: Clipboard history automatically refreshes the instant you open the Notch or switch to the Clipboard tab.
-- **Native Haptic Feedback**: Feel a subtle, crisp tactile click whenever you tap to re-copy any item from history.
+### ✨ Feature Tour & Spotlight Walkthrough
+- **Dynamic Gear Spotlight Tracking**: The interactive setup spotlight measures the exact on-screen position of the Settings gear in real time, ensuring a perfectly aligned highlight cutout across all Notch sizes and header styles.
+- **Clean Side Guidance**: Onboarding cards dock neatly to the right of the Notch with a clear pointer indicating the Settings gear.
+- **Full Row Clickability**: Click anywhere across the Feature Tour item in Settings to quickly restart the tour at any time.
+- **Mac Fan Controls in Tour**: Tour step 5 showcases real-time fan speed sliders and hardware thermal statistics.

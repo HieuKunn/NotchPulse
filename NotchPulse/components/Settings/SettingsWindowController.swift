@@ -45,10 +45,9 @@ class SettingsWindowController: NSWindowController {
         window.titlebarAppearsTransparent = true
         window.isOpaque = false
         window.backgroundColor = .clear
-        window.titleVisibility = .visible
+        window.titleVisibility = .hidden
         window.toolbarStyle = .unified
-        window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 680, height: 480)
+        window.isMovableByWindowBackground = false
         
         // Make it behave like a regular app window with proper Spaces support
         window.collectionBehavior = [.managed, .participatesInCycle, .fullScreenAuxiliary]

@@ -64,8 +64,8 @@ class NotchPulseSkyLightWindow: NSPanel {
         isReleasedWhenClosed = false
         acceptsMouseMovedEvents = true
         
-        // Dynamically inherit system appearance (Aqua / Dark Aqua)
-        appearance = nil
+        // Force dark appearance regardless of system setting
+        appearance = NSAppearance(named: .darkAqua)
         
         collectionBehavior = [
             .fullScreenAuxiliary,

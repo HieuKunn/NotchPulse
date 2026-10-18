@@ -156,12 +156,9 @@ class AppleMusicController: MediaControllerProtocol {
         updatedState.lastUpdated = Date()
         self.playbackState = updatedState
 
-        if updatedState.isPlaying {
-            let isUIActive = await MainActor.run { MusicManager.shared.isUIActive }
-            if isUIActive {
-                startPeriodicSyncIfNeeded()
-            }
-        } else {
+        if updatedState.isPlaying && MusicManager.shared.isUIActive {
+            startPeriodicSyncIfNeeded()
+        } else if !updatedState.isPlaying {
             stopPeriodicSync()
         }
     }

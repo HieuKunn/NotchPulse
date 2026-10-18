@@ -172,30 +172,30 @@ graph TD
 ```
 
 ### 📍 Giai đoạn 1: Chuẩn hóa Cửa sổ Settings (Pure HIG)
-- [x] Xóa bỏ `SettingsDetailHeaderBar` tự chế.
-- [x] Chuyển các tab cài đặt sang cấu trúc thẻ Inset Grouped (`.formStyle(.grouped)`).
-- [x] Đồng bộ hóa màu chữ, thanh trượt và toggle theo bảng màu hệ thống macOS.
-- [x] Đảm bảo Settings hiển thị hoàn hảo trên cả Dark Mode và Light Mode.
+- [ ] Xóa bỏ `SettingsDetailHeaderBar` tự chế.
+- [ ] Chuyển các tab cài đặt sang cấu trúc thẻ Inset Grouped (`.formStyle(.grouped)`).
+- [ ] Đồng bộ hóa màu chữ, thanh trượt và toggle theo bảng màu hệ thống macOS.
+- [ ] Đảm bảo Settings hiển thị hoàn hảo trên cả Dark Mode và Light Mode.
 
 ### 📍 Giai đoạn 2: Nâng cấp Kính Mờ Native cho Lock Screen Media
-- [x] Thay nền bệt trắng/xám hiện tại trong `LockScreenMediaView.swift` bằng `.ultraThinMaterial` / `NSVisualEffectView`.
-- [x] Bổ sung viền tóc phản quang mỏng bo cong góc 26px / 28px.
-- [x] Tự động thích ứng màu sắc và chữ theo hình nền khoá và chế độ Dark/Light.
+- [ ] Thay nền bệt trắng/xám hiện tại trong `LockScreenMediaView.swift` bằng `.ultraThinMaterial` / `NSVisualEffectView`.
+- [ ] Bổ sung viền tóc phản quang mỏng bo cong góc 26px.
+- [ ] Tự động thích ứng màu sắc và chữ theo hình nền khoá và chế độ Dark/Light.
 
 ### 📍 Giai đoạn 3: Xây dựng Liquid Material Engine cho Notch
-- [x] Cập nhật ContentView.swift: Tích hợp lớp nền chuyển đổi Đóng (Black Anchor) -> Mở (Native Material).
-- [x] Duy trì cụm đen che đỉnh camera vật lý khi ở kiểu Notch (cả màn MacBook và màn ngoài).
-- [x] Thêm đường viền tóc phản quang mảnh chuẩn Apple bao quanh thân mở rộng.
+- [ ] Cập nhật [ContentView.swift](file:///Users/hieukunn/Learning%20ITM/My%20project/NotchPulse/NotchPulse/ContentView.swift): Tích hợp lớp nền chuyển đổi Đóng (Black Anchor) -> Mở (Native Material).
+- [ ] Duy trì cụm đen che đỉnh camera vật lý khi ở kiểu Notch (cả màn MacBook và màn ngoài).
+- [ ] Thêm đường viền tóc phản quang mảnh chuẩn Apple bao quanh thân mở rộng.
 
 ### 📍 Giai đoạn 4: Nâng cấp Linh kiện bên trong Notch
-- [x] Chuyển đổi Card nhạc, Bảng lịch, Ngăn quạt tản nhiệt, Kệ file sang vật liệu kính mờ.
-- [x] Thay thế các nút Tab bọc đen lì sang thanh phân đoạn kính mờ tinh tế.
-- [x] Thay thế thanh trượt Volume / Brightness / Fan sang Capsule chuẩn hệ thống.
+- [ ] Chuyển đổi Card nhạc, Bảng lịch, Ngăn quạt tản nhiệt, Kệ file sang vật liệu kính mờ.
+- [ ] Thay thế các nút Tab bọc đen lì sang thanh phân đoạn kính mờ tinh tế.
+- [ ] Thay thế thanh trượt Volume / Brightness / Fan sang Capsule chuẩn hệ thống.
 
 ### 📍 Giai đoạn 5: Kiểm thử và Hoàn thiện
-- [x] Test thực tế khi đổi hình nền Desktop (sáng, tối, rực rỡ, ảnh phong cảnh).
-- [x] Test chuyển đổi qua lại giữa Light Mode và Dark Mode trong System Settings.
-- [x] Kiểm tra độ mượt 120Hz ProMotion và theo dõi RAM/CPU không bị rò rỉ.
+- [ ] Test thực tế khi đổi hình nền Desktop (sáng, tối, rực rỡ, ảnh phong cảnh).
+- [ ] Test chuyển đổi qua lại giữa Light Mode và Dark Mode trong System Settings.
+- [ ] Kiểm tra độ mượt 120Hz ProMotion và theo dõi RAM/CPU không bị rò rỉ.
 
 ---
 

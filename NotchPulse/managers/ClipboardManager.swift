@@ -27,18 +27,10 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
     
     var displayString: String {
         if isImage {
-            return loc("[Copied Image]")
+            return "[Copied Image]"
         }
-        if type == .file, let str = contentString ?? urlString {
-            if str.contains("\n") {
-                let lines = str.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-                if let first = lines.first {
-                    let name = (first as NSString).lastPathComponent
-                    let extra = lines.count - 1
-                    return extra > 0 ? "\(name) (+\(extra) \(loc("files")))" : name
-                }
-            }
-            if let url = URL(string: str), url.scheme != nil {
+        if type == .file, let str = urlString ?? contentString {
+            if let url = URL(string: str) {
                 return url.lastPathComponent
             }
             return (str as NSString).lastPathComponent
@@ -46,7 +38,7 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
         if let text = contentString {
             return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        return loc("Image / Rich Data")
+        return "Image / Rich Data"
     }
 
     /// Dynamically loads full image data from disk cache file on demand; never hoarded in RAM.
@@ -151,9 +143,6 @@ final class ClipboardManager: ObservableObject {
 
     private var pollTimer: Timer?
     private var copyKeyMonitor: Any?
-    private var localKeyMonitor: Any?
-    private var appActivationObserver: Any?
-    private var appActiveObserver: Any?
     private let pasteboard = NSPasteboard.general
     private var lastChangeCount: Int = -1
     private let storageKey = "NotchPulse_SavedClipboardHistory"
@@ -197,73 +186,28 @@ final class ClipboardManager: ObservableObject {
             guard let self = self else { return }
             self.stopMonitoring()
 
-            // 1. Global event-driven copy detector (Cmd+C / Cmd+X across all external macOS apps)
+            // 1. Instant event-driven copy detector: Fires immediately on Cmd+C / Cmd+X so no copy is ever missed
             self.copyKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                if flags.contains(.command) {
-                    let chars = event.charactersIgnoringModifiers?.lowercased()
-                    // Keycode 8 = 'C', Keycode 7 = 'X' (hardware-independent across all keyboard layouts)
-                    if chars == "c" || chars == "x" || event.keyCode == 8 || event.keyCode == 7 {
-                        self?.scheduleMultipleChecks()
+                if flags.contains(.command), let chars = event.charactersIgnoringModifiers?.lowercased() {
+                    if chars == "c" || chars == "x" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                            self?.checkForChanges()
+                        }
                     }
                 }
             }
 
-            // 2. Local event-driven copy detector (Cmd+C / Cmd+X within NotchPulse windows & popovers)
-            self.localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                if flags.contains(.command) {
-                    let chars = event.charactersIgnoringModifiers?.lowercased()
-                    if chars == "c" || chars == "x" || event.keyCode == 8 || event.keyCode == 7 {
-                        self?.scheduleMultipleChecks()
-                    }
-                }
-                return event
-            }
-
-            // 3. Application activation observer: Immediately checks pasteboard whenever user switches apps,
-            // catching right-click "Copy", terminal copies, or drag-and-drop operations without any polling delay
-            self.appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
-                forName: NSWorkspace.didActivateApplicationNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
+            // 2. Background polling fallback for right-click context menu "Copy" operations
+            let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
-
-            self.appActiveObserver = NotificationCenter.default.addObserver(
-                forName: NSApplication.didBecomeActiveNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                self?.checkForChanges()
-            }
-
-            // 4. Ultra-responsive 250ms polling fallback: Checks integer changeCount (<0.001ms CPU).
-            // Prevents any copies from being missed during rapid successive copies or automated scripts.
-            let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
-                self?.checkForChanges()
-            }
-            timer.tolerance = 0.05
+            timer.tolerance = 0.2
             RunLoop.main.add(timer, forMode: .common)
             self.pollTimer = timer
 
             // Check immediately on startup
             self.checkForChanges()
-        }
-    }
-
-    private func scheduleMultipleChecks() {
-        // Staggered multi-stage checks to reliably capture both fast sync apps and slower async apps
-        // (e.g. Chrome, Safari, Electron, Microsoft Word, IDEs) without missing a single copy
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) { [weak self] in
-            self?.checkForChanges()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.checkForChanges()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-            self?.checkForChanges()
         }
     }
 
@@ -285,18 +229,6 @@ final class ClipboardManager: ObservableObject {
                 NSEvent.removeMonitor(monitor)
                 self?.copyKeyMonitor = nil
             }
-            if let monitor = self?.localKeyMonitor {
-                NSEvent.removeMonitor(monitor)
-                self?.localKeyMonitor = nil
-            }
-            if let obs = self?.appActivationObserver {
-                NSWorkspace.shared.notificationCenter.removeObserver(obs)
-                self?.appActivationObserver = nil
-            }
-            if let obs = self?.appActiveObserver {
-                NotificationCenter.default.removeObserver(obs)
-                self?.appActiveObserver = nil
-            }
         }
     }
 
@@ -308,23 +240,16 @@ final class ClipboardManager: ObservableObject {
 
         // 1. Check File URLs first
         if let fileURLs = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
-           !fileURLs.isEmpty {
-            let firstURL = fileURLs[0]
-            let allPaths = fileURLs.map(\.path).joined(separator: "\n")
-            let primaryURLString = firstURL.absoluteString
-            let primaryPath = firstURL.path
-
-            if let first = history.first, first.type == .file {
-                if first.urlString == primaryURLString || first.contentString == allPaths || first.contentString == primaryPath {
-                    return
-                }
+           let firstURL = fileURLs.first {
+            let urlString = firstURL.absoluteString
+            if history.first?.urlString == urlString || history.first?.contentString == firstURL.path {
+                return
             }
-
             let newItem = ClipboardItem(
                 id: UUID(),
                 type: .file,
-                contentString: fileURLs.count > 1 ? allPaths : primaryPath,
-                urlString: primaryURLString,
+                contentString: firstURL.path,
+                urlString: urlString,
                 imageData: nil,
                 timestamp: Date()
             )
@@ -351,17 +276,10 @@ final class ClipboardManager: ObservableObject {
             return
         }
 
-        // 3. Check Text / String with native NSString object coercion fallback
-        var rawString = pasteboard.string(forType: .string)
+        // 3. Check Text / String
+        let rawString = pasteboard.string(forType: .string)
             ?? pasteboard.string(forType: NSPasteboard.PasteboardType("public.utf8-plain-text"))
             ?? pasteboard.string(forType: NSPasteboard.PasteboardType("NSStringPboardType"))
-
-        if rawString == nil || rawString?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
-            if let strings = pasteboard.readObjects(forClasses: [NSString.self], options: nil) as? [String],
-               let first = strings.first, !first.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                rawString = first
-            }
-        }
 
         if let string = rawString, !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if history.first?.contentString == string {
@@ -550,19 +468,9 @@ final class ClipboardManager: ObservableObject {
                 }
             }
         } else if item.type == .file || (item.urlString?.hasPrefix("file://") == true),
-                  let fileStr = item.contentString ?? item.urlString {
-            if fileStr.contains("\n") {
-                let paths = fileStr.components(separatedBy: "\n").filter { !$0.isEmpty }
-                let urls = paths.map { URL(fileURLWithPath: $0) as NSURL }
-                if !urls.isEmpty {
-                    pasteboard.writeObjects(urls)
-                }
-            } else if let fileURL = URL(string: fileStr), fileURL.scheme != nil {
-                pasteboard.writeObjects([fileURL as NSURL, fileStr as NSString])
-            } else {
-                let fileURL = URL(fileURLWithPath: fileStr)
-                pasteboard.writeObjects([fileURL as NSURL, fileStr as NSString])
-            }
+                  let fileStr = item.urlString ?? item.contentString,
+                  let fileURL = URL(string: fileStr) {
+            pasteboard.writeObjects([fileURL as NSURL, fileStr as NSString])
         } else if item.type == .url || (item.urlString?.hasPrefix("http") == true),
                   let urlStr = item.urlString ?? item.contentString,
                   let url = URL(string: urlStr) {

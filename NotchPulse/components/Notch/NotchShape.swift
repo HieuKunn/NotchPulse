@@ -1,18 +1,15 @@
 import SwiftUI
 
 struct NotchShape: Shape {
-    var topCornerRadius: CGFloat
-    var bottomCornerRadius: CGFloat
-    var isClosed: Bool = true
+    private var topCornerRadius: CGFloat
+    private var bottomCornerRadius: CGFloat
 
     init(
         topCornerRadius: CGFloat? = nil,
-        bottomCornerRadius: CGFloat? = nil,
-        isClosed: Bool = true
+        bottomCornerRadius: CGFloat? = nil
     ) {
         self.topCornerRadius = topCornerRadius ?? 6
         self.bottomCornerRadius = bottomCornerRadius ?? 14
-        self.isClosed = isClosed
     }
 
     var animatableData: AnimatablePair<CGFloat, CGFloat> {
@@ -103,15 +100,12 @@ struct NotchShape: Shape {
             )
         )
 
-        if isClosed {
-            path.addLine(
-                to: CGPoint(
-                    x: rect.minX,
-                    y: rect.minY
-                )
+        path.addLine(
+            to: CGPoint(
+                x: rect.minX,
+                y: rect.minY
             )
-            path.closeSubpath()
-        }
+        )
 
         return path
     }
