@@ -166,10 +166,9 @@ final class VolumeManager: NSObject, ObservableObject {
         }
     }
 
-    private func setupAudioListener() {
-        let deviceID = systemOutputDeviceID()
-        guard deviceID != kAudioObjectUnknown else { return }
+    private var currentObservedDeviceID: AudioObjectID = kAudioObjectUnknown
 
+    private func setupAudioListener() {
         var defaultDevAddr = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -177,9 +176,21 @@ final class VolumeManager: NSObject, ObservableObject {
         )
         AudioObjectAddPropertyListenerBlock(
             AudioObjectID(kAudioObjectSystemObject), &defaultDevAddr, nil
-        ) { _, _ in
-            self.fetchCurrentVolume()
+        ) { [weak self] _, _ in
+            self?.rebindDeviceListeners()
         }
+
+        rebindDeviceListeners()
+    }
+
+    private func rebindDeviceListeners() {
+        let deviceID = systemOutputDeviceID()
+        guard deviceID != kAudioObjectUnknown else { return }
+        guard deviceID != currentObservedDeviceID else {
+            fetchCurrentVolume()
+            return
+        }
+        currentObservedDeviceID = deviceID
 
         var masterAddr = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyVolumeScalar,
@@ -187,8 +198,8 @@ final class VolumeManager: NSObject, ObservableObject {
             mElement: kAudioObjectPropertyElementMain
         )
         if AudioObjectHasProperty(deviceID, &masterAddr) {
-            AudioObjectAddPropertyListenerBlock(deviceID, &masterAddr, nil) { _, _ in
-                self.fetchCurrentVolume()
+            AudioObjectAddPropertyListenerBlock(deviceID, &masterAddr, nil) { [weak self] _, _ in
+                self?.fetchCurrentVolume()
             }
         } else {
             for ch in [UInt32(1), UInt32(2)] {
@@ -198,8 +209,8 @@ final class VolumeManager: NSObject, ObservableObject {
                     mElement: ch
                 )
                 if AudioObjectHasProperty(deviceID, &chAddr) {
-                    AudioObjectAddPropertyListenerBlock(deviceID, &chAddr, nil) { _, _ in
-                        self.fetchCurrentVolume()
+                    AudioObjectAddPropertyListenerBlock(deviceID, &chAddr, nil) { [weak self] _, _ in
+                        self?.fetchCurrentVolume()
                     }
                 }
             }
@@ -212,10 +223,12 @@ final class VolumeManager: NSObject, ObservableObject {
             mElement: kAudioObjectPropertyElementMain
         )
         if AudioObjectHasProperty(deviceID, &muteAddr) {
-            AudioObjectAddPropertyListenerBlock(deviceID, &muteAddr, nil) { _, _ in
-                self.fetchCurrentVolume()
+            AudioObjectAddPropertyListenerBlock(deviceID, &muteAddr, nil) { [weak self] _, _ in
+                self?.fetchCurrentVolume()
             }
         }
+
+        fetchCurrentVolume()
     }
 
     private func readVolumeInternal() -> Float32? {

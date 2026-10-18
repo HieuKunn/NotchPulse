@@ -31,7 +31,7 @@ struct AudioDeviceItem: Identifiable, Equatable {
     static func == (lhs: AudioDeviceItem, rhs: AudioDeviceItem) -> Bool {
         lhs.id == rhs.id &&
         lhs.isDefault == rhs.isDefault &&
-        abs(lhs.volume - rhs.volume) < 0.01 &&
+        abs(lhs.volume - rhs.volume) < 0.002 &&
         lhs.isMuted == rhs.isMuted &&
         lhs.name == rhs.name &&
         lhs.batteryLevel == rhs.batteryLevel
@@ -68,6 +68,7 @@ final class AudioDeviceManager: ObservableObject {
 
         refreshDevices()
         setupListeners()
+        setupVolumeSync()
     }
 
     // MARK: - CoreAudio Device Refreshing
@@ -89,8 +90,15 @@ final class AudioDeviceManager: ObservableObject {
 
             if hasOutput {
                 let isDef = (id == defaultOutID)
-                let vol = getDeviceVolume(id, isInput: false)
-                let muted = getDeviceMute(id, isInput: false)
+                var vol = getDeviceVolume(id, isInput: false)
+                var muted = getDeviceMute(id, isInput: false)
+                if isDef {
+                    let activeVol = VolumeManager.shared.rawVolume
+                    if activeVol > 0 || VolumeManager.shared.isMuted {
+                        vol = activeVol
+                        muted = VolumeManager.shared.isMuted
+                    }
+                }
                 let type = resolveDeviceType(name: name, transport: transport, isInput: false)
                 let icon = iconForType(type, isInput: false)
                 let battery = (type == .airpods || type == .headphones || type == .bluetooth) ?
@@ -186,19 +194,16 @@ final class AudioDeviceManager: ObservableObject {
                 let match = (updated[i].id == id)
                 updated[i].isDefault = match
                 if match {
-                    self.defaultOutputDevice = updated[i]
                     let targetDev = updated[i]
-                    // Auto-restore saved preferred volume for this device if previously saved
-                    if let savedVol = deviceSavedVolumes[targetDev.uid] {
-                        setDeviceVolume(id: targetDev.id, volume: savedVol, isInput: false)
-                    } else {
-                        let vol = targetDev.volume
-                        VolumeManager.shared.setAbsolute(vol)
-                        NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(vol))
-                    }
+                    let targetVol = deviceSavedVolumes[targetDev.uid] ?? targetDev.volume
+                    updated[i].volume = targetVol
+                    self.defaultOutputDevice = updated[i]
                 }
             }
             self.outputDevices = updated
+            if let def = self.defaultOutputDevice {
+                setDeviceVolume(id: def.id, volume: def.volume, isInput: false)
+            }
         }
 
         // Schedule delayed refreshes to sync with CoreAudio HAL async switch
@@ -386,6 +391,9 @@ final class AudioDeviceManager: ObservableObject {
         if !volumes.isEmpty {
             return volumes.reduce(0, +) / Float(volumes.count)
         }
+        if let uid = getDeviceUID(id), let saved = deviceSavedVolumes[uid] {
+            return saved
+        }
         return 1.0
     }
 
@@ -488,5 +496,42 @@ final class AudioDeviceManager: ObservableObject {
                 self?.refreshDevices()
             }
         }
+    }
+
+    private func setupVolumeSync() {
+        VolumeManager.shared.$rawVolume
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newVol in
+                guard let self = self else { return }
+                guard let defaultID = self.defaultOutputDevice?.id else { return }
+
+                if let idx = self.outputDevices.firstIndex(where: { $0.id == defaultID }) {
+                    if abs(self.outputDevices[idx].volume - newVol) > 0.002 {
+                        self.outputDevices[idx].volume = newVol
+                        self.deviceSavedVolumes[self.outputDevices[idx].uid] = newVol
+                    }
+                }
+                if let def = self.defaultOutputDevice, abs(def.volume - newVol) > 0.002 {
+                    self.defaultOutputDevice?.volume = newVol
+                }
+            }
+            .store(in: &cancellables)
+
+        VolumeManager.shared.$isMuted
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] muted in
+                guard let self = self else { return }
+                guard let defaultID = self.defaultOutputDevice?.id else { return }
+
+                if let idx = self.outputDevices.firstIndex(where: { $0.id == defaultID }) {
+                    if self.outputDevices[idx].isMuted != muted {
+                        self.outputDevices[idx].isMuted = muted
+                    }
+                }
+                if self.defaultOutputDevice?.isMuted != muted {
+                    self.defaultOutputDevice?.isMuted = muted
+                }
+            }
+            .store(in: &cancellables)
     }
 }

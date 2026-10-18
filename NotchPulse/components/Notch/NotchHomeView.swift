@@ -383,6 +383,7 @@ struct VolumeControlView: View {
                         get: { currentEffectiveVolume },
                         set: { newValue in
                             localVolume = newValue
+                            VolumeManager.shared.setAbsolute(Float32(newValue))
                             MusicManager.shared.setVolume(to: newValue)
                         }
                     ),
@@ -392,6 +393,7 @@ struct VolumeControlView: View {
                     lastDragged: .constant(Date.distantPast),
                     onValueChange: { newValue in
                         localVolume = newValue
+                        VolumeManager.shared.setAbsolute(Float32(newValue))
                         MusicManager.shared.setVolume(to: newValue)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                             if !dragging {
@@ -403,6 +405,7 @@ struct VolumeControlView: View {
                         localVolume = newValue
                         let now = Date()
                         if now.timeIntervalSince(lastVolumeUpdateTime) > volumeUpdateThrottle {
+                            VolumeManager.shared.setAbsolute(Float32(newValue))
                             MusicManager.shared.setVolume(to: newValue)
                             lastVolumeUpdateTime = now
                         }

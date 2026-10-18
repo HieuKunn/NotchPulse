@@ -128,6 +128,9 @@ struct AudioHubNotchView: View {
                                         audioManager.setDefaultDevice(id: device.id, isInput: false)
                                     },
                                     onVolumeChange: { newVol in
+                                        if !device.isDefault {
+                                            audioManager.setDefaultDevice(id: device.id, isInput: false)
+                                        }
                                         audioManager.setDeviceVolume(id: device.id, volume: newVol, isInput: false)
                                     },
                                     onMuteToggle: {
@@ -151,6 +154,9 @@ struct AudioHubNotchView: View {
                                         audioManager.setDefaultDevice(id: device.id, isInput: true)
                                     },
                                     onVolumeChange: { newVol in
+                                        if !device.isDefault {
+                                            audioManager.setDefaultDevice(id: device.id, isInput: true)
+                                        }
                                         audioManager.setDeviceVolume(id: device.id, volume: newVol, isInput: true)
                                     },
                                     onMuteToggle: {
@@ -314,6 +320,7 @@ private struct CustomAudioSlider: View {
     @Binding var value: CGFloat
     var range: ClosedRange<CGFloat> = 0...1
     var tintColor: Color = .blue
+    @State private var isDragging: Bool = false
 
     var body: some View {
         GeometryReader { geo in
@@ -350,11 +357,16 @@ private struct CustomAudioSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
+                        isDragging = true
                         let newProgress = max(0, min(1, gesture.location.x / width))
                         let newValue = range.lowerBound + newProgress * (range.upperBound - range.lowerBound)
                         self.value = newValue
                     }
+                    .onEnded { _ in
+                        isDragging = false
+                    }
             )
+            .animation(isDragging ? nil : .easeOut(duration: 0.08), value: progress)
         }
     }
 }
