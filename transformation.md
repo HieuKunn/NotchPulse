@@ -35,6 +35,14 @@
    - ❌ **Không nhét hộp lồng trong hộp (Nested Boxy Syndrome):** Tránh đóng khung Music Player thành một hộp xám đục riêng biệt bên trong Notch. Học tập Apple Control Center: tất cả các widget nằm trên **cùng một mặt phẳng kính quang học chung (Unified Surface Material)**, phân tách bằng khoảng thở (spacing) và độ sáng nền nhẹ (`Color.primary.opacity(0.12)`), không tạo khung viền hộp rời rạc.
    - ❌ **Không gán màu cứng (No Hardcoded Hex/RGB):** Không dùng `Color(white: 0.65)` hay các mã màu tĩnh khiến chữ bị "bết" màu. 100% chữ và biểu tượng dùng Semantic Typography (`.primary`, `.secondary`, `.tertiary`).
 
+6. **Quy tắc Thích ứng Đa Thế hệ macOS (Adaptive OS-Native Evolution):**
+   - **Không phải lúc nào cũng ép "Full Glass":** Bản chất Apple Native là giao diện **tự động phản hồi theo phong cách của từng đời macOS** mà máy tính đang chạy:
+     - **macOS Sequoia (15) / Sonoma (14):** Tận dụng tối đa các vật liệu Liquid Materials, viền phản xạ quang học siêu mỏng, Inset Grouped, và SF Symbols đa sắc (Hierarchical/Multicolor).
+     - **macOS Ventura (13) / Monterey (12):** Tự động render theo phong cách của đời đó: bề mặt kính mờ phẳng hơn (`NSVisualEffectView(material: .hudWindow / .menu)`), nền xám chì cổ điển tinh tế của Apple.
+   - **Khai báo Ngữ nghĩa (Semantic Declarations):**
+     - Không code gán chết "chỗ này phải làm mờ bao nhiêu pixel, màu gì".
+     - Chỉ khai báo vai trò ngữ nghĩa của giao diện (`.ultraThinMaterial`, `NSVisualEffectView`, `Color(nsColor: .windowBackgroundColor)`, `.foregroundStyle(.primary)`), để **chính hệ điều hành macOS tự quyết định cách vẽ và mức độ mờ/kính chuẩn xác nhất theo đời hệ thống**.
+
 ---
 
 ## 🏗️ 2. KIẾN TRÚC THỊ GIÁC: NOTCH vs DYNAMIC ISLAND
@@ -246,6 +254,165 @@ graph TD
 - [ ] Test thực tế khi đổi hình nền Desktop (sáng, tối, rực rỡ, ảnh phong cảnh).
 - [ ] Test chuyển đổi qua lại giữa Light Mode và Dark Mode trong System Settings.
 - [ ] Kiểm tra độ mượt 120Hz ProMotion và theo dõi RAM/CPU không bị rò rỉ.
+
+---
+
+## 🎛️ 9. BỘ 5 PROMPT THỰC THI CHI TIẾT (EXECUTIVE IMPLEMENTATION PROMPTS)
+
+> 💡 **Hướng dẫn:** Sử dụng tuần tự 5 prompt dưới đây khi bắt đầu từng giai đoạn chuyển đổi mã nguồn để đảm bảo độ chính xác tuyệt đối theo tiêu chuẩn của tài liệu này.
+
+---
+
+### 💎 PROMPT 1: Nâng cấp Kính Mờ Native cho Lock Screen Media
+```text
+Bạn là chuyên gia SwiftUI và AppKit trên macOS. Hãy thực hiện Giai đoạn 1 trong transformation.md: Nâng cấp Lock Screen Media Player đạt chuẩn 100% Apple Native Liquid Glass.
+🎯 CÁC FILE MỤC TIÊU:
+- NotchPulse/components/LockScreen/LockScreenMediaView.swift
+- NotchPulse/components/LockScreen/LockScreenMediaWindow.swift
+🔍 HIỆN TRẠNG CẦN SỬA:
+Trong LockScreenMediaView.swift (từ dòng 38 đến 56):
+- compactCardBg đang dùng màu bệt phẳng thủ công: isLightMode ? Color.white : Color(white: 0.10).
+- compactCardBorder đang dùng màu đục Color.black.opacity(0.12) / Color.white.opacity(0.15) với viền 1.2pt.
+- compactPrimaryText và compactSecondaryText đang ép chết màu trắng/đen thủ công.
+🛠️ YÊU CẦU THỰC HIỆN:
+1. Thay thế nền bệt bằng Apple Native Material:
+   - Thay thế toàn bộ compactCardBg trong compactPlayerView bằng vật liệu kính mờ tự nhiên của Apple: .ultraThinMaterial (hoặc NSVisualEffectView làm mờ trực tiếp hình nền Desktop / Lock Screen bên dưới).
+2. Tự động thích ứng Dark Mode / Light Mode:
+   - Dark Mode: Phiến kính mờ hun khói sang trọng, trích xuất ánh sáng nền.
+   - Light Mode: Phiến kính tuyết trắng sữa trong veo.
+3. Viền phản quang chuẩn Apple (Specular Highlight Border):
+   - Thay thế viền 1.2pt cũ bằng viền bo góc liên tục:
+     RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(LinearGradient(colors: [Color.white.opacity(isLightMode ? 0.35 : 0.20), Color.white.opacity(isLightMode ? 0.08 : 0.03)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.8)
+4. Chuyển đổi Typography & Icon sang màu Ngữ nghĩa Hệ thống:
+   - Dùng .foregroundStyle(.primary) cho tên bài hát và icon chính.
+   - Dùng .foregroundStyle(.secondary) cho tên ca sĩ và thời gian.
+   - Dùng .foregroundStyle(.tertiary) cho vạch scrubber nền.
+   - Tận dụng Apple Optical Vibrancy để chữ và icon luôn sắc nét 100%, không bị bợt hay đục màu trên nền kính mờ.
+5. Bảo toàn logic & tính ổn định:
+   - GIỮ NGUYÊN cơ chế neo cố định màn hình đã gán (assignedScreenUUID).
+   - GIỮ NGUYÊN logic đồng bộ theme AppleInterfaceThemeChangedNotification.
+   - GIỮ NGUYÊN chế độ phóng to toàn màn hình Full-Screen Immersive lyrics player và animation mở rộng.
+   - Không gây ra bất kỳ lỗi cảnh báo actor isolation nào.
+Kiểm tra biên dịch và xác nhận code sạch sau khi hoàn thành.
+```
+
+---
+
+### ⚙️ PROMPT 2: Chuẩn hoá Cửa sổ Settings theo macOS Sequoia HIG
+```text
+Bạn là chuyên gia thiết kế Apple HIG và SwiftUI trên macOS. Hãy thực hiện Giai đoạn 2 trong transformation.md: Chuẩn hoá Cửa sổ Cài đặt Settings đạt chuẩn 100% macOS Sequoia / Sonoma HIG.
+🎯 CÁC FILE MỤC TIÊU:
+- NotchPulse/components/Settings/SettingsView.swift
+- NotchPulse/components/Settings/SettingsWindowController.swift
+- Các trang con liên quan trong NotchPulse/components/Settings/
+🔍 HIỆN TRẠNG CẦN SỬA:
+- Cửa sổ cài đặt đang sử dụng thanh header tự chế SettingsDetailHeaderBar (dòng ~2625 trong SettingsView.swift) với nút "Quit app" tự vẽ.
+- Còn tồn tại các tuỳ chọn màu sắc/giao diện thủ công rườm rà.
+- Giao diện chưa tận dụng hết cấu trúc thẻ nhóm Inset Grouped bản địa của macOS.
+🛠️ YÊU CẦU THỰC HIỆN:
+1. Loại bỏ thanh Header tự chế:
+   - Xoá bỏ SettingsDetailHeaderBar.
+   - Chuyển sang thanh tiêu đề Toolbar nguyên bản của macOS bằng modifier .toolbar { ... } và .navigationTitle(...). Nút đóng/thu nhỏ cửa sổ hòa nhập tự nhiên với thanh tiêu đề.
+2. Tự động hoá 100% Giao diện theo macOS:
+   - Loại bỏ các toggle chọn giao diện nhân tạo (nếu có). Toàn bộ Settings tự động đồng bộ theo Dark Mode / Light Mode và màu Accent Color của macOS thông qua @Environment(\.colorScheme).
+3. Áp dụng cấu trúc Inset Grouped (.formStyle(.grouped)):
+   - Chuyển nội dung cài đặt của từng tab (General, Media, Calendar, Face ID, Stats...) vào cấu trúc Form hoặc List với .formStyle(.grouped).
+   - Các nhóm cài đặt hiển thị dưới dạng thẻ bo góc mờ tinh tế, có viền mỏng và đổ bóng chuẩn hệ thống.
+4. Sidebar Kính Mờ Chuẩn Hệ Thống:
+   - Sidebar danh mục sử dụng SidebarListStyle() tận dụng hiệu ứng nền kính mờ NSVisualEffectView(material: .sidebar) tự nhiên của macOS.
+5. Bảo toàn chức năng cốt lõi:
+   - Tuyệt đối không làm mất bất kỳ key cấu hình @Default(...) hay logic tương tác nào (Face ID enrollment, FaceIDSettingsTab, phím tắt KeyboardShortcuts, cập nhật Sparkle).
+   - Đảm bảo biên dịch thành công, không phát sinh lỗi layout hay warning.
+```
+
+---
+
+### 🪟 PROMPT 3: Liquid Material Engine cho Thân Notch & Đáy Mở Rộng
+```text
+Bạn là kỹ sư trưởng hệ thống UI của NotchPulse. Hãy thực hiện Giai đoạn 3 trong transformation.md: Xây dựng Liquid Material Engine cho Thân Notch và Lớp Nền Container Mở Rộng.
+🎯 CÁC FILE MỤC TIÊU:
+- NotchPulse/ContentView.swift
+- NotchPulse/components/Notch/NotchShape.swift
+🔍 HIỆN TRẠNG CẦN SỬA:
+Trong ContentView.swift (từ dòng 352 đến 411):
+- mainNotchContainer đang dùng .background(.black) cố định và dòng 587 bị ép .preferredColorScheme(.dark).
+- Mở rộng Notch hiện tại đang là một khối đen tuyền đặc, che mất hình nền Desktop thay vì hiệu ứng kính khúc xạ chuẩn Apple.
+⚠️ QUY TẮC BẤT KHẢ XÂM PHẠM (CRITICAL RULES):
+1. TUYỆT ĐỐI CẤM dùng if/else hoán đổi View Identity (_ConditionalContent) ở lớp vỏ container ngoài cùng của Notch. Việc này sẽ phá hủy hoạt ảnh lò xo (Spring Physics) và gây giật khung hình.
+2. Luôn duy trì padding ngang đối xứng 14px ở cả trạng thái đóng và mở.
+3. Face ID phải luôn nằm ở tầng cao nhất: .zIndex(999).
+🛠️ YÊU CẦU THỰC HIỆN:
+1. Quy tắc Mỏ Neo Đen (The Black Anchor Rule):
+   - Khi ĐÓNG hoặc INLINE (Mini HUD): Nền Notch bắt buộc phải là ĐEN TUYỀN TUYỆT ĐỐI #000000 (áp dụng cho cả màn hình MacBook lẫn màn hình ngoài hiển thị dạng Notch) để hòa vào viền bezel và camera máy.
+   - Nếu màn hình chọn dạng DYNAMIC ISLAND (viên thuốc nổi): Khi đóng là một viên thuốc đen nổi lơ lửng.
+2. Quy tắc Phiến Kính Liquid khi MỞ RỘNG (The Liquid Expanded Drawer):
+   - Khi hover/click mở bung Notch:
+     - Với kiểu NOTCH: Giữ nguyên dải mỏ neo đen ở mép trên cùng (Camera Anchor che cụm camera vật lý). Toàn bộ phần thân nở rộng trượt xuống dưới được lót bằng phiến kính Native (.ultraThinMaterial / NSVisualEffectView) tự động khúc xạ hình nền Desktop theo Dark/Light Mode.
+     - Với kiểu DYNAMIC ISLAND: Nở to thành phiến thẻ kính mờ trôi nổi đối xứng 4 góc bo tròn.
+3. Viền Phản Quang Tinh Tế (Specular Edge):
+   - Bao quanh phiến kính mở rộng bằng đường viền tóc mảnh 0.8pt có gradient phản xạ ánh sáng nhẹ (Color.white.opacity(0.12) ở Dark Mode, Color.black.opacity(0.08) ở Light Mode).
+4. Thích ứng Hệ thống:
+   - Điều chỉnh .preferredColorScheme(.dark) để khi mở rộng, Notch tự động nhận diện Light/Dark Mode theo hệ thống, hiển thị đúng độ tương phản Vibrancy.
+5. Đảm bảo 120Hz ProMotion:
+   - Hoạt ảnh co giãn của lớp nền kính phải đồng bộ tuyệt đối với animationSpring của kích thước Notch, không rớt khung hình.
+```
+
+---
+
+### 🧩 PROMPT 4: Nâng cấp Linh kiện Nội bộ Notch (Components & Navigation)
+```text
+Bạn là chuyên gia SwiftUI trên macOS. Hãy thực hiện Giai đoạn 4 trong transformation.md: Nâng cấp toàn diện các linh kiện nội bộ bên trong thân Notch khi mở rộng theo chuẩn Apple Native.
+🎯 CÁC FILE MỤC TIÊU:
+- NotchPulse/components/Notch/NotchPulseHeader.swift
+- NotchPulse/components/Tabs/TabSelectionView.swift
+- NotchPulse/components/Notch/NotchHomeView.swift
+- Các thanh trượt/nút bấm trong NotchPulse/components/
+🔍 HIỆN TRẠNG CẦN SỬA:
+- Các nút chuyển Tab (TabSelectionView.swift) và nút action ở Header (NotchPulseHeader.swift) đang dùng các viên thuốc đen Capsule().fill(.black) tự vẽ, viền sắc cạnh và cục mịch.
+- Thanh trượt âm lượng/độ sáng (VolumeControlView, CustomSlider) vẽ thủ công bằng DragGesture màu bệt.
+- Văn bản và biểu tượng đang ép cứng màu trắng (Color.white) hoặc xám tĩnh.
+🛠️ YÊU CẦU THỰC HIỆN:
+1. Nâng cấp Thanh Chuyển Tab (Tab Selection):
+   - Trong TabSelectionView.swift: Thay thế Capsule().fill(.black) bằng thanh phân đoạn kính mờ (Segmented Glass Bar).
+   - Tab đang chọn (Active) lướt chuyển mượt mà bằng .matchedGeometryEffect với nền kính sáng mờ nhẹ và viền bắt sáng tinh xảo.
+   - Icon và nhãn tab tự đổi màu tương phản chuẩn HIG (.primary khi chọn, .secondary khi không chọn).
+2. Nâng cấp Các Nút Action trên Header:
+   - Trong NotchPulseHeader.swift: Thay thế các nút bọc Capsule().fill(.black) (nút Audio Hub, Camera Preview, Settings) bằng nút tròn kính mờ native, hiệu ứng hover làm sáng viền mượt mà.
+3. Nâng cấp Thanh Trượt (Sliders):
+   - Chuyển đổi thanh trượt âm lượng và độ sáng sang dạng Capsule kính mờ viền sáng chuẩn Apple (tương tự Control Center macOS).
+   - Thêm phản hồi độ nảy lò xo tự nhiên khi kéo chạm mốc 0% hoặc 100%.
+4. Tích hợp Dynamic Ambient Tinting cho Card Nhạc:
+   - Trong NotchHomeView.swift: Card nhạc không dùng hộp đen đè lên. Bề mặt kính mờ khúc xạ nhẹ ánh sáng màu của bìa album (avgColor) một cách tinh tế.
+5. Chuẩn hoá Typography & Vibrancy:
+   - Thay thế toàn bộ mã màu cứng (Color.white, Color.gray, hex) bằng màu ngữ nghĩa hệ thống: .foregroundStyle(.primary), .foregroundStyle(.secondary), .foregroundStyle(.tertiary).
+   - Chữ và icon tự động sắc nét trên màn hình Retina ở cả chế độ ban ngày và ban đêm.
+```
+
+---
+
+### 🧪 PROMPT 5: Kiểm thử Hiển thị Dark/Light, 120Hz & Build Sanity Check
+```text
+Bạn là kỹ sư QA và CI/CD của NotchPulse. Hãy thực hiện Giai đoạn 5 trong transformation.md: Kiểm thử toàn diện, tối ưu hiệu năng và xác thực tính toàn vẹn bản dựng sau khi nâng cấp Apple Native.
+⚠️ QUY TẮC RÀNG BUỘC CỦA DỰ ÁN:
+- TUYỆT ĐỐI KHÔNG bump version, không đổi build number, không tạo tag git và không trigger release workflow (theo AGENTS.md).
+- Chỉ kiểm tra tính đúng đắn của code, độ mượt mà và biên dịch sạch.
+🛠️ YÊU CẦU THỰC HIỆN:
+1. Biên dịch Dự án (Build Sanity Check):
+   - Chạy lệnh build Xcode để kiểm tra mã nguồn:
+     xcodebuild -workspace NotchPulse.xcworkspace -scheme NotchPulse -destination 'platform=macOS' clean build (hoặc xcodebuild tương ứng với project).
+   - Đảm bảo 0 lỗi biên dịch, 0 cảnh báo về Sendable/Actor Isolation, và không thiếu import.
+2. Kiểm tra Hiển thị Đa Chế độ (Visual Verification):
+   - Kiểm tra giao diện khi chuyển đổi Dark Mode <-> Light Mode trong macOS System Settings:
+     + Thân Notch khi đóng: Vẫn đen tuyền 100% che camera.
+     + Thân Notch khi mở: Kính mờ hun khói ở Dark Mode, kính sữa tuyết ở Light Mode, chữ và icon tương phản sắc sảo.
+     + Lock Screen Media: Kính mờ nổi bật trên hình nền khoá, chữ không bị chìm.
+     + Settings: Thẻ Inset Grouped hiển thị chuẩn mực HIG.
+3. Kiểm tra Độ Mượt 120Hz ProMotion:
+   - Xác nhận animation lò xo khi mở/đóng Notch không có hiện tượng giật, nhảy kích thước (glitch), hay đứt đoạn chuyển động.
+   - Đảm bảo không xảy ra hiện tượng memory leak (mức tiêu thụ RAM duy trì siêu nhẹ quanh ~35-50MB).
+4. Báo cáo Tóm tắt Kết quả:
+   - Tổng kết các cải tiến đã đạt được so với tiêu chuẩn trong transformation.md.
+```
 
 ---
 
