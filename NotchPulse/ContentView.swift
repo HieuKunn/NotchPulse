@@ -254,8 +254,14 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = openNotchSize.width
-        } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && vm.notchState == .closed {
-            chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
+            if Defaults[.inlineHUD] {
+                chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
+            } else {
+                chinWidth = max(240, vm.closedNotchSize.width) + gestureProgress
+            }
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed {
+            chinWidth = max(240, vm.closedNotchSize.width) + gestureProgress
         } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && musicManager.isPlaying
             && coordinator.musicLiveActivityEnabled
@@ -304,7 +310,12 @@ struct ContentView: View {
         return vm.notchState == .open ? 26 : (isDynamicIsland ? (baseClosedHeight > 0 ? baseClosedHeight / 2 : 16) : max(14, vm.effectiveClosedNotchHeight / 2))
     }
     private var isDefaultHUDActive: Bool {
-        coordinator.sneakPeek.show && !Defaults[.inlineHUD] && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed
+        guard coordinator.sneakPeek.show && vm.notchState == .closed else { return false }
+        if coordinator.sneakPeek.type == .battery { return false }
+        if coordinator.sneakPeek.type == .music {
+            return Defaults[.sneakPeekStyles] == .standard
+        }
+        return !Defaults[.inlineHUD]
     }
     private var currentNotchWidth: CGFloat {
         if isFaceIDActive {
