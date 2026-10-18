@@ -41,8 +41,12 @@ struct FaceIDOverlayGeometry {
     /// Expanded footprint matching notch open size with identical drop width
     static let pillOpenSize = CGSize(width: 250, height: 180)
 
-    /// Pinned to NotchPulse's active dynamic island top offset, with a min gap so it floats.
-    static var pillTopGap: CGFloat { max(Defaults[.dynamicIslandTopOffset], 10) }
+    /// Pinned to NotchPulse's active dynamic island top offset, adjusted to clear any physical notch.
+    @MainActor
+    static var pillTopGap: CGFloat {
+        let screen = preferredScreen() ?? NSScreen.main
+        return effectiveDynamicIslandTopOffset(for: screen)
+    }
 
     /// Continuous corner radius matching Apple notch curvature.
     static let pillOpenCornerRadius: CGFloat = 48
@@ -198,7 +202,7 @@ struct FaceIDOverlayGeometry {
     static func forScreen(_ screen: NSScreen) -> FaceIDOverlayGeometry {
         let isNotchStyle = Defaults[.notchStyle] == .notch
         let screenUUID = screen.displayUUID
-        let isPhysical = screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil
+        let isPhysical = screenHasPhysicalNotch(screen)
         let closedSize = isNotchStyle ? getClosedNotchSize(screenUUID: screenUUID) : pillClosedSize
 
         return FaceIDOverlayGeometry(

@@ -163,7 +163,8 @@ final class LockScreenFaceIDWindow: NSPanel {
         let y: CGFloat
         
         if notchStyle == .dynamicIsland {
-            y = screen.frame.origin.y + screen.frame.height - windowHeight - dynamicIslandTopOffset
+            let offset = effectiveDynamicIslandTopOffset(for: screen, userOffset: dynamicIslandTopOffset)
+            y = screen.frame.origin.y + screen.frame.height - windowHeight - offset
         } else {
             y = screen.frame.origin.y + screen.frame.height - windowHeight
         }

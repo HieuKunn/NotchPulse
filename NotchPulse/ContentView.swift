@@ -151,8 +151,11 @@ struct ContentView: View {
     }
 
     private var hasPhysicalNotch: Bool {
-        let screen = currentScreen
-        return (screen?.safeAreaInsets.top ?? 0) > 0 || screen?.auxiliaryTopLeftArea != nil
+        screenHasPhysicalNotch(currentScreen)
+    }
+
+    private var effectiveTopOffset: CGFloat {
+        effectiveDynamicIslandTopOffset(for: currentScreen, userOffset: dynamicIslandTopOffset)
     }
 
     private var faceIDOpenSize: CGSize {
@@ -361,7 +364,7 @@ struct ContentView: View {
     private var mainNotchContainer: some View {
         let isIsland = isDynamicIsland
         let isHiddenInFS = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
-        let offscreenDistance = currentNotchHeight + (isIsland ? dynamicIslandTopOffset : 0) + 30
+        let offscreenDistance = currentNotchHeight + (isIsland ? effectiveTopOffset : 0) + 30
         let slideOffset: CGFloat = isHiddenInFS ? -offscreenDistance : 0
 
         NotchLayout()
@@ -404,7 +407,7 @@ struct ContentView: View {
                 x: 0,
                 y: isIsland ? 4 : 0
             )
-            .padding(.top, isIsland ? dynamicIslandTopOffset : 0)
+            .padding(.top, isIsland ? effectiveTopOffset : 0)
             .offset(y: slideOffset)
             .opacity(isHiddenInFS ? 0 : 1)
     }
@@ -941,7 +944,7 @@ struct ContentView: View {
         if vm.hideOnClosed && !isEffectivelyLocked {
             let sensorWidth = max(currentNotchWidth + 120, 380)
             let sensorHeight: CGFloat = vm.isHoverRevealed
-                ? (vm.notchState == .open ? (vm.customOpenHeight ?? openNotchSize.height) + 40 : max(baseClosedHeight + dynamicIslandTopOffset + 14, 52))
+                ? (vm.notchState == .open ? (vm.customOpenHeight ?? openNotchSize.height) + 40 : max(baseClosedHeight + effectiveTopOffset + 14, 52))
                 : 16
             Color.clear
                 .contentShape(Rectangle())

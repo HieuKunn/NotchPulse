@@ -358,7 +358,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let padding = CGFloat(Defaults[.dragDetectionPadding])
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
+            let topOffset = isDynamicIsland ? effectiveDynamicIslandTopOffset(for: screen) : 0
             
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding
@@ -954,12 +954,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func deviceHasNotch() -> Bool {
-        for screen in NSScreen.screens {
-            if screen.safeAreaInsets.top > 0 {
-                return true
-            }
-        }
-        return false
+        DeviceHardwareInfo.deviceHasPhysicalNotch
     }
 
     @MainActor func screenConfigurationDidChange() {

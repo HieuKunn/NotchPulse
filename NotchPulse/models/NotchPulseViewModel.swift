@@ -259,7 +259,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         guard let frame = getScreenFrame(screenUUID) else { return false }
         let screen = resolveScreen(screenUUID: screenUUID)
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-        let topOffset = isDynamicIsland ? Defaults[.dynamicIslandTopOffset] : 0
+        let topOffset = isDynamicIsland ? effectiveDynamicIslandTopOffset(for: screen) : 0
         let currentWidth = notchState == .open ? openNotchWidth : (isDynamicIsland ? 126 : closedNotchSize.width)
         let currentHeight = notchState == .open ? (customOpenHeight ?? openNotchSize.height) : (isDynamicIsland ? 32 : closedNotchSize.height)
         

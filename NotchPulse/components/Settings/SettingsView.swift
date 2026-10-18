@@ -411,9 +411,15 @@ struct GeneralSettings: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
-                    Text(loc("Sets the floating gap between the top bezel and the Dynamic Island capsule."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if DeviceHardwareInfo.deviceHasPhysicalNotch {
+                        Text(loc("On Macs with a physical notch, Dynamic Island automatically clears the hardware notch so it is never obscured."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(loc("Sets the floating gap between the top bezel and the Dynamic Island capsule."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(.top, 4)
                 .transition(.opacity.combined(with: .move(edge: .top)))

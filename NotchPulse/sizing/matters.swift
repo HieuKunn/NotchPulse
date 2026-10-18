@@ -1,6 +1,88 @@
 import Defaults
 import Foundation
 import SwiftUI
+import Darwin
+
+/// Global hardware info caching whether this Mac machine has a physical screen notch.
+/// Evaluated ONCE at runtime, cached in memory, zero overhead on repeated calls.
+enum DeviceHardwareInfo {
+    static let deviceHasPhysicalNotch: Bool = {
+        // 1. First check if any connected screen already reports safeAreaInsets.top > 0 or auxiliary notch areas
+        if NSScreen.screens.contains(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) {
+            UserDefaults.standard.set(true, forKey: "DeviceHardwareInfo.hasNotch")
+            return true
+        }
+
+        // 2. Check cached value in UserDefaults (e.g. clamshell mode with external display)
+        if UserDefaults.standard.object(forKey: "DeviceHardwareInfo.hasNotch") != nil {
+            return UserDefaults.standard.bool(forKey: "DeviceHardwareInfo.hasNotch")
+        }
+
+        // 3. Sysctl hardware model check (instant and definitive for Apple Silicon MacBooks with notch)
+        var size = 0
+        sysctlbyname("hw.model", nil, &size, nil, 0)
+        guard size > 0 else { return false }
+        var model = [CChar](repeating: 0, count: size)
+        sysctlbyname("hw.model", &model, &size, nil, 0)
+        let modelString = String(cString: model)
+
+        // Apple Silicon models with hardware notch:
+        // - MacBookPro18,1...18,4 (M1 Pro/Max 14/16")
+        // - Mac14,2 (M2 Air 13"), Mac14,15 (M2 Air 15")
+        // - Mac14,5, Mac14,6, Mac14,9, Mac14,10 (M2 Pro/Max 14/16")
+        // - Mac15,1...15,13 (M3 Air/Pro)
+        // - Mac16,* (M4 MacBook Pro)
+        let isNotchModel = modelString.hasPrefix("MacBookPro18,")
+            || (modelString.hasPrefix("Mac14,") && modelString != "Mac14,7")
+            || modelString.hasPrefix("Mac15,")
+            || modelString.hasPrefix("Mac16,")
+
+        UserDefaults.standard.set(isNotchModel, forKey: "DeviceHardwareInfo.hasNotch")
+        return isNotchModel
+    }()
+}
+
+@MainActor func screenHasPhysicalNotch(_ screen: NSScreen?) -> Bool {
+    guard let screen = screen else { return false }
+    if screen.safeAreaInsets.top > 0 || screen.auxiliaryTopLeftArea != nil {
+        return true
+    }
+    // If device is a notch model and this is the built-in screen
+    if DeviceHardwareInfo.deviceHasPhysicalNotch {
+        if screen.isBuiltIn {
+            return true
+        }
+        if NSScreen.screens.count == 1 {
+            return true
+        }
+    }
+    return false
+}
+
+@MainActor func physicalNotchHeight(for screen: NSScreen?) -> CGFloat {
+    guard let screen = screen else { return 34 }
+    if screen.safeAreaInsets.top > 0 {
+        return screen.safeAreaInsets.top
+    }
+    let menuBarH = screen.frame.maxY - screen.visibleFrame.maxY
+    if menuBarH > 24 {
+        return menuBarH
+    }
+    return 34
+}
+
+/// Computes the effective top gap for Dynamic Island.
+/// If the target screen has a physical notch, Dynamic Island is automatically placed
+/// below the physical notch (`physicalNotchHeight + userTopOffset`) so the capsule is never
+/// obscured or tucked behind the hardware notch.
+/// On screens without a notch (external displays or non-notch Macs), returns `userTopOffset`.
+@MainActor func effectiveDynamicIslandTopOffset(for screen: NSScreen?, userOffset: CGFloat? = nil) -> CGFloat {
+    let offset = userOffset ?? Defaults[.dynamicIslandTopOffset]
+    if screenHasPhysicalNotch(screen) {
+        return physicalNotchHeight(for: screen) + offset
+    }
+    return offset
+}
 
 let downloadSneakSize: CGSize = .init(width: 65, height: 1)
 let batterySneakSize: CGSize = .init(width: 160, height: 1)
