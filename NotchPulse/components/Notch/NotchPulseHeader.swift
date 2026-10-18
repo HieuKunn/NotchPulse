@@ -129,26 +129,37 @@ struct HeaderActionButton: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isHovering = false
 
+    private var buttonFillColor: Color {
+        if isActive {
+            if let activeTint = activeTint {
+                return activeTint
+            }
+            return colorScheme == .dark ? Color.white.opacity(0.24) : Color.black.opacity(0.14)
+        }
+        if isHovering {
+            return colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.08)
+        }
+        return colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)
+    }
+
+    private var buttonBorderColor: Color {
+        if isActive {
+            return colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.20)
+        }
+        if isHovering {
+            return colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.12)
+        }
+        return colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06)
+    }
+
     var body: some View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(isActive
-                        ? (activeTint ?? (colorScheme == .dark ? Color.white.opacity(0.24) : Color.black.opacity(0.14)))
-                        : (isHovering
-                            ? (colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.08))
-                            : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)))
-                    )
+                    .fill(buttonFillColor)
 
                 Circle()
-                    .strokeBorder(
-                        isActive
-                            ? (colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.20))
-                            : (isHovering
-                                ? (colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.12))
-                                : (colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06))),
-                        lineWidth: 0.8
-                    )
+                    .strokeBorder(buttonBorderColor, lineWidth: 0.8)
 
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: isActive ? .semibold : .medium))
