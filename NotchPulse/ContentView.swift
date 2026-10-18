@@ -204,6 +204,9 @@ struct ContentView: View {
     }
 
     private var topCornerRadius: CGFloat {
+        // External displays without physical notch must sit flat against the top edge (no outward wings)
+        guard hasPhysicalNotch else { return 0 }
+
         if isFaceIDActive {
             if !visualIsFaceIDExpanded {
                 return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
@@ -213,7 +216,7 @@ struct ContentView: View {
             if isMinimalScan {
                 return FaceIDOverlayGeometry.minimalNotchTopRadius
             }
-            return hasPhysicalNotch ? cornerRadiusInsets.closed.top : FaceIDOverlayGeometry.openTopRadius
+            return cornerRadiusInsets.closed.top
         }
         return ((vm.notchState == .open) && Defaults[.cornerRadiusScaling])
                  ? cornerRadiusInsets.opened.top

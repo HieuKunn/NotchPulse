@@ -13,4 +13,5 @@
 
 ### ⚡️ Software Update & System Responsiveness
 - **Modal Update Dialog Protection**: Resolved an issue where checking for updates when already on the latest version could freeze the application in the background; update alerts are now seamlessly presented in the foreground with proper system focus.
+- **External Display Geometry Polish**: Fixed an issue where the notch rendered outward horns or detached floating wings on external flat displays without physical camera notches; the shelf now sits flush against the top edge.
 
