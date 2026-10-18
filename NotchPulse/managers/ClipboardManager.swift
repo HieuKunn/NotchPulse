@@ -186,23 +186,30 @@ final class ClipboardManager: ObservableObject {
             guard let self = self else { return }
             self.stopMonitoring()
 
-            // 1. Instant event-driven copy detector: Fires immediately on Cmd+C / Cmd+X so no copy is ever missed
-            self.copyKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                if flags.contains(.command), let chars = event.charactersIgnoringModifiers?.lowercased() {
-                    if chars == "c" || chars == "x" {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                            self?.checkForChanges()
+            // 1. Instant event-driven copy detector: Fires immediately on Cmd+C / Cmd+X / Screenshots only if Accessibility is granted
+            if AXIsProcessTrusted() {
+                self.copyKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                    if flags.contains(.command), let chars = event.charactersIgnoringModifiers?.lowercased() {
+                        if chars == "c" || chars == "x" {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                                self?.checkForChanges()
+                            }
+                        } else if chars == "3" || chars == "4" || chars == "5" {
+                            // System screen capture takes 250-400ms to encode and write to pasteboard
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                self?.checkForChanges()
+                            }
                         }
                     }
                 }
             }
 
-            // 2. Background polling fallback for right-click context menu "Copy" operations
-            let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            // 2. High-efficiency polling fallback (0.5s) for right-click context menu "Copy", drag-copy & button copies
+            let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
                 self?.checkForChanges()
             }
-            timer.tolerance = 0.2
+            timer.tolerance = 0.15
             RunLoop.main.add(timer, forMode: .common)
             self.pollTimer = timer
 
@@ -321,56 +328,53 @@ final class ClipboardManager: ObservableObject {
         let canInitImage = NSImage.canInit(with: pasteboard)
 
         if hasImageTypes || canInitImage {
-            var itemToInsert: ClipboardItem? = nil
-            autoreleasepool {
-                // Zero-copy / lazy decoding path: extract compressed data directly from pasteboard
-                // to avoid allocating massive uncompressed TIFF/pixel buffers in RAM.
-                let rawImageData: Data? = {
-                    for t in [.png, NSPasteboard.PasteboardType("public.png"), NSPasteboard.PasteboardType("public.jpeg"), .tiff, NSPasteboard.PasteboardType("public.tiff")] {
-                        if let d = pasteboard.data(forType: t), !d.isEmpty {
-                            return d
-                        }
+            let rawImageData: Data? = {
+                for t in [.png, NSPasteboard.PasteboardType("public.png"), NSPasteboard.PasteboardType("public.jpeg"), .tiff, NSPasteboard.PasteboardType("public.tiff")] {
+                    if let d = pasteboard.data(forType: t), !d.isEmpty {
+                        return d
                     }
-                    if let image = NSImage(pasteboard: pasteboard) {
-                        return Self.extractRawData(from: image)
+                }
+                if let image = NSImage(pasteboard: pasteboard) {
+                    return Self.extractRawData(from: image)
+                }
+                return nil
+            }()
+
+            guard let rawData = rawImageData else { return }
+
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self = self else { return }
+                autoreleasepool {
+                    // 1. Generate lightweight thumbnail for UI (max 96x96 px, optimal for Retina, only ~2-3KB)
+                    guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 96) else { return }
+
+                    // Check duplicate with top history item
+                    if let first = self.history.first, first.isImage, first.thumbnailData == thumbData {
+                        return
                     }
-                    return nil
-                }()
 
-                guard let rawData = rawImageData else { return }
+                    // 2. Save full image to disk temp file so it is NEVER hoarded in RAM
+                    let itemId = UUID()
+                    let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).dat")
+                    if let fullData = Self.generateOptimizedImageData(from: rawData, maxDimension: 1600) {
+                        try? fullData.write(to: tempFile, options: .atomic)
+                    } else {
+                        try? rawData.write(to: tempFile, options: .atomic)
+                    }
 
-                // 1. Generate lightweight thumbnail for UI (max 96x96 px, optimal for Retina, only ~2-3KB)
-                guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 96) else { return }
-
-                // Check duplicate with top history item
-                if let first = history.first, first.isImage, first.thumbnailData == thumbData {
-                    return
+                    let item = ClipboardItem(
+                        id: itemId,
+                        type: .image,
+                        contentString: nil,
+                        urlString: nil,
+                        thumbnailData: thumbData,
+                        diskFilePath: tempFile.path,
+                        timestamp: Date()
+                    )
+                    self.insertItem(item)
                 }
-
-                // 2. Save full image to disk temp file so it is NEVER hoarded in RAM
-                let itemId = UUID()
-                let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).dat")
-                if let fullData = Self.generateOptimizedImageData(from: rawData, maxDimension: 1600) {
-                    try? fullData.write(to: tempFile, options: .atomic)
-                } else {
-                    try? rawData.write(to: tempFile, options: .atomic)
-                }
-
-                itemToInsert = ClipboardItem(
-                    id: itemId,
-                    type: .image,
-                    contentString: nil,
-                    urlString: nil,
-                    thumbnailData: thumbData,
-                    diskFilePath: tempFile.path,
-                    timestamp: Date()
-                )
             }
-
-            if let item = itemToInsert {
-                insertItem(item)
-                return
-            }
+            return
         }
     }
 

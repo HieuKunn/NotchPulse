@@ -339,31 +339,27 @@ struct CalendarDateButton: View {
             VStack(spacing: 2) {
                 Text(dayString)
                     .font(.system(size: 9.5, weight: .medium, design: .rounded))
-                    .foregroundColor(isSelected ? .white : Color(white: 0.65))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.9) : Color.secondary)
 
                 ZStack {
-                    if isToday {
+                    if isToday && !isSelected {
                         Circle()
-                            .fill(isSelected ? Color.clear : Color.effectiveAccentBackground)
+                            .strokeBorder(Color.effectiveAccent, lineWidth: 1.2)
                             .frame(width: 22, height: 22)
                     }
-                    Circle()
-                        .stroke(isSelected ? Color.clear : (isToday ? Color.effectiveAccentBackground : Color.clear), lineWidth: 1)
-                        .frame(width: 24, height: 24)
                     Text(dayNumberString)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundColor(isSelected ? .white : Color(white: isToday ? 0.95 : 0.65))
+                        .font(.system(size: 13, weight: isSelected ? .bold : .semibold, design: .rounded))
+                        .foregroundStyle(isSelected ? Color.white : (isToday ? Color.effectiveAccent : Color.primary))
                 }
             }
             .frame(width: 32, height: 40)
             .background(
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(isSelected ? Color.effectiveAccentBackground : (isHovered ? Color.white.opacity(0.08) : Color.clear))
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Color.effectiveAccent.opacity(0.85) : (isHovered ? Color.white.opacity(0.08) : Color.clear))
             )
-            .contentShape(RoundedRectangle(cornerRadius: 7))
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(PlainButtonStyle())
-        .contentShape(Rectangle())
         .onHover { hovering in
             isHovered = hovering
         }
@@ -972,15 +968,19 @@ struct CalendarView: View {
                 .opacity((vm.featureTourTarget == "calendar" && isTourBlinking) ? 0.25 : 1.0)
                 .scaleEffect((vm.featureTourTarget == "calendar" && isTourBlinking) ? 1.08 : 1.0)
 
-                ZStack(alignment: .top) {
-                    WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())
-                    HStack(alignment: .top) {
-                        LinearGradient(colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 16)
-                        Spacer()
-                        LinearGradient(colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing).frame(width: 16)
-                    }
-                    .allowsHitTesting(false)
-                }
+                WheelPicker(selectedDate: $selectedDate, displayedDate: $displayedDate, config: Config())
+                    .mask(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0),
+                                .init(color: .black, location: 0.10),
+                                .init(color: .black, location: 0.90),
+                                .init(color: .clear, location: 1.0)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
             }
             .frame(height: 40)
 
@@ -1283,7 +1283,7 @@ struct EventRowItemView: View {
             HStack {
                 Text(event.title)
                     .font(.callout)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(showFullEventTitles ? nil : 1)
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 4) {
@@ -1291,11 +1291,11 @@ struct EventRowItemView: View {
                         Text(loc("All-day"))
                             .font(.caption)
                             .fontWeight(.medium)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.secondary)
                             .lineLimit(1)
                     } else {
                         Text(event.start, style: .time)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.secondary)
                             .font(.caption)
                     }
                 }
@@ -1320,22 +1320,21 @@ struct EventRowItemView: View {
     private var calendarEventRow: some View {
         HStack(alignment: .top, spacing: 6) {
             // Indicator Bar with calendar color
-            Rectangle()
-                .fill(Color(event.calendar.color))
-                .frame(width: 3)
-                .cornerRadius(1.5)
+            Capsule()
+                .fill(Color(event.calendar.color).opacity(0.85))
+                .frame(width: 3.5)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.title)
                     .font(.callout)
                     .fontWeight(.medium)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(showFullEventTitles ? nil : 2)
 
                 if let location = event.location, !location.isEmpty {
                     Text(location)
                         .font(.caption)
-                        .foregroundColor(Color(white: 0.65))
+                        .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
             }
@@ -1347,13 +1346,13 @@ struct EventRowItemView: View {
                     Text(loc("All-day"))
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundColor(.white)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 } else {
                     Text(event.start, style: .time)
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                     Text(event.end, style: .time)
-                        .foregroundColor(Color(white: 0.65))
+                        .foregroundStyle(.secondary)
                 }
             }
             .font(.caption)

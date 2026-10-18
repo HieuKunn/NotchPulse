@@ -25,7 +25,7 @@ final class FeatureTourController: NSObject, ObservableObject {
     static let shared = FeatureTourController()
 
     @Published public var isTourActive: Bool = false
-    @Published public var interactiveCardRect: CGRect?
+    public var interactiveCardRect: CGRect?
     @Published public var settingsGearScreenRect: CGRect?
     private var tourWindow: NSWindow?
 
@@ -131,6 +131,7 @@ struct ScreenFrameReader: NSViewRepresentable {
 
     class FrameObserverView: NSView {
         var onFrameChange: ((CGRect) -> Void)?
+        private var lastReportedRect: CGRect = .zero
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -152,6 +153,11 @@ struct ScreenFrameReader: NSViewRepresentable {
                 width: screenRect.width,
                 height: screenRect.height
             )
+            guard abs(swiftUIRect.origin.x - lastReportedRect.origin.x) > 0.5 ||
+                  abs(swiftUIRect.origin.y - lastReportedRect.origin.y) > 0.5 ||
+                  abs(swiftUIRect.width - lastReportedRect.width) > 0.5 ||
+                  abs(swiftUIRect.height - lastReportedRect.height) > 0.5 else { return }
+            lastReportedRect = swiftUIRect
             DispatchQueue.main.async {
                 self.onFrameChange?(swiftUIRect)
             }
