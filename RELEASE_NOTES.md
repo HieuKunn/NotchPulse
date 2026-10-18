@@ -16,6 +16,7 @@
 - **Dynamic Island Top Breathing Room**: Added subtle top padding to header tabs so icons never feel cramped against the top border when open.
 
 ### 🎵 Media Display & Visual Polish
+- **Dynamic Island Inline Media Refinement**: Re-engineered media inline sizing for Dynamic Island. The collapsed island maintains its natural 120pt capsule width, while expanding into a wide pill with ample breathing room for song title and artist labels without awkward truncation.
 - **Pristine Collapsed Notch on Lock Screen**: The Notch strictly remains an empty, minimal black notch when locked—preventing media visualizers, song labels, or HUD popups from leaking into the chin until you unlock or authenticate.
 - **Smart Cross-Display Lock Screen Media**: The floating lock screen player card anchors directly to your assigned display without jumping between screens when you move the cursor. If an external monitor is disconnected, the player instantly relocates to the center of your Mac display.
 - **Hover-To-Scan Security**: Locking your Mac quietly arms Face ID without prematurely firing the camera; facial authentication activates only when you hover over the Notch, wake the screen, or interact.
