@@ -83,8 +83,8 @@ final class FaceIDOverlayController {
     /// Guards `primeWindowIfNeeded` so the extra render pass only happens on the first show.
     private var hasPrimedWindow = false
 
-    /// Matches the success asset duration (~1.22s) plus a short beat to read the final frame.
-    private let successHoldDuration: Duration = .milliseconds(1_700)
+    /// Matches the success asset duration plus a short beat to read the final frame.
+    private let successHoldDuration: Duration = .milliseconds(850)
     /// Non-private so FaceUnlockCoordinator's auto-retry can wait this out too.
     let failureHoldDuration: Duration = .milliseconds(1_500)
     /// Reads the same setting as `FaceUnlockCoordinator.scanWindowDuration` so

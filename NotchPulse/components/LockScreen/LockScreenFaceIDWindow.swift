@@ -176,7 +176,7 @@ final class LockScreenFaceIDWindow: NSPanel {
             physicalNotchWidth: closedSize.width,
             notchStyle: notchStyle
         ))
-        let closedW: CGFloat = (notchStyle == .dynamicIsland) ? 126 : max(212, closedSize.width)
+        let closedW: CGFloat = (notchStyle == .dynamicIsland) ? 126 : closedSize.width
         let closedH: CGFloat = (notchStyle == .dynamicIsland) ? 32 : (screen.safeAreaInsets.top > 0 ? notchHardwareHeight : max(32, notchHardwareHeight))
         trackingHostingView.notchClosedSize = CGSize(width: closedW, height: closedH)
         trackingHostingView.wantsLayer = true
@@ -282,7 +282,7 @@ struct LockScreenFaceIDPillView: View {
         if notchStyle == .dynamicIsland {
             return CGSize(width: 126, height: 32)
         } else {
-            let width = max(212, physicalNotchWidth)
+            let width = physicalNotchWidth
             let height = max(32, notchHardwareHeight)
             return CGSize(width: width, height: height)
         }

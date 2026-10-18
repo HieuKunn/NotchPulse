@@ -177,14 +177,16 @@ struct ContentView: View {
                     height: max(vm.effectiveClosedNotchHeight, FaceIDOverlayGeometry.minimalPillOpenHeight)
                 )
             }
+        if isDynamicIsland {
+            return CGSize(width: 250, height: 180)
+        } else {
+            let baseWidth = max(212, vm.closedNotchSize.width)
+            let topR = FaceIDOverlayGeometry.openTopRadius
+            return CGSize(
+                width: baseWidth + (topR * 2),
+                height: 180
+            )
         }
-
-        let baseWidth = max(212, vm.closedNotchSize.width)
-        let topR = cornerRadiusInsets.closed.top
-        return CGSize(
-            width: baseWidth + (topR * 2),
-            height: 180
-        )
     }
 
     private var targetFaceIDSize: CGSize {
@@ -366,16 +368,6 @@ struct ContentView: View {
                 height: currentNotchHeight,
                 alignment: .top
             )
-            .padding(
-                .horizontal,
-                (vm.notchState == .open)
-                ? 10
-                : (isIsland
-                    ? (isFaceIDContentVisible ? 0 : 12)
-                    : (isFaceIDContentVisible ? 0 : cornerRadiusInsets.closed.bottom))
-            )
-            .padding(.horizontal, (vm.notchState == .open) ? 4 : 0)
-            .padding(.bottom, (vm.notchState == .open) ? 8 : 0)
             .background(.black)
             .conditionalModifier(isIsland) { view in
                 view
@@ -467,8 +459,8 @@ struct ContentView: View {
                             isFaceIDSettlingAfterClose = true
                         } else if newPhase == .closed && (oldPhase == .collapsing || oldPhase == .success || oldPhase == .failure) {
                             Task { @MainActor in
-                                try? await Task.sleep(for: .milliseconds(250))
-                                withAnimation(animationSpring) {
+                                try? await Task.sleep(for: .milliseconds(350))
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                                     isFaceIDSettlingAfterClose = false
                                 }
                             }
@@ -686,7 +678,7 @@ struct ContentView: View {
                     Spacer()
                 } else if isEffectivelyLocked && !isFaceIDContentActive {
                     Rectangle().fill(.clear).frame(
-                        width: max(190, vm.closedNotchSize.width) - 20,
+                        width: (notchStyle == .dynamicIsland) ? 126 : vm.closedNotchSize.width,
                         height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight
                     )
                 } else {
@@ -705,13 +697,15 @@ struct ContentView: View {
                                     .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
                                     .transition(.opacity)
                             } else {
-                                Rectangle().fill(.clear).frame(width: max(190, vm.closedNotchSize.width) - 20, height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight)
-                                    .transition(.opacity)
+                                Rectangle().fill(.clear).frame(
+                                    width: (notchStyle == .dynamicIsland) ? 126 : vm.closedNotchSize.width,
+                                    height: (notchStyle == .dynamicIsland) ? 32 : vm.effectiveClosedNotchHeight
+                                )
+                                .transition(.opacity)
                             }
                         }
                         .opacity((isFaceIDActive || isFaceIDSettlingAfterClose) ? 0 : 1)
-                        .scaleEffect((isFaceIDActive || isFaceIDSettlingAfterClose) ? 0.8 : 1.0)
-                        .animation(.easeInOut(duration: 0.25), value: (isFaceIDActive || isFaceIDSettlingAfterClose))
+                        .animation(.easeInOut(duration: 0.35), value: (isFaceIDActive || isFaceIDSettlingAfterClose))
 
                         // ARCHITECTURAL RULE: FaceIDContentView must ALWAYS remain on the top-most layer
                         // with zIndex(999) inside NotchLayout ZStack so HUDs and header elements do not draw over it.

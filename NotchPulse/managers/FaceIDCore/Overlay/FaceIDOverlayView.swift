@@ -101,7 +101,7 @@ struct FaceIDOverlayView: View {
     }
 
     private var closedBodySize: CGSize {
-        controller.geometry.closedSize
+        style == .pill ? FaceIDOverlayGeometry.pillClosedSize : controller.geometry.closedSize
     }
 
     private var topRadius: CGFloat {

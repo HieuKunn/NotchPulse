@@ -50,7 +50,7 @@ enum MusicPlayerImageSizes {
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
     var notchHeight: CGFloat = Defaults[.nonNotchHeight]
-    var notchWidth: CGFloat = 212
+    var notchWidth: CGFloat = 185
 
     let screen = resolveScreen(screenUUID: screenUUID)
 
@@ -59,7 +59,10 @@ enum MusicPlayerImageSizes {
         if let topLeftNotchpadding: CGFloat = screen.auxiliaryTopLeftArea?.width,
            let topRightNotchpadding: CGFloat = screen.auxiliaryTopRightArea?.width
         {
-            notchWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
+            let rawWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
+            if rawWidth > 0 {
+                notchWidth = rawWidth + 4
+            }
         }
 
         // Check if the Mac has a notch
@@ -80,5 +83,5 @@ enum MusicPlayerImageSizes {
         }
     }
 
-    return .init(width: max(212, notchWidth), height: notchHeight)
+    return .init(width: notchWidth, height: notchHeight)
 }
