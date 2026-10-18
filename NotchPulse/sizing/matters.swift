@@ -72,16 +72,9 @@ enum DeviceHardwareInfo {
 }
 
 /// Computes the effective top gap for Dynamic Island.
-/// If the target screen has a physical notch, Dynamic Island is automatically placed
-/// below the physical notch (`physicalNotchHeight + userTopOffset`) so the capsule is never
-/// obscured or tucked behind the hardware notch.
-/// On screens without a notch (external displays or non-notch Macs), returns `userTopOffset`.
+/// Returns the user's configured top offset directly.
 @MainActor func effectiveDynamicIslandTopOffset(for screen: NSScreen?, userOffset: CGFloat? = nil) -> CGFloat {
-    let offset = userOffset ?? Defaults[.dynamicIslandTopOffset]
-    if screenHasPhysicalNotch(screen) {
-        return physicalNotchHeight(for: screen) + offset
-    }
-    return offset
+    return userOffset ?? Defaults[.dynamicIslandTopOffset]
 }
 
 let downloadSneakSize: CGSize = .init(width: 65, height: 1)
