@@ -278,10 +278,10 @@ struct ContentView: View {
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
             if isDynamicIsland {
                 let spacerWidth: CGFloat = isInlineMediaActive ? 190 : 110
-                chinWidth = (artSize * 2) + spacerWidth + gestureProgress
+                chinWidth = (artSize * 2) + spacerWidth + 24 + gestureProgress
             } else {
                 let extraWidth: CGFloat = isInlineMediaActive ? 120 : 4
-                chinWidth = vm.closedNotchSize.width + (artSize * 2) + extraWidth + gestureProgress
+                chinWidth = vm.closedNotchSize.width + (artSize * 2) + extraWidth + 28 + gestureProgress
             }
         }
         return chinWidth
@@ -936,6 +936,8 @@ struct ContentView: View {
                 alignment: .center
             )
         }
+        .padding(.leading, isDynamicIsland ? 12 : 14)
+        .padding(.trailing, isDynamicIsland ? 12 : 14)
         .frame(
             height: liveHeight,
             alignment: .center

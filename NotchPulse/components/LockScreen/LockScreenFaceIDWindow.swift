@@ -8,7 +8,7 @@ import SwiftUI
 final class LockScreenTrackingHostingView<Content: View>: NSHostingView<Content> {
     var onHoverChanged: ((Bool) -> Void)?
     var onClicked: (() -> Void)?
-    var notchClosedSize: CGSize = CGSize(width: 185, height: 38)
+    var notchClosedSize: CGSize = CGSize(width: 168, height: 38)
     private var trackingArea: NSTrackingArea?
 
     private func currentActiveRect() -> NSRect {
@@ -252,7 +252,7 @@ struct LockScreenFaceIDPillView: View {
     @ObservedObject var faceIDManager = FaceIDManager.shared
     var hasPhysicalNotch: Bool = true
     var notchHardwareHeight: CGFloat = 38
-    var physicalNotchWidth: CGFloat = 185
+    var physicalNotchWidth: CGFloat = 168
     var notchStyle: NotchStyle = .notch
     
     @State private var isHovered: Bool = false

@@ -130,12 +130,12 @@ enum MusicPlayerImageSizes {
     return resolveScreen(screenUUID: screenUUID)?.frame
 }
 
-public let compactDynamicIslandWidth: CGFloat = 126
+public let compactDynamicIslandWidth: CGFloat = 120
 public let compactDynamicIslandHeight: CGFloat = 32
 
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
     var notchHeight: CGFloat = Defaults[.nonNotchHeight]
-    var notchWidth: CGFloat = 185
+    var notchWidth: CGFloat = 168
 
     let screen = resolveScreen(screenUUID: screenUUID)
 
@@ -146,8 +146,8 @@ public let compactDynamicIslandHeight: CGFloat = 32
         {
             let rawWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
             if rawWidth > 0 {
-                // Must cover the physical hardware notch cut-out completely (exactly as in Glance and original NotchPulse)
-                notchWidth = max(185, rawWidth)
+                // Must cover the physical hardware notch cut-out snugly (~168pt) without excess side margins
+                notchWidth = max(168, min(rawWidth, 175))
             }
         }
 
