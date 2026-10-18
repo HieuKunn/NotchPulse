@@ -89,6 +89,8 @@ final class LockScreenWakeObserver: ObservableObject {
         Task { @MainActor [weak self] in
             guard let self = self else { return }
             NotchPulseLockMonitor.invalidateLockCache()
+            NotchPulseVault.preflightKeychainAuthorization()
+            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
             let locked = NotchPulseLockMonitor.isScreenActuallyLocked()
             self.isScreenLocked = locked
             if locked {

@@ -32,6 +32,12 @@ final class NotchPulseLockMonitor {
     private(set) var lastEvent: LockEventKind?
     private(set) var eventCount: Int = 0
 
+    private(set) var lastWakeInstant: ContinuousClock.Instant?
+    var hasRecentWake: Bool {
+        guard let lastWakeInstant else { return false }
+        return ContinuousClock.now - lastWakeInstant < .seconds(4)
+    }
+
     private var distributedObservers: [NSObjectProtocol] = []
     private var workspaceObservers: [NSObjectProtocol] = []
 
@@ -109,6 +115,8 @@ final class NotchPulseLockMonitor {
     private func recordWake() {
         isSleeping = false
         wakeEventCount += 1
+        lastWakeInstant = .now
+        Self.invalidateLockCache()
         record(.wake)
     }
 

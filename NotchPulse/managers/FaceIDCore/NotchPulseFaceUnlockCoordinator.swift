@@ -87,12 +87,14 @@ final class NotchPulseFaceUnlockCoordinator {
 
     private func evaluateTrigger() {
         if !NotchPulseLockMonitor.isScreenActuallyLocked() {
-            // When waking from sleep, CGSessionCopyCurrentDictionary often lags by 300-800ms
-            if lockMonitor.lastEvent == .wake {
+            // When waking from sleep, CGSessionCopyCurrentDictionary often lags by 300-1200ms
+            if lockMonitor.lastEvent == .wake || lockMonitor.hasRecentWake {
+                hasArmedForCurrentLock = false
+                hasAutoRetriedForCurrentLock = false
                 Task { @MainActor [weak self] in
-                    for delay in [300, 500, 800] {
+                    for delay in [150, 300, 500, 800, 1200] {
                         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000))
-                        guard let self, !self.hasArmedForCurrentLock else { return }
+                        guard let self else { return }
                         if NotchPulseLockMonitor.isScreenActuallyLocked() {
                             self.evaluateTrigger()
                             return
@@ -115,20 +117,32 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         guard !lockMonitor.isSleeping else { return }
 
-        // `.wake` (sleep, display sleep, or screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
-        // `isWithinRecentArmBurst` keeps the several wake signals from one lid-open from each re-arming and fighting over the camera.
-        if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
+        // `.wake` or hasRecentWake (sleep, display sleep, or screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
+        let isWake = lockMonitor.lastEvent == .wake || lockMonitor.hasRecentWake
+        if isWake, !isWithinRecentArmBurst {
             hasArmedForCurrentLock = false
+            hasAutoRetriedForCurrentLock = false
         }
 
         // Runs before the hasArmedForCurrentLock guard — the space monitor's lifetime is tied to "locked + opted in," not to whether a scan already ran.
         updateSpaceMonitor()
 
         guard isEnabled, !hasArmedForCurrentLock else { return }
-        guard let signal = requiredTrigger(for: lockMonitor.lastEvent) else { return }
+        
+        let signal: UnlockTrigger?
+        if isWake {
+            signal = .onWake
+        } else {
+            signal = requiredTrigger(for: lockMonitor.lastEvent)
+        }
+        guard let signal else { return }
+
         // A pinned display that isn't connected bails entirely rather than showing up elsewhere; "Main display" (nil) always resolves.
         guard NotchGeometry.preferredScreen() != nil else { return }
 
+        if !NotchPulseVault.isSessionUnlocked {
+            _ = NotchPulseVault.ensureSessionKey()
+        }
         guard NotchPulseVault.isSessionUnlocked else {
             statusMessage = "Face unlock is on, but the session is locked — authenticate once from Password settings first."
             return
@@ -154,6 +168,8 @@ final class NotchPulseFaceUnlockCoordinator {
         hasArmedForCurrentLock = true
         lastArmedAt = .now
         ArcFaceEmbedder.warmUp()
+        NotchPulseVault.preflightKeychainAuthorization()
+        NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         Task { [weak self] in
             // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
             try? await Task.sleep(nanoseconds: 250_000_000)
@@ -280,6 +296,25 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
+        // Verify active enrolled faces exist before spinning camera hardware
+        var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        if activeIdentities.isEmpty {
+            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
+            activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        }
+        if activeIdentities.isEmpty {
+            if let direct = try? NotchPulseSecureFaceStore.load(), !direct.isEmpty {
+                activeIdentities = direct.filter(\.isEnabled)
+            }
+        }
+        guard !activeIdentities.isEmpty else {
+            statusMessage = "No enrolled face found. Enroll your face in Settings."
+            if self.showsUI {
+                FaceIDOverlayController.shared.finish(success: false)
+            }
+            return
+        }
+
         let showsUI = self.showsUI
         statusMessage = "Looking for your face…"
 
@@ -385,6 +420,17 @@ final class NotchPulseFaceUnlockCoordinator {
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
 
+        var cachedActiveIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        if cachedActiveIdentities.isEmpty {
+            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
+            cachedActiveIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+        }
+        if cachedActiveIdentities.isEmpty {
+            if let direct = try? NotchPulseSecureFaceStore.load(), !direct.isEmpty {
+                cachedActiveIdentities = direct.filter(\.isEnabled)
+            }
+        }
+
         // The user's scan window must measure FACE-SCANNING time, not camera boot time.
         // Wait up to 10s for the very first frame WITHOUT counting it against the
         // window, then re-anchor the deadline from the first real frame.
@@ -464,7 +510,10 @@ final class NotchPulseFaceUnlockCoordinator {
             }
 
             // Match against active identities with user's selected threshold
-            let scored = pipeline.score(result.embedding, against: NotchPulseFaceEnrollmentStore.shared.activeIdentities)
+            if cachedActiveIdentities.isEmpty {
+                cachedActiveIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            }
+            let scored = pipeline.score(result.embedding, against: cachedActiveIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: currentThreshold)
 
             let isWarmingUp = scanStartTime.map { Date().timeIntervalSince($0) < 1.2 } ?? true

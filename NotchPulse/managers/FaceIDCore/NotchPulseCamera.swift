@@ -71,6 +71,17 @@ final class NotchPulseCamera: NSObject {
         )
         sessionObservers.append(
             NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.willSleepNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.handleSleep()
+                }
+            }
+        )
+        sessionObservers.append(
+            NSWorkspace.shared.notificationCenter.addObserver(
                 forName: NSWorkspace.didWakeNotification,
                 object: nil,
                 queue: .main
@@ -82,23 +93,46 @@ final class NotchPulseCamera: NSObject {
         )
     }
 
+    private func handleSleep() {
+        // Stop session immediately and release camera hardware before sleep
+        stop()
+        resetSession()
+    }
+
     private func handleSessionRuntimeError(_ notification: Notification) {
         if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError {
             NSLog("[NotchPulseCamera] AVCaptureSession runtime error: \(error.localizedDescription)")
         }
-        // Invalidate stale input so next start cleanly re-binds device hardware
-        currentInput = nil
-        isConfigured = false
-        isRunning = false
+        // Invalidate stale inputs so next start cleanly re-binds device hardware
+        resetSession()
     }
 
     private func handleWakeReset() {
         // When waking from sleep, camera hardware power states change.
-        // If not running, invalidate input so the next scan acquires fresh hardware handles.
+        // Cleanly purge stale inputs so next scan re-binds fresh hardware handles.
         if !isRunning {
-            currentInput = nil
-            isConfigured = false
+            resetSession()
         }
+    }
+
+    private func resetSession() {
+        sessionQueue.async { [session = self.session, videoOutput = self.videoOutput] in
+            if session.isRunning {
+                session.stopRunning()
+            }
+            session.beginConfiguration()
+            for input in session.inputs {
+                session.removeInput(input)
+            }
+            for output in session.outputs {
+                session.removeOutput(output)
+            }
+            session.commitConfiguration()
+        }
+        currentInput = nil
+        isConfigured = false
+        isRunning = false
+        currentFrame = nil
     }
 
     func start() async {
@@ -172,7 +206,7 @@ final class NotchPulseCamera: NSObject {
         videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
         videoOutput.alwaysDiscardsLateVideoFrames = true
         videoOutput.setSampleBufferDelegate(framePublisher, queue: sessionQueue)
-        if session.canAddOutput(videoOutput) {
+        if !session.outputs.contains(videoOutput) && session.canAddOutput(videoOutput) {
             session.addOutput(videoOutput)
         }
 
@@ -185,16 +219,24 @@ final class NotchPulseCamera: NSObject {
             errorMessage = "No camera device found."
             return
         }
-        guard device.uniqueID != currentInput?.device.uniqueID else { return }
+        if let currentInput,
+           currentInput.device.uniqueID == device.uniqueID,
+           session.inputs.contains(currentInput) {
+            return
+        }
 
         session.beginConfiguration()
-        if let currentInput {
-            session.removeInput(currentInput)
+        // Always strip existing inputs to prevent duplicate/orphaned inputs from blocking canAddInput(input)
+        for existingInput in session.inputs {
+            session.removeInput(existingInput)
         }
+        currentInput = nil
+
         if let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) {
             session.addInput(input)
             currentInput = input
             selectHighestResolutionFormat(for: device)
+            errorMessage = nil
         } else {
             currentInput = nil
             errorMessage = "No camera device found."

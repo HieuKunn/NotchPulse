@@ -57,6 +57,26 @@ enum NotchPulseKeychainManager {
     /// Reads an item without presenting any UI/dialog to the user.
     /// If user interaction or authentication prompt is needed, throws immediately.
     nonisolated static func readSilently(account: String) throws -> Data {
+        // 1. First attempt direct query without LAContext.
+        // Items saved with kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (such as our unified sessionKey)
+        // succeed immediately even on the lock screen without any prompt or UI evaluation.
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecSuccess, let data = item as? Data {
+            return data
+        }
+        if status == errSecItemNotFound {
+            throw KeychainError.itemNotFound
+        }
+
+        // 2. Fall back to LAContext with interaction suppressed if the item requires SecAccessControl
         let context = LAContext()
         context.interactionNotAllowed = true
         return try read(account: account, context: context)
