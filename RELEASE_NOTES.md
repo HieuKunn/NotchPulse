@@ -5,6 +5,8 @@
 - **Streamlined Spring Physics**: Consolidated concurrent spring animation solvers down to primary state drivers, cutting redundant layout passes while preserving 100% natural, continuous Apple Dynamic Island spring dynamics.
 - **Intelligent Artwork Downsampling**: High-resolution album artwork is now processed asynchronously on background threads and scaled to crisp Retina thumbnails, preventing memory and decoding spikes when launching or switching tracks.
 - **Choreographed Natural Staging**: Refined inner content appearance with a subtle scale and smooth opacity transition, ensuring zero visual squishing or hitching during rapid expansions.
+- **Hardware-Driven Music Visualizer**: Upgraded the mini audio spectrum to pure Core Animation running entirely on the GPU compositor, eliminating periodic background timers and bringing main-thread CPU usage during playback down to 0%.
+- **Orphaned Layout Cleanup**: Removed redundant geometry tracking bindings, eliminating unnecessary SwiftUI layout passes during notch transitions.
 
 ### 📋 Clipboard History & Image Capture Reliability
 - **Ultra-Responsive Polling**: Accelerated clipboard polling to 150ms with instant change detection, ensuring continuous copying of multiple items or rapid screenshots captures every item without omission.
