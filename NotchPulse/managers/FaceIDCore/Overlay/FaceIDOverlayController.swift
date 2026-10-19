@@ -239,12 +239,6 @@ final class FaceIDOverlayController {
             self.phase = .scanning
             self.windowController.show()
             self.updateInteractivity()
-            
-            self.scanTimeoutTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
-                guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-                await self.collapse()
-            }
         }
     }
 
@@ -367,12 +361,6 @@ final class FaceIDOverlayController {
                 content = .scan(.idle)
                 phase = .scanning
                 updateInteractivity()
-                scanTimeoutTask?.cancel()
-                scanTimeoutTask = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
-                    guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-                    await self.collapse()
-                }
             }
             onActivate()
         case .scanning, .success, .collapsing, .onboarding:
