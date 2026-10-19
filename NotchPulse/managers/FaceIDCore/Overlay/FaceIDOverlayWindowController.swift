@@ -109,7 +109,9 @@ final class FaceIDOverlayWindowController {
             window.ignoresMouseEvents = true
             return
         }
-        guard let rect = interactiveContentRect, let hostView = window.contentView else {
+        // Lock screen keeps the original whole-window behaviour: nothing there sits
+        // under the notch to click, and hover-to-retry must not regress.
+        guard !isSkyLightDelegated, let rect = interactiveContentRect, let hostView = window.contentView else {
             window.ignoresMouseEvents = false
             return
         }
@@ -129,10 +131,9 @@ final class FaceIDOverlayWindowController {
     private func updateCursorPolling() {
         let shouldPoll = wantsInteractive && (window?.isVisible ?? false)
         if shouldPoll, cursorPollTimer == nil {
-            let timer = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.updateMousePassthrough() }
             }
-            timer.tolerance = 0.005
             RunLoop.main.add(timer, forMode: .common)
             cursorPollTimer = timer
         } else if !shouldPoll {

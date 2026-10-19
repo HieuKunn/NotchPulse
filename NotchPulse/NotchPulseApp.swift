@@ -187,7 +187,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ClipboardManager.shared.stopMonitoring()
         SystemMonitorManager.shared.stopMonitoring()
         
-        let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
+        let shouldKeepWindow = Defaults[.showOnLockScreen]
         if !shouldKeepWindow {
             cleanupWindows()
         } else {
@@ -224,7 +224,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ClipboardManager.shared.startMonitoring()
         FullscreenMediaDetector.shared.reevaluate()
         
-        let shouldKeepWindow = Defaults[.showOnLockScreen] || NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled
+        let shouldKeepWindow = Defaults[.showOnLockScreen]
         if !shouldKeepWindow {
             adjustWindowPosition(changeAlpha: true)
         } else {
@@ -247,10 +247,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     if let skyWindow = self.window as? NotchPulseSkyLightWindow {
                         skyWindow.enableSkyLight()
                     }
-                }
-                self.updateFaceIDCameraWindow()
-                if let skyCam = self.faceIDCameraWindow as? NotchPulseSkyLightWindow {
-                    skyCam.enableSkyLight()
                 }
                 
                 // Keep Lock Screen media card visible in lock space synchronously with Notch
@@ -275,9 +271,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     if let skyWindow = self.window as? NotchPulseSkyLightWindow {
                         skyWindow.disableSkyLight()
                     }
-                }
-                if let skyCam = self.faceIDCameraWindow as? NotchPulseSkyLightWindow {
-                    skyCam.disableSkyLight()
                 }
             }
         }
@@ -512,63 +505,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     func updateFaceIDCameraWindow() {
-        let isLockScreen = NotchPulseLockMonitor.isScreenActuallyLocked()
-        let isFaceIDNeeded = FaceIDOverlayController.shared.phase == .scanning
-            || FaceIDOverlayController.shared.phase == .success
-            || FaceIDOverlayController.shared.phase == .failure
-            || FaceIDOverlayController.shared.phase == .onboarding
-            || FaceIDOverlayController.shared.phase == .collapsing
-            || (FaceIDOverlayController.shared.isPresenting && FaceIDOverlayController.shared.phase != .closed)
-
-        let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-        let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice)
-        let camUUID = camScreen?.displayUUID
-
-        if isLockScreen {
-            // Elevate the primary window on lock screen
-            if let skyWindow = self.window as? NotchPulseSkyLightWindow {
-                skyWindow.enableSkyLight()
-                skyWindow.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
-                skyWindow.alphaValue = 1.0
-                skyWindow.orderFrontRegardless()
-            }
-            if Defaults[.showOnAllDisplays], let camUUID, let targetSky = self.windows[camUUID] as? NotchPulseSkyLightWindow {
-                targetSky.enableSkyLight()
-                targetSky.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
-                targetSky.alphaValue = 1.0
-                targetSky.orderFrontRegardless()
-            }
-        }
-
-        guard isFaceIDNeeded,
-              !Defaults[.showOnAllDisplays],
-              let camScreen = camScreen,
-              let camUUID = camUUID,
-              camUUID != coordinator.selectedScreenUUID else {
-            if let window = faceIDCameraWindow {
-                window.close()
-                NotchSpaceManager.shared.notchSpace.windows.remove(window)
-                faceIDCameraWindow = nil
-                faceIDCameraVM = nil
-            }
-            return
-        }
-
-        if faceIDCameraWindow == nil {
-            let camVM = NotchPulseViewModel(screenUUID: camUUID)
-            let window = createNotchPulseWindow(for: camScreen, with: camVM)
-            faceIDCameraWindow = window
-            faceIDCameraVM = camVM
-        }
-
-        if let window = faceIDCameraWindow, faceIDCameraVM != nil {
-            positionWindow(window, on: camScreen, changeAlpha: false)
-            window.alphaValue = 1.0
-            if isLockScreen {
-                (window as? NotchPulseSkyLightWindow)?.enableSkyLight()
-                window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
-            }
-            window.orderFrontRegardless()
+        if let window = faceIDCameraWindow {
+            window.close()
+            NotchSpaceManager.shared.notchSpace.windows.remove(window)
+            faceIDCameraWindow = nil
+            faceIDCameraVM = nil
         }
     }
 
@@ -653,14 +594,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 self?.adjustWindowPosition()
                 self?.setupDetectors()
-            }
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: Notification.Name.faceIDPhaseChanged, object: nil, queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateFaceIDCameraWindow()
             }
         }
 

@@ -21,7 +21,7 @@ final class FaceIDOverlayWindow: NSPanel {
         isMovable = false
         isMovableByWindowBackground = false
         isReleasedWhenClosed = false
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+        level = .mainMenu + 3
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
         // Decorative by default — clicks pass through until a failed attempt is

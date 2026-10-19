@@ -83,10 +83,10 @@ final class FaceIDOverlayController {
     /// Guards `primeWindowIfNeeded` so the extra render pass only happens on the first show.
     private var hasPrimedWindow = false
 
-    /// Matches the success asset duration plus a short beat to read the final frame.
-    private let successHoldDuration: Duration = .milliseconds(850)
+    /// Matches the success asset duration (~1.22s) plus a short beat to read the final frame.
+    private let successHoldDuration: Duration = .milliseconds(1_700)
     /// Non-private so FaceUnlockCoordinator's auto-retry can wait this out too.
-    let failureHoldDuration: Duration = .milliseconds(1_500)
+    let failureHoldDuration: Duration = .seconds(5)
     /// Reads the same setting as `FaceUnlockCoordinator.scanWindowDuration` so
     /// the two separate timers expire together.
     private var scanTimeoutDuration: Duration {
@@ -94,7 +94,7 @@ final class FaceIDOverlayController {
     }
     /// Long enough for the closing spring to fully settle before the window is
     /// hidden/left closed — collapsing state too early made the window visibly pop away.
-    let collapseAnimationDuration: Duration = .milliseconds(600)
+    let collapseAnimationDuration: Duration = .milliseconds(700)
 
     private init() {
         windowController.contentView = NSHostingView(rootView: FaceIDOverlayView(controller: self))
@@ -171,40 +171,11 @@ final class FaceIDOverlayController {
     /// `collapse()` checks `isArmed` once its hold expires and hides for real then.
     func disarm() {
         isArmed = false
-        isHoverTriggeredOnLockScreen = false
-        armedAt = nil
         onActivate = nil
         // Undocked before the guard: if a success collapse is already in flight, this
         // turns it into a full slide-off-screen exit rather than a shrink to a resting pill.
         isPillDocked = false
-        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
         guard phase != .success, phase != .collapsing else { return }
-
-        // If the overlay is actively scanning when disarm is called (e.g. user unlocked via
-        // password while FaceID was still looking), animate it closed instead of hiding instantly.
-        // This prevents the "bụp" snap-away and gives a smooth collapse back into the notch.
-        if phase == .scanning {
-            resolveTask?.cancel(); resolveTask = nil
-            scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-            geometry = windowController.currentGeometry
-            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
-                phase = .collapsing
-            }
-            updateInteractivity()
-            Task { [weak self] in
-                try? await Task.sleep(for: self?.collapseAnimationDuration ?? .milliseconds(600))
-                guard let self, self.phase == .collapsing else { return }
-                withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
-                    self.phase = .closed
-                }
-                self.content = .scan(.idle)
-                self.windowController.setInteractive(false)
-                self.windowController.hide()
-                self.restorePreviousScreen()
-            }
-            return
-        }
-
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         // Re-measured here, not just trusted from `arm()` — `arm()` typically
@@ -220,7 +191,6 @@ final class FaceIDOverlayController {
 
         guard geometry.style == .pill, windowController.isVisible else {
             windowController.hide()
-            restorePreviousScreen()
             return
         }
         // The pill is visible at rest, so hiding the window right now would blink it
@@ -229,7 +199,6 @@ final class FaceIDOverlayController {
             try? await Task.sleep(for: self?.collapseAnimationDuration ?? .milliseconds(700))
             guard let self, !self.isArmed, self.phase == .closed else { return }
             self.windowController.hide()
-            self.restorePreviousScreen()
         }
     }
 
@@ -416,59 +385,23 @@ final class FaceIDOverlayController {
             // Gated here rather than in `updateInteractivity()` so the cosmetic hover bump
             // stays unaffected — only the retry itself is removed.
             guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
-
-            // If armed very recently (e.g. screen just locked or woke up and cursor happened to be at the notch),
-            // ignore accidental initial hover for 0.5s to prevent premature auto-scan upon locking!
-            if let armedAt {
-                let elapsed = ContinuousClock.now - armedAt
-                if elapsed < .milliseconds(500) {
-                    return
-                }
-            }
-        }
-
-        performActivation()
-    }
-
-    private func performActivation() {
-        pendingHoverActivationTask?.cancel()
-        pendingHoverActivationTask = nil
-
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-            // Hover triggered Face ID on lock screen -> allow routing to camera screen!
-            isHoverTriggeredOnLockScreen = true
         }
 
         switch phase {
         case .closed, .failure:
-            isPresenting = true
-            routeToCameraScreen()
+            guard let onActivate else {
+                if phase == .failure { Task { await collapse() } }
+                return
+            }
             resolveTask?.cancel(); resolveTask = nil
-            scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-            activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
-            content = .scan(.idle)
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
+            if !isArmed {
+                activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
+                content = .scan(.idle)
                 phase = .scanning
+                updateInteractivity()
             }
-            updateInteractivity()
-
-            scanTimeoutTask = Task { @MainActor [weak self] in
-                let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
-                try? await Task.sleep(for: duration)
-                guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-                await self.collapse()
-            }
-
-            if let onActivate = self.onActivate {
-                onActivate()
-            } else {
-                NotchPulseFaceUnlockCoordinator.shared.startScanManually()
-            }
-        case .scanning:
-            if NotchPulseLockMonitor.isScreenActuallyLocked() {
-                routeToCameraScreen()
-            }
-        case .success, .onboarding, .collapsing:
+            onActivate()
+        case .scanning, .success, .collapsing, .onboarding:
             break
         }
     }
@@ -514,9 +447,9 @@ final class FaceIDOverlayController {
     }
 
     /// Tears the overlay down without any resolve animation. Deliberately a no-op while
-    /// success/collapsing/scanning is in flight — interrupting those made the window vanish abruptly.
+    /// success/collapsing is in flight — interrupting that made the window vanish abruptly.
     func dismissImmediately() {
-        guard phase != .success, phase != .collapsing, phase != .scanning else { return }
+        guard phase != .success, phase != .collapsing else { return }
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         phase = .closed

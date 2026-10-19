@@ -108,8 +108,7 @@ class NotchPulseSkyLightWindow: NSPanel {
         if !isSkyLightEnabled {
             SkyLightOperator.shared.delegateWindow(self)
             isSkyLightEnabled = true
-            // Elevate above lock screen media window (CGShieldingWindowLevel + 2) so Face ID is always frontmost
-            level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+            level = .mainMenu + 2
         }
     }
     

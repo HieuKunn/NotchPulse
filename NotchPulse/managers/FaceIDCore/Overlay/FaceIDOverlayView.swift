@@ -482,6 +482,9 @@ struct FaceIDOverlayView: View {
     private func stopScanPulse() {
         scanPulseTask?.cancel()
         scanPulseTask = nil
-        isScanPulseDimmed = false
+        guard isScanPulseDimmed else { return }
+        withAnimation(.easeOut(duration: FaceIDOverlayGeometry.scanPulseSettleDuration)) {
+            isScanPulseDimmed = false
+        }
     }
 }

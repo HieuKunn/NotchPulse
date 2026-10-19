@@ -164,7 +164,6 @@ final class NotchPulseFaceUnlockCoordinator {
         autoRetryTask?.cancel()
         autoRetryTask = nil
         camera.stop()
-        FaceIDOverlayController.shared.dismissImmediately()
         FaceIDOverlayController.shared.disarm()
         // Covers isEnabled being switched off directly, keeping "disarmed" and "not listening for space" in lockstep.
         spaceKeyMonitor.stop()
