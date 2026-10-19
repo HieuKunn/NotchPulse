@@ -92,7 +92,7 @@ enum NotchPulseVault {
     }
 
     @discardableResult
-    nonisolated static func ensureSessionKey() -> SymmetricKey {
+    nonisolated static func ensureSessionKey() -> SymmetricKey? {
         sessionLock.lock()
         if let key = _cachedKey {
             sessionLock.unlock()
@@ -108,8 +108,14 @@ enum NotchPulseVault {
             NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
             return key
         }
+
+        // If an existing sessionKey already exists in Keychain, DO NOT destroy it by minting an empty replacement!
+        if NotchPulseKeychainManager.exists(account: sessionKeyAccount) {
+            NSLog("[NotchPulseVault] Existing sessionKey in Keychain could not be loaded silently; preserving existing item.")
+            return nil
+        }
         
-        // Generate new key and save as unified payload into Keychain (device-only unlock, no .userPresence gating)
+        // Generate new key ONLY on clean initial setup when no key exists at all
         let key = SymmetricKey(size: .bits256)
         let keyData = key.withUnsafeBytes { Data($0) }
         let payload = UnifiedVaultPayload(keyData: keyData, passwordData: nil)
@@ -201,7 +207,7 @@ enum NotchPulseVault {
     // MARK: - Generic session-key crypto (shared by passwords here and face embeddings in NotchPulseSecureFaceStore; requires an unlocked session)
 
     nonisolated static func encrypt(_ plaintext: Data) throws -> Data {
-        let key = ensureSessionKey()
+        guard let key = cachedKey() ?? ensureSessionKey() else { throw NotchPulseVaultError.sessionLocked }
         do {
             let sealed = try AES.GCM.seal(plaintext, using: key)
             guard let combined = sealed.combined else { throw NotchPulseVaultError.encryptionFailed }
@@ -251,6 +257,40 @@ enum NotchPulseVault {
 
     /// Ensures the session key is unlocked and ready for use.
     nonisolated static func unlockSession(reason: String = "") async throws {
+        if cachedKey() != nil { return }
+        if let key = tryAutoLoadKey() {
+            sessionLock.lock()
+            _cachedKey = key
+            _lastActivityAt = Date()
+            sessionLock.unlock()
+            NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
+            return
+        }
+
+        if NotchPulseKeychainManager.exists(account: sessionKeyAccount) {
+            let context = LAContext()
+            context.localizedReason = reason.isEmpty ? "Authenticate to unlock NotchPulse Face ID session" : reason
+            let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: context)
+            if let payload = try? JSONDecoder().decode(UnifiedVaultPayload.self, from: data) {
+                let key = SymmetricKey(data: payload.keyData)
+                sessionLock.lock()
+                _cachedKey = key
+                _cachedPassword = payload.passwordData
+                _lastActivityAt = Date()
+                sessionLock.unlock()
+                NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
+                return
+            } else if data.count == 32 {
+                let key = SymmetricKey(data: data)
+                sessionLock.lock()
+                _cachedKey = key
+                _lastActivityAt = Date()
+                sessionLock.unlock()
+                NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
+                return
+            }
+        }
+
         _ = ensureSessionKey()
     }
 
@@ -277,7 +317,7 @@ enum NotchPulseVault {
     /// Encrypts and stores `passwordBytes` inside the unified Keychain item.
     nonisolated static func savePassword(_ passwordBytes: Data) throws {
         guard !passwordBytes.isEmpty else { throw NotchPulseVaultError.emptyPassword }
-        let key = ensureSessionKey()
+        guard let key = cachedKey() ?? ensureSessionKey() else { throw NotchPulseVaultError.sessionLocked }
         let keyData = key.withUnsafeBytes { Data($0) }
         let payload = UnifiedVaultPayload(keyData: keyData, passwordData: passwordBytes)
         let encoded = try JSONEncoder().encode(payload)

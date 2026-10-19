@@ -349,7 +349,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 18
+        let wrongFaceStreakThreshold = 32
 
         /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
         var readyMatch: ScoredIdentity?
@@ -369,6 +369,9 @@ final class NotchPulseFaceUnlockCoordinator {
             if let direct = try? NotchPulseSecureFaceStore.load(), !direct.isEmpty {
                 cachedActiveIdentities = direct.filter(\.isEnabled)
             }
+        }
+        if cachedActiveIdentities.isEmpty {
+            NSLog("[FaceID Coordinator] Warning: cachedActiveIdentities is EMPTY. Enrolled face may need recapture or session unlocking.")
         }
 
         while Date() < deadline, !Task.isCancelled,
@@ -434,6 +437,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 if (result.quality ?? 0.5) >= 0.2 {
                     consecutiveWrongFaceFrames += 1
                     if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                        NSLog("[FaceID Coordinator] Wrong face streak threshold (%ld) reached. Aborting with consistentlyWrongFace.", wrongFaceStreakThreshold)
                         return .consistentlyWrongFace
                     }
                 }
