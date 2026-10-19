@@ -844,7 +844,6 @@ struct ContentView: View {
                         style: .continuous
                     )
                 )
-                .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
 
             Rectangle()
                 .fill(.black)
@@ -891,7 +890,6 @@ struct ContentView: View {
                                 : Color.gray.gradient
                         )
                         .frame(width: 50, alignment: .center)
-                        .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
                         .mask {
                             AudioSpectrumView(isPlaying: $musicManager.isPlaying)
                                 .frame(width: 16, height: 12)
