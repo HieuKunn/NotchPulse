@@ -47,13 +47,22 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     /// Pre-warms the ArcFace ML model ahead of real frames.
     static func warmUp() {
         Task.detached(priority: .userInitiated) {
-            _ = shared
+            shared?.prewarmNeuralEngine()
         }
     }
 
-    /// Asynchronously ensures the model is resident in memory.
+    /// Asynchronously ensures the model is resident in memory and pre-warmed.
     static func prepare() async {
-        _ = shared
+        shared?.prewarmNeuralEngine()
+    }
+
+    private func prewarmNeuralEngine() {
+        var pixelBufferOut: CVPixelBuffer?
+        let status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pixelBufferPool, &pixelBufferOut)
+        guard status == kCVReturnSuccess, let pixelBuffer = pixelBufferOut else { return }
+        if let input = try? MLDictionaryFeatureProvider(dictionary: [Self.inputName: MLFeatureValue(pixelBuffer: pixelBuffer)]) {
+            _ = try? model.prediction(from: input)
+        }
     }
 
     /// Kept for backward compatibility. Model remains resident in RAM to avoid expensive cold-start compilation.

@@ -8,12 +8,12 @@ class AudioSpectrum: NSView {
     private var isAnimating: Bool = false
 
     private let barKeyframes: [[NSNumber]] = [
-        [0.35, 0.85, 0.40, 0.95, 0.50, 0.80, 0.35],
-        [0.35, 0.55, 1.00, 0.45, 0.90, 0.60, 0.35],
-        [0.35, 0.95, 0.35, 0.80, 0.45, 1.00, 0.35],
-        [0.35, 0.65, 0.90, 0.40, 0.75, 0.50, 0.35]
+        [0.35, 0.80, 0.45, 0.95, 0.55, 0.75, 0.35],
+        [0.35, 0.60, 1.00, 0.40, 0.85, 0.50, 0.35],
+        [0.35, 0.90, 0.35, 0.75, 0.45, 0.95, 0.35],
+        [0.35, 0.50, 0.85, 0.40, 0.70, 0.45, 0.35]
     ]
-    private let barDurations: [CFTimeInterval] = [0.85, 0.72, 0.92, 0.78]
+    private let barDurations: [CFTimeInterval] = [2.1, 1.8, 2.3, 1.95]
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -64,7 +64,7 @@ class AudioSpectrum: NSView {
             animation.values = barKeyframes[i]
             animation.duration = barDurations[i]
             animation.repeatCount = .infinity
-            animation.autoreverses = true
+            animation.autoreverses = false
             animation.calculationMode = .cubic
             animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             animation.isRemovedOnCompletion = false

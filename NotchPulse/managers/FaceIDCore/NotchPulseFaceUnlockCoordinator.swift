@@ -318,6 +318,10 @@ final class NotchPulseFaceUnlockCoordinator {
         let showsUI = self.showsUI
         statusMessage = "Looking for your face…"
 
+        if showsUI {
+            FaceIDOverlayController.shared.beginScanning()
+        }
+
         await camera.start()
         guard generation == scanGeneration else { return }
 
@@ -331,7 +335,6 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         if showsUI {
-            FaceIDOverlayController.shared.beginScanning()
             FaceIDOverlayController.shared.restartScanTimeout()
         }
 
