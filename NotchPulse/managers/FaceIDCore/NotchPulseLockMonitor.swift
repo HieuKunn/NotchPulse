@@ -32,12 +32,6 @@ final class NotchPulseLockMonitor {
     private(set) var lastEvent: LockEventKind?
     private(set) var eventCount: Int = 0
 
-    private(set) var lastWakeInstant: ContinuousClock.Instant?
-    var hasRecentWake: Bool {
-        guard let lastWakeInstant else { return false }
-        return ContinuousClock.now - lastWakeInstant < .seconds(4)
-    }
-
     private var distributedObservers: [NSObjectProtocol] = []
     private var workspaceObservers: [NSObjectProtocol] = []
 
@@ -64,7 +58,6 @@ final class NotchPulseLockMonitor {
             queue: .main
         ) { [weak self] _ in
             self?.isScreenLocked = true
-            Self.setCachedLockState(true)
             self?.record(.screenLocked)
         })
         distributedObservers.append(distributed.addObserver(
@@ -73,7 +66,6 @@ final class NotchPulseLockMonitor {
             queue: .main
         ) { [weak self] _ in
             self?.isScreenLocked = false
-            Self.setCachedLockState(false)
             self?.record(.screenUnlocked)
         })
         // Observing the key press that dismissed the screensaver isn't possible — Secure Event Input suppresses keyboard taps
@@ -115,8 +107,6 @@ final class NotchPulseLockMonitor {
     private func recordWake() {
         isSleeping = false
         wakeEventCount += 1
-        lastWakeInstant = .now
-        Self.invalidateLockCache()
         record(.wake)
     }
 
@@ -125,45 +115,14 @@ final class NotchPulseLockMonitor {
         eventCount += 1
     }
 
-    private static let cacheLock = NSLock()
-    nonisolated(unsafe) private static var cachedLockState: Bool = false
-    nonisolated(unsafe) private static var cachedLockTimestamp: TimeInterval = -10
-
-    nonisolated static func invalidateLockCache() {
-        cacheLock.lock()
-        cachedLockTimestamp = -10
-        cacheLock.unlock()
-    }
-
-    nonisolated static func setCachedLockState(_ locked: Bool) {
-        cacheLock.lock()
-        cachedLockState = locked
-        cachedLockTimestamp = ProcessInfo.processInfo.systemUptime
-        cacheLock.unlock()
-    }
+    nonisolated static func invalidateLockCache() {}
+    nonisolated static func setCachedLockState(_ locked: Bool) {}
 
     /// Authoritative lock state from the CoreGraphics session server, not a spoofable notification. Fails closed if unavailable.
     nonisolated static func isScreenActuallyLocked(bypassCache: Bool = false) -> Bool {
-        if !bypassCache {
-            cacheLock.lock()
-            let now = ProcessInfo.processInfo.systemUptime
-            // If an explicit unlock occurred recently (< 2.0s), don't let stale CGSession lag claim it is still locked
-            if !cachedLockState && (now - cachedLockTimestamp) < 2.0 {
-                cacheLock.unlock()
-                return false
-            }
-            cacheLock.unlock()
-        }
-
         guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
-            cacheLock.lock()
-            let fallback = cachedLockState
-            cacheLock.unlock()
-            return fallback
+            return false
         }
-        let lockedNum = dict["CGSSessionScreenIsLocked"]
-        let isLocked = (lockedNum as? Bool) ?? ((lockedNum as? NSNumber)?.boolValue ?? false)
-        setCachedLockState(isLocked)
-        return isLocked
+        return (dict["CGSSessionScreenIsLocked"] as? Bool) ?? false
     }
 }

@@ -86,30 +86,7 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func evaluateTrigger() {
-        if !NotchPulseLockMonitor.isScreenActuallyLocked() {
-            // When waking from sleep, CGSessionCopyCurrentDictionary often lags by 300-1200ms
-            if lockMonitor.lastEvent == .wake || lockMonitor.hasRecentWake {
-                hasArmedForCurrentLock = false
-                hasAutoRetriedForCurrentLock = false
-                Task { @MainActor [weak self] in
-                    for delay in [150, 300, 500, 800, 1200] {
-                        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000))
-                        guard let self else { return }
-                        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-                            self.evaluateTrigger()
-                            return
-                        }
-                    }
-                    guard let self else { return }
-                    if !NotchPulseLockMonitor.isScreenActuallyLocked() {
-                        self.hasArmedForCurrentLock = false
-                        self.hasAutoRetriedForCurrentLock = false
-                        self.disarmOverlay()
-                    }
-                }
-                return
-            }
-
+        guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
             disarmOverlay()
@@ -117,9 +94,9 @@ final class NotchPulseFaceUnlockCoordinator {
         }
         guard !lockMonitor.isSleeping else { return }
 
-        // `.wake` or hasRecentWake (sleep, display sleep, or screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
-        let isWake = lockMonitor.lastEvent == .wake || lockMonitor.hasRecentWake
-        if isWake, !isWithinRecentArmBurst {
+        // `.wake` (sleep, display sleep, or screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
+        // `isWithinRecentArmBurst` keeps the several wake signals from one lid-open from each re-arming and fighting over the camera.
+        if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
         }
@@ -128,14 +105,7 @@ final class NotchPulseFaceUnlockCoordinator {
         updateSpaceMonitor()
 
         guard isEnabled, !hasArmedForCurrentLock else { return }
-        
-        let signal: UnlockTrigger?
-        if isWake {
-            signal = .onWake
-        } else {
-            signal = requiredTrigger(for: lockMonitor.lastEvent)
-        }
-        guard let signal else { return }
+        guard let signal = requiredTrigger(for: lockMonitor.lastEvent) else { return }
 
         // A pinned display that isn't connected bails entirely rather than showing up elsewhere; "Main display" (nil) always resolves.
         guard NotchGeometry.preferredScreen() != nil else { return }
@@ -413,7 +383,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 65
+        let wrongFaceStreakThreshold = 6
 
         /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
         var readyMatch: ScoredIdentity?

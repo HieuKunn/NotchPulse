@@ -32,107 +32,10 @@ final class NotchPulseCamera: NSObject {
 
     /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
     private let framePublisher = FramePublisher()
-    private nonisolated(unsafe) var sessionObservers: [NSObjectProtocol] = []
 
     override init() {
         super.init()
         framePublisher.owner = self
-        setupSessionObservers()
-    }
-
-    deinit {
-        for observer in sessionObservers {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
-
-    private func setupSessionObservers() {
-        sessionObservers.append(
-            NotificationCenter.default.addObserver(
-                forName: .AVCaptureSessionRuntimeError,
-                object: session,
-                queue: .main
-            ) { [weak self] notification in
-                Task { @MainActor [weak self] in
-                    self?.handleSessionRuntimeError(notification)
-                }
-            }
-        )
-        sessionObservers.append(
-            NotificationCenter.default.addObserver(
-                forName: .AVCaptureSessionWasInterrupted,
-                object: session,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.isRunning = false
-                }
-            }
-        )
-        sessionObservers.append(
-            NSWorkspace.shared.notificationCenter.addObserver(
-                forName: NSWorkspace.willSleepNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.handleSleep()
-                }
-            }
-        )
-        sessionObservers.append(
-            NSWorkspace.shared.notificationCenter.addObserver(
-                forName: NSWorkspace.didWakeNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.handleWakeReset()
-                }
-            }
-        )
-    }
-
-    private func handleSleep() {
-        // Stop session immediately and release camera hardware before sleep
-        stop()
-        resetSession()
-    }
-
-    private func handleSessionRuntimeError(_ notification: Notification) {
-        if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError {
-            NSLog("[NotchPulseCamera] AVCaptureSession runtime error: \(error.localizedDescription)")
-        }
-        // Invalidate stale inputs so next start cleanly re-binds device hardware
-        resetSession()
-    }
-
-    private func handleWakeReset() {
-        // When waking from sleep, camera hardware power states change.
-        // Cleanly purge stale inputs so next scan re-binds fresh hardware handles.
-        if !isRunning {
-            resetSession()
-        }
-    }
-
-    private func resetSession() {
-        sessionQueue.async { [session = self.session] in
-            if session.isRunning {
-                session.stopRunning()
-            }
-            session.beginConfiguration()
-            for input in session.inputs {
-                session.removeInput(input)
-            }
-            for output in session.outputs {
-                session.removeOutput(output)
-            }
-            session.commitConfiguration()
-        }
-        currentInput = nil
-        isConfigured = false
-        isRunning = false
-        currentFrame = nil
     }
 
     func start() async {
@@ -206,7 +109,7 @@ final class NotchPulseCamera: NSObject {
         videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
         videoOutput.alwaysDiscardsLateVideoFrames = true
         videoOutput.setSampleBufferDelegate(framePublisher, queue: sessionQueue)
-        if !session.outputs.contains(videoOutput) && session.canAddOutput(videoOutput) {
+        if session.canAddOutput(videoOutput) {
             session.addOutput(videoOutput)
         }
 
@@ -219,24 +122,16 @@ final class NotchPulseCamera: NSObject {
             errorMessage = "No camera device found."
             return
         }
-        if let currentInput,
-           currentInput.device.uniqueID == device.uniqueID,
-           session.inputs.contains(currentInput) {
-            return
-        }
+        guard device.uniqueID != currentInput?.device.uniqueID else { return }
 
         session.beginConfiguration()
-        // Always strip existing inputs to prevent duplicate/orphaned inputs from blocking canAddInput(input)
-        for existingInput in session.inputs {
-            session.removeInput(existingInput)
+        if let currentInput {
+            session.removeInput(currentInput)
         }
-        currentInput = nil
-
         if let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) {
             session.addInput(input)
             currentInput = input
             selectHighestResolutionFormat(for: device)
-            errorMessage = nil
         } else {
             currentInput = nil
             errorMessage = "No camera device found."
