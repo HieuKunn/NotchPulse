@@ -214,11 +214,22 @@ struct FaceIDOverlayGeometry {
     }
 
     /// Picks the screen the overlay should show on. Follows NotchPulse's configured display:
-    /// 1. User's explicitly preferred display (`preferredScreenUUID`).
-    /// 2. Active selected display (`selectedScreenUUID`).
-    /// 3. Physical notch display if any exists, otherwise primary display.
+    /// 1. If showing on all displays (`showOnAllDisplays` is true), prioritize the primary display
+    ///    designated in macOS System Settings (`NSScreen.screens.first ?? NSScreen.main`).
+    /// 2. If single display mode:
+    ///    a. Active NotchPulse window's screen if present.
+    ///    b. User's explicitly preferred display (`preferredScreenUUID`).
+    ///    c. Active selected display (`selectedScreenUUID`).
+    ///    d. Primary display per macOS System Settings (`NSScreen.screens.first ?? NSScreen.main`).
     @MainActor
     static func preferredScreen() -> NSScreen? {
+        if Defaults[.showOnAllDisplays] {
+            return NSScreen.screens.first ?? NSScreen.main
+        }
+        if let appDelegate = NSApp.delegate as? AppDelegate,
+           let windowScreen = appDelegate.window?.screen {
+            return windowScreen
+        }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
             return screen
@@ -227,7 +238,7 @@ struct FaceIDOverlayGeometry {
         if !selectedUUID.isEmpty, let screen = NSScreen.screen(withUUID: selectedUUID) {
             return screen
         }
-        return NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
+        return NSScreen.screens.first ?? NSScreen.main
     }
 }
 

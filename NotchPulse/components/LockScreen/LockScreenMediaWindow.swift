@@ -117,18 +117,15 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             return cursorScreen
         }
         if Defaults[.showOnAllDisplays] {
-            return NSScreen.main
-                ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil })
-                ?? NSScreen.screens.first
+            return NSScreen.screens.first ?? NSScreen.main
         }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
             return screen
         }
         return NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
-            ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil })
-            ?? NSScreen.main
             ?? NSScreen.screens.first
+            ?? NSScreen.main
     }
     
     private func getTargetScreen() -> NSScreen? {
