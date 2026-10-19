@@ -216,7 +216,12 @@ struct FaceIDOverlayGeometry {
     /// display, falling back to NotchPulse's active display or physical notch display.
     @MainActor
     static func preferredScreen() -> NSScreen? {
-        // 1. Explicit user-chosen display preference has highest priority
+        // Face ID overlay window appears on the screen that physically hosts the camera,
+        // so the user naturally looks straight at the camera to unlock accurately.
+        if let camUUID = NotchPulseCameraDeviceCatalog.cachedTargetScreenUUID(),
+           let camScreen = NSScreen.screen(withUUID: camUUID) {
+            return camScreen
+        }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
             return screen
@@ -224,11 +229,6 @@ struct FaceIDOverlayGeometry {
         let selectedUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
         if !selectedUUID.isEmpty, let screen = NSScreen.screen(withUUID: selectedUUID) {
             return screen
-        }
-        // 2. Otherwise follow camera screen if available
-        if let camUUID = NotchPulseCameraDeviceCatalog.cachedTargetScreenUUID(),
-           let camScreen = NSScreen.screen(withUUID: camUUID) {
-            return camScreen
         }
         return NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
     }

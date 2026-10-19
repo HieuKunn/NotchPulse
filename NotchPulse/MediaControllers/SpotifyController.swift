@@ -180,26 +180,13 @@ class SpotifyController: MediaControllerProtocol {
     func setUIActive(_ active: Bool) {
         if active && playbackState.isPlaying {
             Task { await resyncPositionOnly() }
-            startPeriodicSyncIfNeeded()
         } else if !active {
             stopPeriodicSync()
         }
     }
 
     private func startPeriodicSyncIfNeeded() {
-        guard MusicManager.shared.isUIActive else { return }
-        guard periodicSyncTask == nil else { return }
-        periodicSyncTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1.0))
-                guard let self = self, !Task.isCancelled else { break }
-                guard self.playbackState.isPlaying, self.isActive(), MusicManager.shared.isUIActive else {
-                    self.stopPeriodicSync()
-                    break
-                }
-                await self.resyncPositionOnly()
-            }
-        }
+        // Position is smoothly interpolated locally with 0% CPU; no periodic AppleScript polling needed.
     }
 
     private func stopPeriodicSync() {

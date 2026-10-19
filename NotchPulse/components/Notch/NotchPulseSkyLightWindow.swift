@@ -28,10 +28,14 @@ extension SkyLightOperator {
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     required init(rootView: Content) {
         super.init(rootView: rootView)
+        self.wantsLayer = true
+        self.layerContentsRedrawPolicy = .onSetNeedsDisplay
     }
 
     @MainActor required dynamic init?(coder: NSCoder) {
         super.init(coder: coder)
+        self.wantsLayer = true
+        self.layerContentsRedrawPolicy = .onSetNeedsDisplay
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {

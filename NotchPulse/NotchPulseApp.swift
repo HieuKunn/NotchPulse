@@ -951,24 +951,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
                 targetScreen = activeScreen
             }
-            // 2. Fall back to camera screen only when no user display preference is set
+            // 2. Fall back to main screen if active screen not resolved
             else {
-                let isFaceIDScanning = FaceIDOverlayController.shared.phase == .scanning
-                    || FaceIDOverlayController.shared.phase == .success
-                    || FaceIDOverlayController.shared.phase == .failure
-                    || FaceIDOverlayController.shared.phase == .onboarding
-                if isFaceIDScanning,
-                   let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
-                   let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice) {
-                    targetScreen = camScreen
+                let fallback = NSScreen.main ?? NSScreen.screens.first
+                if let fallback, let fallbackUUID = fallback.displayUUID {
+                    coordinator.selectedScreenUUID = fallbackUUID
+                    targetScreen = fallback
                 } else {
-                    let fallback = NSScreen.main ?? NSScreen.screens.first
-                    if let fallback, let fallbackUUID = fallback.displayUUID {
-                        coordinator.selectedScreenUUID = fallbackUUID
-                        targetScreen = fallback
-                    } else {
-                        targetScreen = nil
-                    }
+                    targetScreen = nil
                 }
             }
 

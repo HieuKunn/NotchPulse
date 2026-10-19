@@ -19,6 +19,10 @@ class CalendarManager: ObservableObject {
     private var selectedCalendars: [CalendarModel] = []
     private let calendarService = CalendarService()
 
+    private var lastFetchDate: Date?
+    private var lastFetchTime: Date?
+    private var lastFetchCalendarIDs: Set<String>?
+
     private var eventStoreChangedObserver: NSObjectProtocol?
 
     private init() {
@@ -42,7 +46,9 @@ class CalendarManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task {
+                self?.lastFetchTime = nil
                 await self?.reloadCalendarAndReminderLists()
+                await self?.updateEvents()
             }
         }
     }
@@ -164,6 +170,7 @@ class CalendarManager: ObservableObject {
 
         Defaults[.calendarSelectionState] = selectionState
         updateSelectedCalendars()
+        lastFetchTime = nil
         await updateEvents()
     }
 
@@ -171,27 +178,40 @@ class CalendarManager: ObservableObject {
         return Calendar.current.startOfDay(for: date)
     }
 
-    func updateCurrentDate(_ date: Date) async {
-        currentWeekStartDate = Calendar.current.startOfDay(for: date)
+    func updateCurrentDate(_ date: Date, force: Bool = false) async {
+        let targetStartOfDay = Calendar.current.startOfDay(for: date)
+        let calendarIDs = Set(selectedCalendars.map { $0.id })
+
+        let isSameDay = (lastFetchDate == targetStartOfDay)
+        let isSameCalendars = (lastFetchCalendarIDs == calendarIDs)
+        let isFresh = Date().timeIntervalSince(lastFetchTime ?? .distantPast) < 300 // 5-minute cache
+
+        currentWeekStartDate = targetStartOfDay
+
+        if !force && isSameDay && isSameCalendars && isFresh {
+            return
+        }
+
         await updateEvents()
     }
 
     private func updateEvents() async {
         let calendarIDs = selectedCalendars.map { $0.id }
+        let targetStartOfDay = currentWeekStartDate
         let eventsResult = await calendarService.events(
-            from: currentWeekStartDate,
-            to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
+            from: targetStartOfDay,
+            to: Calendar.current.date(byAdding: .day, value: 1, to: targetStartOfDay)!,
             calendars: calendarIDs
         )
         self.events = eventsResult
+        self.lastFetchDate = targetStartOfDay
+        self.lastFetchTime = Date()
+        self.lastFetchCalendarIDs = Set(calendarIDs)
     }
     
     func setReminderCompleted(reminderID: String, completed: Bool) async {
         await calendarService.setReminderCompleted(reminderID: reminderID, completed: completed)
-        // Refresh events after updating
-        events = await calendarService.events(
-            from: currentWeekStartDate,
-            to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
-            calendars: selectedCalendars.map { $0.id })
+        lastFetchTime = nil
+        await updateEvents()
     }
 }

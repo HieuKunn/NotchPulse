@@ -366,6 +366,7 @@ struct ContentView: View {
                             .stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0), lineWidth: 0.8)
                     }
             }
+            .compositingGroup()
             .shadow(
                 color: isIsland
                     ? (Defaults[.enableShadow] ? .black.opacity(0.65) : .clear)
