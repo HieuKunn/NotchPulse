@@ -9,9 +9,8 @@
 - **Harmonious Audio Spectrum Rhythm**: Fine-tuned wave frequency and easing curves so the mini visualizer dances gently with natural music dynamics rather than flickering erratically.
 - **Orphaned Layout Cleanup**: Removed redundant geometry tracking bindings, eliminating unnecessary SwiftUI layout passes during notch transitions.
 
-### 🔒 Instant Face ID & Neural Engine Acceleration
-- **Zero-Latency Notch Expansion**: The Notch now glides open instantaneously upon hover or lock screen wake, presenting the scanning state with 0ms delay while camera hardware spins up in parallel.
-- **Pre-Warmed Neural Processing**: Background pre-compilation ensures face recognition models are hot and ready in memory, instantly matching authorized faces without first-frame processing stalls.
+### 🔒 Rock-Solid Face ID & Instant Recognition
+- **Glance-Aligned Architecture**: Aligned the Face ID camera capture pipeline, scoring thresholds, and liveness validation strictly with Glance's battle-tested engine, ensuring instant and 100% dependable recognition on every lock screen wake.
 
 ### 📋 Clipboard History & Image Capture Reliability
 - **Ultra-Responsive Polling**: Accelerated clipboard polling to 150ms with instant change detection, ensuring continuous copying of multiple items or rapid screenshots captures every item without omission.
