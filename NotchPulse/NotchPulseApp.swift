@@ -943,33 +943,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let targetScreen: NSScreen?
 
-            // 0. Only dynamically route to the camera's physical display when Face ID is ACTIVELY scanning / showing
-            let isFaceIDScanning = FaceIDOverlayController.shared.phase == .scanning
-                || FaceIDOverlayController.shared.phase == .success
-                || FaceIDOverlayController.shared.phase == .failure
-                || FaceIDOverlayController.shared.phase == .onboarding
-            if isFaceIDScanning,
-               let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
-               let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice) {
-                targetScreen = camScreen
-            }
             // 1. Prioritize explicitly preferred display chosen by user
-            else if let preferredUUID = coordinator.preferredScreenUUID,
+            if let preferredUUID = coordinator.preferredScreenUUID,
                let preferredScreen = NSScreen.screen(withUUID: preferredUUID) {
                 coordinator.selectedScreenUUID = preferredUUID
                 targetScreen = preferredScreen
             } else if let activeScreen = NSScreen.screen(withUUID: coordinator.selectedScreenUUID) {
                 targetScreen = activeScreen
-            } else {
-                // The preferred display was disconnected or not found (e.g. unplugged).
-                // Fall back gracefully to the remaining active screen without favoring physical notch!
-                let fallback = NSScreen.main ?? NSScreen.screens.first
-
-                if let fallback, let fallbackUUID = fallback.displayUUID {
-                    coordinator.selectedScreenUUID = fallbackUUID
-                    targetScreen = fallback
+            }
+            // 2. Fall back to camera screen only when no user display preference is set
+            else {
+                let isFaceIDScanning = FaceIDOverlayController.shared.phase == .scanning
+                    || FaceIDOverlayController.shared.phase == .success
+                    || FaceIDOverlayController.shared.phase == .failure
+                    || FaceIDOverlayController.shared.phase == .onboarding
+                if isFaceIDScanning,
+                   let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice(),
+                   let camScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice) {
+                    targetScreen = camScreen
                 } else {
-                    targetScreen = nil
+                    let fallback = NSScreen.main ?? NSScreen.screens.first
+                    if let fallback, let fallbackUUID = fallback.displayUUID {
+                        coordinator.selectedScreenUUID = fallbackUUID
+                        targetScreen = fallback
+                    } else {
+                        targetScreen = nil
+                    }
                 }
             }
 
