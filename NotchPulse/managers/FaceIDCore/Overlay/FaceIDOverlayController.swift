@@ -233,55 +233,19 @@ final class FaceIDOverlayController {
         }
     }
 
-    /// Shows the idle still first; after 2.5s switches to looking around animation;
-    /// auto-collapses silently (no failure animation) after `scanTimeoutDuration` if no face is found.
+    /// Shows the idle still; auto-collapses silently (no failure animation) after
+    /// `scanTimeoutDuration` if nothing resolves it.
     func beginScanning() {
-        routeToCameraScreen()
         resolveTask?.cancel(); resolveTask = nil
-        scanTimeoutTask?.cancel(); scanTimeoutTask = nil
+        scanTimeoutTask?.cancel()
         geometry = windowController.currentGeometry
-        // Display still face image (unlockstatic) immediately and hold it for the whole scan duration
+        activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         content = .scan(.idle)
-
-        if !isArmed && !isPresenting && phase == .closed {
-            isPresenting = true
-            isPillDocked = true
-            windowController.show()
-            windowController.displaySynchronously()
-        }
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
-            phase = .scanning
-        }
+        phase = .scanning
         updateInteractivity()
 
-        // Safety fallback timeout in case coordinator hangs
         scanTimeoutTask = Task { @MainActor [weak self] in
-            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
-            try? await Task.sleep(for: duration)
-            guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            await self.collapse()
-        }
-    }
-
-    /// Transitions smoothly from static image to searching / looking around animation
-    func showSearchingAnimation() {
-        guard phase == .scanning, case .scan(.idle) = content else { return }
-        withAnimation(.easeInOut(duration: 0.25)) {
-            content = .scan(.scanning)
-        }
-    }
-
-    /// Re-anchors the scanning timeout to NOW with the user's full window. The unlock
-    /// coordinator calls this once the camera is actually producing frames — the timeout
-    /// scheduled in `beginScanning()` starts BEFORE the multi-second camera cold start
-    /// after a wake, which used to consume the whole scan window and made the notch
-    /// snap away "immediately" on the first activation after an idle period.
-    func restartScanTimeout() {
-        guard phase == .scanning else { return }
-        scanTimeoutTask?.cancel()
-        scanTimeoutTask = Task { @MainActor [weak self] in
-            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
-            try? await Task.sleep(for: duration)
+            try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
             guard let self, !Task.isCancelled, self.phase == .scanning else { return }
             await self.collapse()
         }
