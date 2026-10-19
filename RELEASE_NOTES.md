@@ -1,23 +1,16 @@
 ## 🚀 What's New in NotchPulse v5.4
 
-### 🖥️ Notch & Dynamic Island Geometry Refinements
-- **Spacious Open Notch & Dynamic Island Parity**: Re-balanced the open Notch layout by accounting for top corner flares in the notch body width and harmonizing internal padding. Album art, calendar events, time markers, and header tabs now enjoy the exact same generous, comfortable black side borders as Dynamic Island, completely eliminating cramped or clipped corners.
-- **Wing-Spanned Dynamic Island Inline Displays**: Inline HUD popups (volume, brightness, battery, microphone) now expand comfortably across the left and right wings with a wide center spacer spanning the physical camera notch. Labels (e.g. "Volume"), slider bars, and percentages sit symmetrically on each side with zero truncation.
-- **Hardware-Aware Music Pill Clearance**: When playing music on MacBooks with a physical camera notch, Dynamic Island automatically provisions clearance across the hardware notch even in collapsed mode, keeping album art and audio visualizers cleanly placed on each wing.
-- **Seamless Top Alignment**: Dynamic Island now rests cleanly at your configured position without forced downward clearance on physical notch MacBooks, completely removing unwanted side gaps or extrusions.
+### ⚡️ GPU-Accelerated Fluid Animations & Micro-Stutter Elimination
+- **GPU Layer Compositing**: Inner contents, music player controls, and calendar cards are now grouped into dedicated Metal texture layers. When the Notch or Dynamic Island expands, motion scaling and fades are composited directly on the GPU, completely eliminating CPU layout thrashing and delivering silky-smooth 120 FPS ProMotion animations.
+- **Streamlined Spring Physics**: Consolidated concurrent spring animation solvers down to primary state drivers, cutting redundant layout passes while preserving 100% natural, continuous Apple Dynamic Island spring dynamics.
+- **Intelligent Artwork Downsampling**: High-resolution album artwork is now processed asynchronously on background threads and scaled to crisp Retina thumbnails, preventing memory and decoding spikes when launching or switching tracks.
+- **Choreographed Natural Staging**: Refined inner content appearance with a subtle scale and smooth opacity transition, ensuring zero visual squishing or hitching during rapid expansions.
 
-### 🔒 Face ID Core & Lock Screen Elegance
-- **Calibrated Face ID Dimensions**: Face ID drop-down geometry now precisely mirrors Glance’s soft square card design with continuous corner radii, completely covering the physical camera notch and dropping down naturally from the display bezel.
-- **Uncompromised Sleep & Wake Reliability**: Completely overhauled Face ID session recovery across deep sleep, lid closure, and display idle cycles. Camera hardware sessions automatically rebind on display wake, and session keys seamlessly refresh so Face ID remains fully operational without needing an app restart.
-- **Instantaneous Lock Detection**: Bypasses system screen-lock notification lag during password injection, guaranteeing Face ID reliably unlocks your Mac on the first attempt without getting trapped behind stale lock state.
-- **Silent Security Access**: Repetitive system authorization dialogs are completely eliminated; credentials are authenticated silently in the background with zero popups.
-- **Seamless Lock Screen Transitions**: The lock screen media player disappears instantaneously the exact millisecond you unlock your Mac, creating a clean and cohesive transition to your desktop with zero lingering delay.
+### 📋 Clipboard History & Image Capture Reliability
+- **Ultra-Responsive Polling**: Accelerated clipboard polling to 150ms with instant change detection, ensuring continuous copying of multiple items or rapid screenshots captures every item without omission.
+- **Multi-Format Image Support**: Expanded native clipboard capture for WebP, HEIC, GIF, and direct image files copied from Finder.
+- **Image Priority Detection**: When copying items containing both rich image data and file paths, NotchPulse intelligently prioritizes the graphic image preview for immediate visual reuse.
 
-### 🧹 Performance & Codebase Streamlining
-- **Streamlined Architecture**: Purged legacy unused components, prototype modules, and heavy redundant assets, resulting in a cleaner footprint and faster app launch performance.
-
-### 🎵 Media Display & Visual Polish
-- **Dynamic Island Inline Media Refinement**: Re-engineered media inline sizing for Dynamic Island. The collapsed island maintains its natural capsule width, while expanding into a wide pill with ample breathing room for song title and artist labels without awkward truncation.
-- **Pristine Collapsed Notch on Lock Screen**: The Notch strictly remains an empty, minimal black notch when locked—preventing media visualizers, song labels, or HUD popups from leaking into the chin until you unlock or authenticate.
-- **Smart Cross-Display Lock Screen Media**: The floating lock screen player card anchors directly to your assigned display without jumping between screens when you move the cursor. If an external monitor is disconnected, the player instantly relocates to the center of your Mac display.
-- **Hover-To-Scan Security**: Locking your Mac quietly arms Face ID without prematurely firing the camera; facial authentication activates only when you hover over the Notch, wake the screen, or interact.
+### 🛡️ Notch Position Stability & Auto-Update Polish
+- **Rock-Solid Bezel Anchoring**: Eliminated all potential scenarios where the Notch could drift, drop downwards, or center in the middle of your screen after checking for updates or waking from sleep.
+- **Elevated Updater Dialogs**: Update notifications and alerts stay firmly elevated in the foreground over the settings window without getting lost or hidden underneath.
