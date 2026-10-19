@@ -232,7 +232,13 @@ enum NotchPulseVault {
         sessionLock.unlock()
 
         // Always try silent auto-load if password is not loaded into memory yet
-        _ = tryAutoLoadKey()
+        if let key = tryAutoLoadKey() {
+            sessionLock.lock()
+            _cachedKey = key
+            _lastActivityAt = Date()
+            sessionLock.unlock()
+            NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
+        }
 
         sessionLock.lock()
         defer { sessionLock.unlock() }

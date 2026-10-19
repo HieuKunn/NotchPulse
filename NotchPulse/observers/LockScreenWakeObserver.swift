@@ -13,6 +13,8 @@ final class LockScreenWakeObserver: ObservableObject {
     private var distributedTokens: [NSObjectProtocol] = []
     private var lockSessionTimer: Task<Void, Never>?
     private var hideDebounceTask: Task<Void, Never>?
+    private var lockTransitionTask: Task<Void, Never>?
+    private var wakeTransitionTask: Task<Void, Never>?
     
     nonisolated static var isSessionLocked: Bool {
         NotchPulseLockMonitor.isScreenActuallyLocked()
@@ -33,6 +35,10 @@ final class LockScreenWakeObserver: ObservableObject {
         hideDebounceTask = nil
         lockSessionTimer?.cancel()
         lockSessionTimer = nil
+        lockTransitionTask?.cancel()
+        lockTransitionTask = nil
+        wakeTransitionTask?.cancel()
+        wakeTransitionTask = nil
         for token in distributedTokens {
             DistributedNotificationCenter.default().removeObserver(token)
         }
@@ -58,6 +64,10 @@ final class LockScreenWakeObserver: ObservableObject {
 
     func handleUnlockTransition() {
         self.isScreenLocked = false
+        self.lockTransitionTask?.cancel()
+        self.lockTransitionTask = nil
+        self.wakeTransitionTask?.cancel()
+        self.wakeTransitionTask = nil
         NotchPulseLockMonitor.setCachedLockState(false)
         self.lockSessionTimer?.cancel()
         self.lockSessionTimer = nil
@@ -67,7 +77,10 @@ final class LockScreenWakeObserver: ObservableObject {
     }
     
     private func handleLockTransition() {
-        Task { @MainActor [weak self] in
+        wakeTransitionTask?.cancel()
+        wakeTransitionTask = nil
+        lockTransitionTask?.cancel()
+        lockTransitionTask = Task { @MainActor [weak self] in
             guard let self = self else { return }
             self.isScreenLocked = true
             self.startLockSessionSupervisor()
@@ -77,7 +90,7 @@ final class LockScreenWakeObserver: ObservableObject {
             // Progressively re-assert visibility as WindowServer transitions into lock screen space
             for delayMs in [150, 350, 650, 1000] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
-                guard self.isScreenLocked || NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
+                guard !Task.isCancelled, self.isScreenLocked && NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
                 self.isScreenLocked = true
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
@@ -86,10 +99,14 @@ final class LockScreenWakeObserver: ObservableObject {
     }
     
     private func handleWake() {
-        Task { @MainActor [weak self] in
+        lockTransitionTask?.cancel()
+        lockTransitionTask = nil
+        wakeTransitionTask?.cancel()
+        wakeTransitionTask = Task { @MainActor [weak self] in
             guard let self = self else { return }
             // Brief settle delay: CGSession's reported state can lag the true state right after wake.
             try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
             
             NotchPulseLockMonitor.invalidateLockCache()
             NotchPulseVault.preflightKeychainAuthorization()
@@ -102,10 +119,12 @@ final class LockScreenWakeObserver: ObservableObject {
                 self.updateLockScreenMediaWindowVisibility()
             } else {
                 self.handleUnlockTransition()
+                return
             }
             // Verify progressively after wake as display powers on
             for delayMs in [250, 600, 1000] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
+                guard !Task.isCancelled else { break }
                 let recheck = NotchPulseLockMonitor.isScreenActuallyLocked()
                 if self.isScreenLocked != recheck {
                     self.isScreenLocked = recheck
@@ -115,6 +134,7 @@ final class LockScreenWakeObserver: ObservableObject {
                         self.updateLockScreenMediaWindowVisibility()
                     } else {
                         self.handleUnlockTransition()
+                        break
                     }
                 }
             }
