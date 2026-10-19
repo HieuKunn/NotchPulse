@@ -116,7 +116,7 @@ final class NotchPulseCamera: NSObject {
     }
 
     private func resetSession() {
-        sessionQueue.async { [session = self.session, videoOutput = self.videoOutput] in
+        sessionQueue.async { [session = self.session] in
             if session.isRunning {
                 session.stopRunning()
             }
