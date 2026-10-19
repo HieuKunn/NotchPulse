@@ -474,11 +474,7 @@ struct ContentView: View {
                         if newPhase == .onboarding {
                             DispatchQueue.main.async {
                                 NSApp.activate(ignoringOtherApps: true)
-                                for window in NSApp.windows {
-                                    if window is NotchPulseSkyLightWindow {
-                                        window.makeKeyAndOrderFront(nil)
-                                    }
-                                }
+                                (AppDelegate.shared?.window as? NotchPulseSkyLightWindow)?.makeKeyAndOrderFront(nil)
                             }
                         }
                     }
