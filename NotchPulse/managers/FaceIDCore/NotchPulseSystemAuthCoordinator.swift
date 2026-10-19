@@ -450,7 +450,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         var lastProcessedFrameID: UInt64?
         var lastFaceBoundingBox: CGRect?
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 20
+        let wrongFaceStreakThreshold = 60
         var readyMatch: ScoredIdentity?
         var readyMatchTime: ContinuousClock.Instant?
 

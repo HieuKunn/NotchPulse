@@ -304,9 +304,7 @@ final class NotchPulseFaceUnlockCoordinator {
         case .noResolution:
             statusMessage = "No face detected."
             if showsUI {
-                Task {
-                    await FaceIDOverlayController.shared.collapse()
-                }
+                // No explicit collapse call: FaceIDOverlayController's own scanning timeout fires on the same mark and collapses itself.
                 statusMessage = "No face detected — hover the notch to try again."
                 scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
             } else {
@@ -349,7 +347,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 32
+        let wrongFaceStreakThreshold = 75
 
         /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
         var readyMatch: ScoredIdentity?
