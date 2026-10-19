@@ -50,9 +50,7 @@ struct FaceIDOverlayView: View {
     /// always implies positioned regardless of the docked flag, so a mid-success
     /// `disarm()` (which undocks) doesn't yank the panel away mid-animation.
     private var targetIsPositioned: Bool {
-        if targetIsExpanded { return true }
-        if style == .notch { return true }
-        return controller.isPillDocked
+        true
     }
 
     /// While onboarding is active, the panel body tracks its step size instead of the
@@ -133,30 +131,27 @@ struct FaceIDOverlayView: View {
         return style == .notch ? FaceIDOverlayGeometry.closedBottomRadius : closedBodySize.height / 2
     }
 
-    /// Widened by `flareAllowance` in notch style so the closed state lands exactly on
-    /// the physical notch width instead of coming up short by the flare.
+    /// Closed width matches closedBodySize exactly so there is zero size mismatch
+    /// between FaceID overlay and the main notch / island.
     private var currentSize: CGSize {
         let body = visualIsExpanded ? openBodySize : closedBodySize
         let bump: CGFloat = isHovering ? FaceIDOverlayGeometry.hoverBump : 0
+        let flare = (style == .notch && visualIsExpanded) ? FaceIDOverlayGeometry.flareAllowance(topRadius: topRadius, style: style) : 0
         return CGSize(
-            width: body.width + FaceIDOverlayGeometry.flareAllowance(topRadius: topRadius, style: style) + bump,
+            width: body.width + flare + bump,
             height: body.height + bump
         )
     }
 
-    /// Top-aligned inside the fixed window frame, so sliding is purely a matter of
-    /// where the top edge sits.
+    /// Top-aligned inside the fixed window frame, resting at pillTopGap for dynamic island
+    /// and 0 for physical notch.
     private var verticalOffset: CGFloat {
         guard style == .pill else { return 0 }
-        guard visualIsPositioned else {
-            return -(closedBodySize.height + FaceIDOverlayGeometry.pillOffscreenSlack)
-        }
         return FaceIDOverlayGeometry.pillTopGap
     }
 
-    /// So it resolves into focus as it slides down, rather than snapping in.
     private var panelBlur: CGFloat {
-        style == .pill && !visualIsPositioned ? FaceIDOverlayGeometry.pillEnterBlur : 0
+        0
     }
 
     private var scanContentPaddingTop: CGFloat {
@@ -298,8 +293,9 @@ struct FaceIDOverlayView: View {
         // alone only fires on entering/leaving the expanded state.
         .animation(expansionAnimation(entering: true), value: onboardingController?.panelSize)
         .blur(radius: panelBlur)
-        // Applied after the shadow so both travel together, before `.onHover`.
-        .offset(y: verticalOffset)
+        // Positioned using padding so the view's layout, hit-testing, and coordinate space
+        // match the exact on-screen resting position of the dynamic island.
+        .padding(.top, verticalOffset)
         .animation(.easeOut(duration: 0.18), value: isHovering)
         .contentShape(FaceIDOverlayShape(topRadius: topRadius, bottomRadius: bottomRadius, style: style))
         .onHover { hovering in
@@ -353,48 +349,16 @@ struct FaceIDOverlayView: View {
 
     private static let interactiveCoordinateSpace = "NotchOverlayRoot"
 
-    /// Staggers the two when both need to change (see file header for why this uses
-    /// real Task.sleep delays rather than Animation.delay()).
+    /// Animates panel expansion/collapse directly in place without off-screen sliding.
     private func scheduleChoreography() {
         let wantExpanded = targetIsExpanded
-        let wantPositioned = targetIsPositioned
         choreographyTask?.cancel()
         choreographyTask = nil
 
-        let expandedChanging = wantExpanded != visualIsExpanded
-        let positionedChanging = wantPositioned != visualIsPositioned
-        guard expandedChanging || positionedChanging else { return }
+        guard wantExpanded != visualIsExpanded else { return }
 
-        guard expandedChanging && positionedChanging else {
-            // Only one property is moving — no partner to stagger against.
-            if expandedChanging {
-                withAnimation(expansionAnimation(entering: wantExpanded)) { visualIsExpanded = wantExpanded }
-            } else {
-                withAnimation(slideAnimation) { visualIsPositioned = wantPositioned }
-            }
-            return
-        }
-
-        if wantExpanded {
-            // Entering: slide leads immediately, expansion trails after a real delay.
-            withAnimation(slideAnimation) { visualIsPositioned = wantPositioned }
-            let delay = FaceIDOverlayGeometry.pillEnterExpansionDelay
-            let animation = expansionAnimation(entering: true)
-            choreographyTask = Task {
-                try? await Task.sleep(for: .seconds(delay))
-                guard !Task.isCancelled else { return }
-                withAnimation(animation) { self.visualIsExpanded = wantExpanded }
-            }
-        } else {
-            // Exiting: shrink leads immediately, slide trails after a real delay.
-            withAnimation(expansionAnimation(entering: false)) { visualIsExpanded = wantExpanded }
-            let delay = FaceIDOverlayGeometry.pillExitSlideDelay
-            let animation = slideAnimation
-            choreographyTask = Task {
-                try? await Task.sleep(for: .seconds(delay))
-                guard !Task.isCancelled else { return }
-                withAnimation(animation) { self.visualIsPositioned = wantPositioned }
-            }
+        withAnimation(expansionAnimation(entering: wantExpanded)) {
+            visualIsExpanded = wantExpanded
         }
     }
 

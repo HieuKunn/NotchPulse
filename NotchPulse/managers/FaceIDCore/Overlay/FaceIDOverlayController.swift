@@ -129,23 +129,10 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         phase = .closed
         content = .scan(.idle)
-        isPillDocked = false
+        isPillDocked = true
         windowController.show()
         hasPrimedWindow = true // already shown+rendered while closed, same effect as primeWindowIfNeeded
         updateInteractivity()
-
-        guard geometry.style == .pill else {
-            // The notch silhouette has nowhere to travel from — it's on top of hardware already there.
-            isPillDocked = true
-            return
-        }
-        // Render one real frame with the pill still off-screen, so flipping the
-        // flag next runloop animates it down instead of appearing already docked.
-        windowController.displaySynchronously()
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.isArmed else { return }
-            self.isPillDocked = true
-        }
     }
 
     /// Truly hides the window. Only call once the lock-screen attempt is
@@ -157,34 +144,15 @@ final class FaceIDOverlayController {
     func disarm() {
         isArmed = false
         onActivate = nil
-        // Undocked before the guard: if a success collapse is already in flight, this
-        // turns it into a full slide-off-screen exit rather than a shrink to a resting pill.
         isPillDocked = false
         guard phase != .success, phase != .collapsing else { return }
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-        // Re-measured here, not just trusted from `arm()` — `arm()` typically
-        // fires right around wake/unlock, when AppKit may not have finished
-        // laying out the menu bar yet, so `auxiliaryTopLeftArea`/`RightArea`
-        // can read back momentarily wrong. Refreshing right before settling
-        // to `.closed` (the shape most directly compared against the real
-        // notch) self-corrects instead of baking in a bad first reading.
         geometry = windowController.currentGeometry
         phase = .closed
         content = .scan(.idle)
         windowController.setInteractive(false)
-
-        guard geometry.style == .pill, windowController.isVisible else {
-            windowController.hide()
-            return
-        }
-        // The pill is visible at rest, so hiding the window right now would blink it
-        // away instead of playing the slide-up (visibility check above skips hidden windows).
-        Task { [weak self] in
-            try? await Task.sleep(for: self?.collapseAnimationDuration ?? .milliseconds(700))
-            guard let self, !self.isArmed, self.phase == .closed else { return }
-            self.windowController.hide()
-        }
+        windowController.hide()
     }
 
     /// Shows the idle still; auto-collapses silently (no failure animation) after
