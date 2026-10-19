@@ -338,7 +338,7 @@ class MusicManager: ObservableObject {
 
             if let artwork = state.artwork {
                 self.usingAppIconForArtwork = false
-                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 500)
+                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 320)
                 self.artworkData = optimized
                 self.updateArtwork(optimized)
                 UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: state.title, artist: state.artist)
@@ -806,7 +806,7 @@ class MusicManager: ObservableObject {
             if let source = CGImageSourceCreateWithData(artworkData as CFData, nil),
                let cgImage = CGImageSourceCreateImageAtIndex(source, 0, [
                    kCGImageSourceCreateThumbnailFromImageAlways: true,
-                   kCGImageSourceThumbnailMaxPixelSize: 500,
+                   kCGImageSourceThumbnailMaxPixelSize: 320,
                    kCGImageSourceCreateThumbnailWithTransform: true
                ] as CFDictionary) {
                 // Display at 2x Retina backing scale
@@ -998,10 +998,10 @@ class MusicManager: ObservableObject {
         self.isPlaying = snapshot.isPlaying
         self.isPlayerIdle = !snapshot.isPlaying
 
-        if let artData = snapshot.artworkData, let img = NSImage(data: artData) {
+        if let artData = snapshot.artworkData {
             self.artworkData = artData
             self.usingAppIconForArtwork = false
-            self.updateAlbumArt(newAlbumArt: img)
+            self.updateArtwork(artData)
         } else if let bid = snapshot.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bid) {
             self.usingAppIconForArtwork = true
             self.albumArt = appIcon
@@ -1386,9 +1386,9 @@ public final class UniversalArtworkResolver {
 
     // MARK: - Public API
 
-    /// Downsamples raw image data to a max dimension (default 400px) with sub-sampling decode.
+    /// Downsamples raw image data to a max dimension (default 320px) with sub-sampling decode.
     /// This keeps artwork razor-sharp on Retina displays while cutting memory usage from 20-36 MB to ~50-80 KB.
-    public func optimizeArtwork(_ data: Data, maxDimension: CGFloat = 400) -> Data {
+    public func optimizeArtwork(_ data: Data, maxDimension: CGFloat = 320) -> Data {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             return data
         }

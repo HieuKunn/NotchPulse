@@ -5,7 +5,6 @@ import SwiftUI
 // MARK: - Music Player Components
 
 struct MusicPlayerView: View {
-    @EnvironmentObject var vm: NotchPulseViewModel
     let albumArtNamespace: Namespace.ID
     var allocatedWidth: CGFloat? = nil
 
@@ -20,19 +19,19 @@ struct MusicPlayerView: View {
     var body: some View {
         let controlsWidth = allocatedWidth.map { max(140, $0 - artSize - 14) }
         HStack(alignment: .center, spacing: 12) {
-            AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace, size: artSize)
+            AlbumArtView(albumArtNamespace: albumArtNamespace, size: artSize)
                 .padding(.leading, 8)
                 .padding(.vertical, 2)
             MusicControlsView(allocatedWidth: controlsWidth)
                 .compositingGroup()
         }
         .frame(maxHeight: .infinity, alignment: .center)
+        .compositingGroup()
     }
 }
 
 struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
-    @ObservedObject var vm: NotchPulseViewModel
     let albumArtNamespace: Namespace.ID
     var size: CGFloat = 104
 
@@ -509,6 +508,7 @@ struct NotchHomeView: View {
                         vm.isHoveringCalendar = isHovering
                     }
                     .environmentObject(vm)
+                    .compositingGroup()
                     .transition(.opacity)
                     .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCalendarFullPage)
             }

@@ -418,20 +418,14 @@ struct ContentView: View {
             dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
-                    .conditionalModifier(true) { view in
-                        return view
-                            .animation(animationSpring, value: vm.notchState)
-                            .animation(animationSpring, value: currentNotchWidth)
-                            .animation(animationSpring, value: currentNotchHeight)
-                            .animation(animationSpring, value: islandRadius)
-                            .animation(animationSpring, value: topCornerRadius)
-                            .animation(animationSpring, value: bottomCornerRadius)
-                            .animation(animationSpring, value: vm.isHoverRevealed)
-                            .animation(animationSpring, value: isEffectivelyHiddenInFullscreen)
-                            .animation(faceIDAnimation, value: isFaceIDActive)
-                            .animation(faceIDAnimation, value: targetFaceIDSize)
-                            .animation(.smooth, value: gestureProgress)
-                    }
+                    .animation(animationSpring, value: vm.notchState)
+                    .animation(animationSpring, value: currentNotchWidth)
+                    .animation(animationSpring, value: currentNotchHeight)
+                    .animation(animationSpring, value: vm.isHoverRevealed)
+                    .animation(animationSpring, value: isEffectivelyHiddenInFullscreen)
+                    .animation(faceIDAnimation, value: isFaceIDActive)
+                    .animation(faceIDAnimation, value: targetFaceIDSize)
+                    .animation(.smooth, value: gestureProgress)
                     .onHover { hovering in
                         handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
@@ -764,11 +758,12 @@ struct ContentView: View {
                             .id(NotchViews.audio)
                     }
                 }
+                .compositingGroup()
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
                 .transition(
-                    .scale(scale: 0.8, anchor: .top)
+                    .scale(scale: 0.96, anchor: .top)
                     .combined(with: .opacity)
-                    .animation(.smooth(duration: 0.35))
+                    .animation(.smooth(duration: 0.32))
                 )
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
