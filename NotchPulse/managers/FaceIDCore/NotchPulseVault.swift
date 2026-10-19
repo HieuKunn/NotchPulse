@@ -56,7 +56,9 @@ enum NotchPulseVault {
                 // 1. Unified payload (JSON with key + password)
                 if let payload = try? JSONDecoder().decode(UnifiedVaultPayload.self, from: data) {
                     let key = SymmetricKey(data: payload.keyData)
+                    sessionLock.lock()
                     _cachedPassword = payload.passwordData
+                    sessionLock.unlock()
                     return key
                 }
 
@@ -66,7 +68,9 @@ enum NotchPulseVault {
                     if let ciphertext = try? NotchPulseKeychainManager.readSilently(account: passwordBlobAccount),
                        let sealed = try? AES.GCM.SealedBox(combined: ciphertext),
                        let plaintext = try? AES.GCM.open(sealed, using: key) {
+                        sessionLock.lock()
                         _cachedPassword = plaintext
+                        sessionLock.unlock()
                         let unified = UnifiedVaultPayload(keyData: data, passwordData: plaintext)
                         if let encoded = try? JSONEncoder().encode(unified) {
                             try? NotchPulseKeychainManager.save(account: sessionKeyAccount, data: encoded)
@@ -157,13 +161,15 @@ enum NotchPulseVault {
             sessionLock.unlock()
             return key
         }
+        sessionLock.unlock()
+
         if let key = tryAutoLoadKey() {
+            sessionLock.lock()
             _cachedKey = key
             _lastActivityAt = Date()
             sessionLock.unlock()
             return key
         }
-        sessionLock.unlock()
         return nil
     }
 
