@@ -6,7 +6,12 @@
 - **Intelligent Artwork Downsampling**: High-resolution album artwork is now processed asynchronously on background threads and scaled to crisp Retina thumbnails, preventing memory and decoding spikes when launching or switching tracks.
 - **Choreographed Natural Staging**: Refined inner content appearance with a subtle scale and smooth opacity transition, ensuring zero visual squishing or hitching during rapid expansions.
 - **Hardware-Driven Music Visualizer**: Upgraded the mini audio spectrum to pure Core Animation running entirely on the GPU compositor, eliminating periodic background timers and bringing main-thread CPU usage during playback down to 0%.
+- **Harmonious Audio Spectrum Rhythm**: Fine-tuned wave frequency and easing curves so the mini visualizer dances gently with natural music dynamics rather than flickering erratically.
 - **Orphaned Layout Cleanup**: Removed redundant geometry tracking bindings, eliminating unnecessary SwiftUI layout passes during notch transitions.
+
+### 🔒 Instant Face ID & Neural Engine Acceleration
+- **Zero-Latency Notch Expansion**: The Notch now glides open instantaneously upon hover or lock screen wake, presenting the scanning state with 0ms delay while camera hardware spins up in parallel.
+- **Pre-Warmed Neural Processing**: Background pre-compilation ensures face recognition models are hot and ready in memory, instantly matching authorized faces without first-frame processing stalls.
 
 ### 📋 Clipboard History & Image Capture Reliability
 - **Ultra-Responsive Polling**: Accelerated clipboard polling to 150ms with instant change detection, ensuring continuous copying of multiple items or rapid screenshots captures every item without omission.
