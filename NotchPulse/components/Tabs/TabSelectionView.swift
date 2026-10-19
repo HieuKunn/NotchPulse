@@ -45,6 +45,10 @@ struct TabSelectionView: View {
         vm.generalDropTargeting = false
         vm.anyDropZoneTargeting = false
         CalendarStateViewModel.shared.isFullMonthExpanded = false
+        CalendarStateViewModel.shared.isPinned = false
+        if tabView != .shelf {
+            ShelfStateViewModel.shared.isPinned = false
+        }
         if tabView == .audio {
             AudioDeviceManager.shared.refreshDevices()
             let targetHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)

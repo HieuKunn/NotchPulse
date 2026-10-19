@@ -289,6 +289,11 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             return
         }
         self.customOpenHeight = nil
+        CalendarStateViewModel.shared.isPinned = false
+        CalendarStateViewModel.shared.isFullMonthExpanded = false
+        if force {
+            ShelfStateViewModel.shared.isPinned = false
+        }
         // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen)
         if !force && SharingStateManager.shared.preventNotchClose {
             return
@@ -308,6 +313,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.anyDropZoneTargeting = false
         self.dropEvent = false
         self.isHoveringClipboard = false
+        self.isHoveringCalendar = false
         self.clipboardScrolledToBottom = true
 
         if !LockScreenMediaWindow.shared.isWindowVisible {
@@ -324,7 +330,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
         // Reset currentView to .home on close quietly after the collapse completes (350ms),
         // preventing internal tab-switch animations from clashing with the notch collapse animation
-        if !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned)) {
+        if !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned)) {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(350))
                 guard let self = self, self.notchState == .closed else { return }

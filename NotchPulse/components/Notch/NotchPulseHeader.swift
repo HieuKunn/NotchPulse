@@ -39,6 +39,8 @@ struct NotchPulseHeader: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+                        ShelfStateViewModel.shared.isPinned = false
+                        CalendarStateViewModel.shared.isPinned = false
                         vm.close()
                     }
                 }

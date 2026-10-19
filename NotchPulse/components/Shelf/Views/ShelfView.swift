@@ -33,6 +33,11 @@ struct ShelfView: View {
         .onChange(of: selection.selectedIDs) {
             updateQuickLookSelection()
         }
+        .onChange(of: vm.notchState) { _, newState in
+            if newState == .closed && !NotchPulseViewCoordinator.shared.openLastTabByDefault {
+                tvm.isPinned = false
+            }
+        }
         .quickLookPresenter(using: quickLookService)
     }
     

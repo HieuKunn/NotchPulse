@@ -481,12 +481,17 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.notchState) { _, newState in
-                        if newState == .closed && vm.hideOnClosed {
-                            Task { @MainActor in
-                                try? await Task.sleep(for: .milliseconds(350))
-                                if !self.isHovering && self.vm.notchState == .closed {
-                                    withAnimation(animationSpring) {
-                                        self.vm.isHoverRevealed = false
+                        if newState == .closed {
+                            hoverTask?.cancel()
+                            hoverTask = nil
+                            self.isHovering = false
+                            if vm.hideOnClosed {
+                                Task { @MainActor in
+                                    try? await Task.sleep(for: .milliseconds(350))
+                                    if !self.isHovering && self.vm.notchState == .closed {
+                                        withAnimation(animationSpring) {
+                                            self.vm.isHoverRevealed = false
+                                        }
                                     }
                                 }
                             }
@@ -931,6 +936,8 @@ struct ContentView: View {
     private func doOpen() {
         coordinator.dismissExpandingView(animated: false)
         coordinator.sneakPeek.show = false
+        hoverTask?.cancel()
+        hoverTask = nil
         withAnimation(animationSpring) {
             vm.open()
         }
@@ -939,6 +946,9 @@ struct ContentView: View {
     private func doClose() {
         coordinator.dismissExpandingView(animated: false)
         coordinator.sneakPeek.show = false
+        hoverTask?.cancel()
+        hoverTask = nil
+        self.isHovering = false
         withAnimation(animationSpring) {
             vm.close()
         }

@@ -898,7 +898,7 @@ struct CalendarView: View {
                 CalendarStateViewModel.shared.isPinned = false
                 vm.customOpenHeight = nil
             }
-            Task {
+            Task { @MainActor in
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
                 displayedDate = Date.now

@@ -363,6 +363,15 @@ struct StatsView: View {
                 }
             }
         }
+        .onChange(of: vm.notchState) { _, newState in
+            if newState == .closed {
+                monitor.shouldFetchProcesses = false
+                monitor.stopMonitoring()
+                monitor.stopThermalMonitoring()
+                expandedMetric = nil
+                isThermalExpanded = false
+            }
+        }
     }
 
     private func toggleMetric(_ metric: ExpandedMetric) {
