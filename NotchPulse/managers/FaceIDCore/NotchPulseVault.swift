@@ -104,12 +104,7 @@ enum NotchPulseVault {
             NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
             return key
         }
-        // If encrypted data exists, do NOT poison _cachedKey with an ephemeral key!
-        // Return an uncached ephemeral key so subsequent calls can still load the real key from Keychain.
-        if hasSessionEncryptedData {
-            NSLog("[NotchPulseVault] Session key missing from cache but encrypted data exists. Returning uncached ephemeral key.")
-            return SymmetricKey(size: .bits256)
-        }
+        
         // Generate new key and save as unified payload into Keychain (device-only unlock, no .userPresence gating)
         let key = SymmetricKey(size: .bits256)
         let keyData = key.withUnsafeBytes { Data($0) }
@@ -143,12 +138,11 @@ enum NotchPulseVault {
             _cachedKey = key
             _lastActivityAt = Date()
             sessionLock.unlock()
+            NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
             return true
         }
 
-        sessionLock.lock()
-        defer { sessionLock.unlock() }
-        return !hasSessionEncryptedData || _cachedKey != nil
+        return false
     }
 
     /// `nil` whenever the session is locked — there is no activity to age.
@@ -212,7 +206,7 @@ enum NotchPulseVault {
     }
 
     nonisolated static func decrypt(_ ciphertext: Data) throws -> Data {
-        let key = ensureSessionKey()
+        guard let key = cachedKey() else { throw NotchPulseVaultError.sessionLocked }
         do {
             let sealed = try AES.GCM.SealedBox(combined: ciphertext)
             return try AES.GCM.open(sealed, using: key)

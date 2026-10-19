@@ -253,6 +253,9 @@ final class NotchPulseFaceUnlockCoordinator {
         if let error = camera.errorMessage {
             statusMessage = error
             camera.stop()
+            if showsUI {
+                FaceIDOverlayController.shared.finish(success: false)
+            }
             return
         }
 
@@ -299,7 +302,9 @@ final class NotchPulseFaceUnlockCoordinator {
         case .noResolution:
             statusMessage = "No face detected."
             if showsUI {
-                // No explicit collapse call: FaceIDOverlayController's own scanning timeout fires on the same mark and collapses itself.
+                Task {
+                    await FaceIDOverlayController.shared.collapse()
+                }
                 statusMessage = "No face detected — hover the notch to try again."
                 scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
             } else {
@@ -411,6 +416,10 @@ final class NotchPulseFaceUnlockCoordinator {
             // `activeIdentities`, not `identities`: someone switched off on the Your Face page stays enrolled but must not unlock.
             if cachedActiveIdentities.isEmpty {
                 cachedActiveIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
+            }
+            guard !cachedActiveIdentities.isEmpty else {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                continue
             }
             let scored = pipeline.score(result.embedding, against: cachedActiveIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)

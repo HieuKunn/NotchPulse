@@ -105,27 +105,6 @@ final class FaceIDOverlayController {
         }
     }
 
-    // CRITICAL: Khi ở lockscreen hoặc tắt máy đi/wake, CHỈ KHI NÀO hover trigger FaceID
-    // thì mới chuyển sang bên màn hình có camera. KHÔNG ĐƯỢC ĐỔI LOGIC NÀY!
-    // (DO NOT CHANGE THIS LOGIC: When at lock screen or waking from sleep/screen off,
-    // ONLY switch to camera screen if Face ID was triggered by hover!)
-    var isHoverTriggeredOnLockScreen: Bool = false {
-        didSet {
-            NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
-        }
-    }
-
-    private func routeToCameraScreen() {
-        // Notify camera window without changing the user's selectedScreenUUID
-        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
-    }
-
-    private func restorePreviousScreen() {
-        isPresenting = false
-        isHoverTriggeredOnLockScreen = false
-        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
-    }
-
     // MARK: - Armed mode (FaceUnlockCoordinator)
 
     /// Timestamp when arm() was called, used to ignore accidental hover triggers while the window/pill is animating in.
@@ -134,7 +113,6 @@ final class FaceIDOverlayController {
     /// Arms the overlay for the lock-screen flow: shows the window and keeps it
     /// up until `disarm()`. `onActivate` restarts scanning on hover.
     func arm(onActivate: @escaping () -> Void) {
-        // Do not force route display here — only route when scanning is actively activated
         isArmed = true
         armedAt = .now
         self.onActivate = onActivate
@@ -160,7 +138,6 @@ final class FaceIDOverlayController {
             guard let self, self.isArmed else { return }
             self.isPillDocked = true
         }
-        NotificationCenter.default.post(name: Notification.Name.faceIDPhaseChanged, object: nil)
     }
 
     /// Truly hides the window. Only call once the lock-screen attempt is
@@ -250,28 +227,24 @@ final class FaceIDOverlayController {
     func present(styleOverride: UnlockAnimationStyle? = nil, onRetry: (() -> Void)? = nil) {
         isPresenting = true
         isArmed = false
-        routeToCameraScreen()
         onActivate = onRetry
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         geometry = windowController.currentGeometry
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         
-        content = .scan(.idle)
-        isPillDocked = true
-        windowController.show()
-        windowController.displaySynchronously()
-        
-        withAnimation(FaceIDOverlayGeometry.springAnimation) {
-            phase = .scanning
-        }
-        updateInteractivity()
-
-        scanTimeoutTask = Task { @MainActor [weak self] in
-            let duration = (self?.scanTimeoutDuration ?? .seconds(5)) + .seconds(3)
-            try? await Task.sleep(for: duration)
-            guard let self, !Task.isCancelled, self.phase == .scanning else { return }
-            await self.collapse()
+        primeWindowIfNeeded { [weak self] in
+            guard let self else { return }
+            self.content = .scan(.idle)
+            self.phase = .scanning
+            self.windowController.show()
+            self.updateInteractivity()
+            
+            self.scanTimeoutTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
+                guard let self, !Task.isCancelled, self.phase == .scanning else { return }
+                await self.collapse()
+            }
         }
     }
 
@@ -289,16 +262,13 @@ final class FaceIDOverlayController {
         geometry = windowController.currentGeometry
         content = .onboarding(controller)
         phase = .closed
-        routeToCameraScreen()
         isPillDocked = true
         windowController.show()
         windowController.displaySynchronously()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
-            withAnimation(FaceIDOverlayGeometry.springAnimation) {
-                self.phase = .onboarding
-            }
+            self.phase = .onboarding
             self.updateInteractivity()
         }
     }
@@ -312,9 +282,7 @@ final class FaceIDOverlayController {
         }
         // Drop key/interactivity now, not inside the Task: first-run completion opens
         // Settings this same turn, and a still-key overlay would leave it inactive.
-        withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
-            phase = .collapsing
-        }
+        phase = .collapsing
         updateInteractivity()
 
         Task { [weak self] in
@@ -328,14 +296,9 @@ final class FaceIDOverlayController {
                 return
             }
             self.content = .scan(.idle)
-            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
-                self.phase = .closed
-            }
+            self.phase = .closed
             self.isPresenting = false
             self.windowController.hide()
-
-            // Restore previous screen AFTER collapse animation fully finishes
-            self.restorePreviousScreen()
             onCompleted?()
         }
     }
@@ -404,6 +367,12 @@ final class FaceIDOverlayController {
                 content = .scan(.idle)
                 phase = .scanning
                 updateInteractivity()
+                scanTimeoutTask?.cancel()
+                scanTimeoutTask = Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
+                    guard let self, !Task.isCancelled, self.phase == .scanning else { return }
+                    await self.collapse()
+                }
             }
             onActivate()
         case .scanning, .success, .collapsing, .onboarding:
@@ -417,9 +386,7 @@ final class FaceIDOverlayController {
     func collapse() async {
         guard phase != .closed, phase != .collapsing else { return }
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-        withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
-            phase = .collapsing
-        }
+        phase = .collapsing
         updateInteractivity()
         try? await Task.sleep(for: collapseAnimationDuration)
         guard phase == .collapsing else { return }
@@ -427,27 +394,14 @@ final class FaceIDOverlayController {
         // Same re-measure as `disarm()` — self-corrects a geometry captured
         // during a mid-wake reading before the panel settles to `.closed`.
         geometry = windowController.currentGeometry
+        content = .scan(.idle)
         if isArmed {
-            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
-                phase = .closed
-            }
+            phase = .closed
             updateInteractivity()
-            restorePreviousScreen()
         } else {
-            withAnimation(FaceIDOverlayGeometry.closeSpringAnimation) {
-                phase = .closed
-            }
+            phase = .closed
             isPresenting = false
             windowController.hide()
-            restorePreviousScreen()
-        }
-
-        // Reset content to idle ONLY AFTER the collapse animation is fully complete
-        // and window is hidden, preventing video teardown black flashes mid-collapse.
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(100))
-            guard let self, self.phase == .closed else { return }
-            self.content = .scan(.idle)
         }
     }
 
@@ -463,7 +417,6 @@ final class FaceIDOverlayController {
         isPresenting = false
         windowController.setInteractive(false)
         windowController.hide()
-        restorePreviousScreen()
     }
 
     private func updateInteractivity() {

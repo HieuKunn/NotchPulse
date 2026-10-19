@@ -13,9 +13,10 @@ struct FaceIDOverlayGeometry {
     /// True if this screen has a real physical notch (vs. the pill fallback).
     let isPhysicalNotch: Bool
 
-    /// Synchronized with NotchPulse's active style preference.
+    /// Synchronized with screen hardware capabilities and active user preference.
+    /// If screen has no physical notch (external monitor), it is always `.pill` (dynamic island).
     var style: FaceIDOverlayPanelStyle {
-        Defaults[.notchStyle] == .dynamicIsland ? .pill : .notch
+        (Defaults[.notchStyle] == .dynamicIsland || !isPhysicalNotch) ? .pill : .notch
     }
 
     /// Fixed footprint of expanded scan-mode content in notch style (scaled down ~10% to match real physical notch).
@@ -201,27 +202,23 @@ struct FaceIDOverlayGeometry {
 
     @MainActor
     static func forScreen(_ screen: NSScreen) -> FaceIDOverlayGeometry {
-        let isNotchStyle = Defaults[.notchStyle] == .notch
-        let screenUUID = screen.displayUUID
         let isPhysical = screenHasPhysicalNotch(screen)
+        let isNotchStyle = (Defaults[.notchStyle] == .notch) && isPhysical
+        let screenUUID = screen.displayUUID
         let closedSize = isNotchStyle ? getClosedNotchSize(screenUUID: screenUUID) : pillClosedSize
 
         return FaceIDOverlayGeometry(
             closedSize: closedSize,
-            isPhysicalNotch: isNotchStyle && isPhysical
+            isPhysicalNotch: isNotchStyle
         )
     }
 
-    /// Picks the screen the overlay should show on. Follows the camera device's physical
-    /// display, falling back to NotchPulse's active display or physical notch display.
+    /// Picks the screen the overlay should show on. Follows NotchPulse's configured display:
+    /// 1. User's explicitly preferred display (`preferredScreenUUID`).
+    /// 2. Active selected display (`selectedScreenUUID`).
+    /// 3. Physical notch display if any exists, otherwise primary display.
     @MainActor
     static func preferredScreen() -> NSScreen? {
-        // Face ID overlay window appears on the screen that physically hosts the camera,
-        // so the user naturally looks straight at the camera to unlock accurately.
-        if let camUUID = NotchPulseCameraDeviceCatalog.cachedTargetScreenUUID(),
-           let camScreen = NSScreen.screen(withUUID: camUUID) {
-            return camScreen
-        }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
             return screen

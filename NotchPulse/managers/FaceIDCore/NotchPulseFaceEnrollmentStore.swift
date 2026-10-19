@@ -162,24 +162,24 @@ final class NotchPulseFaceEnrollmentStore {
 
     /// Re-attempts loading from encrypted storage.
     func reloadIfUnlocked() {
-        let now = Date()
-        if identities.isEmpty && now.timeIntervalSince(lastReloadAttempt) < 2.0 {
+        guard NotchPulseVault.isSessionUnlocked else {
+            isLocked = true
             return
         }
-        lastReloadAttempt = now
 
         do {
             let loaded = try NotchPulseSecureFaceStore.load()
-            if !loaded.isEmpty || !hasLoadedSuccessfully {
-                identities = loaded
-                hasLoadedSuccessfully = true
-            }
+            identities = loaded
+            hasLoadedSuccessfully = true
             loadFailure = nil
             isLocked = false
         } catch {
-            if identities.isEmpty {
-                loadFailure = error.localizedDescription
+            loadFailure = error.localizedDescription
+            if case NotchPulseVaultError.sessionLocked = error {
                 isLocked = true
+            } else {
+                identities = []
+                isLocked = false
             }
         }
     }

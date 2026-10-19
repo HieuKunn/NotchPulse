@@ -157,6 +157,10 @@ final class FaceIDOverlayWindowController {
 
     private func reposition(_ window: FaceIDOverlayWindow) {
         guard let screen = FaceIDOverlayGeometry.preferredScreen() else { return }
+        let targetSize = FaceIDOverlayGeometry.windowSize(for: currentGeometry.style)
+        if window.frame.size != targetSize {
+            window.setFrame(NSRect(origin: window.frame.origin, size: targetSize), display: true)
+        }
         let screenFrame = screen.frame
         let size = window.frame.size
         window.setFrameOrigin(NSPoint(
