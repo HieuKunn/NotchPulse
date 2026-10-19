@@ -23,18 +23,18 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     @ObservationIgnored private var distributedObservers: [NSObjectProtocol] = []
     @ObservationIgnored private var promptDetectionTimer: Timer?
     @ObservationIgnored private var promptCooldowns: [pid_t: Date] = [:]
-    @ObservationIgnored private var globalLastPromptDate: Date = .distantPast
+    @ObservationIgnored private var globalCooldownUntil: Date = .distantPast
     @ObservationIgnored private var lastPromptPid: pid_t = 0
     @ObservationIgnored private var lastPromptTimestamp: Date = .distantPast
 
     private func shouldHandlePrompt(pid: pid_t) -> Bool {
         let now = Date()
         // Global throttle: at least 2.5 seconds between any two prompt authentications
-        if now.timeIntervalSince(globalLastPromptDate) < 2.5 {
+        if now < globalCooldownUntil {
             return false
         }
-        // Per-PID throttle: do not re-prompt the same PID within 8 seconds
-        if let lastDate = promptCooldowns[pid], now.timeIntervalSince(lastDate) < 8.0 {
+        // Per-PID throttle: do not re-prompt the same PID until cooldown expires
+        if let cooldownUntil = promptCooldowns[pid], now < cooldownUntil {
             return false
         }
         return true
@@ -42,10 +42,17 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
     private func recordPromptAttempt(pid: pid_t) {
         let now = Date()
-        promptCooldowns[pid] = now
-        globalLastPromptDate = now
+        promptCooldowns[pid] = now.addingTimeInterval(8.0)
+        globalCooldownUntil = now.addingTimeInterval(2.5)
         lastPromptPid = pid
         lastPromptTimestamp = now
+    }
+
+    private func recordPromptFailure(pid: pid_t) {
+        let now = Date()
+        // Back off for 90 seconds on failure so unhandled or non-matching prompts do not repeatedly trigger the Notch
+        promptCooldowns[pid] = now.addingTimeInterval(90.0)
+        globalCooldownUntil = now.addingTimeInterval(15.0)
     }
 
     override private init() {
@@ -306,6 +313,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     }
 
     func cancelVerification() {
+        if lastPromptPid != 0 {
+            recordPromptFailure(pid: lastPromptPid)
+        }
         verificationTask?.cancel()
         verificationTask = nil
         camera.stop()
@@ -323,6 +333,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         guard !isCurrentlyVerifying else { return }
         isCurrentlyVerifying = true
 
+        let targetPid = targetApp.processIdentifier
         verificationTask?.cancel()
         verificationTask = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -330,6 +341,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else {
                 self.isCurrentlyVerifying = false
+                self.recordPromptFailure(pid: targetPid)
                 return
             }
 
@@ -338,6 +350,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
             guard !Task.isCancelled else {
                 self.isCurrentlyVerifying = false
+                self.recordPromptFailure(pid: targetPid)
                 return
             }
 
@@ -349,6 +362,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             } else {
                 self.statusMessage = "Face ID not recognized"
                 FaceIDOverlayController.shared.finish(success: false)
+                self.recordPromptFailure(pid: targetPid)
             }
 
             self.isCurrentlyVerifying = false
