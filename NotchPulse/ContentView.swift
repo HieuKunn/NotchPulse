@@ -74,45 +74,15 @@ struct ContentView: View {
     }
 
     private var isFaceIDActive: Bool {
-        let isSessionActive = faceIDOverlay.isSessionActive || (faceIDOverlay.isArmed && isEffectivelyLocked)
-        if isSessionActive || faceIDOverlay.phase != .closed || visualIsFaceIDExpanded {
-            if NSScreen.screens.count <= 1 {
-                return true
-            }
-            let cameraDevice = NotchPulseCameraDeviceCatalog.resolvedDevice()
-            if let targetScreen = NotchPulseCameraDeviceCatalog.targetScreen(for: cameraDevice),
-               let targetUUID = targetScreen.displayUUID {
-                let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                if thisScreenUUID == targetUUID {
-                    return true
-                }
-                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
-                    return true
-                }
-                return false
-            }
-            if let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 }),
-               let targetUUID = builtInScreen.displayUUID {
-                let thisScreenUUID = vm.screenUUID ?? currentScreen?.displayUUID
-                if thisScreenUUID == targetUUID {
-                    return true
-                }
-                if !Defaults[.showOnAllDisplays] && AppDelegate.shared?.faceIDCameraWindow == nil {
-                    return true
-                }
-                return false
-            }
-            return true
-        }
-        return false
+        false
     }
 
     private var isFaceIDContentActive: Bool {
-        isFaceIDActive
+        false
     }
 
     private var isFaceIDContentVisible: Bool {
-        visualIsFaceIDExpanded
+        false
     }
 
     private var targetIsFaceIDExpanded: Bool {

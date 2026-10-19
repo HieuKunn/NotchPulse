@@ -88,6 +88,9 @@ final class LockScreenWakeObserver: ObservableObject {
     private func handleWake() {
         Task { @MainActor [weak self] in
             guard let self = self else { return }
+            // Brief settle delay: CGSession's reported state can lag the true state right after wake.
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            
             NotchPulseLockMonitor.invalidateLockCache()
             NotchPulseVault.preflightKeychainAuthorization()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()

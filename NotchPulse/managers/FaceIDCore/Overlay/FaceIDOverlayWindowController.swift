@@ -42,10 +42,16 @@ final class FaceIDOverlayWindowController {
 
     /// Creates the window (once), positions and orders it front. If the screen is
     /// actually locked, also delegates it into the SkyLight space — see FaceIDOverlaySkyLight.swift.
-    /// Suppress separate overlay window: Face ID is unified into ContentView
-    /// (the main Notch/Dynamic Island window) for seamless morphing.
     func show() {
-        return
+        let window = windowIfNeeded()
+        reposition(window)
+        window.orderFrontRegardless()
+
+        if NotchPulseLockMonitor.isScreenActuallyLocked(), let skyLight = FaceIDOverlaySkyLight.shared {
+            skyLight.delegate(window)
+            isSkyLightDelegated = true
+        }
+        updateCursorPolling()
     }
 
     /// Forces layout/composite now instead of waiting for the next display cycle —
@@ -58,9 +64,8 @@ final class FaceIDOverlayWindowController {
 
     func hide() {
         guard let window else { return }
-        if isSkyLightDelegated {
-            SkyLightOperator.shared.undelegateWindow(window)
-            FaceIDOverlaySkyLight.shared?.undelegate(window)
+        if isSkyLightDelegated, let skyLight = FaceIDOverlaySkyLight.shared {
+            skyLight.undelegate(window)
             isSkyLightDelegated = false
         }
         window.orderOut(nil)

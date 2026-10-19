@@ -123,13 +123,7 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        let shouldAutoScan: Bool
-        if signal == .onLock {
-            // When locking the screen, arm the notch so it is ready for hover, but do not automatically trigger camera scan before user hovers
-            shouldAutoScan = false
-        } else {
-            shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
-        }
+        let shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
@@ -158,8 +152,7 @@ final class NotchPulseFaceUnlockCoordinator {
         switch event {
         case .wake: return .onWake
         case .screenLocked: return .onLock
-        case .screenUnlocked, .willSleep: return nil
-        case nil: return .onWake
+        case .screenUnlocked, .willSleep, nil: return nil
         }
     }
 
@@ -249,51 +242,12 @@ final class NotchPulseFaceUnlockCoordinator {
     private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
-        // Prerequisite check: Do NOT start camera hardware if Accessibility is not granted
-        // or there is no stored password to unlock the Mac. This avoids runaway camera loops.
-        guard KeystrokeInjector.isAccessibilityTrusted() else {
-            statusMessage = "Accessibility not granted — cannot auto-fill password."
-            if self.showsUI {
-                FaceIDOverlayController.shared.finish(success: false)
-            }
-            return
-        }
-        guard NotchPulseVault.hasStoredPassword() else {
-            statusMessage = "No stored password to unlock Mac."
-            if self.showsUI {
-                FaceIDOverlayController.shared.finish(success: false)
-            }
-            return
-        }
-
-        // Verify active enrolled faces exist before spinning camera hardware
-        var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-        if activeIdentities.isEmpty {
-            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
-            activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
-        }
-        if activeIdentities.isEmpty {
-            if let direct = try? NotchPulseSecureFaceStore.load(), !direct.isEmpty {
-                activeIdentities = direct.filter(\.isEnabled)
-            }
-        }
-        guard !activeIdentities.isEmpty else {
-            statusMessage = "No enrolled face found. Enroll your face in Settings."
-            if self.showsUI {
-                FaceIDOverlayController.shared.finish(success: false)
-            }
-            return
-        }
-
         await camera.start()
         guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
             statusMessage = error
             camera.stop()
-            if self.showsUI {
-                FaceIDOverlayController.shared.finish(success: false)
-            }
             return
         }
 
