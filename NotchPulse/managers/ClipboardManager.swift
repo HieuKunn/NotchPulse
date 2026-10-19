@@ -241,6 +241,19 @@ final class ClipboardManager: ObservableObject {
         }
     }
 
+    private static let supportedImageTypes: [NSPasteboard.PasteboardType] = [
+        .png,
+        .tiff,
+        NSPasteboard.PasteboardType("public.png"),
+        NSPasteboard.PasteboardType("public.jpeg"),
+        NSPasteboard.PasteboardType("public.heic"),
+        NSPasteboard.PasteboardType("public.webp"),
+        NSPasteboard.PasteboardType("com.compuserve.gif"),
+        NSPasteboard.PasteboardType("public.tiff"),
+        NSPasteboard.PasteboardType("Apple PNG pasteboard type"),
+        NSPasteboard.PasteboardType("Apple PICT pasteboard type")
+    ]
+
     private func checkForChanges() {
         guard isEnabled else { return }
         let currentCount = pasteboard.changeCount
@@ -248,24 +261,12 @@ final class ClipboardManager: ObservableObject {
         lastChangeCount = currentCount
 
         // 1. Check Raw Images FIRST (Prevents web browsers & Electron apps from having their images shadowed by fallback text URLs / HTML)
-        let imageTypes: [NSPasteboard.PasteboardType] = [
-            .png,
-            .tiff,
-            NSPasteboard.PasteboardType("public.png"),
-            NSPasteboard.PasteboardType("public.jpeg"),
-            NSPasteboard.PasteboardType("public.heic"),
-            NSPasteboard.PasteboardType("public.webp"),
-            NSPasteboard.PasteboardType("com.compuserve.gif"),
-            NSPasteboard.PasteboardType("public.tiff"),
-            NSPasteboard.PasteboardType("Apple PNG pasteboard type"),
-            NSPasteboard.PasteboardType("Apple PICT pasteboard type")
-        ]
-        let hasImageTypes = pasteboard.types?.contains(where: { imageTypes.contains($0) }) ?? false
+        let hasImageTypes = pasteboard.types?.contains(where: { Self.supportedImageTypes.contains($0) }) ?? false
         let canInitImage = NSImage.canInit(with: pasteboard)
 
         if hasImageTypes || canInitImage {
             let rawImageData: Data? = {
-                for t in imageTypes {
+                for t in Self.supportedImageTypes {
                     if let d = pasteboard.data(forType: t), !d.isEmpty {
                         return d
                     }

@@ -53,38 +53,7 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
     func standardUserDriverWillShowModalAlert() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-
-        func elevateAlertWindows() {
-            for window in NSApp.windows {
-                let className = String(describing: type(of: window))
-                // Only elevate actual Sparkle modal dialogs / system alerts.
-                // NEVER touch, re-level, or reposition Notch windows or background panels!
-                guard !(window is NotchPulseSkyLightWindow),
-                      !(window is NotchPulseWindow),
-                      !(window is FaceIDOverlayWindow),
-                      !(window is ShelfDropZoneWindow),
-                      !(window is LockScreenMediaWindow),
-                      className != "NSStatusBarWindow",
-                      window != SettingsWindowController.shared.window else {
-                    continue
-                }
-
-                if className.contains("Alert") || className.contains("SU") {
-                    window.level = .modalPanel
-                    window.orderFrontRegardless()
-                    window.makeKeyAndOrderFront(nil)
-                }
-            }
-        }
-
-        // Run immediately and across the next runloop ticks as Sparkle presents the alert asynchronously
-        elevateAlertWindows()
-        DispatchQueue.main.async {
-            elevateAlertWindows()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            elevateAlertWindows()
-        }
+        AppDelegate.shared?.collapseAllNotches(force: true)
     }
 
     /// Called after showing a modal alert window. Restores accessory mode if Settings is not visible.
