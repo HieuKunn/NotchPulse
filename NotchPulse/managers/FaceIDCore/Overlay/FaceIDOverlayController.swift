@@ -114,6 +114,7 @@ final class FaceIDOverlayController {
     /// up until `disarm()`. `onActivate` restarts scanning on hover.
     func arm(onActivate: @escaping () -> Void) {
         isArmed = true
+        isPresenting = false
         armedAt = .now
         self.onActivate = onActivate
         resolveTask?.cancel(); resolveTask = nil
@@ -225,6 +226,8 @@ final class FaceIDOverlayController {
     /// - Parameter styleOverride: forces `.minimal`/`.original` regardless of the saved
     ///   preference, for the Animation section's live preview.
     func present(styleOverride: UnlockAnimationStyle? = nil, onRetry: (() -> Void)? = nil) {
+        // Prevent one-shot presentation from interrupting or clobbering an active lock-screen armed session
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked() && !isArmed else { return }
         isPresenting = true
         isArmed = false
         onActivate = onRetry
@@ -355,8 +358,8 @@ final class FaceIDOverlayController {
                 if phase == .failure { Task { await collapse() } }
                 return
             }
-            resolveTask?.cancel(); resolveTask = nil
             if !isArmed {
+                resolveTask?.cancel(); resolveTask = nil
                 activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
                 content = .scan(.idle)
                 phase = .scanning

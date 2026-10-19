@@ -20,6 +20,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     @ObservationIgnored private let pipeline = NotchPulseFaceRecognitionPipeline()
     @ObservationIgnored private var verificationTask: Task<Void, Never>?
     @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var distributedObservers: [NSObjectProtocol] = []
     @ObservationIgnored private var promptDetectionTimer: Timer?
     @ObservationIgnored private var promptCooldowns: [pid_t: Date] = [:]
     @ObservationIgnored private var globalLastPromptDate: Date = .distantPast
@@ -57,12 +58,16 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         for observer in workspaceObservers {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
+        for observer in distributedObservers {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
     }
 
     // MARK: - Workspace Observers (SecurityAgent & System Prompts)
 
     func updatePromptTimerState() {
-        let shouldPoll = settings.isSystemAuthFaceIDEnabled
+        let shouldPoll = !NotchPulseLockMonitor.isScreenActuallyLocked()
+            && settings.isSystemAuthFaceIDEnabled
             && NotchPulseFaceEnrollmentStore.shared.hasEnrolledFace
             && NotchPulseVault.isSessionUnlocked
             
@@ -119,6 +124,30 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
 
         workspaceObservers = [activated, launched, deactivated]
 
+        let dist = DistributedNotificationCenter.default()
+        let lockObs = dist.addObserver(
+            forName: Notification.Name("com.apple.screenIsLocked"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                if self?.isCurrentlyVerifying == true {
+                    self?.cancelVerification()
+                }
+                self?.updatePromptTimerState()
+            }
+        }
+        let unlockObs = dist.addObserver(
+            forName: Notification.Name("com.apple.screenIsUnlocked"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.updatePromptTimerState()
+            }
+        }
+        distributedObservers = [lockObs, unlockObs]
+
         // Active prompt polling: CoreAuthUI & SecurityAgent only polled when feature is active
         updatePromptTimerState()
     }
@@ -132,6 +161,10 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
         workspaceObservers.removeAll()
+        for observer in distributedObservers {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        distributedObservers.removeAll()
         isCurrentlyVerifying = false
     }
 
@@ -180,7 +213,8 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     // MARK: - Active Window Polling
 
     private func checkOnScreenAuthPrompts() {
-        guard settings.isSystemAuthFaceIDEnabled,
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
+              settings.isSystemAuthFaceIDEnabled,
               NotchPulseFaceEnrollmentStore.shared.hasEnrolledFace,
               NotchPulseVault.isSessionUnlocked,
               !isCurrentlyVerifying else {
@@ -235,7 +269,8 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     // MARK: - Notification Handlers
 
     private func handleAppNotification(_ notification: Notification) {
-        guard settings.isSystemAuthFaceIDEnabled,
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked(),
+              settings.isSystemAuthFaceIDEnabled,
               NotchPulseFaceEnrollmentStore.shared.hasEnrolledFace,
               NotchPulseVault.isSessionUnlocked else {
             return
@@ -274,7 +309,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         verificationTask?.cancel()
         verificationTask = nil
         camera.stop()
-        FaceIDOverlayController.shared.disarm()
+        if FaceIDOverlayController.shared.isPresenting && !FaceIDOverlayController.shared.isArmed {
+            FaceIDOverlayController.shared.dismissImmediately()
+        }
         isCurrentlyVerifying = false
         statusMessage = "Cancelled"
     }
@@ -282,6 +319,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     // MARK: - System Prompt Authorization
 
     func authenticateForSystemPrompt(targetApp: NSRunningApplication) {
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
         guard !isCurrentlyVerifying else { return }
         isCurrentlyVerifying = true
 
@@ -369,6 +407,8 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
     // MARK: - Core Face Verification Loop with Notch Overlay
 
     private func runFaceVerification(promptTitle: String) async -> Bool {
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked() else { return false }
+
         // Fetch active enrolled identities ONCE up front to avoid querying Keychain on the MainActor per-frame
         var activeIdentities = NotchPulseFaceEnrollmentStore.shared.activeIdentities
         if activeIdentities.isEmpty {
@@ -411,6 +451,11 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         var scanStartTime: ContinuousClock.Instant?
 
         while ContinuousClock.now < effectiveDeadline, !Task.isCancelled {
+            guard !NotchPulseLockMonitor.isScreenActuallyLocked() else {
+                FaceIDOverlayController.shared.finish(success: false)
+                return false
+            }
+
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
                 if !firstFrameSeen {
                     if ContinuousClock.now > firstFrameCap { break }

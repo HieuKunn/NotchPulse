@@ -265,7 +265,9 @@ final class NotchPulseFaceUnlockCoordinator {
             statusMessage = error
             camera.stop()
             if showsUI {
-                FaceIDOverlayController.shared.finish(success: false)
+                Task {
+                    await FaceIDOverlayController.shared.collapse()
+                }
             }
             return
         }
