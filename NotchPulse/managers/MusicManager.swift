@@ -219,7 +219,7 @@ class MusicManager: ObservableObject {
         Task { @MainActor [weak self] in
             // Settle delay after wake
             try? await Task.sleep(for: .milliseconds(500))
-            guard let self = self else { return }
+            guard let self else { return }
             self.forceUpdate()
 
             if (self.artworkData == nil || self.usingAppIconForArtwork) && !self.songTitle.isEmpty {
@@ -228,7 +228,6 @@ class MusicManager: ObservableObject {
 
             // Second pass once Wi-Fi / system services have reconnected (1.8s)
             try? await Task.sleep(for: .milliseconds(1300))
-            guard let self = self else { return }
             self.forceUpdate()
             if (self.artworkData == nil || self.usingAppIconForArtwork) && !self.songTitle.isEmpty {
                 self.resolveMissingArtwork()
@@ -370,7 +369,6 @@ class MusicManager: ObservableObject {
         }
 
         // Track playback state changes (playing/paused)
-        let isResuming = !self.lastIsPlaying && state.isPlaying
         self.lastIsPlaying = state.isPlaying
 
         if state.isPlaying != self.isPlaying {
