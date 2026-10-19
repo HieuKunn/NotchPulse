@@ -98,41 +98,20 @@ final class NotchPulseFaceRecognitionPipeline {
     /// Max normalized-coordinate drift between frames still counted as "the same person".
     nonisolated private static let continuityDistanceTolerance: CGFloat = 0.3
 
-    /// Returns candidate faces ordered by likelihood of being the primary user:
-    /// filters out bystander faces below `minimumProminentFaceWidth`, then sorts by proximity to `previousBoundingBox`
-    /// (if tracking) or by bounding box area (largest first).
-    nonisolated static func prominentFaces(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> [DetectedFace] {
-        var candidates = faces.filter { $0.normalizedBoundingBox.width >= CGFloat(minimumProminentFaceWidth) }
-        if candidates.isEmpty {
-            candidates = faces
-        }
-        guard !candidates.isEmpty else { return [] }
+    /// Picks the person actually at the camera, not a bystander: filters out faces below `minimumProminentFaceWidth`, then prefers continuity with `previousBoundingBox` over raw largest-by-area so two similarly-sized faces can't flip-flop the selection frame to frame and starve the liveness/wrong-face streaks of agreement.
+    nonisolated static func selectDominantFace(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> DetectedFace? {
+        let candidates = faces.filter { $0.normalizedBoundingBox.width >= CGFloat(minimumProminentFaceWidth) }
+        guard !candidates.isEmpty else { return nil }
 
         if let previous = previousBoundingBox {
             let previousCenter = CGPoint(x: previous.midX, y: previous.midY)
-            return candidates.sorted { a, b in
-                let distA = distance(from: a, to: previousCenter)
-                let distB = distance(from: b, to: previousCenter)
-                let aClose = distA < continuityDistanceTolerance
-                let bClose = distB < continuityDistanceTolerance
-                if aClose != bClose {
-                    return aClose && !bClose
-                }
-                if aClose && bClose {
-                    return distA < distB
-                }
-                return (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height)
+            if let nearest = candidates.min(by: { distance(from: $0, to: previousCenter) < distance(from: $1, to: previousCenter) }),
+               distance(from: nearest, to: previousCenter) < continuityDistanceTolerance {
+                return nearest
             }
         }
 
-        return candidates.sorted {
-            ($0.boundingBox.width * $0.boundingBox.height) > ($1.boundingBox.width * $1.boundingBox.height)
-        }
-    }
-
-    /// Picks the person actually at the camera, not a bystander: filters out faces below `minimumProminentFaceWidth`, then prefers continuity with `previousBoundingBox` over raw largest-by-area so two similarly-sized faces can't flip-flop the selection frame to frame and starve the liveness/wrong-face streaks of agreement.
-    nonisolated static func selectDominantFace(in faces: [DetectedFace], preferNear previousBoundingBox: CGRect? = nil) -> DetectedFace? {
-        prominentFaces(in: faces, preferNear: previousBoundingBox).first
+        return candidates.max { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
     }
 
     nonisolated private static func distance(from face: DetectedFace, to point: CGPoint) -> CGFloat {
@@ -152,7 +131,7 @@ struct ScoredIdentity {
 }
 
 extension NotchPulseFaceRecognitionPipeline {
-    /// Sorted by best overall similarity (max of centroid or closest sample) descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
+    /// Sorted by centroid similarity descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
     nonisolated func score(_ embedding: [Float], against identities: [FaceIdentity]) -> [ScoredIdentity] {
         identities.compactMap { identity in
             guard let template = identity.template, !identity.samples.isEmpty else { return nil }
@@ -161,16 +140,13 @@ extension NotchPulseFaceRecognitionPipeline {
                 .map { FaceEmbedding.cosineSimilarity(embedding, $0.embedding) }
                 .max() ?? centroidSim
             return ScoredIdentity(identity: identity, centroidSimilarity: centroidSim, maxSampleSimilarity: maxSim)
-        }.sorted {
-            max($0.centroidSimilarity, $0.maxSampleSimilarity) > max($1.centroidSimilarity, $1.maxSampleSimilarity)
-        }
+        }.sorted { $0.centroidSimilarity > $1.centroidSimilarity }
     }
 
-    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. Allows matching when either the averaged centroid meets threshold, or an individual enrolled pose sample matches strongly.
+    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent. No runner-up margin check: the same person can be enrolled multiple times under different appearances, so two of their own profiles legitimately score close together — a margin check can't tell that apart from two different people colliding.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
         guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
-        let matched = (first.centroidSimilarity >= threshold) || (first.maxSampleSimilarity >= threshold)
-        guard matched else { return nil }
+        guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else { return nil }
         return first
     }
 }
