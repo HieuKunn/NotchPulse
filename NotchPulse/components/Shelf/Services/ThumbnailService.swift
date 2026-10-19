@@ -65,8 +65,9 @@ final class ThumbnailService {
             )
             request.iconMode = true
 
+            let generator = self.thumbnailGenerator
             return await withCheckedContinuation { (continuation: CheckedContinuation<NSImage?, Never>) in
-                thumbnailGenerator.generateBestRepresentation(for: request) { representation, error in
+                generator.generateBestRepresentation(for: request) { representation, error in
                     if let rep = representation {
                         continuation.resume(returning: rep.nsImage)
                     } else {

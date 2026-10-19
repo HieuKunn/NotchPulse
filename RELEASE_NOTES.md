@@ -11,6 +11,10 @@
 - **Multi-Format Image Support**: Expanded native clipboard capture for WebP, HEIC, GIF, and direct image files copied from Finder.
 - **Image Priority Detection**: When copying items containing both rich image data and file paths, NotchPulse intelligently prioritizes the graphic image preview for immediate visual reuse.
 
+### 🖱️ Bulletproof Notch Hover & Expansion Lifecycle
+- **Reliable Hover Re-open**: Resolved an issue where closing the Notch after expanding and unpinning the Calendar or switching tabs could prevent subsequent hover gestures from expanding the Notch.
+- **Synchronized State Teardown**: Enhanced tab switching and closure lifecycles across Calendar, Shelf, and Stats to automatically reset stale pin and expansion flags, ensuring seamless 100% reliable hover interactions.
+
 ### 🛡️ Notch Position Stability & Auto-Update Polish
 - **Rock-Solid Bezel Anchoring**: Eliminated all potential scenarios where the Notch could drift, drop downwards, or center in the middle of your screen after checking for updates or waking from sleep.
 - **Elevated Updater Dialogs**: Update notifications and alerts stay firmly elevated in the foreground over the settings window without getting lost or hidden underneath.

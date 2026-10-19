@@ -26,6 +26,14 @@ extension SkyLightOperator {
 }
 
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    required init(rootView: Content) {
+        super.init(rootView: rootView)
+    }
+
+    @MainActor required dynamic init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         return true
     }
