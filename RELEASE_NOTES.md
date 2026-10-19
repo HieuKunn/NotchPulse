@@ -1,13 +1,13 @@
 ## 🚀 What's New in NotchPulse v5.4
 
-### 🔒 Perfected Face ID & Seamless Lock Screen
-- **True Lock Screen Style Parity**: The lock screen now strictly honors your chosen style (Notch or Dynamic Island) across all displays, never reverting to a pill by default.
-- **Flawless Face Recognition**: Upgraded the on-device face recognition engine with smart multi-target hardware acceleration, ensuring your camera recognizes your face reliably on every wake.
-- **Instant Clean Collapse & Retry**: Unrecognized scans now play a swift failure hint and smoothly collapse shut in 1.8 seconds, ready for instant hover reactivation without lingering awkwardly.
-- **Eliminated Command Contention**: Isolated lock-screen face recognition from desktop authentication tasks, ensuring Face ID never gets interrupted or clobbered.
-- **Seamless Lock/Wake Transitions**: Eliminated race conditions when rapidly locking and unlocking your Mac, keeping the lock screen media player and Face ID perfectly in sync.
+### 🔒 Perfected Face ID & Camera Display Awareness
+- **Intelligent Camera Screen Routing**: When setting up or recapturing your Face ID profile, the setup interface and guided alignment ring now automatically open on the exact display housing your camera (such as your MacBook's built-in screen), even if an external monitor is currently set as your primary display.
+- **True Lock Screen Style Parity**: The lock screen strictly honors your chosen visual preference (Notch or Dynamic Island) across all displays, never defaulting unexpectedly.
+- **Flawless Face Recognition**: Powered by smart on-device recognition models, your camera now reliably identifies your face on every screen wake and system unlock.
+- **Instant Clean Collapse & Retry**: Unrecognized scans now play a swift failure hint and smoothly collapse shut in 1.8 seconds, ready for instant hover reactivation without lingering.
+- **Prevented Prompt Repetition**: Added smart back-off protection so unhandled or cancelled system prompts do not repeatedly trigger the Notch overlay.
 
 ### ⚡️ Zero-Overhead Performance & Fluid Animations
-- **Zero-Lag Notch Expansion**: Grouped the Notch and Dynamic Island layout into dedicated hardware-accelerated layers, completely eliminating CPU rendering spikes when opening or hovering the Notch.
-- **Ultra-Efficient Media Playback**: Track progress, elapsed time, and synchronized lyrics now calculate instantly and smoothly with zero background overhead.
+- **Zero-Lag Notch Expansion**: The Notch and Dynamic Island container uses hardware-accelerated rendering layers, completely eliminating CPU rendering spikes when hovering or opening the Notch.
+- **Ultra-Efficient Media Playback**: Track progress, elapsed time, and synchronized lyrics now calculate smoothly with zero background overhead.
 - **Instant Calendar & Reminders Cache**: Smart in-memory event caching ensures opening or hovering the Notch instantly displays your schedule without reading your database every time.

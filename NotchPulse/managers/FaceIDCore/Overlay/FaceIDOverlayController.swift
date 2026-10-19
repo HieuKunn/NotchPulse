@@ -63,6 +63,11 @@ final class FaceIDOverlayController {
         (isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || isPresenting || phase != .closed
     }
 
+    var isOnboardingActive: Bool {
+        if case .onboarding = content { return true }
+        return phase == .onboarding
+    }
+
     /// Pill style only: whether the pill is parked on screen at rest vs. off-screen.
     /// Deliberately separate from `isArmed` — it lags it by a frame on the way in
     /// (making the pill slide into place) and leads it on the way out.
@@ -256,8 +261,8 @@ final class FaceIDOverlayController {
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
 
-        geometry = windowController.currentGeometry
         content = .onboarding(controller)
+        geometry = windowController.currentGeometry
         phase = .closed
         isPillDocked = true
         windowController.show()
