@@ -176,6 +176,21 @@ class MusicManager: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // Handle wake from sleep to refresh media state and recover artwork
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleSystemWake()
+            }
+            .store(in: &cancellables)
+
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidWakeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleSystemWake()
+            }
+            .store(in: &cancellables)
+
         // Initialize deprecation check and active controller synchronously
         self.isNowPlayingDeprecated = self.mediaChecker.checkDeprecationStatus()
         print("Deprecation check completed: \(self.isNowPlayingDeprecated)")
@@ -195,6 +210,65 @@ class MusicManager: ObservableObject {
 
         // Release active controller
         activeController = nil
+    }
+
+    // MARK: - Sleep & Wake Recovery
+    private func handleSystemWake() {
+        UniversalArtworkResolver.shared.clearInFlight()
+
+        Task { @MainActor [weak self] in
+            // Settle delay after wake
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let self = self else { return }
+            self.forceUpdate()
+
+            if (self.artworkData == nil || self.usingAppIconForArtwork) && !self.songTitle.isEmpty {
+                self.resolveMissingArtwork()
+            }
+
+            // Second pass once Wi-Fi / system services have reconnected (1.8s)
+            try? await Task.sleep(for: .milliseconds(1300))
+            guard let self = self else { return }
+            self.forceUpdate()
+            if (self.artworkData == nil || self.usingAppIconForArtwork) && !self.songTitle.isEmpty {
+                self.resolveMissingArtwork()
+            }
+        }
+    }
+
+    @MainActor
+    func resolveMissingArtwork() {
+        guard !self.songTitle.isEmpty else { return }
+        let currentTitle = self.songTitle
+        let currentArtist = self.artistName
+        let currentAlbum = self.album
+        let currentBundle = self.bundleIdentifier
+
+        if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: currentTitle, artist: currentArtist) {
+            self.usingAppIconForArtwork = false
+            self.artworkData = cached
+            self.updateArtwork(cached)
+            return
+        }
+
+        UniversalArtworkResolver.shared.resolveArtwork(
+            title: currentTitle,
+            artist: currentArtist,
+            album: currentAlbum,
+            bundleIdentifier: currentBundle
+        ) { [weak self] resolvedData in
+            guard let self = self, let data = resolvedData else { return }
+            DispatchQueue.main.async {
+                guard self.songTitle == currentTitle else { return }
+                self.usingAppIconForArtwork = false
+                self.artworkData = data
+                self.updateArtwork(data)
+                self.triggerFlipAnimation()
+                if let lastIdx = self.mediaSessionStack.indices.last {
+                    self.mediaSessionStack[lastIdx].artworkData = data
+                }
+            }
+        }
     }
 
     // MARK: - Setup Methods
@@ -324,8 +398,9 @@ class MusicManager: ObservableObject {
         let albumChanged = state.album != self.lastArtworkAlbum
         let bundleChanged = state.bundleIdentifier != self.lastArtworkBundleIdentifier
 
-        // Check for artwork changes: only treat as artwork change if embedded artwork differs, or if title/artist switched
-        let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || (titleChanged || artistChanged)
+        // Check for artwork changes: only treat as artwork change if embedded artwork differs, or if title/artist switched, or if artwork is currently missing
+        let needsArtwork = (self.artworkData == nil || self.usingAppIconForArtwork) && !state.title.isEmpty
+        let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || (titleChanged || artistChanged) || needsArtwork
         let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged
 
         // Handle artwork and visual transitions for changed content
@@ -369,16 +444,37 @@ class MusicManager: ObservableObject {
                     album: currentAlbum,
                     bundleIdentifier: currentBundle
                 ) { [weak self] resolvedData in
-                    guard let self = self, let data = resolvedData else { return }
-                    DispatchQueue.main.async {
-                        // Verify track hasn't changed while resolving
-                        guard self.songTitle == currentTitle else { return }
-                        self.usingAppIconForArtwork = false
-                        self.artworkData = data
-                        self.updateArtwork(data)
-                        self.triggerFlipAnimation()
-                        if let lastIdx = self.mediaSessionStack.indices.last {
-                            self.mediaSessionStack[lastIdx].artworkData = data
+                    guard let self = self else { return }
+                    if let data = resolvedData {
+                        DispatchQueue.main.async {
+                            // Verify track hasn't changed while resolving
+                            guard self.songTitle == currentTitle else { return }
+                            self.usingAppIconForArtwork = false
+                            self.artworkData = data
+                            self.updateArtwork(data)
+                            self.triggerFlipAnimation()
+                            if let lastIdx = self.mediaSessionStack.indices.last {
+                                self.mediaSessionStack[lastIdx].artworkData = data
+                            }
+                        }
+                    } else {
+                        // If resolution failed (e.g. Wi-Fi still reconnecting right on wake), retry once after 2.5s
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                            guard let self = self, self.songTitle == currentTitle, (self.artworkData == nil || self.usingAppIconForArtwork) else { return }
+                            UniversalArtworkResolver.shared.resolveArtwork(
+                                title: currentTitle,
+                                artist: currentArtist,
+                                album: currentAlbum,
+                                bundleIdentifier: currentBundle
+                            ) { [weak self] retryData in
+                                guard let self = self, let retryData = retryData, self.songTitle == currentTitle else { return }
+                                DispatchQueue.main.async {
+                                    self.usingAppIconForArtwork = false
+                                    self.artworkData = retryData
+                                    self.updateArtwork(retryData)
+                                    self.triggerFlipAnimation()
+                                }
+                            }
                         }
                     }
                 }
@@ -1577,6 +1673,13 @@ public final class UniversalArtworkResolver {
             return true
         }
         return false
+    }
+
+    /// Purges in-flight tasks without dropping already cached artwork
+    public func clearInFlight() {
+        lock.lock()
+        inFlightTasks.removeAll()
+        lock.unlock()
     }
 
     /// Purges in-flight tasks and memory cache.

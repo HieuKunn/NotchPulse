@@ -97,7 +97,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         MRMediaRemoteSetRepeatModeFunction = unsafeBitCast(
             MRMediaRemoteSetRepeatModePointer, to: (@convention(c) (Int) -> Void).self)
 
-        // Auto-reconnect adapter whenever Mac wakes from sleep if the process terminated
+        // Auto-reconnect adapter whenever Mac wakes from sleep
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
@@ -106,9 +106,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(600))
                 guard let self = self else { return }
-                if self.process == nil || self.process?.isRunning == false {
-                    await self.setupNowPlayingObserver()
-                }
+                await self.setupNowPlayingObserver()
             }
         }
 
@@ -1081,8 +1079,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         }
 
+        let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
         if let artworkDataString = payload.artworkData, !artworkDataString.isEmpty {
-            let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
             if trackChanged || self.playbackState.artwork == nil {
                 newPlaybackState.artwork = Data(
                     base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1090,10 +1088,13 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             } else {
                 newPlaybackState.artwork = self.playbackState.artwork
             }
-        } else if !diff {
-            newPlaybackState.artwork = nil
         } else {
-            newPlaybackState.artwork = self.playbackState.artwork
+            // Do NOT wipe artwork if the track has not changed!
+            if trackChanged {
+                newPlaybackState.artwork = nil
+            } else {
+                newPlaybackState.artwork = self.playbackState.artwork
+            }
         }
 
         if let dateString = payload.timestamp,
