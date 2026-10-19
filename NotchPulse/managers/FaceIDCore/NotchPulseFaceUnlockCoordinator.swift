@@ -36,9 +36,6 @@ final class NotchPulseFaceUnlockCoordinator {
     /// One-shot per lock session — an auto-retry that could itself auto-retry would loop the camera for the whole lock session.
     private var hasAutoRetriedForCurrentLock = false
     private var scanTask: Task<Void, Never>?
-    /// Guards against duplicate concurrent startScanCycle invocations (e.g. from rapid mouse hover events)
-    /// prematurely cancelling an in-flight cycle.
-    private var isScanCycleActive = false
     /// Bumped by every `startScanCycle()`; a cycle bails once superseded (see `runScanCycle(generation:)`).
     private var scanGeneration = 0
     /// When the last scan cycle was armed — collapses a single wake into a single arm (see `.wake` branch of `evaluateTrigger`).
@@ -166,7 +163,6 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func disarmOverlay() {
-        isScanCycleActive = false
         scanTask?.cancel()
         scanTask = nil
         // Bumping makes any cycle still suspended at `await camera.start()` inert, rather than resuming and re-showing the overlay.
@@ -240,8 +236,6 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func startScanCycle() {
-        guard !isScanCycleActive else { return }
-        isScanCycleActive = true
         scanTask?.cancel()
         scanGeneration &+= 1
         let generation = scanGeneration
@@ -251,11 +245,6 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func runScanCycle(generation: Int) async {
-        defer {
-            if generation == scanGeneration {
-                isScanCycleActive = false
-            }
-        }
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
         await camera.start()
@@ -360,7 +349,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 6
+        let wrongFaceStreakThreshold = 18
 
         /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
         var readyMatch: ScoredIdentity?
@@ -442,9 +431,11 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatch = matched
             } else {
                 readyMatch = nil
-                consecutiveWrongFaceFrames += 1
-                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                    return .consistentlyWrongFace
+                if (result.quality ?? 0.5) >= 0.2 {
+                    consecutiveWrongFaceFrames += 1
+                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                        return .consistentlyWrongFace
+                    }
                 }
             }
 

@@ -13,10 +13,11 @@ struct FaceIDOverlayGeometry {
     /// True if this screen has a real physical notch (vs. the pill fallback).
     let isPhysicalNotch: Bool
 
-    /// Synchronized with screen hardware capabilities and active user preference.
-    /// If screen has no physical notch (external monitor), it is always `.pill` (dynamic island).
+    /// Synchronized strictly with user preference:
+    /// If user selects .notch, lock screen and overlay display .notch style.
+    /// If user selects .dynamicIsland, lock screen and overlay display .pill style.
     var style: FaceIDOverlayPanelStyle {
-        (Defaults[.notchStyle] == .dynamicIsland || !isPhysicalNotch) ? .pill : .notch
+        Defaults[.notchStyle] == .notch ? .notch : .pill
     }
 
     /// Fixed footprint of expanded scan-mode content in notch style (scaled down ~10% to match real physical notch).
@@ -195,15 +196,16 @@ struct FaceIDOverlayGeometry {
     @MainActor
     static func forMainScreen() -> FaceIDOverlayGeometry {
         guard let screen = preferredScreen() ?? NSScreen.main else {
-            return FaceIDOverlayGeometry(closedSize: pillClosedSize, isPhysicalNotch: false)
+            let isNotch = (Defaults[.notchStyle] == .notch)
+            let size = isNotch ? CGSize(width: 200, height: 32) : pillClosedSize
+            return FaceIDOverlayGeometry(closedSize: size, isPhysicalNotch: isNotch)
         }
         return forScreen(screen)
     }
 
     @MainActor
     static func forScreen(_ screen: NSScreen) -> FaceIDOverlayGeometry {
-        let isPhysical = screenHasPhysicalNotch(screen)
-        let isNotchStyle = (Defaults[.notchStyle] == .notch) && isPhysical
+        let isNotchStyle = (Defaults[.notchStyle] == .notch)
         let screenUUID = screen.displayUUID
         let closedSize = isNotchStyle ? getClosedNotchSize(screenUUID: screenUUID) : pillClosedSize
 

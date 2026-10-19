@@ -29,29 +29,23 @@ typealias NotchPulseNotchPulseFaceRecognitionPipelineError = NotchPulseFaceRecog
 @Observable
 @MainActor
 final class NotchPulseFaceRecognitionPipeline {
-    nonisolated static let sharedEmbedderResult: (embedder: FaceEmbedder, isFallback: Bool, reason: String?) = {
-        if let arcFace = ArcFaceEmbedder.shared {
-            return (arcFace, false, nil)
-        } else {
-            NSLog("[FaceIDPipeline] ArcFaceEmbedder failed to load. Using VisionFeaturePrint fallback.")
-            return (VisionFeaturePrintEmbedder(), true, "ArcFace model not available")
-        }
-    }()
-
     nonisolated var embedder: FaceEmbedder {
-        Self.sharedEmbedderResult.embedder
+        if let arcFace = ArcFaceEmbedder.shared {
+            return arcFace
+        }
+        return VisionFeaturePrintEmbedder()
     }
 
     /// Set when ArcFace failed to load and the weaker Vision feature-print embedder is in use instead.
     var usingFallbackEmbedder: Bool {
-        Self.sharedEmbedderResult.isFallback
+        ArcFaceEmbedder.shared == nil
     }
     var fallbackReason: String? {
-        Self.sharedEmbedderResult.reason
+        usingFallbackEmbedder ? "ArcFace model not available" : nil
     }
 
     nonisolated static var activeModelIdentifier: String {
-        Self.sharedEmbedderResult.embedder.modelIdentifier
+        ArcFaceEmbedder.shared?.modelIdentifier ?? "vision-feature-print-v1"
     }
 
     init() {}

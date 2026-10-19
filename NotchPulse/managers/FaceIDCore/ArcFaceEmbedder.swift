@@ -41,8 +41,20 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
     private static let inputName = "input_image"
     private static let outputName = "embedding"
 
-    // Loaded once and reused — model load dominates a single inference (~6.6MB, negligible memory footprint).
-    static let shared: ArcFaceEmbedder? = try? ArcFaceEmbedder()
+    private static let _sharedLock = NSLock()
+    private static var _sharedInstance: ArcFaceEmbedder?
+
+    // Loaded and cached — thread-safe accessor that retries on access instead of permanently trapping nil.
+    static var shared: ArcFaceEmbedder? {
+        _sharedLock.lock()
+        defer { _sharedLock.unlock() }
+        if let existing = _sharedInstance { return existing }
+        if let instance = try? ArcFaceEmbedder() {
+            _sharedInstance = instance
+            return instance
+        }
+        return nil
+    }
 
     /// Pre-warms the ArcFace ML model ahead of real frames.
     static func warmUp() {
@@ -81,12 +93,32 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .all
 
+        var loadedModel: MLModel?
         do {
-            model = try MLModel(contentsOf: modelURL, configuration: configuration)
+            loadedModel = try MLModel(contentsOf: modelURL, configuration: configuration)
         } catch {
-            NSLog("[ArcFaceEmbedder] CoreML model load failed at \(modelURL): \(error.localizedDescription)")
-            throw ArcFaceEmbedderError.modelLoadFailed(error.localizedDescription)
+            NSLog("[ArcFaceEmbedder] CoreML load with .all failed: \(error.localizedDescription). Retrying with .cpuAndGPU...")
+            let fallbackConfig = MLModelConfiguration()
+            fallbackConfig.computeUnits = .cpuAndGPU
+            do {
+                loadedModel = try MLModel(contentsOf: modelURL, configuration: fallbackConfig)
+            } catch {
+                NSLog("[ArcFaceEmbedder] CoreML load with .cpuAndGPU failed: \(error.localizedDescription). Retrying with .cpuOnly...")
+                let cpuConfig = MLModelConfiguration()
+                cpuConfig.computeUnits = .cpuOnly
+                do {
+                    loadedModel = try MLModel(contentsOf: modelURL, configuration: cpuConfig)
+                } catch {
+                    NSLog("[ArcFaceEmbedder] CoreML model load failed across all compute targets: \(error.localizedDescription)")
+                    throw ArcFaceEmbedderError.modelLoadFailed(error.localizedDescription)
+                }
+            }
         }
+
+        guard let validModel = loadedModel else {
+            throw ArcFaceEmbedderError.modelLoadFailed("Unknown CoreML model error")
+        }
+        self.model = validModel
 
         guard let pool = Self.makePixelBufferPool(size: Self.inputSize) else {
             throw ArcFaceEmbedderError.pixelBufferCreationFailed
@@ -118,6 +150,17 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
                 if let url = bundle.url(forResource: name, withExtension: "mlmodelc", subdirectory: "FaceIDCore") {
                     _cachedModelURL = url
                     return url
+                }
+            }
+        }
+
+        // Direct check in Resources directory
+        if let resourceURL = Bundle.main.resourceURL {
+            for name in ["ArcFace.mlmodelc", "w600k_mbf.mlmodelc"] {
+                let candidate = resourceURL.appendingPathComponent(name)
+                if FileManager.default.fileExists(atPath: candidate.path) {
+                    _cachedModelURL = candidate
+                    return candidate
                 }
             }
         }
