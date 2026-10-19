@@ -1014,6 +1014,17 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             payload.parentApplicationBundleIdentifier == nil &&
             payload.elapsedTime == nil
         if isEmptyPayload {
+            // When all media applications close or stop, mediaremote-adapter emits an empty payload with diff == false.
+            // If we previously had an active track or were playing, update to a clean stopped state so NotchPulse resets cleanly
+            // instead of getting stuck in a ghost playback state.
+            if !diff && (self.playbackState.isPlaying || !self.playbackState.title.isEmpty) {
+                await MainActor.run {
+                    var stopped = PlaybackState(bundleIdentifier: "")
+                    stopped.isPlaying = false
+                    stopped.playbackRate = 0
+                    self.playbackState = stopped
+                }
+            }
             return
         }
 
@@ -1106,8 +1117,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.lastUpdated = self.playbackState.lastUpdated
         }
 
-        newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : 1.0)
         newPlaybackState.isPlaying = payload.playing ?? (diff ? self.playbackState.isPlaying : false)
+        let defaultRate: Double = newPlaybackState.isPlaying ? 1.0 : 0.0
+        newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : defaultRate)
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
         if let newBundle = newBundle, !newBundle.isEmpty {
             newPlaybackState.bundleIdentifier = newBundle

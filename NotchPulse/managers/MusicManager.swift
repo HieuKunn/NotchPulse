@@ -350,20 +350,23 @@ class MusicManager: ObservableObject {
     private func updateFromPlaybackState(_ state: PlaybackState) {
         let trimmedTitle = state.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
-            // Guard against resetting if we currently have an active playing track or during launch handshake
-            if self.isPlaying && !self.songTitle.isEmpty {
-                return
+            // Immediately stop playback and reset rate to avoid ghost playback
+            self.isPlaying = false
+            self.playbackRate = 0
+
+            // Prune dead sessions whose apps are no longer running
+            self.mediaSessionStack.removeAll { snapshot in
+                guard let bid = snapshot.bundleIdentifier, !bid.isEmpty else { return false }
+                return NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
             }
+
             if let activePrevious = self.mediaSessionStack.dropLast().last(where: { $0.isPlaying }) {
                 self.restoreSession(activePrevious)
-                return
-            } else if !self.songTitle.isEmpty {
-                // Delay reset to idle rather than snapping shut on transient empty packets
-                self.updateIdleState(state: false)
                 return
             } else {
                 self.mediaSessionStack.removeAll()
                 self.resetToIdle()
+                self.updateIdleState(state: false)
                 return
             }
         }
@@ -1035,11 +1038,24 @@ class MusicManager: ObservableObject {
         mediaSessionStack.removeAll { $0.bundleIdentifier == bundleIdentifier }
 
         if wasCurrentApp {
-            if let previous = mediaSessionStack.last {
+            self.isPlaying = false
+            self.playbackRate = 0
+
+            // Prune dead sessions whose apps are no longer running
+            while let previous = mediaSessionStack.last {
+                if let bid = previous.bundleIdentifier, !bid.isEmpty {
+                    let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
+                    if !isRunning {
+                        mediaSessionStack.removeLast()
+                        continue
+                    }
+                }
                 restoreSession(previous)
-            } else {
-                resetToIdle()
+                return
             }
+
+            resetToIdle()
+            updateIdleState(state: false)
         }
     }
 
@@ -1051,12 +1067,10 @@ class MusicManager: ObservableObject {
 
         while let previous = mediaSessionStack.last {
             if let bundleID = previous.bundleIdentifier, !bundleID.isEmpty {
-                if bundleID == "com.apple.Music" || bundleID == "com.spotify.client" || bundleID.contains("quicktime") {
-                    let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
-                    if !isRunning {
-                        mediaSessionStack.removeLast()
-                        continue
-                    }
+                let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
+                if !isRunning {
+                    mediaSessionStack.removeLast()
+                    continue
                 }
             }
             restoreSession(previous)
@@ -1074,13 +1088,21 @@ class MusicManager: ObservableObject {
 
     @MainActor
     private func restoreSession(_ snapshot: MediaSessionSnapshot) {
+        var isActuallyPlaying = snapshot.isPlaying
+        if let bid = snapshot.bundleIdentifier, !bid.isEmpty {
+            let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
+            if !isRunning {
+                isActuallyPlaying = false
+            }
+        }
+
         self.songTitle = snapshot.title
         self.artistName = snapshot.artist
         self.album = snapshot.album
         self.bundleIdentifier = snapshot.bundleIdentifier
         self.songDuration = snapshot.duration
         self.elapsedTime = snapshot.currentTime
-        self.playbackRate = snapshot.playbackRate
+        self.playbackRate = isActuallyPlaying ? snapshot.playbackRate : 0.0
         self.isShuffled = snapshot.isShuffled
         self.repeatMode = snapshot.repeatMode
         self.volume = snapshot.volume
@@ -1089,8 +1111,8 @@ class MusicManager: ObservableObject {
         self.syncedLyrics = snapshot.syncedLyrics
         self.currentLyrics = snapshot.currentLyrics
         self.timestampDate = Date()
-        self.isPlaying = snapshot.isPlaying
-        self.isPlayerIdle = !snapshot.isPlaying
+        self.isPlaying = isActuallyPlaying
+        self.isPlayerIdle = !isActuallyPlaying
 
         if let artData = snapshot.artworkData {
             self.artworkData = artData
@@ -1117,6 +1139,7 @@ class MusicManager: ObservableObject {
         self.albumArt = defaultImage
         self.artworkData = nil
         self.isPlaying = false
+        self.playbackRate = 0
         self.isPlayerIdle = true
         self.elapsedTime = 0
         self.songDuration = 0
@@ -1126,7 +1149,7 @@ class MusicManager: ObservableObject {
 
     // MARK: - Playback Position Estimation
     public func estimatedPlaybackPosition(at date: Date = Date()) -> TimeInterval {
-        guard isPlaying else { return min(elapsedTime, songDuration) }
+        guard isPlaying, playbackRate > 0 else { return min(elapsedTime, songDuration) }
 
         let timeDifference = date.timeIntervalSince(timestampDate)
         let estimated = elapsedTime + (timeDifference * playbackRate)
