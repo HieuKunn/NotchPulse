@@ -150,7 +150,7 @@ struct MusicControlsView: View {
                 .truncationMode(.tail)
                 .frame(maxWidth: width, alignment: .leading)
             if Defaults[.enableLyrics] {
-                TimelineView(.animation(minimumInterval: (musicManager.playbackRate > 0 && !musicManager.syncedLyrics.isEmpty) ? 0.25 : nil)) { timeline in
+                TimelineView(.animation(minimumInterval: 0.25, paused: musicManager.playbackRate <= 0 || musicManager.syncedLyrics.isEmpty)) { timeline in
                     let currentElapsed: Double = musicManager.estimatedPlaybackPosition(at: timeline.date)
                     let activeIndex = musicManager.currentLyricIndex(at: currentElapsed)
                     let line: String = {
@@ -186,7 +186,7 @@ struct MusicControlsView: View {
     }
 
     private var musicSlider: some View {
-        TimelineView(.animation(minimumInterval: musicManager.playbackRate > 0 ? 0.1 : nil)) { timeline in
+        TimelineView(.animation(minimumInterval: 0.1, paused: musicManager.playbackRate <= 0)) { timeline in
             MusicSliderView(
                 sliderValue: $sliderValue,
                 duration: $musicManager.songDuration,
@@ -565,6 +565,15 @@ struct MusicSliderView: View {
         .onChange(of: currentDate) {
            guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
             sliderValue = MusicManager.shared.estimatedPlaybackPosition(at: currentDate)
+        }
+        .onChange(of: elapsedTime) {
+            guard !dragging else { return }
+            sliderValue = MusicManager.shared.estimatedPlaybackPosition()
+        }
+        .onAppear {
+            if !dragging {
+                sliderValue = MusicManager.shared.estimatedPlaybackPosition()
+            }
         }
     }
 
