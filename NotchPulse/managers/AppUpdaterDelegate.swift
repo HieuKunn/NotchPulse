@@ -38,9 +38,14 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
     // prevent termination or Sparkle's Autoupdate helper may fail to replace the running app bundle in /Applications.
     // This causes an infinite update loop where the app restarts into the old version and repeatedly asks to update.
     func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
-        DispatchQueue.main.async {
+        if Thread.isMainThread {
             AppDelegate.shared?.isUserInitiatedQuit = true
             AppDelegate.shared?.cleanupForTermination()
+        } else {
+            DispatchQueue.main.sync {
+                AppDelegate.shared?.isUserInitiatedQuit = true
+                AppDelegate.shared?.cleanupForTermination()
+            }
         }
     }
 

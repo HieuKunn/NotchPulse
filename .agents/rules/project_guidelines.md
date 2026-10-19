@@ -11,8 +11,8 @@ This document outlines the core rules, architectural guidelines, and release pro
 >    - ⚠️ **BUILD ERROR EXCEPTION RULE**: If the user provides a GitHub Actions / Xcodebuild error log stating the build FAILED, DO NOT increment the build number or version on your subsequent fix attempt. Keep the exact same version/build number and just force-push the fix, because no runnable binary was successfully released to users. Only strictly increment the build number when introducing new features or finalizing a completely successful prior build.
 > 2. ✅ **Update `RELEASE_NOTES.md`:**
 >    - Write clear, user-centric release notes for the new version.
-> 3. ✅ **Update Sparkle `appcast.xml`:**
->    - Ensure `<sparkle:version>` (build number) and `<sparkle:shortVersionString>` match.
+> 3. ✅ **Sparkle `appcast.xml` Automated Handling (DO NOT PRE-UPDATE LOCALLY):**
+>    - NEVER manually edit or commit the new build number to `appcast.xml` before releasing. The GitHub Actions release workflow automatically generates, signs with `SPARKLE_PRIVATE_KEY`, and pushes `appcast.xml` ONLY AFTER the release zip is 100% verified and uploaded to GitHub Releases. Pre-updating `appcast.xml` signals to running apps that an update is available before the release is ready, trapping users in an infinite update loop.
 > 4. ✅ **Tag Git Release & Push:**
 >    - `git tag -a vX.Y.Z -m "NotchPulse vX.Y.Z Release"` and `git push origin main --tags`.
 

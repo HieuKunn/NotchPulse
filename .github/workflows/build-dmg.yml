@@ -276,16 +276,6 @@ jobs:
               '</rss>' > appcast.xml
           fi
           
-      - name: Commit and Push Appcast to Local Repo
-        if: ${{ github.event.inputs.beta_mode != 'true' }}
-        run: |
-          if [ -f "appcast.xml" ]; then
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git add appcast.xml
-            git diff --quiet && git diff --staged --quiet || (git commit -m "chore: Update appcast.xml for release" && git push origin HEAD:main) || true
-          fi
-
       - name: Prepare Release Notes
         if: ${{ github.event.inputs.beta_mode != 'true' }}
         run: |
@@ -310,44 +300,6 @@ jobs:
             echo "" >> current_release_notes.md
             echo "_Built from commit ${{ github.sha }}_" >> current_release_notes.md
           fi
-
-      - name: Sync Web & Release Metadata to Public Distribution Repository
-        if: ${{ github.event.inputs.beta_mode != 'true' }}
-        env:
-          PUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN || secrets.GITHUB_TOKEN }}
-          PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
-        run: |
-          echo "Cloning and syncing public repository: $PUBLIC_REPO..."
-          rm -rf pub_repo
-          git clone "https://x-access-token:${PUB_TOKEN}@github.com/${PUBLIC_REPO}.git" pub_repo || {
-            echo "::warning::Không thể clone $PUBLIC_REPO (kiểm tra lại PUBLIC_RELEASE_TOKEN)"
-            exit 0
-          }
-          
-          # Copy Landing Page, README, and appcast.xml to public repo
-          cp -f appcast.xml pub_repo/appcast.xml
-          cp -f README.md pub_repo/README.md
-          if [ -f "RELEASE_NOTES.md" ]; then cp -f RELEASE_NOTES.md pub_repo/RELEASE_NOTES.md; fi
-          if [ -f "LICENSE" ]; then cp -f LICENSE pub_repo/LICENSE; fi
-          
-          # Copy docs for GitHub Pages
-          rm -rf pub_repo/docs
-          cp -R docs pub_repo/docs
-          
-          cd pub_repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git diff --quiet && git diff --staged --quiet || (
-            git commit -m "docs: Update landing page, README, and Sparkle appcast for release $TAG"
-            for attempt in 1 2 3; do
-              git pull --rebase origin main
-              if git push origin main; then break; fi
-              if [ "$attempt" -eq 3 ]; then exit 1; fi
-            done
-          )
-          echo "Sync to $PUBLIC_REPO completed successfully!"
-          cd ..
 
       - name: Publish Release to Public Distribution Repository
         if: ${{ github.event.inputs.beta_mode != 'true' }}
@@ -395,3 +347,54 @@ jobs:
             --prerelease=false || ( \
           gh release edit "$TAG" --title "NotchPulse $TAG" --notes-file current_release_notes.md && \
           gh release upload "$TAG" release_out/NotchPulse.dmg release_out/NotchPulse.app.zip --clobber )
+
+      # CRITICAL: appcast.xml MUST only be committed and published AFTER the releases and zip assets
+      # are 100% verified and uploaded above. This prevents Sparkle clients from receiving an update signal
+      # while the release is still building or uploading, eliminating the infinite update loop.
+      - name: Commit and Push Appcast to Local Repo
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
+        run: |
+          if [ -f "appcast.xml" ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add appcast.xml
+            git diff --quiet && git diff --staged --quiet || (git commit -m "chore: Update appcast.xml for release" && git push origin HEAD:main) || true
+          fi
+
+      - name: Sync Web & Release Metadata to Public Distribution Repository
+        if: ${{ github.event.inputs.beta_mode != 'true' }}
+        env:
+          PUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || secrets.REALEASE_REPO || secrets.RELEASE_REPO_TOKEN || secrets.GITHUB_TOKEN }}
+          PUBLIC_REPO: "HieuKunn/NotchPulse-Release-for-everyone"
+        run: |
+          echo "Cloning and syncing public repository: $PUBLIC_REPO..."
+          rm -rf pub_repo
+          git clone "https://x-access-token:${PUB_TOKEN}@github.com/${PUBLIC_REPO}.git" pub_repo || {
+            echo "::warning::Không thể clone $PUBLIC_REPO (kiểm tra lại PUBLIC_RELEASE_TOKEN)"
+            exit 0
+          }
+          
+          # Copy Landing Page, README, and appcast.xml to public repo ONLY AFTER release asset is live
+          cp -f appcast.xml pub_repo/appcast.xml
+          cp -f README.md pub_repo/README.md
+          if [ -f "RELEASE_NOTES.md" ]; then cp -f RELEASE_NOTES.md pub_repo/RELEASE_NOTES.md; fi
+          if [ -f "LICENSE" ]; then cp -f LICENSE pub_repo/LICENSE; fi
+          
+          # Copy docs for GitHub Pages
+          rm -rf pub_repo/docs
+          cp -R docs pub_repo/docs
+          
+          cd pub_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || (
+            git commit -m "docs: Update landing page, README, and Sparkle appcast for release $TAG"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              if git push origin main; then break; fi
+              if [ "$attempt" -eq 3 ]; then exit 1; fi
+            done
+          )
+          echo "Sync to $PUBLIC_REPO completed successfully!"
+          cd ..
