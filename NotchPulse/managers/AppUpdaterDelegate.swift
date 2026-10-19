@@ -57,19 +57,20 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
         func elevateAlertWindows() {
             for window in NSApp.windows {
                 let className = String(describing: type(of: window))
-                // Only elevate and center actual Sparkle modal dialogs / system alerts.
-                // NEVER touch, re-level, or center Notch windows or background panels!
+                // Only elevate actual Sparkle modal dialogs / system alerts.
+                // NEVER touch, re-level, or reposition Notch windows or background panels!
                 guard !(window is NotchPulseSkyLightWindow),
                       !(window is NotchPulseWindow),
+                      !(window is FaceIDOverlayWindow),
+                      !(window is ShelfDropZoneWindow),
                       !(window is LockScreenMediaWindow),
                       className != "NSStatusBarWindow",
                       window != SettingsWindowController.shared.window else {
                     continue
                 }
 
-                if className.contains("Alert") || className.contains("SU") || window.level == .modalPanel {
+                if className.contains("Alert") || className.contains("SU") {
                     window.level = .modalPanel
-                    window.center()
                     window.orderFrontRegardless()
                     window.makeKeyAndOrderFront(nil)
                 }
@@ -92,7 +93,7 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
             if SettingsWindowController.shared.window?.isVisible != true {
                 NSApp.setActivationPolicy(.accessory)
             }
-            AppDelegate.shared?.updateNotchPulseWindowPosition(changeAlpha: false)
+            AppDelegate.shared?.adjustWindowPosition(changeAlpha: false)
         }
     }
 }

@@ -54,9 +54,14 @@ final class ShelfDropZoneWindow: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         isMovable = false
+        isMovableByWindowBackground = false
         ignoresMouseEvents = false
         level = .mainMenu + 2
         collectionBehavior = [.fullScreenAuxiliary, .stationary, .canJoinAllSpaces, .ignoresCycle]
         contentView = dropZoneView
+    }
+
+    override func center() {
+        // No-op: prevent centering drop zone window
     }
 }
