@@ -63,9 +63,11 @@ final class FaceIDOverlayController {
         (isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || isPresenting || phase != .closed
     }
 
+    @MainActor
+    static var isOnboardingActive: Bool = false
+
     var isOnboardingActive: Bool {
-        if case .onboarding = content { return true }
-        return phase == .onboarding
+        Self.isOnboardingActive
     }
 
     /// Pill style only: whether the pill is parked on screen at rest vs. off-screen.
@@ -255,6 +257,7 @@ final class FaceIDOverlayController {
     /// Hands the panel to the onboarding flow — this object only owns visibility and
     /// interactivity while `.onboarding` is active; sizing/content is driven by `controller`.
     func presentOnboarding(_ controller: FaceIDEnrollmentController) {
+        Self.isOnboardingActive = true
         isPresenting = true
         isArmed = false
         onActivate = nil
@@ -278,6 +281,7 @@ final class FaceIDOverlayController {
     /// Gracefully shrinks the onboarding panel away and hides the window; guarded by
     /// re-checking `content` so a concurrently-started scan cycle can't be interrupted.
     func dismissOnboarding(onCompleted: (() -> Void)? = nil) {
+        Self.isOnboardingActive = false
         guard case .onboarding = content else {
             onCompleted?()
             return
@@ -289,14 +293,17 @@ final class FaceIDOverlayController {
 
         Task { [weak self] in
             guard let self else {
+                Self.isOnboardingActive = false
                 onCompleted?()
                 return
             }
             try? await Task.sleep(for: self.collapseAnimationDuration)
             guard case .onboarding = self.content else {
+                Self.isOnboardingActive = false
                 onCompleted?()
                 return
             }
+            Self.isOnboardingActive = false
             self.content = .scan(.idle)
             self.phase = .closed
             self.isPresenting = false

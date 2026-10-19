@@ -228,7 +228,7 @@ struct FaceIDOverlayGeometry {
         // When Face ID setup / onboarding is active, always route to the display that
         // physically hosts the camera, ensuring the user looks directly at the camera
         // while following the visual alignment ring, even if an external display is main.
-        if FaceIDOverlayController.shared.isOnboardingActive {
+        if FaceIDOverlayController.isOnboardingActive {
             if let camScreen = NotchPulseCameraDeviceCatalog.cameraScreen() {
                 return camScreen
             }
