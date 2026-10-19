@@ -385,6 +385,11 @@ final class FaceIDOverlayController {
             // Gated here rather than in `updateInteractivity()` so the cosmetic hover bump
             // stays unaffected — only the retry itself is removed.
             guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
+
+            // Ignore accidental hover triggers while the armed silhouette is animating in
+            if let armedAt, ContinuousClock.now - armedAt < .milliseconds(500) {
+                return
+            }
         }
 
         switch phase {

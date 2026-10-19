@@ -141,6 +141,7 @@ final class ClipboardManager: ObservableObject {
         }
     }
 
+    private let processingQueue = DispatchQueue(label: "com.notchpulse.clipboard.processing", qos: .userInitiated)
     private var pollTimer: Timer?
     private var copyKeyMonitor: Any?
     private let pasteboard = NSPasteboard.general
@@ -182,42 +183,73 @@ final class ClipboardManager: ObservableObject {
     }
 
     func startMonitoring() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.stopMonitoring()
+        if Thread.isMainThread {
+            setupMonitoringOnMain()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.setupMonitoringOnMain()
+            }
+        }
+    }
 
-            // 1. Instant event-driven copy detector: Fires with multi-tick check on Cmd+C / Cmd+X / Screenshots
-            if AXIsProcessTrusted() {
-                self.copyKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                    if flags.contains(.command), let chars = event.charactersIgnoringModifiers?.lowercased() {
-                        if chars == "c" || chars == "x" {
-                            // Multiple staggered checks to capture fast AppKit apps, standard apps, and heavy Electron/browsers
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self?.checkForChanges() }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self?.checkForChanges() }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) { self?.checkForChanges() }
-                        } else if chars == "3" || chars == "4" || chars == "5" {
-                            // System screen capture takes 200-500ms to encode and write to pasteboard
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self?.checkForChanges() }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { self?.checkForChanges() }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.80) { self?.checkForChanges() }
-                        }
-                    }
+    func stopMonitoring() {
+        if Thread.isMainThread {
+            teardownMonitoringOnMain()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.teardownMonitoringOnMain()
+            }
+        }
+    }
+
+    private func teardownMonitoringOnMain() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+        if let monitor = copyKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            copyKeyMonitor = nil
+        }
+    }
+
+    private func setupMonitoringOnMain() {
+        teardownMonitoringOnMain()
+
+        // 1. Instant event-driven copy detector: Fires with multi-tick check on Cmd+C / Cmd+X / Screenshots
+        if AXIsProcessTrusted() {
+            copyKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                guard flags.contains(.command) else { return }
+
+                let chars = event.charactersIgnoringModifiers?.lowercased() ?? ""
+                let isCopyOrCut = event.keyCode == 8 || event.keyCode == 7 || chars == "c" || chars == "x"
+                let isScreenshot = event.keyCode == 20 || event.keyCode == 21 || event.keyCode == 23 ||
+                    chars == "3" || chars == "#" || chars == "4" || chars == "$" || chars == "5" || chars == "%"
+
+                if isCopyOrCut {
+                    // Staggered checks to capture fast AppKit apps, standard apps, and heavy Electron/browsers
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self?.checkForChanges() }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self?.checkForChanges() }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) { self?.checkForChanges() }
+                } else if isScreenshot {
+                    // System screen capture takes 150-600ms to encode and write to pasteboard
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self?.checkForChanges() }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { self?.checkForChanges() }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) { self?.checkForChanges() }
                 }
             }
-
-            // 2. High-speed, zero-CPU polling (0.15s / 150ms) for context menu copies, drag copies, and apps without key events
-            // Checking pasteboard.changeCount is a single integer lookup (< 2 microseconds), taking 0.0% CPU.
-            let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
-                self?.checkForChanges()
-            }
-            timer.tolerance = 0.05
-            RunLoop.main.add(timer, forMode: .common)
-            self.pollTimer = timer
-
-            // Check immediately on startup
-            self.checkForChanges()
         }
+
+        // 2. High-speed, zero-CPU polling (0.15s / 150ms) for context menu copies, drag copies, and apps without key events
+        // Checking pasteboard.changeCount is a single integer lookup (< 2 microseconds), taking 0.0% CPU.
+        let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
+            self?.checkForChanges()
+        }
+        timer.tolerance = 0.05
+        RunLoop.main.add(timer, forMode: .common)
+        self.pollTimer = timer
+
+        // Check immediately on startup
+        self.checkForChanges()
     }
 
     func checkImmediately() {
@@ -226,17 +258,6 @@ final class ClipboardManager: ObservableObject {
         } else {
             DispatchQueue.main.async { [weak self] in
                 self?.checkForChanges()
-            }
-        }
-    }
-
-    func stopMonitoring() {
-        DispatchQueue.main.async { [weak self] in
-            self?.pollTimer?.invalidate()
-            self?.pollTimer = nil
-            if let monitor = self?.copyKeyMonitor {
-                NSEvent.removeMonitor(monitor)
-                self?.copyKeyMonitor = nil
             }
         }
     }
@@ -287,16 +308,11 @@ final class ClipboardManager: ObservableObject {
                     return s
                 }()
 
-                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                processingQueue.async { [weak self] in
                     guard let self = self else { return }
                     autoreleasepool {
                         // Generate thumbnail (max 96x96 px)
                         guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 96) ?? rawData.prefix(60_000) as Data? else { return }
-
-                        // Check duplicate with top history item
-                        if let first = self.history.first, first.isImage, first.thumbnailData == thumbData {
-                            return
-                        }
 
                         // Save full image to disk temp file so RAM stays untouched
                         let itemId = UUID()

@@ -166,7 +166,7 @@ final class NotchPulseFaceIDSettings {
             // reassignment re-enters didSet once, then terminates since the
             // corrected value is never itself empty.
             if unlockTriggers.isEmpty {
-                unlockTriggers = oldValue.isEmpty ? Set(UnlockTrigger.allCases) : oldValue
+                unlockTriggers = oldValue.isEmpty ? [.onWake] : oldValue
             }
             defaults.set(unlockTriggers.map(\.rawValue), forKey: Key.unlockTriggers)
         }
