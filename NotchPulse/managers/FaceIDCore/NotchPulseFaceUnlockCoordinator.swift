@@ -123,7 +123,13 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        let shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
+        let shouldAutoScan: Bool
+        if signal == .onLock {
+            // Screen locked: do not auto-scan on lock screen transition per user preference
+            shouldAutoScan = false
+        } else {
+            shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
+        }
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
