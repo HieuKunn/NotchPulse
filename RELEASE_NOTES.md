@@ -13,7 +13,7 @@
 - **Graceful Silent Collapse**: If you step away and no face is detected after your configured timeout, NotchPulse gently collapses back shut without any jarring error shakes.
 - **Pixel-Perfect Notch Alignment**: The closed Face ID drop panel now precisely matches the resting notch width, completely eliminating any momentary shrink or resize stutter before opening your music or HUDs.
 - **Fluid Dynamic Island Lock-Screen Wake**: You can now hover or click directly on the compact Dynamic Island pill on your lock screen to immediately trigger Face ID, expanding and collapsing right in place without off-screen sliding.
-- **Intelligent Camera Screen Routing**: When setting up or enrolling your Face ID profile, the setup interface and guided alignment ring automatically open on the exact display housing your camera, even with external monitors connected.
+- **Rock-Solid Face Enrollment & Recapture**: Fully aligned camera device catalogs and overlay geometry with Glance, ensuring re-capturing your face profile or adding new identities opens reliably with zero crashes or lag.
 
 ### ⚡️ Zero-Overhead Performance & Fluid Animations
 - **Zero-Lag Expansion**: Notch and Dynamic Island panels use hardware-accelerated rendering layers for smooth 120Hz ProMotion response with zero CPU spikes.
