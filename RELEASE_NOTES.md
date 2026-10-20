@@ -4,6 +4,8 @@
 
 ### 🔒 Perfected Face ID & Lock Screen Handover
 - **Seamless Lock Screen Handover**: Eliminated any momentary pause or visual disappearance when your Mac transitions into the lock screen. The Notch and Dynamic Island now remain continuously visible and smoothly transition into the secure lock screen space.
+- **Instant Hover Activation**: Hovering over the Notch or Dynamic Island on your lock screen now triggers biometric unlock almost instantly (cut buffer latency to 100ms) with no missed gestures.
+- **Rock-Solid Password Unlock**: Fixed lock-state timing race conditions to ensure stored passwords inject smoothly and reliably into the system lock window the moment your face is authenticated.
 - **Accurate Face Matching**: Refined multi-angle template scoring so your face is recognized immediately upon looking directly at the camera, even right after completing a multi-directional enrollment sweep.
 - **Smart Face-Searching Animation**: When waking the screen or authenticating, Face ID begins with a subtle breathing still image. If searching takes a little longer, it smoothly transitions to a fluid searching animation as the camera looks around for you, immediately switching to success or failure the moment you are recognized.
 - **Graceful Silent Collapse**: If you step away and no face is detected after your configured timeout, NotchPulse gently collapses back shut without any jarring error shakes.
