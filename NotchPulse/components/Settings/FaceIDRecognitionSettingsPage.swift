@@ -97,11 +97,13 @@ private enum MatchConfidenceLevel: Int, CaseIterable {
 
     var threshold: Float {
         switch self {
-        case .lessStrict: return 0.58
-        case .moderate: return 0.60
-        case .standard: return 0.63
-        case .strict: return 0.66
-        case .moreStrict: return 0.70
+        // ArcFace w600k_mbf: intra-person webcam cosine similarity typically ~0.45–0.75,
+        // inter-person floor ~0.20–0.40. These presets sit in that intra-person band.
+        case .lessStrict: return 0.44
+        case .moderate:   return 0.48
+        case .standard:   return 0.52    // matches NotchPulseFaceIDSettings default
+        case .strict:     return 0.57
+        case .moreStrict: return 0.62
         }
     }
 

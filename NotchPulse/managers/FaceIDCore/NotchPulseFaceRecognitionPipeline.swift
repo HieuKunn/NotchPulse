@@ -146,18 +146,34 @@ extension NotchPulseFaceRecognitionPipeline {
     }
 
     /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent.
+    ///
+    /// Three acceptance paths, in order of strictness:
+    /// - A) centroid alone clears threshold (frontal, well-lit match)
+    /// - B) maxSample clears threshold + centroid above a relaxed floor (one enrolled
+    ///      sample matches the current angle even when the average is pulled down by
+    ///      samples from very different poses)
+    /// - C) maxSample clears threshold−0.10 AND centroid clears threshold−0.21 —
+    ///      catches angled/low-light frames that still share a clear peak-sample hit.
+    ///      This is the path that fires most often on real webcam data.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
-        guard let first = scored.first else { return nil }
-        if first.identity.isStale(comparedTo: embedder) {
-            NSLog("[FaceID Match] Identity '%@' is STALE (enrolled dim: %ld, active embedder dim: %ld). Recapture required.",
-                  first.identity.name, first.identity.embeddingDimension, embedder.embeddingDimension)
-            return nil
+        for candidate in scored {
+            if candidate.identity.isStale(comparedTo: embedder) {
+                NSLog("[FaceID Match] Identity '%@' is STALE (enrolled dim: %ld, active embedder dim: %ld). Skipping.",
+                      candidate.identity.name, candidate.identity.embeddingDimension, embedder.embeddingDimension)
+                continue
+            }
+            let meetsCentroid = candidate.centroidSimilarity >= threshold
+            // Path B: one enrolled pose matched perfectly even if the average lags.
+            let meetsSampleStrict = candidate.maxSampleSimilarity >= threshold
+                && candidate.centroidSimilarity >= max(0.44, threshold - 0.10)
+            // Path C: slightly below threshold but centroid also agrees — real faces under
+            // non-ideal webcam angles score here; photos rarely reach both simultaneously.
+            let meetsSampleRelaxed = candidate.maxSampleSimilarity >= threshold - 0.10
+                && candidate.centroidSimilarity >= max(0.38, threshold - 0.21)
+            if meetsCentroid || meetsSampleStrict || meetsSampleRelaxed {
+                return candidate
+            }
         }
-        let meetsCentroid = first.centroidSimilarity >= threshold
-        let meetsSample = first.maxSampleSimilarity >= threshold && first.centroidSimilarity >= max(0.48, threshold - 0.08)
-        guard meetsCentroid || meetsSample else {
-            return nil
-        }
-        return first
+        return nil
     }
 }

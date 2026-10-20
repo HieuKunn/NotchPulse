@@ -122,7 +122,7 @@ final class NotchPulseFaceIDSettings {
     }
     /// Nonisolated accessor so background verification routines can read the threshold without hop to MainActor.
     nonisolated static var currentMatchThreshold: Float {
-        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.63
+        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.52
     }
     /// Master switch for liveness checking. Off means face recognition
     /// alone decides an unlock — a photo of the enrolled user would pass.
@@ -276,7 +276,10 @@ final class NotchPulseFaceIDSettings {
         } else if let legacy = defaults.object(forKey: "faceIDMatchThreshold") as? Double {
             matchThreshold = Float(legacy)
         } else {
-            matchThreshold = 0.63
+            // ArcFace w600k_mbf cosine similarity for same-person-different-angle webcam frames
+            // typically lands in 0.45–0.75. The old default of 0.63 silently rejected nearly all
+            // non-frontal frames. 0.52 gives a comfortable margin above the inter-person floor (~0.20–0.40).
+            matchThreshold = 0.52
         }
         livenessChecksEnabled = defaults.object(forKey: Key.livenessChecksEnabled) as? Bool ?? true
         // Light by default — Heavy requires a blink/pose/depth signal a

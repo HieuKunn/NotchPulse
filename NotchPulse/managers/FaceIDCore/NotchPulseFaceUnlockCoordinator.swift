@@ -355,7 +355,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 25
+        let wrongFaceStreakThreshold = 50
 
         /// Cleared the moment a detected face fails to match, but latched for 400ms to bridge liveness multi-frame confirmations.
         var readyMatch: ScoredIdentity?
@@ -449,9 +449,17 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatch = matched
                 readyMatchTime = .now
             } else {
-                // Settle guard: only count against streak if past sensor warm-up and frame quality is valid
-                if !isWarmingUp && (result.quality ?? 0.5) >= 0.20 {
-                    consecutiveWrongFaceFrames += 1
+                // Settle guard: only count against streak if past sensor warm-up and frame quality is valid.
+                // Below the quality gate, apply a soft decay so transient blur doesn't silently hold the
+                // counter at its previous value while the user re-centres.
+                if !isWarmingUp {
+                    let frameQuality = result.quality ?? 0.5
+                    if frameQuality >= 0.20 {
+                        consecutiveWrongFaceFrames += 1
+                    } else {
+                        // Low-quality frame — neither a match nor a confirmed mismatch; decay slightly.
+                        consecutiveWrongFaceFrames = max(0, consecutiveWrongFaceFrames - 1)
+                    }
 
                     // Log best score every 5 frames so the user can see actual cosine similarity in Console.app
                     if consecutiveWrongFaceFrames % 5 == 0, let best = scored.first {
@@ -480,6 +488,7 @@ final class NotchPulseFaceUnlockCoordinator {
                     return .consistentlyWrongFace
                 }
             }
+
 
             let candidateMatch = matched ?? (readyMatchTime.map { ContinuousClock.now - $0 < .milliseconds(400) } == true ? readyMatch : nil)
 
