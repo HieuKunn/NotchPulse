@@ -345,8 +345,9 @@ final class FaceIDOverlayController {
             // stays unaffected — only the retry itself is removed.
             guard NotchPulseFaceIDSettings.shared.retryOnHover else { return }
 
-            // Ignore accidental hover triggers while the armed silhouette is animating in
-            if let armedAt, ContinuousClock.now - armedAt < .milliseconds(500) {
+            // Ignore accidental hover triggers while the armed silhouette is animating in —
+            // 100ms is enough for the pill/notch spring to visually settle.
+            if let armedAt, ContinuousClock.now - armedAt < .milliseconds(100) {
                 return
             }
         }
