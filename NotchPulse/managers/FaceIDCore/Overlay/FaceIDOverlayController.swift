@@ -63,13 +63,6 @@ final class FaceIDOverlayController {
         (isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || isPresenting || phase != .closed
     }
 
-    @MainActor
-    static var isOnboardingActive: Bool = false
-
-    var isOnboardingActive: Bool {
-        Self.isOnboardingActive
-    }
-
     /// Pill style only: whether the pill is parked on screen at rest vs. off-screen.
     /// Deliberately separate from `isArmed` — it lags it by a frame on the way in
     /// (making the pill slide into place) and leads it on the way out.
@@ -247,7 +240,6 @@ final class FaceIDOverlayController {
     /// Hands the panel to the onboarding flow — this object only owns visibility and
     /// interactivity while `.onboarding` is active; sizing/content is driven by `controller`.
     func presentOnboarding(_ controller: FaceIDEnrollmentController) {
-        Self.isOnboardingActive = true
         isPresenting = true
         isArmed = false
         onActivate = nil
@@ -255,16 +247,12 @@ final class FaceIDOverlayController {
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         searchingAnimationTask?.cancel(); searchingAnimationTask = nil
 
-        content = .onboarding(controller)
         geometry = windowController.currentGeometry
-        phase = .closed
-        isPillDocked = true
-        windowController.show()
-        windowController.displaySynchronously()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+        primeWindowIfNeeded { [weak self] in
             guard let self else { return }
+            self.content = .onboarding(controller)
             self.phase = .onboarding
+            self.windowController.show()
             self.updateInteractivity()
         }
     }
@@ -272,7 +260,6 @@ final class FaceIDOverlayController {
     /// Gracefully shrinks the onboarding panel away and hides the window; guarded by
     /// re-checking `content` so a concurrently-started scan cycle can't be interrupted.
     func dismissOnboarding(onCompleted: (() -> Void)? = nil) {
-        Self.isOnboardingActive = false
         guard case .onboarding = content else {
             onCompleted?()
             return
@@ -284,17 +271,14 @@ final class FaceIDOverlayController {
 
         Task { [weak self] in
             guard let self else {
-                Self.isOnboardingActive = false
                 onCompleted?()
                 return
             }
             try? await Task.sleep(for: self.collapseAnimationDuration)
             guard case .onboarding = self.content else {
-                Self.isOnboardingActive = false
                 onCompleted?()
                 return
             }
-            Self.isOnboardingActive = false
             self.content = .scan(.idle)
             self.phase = .closed
             self.isPresenting = false

@@ -16,6 +16,17 @@ enum NotchPulseCameraDeviceCatalog {
         return discovery.devices.map { CameraDevice(id: $0.uniqueID, name: $0.localizedName) }
     }
 
+    /// True if the currently-active screen is the Mac's built-in display
+    /// (vs. an external monitor) — used to pick between the built-in/
+    /// external camera overrides matching Glance.
+    @MainActor
+    static func isUsingBuiltInDisplay() -> Bool {
+        guard let screen = NSScreen.main,
+              let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+        else { return true }
+        return CGDisplayIsBuiltin(screenNumber) != 0
+    }
+
     /// Display-specific override, then flat default, then the system default camera matching Glance.
     @MainActor
     static func resolvedDevice() -> AVCaptureDevice? {
@@ -31,85 +42,6 @@ enum NotchPulseCameraDeviceCatalog {
             ?? AVCaptureDevice.default(for: .video)
     }
 
-    /// Explicit target camera device resolved from settings or system default
     @MainActor
-    static func targetCameraDevice() -> AVCaptureDevice? {
-        resolvedDevice()
-    }
-
-    /// Screen that physically hosts the camera device used for Face ID
-    @MainActor
-    static func cameraScreen() -> NSScreen? {
-        return targetScreen(for: targetCameraDevice())
-    }
-
-    /// True if the currently-active screen is the Mac's built-in display
-    @MainActor
-    static func isUsingBuiltInDisplay() -> Bool {
-        guard let screen = FaceIDOverlayGeometry.preferredScreen() ?? NSScreen.main,
-              let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
-        else { return true }
-        return CGDisplayIsBuiltin(screenNumber) != 0
-    }
-
-    /// Cached camera→screen UUID, invalidated when displays change.
-    /// `targetScreen(for:)` is called from `ContentView.isFaceIDActive` on EVERY body
-    /// evaluation, and the camera scan + screen matching is far too expensive to run
-    /// per frame — it stalls the main thread during the notch's spring animation.
-    @MainActor
-    private static var cachedTargetScreenUUIDStore: String?? = nil
-
-    /// Cheap cached accessor for view-body use: returns the camera screen's display UUID
-    /// (nil if unknown), re-resolving only when displays change or the first time.
-    @MainActor
-    static func cachedTargetScreenUUID() -> String? {
-        if let cached = cachedTargetScreenUUIDStore { return cached }
-        let resolved = cameraScreen()?.displayUUID
-        cachedTargetScreenUUIDStore = .some(resolved)
-        return resolved
-    }
-
-    /// Invalidate the camera-screen cache — call on display connect/disconnect and
-    /// whenever the user changes the camera preference.
-    @MainActor
-    static func invalidateTargetScreenCache() {
-        cachedTargetScreenUUIDStore = nil
-    }
-
-    /// Finds which screen physically corresponds to the camera being used for Face ID
-    @MainActor
-    static func targetScreen(for device: AVCaptureDevice?) -> NSScreen? {
-        guard let device else {
-            return NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) ?? NSScreen.main
-        }
-        
-        // 1. Built-in camera (MacBook webcam) -> Built-in screen
-        if device.deviceType == .builtInWideAngleCamera
-            || device.localizedName.localizedCaseInsensitiveContains("built-in")
-            || device.localizedName.localizedCaseInsensitiveContains("MacBook")
-            || device.localizedName.localizedCaseInsensitiveContains("FaceTime") {
-            if let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) {
-                return builtInScreen
-            }
-        }
-        
-        // 2. Camera whose name matches an external monitor name (e.g., Studio Display)
-        for screen in NSScreen.screens where !screen.isBuiltIn {
-            let screenName = screen.localizedName.lowercased()
-            let devName = device.localizedName.lowercased()
-            if devName.contains(screenName) || screenName.contains(devName) {
-                return screen
-            }
-        }
-        
-        // 3. External camera (webcam on external monitor) -> First non-builtin screen
-        if device.deviceType == .external || device.deviceType == .continuityCamera {
-            if let externalScreen = NSScreen.screens.first(where: { !$0.isBuiltIn && $0.safeAreaInsets.top == 0 }) {
-                return externalScreen
-            }
-        }
-        
-        // Default fallback
-        return NSScreen.screens.first(where: { $0.isBuiltIn || $0.safeAreaInsets.top > 0 || $0.auxiliaryTopLeftArea != nil }) ?? NSScreen.main
-    }
+    static func invalidateTargetScreenCache() {}
 }
