@@ -12,6 +12,7 @@
 - **Rock-Solid Password Unlock**: Fixed lock-state timing race conditions to ensure stored passwords inject smoothly and reliably into the system lock window the moment your face is authenticated.
 - **Graceful Silent Collapse**: If you step away and no face is detected after your configured timeout, NotchPulse gently collapses back shut without any jarring error shakes.
 - **Pixel-Perfect Notch Alignment**: The closed Face ID drop panel now precisely matches the resting notch width, completely eliminating any momentary shrink or resize stutter before opening your music or HUDs.
+- **Smooth Lock Screen Media Continuity**: Fixed an issue where the lock screen media player could prematurely vanish or flicker during Face ID recognition. Media playback cards now stay continuously visible and active until your Mac is fully unlocked.
 - **Fluid Dynamic Island Lock-Screen Wake**: You can now hover or click directly on the compact Dynamic Island pill on your lock screen to immediately trigger Face ID, expanding and collapsing right in place without off-screen sliding.
 - **Rock-Solid Face Enrollment & Recapture**: Fully aligned camera device catalogs and overlay geometry with Glance, ensuring re-capturing your face profile or adding new identities opens reliably with zero crashes or lag.
 
