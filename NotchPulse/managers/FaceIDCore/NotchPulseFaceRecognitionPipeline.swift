@@ -131,7 +131,7 @@ struct ScoredIdentity {
 }
 
 extension NotchPulseFaceRecognitionPipeline {
-    /// Sorted by best overall similarity descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
+    /// Sorted by centroid similarity descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
     nonisolated func score(_ embedding: [Float], against identities: [FaceIdentity]) -> [ScoredIdentity] {
         identities.compactMap { identity in
             guard let template = identity.template, !identity.samples.isEmpty else { return nil }
@@ -140,9 +140,7 @@ extension NotchPulseFaceRecognitionPipeline {
                 .map { FaceEmbedding.cosineSimilarity(embedding, $0.embedding) }
                 .max() ?? centroidSim
             return ScoredIdentity(identity: identity, centroidSimilarity: centroidSim, maxSampleSimilarity: maxSim)
-        }.sorted {
-            max($0.centroidSimilarity, $0.maxSampleSimilarity) > max($1.centroidSimilarity, $1.maxSampleSimilarity)
-        }
+        }.sorted { $0.centroidSimilarity > $1.centroidSimilarity }
     }
 
     /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent.
@@ -153,10 +151,7 @@ extension NotchPulseFaceRecognitionPipeline {
                   first.identity.name, first.identity.embeddingDimension, embedder.embeddingDimension)
             return nil
         }
-        let meetsCentroid = first.centroidSimilarity >= threshold
-        let meetsSample = first.maxSampleSimilarity >= threshold
-        let isMatch = meetsCentroid || (meetsSample && first.centroidSimilarity >= max(0.42, threshold - 0.12))
-        guard isMatch else {
+        guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else {
             return nil
         }
         return first

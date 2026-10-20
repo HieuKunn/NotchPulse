@@ -2,8 +2,8 @@ import CoreGraphics
 
 enum NotchPulseGlareCueExtractor {
     /// Near-white, near-gray pixel — signature of a direct specular highlight vs. a bright colored surface.
-    private static let specularLumaFloor: Float = 235
-    private static let specularChromaTolerance: Float = 10
+    private static let specularLumaFloor: Float = 220
+    private static let specularChromaTolerance: Float = 15
 
     /// Coarse on purpose — just distinguishes "one blob" from "many scattered points".
     private static let clusterGridSize = 8

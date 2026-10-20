@@ -87,8 +87,8 @@ enum LivenessMode: String, CaseIterable, Identifiable, Sendable {
 /// at/above `level`, and fires once it has counted `frames` of them within the scan.
 /// Seeded from real-device observation; retune from Face Lab.
 struct LivenessTuning: Equatable {
-    var glossLevel: Float = 0.04
-    var glossFrames: Int = 3
+    var glossLevel: Float = 0.03
+    var glossFrames: Int = 2
 
     /// Deliberately lower than `glossLevel` — the device rectangle detector was already
     /// the one signal proven reliable in real-device testing.

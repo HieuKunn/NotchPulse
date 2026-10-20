@@ -450,7 +450,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         var lastProcessedFrameID: UInt64?
         var lastFaceBoundingBox: CGRect?
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 60
+        let wrongFaceStreakThreshold = 8
         var readyMatch: ScoredIdentity?
         var readyMatchTime: ContinuousClock.Instant?
 
@@ -520,7 +520,7 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             let scored = pipeline.score(result.embedding, against: activeIdentities)
             let matched = pipeline.bestMatch(in: scored, threshold: threshold)
 
-            let isWarmingUp = scanStartTime.map { ContinuousClock.now - $0 < .milliseconds(1200) } ?? true
+            let isWarmingUp = scanStartTime.map { ContinuousClock.now - $0 < .milliseconds(400) } ?? true
 
             if let matched {
                 consecutiveWrongFaceFrames = 0

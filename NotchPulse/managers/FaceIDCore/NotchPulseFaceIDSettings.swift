@@ -122,7 +122,7 @@ final class NotchPulseFaceIDSettings {
     }
     /// Nonisolated accessor so background verification routines can read the threshold without hop to MainActor.
     nonisolated static var currentMatchThreshold: Float {
-        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.60
+        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.64
     }
     /// Master switch for liveness checking. Off means face recognition
     /// alone decides an unlock — a photo of the enrolled user would pass.
@@ -276,7 +276,7 @@ final class NotchPulseFaceIDSettings {
         } else if let legacy = defaults.object(forKey: "faceIDMatchThreshold") as? Double {
             matchThreshold = Float(legacy)
         } else {
-            matchThreshold = 0.60
+            matchThreshold = 0.64
         }
         livenessChecksEnabled = defaults.object(forKey: Key.livenessChecksEnabled) as? Bool ?? true
         // Light by default — Heavy requires a blink/pose/depth signal a
