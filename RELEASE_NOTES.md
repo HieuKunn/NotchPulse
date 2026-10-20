@@ -5,6 +5,7 @@
 ### 🔒 Perfected Face ID & Lock Screen Handover
 - **Accurate & High-Speed Biometric Matching**: Fully aligned with Glance's precision biometric pipeline. Real faces are recognized immediately with calibrated ArcFace embeddings and continuous live evaluation.
 - **Clean & Native Overlay Design**: Kept the scanning state clean with a calm, resting biometric glyph that smoothly transforms into an unlock confirmation or subtle retry cue without repetitive searching loops.
+- **Smart Dynamic Searching Animation**: Starts with a calm resting glyph during early scan, then seamlessly transitions to a 3-second searching animation if you haven't faced the camera yet, instantly cutting away to unlock or retry the moment a face is detected.
 - **Immediate Failure Feedback**: Streak counters immediately register unrecognized attempts within 6 frames, preventing the camera from remaining stuck in prolonged searching loops.
 - **Seamless Lock Screen Handover**: Eliminated any momentary pause or visual disappearance when your Mac transitions into the lock screen. The Notch and Dynamic Island now remain continuously visible and smoothly transition into the secure lock screen space.
 - **Instant Hover Activation**: Hovering over the Notch or Dynamic Island on your lock screen now triggers biometric unlock almost instantly (cut buffer latency to 100ms) with no missed gestures.
