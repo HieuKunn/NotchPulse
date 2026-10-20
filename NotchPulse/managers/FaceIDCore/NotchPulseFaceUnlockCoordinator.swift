@@ -434,12 +434,10 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatch = matched
             } else {
                 readyMatch = nil
-                if (result.quality ?? 0.5) >= 0.2 {
-                    consecutiveWrongFaceFrames += 1
-                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                        NSLog("[FaceID Coordinator] Wrong face streak threshold (%ld) reached. Aborting with consistentlyWrongFace.", wrongFaceStreakThreshold)
-                        return .consistentlyWrongFace
-                    }
+                consecutiveWrongFaceFrames += 1
+                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                    NSLog("[FaceID Coordinator] Wrong face streak threshold (%ld) reached. Aborting with consistentlyWrongFace.", wrongFaceStreakThreshold)
+                    return .consistentlyWrongFace
                 }
             }
 
