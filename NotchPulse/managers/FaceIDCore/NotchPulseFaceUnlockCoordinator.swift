@@ -77,10 +77,13 @@ final class NotchPulseFaceUnlockCoordinator {
             _ = lockMonitor.eventCount
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
-                self?.observeLockAndWakeEvents()
-                // Brief settle delay: CGSession's reported state can lag the true state right after wake.
-                try? await Task.sleep(nanoseconds: 300_000_000)
-                self?.evaluateTrigger()
+                guard let self else { return }
+                self.observeLockAndWakeEvents()
+                // Brief settle delay: CGSession's reported state can lag the true state only right after wake.
+                if self.lockMonitor.lastEvent == .wake {
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                }
+                self.evaluateTrigger()
             }
         }
     }
@@ -141,8 +144,11 @@ final class NotchPulseFaceUnlockCoordinator {
         NotchPulseVault.preflightKeychainAuthorization()
         NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         Task { [weak self] in
-            // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
-            try? await Task.sleep(nanoseconds: 250_000_000)
+            // When locking, arm immediately (0ms delay) so the closed silhouette seamlessly covers the lock space.
+            // On wake with autoScan, a brief 150ms buffer allows display backlight to power on.
+            if shouldAutoScan {
+                try? await Task.sleep(nanoseconds: 150_000_000)
+            }
             await self?.arm(autoScan: shouldAutoScan)
         }
     }

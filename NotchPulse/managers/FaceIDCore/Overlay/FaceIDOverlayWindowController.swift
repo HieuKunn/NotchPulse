@@ -40,6 +40,8 @@ final class FaceIDOverlayWindowController {
         NotificationCenter.default.removeObserver(self)
     }
 
+    private var lockReassertionTask: Task<Void, Never>?
+
     /// Creates the window (once), positions and orders it front. If the screen is
     /// actually locked, also delegates it into the SkyLight space — see FaceIDOverlaySkyLight.swift.
     func show() {
@@ -47,9 +49,23 @@ final class FaceIDOverlayWindowController {
         reposition(window)
         window.orderFrontRegardless()
 
+        lockReassertionTask?.cancel()
         if NotchPulseLockMonitor.isScreenActuallyLocked(), let skyLight = FaceIDOverlaySkyLight.shared {
             skyLight.delegate(window)
             isSkyLightDelegated = true
+
+            // Progressively re-assert visibility as WindowServer transitions into lock screen space
+            lockReassertionTask = Task { @MainActor [weak self, weak window] in
+                for delayMs in [150, 350, 650] {
+                    try? await Task.sleep(for: .milliseconds(delayMs))
+                    guard let self, let window, !Task.isCancelled,
+                          self.isVisible,
+                          NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
+                    self.reposition(window)
+                    window.orderFrontRegardless()
+                    skyLight.delegate(window)
+                }
+            }
         }
         updateCursorPolling()
     }
@@ -63,6 +79,8 @@ final class FaceIDOverlayWindowController {
     }
 
     func hide() {
+        lockReassertionTask?.cancel()
+        lockReassertionTask = nil
         guard let window else { return }
         if isSkyLightDelegated, let skyLight = FaceIDOverlaySkyLight.shared {
             skyLight.undelegate(window)

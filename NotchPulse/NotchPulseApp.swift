@@ -189,7 +189,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let shouldKeepWindow = Defaults[.showOnLockScreen]
         if !shouldKeepWindow {
-            cleanupWindows()
+            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
+                // Allow Face ID overlay to take over seamlessly before tearing down desktop windows
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .milliseconds(120))
+                    guard let self, self.isScreenLocked else { return }
+                    self.cleanupWindows()
+                }
+            } else {
+                cleanupWindows()
+            }
         } else {
             enableSkyLightOnAllWindows()
         }
