@@ -16,21 +16,25 @@ enum NotchPulseCameraDeviceCatalog {
         return discovery.devices.map { CameraDevice(id: $0.uniqueID, name: $0.localizedName) }
     }
 
-    /// Explicit target camera device resolved from settings or system default without circular screen lookups
+    /// Display-specific override, then flat default, then the system default camera matching Glance.
     @MainActor
-    static func targetCameraDevice() -> AVCaptureDevice? {
+    static func resolvedDevice() -> AVCaptureDevice? {
         let settings = NotchPulseFaceIDSettings.shared
-        if let defaultID = settings.defaultCameraID, let dev = AVCaptureDevice(uniqueID: defaultID) {
-            return dev
-        }
-        if let builtInID = settings.builtInDisplayCameraID, let dev = AVCaptureDevice(uniqueID: builtInID) {
-            return dev
-        }
-        if let extID = settings.externalDisplayCameraID, let dev = AVCaptureDevice(uniqueID: extID) {
-            return dev
+        let preferredID = isUsingBuiltInDisplay()
+            ? (settings.builtInDisplayCameraID ?? settings.defaultCameraID)
+            : (settings.externalDisplayCameraID ?? settings.defaultCameraID)
+
+        if let preferredID, let device = AVCaptureDevice(uniqueID: preferredID) {
+            return device
         }
         return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
             ?? AVCaptureDevice.default(for: .video)
+    }
+
+    /// Explicit target camera device resolved from settings or system default
+    @MainActor
+    static func targetCameraDevice() -> AVCaptureDevice? {
+        resolvedDevice()
     }
 
     /// Screen that physically hosts the camera device used for Face ID
@@ -46,20 +50,6 @@ enum NotchPulseCameraDeviceCatalog {
               let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
         else { return true }
         return CGDisplayIsBuiltin(screenNumber) != 0
-    }
-
-    /// Display-specific override, then flat default, then the system default camera.
-    @MainActor
-    static func resolvedDevice() -> AVCaptureDevice? {
-        let settings = NotchPulseFaceIDSettings.shared
-        let preferredID = isUsingBuiltInDisplay()
-            ? (settings.builtInDisplayCameraID ?? settings.defaultCameraID)
-            : (settings.externalDisplayCameraID ?? settings.defaultCameraID)
-
-        if let preferredID, let device = AVCaptureDevice(uniqueID: preferredID) {
-            return device
-        }
-        return targetCameraDevice()
     }
 
     /// Cached camera→screen UUID, invalidated when displays change.
