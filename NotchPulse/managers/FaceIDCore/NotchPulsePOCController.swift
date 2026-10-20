@@ -95,9 +95,21 @@ final class NotchPulsePOCController {
         }
 
         if requireAuthoritativeLock {
-            guard NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: true) else {
-                statusMessage = "Skipped: CGSession reports screen is not actually locked."
-                return
+            // Use cached state (NOT bypassCache) — calling CGSessionCopyCurrentDictionary right at the
+            // moment of a biometric match races with SkyLight window reassertion: the dictionary can
+            // transiently report `CGSSessionScreenIsLocked = false` for ~200ms even though the screen
+            // is still physically locked, causing inject to silently skip. The distributed notification
+            // ("com.apple.screenIsLocked") already set the cache reliably before we ever got here.
+            // If the cache is empty for some reason, fall back to a live query as a last resort.
+            let lockedViaCached = NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: false)
+            guard lockedViaCached else {
+                // Cache says unlocked — do one live recheck after a brief settle in case the cache
+                // just expired right before the match fired.
+                try? await Task.sleep(nanoseconds: 120_000_000)
+                guard NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: true) else {
+                    statusMessage = "Skipped: screen appears unlocked — injection aborted to avoid double-entry."
+                    return
+                }
             }
         }
 

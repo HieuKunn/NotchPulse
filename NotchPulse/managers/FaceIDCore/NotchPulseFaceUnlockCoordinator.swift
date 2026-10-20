@@ -371,7 +371,12 @@ final class NotchPulseFaceUnlockCoordinator {
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
-            guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
+            // Only bail for unlock if we have no pending match yet — once liveness+match are both
+            // confirmed we MUST proceed to inject, not abort. A transient CGSession blip right at
+            // the inject moment is exactly what caused silent skips.
+            if !(readyMatch != nil && livenessConfirmed) {
+                guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
+            }
 
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
                 // 20ms keeps the liveness window's sample count high while staying close to the camera's native ~33ms cadence.
