@@ -102,7 +102,7 @@ final class NotchPulsePOCController {
             // ("com.apple.screenIsLocked") already set the cache reliably before we ever got here.
             // If the cache is empty for some reason, fall back to a live query as a last resort.
             let lockedViaCached = NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: false)
-            guard lockedViaCached else {
+            if !lockedViaCached {
                 // Cache says unlocked — do one live recheck after a brief settle in case the cache
                 // just expired right before the match fired.
                 try? await Task.sleep(nanoseconds: 120_000_000)
