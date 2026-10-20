@@ -87,13 +87,13 @@ enum LivenessMode: String, CaseIterable, Identifiable, Sendable {
 /// at/above `level`, and fires once it has counted `frames` of them within the scan.
 /// Seeded from real-device observation; retune from Face Lab.
 struct LivenessTuning: Equatable {
-    var glossLevel: Float = 0.03
-    var glossFrames: Int = 2
+    var glossLevel: Float = 0.04
+    var glossFrames: Int = 3
 
     /// Deliberately lower than `glossLevel` — the device rectangle detector was already
     /// the one signal proven reliable in real-device testing.
     var deviceLevel: Float = 0.15
-    var deviceFrames: Int = 2
+    var deviceFrames: Int = 3
 
     /// Not the 0.5 you might expect: real-world Vision jitter alone measures ~0.21-0.46
     /// in the self-test, so 0.5 would mean this cue essentially never fires.
@@ -111,7 +111,7 @@ struct LivenessTuning: Equatable {
 
     /// Frames Light mode waits before auto-confirming, so deny cues get a fair chance to
     /// fire first — otherwise a first-frame match could unlock before glare/device ever ran.
-    var lightModeMinimumFrames: Int = 4
+    var lightModeMinimumFrames: Int = 3
 
     nonisolated static let `default` = LivenessTuning()
 

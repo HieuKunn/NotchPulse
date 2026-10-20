@@ -450,8 +450,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
         var lastProcessedFrameID: UInt64?
         var lastFaceBoundingBox: CGRect?
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 8
+        let wrongFaceStreakThreshold = 15
         var readyMatch: ScoredIdentity?
+        var readyMatchTime: ContinuousClock.Instant?
 
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { [weak self] in self?.settings.livenessMode ?? .light }
@@ -523,9 +524,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
             if let matched {
                 consecutiveWrongFaceFrames = 0
                 readyMatch = matched
+                readyMatchTime = .now
             } else {
-                readyMatch = nil
-                if !isWarmingUp {
+                if !isWarmingUp && (result.quality ?? 0.5) >= 0.20 {
                     consecutiveWrongFaceFrames += 1
                 }
                 if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
@@ -534,7 +535,9 @@ final class NotchPulseSystemAuthCoordinator: NSObject {
                 }
             }
 
-            if let _ = readyMatch, livenessConfirmed {
+            let candidateMatch = matched ?? (readyMatchTime.map { ContinuousClock.now - $0 < .milliseconds(400) } == true ? readyMatch : nil)
+
+            if let _ = candidateMatch, livenessConfirmed {
                 FaceIDOverlayController.shared.finish(success: true)
                 if Defaults[.faceIDSound] {
                     NSSound(named: "Glass")?.play()

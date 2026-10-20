@@ -39,10 +39,10 @@ enum NotchPulseCameraDeviceCatalog {
         return targetScreen(for: targetCameraDevice())
     }
 
-    /// True if the currently-active camera screen is the Mac's built-in display
+    /// True if the currently-active screen is the Mac's built-in display
     @MainActor
     static func isUsingBuiltInDisplay() -> Bool {
-        guard let screen = cameraScreen(),
+        guard let screen = FaceIDOverlayGeometry.preferredScreen() ?? NSScreen.main,
               let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
         else { return true }
         return CGDisplayIsBuiltin(screenNumber) != 0
