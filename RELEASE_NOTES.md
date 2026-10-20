@@ -1,13 +1,14 @@
 ## 🌟 Important Release: NotchPulse v5.4
 
-> **Important Update:** This release brings seamless lock screen handover, responsive Face ID biometric matching, refined scanning animations, and perfect visual alignment with the physical notch and Dynamic Island.
+> **Important Update:** This release brings seamless lock screen handover, responsive Face ID biometric matching, clean native overlay presentation, and perfect visual alignment with the physical notch and Dynamic Island.
 
 ### 🔒 Perfected Face ID & Lock Screen Handover
+- **Accurate & High-Speed Biometric Matching**: Fully aligned with Glance's precision biometric pipeline. Real faces are recognized immediately with calibrated ArcFace embeddings and continuous live evaluation.
+- **Clean & Native Overlay Design**: Kept the scanning state clean with a calm, resting biometric glyph that smoothly transforms into an unlock confirmation or subtle retry cue without repetitive searching loops.
+- **Immediate Failure Feedback**: Streak counters immediately register unrecognized attempts within 6 frames, preventing the camera from remaining stuck in prolonged searching loops.
 - **Seamless Lock Screen Handover**: Eliminated any momentary pause or visual disappearance when your Mac transitions into the lock screen. The Notch and Dynamic Island now remain continuously visible and smoothly transition into the secure lock screen space.
 - **Instant Hover Activation**: Hovering over the Notch or Dynamic Island on your lock screen now triggers biometric unlock almost instantly (cut buffer latency to 100ms) with no missed gestures.
 - **Rock-Solid Password Unlock**: Fixed lock-state timing race conditions to ensure stored passwords inject smoothly and reliably into the system lock window the moment your face is authenticated.
-- **Accurate Face Matching**: Refined multi-angle template scoring so your face is recognized immediately upon looking directly at the camera, even right after completing a multi-directional enrollment sweep.
-- **Smart Face-Searching Animation**: When waking the screen or authenticating, Face ID begins with a subtle breathing still image. If searching takes a little longer, it smoothly transitions to a fluid searching animation as the camera looks around for you, immediately switching to success or failure the moment you are recognized.
 - **Graceful Silent Collapse**: If you step away and no face is detected after your configured timeout, NotchPulse gently collapses back shut without any jarring error shakes.
 - **Pixel-Perfect Notch Alignment**: The closed Face ID drop panel now precisely matches the resting notch width, completely eliminating any momentary shrink or resize stutter before opening your music or HUDs.
 - **Fluid Dynamic Island Lock-Screen Wake**: You can now hover or click directly on the compact Dynamic Island pill on your lock screen to immediately trigger Face ID, expanding and collapsing right in place without off-screen sliding.
@@ -17,3 +18,4 @@
 - **Zero-Lag Expansion**: Notch and Dynamic Island panels use hardware-accelerated rendering layers for smooth 120Hz ProMotion response with zero CPU spikes.
 - **Ultra-Efficient Media Playback**: Track progress, elapsed time, and synchronized lyrics calculate with whisper-quiet efficiency.
 - **Instant Calendar & Reminders Cache**: Fast memory caching ensures opening the Notch instantly displays your schedule without delay.
+

@@ -131,7 +131,7 @@ struct ScoredIdentity {
 }
 
 extension NotchPulseFaceRecognitionPipeline {
-    /// Sorted by best overall similarity descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
+    /// Sorted by centroid similarity descending; includes stale identities (different embedder) since `bestMatch` is what excludes them from actually matching.
     nonisolated func score(_ embedding: [Float], against identities: [FaceIdentity]) -> [ScoredIdentity] {
         identities.compactMap { identity in
             guard let template = identity.template, !identity.samples.isEmpty else { return nil }
@@ -140,40 +140,13 @@ extension NotchPulseFaceRecognitionPipeline {
                 .map { FaceEmbedding.cosineSimilarity(embedding, $0.embedding) }
                 .max() ?? centroidSim
             return ScoredIdentity(identity: identity, centroidSimilarity: centroidSim, maxSampleSimilarity: maxSim)
-        }.sorted {
-            max($0.centroidSimilarity, $0.maxSampleSimilarity) > max($1.centroidSimilarity, $1.maxSampleSimilarity)
-        }
+        }.sorted { $0.centroidSimilarity > $1.centroidSimilarity }
     }
 
-    /// Shared by Face Lab and NotchPulseFaceUnlockCoordinator so tuning stays consistent.
-    ///
-    /// Three acceptance paths, in order of strictness:
-    /// - A) centroid alone clears threshold (frontal, well-lit match)
-    /// - B) maxSample clears threshold + centroid above a relaxed floor (one enrolled
-    ///      sample matches the current angle even when the average is pulled down by
-    ///      samples from very different poses)
-    /// - C) maxSample clears threshold−0.10 AND centroid clears threshold−0.21 —
-    ///      catches angled/low-light frames that still share a clear peak-sample hit.
-    ///      This is the path that fires most often on real webcam data.
+    /// Shared by Face Lab and FaceUnlockCoordinator so tuning stays consistent. No runner-up margin check: the same person can be enrolled multiple times under different appearances, so two of their own profiles legitimately score close together — a margin check can't tell that apart from two different people colliding.
     nonisolated func bestMatch(in scored: [ScoredIdentity], threshold: Float) -> ScoredIdentity? {
-        for candidate in scored {
-            if candidate.identity.isStale(comparedTo: embedder) {
-                NSLog("[FaceID Match] Identity '%@' is STALE (enrolled dim: %ld, active embedder dim: %ld). Skipping.",
-                      candidate.identity.name, candidate.identity.embeddingDimension, embedder.embeddingDimension)
-                continue
-            }
-            let meetsCentroid = candidate.centroidSimilarity >= threshold
-            // Path B: one enrolled pose matched perfectly even if the average lags.
-            let meetsSampleStrict = candidate.maxSampleSimilarity >= threshold
-                && candidate.centroidSimilarity >= max(0.44, threshold - 0.10)
-            // Path C: slightly below threshold but centroid also agrees — real faces under
-            // non-ideal webcam angles score here; photos rarely reach both simultaneously.
-            let meetsSampleRelaxed = candidate.maxSampleSimilarity >= threshold - 0.10
-                && candidate.centroidSimilarity >= max(0.38, threshold - 0.21)
-            if meetsCentroid || meetsSampleStrict || meetsSampleRelaxed {
-                return candidate
-            }
-        }
-        return nil
+        guard let first = scored.first, !first.identity.isStale(comparedTo: embedder) else { return nil }
+        guard first.centroidSimilarity >= threshold, first.maxSampleSimilarity >= threshold else { return nil }
+        return first
     }
 }

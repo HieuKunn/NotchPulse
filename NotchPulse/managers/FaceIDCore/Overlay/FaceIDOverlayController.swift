@@ -86,7 +86,6 @@ final class FaceIDOverlayController {
     private let windowController = FaceIDOverlayWindowController()
     private var resolveTask: Task<Void, Never>?
     private var scanTimeoutTask: Task<Void, Never>?
-    private var searchingAnimationTask: Task<Void, Never>?
 
     /// Guards `primeWindowIfNeeded` so the extra render pass only happens on the first show.
     private var hasPrimedWindow = false
@@ -127,7 +126,6 @@ final class FaceIDOverlayController {
         self.onActivate = onActivate
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         geometry = windowController.currentGeometry
         phase = .closed
         content = .scan(.idle)
@@ -150,7 +148,6 @@ final class FaceIDOverlayController {
         guard phase != .success, phase != .collapsing else { return }
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         geometry = windowController.currentGeometry
         phase = .closed
         content = .scan(.idle)
@@ -163,18 +160,11 @@ final class FaceIDOverlayController {
     func beginScanning() {
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel()
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         geometry = windowController.currentGeometry
         activeUnlockStyle = NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         content = .scan(.idle)
         phase = .scanning
         updateInteractivity()
-
-        searchingAnimationTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(1200))
-            guard let self, !Task.isCancelled, self.phase == .scanning, self.content == .scan(.idle) else { return }
-            self.content = .scan(.scanning)
-        }
 
         scanTimeoutTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: self?.scanTimeoutDuration ?? .seconds(5))
@@ -218,7 +208,6 @@ final class FaceIDOverlayController {
         onActivate = onRetry
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         geometry = windowController.currentGeometry
         activeUnlockStyle = styleOverride ?? NotchPulseFaceIDSettings.shared.effectiveUnlockAnimationStyle
         
@@ -228,12 +217,6 @@ final class FaceIDOverlayController {
             self.phase = .scanning
             self.windowController.show()
             self.updateInteractivity()
-
-            self.searchingAnimationTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .milliseconds(1200))
-                guard let self, !Task.isCancelled, self.phase == .scanning, self.content == .scan(.idle) else { return }
-                self.content = .scan(.scanning)
-            }
         }
     }
 
@@ -248,7 +231,6 @@ final class FaceIDOverlayController {
         onActivate = nil
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
 
         content = .onboarding(controller)
         geometry = windowController.currentGeometry
@@ -304,7 +286,6 @@ final class FaceIDOverlayController {
     /// collapses on its own; failure plays its animation and holds until
     /// either the hold expires or the user hovers to retry.
     func finish(success: Bool) {
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
 
@@ -376,7 +357,6 @@ final class FaceIDOverlayController {
     /// orders it out entirely if not.
     func collapse() async {
         guard phase != .closed, phase != .collapsing else { return }
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         phase = .collapsing
         updateInteractivity()
@@ -401,7 +381,6 @@ final class FaceIDOverlayController {
     /// success/collapsing is in flight — interrupting that made the window vanish abruptly.
     func dismissImmediately() {
         guard phase != .success, phase != .collapsing else { return }
-        searchingAnimationTask?.cancel(); searchingAnimationTask = nil
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
         phase = .closed
