@@ -432,7 +432,6 @@ final class NotchPulseFaceUnlockCoordinator {
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")
                     : "liveness off"
                 lastOutcome = "Matched \(readyMatch.identity.name) at \(String(format: "%.3f", readyMatch.centroidSimilarity)), \(livenessNote)."
-                LockScreenMediaWindow.shared.hideImmediately()
                 await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                 return .matched
             }
