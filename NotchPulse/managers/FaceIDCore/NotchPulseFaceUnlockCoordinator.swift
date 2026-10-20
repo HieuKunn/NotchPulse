@@ -355,7 +355,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
         var consecutiveWrongFaceFrames = 0
-        let wrongFaceStreakThreshold = 18
+        let wrongFaceStreakThreshold = 25
 
         /// Cleared the moment a detected face fails to match, but latched for 400ms to bridge liveness multi-frame confirmations.
         var readyMatch: ScoredIdentity?
@@ -452,9 +452,31 @@ final class NotchPulseFaceUnlockCoordinator {
                 // Settle guard: only count against streak if past sensor warm-up and frame quality is valid
                 if !isWarmingUp && (result.quality ?? 0.5) >= 0.20 {
                     consecutiveWrongFaceFrames += 1
+
+                    // Log best score every 5 frames so the user can see actual cosine similarity in Console.app
+                    if consecutiveWrongFaceFrames % 5 == 0, let best = scored.first {
+                        let stale = best.identity.isStale(comparedTo: pipeline.embedder)
+                        NSLog("[FaceID Score] frame=%ld/%ld identity='%@' centroid=%.4f maxSample=%.4f threshold=%.4f quality=%.2f stale=%@",
+                              consecutiveWrongFaceFrames, wrongFaceStreakThreshold,
+                              best.identity.name,
+                              best.centroidSimilarity, best.maxSampleSimilarity,
+                              matchThreshold,
+                              result.quality ?? -1,
+                              stale ? "YES" : "no")
+                        lastOutcome = String(format: "No match — best: %.3f (centroid) / %.3f (sample) vs threshold %.2f",
+                                            best.centroidSimilarity, best.maxSampleSimilarity, matchThreshold)
+                    }
                 }
                 if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                    NSLog("[FaceID Coordinator] Wrong face streak threshold (%ld) reached. Aborting with consistentlyWrongFace.", wrongFaceStreakThreshold)
+                    if let best = scored.first {
+                        NSLog("[FaceID Coordinator] Streak threshold (%ld) reached. Best score: centroid=%.4f maxSample=%.4f threshold=%.4f identity='%@'",
+                              wrongFaceStreakThreshold, best.centroidSimilarity, best.maxSampleSimilarity,
+                              matchThreshold, best.identity.name)
+                        lastOutcome = String(format: "Wrong face — best score: %.3f / %.3f (threshold %.2f)",
+                                            best.centroidSimilarity, best.maxSampleSimilarity, matchThreshold)
+                    } else {
+                        NSLog("[FaceID Coordinator] Streak threshold (%ld) reached. No identities to score against.", wrongFaceStreakThreshold)
+                    }
                     return .consistentlyWrongFace
                 }
             }
