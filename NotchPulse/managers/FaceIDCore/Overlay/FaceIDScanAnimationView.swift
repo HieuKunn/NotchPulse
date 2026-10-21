@@ -7,12 +7,14 @@ import AppKit
 /// seamless.
 enum FaceIDScanMedia: Equatable {
     case idle
+    case searching
     case success
     case failure
 
     var videoResourceName: String? {
         switch self {
         case .idle: return nil
+        case .searching: return "idleanimation"
         case .success: return "unlockanimation"
         case .failure: return "unsuccessfulunlockanimation"
         }
@@ -39,6 +41,7 @@ final class FaceIDScanAnimationHostView: NSView {
 
     static func prewarm() {
         Task.detached(priority: .utility) {
+            _ = firstFrame(for: "idleanimation")
             _ = firstFrame(for: "unlockanimation")
             _ = firstFrame(for: "unsuccessfulunlockanimation")
         }
@@ -65,6 +68,7 @@ final class FaceIDScanAnimationHostView: NSView {
     private var currentMedia: FaceIDScanMedia?
     private var readyObservation: NSKeyValueObservation?
     private var fallbackRevealWorkItem: DispatchWorkItem?
+    private var loopObserver: NSObjectProtocol?
 
     override init(frame frameRect: NSRect) {
         let defaultFrame = frameRect.size.width > 0 ? frameRect : NSRect(x: 0, y: 0, width: 140, height: 135)
@@ -182,6 +186,17 @@ final class FaceIDScanAnimationHostView: NSView {
         newPlayer.isMuted = true
         newPlayer.actionAtItemEnd = .none
 
+        if media == .searching {
+            loopObserver = NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime,
+                object: item,
+                queue: .main
+            ) { [weak newPlayer] _ in
+                newPlayer?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
+                newPlayer?.play()
+            }
+        }
+
         playerLayer.player = newPlayer
         player = newPlayer
 
@@ -224,6 +239,10 @@ final class FaceIDScanAnimationHostView: NSView {
         readyObservation = nil
         fallbackRevealWorkItem?.cancel()
         fallbackRevealWorkItem = nil
+        if let observer = loopObserver {
+            NotificationCenter.default.removeObserver(observer)
+            loopObserver = nil
+        }
         if let player = player {
             player.pause()
             player.replaceCurrentItem(with: nil)

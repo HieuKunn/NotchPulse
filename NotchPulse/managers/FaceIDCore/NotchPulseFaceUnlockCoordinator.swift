@@ -124,8 +124,11 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
-        // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        let shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
+        // PER PROJECT REQUIREMENT:
+        // Instead of auto-opening/scanning on lock screen like Glance,
+        // we always arm the closed notch silhouette (autoScan: false) and require hovering into
+        // the collapsed notch (or explicit tap/space) to activate Face ID.
+        let shouldAutoScan = false
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
