@@ -115,10 +115,8 @@ final class NotchPulseLockMonitor {
         eventCount += 1
     }
 
-    nonisolated static func invalidateLockCache() {}
-
     /// Authoritative lock state from the CoreGraphics session server, not a spoofable notification. Fails closed if unavailable.
-    nonisolated static func isScreenActuallyLocked(bypassCache: Bool = false) -> Bool {
+    nonisolated static func isScreenActuallyLocked() -> Bool {
         guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
             return false
         }
