@@ -10,11 +10,48 @@ enum CameraPermission {
 }
 
 /// `source` is a `CIImage` — a lazy recipe, not rendered pixels — so holding onto it costs nothing until `renderCrop` uses it.
-struct CameraFrame {
+/// `pixelBuffer` allows direct hardware Vision face detection with zero conversion overhead.
+/// `image` is generated lazily on-demand only when a detected face needs canonical alignment.
+final class CameraFrame: @unchecked Sendable {
     let id: UInt64
-    let image: CGImage
+    let pixelBuffer: CVPixelBuffer
     let source: CIImage
     let sourceSize: CGSize
+    let workingSize: CGSize
+    private var cachedCGImage: CGImage?
+    private let lock = os_unfair_lock_t.allocate(capacity: 1)
+
+    init(
+        id: UInt64,
+        pixelBuffer: CVPixelBuffer,
+        source: CIImage,
+        sourceSize: CGSize,
+        workingSize: CGSize,
+        image: CGImage? = nil
+    ) {
+        self.id = id
+        self.pixelBuffer = pixelBuffer
+        self.source = source
+        self.sourceSize = sourceSize
+        self.workingSize = workingSize
+        self.cachedCGImage = image
+        self.lock.initialize(to: os_unfair_lock())
+    }
+
+    deinit {
+        lock.deallocate()
+    }
+
+    var image: CGImage {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        if let cached = cachedCGImage {
+            return cached
+        }
+        let created = NotchPulseCamera.createWorkingCGImage(from: source)
+        cachedCGImage = created
+        return created ?? NotchPulseCamera.fallbackEmptyCGImage
+    }
 }
 
 @Observable
@@ -24,6 +61,24 @@ final class NotchPulseCamera: NSObject {
     private(set) var isRunning: Bool = false
     private(set) var currentFrame: CameraFrame?
     private(set) var errorMessage: String?
+
+    var isProcessingFrames: Bool {
+        get { framePublisher.isProcessingFrames }
+        set { framePublisher.isProcessingFrames = newValue }
+    }
+
+    func pauseProcessing() {
+        framePublisher.isProcessingFrames = false
+        currentFrame = nil
+    }
+
+    func resumeProcessing() {
+        framePublisher.isProcessingFrames = true
+    }
+
+    func clearCurrentFrame() {
+        currentFrame = nil
+    }
 
     /// Exposed read-only so `CameraPreviewView` can attach a preview layer to the same session.
     let session = AVCaptureSession()
@@ -37,7 +92,7 @@ final class NotchPulseCamera: NSObject {
         framePublisher.owner = self
     }
 
-    func start() async {
+    func start(processingFrames: Bool = true) async {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         switch status {
         case .authorized:
@@ -61,6 +116,8 @@ final class NotchPulseCamera: NSObject {
         configureSessionIfNeeded()
         reconcileDeviceIfNeeded()
 
+        framePublisher.isProcessingFrames = processingFrames
+
         sessionQueue.async { [session] in
             if !session.isRunning {
                 session.startRunning()
@@ -70,10 +127,11 @@ final class NotchPulseCamera: NSObject {
     }
 
     func requestAccessAndStart() async {
-        await start()
+        await start(processingFrames: true)
     }
 
     func stop() {
+        framePublisher.isProcessingFrames = false
         sessionQueue.async { [session] in
             if session.isRunning {
                 session.stopRunning()
@@ -160,11 +218,38 @@ final class NotchPulseCamera: NSObject {
         currentFrame = frame
     }
 
+    private nonisolated static let workingImageCIContext = CIContext(options: [.useSoftwareRenderer: false])
+    static let maxWorkingEdge: CGFloat = 640
+
+    nonisolated static func createWorkingCGImage(from sourceImage: CIImage) -> CGImage? {
+        var ciImage = sourceImage
+        let longEdge = max(ciImage.extent.width, ciImage.extent.height)
+        if longEdge > maxWorkingEdge {
+            let scale = maxWorkingEdge / longEdge
+            ciImage = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        }
+        return workingImageCIContext.createCGImage(ciImage, from: ciImage.extent)
+    }
+
+    nonisolated static let fallbackEmptyCGImage: CGImage = {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = CGContext(
+            data: nil,
+            width: 1,
+            height: 1,
+            bitsPerComponent: 8,
+            bytesPerRow: 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        return context.makeImage()!
+    }()
+
     /// Renders a native-resolution crop of `imageRect` from `frame.source`, for spoof-cue extraction which
     /// needs pixel detail (screen texture, moiré, gloss) the downscaled working frame throws away.
     nonisolated static func renderCrop(from frame: CameraFrame, imageRect: CGRect, maxEdge: CGFloat = 448) -> CGImage? {
-        let workingWidth = CGFloat(frame.image.width)
-        let workingHeight = CGFloat(frame.image.height)
+        let workingWidth = frame.workingSize.width
+        let workingHeight = frame.workingSize.height
         guard workingWidth > 0, workingHeight > 0 else { return nil }
         let scaleX = frame.sourceSize.width / workingWidth
         let scaleY = frame.sourceSize.height / workingHeight
@@ -201,35 +286,55 @@ final class NotchPulseCamera: NSObject {
     /// Sample-buffer callbacks arrive on `sessionQueue`, off the main actor; this delegate converts there, then hops back.
     private final class FramePublisher: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         weak var owner: NotchPulseCamera?
-        private let ciContext = CIContext()
-        /// Detection only needs a modest resolution; the live preview renders from the capture session directly and
-        /// is unaffected. The undownscaled `source` is kept alongside for callers needing native pixels (`renderCrop`).
-        private let maxLongEdge: CGFloat = 640
+        private var _isProcessingFrames: Bool = false
+        private let lock = os_unfair_lock_t.allocate(capacity: 1)
         private var nextFrameID: UInt64 = 0
+
+        override init() {
+            super.init()
+            lock.initialize(to: os_unfair_lock())
+        }
+
+        deinit {
+            lock.deallocate()
+        }
+
+        var isProcessingFrames: Bool {
+            get {
+                os_unfair_lock_lock(lock)
+                defer { os_unfair_lock_unlock(lock) }
+                return _isProcessingFrames
+            }
+            set {
+                os_unfair_lock_lock(lock)
+                _isProcessingFrames = newValue
+                os_unfair_lock_unlock(lock)
+            }
+        }
 
         func captureOutput(
             _ output: AVCaptureOutput,
             didOutput sampleBuffer: CMSampleBuffer,
             from connection: AVCaptureConnection
         ) {
+            guard isProcessingFrames else { return }
+
             autoreleasepool {
                 guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
                 let sourceImage = CIImage(cvPixelBuffer: pixelBuffer)
                 let sourceExtent = sourceImage.extent
-                var ciImage = sourceImage
-                let longEdge = max(ciImage.extent.width, ciImage.extent.height)
-                if longEdge > maxLongEdge {
-                    let scale = maxLongEdge / longEdge
-                    ciImage = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-                }
-                guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
+
+                let longEdge = max(sourceExtent.width, sourceExtent.height)
+                let scale = longEdge > NotchPulseCamera.maxWorkingEdge ? (NotchPulseCamera.maxWorkingEdge / longEdge) : 1.0
+                let workingSize = CGSize(width: round(sourceExtent.width * scale), height: round(sourceExtent.height * scale))
 
                 nextFrameID &+= 1
                 let frame = CameraFrame(
                     id: nextFrameID,
-                    image: cgImage,
+                    pixelBuffer: pixelBuffer,
                     source: sourceImage,
-                    sourceSize: sourceExtent.size
+                    sourceSize: sourceExtent.size,
+                    workingSize: workingSize
                 )
 
                 Task { @MainActor [weak owner] in

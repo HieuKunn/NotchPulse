@@ -719,17 +719,16 @@ final class FaceIDEnrollmentController {
 
         let pipeline = self.pipeline
         let minimumWidth = enrollmentMinimumFaceWidth
-        let image = cameraFrame.image
         let outcome = await Task.detached(priority: .userInitiated) {
             do {
-                let faces = try NotchPulseFaceDetector.detectFaces(in: image)
+                let faces = try NotchPulseFaceDetector.detectFaces(in: cameraFrame.pixelBuffer, workingSize: cameraFrame.workingSize)
                 guard let face = NotchPulseFaceRecognitionPipeline.largestFace(in: faces) else {
                     return EnrollFrameOutcome.noFace
                 }
                 if Float(face.normalizedBoundingBox.width) < minimumWidth {
                     return EnrollFrameOutcome.tooFar
                 }
-                return EnrollFrameOutcome.ready(try pipeline.recognize(face, in: image))
+                return EnrollFrameOutcome.ready(try pipeline.recognize(face, in: cameraFrame.image))
             } catch {
                 NSLog("[FaceIDEnrollment] Recognition pipeline error: %@", error.localizedDescription)
                 return EnrollFrameOutcome.noFace

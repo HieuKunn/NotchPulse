@@ -224,8 +224,8 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
-        // Pre-warm camera hardware sensor on lock screen so auto-exposure and auto-focus calibrate before hover
-        await camera.start()
+        // Pre-warm camera hardware sensor on lock screen with frame processing paused (0% CPU, no conversion)
+        await camera.start(processingFrames: false)
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
             camera.stop()
             return
@@ -256,7 +256,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private func runScanCycle(generation: Int) async {
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
-        await camera.start()
+        await camera.start(processingFrames: true)
+        camera.resumeProcessing()
         guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
@@ -283,6 +284,9 @@ final class NotchPulseFaceUnlockCoordinator {
 
         // A newer cycle now owns the camera and overlay — leave both alone, and leave the auto-retry one-shot unspent.
         guard generation == scanGeneration else { return }
+
+        // Pause frame processing and release frame buffer memory immediately after scan window resolves
+        camera.pauseProcessing()
 
         // If overlay is still armed for hover retry on lock screen, keep camera warm;
         // otherwise (headless or disarmed), stop it.
@@ -384,7 +388,7 @@ final class NotchPulseFaceUnlockCoordinator {
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                guard let result = try? pipeline.recognize(in: frame.image, preferNear: previousBoundingBox) else { return nil }
+                guard let result = try? pipeline.recognize(in: frame, preferNear: previousBoundingBox) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value

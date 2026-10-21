@@ -51,6 +51,19 @@ final class NotchPulseFaceRecognitionPipeline {
     init() {}
 
     /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
+    /// Operates directly on the hardware CVPixelBuffer and only generates the working CGImage when a face is detected.
+    nonisolated func recognize(
+        in cameraFrame: CameraFrame,
+        preferNear previousBoundingBox: CGRect? = nil
+    ) throws -> FaceRecognitionResult {
+        let faces = try NotchPulseFaceDetector.detectFaces(in: cameraFrame.pixelBuffer, workingSize: cameraFrame.workingSize)
+        guard let face = Self.selectDominantFace(in: faces, preferNear: previousBoundingBox) else {
+            throw NotchPulseFaceRecognitionPipelineError.noFaceDetected
+        }
+        return try recognize(face, in: cameraFrame.image)
+    }
+
+    /// `nonisolated` so callers can run detect/align/embed from a background task instead of blocking the main actor.
     /// - Parameters:
     ///   - frame: The camera frame to analyze.
     ///   - previousBoundingBox: previous frame's selected box, if any — lets continuous tracking stay locked to the user.
