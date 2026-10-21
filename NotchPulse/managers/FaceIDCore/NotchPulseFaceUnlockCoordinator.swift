@@ -371,7 +371,6 @@ final class NotchPulseFaceUnlockCoordinator {
         var lastFaceBoundingBox: CGRect?
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
-        let scanStartTime = Date()
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -400,20 +399,14 @@ final class NotchPulseFaceUnlockCoordinator {
             }
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
-            // Settle / grace period while lid is moving up from keyboard / exposure adjusting
-            let isWarmingUp = Date().timeIntervalSince(scanStartTime) < 1.5
-
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
             var confirmingCue: LivenessCue?
             if livenessEnabled {
                 let snapshot = liveness.observe(livenessFrame)
                 switch snapshot.decision {
                 case .denied:
-                    // While warming up (lid opening / camera adjusting), reflections from keyboard/bezel shouldn't abort early.
-                    if !isWarmingUp {
-                        lastOutcome = snapshot.decision.denialReason
-                        return .spoofSuspected
-                    }
+                    lastOutcome = snapshot.decision.denialReason
+                    return .spoofSuspected
                 case .confirmed(let cue):
                     livenessConfirmed = true
                     confirmingCue = cue
@@ -431,10 +424,10 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatch = matched
             } else {
                 readyMatch = nil
-                // Only count consecutive wrong faces if past the warm-up period AND the detected face has genuine quality
-                // (avoids aborting early on keyboard reflections, shadows, or blurry motion while lid is opening)
+                // Only count consecutive wrong faces if the detected face has genuine quality
+                // (avoids counting keyboard reflections, shadows, or blurry motion)
                 let isQualityAcceptable = (result.face.quality ?? 0) >= 0.25
-                if !isWarmingUp && isQualityAcceptable {
+                if isQualityAcceptable {
                     consecutiveWrongFaceFrames += 1
                     if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
                         return .consistentlyWrongFace
