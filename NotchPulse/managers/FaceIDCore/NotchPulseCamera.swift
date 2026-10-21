@@ -32,7 +32,7 @@ final class NotchPulseCamera: NSObject {
 
     /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
     private let framePublisher = FramePublisher()
-    private var sessionObservers: [NSObjectProtocol] = []
+    nonisolated(unsafe) private var sessionObservers: [NSObjectProtocol] = []
 
     override init() {
         super.init()
@@ -60,7 +60,8 @@ final class NotchPulseCamera: NSObject {
                 guard let self else { return }
                 guard let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError else { return }
                 NSLog("[NotchPulseCamera] AVCaptureSession runtime error: \(error.localizedDescription) (code: \(error.code.rawValue))")
-                if error.code == .mediaServicesWereReset {
+                let nsError = error as NSError
+                if nsError.code == -11819 || error.code == .sessionConfigurationChanged {
                     self.resetSession()
                 } else if self.isRunning {
                     self.sessionQueue.async { [session = self.session] in
@@ -106,7 +107,9 @@ final class NotchPulseCamera: NSObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.stop()
+            Task { @MainActor [weak self] in
+                self?.stop()
+            }
         })
 
         sessionObservers.append(workspace.addObserver(
