@@ -140,8 +140,6 @@ final class NotchPulseFaceUnlockCoordinator {
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
         Task { [weak self] in
-            // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
-            try? await Task.sleep(nanoseconds: 250_000_000)
             await self?.arm(autoScan: shouldAutoScan)
         }
     }
