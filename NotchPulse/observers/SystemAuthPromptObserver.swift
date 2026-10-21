@@ -1,15 +1,10 @@
-import AppKit
-import Combine
+import Foundation
 
 @MainActor
 final class SystemAuthPromptObserver: ObservableObject {
     static let shared = SystemAuthPromptObserver()
     
-    private init() {
-        NotchPulseSystemAuthCoordinator.shared.startObserving()
-    }
+    private init() {}
     
-    func cleanup() {
-        NotchPulseSystemAuthCoordinator.shared.stopObserving()
-    }
+    func cleanup() {}
 }

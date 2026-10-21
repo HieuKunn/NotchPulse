@@ -171,7 +171,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         FanHelperManager.shared.resetToAutoOnQuit()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         LockScreenWakeObserver.shared.cleanup()
-        SystemAuthPromptObserver.shared.cleanup()
     }
 
     @MainActor
@@ -777,10 +776,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        KeyboardShortcuts.onKeyDown(for: .faceIDQuickAuth) {
-            NotchPulseSystemAuthCoordinator.shared.triggerQuickAuth()
-        }
-
         if !Defaults[.showOnAllDisplays] {
             let preferredUUID = coordinator.preferredScreenUUID
             let initialScreen: NSScreen? = (preferredUUID.flatMap { NSScreen.screen(withUUID: $0) })
@@ -827,7 +822,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = LockScreenWakeObserver.shared
         _ = NotchPulseFaceUnlockCoordinator.shared
         ArcFaceEmbedder.warmUp()
-        _ = SystemAuthPromptObserver.shared
         _ = BluetoothHeadphoneManager.shared
 
         // Proactively verify & pre-warm Keychain authorization on desktop
