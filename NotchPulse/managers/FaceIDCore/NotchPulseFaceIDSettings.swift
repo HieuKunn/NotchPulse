@@ -252,16 +252,13 @@ final class NotchPulseFaceIDSettings {
         // Enabled by default — onboarding already enrolled a face and set a
         // password specifically to use Face Unlock.
         isFaceUnlockEnabled = defaults.object(forKey: Key.isFaceUnlockEnabled) as? Bool ?? true
-        // Matches `MatchConfidenceLevel.standard` — see RecognitionSettingsPage.swift.
+        // Matches `MatchConfidenceLevel.standard` — see FaceIDRecognitionSettingsPage.swift.
         if let stored = defaults.object(forKey: Key.matchThreshold) as? Float {
             matchThreshold = stored
         } else if let legacy = defaults.object(forKey: "faceIDMatchThreshold") as? Double {
             matchThreshold = Float(legacy)
         } else {
-            // ArcFace w600k_mbf cosine similarity for same-person-different-angle webcam frames
-            // typically lands in 0.45–0.75. The old default of 0.63 silently rejected nearly all
-            // non-frontal frames. 0.52 gives a comfortable margin above the inter-person floor (~0.20–0.40).
-            matchThreshold = 0.52
+            matchThreshold = 0.63
         }
         livenessChecksEnabled = defaults.object(forKey: Key.livenessChecksEnabled) as? Bool ?? true
         // Light by default — Heavy requires a blink/pose/depth signal a
@@ -269,8 +266,8 @@ final class NotchPulseFaceIDSettings {
         // catches the main attack (a photo on a phone screen).
         livenessMode = defaults.string(forKey: Key.livenessMode)
             .flatMap(LivenessMode.init(rawValue:)) ?? .light
-        // Matches `DetectionDistanceLevel.standard` — see RecognitionSettingsPage.swift.
-        minimumFaceWidth = defaults.object(forKey: Key.minimumFaceWidth) as? Float ?? 0.18
+        // Matches `DetectionDistanceLevel.standard` — see FaceIDRecognitionSettingsPage.swift.
+        minimumFaceWidth = defaults.object(forKey: Key.minimumFaceWidth) as? Float ?? 0.19
 
         // Resolve the stored style first, `.none` included, then split it
         // into the pick + the on/off flag the UI now works in.

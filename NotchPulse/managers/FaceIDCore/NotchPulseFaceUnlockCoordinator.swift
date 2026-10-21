@@ -89,7 +89,7 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func evaluateTrigger() {
-        if lockMonitor.lastEvent == .willSleep {
+        guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
             disarmOverlay()
@@ -101,43 +101,7 @@ final class NotchPulseFaceUnlockCoordinator {
         // `isWithinRecentArmBurst` keeps the several wake signals from one lid-open from each re-arming and fighting over the camera.
         if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
             hasArmedForCurrentLock = false
-            hasAutoRetriedForCurrentLock = false
         }
-
-        // On wake from overnight deep sleep, WindowServer can take an extra 200-900ms to update CGSSessionScreenIsLocked.
-        // We progressively verify lock state so we never miss the wake trigger.
-        if lockMonitor.lastEvent == .wake {
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                for delay in [0, 250, 450, 600] {
-                    if delay > 0 {
-                        try? await Task.sleep(for: .milliseconds(delay))
-                    }
-                    guard !self.lockMonitor.isSleeping else { return }
-                    if NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: true) {
-                        self.processTriggerEvaluation()
-                        return
-                    }
-                }
-                // Confirmed unlocked after all retries
-                self.hasArmedForCurrentLock = false
-                self.hasAutoRetriedForCurrentLock = false
-                self.disarmOverlay()
-            }
-            return
-        }
-
-        processTriggerEvaluation()
-    }
-
-    private func processTriggerEvaluation() {
-        guard NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: true) else {
-            hasArmedForCurrentLock = false
-            hasAutoRetriedForCurrentLock = false
-            disarmOverlay()
-            return
-        }
-        guard !lockMonitor.isSleeping else { return }
 
         // Runs before the hasArmedForCurrentLock guard — the space monitor's lifetime is tied to "locked + opted in," not to whether a scan already ran.
         updateSpaceMonitor()
@@ -161,13 +125,7 @@ final class NotchPulseFaceUnlockCoordinator {
         }
 
         // A deselected trigger means "don't auto-scan for this signal," not "do nothing" — the user can still opt in by hand.
-        let shouldAutoScan: Bool
-        if signal == .onLock {
-            // Screen locked: do not auto-scan on lock screen transition per user preference
-            shouldAutoScan = false
-        } else {
-            shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
-        }
+        let shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
@@ -181,11 +139,8 @@ final class NotchPulseFaceUnlockCoordinator {
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
         Task { [weak self] in
-            // When locking, arm immediately (0ms delay) so the closed silhouette seamlessly covers the lock space.
-            // On wake with autoScan, a brief 150ms buffer allows display backlight to power on.
-            if shouldAutoScan {
-                try? await Task.sleep(nanoseconds: 150_000_000)
-            }
+            // arm() only shows a small closed notch silhouette, so this only needs a brief buffer past the login window's entrance.
+            try? await Task.sleep(nanoseconds: 250_000_000)
             await self?.arm(autoScan: shouldAutoScan)
         }
     }
@@ -347,9 +302,7 @@ final class NotchPulseFaceUnlockCoordinator {
         case .noResolution:
             statusMessage = "No face detected."
             if showsUI {
-                Task {
-                    await FaceIDOverlayController.shared.collapse()
-                }
+                // No explicit collapse call: FaceIDOverlayController's own scanning timeout fires on the same mark and collapses itself.
                 statusMessage = "No face detected — hover the notch to try again."
                 scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.collapseAnimationDuration)
             } else {
@@ -402,19 +355,11 @@ final class NotchPulseFaceUnlockCoordinator {
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
 
-        var noFrameCycles = 0
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
-            guard NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: true) else { return .noResolution }
+            guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
 
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
-                noFrameCycles += 1
-                // Watchdog: If ~600ms pass without any frame from camera, re-kick the camera in case hardware enumeration lagged after deep wake
-                if noFrameCycles == 30 && lastProcessedFrameID == nil {
-                    Task { @MainActor [weak self] in
-                        self?.camera.reconcileDeviceAndRestartIfNeeded()
-                    }
-                }
                 // 20ms keeps the liveness window's sample count high while staying close to the camera's native ~33ms cadence.
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
@@ -424,18 +369,9 @@ final class NotchPulseFaceUnlockCoordinator {
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                do {
-                    let result = try pipeline.recognize(in: frame.image, preferNear: previousBoundingBox)
-                    let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
-                    return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
-                } catch {
-                    if let pipelineError = error as? NotchPulseFaceRecognitionPipelineError, pipelineError == .noFaceDetected {
-                        // Expected when user is not directly facing camera
-                    } else {
-                        NSLog("[FaceID Coordinator] Pipeline recognize error: \(error.localizedDescription)")
-                    }
-                    return nil
-                }
+                guard let result = try? pipeline.recognize(in: frame.image, preferNear: previousBoundingBox) else { return nil }
+                let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
+                return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
 
             guard let (result, livenessFrame) = outcome else {

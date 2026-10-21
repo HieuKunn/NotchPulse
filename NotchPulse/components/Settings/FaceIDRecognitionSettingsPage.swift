@@ -79,31 +79,24 @@ struct RecognitionSettingsPage: View {
     }
 }
 
-/// The selectable points on the "Match confidence" slider — named
+/// The three selectable points on the "Match confidence" slider — named
 /// rather than exposing the raw cosine-similarity threshold directly.
-/// Includes intermediate stops so users can fine-tune between default and strict.
 private enum MatchConfidenceLevel: Int, CaseIterable {
-    case lessStrict, moderate, standard, strict, moreStrict
+    case lessStrict, standard, moreStrict
 
     var title: String {
         switch self {
         case .lessStrict: return loc("Less strict")
-        case .moderate: return loc("Moderate")
         case .standard: return loc("Default")
-        case .strict: return loc("Strict")
         case .moreStrict: return loc("More strict")
         }
     }
 
     var threshold: Float {
         switch self {
-        // ArcFace w600k_mbf: intra-person webcam cosine similarity typically ~0.45–0.75,
-        // inter-person floor ~0.20–0.40. These presets sit in that intra-person band.
-        case .lessStrict: return 0.44
-        case .moderate:   return 0.48
-        case .standard:   return 0.52    // matches NotchPulseFaceIDSettings default
-        case .strict:     return 0.57
-        case .moreStrict: return 0.62
+        case .lessStrict: return 0.58
+        case .standard: return 0.63
+        case .moreStrict: return 0.68
         }
     }
 

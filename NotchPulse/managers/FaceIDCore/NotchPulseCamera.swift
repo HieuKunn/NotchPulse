@@ -32,98 +32,9 @@ final class NotchPulseCamera: NSObject {
 
     /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
     private let framePublisher = FramePublisher()
-    nonisolated(unsafe) private var sessionObservers: [NSObjectProtocol] = []
-
     override init() {
         super.init()
         framePublisher.owner = self
-        setupSessionObservers()
-    }
-
-    deinit {
-        let center = NotificationCenter.default
-        let workspace = NSWorkspace.shared.notificationCenter
-        for observer in sessionObservers {
-            center.removeObserver(observer)
-            workspace.removeObserver(observer)
-        }
-    }
-
-    private func setupSessionObservers() {
-        let center = NotificationCenter.default
-        sessionObservers.append(center.addObserver(
-            forName: .AVCaptureSessionRuntimeError,
-            object: session,
-            queue: nil
-        ) { [weak self] notification in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                guard let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError else { return }
-                NSLog("[NotchPulseCamera] AVCaptureSession runtime error: \(error.localizedDescription) (code: \(error.code.rawValue))")
-                let nsError = error as NSError
-                if nsError.code == -11819 || error.code == .sessionConfigurationChanged {
-                    self.resetSession()
-                } else if self.isRunning {
-                    self.sessionQueue.async { [session = self.session] in
-                        if !session.isRunning {
-                            session.startRunning()
-                        }
-                    }
-                }
-            }
-        })
-
-        sessionObservers.append(center.addObserver(
-            forName: .AVCaptureDeviceWasConnected,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                if self.isRunning {
-                    self.reconcileDeviceIfNeeded()
-                }
-            }
-        })
-
-        sessionObservers.append(center.addObserver(
-            forName: .AVCaptureDeviceWasDisconnected,
-            object: nil,
-            queue: nil
-        ) { [weak self] notification in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                if let disconnectedDevice = notification.object as? AVCaptureDevice,
-                   disconnectedDevice.uniqueID == self.currentInput?.device.uniqueID {
-                    NSLog("[NotchPulseCamera] Active capture device disconnected: \(disconnectedDevice.localizedName)")
-                    self.currentInput = nil
-                }
-            }
-        })
-
-        let workspace = NSWorkspace.shared.notificationCenter
-        sessionObservers.append(workspace.addObserver(
-            forName: NSWorkspace.willSleepNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.stop()
-            }
-        })
-
-        sessionObservers.append(workspace.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                if let input = self.currentInput, !input.device.isConnected {
-                    self.currentInput = nil
-                }
-            }
-        })
     }
 
     func start() async {
@@ -204,19 +115,13 @@ final class NotchPulseCamera: NSObject {
         session.commitConfiguration()
     }
 
-    /// Called on every `start()` so a camera preference change in Settings takes effect without an app restart,
-    /// and reconnects devices that were detached or suspended during deep sleep.
-    func reconcileDeviceIfNeeded() {
+    /// Called on every `start()` so a camera preference change in Settings takes effect without an app restart.
+    private func reconcileDeviceIfNeeded() {
         guard let device = NotchPulseCameraDeviceCatalog.resolvedDevice() else {
             errorMessage = "No camera device found."
             return
         }
-        let inputInvalid = currentInput == nil
-            || !(currentInput?.device.isConnected ?? false)
-            || (currentInput?.device.isSuspended ?? false)
-        let deviceChanged = device.uniqueID != currentInput?.device.uniqueID
-
-        guard inputInvalid || deviceChanged else { return }
+        guard device.uniqueID != currentInput?.device.uniqueID else { return }
 
         session.beginConfiguration()
         if let currentInput {
@@ -226,44 +131,11 @@ final class NotchPulseCamera: NSObject {
             session.addInput(input)
             currentInput = input
             selectHighestResolutionFormat(for: device)
-            errorMessage = nil
         } else {
             currentInput = nil
             errorMessage = "No camera device found."
         }
         session.commitConfiguration()
-    }
-
-    func reconcileDeviceAndRestartIfNeeded() {
-        reconcileDeviceIfNeeded()
-        sessionQueue.async { [session] in
-            if !session.isRunning {
-                session.startRunning()
-            }
-        }
-    }
-
-    func resetSession() {
-        sessionQueue.async { [weak self, session] in
-            guard let self else { return }
-            if session.isRunning {
-                session.stopRunning()
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.isConfigured = false
-                self.currentInput = nil
-                self.configureSessionIfNeeded()
-                self.reconcileDeviceIfNeeded()
-                if self.isRunning {
-                    self.sessionQueue.async { [session = self.session] in
-                        if !session.isRunning {
-                            session.startRunning()
-                        }
-                    }
-                }
-            }
-        }
     }
 
     /// Highest resolution regardless of fps — Vision still works from the downscaled frame; this only affects
