@@ -300,6 +300,12 @@ final class FaceIDOverlayController {
         }
     }
 
+    private(set) var isHovering: Bool = false
+
+    func setHovering(_ hovering: Bool) {
+        isHovering = hovering
+    }
+
     /// Hover-driven activation: wakes from a closed/armed state, or retries from a held
     /// failure frame. No-op during scanning/success/collapsing.
     func activate(force: Bool = false) {
