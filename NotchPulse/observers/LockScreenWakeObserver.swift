@@ -68,7 +68,7 @@ final class LockScreenWakeObserver: ObservableObject {
         self.lockTransitionTask = nil
         self.wakeTransitionTask?.cancel()
         self.wakeTransitionTask = nil
-        NotchPulseLockMonitor.setCachedLockState(false)
+        NotchPulseLockMonitor.invalidateLockCache()
         self.lockSessionTimer?.cancel()
         self.lockSessionTimer = nil
         self.hideDebounceTask?.cancel()
@@ -110,33 +110,31 @@ final class LockScreenWakeObserver: ObservableObject {
             
             NotchPulseLockMonitor.invalidateLockCache()
             NotchPulseVault.preflightKeychainAuthorization()
-            NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
-            let locked = NotchPulseLockMonitor.isScreenActuallyLocked()
-            self.isScreenLocked = locked
-            if locked {
+            if NotchPulseFaceEnrollmentStore.shared.activeIdentities.isEmpty {
+                NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
+            }
+            
+            // Progressive verification on wake: WindowServer can take 300-1200ms after overnight deep sleep
+            var isLocked = false
+            for delayMs in [0, 250, 450, 600] {
+                if delayMs > 0 {
+                    try? await Task.sleep(for: .milliseconds(delayMs))
+                }
+                guard !Task.isCancelled else { return }
+                if NotchPulseLockMonitor.isScreenActuallyLocked(bypassCache: true) {
+                    isLocked = true
+                    break
+                }
+            }
+            
+            self.isScreenLocked = isLocked
+            if isLocked {
                 self.startLockSessionSupervisor()
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
             } else {
                 self.handleUnlockTransition()
                 return
-            }
-            // Verify progressively after wake as display powers on
-            for delayMs in [250, 600, 1000] {
-                try? await Task.sleep(for: .milliseconds(delayMs))
-                guard !Task.isCancelled else { break }
-                let recheck = NotchPulseLockMonitor.isScreenActuallyLocked()
-                if self.isScreenLocked != recheck {
-                    self.isScreenLocked = recheck
-                    if recheck {
-                        self.startLockSessionSupervisor()
-                        MusicManager.shared.forceUpdate()
-                        self.updateLockScreenMediaWindowVisibility()
-                    } else {
-                        self.handleUnlockTransition()
-                        break
-                    }
-                }
             }
         }
     }

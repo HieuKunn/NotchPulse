@@ -169,7 +169,9 @@ final class NotchPulseFaceEnrollmentStore {
 
         do {
             let loaded = try NotchPulseSecureFaceStore.load()
-            identities = loaded
+            if !loaded.isEmpty || identities.isEmpty {
+                identities = loaded
+            }
             hasLoadedSuccessfully = true
             loadFailure = nil
             isLocked = false
@@ -178,7 +180,10 @@ final class NotchPulseFaceEnrollmentStore {
             if case NotchPulseVaultError.sessionLocked = error {
                 isLocked = true
             } else {
-                identities = []
+                // Keep existing in-memory identities intact across transient wake errors rather than wiping to empty array
+                if identities.isEmpty {
+                    identities = []
+                }
                 isLocked = false
             }
         }

@@ -1,6 +1,7 @@
 import CoreML
 import CoreGraphics
 import CoreVideo
+import AppKit
 
 enum ArcFaceEmbedderError: LocalizedError {
     case modelNotFound
@@ -43,9 +44,22 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
 
     private static let _sharedLock = NSLock()
     private static var _sharedInstance: ArcFaceEmbedder?
+    private static var wakeObserver: NSObjectProtocol?
+
+    private static func setupWakeObserverIfNeeded() {
+        guard wakeObserver == nil else { return }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: nil
+        ) { _ in
+            warmUp()
+        }
+    }
 
     // Loaded and cached — thread-safe accessor that retries on access instead of permanently trapping nil.
     static var shared: ArcFaceEmbedder? {
+        setupWakeObserverIfNeeded()
         _sharedLock.lock()
         defer { _sharedLock.unlock() }
         if let existing = _sharedInstance { return existing }
@@ -56,16 +70,18 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         return nil
     }
 
-    /// Pre-warms the ArcFace ML model ahead of real frames.
+    /// Pre-warms the ArcFace ML model ahead of real frames by testing dummy inference.
     static func warmUp() {
         Task.detached(priority: .userInitiated) {
-            _ = shared
+            shared?.prewarmInference()
         }
     }
 
-    /// Asynchronously ensures the model is resident in memory.
+    /// Asynchronously ensures the model is resident in memory and verified responsive.
     static func prepare() async {
-        _ = shared
+        await Task.detached(priority: .userInitiated) {
+            shared?.prewarmInference()
+        }.value
     }
 
     /// Kept for backward compatibility. Model remains resident in RAM to avoid expensive cold-start compilation.
@@ -79,9 +95,38 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         // No-op: do not unload CoreML model
     }
 
-    // Loaded once and reused — model load dominates a single inference.
-    private let model: MLModel
+    private let modelLock = NSLock()
+    private var model: MLModel
     private let pixelBufferPool: CVPixelBufferPool
+
+    /// Reloads model instance with .cpuAndGPU compute units if context is lost after sleep.
+    func reloadModel() throws {
+        guard let modelURL = Self.locateModel() else {
+            throw ArcFaceEmbedderError.modelNotFound
+        }
+        let configuration = MLModelConfiguration()
+        configuration.computeUnits = .cpuAndGPU
+        let freshModel = try MLModel(contentsOf: modelURL, configuration: configuration)
+        modelLock.lock()
+        self.model = freshModel
+        modelLock.unlock()
+    }
+
+    private func prewarmInference() {
+        var pixelBufferOut: CVPixelBuffer?
+        let status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pixelBufferPool, &pixelBufferOut)
+        guard status == kCVReturnSuccess, let pixelBuffer = pixelBufferOut else { return }
+        do {
+            let input = try MLDictionaryFeatureProvider(dictionary: [Self.inputName: MLFeatureValue(pixelBuffer: pixelBuffer)])
+            modelLock.lock()
+            let currentModel = self.model
+            modelLock.unlock()
+            _ = try currentModel.prediction(from: input)
+        } catch {
+            NSLog("[ArcFaceEmbedder] Prewarm dummy inference failed (\(error.localizedDescription)). Reloading model...")
+            try? reloadModel()
+        }
+    }
 
     /// Throws immediately if the model isn't bundled, so callers can fall back to `VisionFeaturePrintEmbedder`.
     init() throws {
@@ -90,20 +135,22 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
             throw ArcFaceEmbedderError.modelNotFound
         }
 
+        // On Apple Silicon macOS, .cpuAndGPU is rock-solid across deep sleep & wake cycles,
+        // completely avoiding Apple Neural Engine (ANE) power-state context loss while executing in ~2ms.
         let configuration = MLModelConfiguration()
-        configuration.computeUnits = .all
+        configuration.computeUnits = .cpuAndGPU
 
         var loadedModel: MLModel?
         do {
             loadedModel = try MLModel(contentsOf: modelURL, configuration: configuration)
         } catch {
-            NSLog("[ArcFaceEmbedder] CoreML load with .all failed: \(error.localizedDescription). Retrying with .cpuAndGPU...")
-            let fallbackConfig = MLModelConfiguration()
-            fallbackConfig.computeUnits = .cpuAndGPU
+            NSLog("[ArcFaceEmbedder] CoreML load with .cpuAndGPU failed: \(error.localizedDescription). Retrying with .all...")
+            let allConfig = MLModelConfiguration()
+            allConfig.computeUnits = .all
             do {
-                loadedModel = try MLModel(contentsOf: modelURL, configuration: fallbackConfig)
+                loadedModel = try MLModel(contentsOf: modelURL, configuration: allConfig)
             } catch {
-                NSLog("[ArcFaceEmbedder] CoreML load with .cpuAndGPU failed: \(error.localizedDescription). Retrying with .cpuOnly...")
+                NSLog("[ArcFaceEmbedder] CoreML load with .all failed: \(error.localizedDescription). Retrying with .cpuOnly...")
                 let cpuConfig = MLModelConfiguration()
                 cpuConfig.computeUnits = .cpuOnly
                 do {
@@ -207,7 +254,27 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
         try Self.render(face, into: pixelBuffer)
 
         let input = try MLDictionaryFeatureProvider(dictionary: [Self.inputName: MLFeatureValue(pixelBuffer: pixelBuffer)])
-        let output = try model.prediction(from: input)
+
+        let output: MLFeatureProvider
+        do {
+            modelLock.lock()
+            let currentModel = self.model
+            modelLock.unlock()
+            output = try currentModel.prediction(from: input)
+        } catch {
+            NSLog("[ArcFaceEmbedder] CoreML prediction failed: \(error.localizedDescription). Attempting self-healing recovery...")
+            do {
+                try reloadModel()
+                modelLock.lock()
+                let freshModel = self.model
+                modelLock.unlock()
+                output = try freshModel.prediction(from: input)
+                NSLog("[ArcFaceEmbedder] CoreML self-healing recovery succeeded.")
+            } catch {
+                NSLog("[ArcFaceEmbedder] CoreML self-healing recovery failed: \(error.localizedDescription)")
+                throw error
+            }
+        }
 
         guard let multiArray = output.featureValue(for: Self.outputName)?.multiArrayValue else {
             throw ArcFaceEmbedderError.unexpectedOutput("no '\(Self.outputName)' output found")
