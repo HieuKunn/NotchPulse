@@ -223,6 +223,14 @@ final class NotchPulseFaceUnlockCoordinator {
             startScanCycle()
             return
         }
+
+        // Pre-warm camera hardware sensor on lock screen so auto-exposure and auto-focus calibrate before hover
+        await camera.start()
+        guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
+            camera.stop()
+            return
+        }
+
         FaceIDOverlayController.shared.arm { [weak self] in
             self?.startScanCycle()
         }
@@ -276,7 +284,11 @@ final class NotchPulseFaceUnlockCoordinator {
         // A newer cycle now owns the camera and overlay — leave both alone, and leave the auto-retry one-shot unspent.
         guard generation == scanGeneration else { return }
 
-        camera.stop()
+        // If overlay is still armed for hover retry on lock screen, keep camera warm;
+        // otherwise (headless or disarmed), stop it.
+        if !showsUI || !FaceIDOverlayController.shared.isArmed {
+            camera.stop()
+        }
 
         switch outcome {
         case .matched:
