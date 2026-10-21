@@ -28,8 +28,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
-    /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
-    private let wrongFaceStreakThreshold = 6
+    /// Requires sustained, clear below-threshold frames so lid opening or poor angles don't trigger premature failure.
+    private let wrongFaceStreakThreshold = 25
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -124,11 +124,9 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
-        // PER PROJECT REQUIREMENT:
-        // Instead of auto-opening/scanning on lock screen like Glance,
-        // we always arm the closed notch silhouette (autoScan: false) and require hovering into
-        // the collapsed notch (or explicit tap/space) to activate Face ID.
-        let shouldAutoScan = false
+        // Auto-scan if the trigger is selected by user in Settings (e.g. onWake or onLock);
+        // if deselected, the overlay arms in closed mode and hover-to-start remains available.
+        let shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
@@ -373,6 +371,7 @@ final class NotchPulseFaceUnlockCoordinator {
         var lastFaceBoundingBox: CGRect?
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
+        let scanStartTime = Date()
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -401,15 +400,20 @@ final class NotchPulseFaceUnlockCoordinator {
             }
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
+            // Settle / grace period while lid is moving up from keyboard / exposure adjusting
+            let isWarmingUp = Date().timeIntervalSince(scanStartTime) < 1.5
+
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
             var confirmingCue: LivenessCue?
             if livenessEnabled {
                 let snapshot = liveness.observe(livenessFrame)
                 switch snapshot.decision {
                 case .denied:
-                    // Overrides everything, including a match and any confirmation that already happened.
-                    lastOutcome = snapshot.decision.denialReason
-                    return .spoofSuspected
+                    // While warming up (lid opening / camera adjusting), reflections from keyboard/bezel shouldn't abort early.
+                    if !isWarmingUp {
+                        lastOutcome = snapshot.decision.denialReason
+                        return .spoofSuspected
+                    }
                 case .confirmed(let cue):
                     livenessConfirmed = true
                     confirmingCue = cue
@@ -427,9 +431,16 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatch = matched
             } else {
                 readyMatch = nil
-                consecutiveWrongFaceFrames += 1
-                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                    return .consistentlyWrongFace
+                // Only count consecutive wrong faces if past the warm-up period AND the detected face has genuine quality
+                // (avoids aborting early on keyboard reflections, shadows, or blurry motion while lid is opening)
+                let isQualityAcceptable = (result.face.quality ?? 0) >= 0.25
+                if !isWarmingUp && isQualityAcceptable {
+                    consecutiveWrongFaceFrames += 1
+                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                        return .consistentlyWrongFace
+                    }
+                } else {
+                    consecutiveWrongFaceFrames = 0
                 }
             }
 
