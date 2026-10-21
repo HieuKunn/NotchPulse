@@ -124,9 +124,10 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
-        // Auto-scan if the trigger is selected by user in Settings (e.g. onWake or onLock);
-        // if deselected, the overlay arms in closed mode and hover-to-start remains available.
-        let shouldAutoScan = NotchPulseFaceIDSettings.shared.unlockTriggers.contains(signal)
+        // Only auto-scan on wake if 'On wake' is selected in Settings.
+        // On lock: NEVER auto-scan immediately (avoids unlocking right after locking the Mac);
+        //          always arms in closed silhouette mode and waits for hover.
+        let shouldAutoScan = (signal == .onWake) && NotchPulseFaceIDSettings.shared.unlockTriggers.contains(.onWake)
 
         // Headless has nothing to arm/hover, so if this signal isn't selected there's nothing to do — and hasArmedForCurrentLock
         // must stay false, or a later selected signal could never fire (nothing else calls arm() to reset it).
