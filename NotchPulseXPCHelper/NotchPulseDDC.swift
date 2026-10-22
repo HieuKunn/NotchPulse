@@ -326,12 +326,14 @@ final class NotchPulseDDC {
 
         var success = false
         for _ in 1...3 {
-            usleep(10000)
-            let res = DynamicBridge.writeI2C(service: service, chipAddress: ddc7BitAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
-            if res == 0 {
-                success = true
-                break
+            for _ in 1...2 {
+                usleep(10000)
+                let res = DynamicBridge.writeI2C(service: service, chipAddress: ddc7BitAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
+                if res == 0 {
+                    success = true
+                }
             }
+            if success { break }
             usleep(20000)
         }
         return success

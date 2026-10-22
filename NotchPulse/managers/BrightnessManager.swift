@@ -146,13 +146,13 @@ final class BrightnessManager: ObservableObject {
 
 	@MainActor func setRelative(delta: Float, alternateScreen: Bool = false) {
 		let displays = availableDisplays()
-		let builtinDisplay = displays.first(where: { $0.isBuiltin }) ?? detectedDisplay()
+		let builtinDisplay = displays.first(where: { $0.isBuiltin })
+		let externalDisplay = displays.first(where: { !$0.isBuiltin })
 		let target: DisplayTarget
 		if alternateScreen {
-			target = displays.first(where: { !$0.isBuiltin }) ?? builtinDisplay
+			target = externalDisplay ?? builtinDisplay ?? detectedDisplay()
 		} else {
-			// Normal F key press always adjusts the Mac built-in Retina screen!
-			target = builtinDisplay
+			target = builtinDisplay ?? externalDisplay ?? detectedDisplay()
 		}
 
 		activeDisplayID = target.id
@@ -162,9 +162,7 @@ final class BrightnessManager: ObservableObject {
 		Task { @MainActor in
 			let starting = await currentBrightnessFor(displayID: target.id)
 			let newBrightness = max(0, min(1, starting + delta))
-			_ = await client.setDisplayBrightness(newBrightness, for: target.id)
-			displayBrightnessCache[target.id] = newBrightness
-			publish(brightness: newBrightness, touchDate: true)
+			setBrightness(for: target.id, value: newBrightness)
 
 			NotchPulseViewCoordinator.shared.toggleSneakPeek(
 				status: true,
@@ -182,6 +180,9 @@ final class BrightnessManager: ObservableObject {
 	func setBrightness(for displayID: CGDirectDisplayID, value: Float) {
 		let clamped = max(0, min(1, value))
 		displayBrightnessCache[displayID] = clamped
+
+		// Instantly update software shade overlay for smooth external display response
+		DisplayShadeManager.shared.setBrightness(clamped, for: displayID)
 
 		Task { @MainActor in
 			_ = await client.setDisplayBrightness(clamped, for: displayID)

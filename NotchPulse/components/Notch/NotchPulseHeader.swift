@@ -7,6 +7,13 @@ struct NotchPulseHeader: View {
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @StateObject var tvm = ShelfStateViewModel.shared
 
+    @Default(.enableAudioHub) var enableAudioHub
+    @Default(.showAudioHubInNotch) var showAudioHubInNotch
+    @Default(.enableDisplayHub) var enableDisplayHub
+    @Default(.showDisplayHubInNotch) var showDisplayHubInNotch
+    @Default(.showMirror) var showMirror
+    @Default(.settingsIconInNotch) var settingsIconInNotch
+
     private var isDynamicIsland: Bool {
         Defaults[.notchStyle] == .dynamicIsland
     }
@@ -51,7 +58,7 @@ struct NotchPulseHeader: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 } else {
                     HStack(spacing: 6) {
-                        if Defaults[.enableAudioHub] && Defaults[.showAudioHubInNotch] {
+                        if enableAudioHub && showAudioHubInNotch {
                             Button(action: {
                                 withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                                     if coordinator.currentView == .audio {
@@ -73,7 +80,7 @@ struct NotchPulseHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        if Defaults[.enableDisplayHub] && Defaults[.showDisplayHubInNotch] {
+                        if enableDisplayHub && showDisplayHubInNotch {
                             Button(action: {
                                 withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                                     if coordinator.currentView == .display {
@@ -95,7 +102,7 @@ struct NotchPulseHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        if Defaults[.showMirror] {
+                        if showMirror {
                             Button(action: {
                                 vm.toggleCameraPreview()
                             }) {
@@ -111,7 +118,7 @@ struct NotchPulseHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        if Defaults[.settingsIconInNotch] || FeatureTourController.shared.isTourActive {
+                        if settingsIconInNotch || FeatureTourController.shared.isTourActive {
                             Button(action: {
                                 DispatchQueue.main.async {
                                     SettingsWindowController.shared.showWindow()

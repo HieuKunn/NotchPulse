@@ -2541,6 +2541,7 @@ struct AudioSettingsView: View {
 struct DisplaySettingsView: View {
     @Default(.enableDisplayHub) var enableDisplayHub
     @Default(.showDisplayHubInNotch) var showDisplayHubInNotch
+    @Default(.enableSoftwareDimming) var enableSoftwareDimming
     @ObservedObject var brightnessManager = BrightnessManager.shared
 
     var body: some View {
@@ -2566,6 +2567,8 @@ struct DisplaySettingsView: View {
             if enableDisplayHub {
                 Section(header: Text(loc("Appearance & Behavior"))) {
                     Toggle(loc("Show Display Hub Icon on Right Side of Notch"), isOn: $showDisplayHubInNotch)
+                    Toggle(loc("Enable Software Dimming Fallback"), isOn: $enableSoftwareDimming)
+                        .help(loc("Ensures smooth dimming on HDMI adapters, hubs, or monitors without hardware DDC response."))
                 }
 
                 Section(header: Text(loc("Connected Displays"))) {
@@ -2595,6 +2598,20 @@ struct DisplaySettingsView: View {
                                 Text(loc("Hardware DDC/CI Control"))
                                     .font(.subheadline.weight(.medium))
                                 Text(loc("Directly adjust backlight of third-party external monitors (Dell, LG, Asus, Samsung, HKC, etc.)."))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "circle.lefthalf.filled")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.effectiveAccent)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc("Software Dimming (Window Shade)"))
+                                    .font(.subheadline.weight(.medium))
+                                Text(loc("Smooth, instant software dimming overlay for screens where hardware DDC is unavailable."))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

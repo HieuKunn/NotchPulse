@@ -139,16 +139,19 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
         let clamped = max(0, min(1, value))
 
         // 1. Native Apple DisplayServices (Built-in Retina, Apple Studio Display, Pro Display XDR, LG UltraFine)
-        if CGDisplayIsBuiltin(did) != 0 || displayServicesSetBrightness(displayID: did, value: clamped) {
+        if CGDisplayIsBuiltin(did) != 0 {
+            let ok = displayServicesSetBrightness(displayID: did, value: clamped)
+            reply(ok)
+            return
+        }
+
+        if displayServicesSetBrightness(displayID: did, value: clamped) {
             reply(true)
             return
         }
 
         // 2. Hardware DDC/CI Control (Dell, LG, Asus, Samsung, BenQ, HKC, etc.)
-        if NotchPulseDDC.setBrightness(clamped, for: did) {
-            reply(true)
-            return
-        }
+        _ = NotchPulseDDC.setBrightness(clamped, for: did)
 
         // 3. Legacy IOKit
         if let io = ioServiceFor(displayID: did) {

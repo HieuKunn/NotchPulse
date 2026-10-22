@@ -355,6 +355,7 @@ extension Defaults.Keys {
     // MARK: Display Hub & Hardware DDC
     static let enableDisplayHub = Key<Bool>("enableDisplayHub", default: true)
     static let showDisplayHubInNotch = Key<Bool>("showDisplayHubInNotch", default: true)
+    static let enableSoftwareDimming = Key<Bool>("enableSoftwareDimming", default: true)
 
     // MARK: Master Feature Toggles
     static let enableCalendarFeature = Key<Bool>("enableCalendarFeature", default: true)

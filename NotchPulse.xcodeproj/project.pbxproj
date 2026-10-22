@@ -191,6 +191,7 @@
 		B1D365D02C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D365CF2C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift */; };
 		B1D6FD432C6603730015F173 /* SoftwareUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */; };
 		B1F0A0022E60000100000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F0A0012E60000100000001 /* BrightnessManager.swift */; };
+		B1D500022ED0000100000001 /* DisplayShadeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D500012ED0000100000001 /* DisplayShadeManager.swift */; };
 		B1F747F92EC7E94000F841DB /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F747F82EC7E94000F841DB /* LottieView.swift */; };
 		B1FEB4992C7686630066EBBC /* PanGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1FEB4982C7686630066EBBC /* PanGesture.swift */; };
 		B82B11503D7144C73627E2A1 /* NotchPulseKeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75330633067C257030A788F6 /* NotchPulseKeychainManager.swift */; };
@@ -447,6 +448,7 @@
 		B1D365CF2C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventIndicatorModifier.swift; sourceTree = "<group>"; };
 		B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareUpdater.swift; sourceTree = "<group>"; };
 		B1F0A0012E60000100000001 /* BrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManager.swift; sourceTree = "<group>"; };
+		B1D500012ED0000100000001 /* DisplayShadeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShadeManager.swift; sourceTree = "<group>"; };
 		B1F747F82EC7E94000F841DB /* LottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieView.swift; sourceTree = "<group>"; };
 		B1FEB4982C7686630066EBBC /* PanGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanGesture.swift; sourceTree = "<group>"; };
 		B22390B7B5594DF3990CAE1E /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
@@ -701,6 +703,7 @@
 				149E0B962C737D00006418B1 /* WebcamManager.swift */,
 				14C08BB52C8DE42D000F8AA0 /* CalendarManager.swift */,
 				B1F0A0012E60000100000001 /* BrightnessManager.swift */,
+				B1D500012ED0000100000001 /* DisplayShadeManager.swift */,
 				59D8C23B2E589FAA00147B33 /* VolumeManager.swift */,
 				A9F1B2C32E589FAA00147B33 /* BluetoothHeadphoneManager.swift */,
 				AA0000012ED0000100000001 /* SystemMonitorManager.swift */,
@@ -1347,6 +1350,7 @@
 				1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */,
 				11CFC6632E09918400748C80 /* MusicControllerSelectionView.swift in Sources */,
 				B1F0A0022E60000100000001 /* BrightnessManager.swift in Sources */,
+				B1D500022ED0000100000001 /* DisplayShadeManager.swift in Sources */,
 				AF5A2653ECC64C3F17EB1019 /* NotchPulseCamera.swift in Sources */,
 				989D9CB908B47CBD90D90528 /* NotchPulseFaceEmbedder.swift in Sources */,
 				3945421C14D60D0B09B52EE4 /* NotchPulseVault.swift in Sources */,

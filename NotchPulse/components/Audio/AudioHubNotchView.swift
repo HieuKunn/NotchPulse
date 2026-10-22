@@ -387,6 +387,9 @@ struct SliderScrollWheelRepresentable: NSViewRepresentable {
 
 final class SliderScrollWheelNSView: NSView {
     var onScroll: ((CGFloat) -> Void)?
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
     private var monitor: Any?
 
     override func viewDidMoveToWindow() {
