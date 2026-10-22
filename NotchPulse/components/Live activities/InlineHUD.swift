@@ -84,7 +84,7 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, type == .battery ? (isDynamicIsland ? 8 : 12) : 10)
+            .padding(.leading, type == .battery ? (isDynamicIsland ? 12 : 16) : 10)
             .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
@@ -152,7 +152,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, type == .battery ? (isDynamicIsland ? 8 : 12) : 10)
+            .padding(.trailing, type == .battery ? (isDynamicIsland ? 12 : 16) : 10)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -210,7 +210,7 @@ struct InlineHUD: View {
         case .mic:
             return 56
         case .battery:
-            return 26
+            return 36
         default:
             return 74
         }
@@ -221,7 +221,7 @@ struct InlineHUD: View {
         case .mic:
             return 56
         case .battery:
-            return 26
+            return 36
         default:
             return 78
         }
@@ -246,7 +246,7 @@ struct InlineHUD: View {
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: closedNotchWidth, type: type)
         let padding: CGFloat
         if type == .battery {
-            padding = isDynamicIsland ? 16 : 24
+            padding = isDynamicIsland ? 24 : 32
         } else {
             padding = isDynamicIsland ? 16 : 20
         }
