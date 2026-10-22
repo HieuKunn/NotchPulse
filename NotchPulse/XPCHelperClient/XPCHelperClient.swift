@@ -278,6 +278,39 @@ final class XPCHelperClient: NSObject {
             return false
         }
     }
+
+    // MARK: - External Display Volume (DDC)
+
+    nonisolated func currentDisplayVolume(for displayID: UInt32) async -> Float? {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            let result: NSNumber? = try await service.withContinuation { service, continuation in
+                service.currentDisplayVolume(for: displayID) { value in
+                    continuation.resume(returning: value)
+                }
+            }
+            return result?.floatValue
+        } catch {
+            return nil
+        }
+    }
+
+    nonisolated func setDisplayVolume(_ value: Float, for displayID: UInt32) async -> Bool {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.setDisplayVolume(value, for: displayID) { success in
+                    continuation.resume(returning: success)
+                }
+            }
+        } catch {
+            return false
+        }
+    }
 }
 
 extension Notification.Name {

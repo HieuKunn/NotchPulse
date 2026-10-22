@@ -21,7 +21,7 @@ final class BrightnessManager: ObservableObject {
 	@Published private(set) var isCurrentBuiltin: Bool = true
 	@Published private(set) var hasExternalDisplay: Bool = false
 
-	private var displayBrightnessCache: [CGDirectDisplayID: Float] = [:]
+	@Published private(set) var displayBrightnessCache: [CGDirectDisplayID: Float] = [:]
 	private let visibleDuration: TimeInterval = 1.2
 	private let client = XPCHelperClient.shared
 
@@ -38,9 +38,11 @@ final class BrightnessManager: ObservableObject {
 			queue: .main
 		) { [weak self] _ in
 			self?.updateDisplayInfo()
+			self?.refreshAllDisplays()
 		}
 
 		refresh()
+		refreshAllDisplays()
 	}
 
 	var shouldShowOverlay: Bool { Date().timeIntervalSince(lastChangeAt) < visibleDuration }
@@ -48,6 +50,21 @@ final class BrightnessManager: ObservableObject {
 	func updateDisplayInfo() {
 		let displays = availableDisplays()
 		hasExternalDisplay = displays.contains(where: { !$0.isBuiltin }) && displays.contains(where: { $0.isBuiltin })
+	}
+
+	func refreshAllDisplays() {
+		let displays = availableDisplays()
+		Task { @MainActor in
+			for d in displays {
+				if let val = await client.currentDisplayBrightness(for: d.id) {
+					displayBrightnessCache[d.id] = val
+				}
+			}
+		}
+	}
+
+	func brightness(for displayID: CGDirectDisplayID) -> Float {
+		displayBrightnessCache[displayID] ?? (displayID == activeDisplayID ? rawBrightness : 0.5)
 	}
 
 	func availableDisplays() -> [DisplayTarget] {
@@ -159,13 +176,18 @@ final class BrightnessManager: ObservableObject {
 	}
 
 	func setAbsolute(value: Float) {
+		setBrightness(for: activeDisplayID, value: value)
+	}
+
+	func setBrightness(for displayID: CGDirectDisplayID, value: Float) {
 		let clamped = max(0, min(1, value))
-		let displayID = activeDisplayID
 		displayBrightnessCache[displayID] = clamped
 
 		Task { @MainActor in
 			_ = await client.setDisplayBrightness(clamped, for: displayID)
-			publish(brightness: clamped, touchDate: true)
+			if displayID == activeDisplayID {
+				publish(brightness: clamped, touchDate: true)
+			}
 		}
 	}
 

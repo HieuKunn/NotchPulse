@@ -1,27 +1,19 @@
-## 🌟 Important Release: NotchPulse v5.4
+## 🌟 Major Release: NotchPulse v5.5
 
-> **Important Update:** This release brings seamless lock screen handover, responsive Face ID biometric matching, clean native overlay presentation, and perfect visual alignment with the physical notch and Dynamic Island.
+> **Important Update:** This release brings native hardware brightness control for third-party external monitors directly to macOS, introducing the all-new Display Hub right inside your Notch and Dynamic Island.
 
-### 🎛️ Refined HUDs & Bluetooth Battery Protection
-- **Eliminated Bluetooth vs Volume Race Condition**: Switching audio output to connected Bluetooth headphones no longer triggers a false volume change HUD, keeping your battery status indicator steady and visible.
-- **Pixel-Perfect Default HUD Silhouette**: Expanded horizontal safe insets to 18pt so volume, brightness, and backlight icons are never clipped by the bottom curved corners of the hardware Notch or Dynamic Island.
-- **Balanced Notch Height**: Eliminated the empty space beneath the bottom-row HUD slider, ensuring a tight, compact, and polished layout.
-- **Harmonized Open Notch HUD**: Restored the sleek capsule container with subtle border highlights for the Open Notch HUD bar.
+### 🖥️ Native Hardware Brightness for External Monitors
+- **Full Hardware Backlight Control**: Control the actual hardware backlight of external displays from Dell, LG, Asus, Samsung, BenQ, HKC, and more when connected via USB-C, Thunderbolt, DisplayPort, or HDMI.
+- **Save Power & Protect Colors**: Unlike software overlays that only darken pixels, NotchPulse communicates directly with your monitor's display processor to dim the physical backlight, preserving rich contrast, deep blacks, and battery efficiency.
+- **External Monitor Audio Volume**: Easily control your external monitor's built-in speaker volume directly through hardware commands.
 
-### 🔒 Perfected Face ID & Lock Screen Handover
-- **Instant First-Try Unlock on Wake**: Restored multi-path matching (centroid and strict/relaxed sample similarities) so your Mac recognizes your face immediately on the very first frame when opening the lid.
-- **Ultra-Fast Zero-Delay Arming**: Removed artificial delays on wake, allowing Face ID to start detecting your face the instant your screen lights up.
-- **Smart Camera Hardware Warming & 0% Idle CPU**: Camera sensor remains pre-warmed on the lock screen for instant crisp frames while skipping frame processing until you hover or scan, preserving battery and keeping idle CPU at 0%.
-- **Direct Hardware Frame Processing**: Integrated direct pixel buffer detection straight into Apple's Vision framework, eliminating intermediate memory copies and drastically lowering RAM usage.
-- **Intelligent Lid-Opening Quality Filter**: Replaced arbitrary timers with face quality gating, preventing keyboard or desk reflections from interrupting Face ID while opening your MacBook.
-- **Snappy Error Recovery**: Failure cue holds for a brisk 1.1s before gracefully collapsing, making retry or password input faster than ever.
-- **Clean & Native Overlay Design**: Kept the scanning state clean with a calm, resting biometric glyph that smoothly transforms into an unlock confirmation or subtle retry cue.
-- **Seamless Lock Screen Handover**: Eliminated any momentary pause or visual disappearance when your Mac transitions into the lock screen.
-- **Instant Hover Activation**: Hovering over the Notch or Dynamic Island on your lock screen triggers biometric unlock immediately.
-- **Pixel-Perfect Notch Alignment**: The closed Face ID drop panel now precisely matches the resting notch width, completely eliminating any momentary shrink or resize stutter.
+### ☀️ All-New Display Hub in the Notch
+- **Right-Side Notch Access**: Access all your display controls instantly via the new sun icon situated on the right side of the Notch or Dynamic Island header, sitting cleanly alongside your Audio Hub and Mirror controls.
+- **Independent Display Sliders**: View all connected screens (built-in MacBook Retina display and external monitors) at a glance, with dedicated smooth brightness sliders for each display.
+- **Scroll-Wheel Fine Tuning**: Simply hover over any brightness slider and scroll with your trackpad or mouse wheel to fine-tune brightness in subtle, precise increments.
+- **Quick Preset Buttons**: Jump straight to 25%, 50%, 75%, or 100% brightness with one single click on the quick preset tags.
 
-### ⚡️ Zero-Overhead Performance & Fluid Animations
-- **Zero-Lag Expansion**: Notch and Dynamic Island panels use hardware-accelerated rendering layers for smooth 120Hz ProMotion response with zero CPU spikes.
-- **Ultra-Efficient Media Playback**: Track progress, elapsed time, and synchronized lyrics calculate with whisper-quiet efficiency.
-- **Instant Calendar & Reminders Cache**: Fast memory caching ensures opening the Notch instantly displays your schedule without delay.
-
+### ⚙️ Customizable & Fluid Experience
+- **Dedicated Display Settings**: Turn Display Hub on or off, and toggle its presence in the Notch header to suit your workflow via Settings > Display.
+- **Dynamic Multi-Screen Detection**: Automatically updates whenever you connect or disconnect an external monitor or docking station.
+- **Zero-Lag Fluid Spring Motion**: Expands and collapses with smooth 120Hz ProMotion animation, seamlessly matching the height of your connected displays.

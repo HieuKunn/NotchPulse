@@ -118,6 +118,10 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
             reply(NSNumber(value: b))
             return
         }
+        if let ddcVal = NotchPulseDDC.getBrightness(for: did) {
+            reply(NSNumber(value: ddcVal))
+            return
+        }
         if let io = ioServiceFor(displayID: did) {
             var level: Float = 0
             if IODisplayGetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, &level) == kIOReturnSuccess {
@@ -133,10 +137,20 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
     @objc func setDisplayBrightness(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void) {
         let did = CGDirectDisplayID(displayID)
         let clamped = max(0, min(1, value))
-        if displayServicesSetBrightness(displayID: did, value: clamped) {
+
+        // 1. Native Apple DisplayServices (Built-in Retina, Apple Studio Display, Pro Display XDR, LG UltraFine)
+        if CGDisplayIsBuiltin(did) != 0 || displayServicesSetBrightness(displayID: did, value: clamped) {
             reply(true)
             return
         }
+
+        // 2. Hardware DDC/CI Control (Dell, LG, Asus, Samsung, BenQ, HKC, etc.)
+        if NotchPulseDDC.setBrightness(clamped, for: did) {
+            reply(true)
+            return
+        }
+
+        // 3. Legacy IOKit
         if let io = ioServiceFor(displayID: did) {
             let ok = IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped) == kIOReturnSuccess
             IOObjectRelease(io)
@@ -145,7 +159,25 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
                 return
             }
         }
+
+        // 4. Software Gamma Fallback
         let ok = setDisplayGammaBrightness(displayID: did, brightness: clamped)
+        reply(ok)
+    }
+
+    @objc func currentDisplayVolume(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void) {
+        let did = CGDirectDisplayID(displayID)
+        if let vol = NotchPulseDDC.getVolume(for: did) {
+            reply(NSNumber(value: vol))
+            return
+        }
+        reply(nil)
+    }
+
+    @objc func setDisplayVolume(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void) {
+        let did = CGDirectDisplayID(displayID)
+        let clamped = max(0, min(1, value))
+        let ok = NotchPulseDDC.setVolume(clamped, for: did)
         reply(ok)
     }
 

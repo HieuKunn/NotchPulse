@@ -55,6 +55,11 @@ struct TabSelectionView: View {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 vm.customOpenHeight = targetHeight
             }
+        } else if tabView == .display {
+            let targetHeight = DisplayHubNotchView.calculateHeight()
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                vm.customOpenHeight = targetHeight
+            }
         } else if tabView != .stats && vm.customOpenHeight != nil {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 vm.customOpenHeight = nil

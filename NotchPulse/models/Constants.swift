@@ -352,6 +352,10 @@ extension Defaults.Keys {
     static let showAudioHubInNotch = Key<Bool>("showAudioHubInNotch", default: true)
     static let enableVirtualAudioDriver = Key<Bool>("enableVirtualAudioDriver", default: false)
 
+    // MARK: Display Hub & Hardware DDC
+    static let enableDisplayHub = Key<Bool>("enableDisplayHub", default: true)
+    static let showDisplayHubInNotch = Key<Bool>("showDisplayHubInNotch", default: true)
+
     // MARK: Master Feature Toggles
     static let enableCalendarFeature = Key<Bool>("enableCalendarFeature", default: true)
     static let enableMediaFeature = Key<Bool>("enableMediaFeature", default: true)

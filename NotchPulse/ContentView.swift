@@ -543,7 +543,7 @@ struct ContentView: View {
         .environmentObject(vm)
         .onChange(of: coordinator.currentView) { _, newView in
             guard !SharingStateManager.shared.preventNotchClose else { return }
-            if newView != .audio && newView != .stats && vm.customOpenHeight != nil {
+            if newView != .audio && newView != .display && newView != .stats && vm.customOpenHeight != nil {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     vm.customOpenHeight = nil
                 }
@@ -739,6 +739,10 @@ struct ContentView: View {
                         AudioHubNotchView()
                             .environmentObject(vm)
                             .id(NotchViews.audio)
+                    case .display:
+                        DisplayHubNotchView()
+                            .environmentObject(vm)
+                            .id(NotchViews.display)
                     }
                 }
                 .compositingGroup()

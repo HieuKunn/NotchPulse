@@ -73,6 +73,28 @@ struct NotchPulseHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
+                        if Defaults[.enableDisplayHub] && Defaults[.showDisplayHubInNotch] {
+                            Button(action: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                                    if coordinator.currentView == .display {
+                                        coordinator.currentView = .home
+                                    } else {
+                                        coordinator.currentView = .display
+                                    }
+                                }
+                            }) {
+                                Capsule()
+                                    .fill(coordinator.currentView == .display ? Color.white.opacity(0.2) : .black)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        Image(systemName: "sun.max.fill")
+                                            .foregroundColor(coordinator.currentView == .display ? .white : .gray)
+                                            .padding()
+                                            .imageScale(.medium)
+                                    }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                         if Defaults[.showMirror] {
                             Button(action: {
                                 vm.toggleCameraPreview()

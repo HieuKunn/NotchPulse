@@ -54,6 +54,9 @@ struct SettingsView: View {
                 NavigationLink(value: "Audio") {
                     Label(tabTitle(for: "Audio"), systemImage: "speaker.wave.2.fill")
                 }
+                NavigationLink(value: "Display") {
+                    Label(tabTitle(for: "Display"), systemImage: "sun.max.fill")
+                }
                 NavigationLink(value: "Shortcuts") {
                     Label(tabTitle(for: "Shortcuts"), systemImage: "command.square.fill")
                 }
@@ -105,6 +108,8 @@ struct SettingsView: View {
                             ClipboardSettingsView()
                         case "Audio":
                             AudioSettingsView()
+                        case "Display":
+                            DisplaySettingsView()
                         case "Shortcuts":
                             Shortcuts()
                         case "Extensions":
@@ -2518,6 +2523,92 @@ struct AudioSettingsView: View {
                                 Text(loc("Per-Device Volume & Mute"))
                                     .font(.subheadline.weight(.medium))
                                 Text(loc("Adjust volume sliders and mute states independently for each connected audio device."))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .hideScrollbar()
+        .accentColor(.effectiveAccent)
+    }
+}
+
+struct DisplaySettingsView: View {
+    @Default(.enableDisplayHub) var enableDisplayHub
+    @Default(.showDisplayHubInNotch) var showDisplayHubInNotch
+    @ObservedObject var brightnessManager = BrightnessManager.shared
+
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Enable Display Hub"))
+                            .font(.headline)
+                        Text(loc("Hardware DDC/CI brightness control for external monitors directly from the Notch."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 40)
+                    Defaults.Toggle("", key: .enableDisplayHub)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.large)
+                }
+            }
+
+            if enableDisplayHub {
+                Section(header: Text(loc("Appearance & Behavior"))) {
+                    Toggle(loc("Show Display Hub Icon on Right Side of Notch"), isOn: $showDisplayHubInNotch)
+                }
+
+                Section(header: Text(loc("Connected Displays"))) {
+                    ForEach(brightnessManager.availableDisplays()) { target in
+                        HStack {
+                            Image(systemName: target.isBuiltin ? "laptopcomputer" : "display")
+                                .foregroundStyle(Color.effectiveAccent)
+                                .frame(width: 20)
+                            Text(target.localizedName)
+                                .font(.subheadline.weight(.medium))
+                            Spacer()
+                            Text(target.isBuiltin ? loc("Retina") : loc("Hardware DDC"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                Section(header: Text(loc("Features"))) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "sun.max.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.effectiveAccent)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc("Hardware DDC/CI Control"))
+                                    .font(.subheadline.weight(.medium))
+                                Text(loc("Directly adjust backlight of third-party external monitors (Dell, LG, Asus, Samsung, HKC, etc.)."))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "slider.horizontal.below.rectangle")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.effectiveAccent)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc("Per-Display Brightness Sliders"))
+                                    .font(.subheadline.weight(.medium))
+                                Text(loc("Independent sliders with scroll-wheel fine-tuning and quick preset buttons."))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

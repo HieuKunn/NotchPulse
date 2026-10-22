@@ -885,7 +885,7 @@ struct CalendarView: View {
             CalendarStateViewModel.shared.isFullMonthExpanded = false
             mode = .normal
             CalendarStateViewModel.shared.isPinned = false
-            if newView != .audio && newView != .stats {
+            if newView != .audio && newView != .display && newView != .stats {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     vm.customOpenHeight = nil
                 }
@@ -908,7 +908,7 @@ struct CalendarView: View {
             CalendarStateViewModel.shared.isFullMonthExpanded = false
             mode = .normal
             CalendarStateViewModel.shared.isPinned = false
-            if coordinator.currentView != .audio && coordinator.currentView != .stats {
+            if coordinator.currentView != .audio && coordinator.currentView != .display && coordinator.currentView != .stats {
                 vm.customOpenHeight = nil
             }
             if vm.featureTourTarget == "calendar" {
@@ -928,7 +928,7 @@ struct CalendarView: View {
             CalendarStateViewModel.shared.isFullMonthExpanded = false
             mode = .normal
             CalendarStateViewModel.shared.isPinned = false
-            if coordinator.currentView != .audio && coordinator.currentView != .stats {
+            if coordinator.currentView != .audio && coordinator.currentView != .display && coordinator.currentView != .stats {
                 vm.customOpenHeight = nil
             }
         }

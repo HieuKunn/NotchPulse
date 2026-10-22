@@ -24,6 +24,9 @@ import Foundation
     func isDisplayBrightnessAvailable(for displayID: UInt32, with reply: @escaping (Bool) -> Void)
     func currentDisplayBrightness(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void)
     func setDisplayBrightness(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void)
+    // Multi-display DDC audio volume access
+    func currentDisplayVolume(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void)
+    func setDisplayVolume(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void)
 }
 
 /*
