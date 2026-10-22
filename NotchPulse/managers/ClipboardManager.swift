@@ -241,10 +241,10 @@ final class ClipboardManager: ObservableObject {
 
         // 2. High-speed, zero-CPU polling (0.15s / 150ms) for context menu copies, drag copies, and apps without key events
         // Checking pasteboard.changeCount is a single integer lookup (< 2 microseconds), taking 0.0% CPU.
-        let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.4, repeats: true) { [weak self] _ in
             self?.checkForChanges()
         }
-        timer.tolerance = 0.05
+        timer.tolerance = 0.1
         RunLoop.main.add(timer, forMode: .common)
         self.pollTimer = timer
 

@@ -29,7 +29,7 @@ struct LockScreenMediaView: View {
     @State private var localVolume: Double? = nil
     @State private var lastVolumeUpdateTime: Date = .distantPast
     
-    private let lyricsTimer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
+    private let lyricsTimer = Timer.publish(every: 0.4, tolerance: 0.1, on: .main, in: .common).autoconnect()
     
     private var isLightMode: Bool {
         windowController.isLightMode
