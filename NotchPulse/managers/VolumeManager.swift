@@ -9,6 +9,7 @@ final class VolumeManager: NSObject, ObservableObject {
     @Published private(set) var rawVolume: Float = 0
     @Published private(set) var isMuted: Bool = false
     @Published private(set) var lastChangeAt: Date = .distantPast
+    private(set) var lastDeviceSwitchAt: Date = .distantPast
 
     let visibleDuration: TimeInterval = 1.2
 
@@ -125,8 +126,9 @@ final class VolumeManager: NSObject, ObservableObject {
             let avg = max(0, min(1, volumes.reduce(0, +) / Float32(volumes.count)))
             DispatchQueue.main.async {
                 let isRecentLocalChange = Date().timeIntervalSince(self.lastChangeAt) < 0.6
+                let isRecentDeviceSwitch = Date().timeIntervalSince(self.lastDeviceSwitchAt) < 2.0
                 if self.rawVolume != avg {  
-                    if self.didInitialFetch && !isRecentLocalChange {
+                    if self.didInitialFetch && !isRecentLocalChange && !isRecentDeviceSwitch {
                         self.lastChangeAt = Date()
                         NotchPulseViewCoordinator.shared.toggleSneakPeek(
                             status: true,
@@ -191,6 +193,7 @@ final class VolumeManager: NSObject, ObservableObject {
             return
         }
         currentObservedDeviceID = deviceID
+        lastDeviceSwitchAt = Date()
 
         var masterAddr = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyVolumeScalar,

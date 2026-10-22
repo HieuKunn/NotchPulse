@@ -69,6 +69,13 @@ struct OpenNotchHUD: View {
                     .frame(width: 32, alignment: .trailing)
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.black)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
         .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.85), value: value)
     }
     

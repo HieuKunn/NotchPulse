@@ -209,6 +209,14 @@ class NotchPulseViewCoordinator: ObservableObject {
         if status && type == .music && (MusicManager.shared.isUIActive || !Defaults[.enableMediaFeature]) {
             return
         }
+
+        // Protect active Bluetooth battery indicator from being overridden by passive background volume updates
+        if status && type == .volume && self.sneakPeek.show && self.sneakPeek.type == .battery {
+            let isUserKeyEvent = Date().timeIntervalSince(VolumeManager.shared.lastChangeAt) < 0.4
+            if !isUserKeyEvent {
+                return
+            }
+        }
         Task { @MainActor in
             withAnimation(.interactiveSpring(response: 0.18, dampingFraction: 0.85)) {
                 self.sneakPeek.show = status

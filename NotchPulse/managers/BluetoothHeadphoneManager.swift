@@ -158,7 +158,7 @@ final class BluetoothHeadphoneManager: NSObject {
 
     @MainActor
     func checkAndDisplayBatteryHUD(forDeviceNamed targetName: String, address: String) async {
-        guard Defaults[.hudReplacement] else { return }
+        guard Defaults[.hudReplacement] || Defaults[.inlineHUD] else { return }
 
         // Retry up to 4 times over ~1.2s to accommodate Bluetooth driver telemetry sync
         var batteryPercent: Int? = nil

@@ -2,6 +2,12 @@
 
 > **Important Update:** This release brings seamless lock screen handover, responsive Face ID biometric matching, clean native overlay presentation, and perfect visual alignment with the physical notch and Dynamic Island.
 
+### 🎛️ Refined HUDs & Bluetooth Battery Protection
+- **Eliminated Bluetooth vs Volume Race Condition**: Switching audio output to connected Bluetooth headphones no longer triggers a false volume change HUD, keeping your battery status indicator steady and visible.
+- **Pixel-Perfect Default HUD Silhouette**: Expanded horizontal safe insets to 18pt so volume, brightness, and backlight icons are never clipped by the bottom curved corners of the hardware Notch or Dynamic Island.
+- **Balanced Notch Height**: Eliminated the empty space beneath the bottom-row HUD slider, ensuring a tight, compact, and polished layout.
+- **Harmonized Open Notch HUD**: Restored the sleek capsule container with subtle border highlights for the Open Notch HUD bar.
+
 ### 🔒 Perfected Face ID & Lock Screen Handover
 - **Instant First-Try Unlock on Wake**: Restored multi-path matching (centroid and strict/relaxed sample similarities) so your Mac recognizes your face immediately on the very first frame when opening the lid.
 - **Ultra-Fast Zero-Delay Arming**: Removed artificial delays on wake, allowing Face ID to start detecting your face the instant your screen lights up.

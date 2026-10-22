@@ -222,27 +222,35 @@ struct ContentView: View {
 
         var chinWidth: CGFloat = isDynamicIsland ? compactDynamicIslandWidth : vm.closedNotchSize.width // Always match notch width or compact island
 
-        if coordinator.expandingView.type == .battery && coordinator.expandingView.show
-            && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
-        {
-            chinWidth = openNotchSize.width
-        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type != .music && coordinator.sneakPeek.type != .battery && vm.notchState == .closed {
-            if Defaults[.inlineHUD] {
-                chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
-            } else {
-                chinWidth = max(240, vm.closedNotchSize.width) + gestureProgress
-            }
-        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed {
-            chinWidth = max(240, vm.closedNotchSize.width) + gestureProgress
-        } else if Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
-            && vm.notchState == .closed && musicManager.isPlaying
+        let isMediaPlaying = Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
+            && vm.notchState == .closed && musicManager.isPlaying && !musicManager.songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && coordinator.musicLiveActivityEnabled
-        {
+
+        var mediaWidth: CGFloat = 0
+        if isMediaPlaying {
             let liveHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
             let spacerWidth = mediaSpacerWidth(isDynamicIsland: isDynamicIsland, isInlineActive: isInlineMediaActive)
-            chinWidth = (artSize * 2) + spacerWidth + (isDynamicIsland ? 24 : 28) + gestureProgress
+            mediaWidth = (artSize * 2) + spacerWidth + (isDynamicIsland ? 24 : 28) + gestureProgress
+        }
+
+        if coordinator.expandingView.type == .battery && coordinator.expandingView.show
+            && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
+        {
+            chinWidth = openNotchSize.width
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type != .music && vm.notchState == .closed {
+            if Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery {
+                chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
+            } else {
+                let defaultHUDWidth = max(vm.closedNotchSize.width + 40, isDynamicIsland ? 260 : 250) + gestureProgress
+                chinWidth = isMediaPlaying ? max(mediaWidth, defaultHUDWidth) : defaultHUDWidth
+            }
+        } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed {
+            let defaultMusicWidth = max(vm.closedNotchSize.width + 40, isDynamicIsland ? 260 : 250) + gestureProgress
+            chinWidth = isMediaPlaying ? max(mediaWidth, defaultMusicWidth) : defaultMusicWidth
+        } else if isMediaPlaying {
+            chinWidth = mediaWidth
         }
         return chinWidth
     }
@@ -313,7 +321,7 @@ struct ContentView: View {
         if isEffectivelyLocked {
             return baseClosedHeight
         }
-        return isDefaultHUDActive ? baseClosedHeight + 42 : baseClosedHeight
+        return isDefaultHUDActive ? baseClosedHeight + 34 : baseClosedHeight
     }
     private var gestureScale: CGFloat {
         guard gestureProgress != 0 else { return 1.0 }
@@ -634,7 +642,7 @@ struct ContentView: View {
                 } else {
                     ZStack {
                         Group {
-                            if !isEffectivelyLocked && coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
+                            if !isEffectivelyLocked && coordinator.sneakPeek.show && (Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery) && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                 InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                                     .transition(.opacity)
                             } else if !isEffectivelyLocked && Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && musicManager.isPlaying && !musicManager.songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && coordinator.musicLiveActivityEnabled {
@@ -670,7 +678,7 @@ struct ContentView: View {
                     }
 
                     if !isEffectivelyLocked && coordinator.sneakPeek.show && !isFaceIDActive && !isFaceIDSettlingAfterClose {
-                        if (coordinator.sneakPeek.type != .music) && !Defaults[.inlineHUD] && vm.notchState == .closed {
+                        if (coordinator.sneakPeek.type != .music) && (coordinator.sneakPeek.type != .battery) && !Defaults[.inlineHUD] && vm.notchState == .closed {
                             SystemEventIndicatorModifier(
                                 eventType: $coordinator.sneakPeek.type,
                                 value: $coordinator.sneakPeek.value,
@@ -687,15 +695,14 @@ struct ContentView: View {
                                 }
                             )
                             .padding(.bottom, 10)
-                            .padding(.leading, 4)
-                            .padding(.trailing, 8)
-                            .fixedSize()
+                            .padding(.horizontal, isDynamicIsland ? 14 : 18)
                         }
                         // Old sneak peek music
                         else if coordinator.sneakPeek.type == .music {
                             if vm.notchState == .closed && Defaults[.sneakPeekStyles] == .standard {
-                                HStack(alignment: .center) {
+                                HStack(alignment: .center, spacing: 8) {
                                     Image(systemName: "music.note")
+                                        .frame(width: 16)
                                     let musicText = musicManager.artistName.isEmpty ? musicManager.songTitle : "\(musicManager.songTitle) - \(musicManager.artistName)"
                                     Text(musicText)
                                         .font(.system(size: 13, weight: .medium))
@@ -705,7 +712,7 @@ struct ContentView: View {
                                 }
                                 .foregroundStyle(.gray)
                                 .padding(.bottom, 10)
-                                .fixedSize()
+                                .padding(.horizontal, isDynamicIsland ? 14 : 18)
                             }
                         }
                     }
