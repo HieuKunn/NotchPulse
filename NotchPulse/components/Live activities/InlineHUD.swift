@@ -84,7 +84,7 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, type == .battery ? (isDynamicIsland ? 12 : 16) : 10)
+            .padding(.leading, type == .battery ? (isDynamicIsland ? 10 : 13) : 10)
             .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
@@ -152,7 +152,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, type == .battery ? (isDynamicIsland ? 12 : 16) : 10)
+            .padding(.trailing, type == .battery ? (isDynamicIsland ? 10 : 13) : 10)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -210,7 +210,7 @@ struct InlineHUD: View {
         case .mic:
             return 56
         case .battery:
-            return 36
+            return 26
         default:
             return 74
         }
@@ -221,7 +221,7 @@ struct InlineHUD: View {
         case .mic:
             return 56
         case .battery:
-            return 36
+            return 26
         default:
             return 78
         }
@@ -235,7 +235,7 @@ struct InlineHUD: View {
             return 20
         }
         if type == .battery {
-            return max(0, closedNotchWidth + 8)
+            return max(0, closedNotchWidth + 12)
         }
         return max(0, closedNotchWidth + 8)
     }
@@ -246,7 +246,7 @@ struct InlineHUD: View {
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: closedNotchWidth, type: type)
         let padding: CGFloat
         if type == .battery {
-            padding = isDynamicIsland ? 24 : 32
+            padding = isDynamicIsland ? 20 : 26
         } else {
             padding = isDynamicIsland ? 16 : 20
         }
