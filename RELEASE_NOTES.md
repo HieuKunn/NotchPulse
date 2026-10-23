@@ -1,10 +1,10 @@
 ## 🌟 Major Release: NotchPulse v5.5
 
-> **Important Update:** This release brings native hardware brightness control for third-party external monitors directly to macOS, introducing the all-new Display Hub right inside your Notch and Dynamic Island.
+> **Important Update:** This release brings native brightness control for third-party external monitors directly to macOS, introducing the all-new Display Hub right inside your Notch and Dynamic Island with hardware DDC/CI and software dimming support.
 
-### 🖥️ Native Hardware Brightness for External Monitors
-- **Full Hardware Backlight Control**: Control the actual hardware backlight of external displays from Dell, LG, Asus, Samsung, BenQ, HKC, and more when connected via USB-C, Thunderbolt, DisplayPort, or HDMI.
-- **Save Power & Protect Colors**: Unlike software overlays that only darken pixels, NotchPulse communicates directly with your monitor's display processor to dim the physical backlight, preserving rich contrast, deep blacks, and battery efficiency.
+### 🖥️ Native Brightness for External Monitors
+- **Hardware DDC/CI & Software Dimming Synergy**: Seamlessly control external displays from Dell, LG, Asus, Samsung, BenQ, HKC, and more. Combines hardware backlight adjustment with an instant software window shade fallback to guarantee smooth dimming across all HDMI adapters, USB-C docks, and display types.
+- **Save Power & Protect Colors**: Communicates directly with your monitor's display processor to dim the physical backlight whenever possible, maintaining rich contrast and color accuracy.
 - **External Monitor Audio Volume**: Easily control your external monitor's built-in speaker volume directly through hardware commands.
 
 ### ☀️ All-New Display Hub in the Notch
