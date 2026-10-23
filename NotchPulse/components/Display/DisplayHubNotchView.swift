@@ -75,7 +75,7 @@ struct DisplayHubNotchView: View {
                     }
                 }
                 .padding(.horizontal, 4)
-                .padding(.bottom, 8)
+                .padding(.bottom, 4)
             }
         }
         .padding(.horizontal, 10)
@@ -109,15 +109,15 @@ struct DisplayHubNotchView: View {
         let count = displayCount ?? BrightnessManager.shared.availableDisplays().count
         let effectiveCount = max(1, min(4, count))
 
-        // NotchPulseHeader (34) + DisplayHub top padding (4) + Header bar (30) + spacing (8) = 76
-        let headerHeight: CGFloat = 76
-        let rowHeight: CGFloat = 50
+        // NotchPulseHeader (32) + DisplayHub top padding (4) + Header bar (28) + spacing (8) = 72
+        let headerHeight: CGFloat = 72
+        let rowHeight: CGFloat = 48
         let spacing: CGFloat = 6
         let rowsHeight = CGFloat(effectiveCount) * rowHeight + CGFloat(max(0, effectiveCount - 1)) * spacing
-        let bottomPadding: CGFloat = 24
+        let bottomPadding: CGFloat = 8
 
         let total = headerHeight + rowsHeight + bottomPadding
-        return min(400, max(150, total))
+        return min(380, max(120, total))
     }
 }
 
