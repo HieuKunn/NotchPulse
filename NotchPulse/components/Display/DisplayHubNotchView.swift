@@ -107,17 +107,17 @@ struct DisplayHubNotchView: View {
     @MainActor
     static func calculateHeight(displayCount: Int? = nil) -> CGFloat {
         let count = displayCount ?? BrightnessManager.shared.availableDisplays().count
-        let effectiveCount = max(1, min(4, count))
+        let effectiveCount = max(1, count)
 
-        // NotchPulseHeader (~30) + DisplayHub top padding (2) + Header bar (24) + spacing (4) = 56
-        let headerHeight: CGFloat = 56
-        let rowHeight: CGFloat = 46
-        let spacing: CGFloat = 4
+        // NotchPulseHeader (34) + spacing (8) + Header bar (28) + spacing (8) + list padding (4) = 82
+        let headerHeight: CGFloat = 82
+        let rowHeight: CGFloat = 48
+        let spacing: CGFloat = 6
         let rowsHeight = CGFloat(effectiveCount) * rowHeight + CGFloat(max(0, effectiveCount - 1)) * spacing
-        let bottomPadding: CGFloat = 6
+        let bottomPadding: CGFloat = 10
 
         let total = headerHeight + rowsHeight + bottomPadding
-        return min(360, max(100, total))
+        return min(600, max(120, total))
     }
 }
 
