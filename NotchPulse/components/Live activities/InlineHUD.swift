@@ -87,7 +87,7 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, type == .battery ? 0 : 8)
+            .padding(.leading, type == .battery ? 4 : 8)
             .frame(width: wing + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
@@ -153,7 +153,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, type == .battery ? 0 : 8)
+            .padding(.trailing, type == .battery ? 4 : 8)
             .frame(width: wing + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .trailing)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -205,7 +205,7 @@ struct InlineHUD: View {
     static func wingWidth(for type: SneakContentType) -> CGFloat {
         switch type {
         case .battery:
-            return 32
+            return 36
         case .mic:
             return 52
         default:
@@ -225,13 +225,17 @@ struct InlineHUD: View {
         if isDynamicIsland && !hasPhysicalNotch {
             return type == .battery ? 14 : 16
         }
+        if type == .battery {
+            return max(0, closedNotchWidth - 6)
+        }
         return max(0, closedNotchWidth + 12)
     }
 
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, hasPhysicalNotch: Bool = false, closedNotchWidth: CGFloat) -> CGFloat {
         let wing = wingWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: closedNotchWidth, type: type)
-        return (wing * 2) + center
+        let sideMargin: CGFloat = (type == .battery && hasPhysicalNotch) ? 12 : 0
+        return (wing * 2) + center + sideMargin
     }
 }
 

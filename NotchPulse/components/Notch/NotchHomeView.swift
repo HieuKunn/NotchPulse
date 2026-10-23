@@ -20,6 +20,9 @@ struct MusicPlayerView: View {
         let controlsWidth = allocatedWidth.map { max(140, $0 - artSize - 14) }
         HStack(alignment: .center, spacing: 12) {
             AlbumArtView(albumArtNamespace: albumArtNamespace, size: artSize)
+                // ARCHITECTURAL RULE: Left outer margin is strictly 8pt.
+                // Right outer margin (Calendar side) must sum up to exactly 8pt (EventListView 2pt + EventRowItemView 6pt)
+                // to maintain identical, balanced visual padding across Notch and Dynamic Island.
                 .padding(.leading, 8)
                 .padding(.vertical, 2)
             MusicControlsView(allocatedWidth: controlsWidth)

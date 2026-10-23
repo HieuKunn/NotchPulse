@@ -996,7 +996,12 @@ struct CalendarView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
         }
-        .padding(.trailing, 8)
+        // ARCHITECTURAL RULE (LAYOUT SYMMETRY & NOTCH/DYNAMIC ISLAND PARITY):
+        // Total outer inset must match MediaPlayerView leading inset (8pt) identically on both Notch and Dynamic Island:
+        // Left side (Media): AlbumArtView has .padding(.leading, 8) = 8pt total leading margin.
+        // Right side (Calendar): EventRowItemView has .padding(.horizontal, 6) + EventListView has .padding(.horizontal, 2) = 8pt total trailing margin.
+        // Therefore, normalModeView must have .padding(.trailing, 0) to ensure exact 8pt = 8pt optical and structural symmetry.
+        .padding(.trailing, 0)
         .padding(.bottom, 8)
         .listRowBackground(Color.clear)
     }
