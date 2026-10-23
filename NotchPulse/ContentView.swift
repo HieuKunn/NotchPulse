@@ -658,7 +658,7 @@ struct ContentView: View {
                                     .transition(.opacity)
                             } else if !isEffectivelyLocked && Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && musicManager.isPlaying && !musicManager.songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && coordinator.musicLiveActivityEnabled {
                                 MusicLiveActivity()
-                                    .frame(alignment: .center)
+                                    .frame(maxWidth: isDefaultHUDActive ? .infinity : nil, alignment: .center)
                                     .transition(.opacity)
                             } else if !isEffectivelyLocked && vm.notchState == .open {
                                 NotchPulseHeader()
@@ -839,41 +839,45 @@ struct ContentView: View {
                     )
                 )
 
-            Rectangle()
-                .fill(.black)
-                .overlay(
-                    HStack(alignment: .center, spacing: 0) {
-                        if isInlineExpanded {
-                            Text(musicManager.songTitle)
-                                .font(.system(size: 11, weight: .medium))
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .foregroundStyle(
-                                    Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor) : Color.white
-                                )
-                                .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .leading)
-                                .opacity(isInlineExpanded ? 1 : 0)
+            if isDefaultHUDActive {
+                Spacer()
+            } else {
+                Rectangle()
+                    .fill(.black)
+                    .overlay(
+                        HStack(alignment: .center, spacing: 0) {
+                            if isInlineExpanded {
+                                Text(musicManager.songTitle)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                    .foregroundStyle(
+                                        Defaults[.coloredSpectrogram]
+                                            ? Color(nsColor: musicManager.avgColor) : Color.white
+                                    )
+                                    .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .leading)
+                                    .opacity(isInlineExpanded ? 1 : 0)
 
-                            Spacer(minLength: hasPhysicalNotch ? (vm.closedNotchSize.width + 24) : 16)
+                                Spacer(minLength: hasPhysicalNotch ? (vm.closedNotchSize.width + 24) : 16)
 
-                            // Song Artist
-                            Text(musicManager.artistName)
-                                .font(.system(size: 11, weight: .medium))
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .foregroundStyle(
-                                    Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor).opacity(0.85)
-                                        : Color.white.opacity(0.7)
-                                )
-                                .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .trailing)
-                                .opacity(isInlineExpanded ? 1 : 0)
+                                // Song Artist
+                                Text(musicManager.artistName)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                    .foregroundStyle(
+                                        Defaults[.coloredSpectrogram]
+                                            ? Color(nsColor: musicManager.avgColor).opacity(0.85)
+                                            : Color.white.opacity(0.7)
+                                    )
+                                    .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .trailing)
+                                    .opacity(isInlineExpanded ? 1 : 0)
+                            }
                         }
-                    }
-                    .padding(.horizontal, 4)
-                )
-                .frame(width: spacerWidth)
+                        .padding(.horizontal, 4)
+                    )
+                    .frame(width: spacerWidth)
+            }
 
             HStack {
                 if useMusicVisualizer {
@@ -902,8 +906,12 @@ struct ContentView: View {
                 alignment: .center
             )
         }
-        .padding(.leading, isDynamicIsland ? 15 : 18)
-        .padding(.trailing, isDynamicIsland ? 12 : 14)
+        .padding(.leading, isDynamicIsland ? (isDefaultHUDActive ? 14 : 15) : 18)
+        .padding(.trailing, isDynamicIsland ? (isDefaultHUDActive ? 14 : 12) : 14)
+        .frame(
+            maxWidth: isDefaultHUDActive ? .infinity : nil,
+            alignment: .center
+        )
         .frame(
             height: liveHeight,
             alignment: .center

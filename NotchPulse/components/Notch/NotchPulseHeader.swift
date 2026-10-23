@@ -10,7 +10,6 @@ struct NotchPulseHeader: View {
     @Default(.enableAudioHub) var enableAudioHub
     @Default(.showAudioHubInNotch) var showAudioHubInNotch
     @Default(.enableDisplayHub) var enableDisplayHub
-    @Default(.showDisplayHubInNotch) var showDisplayHubInNotch
     @Default(.showMirror) var showMirror
     @Default(.settingsIconInNotch) var settingsIconInNotch
 
@@ -83,7 +82,7 @@ struct NotchPulseHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        if enableDisplayHub && showDisplayHubInNotch {
+                        if enableDisplayHub {
                             Button(action: {
                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                                     if coordinator.currentView == .display {
