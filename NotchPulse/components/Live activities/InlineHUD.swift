@@ -17,7 +17,10 @@ struct InlineHUD: View {
             ?? NSScreen.main
         let hasPhysicalNotch = screenHasPhysicalNotch(screen)
         let hudHeight: CGFloat = isDynamicIsland ? 32.0 : vm.effectiveClosedNotchHeight
-        HStack(spacing: type == .battery ? 0 : 8) {
+        let wing = InlineHUD.wingWidth(for: type)
+        let centerSpacer = InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: vm.closedNotchSize.width, type: type)
+
+        HStack(spacing: 0) {
             HStack(spacing: 5) {
                 Group {
                     switch (type) {
@@ -70,7 +73,7 @@ struct InlineHUD: View {
                         brightnessManager.toggleTargetDisplay()
                     }) {
                         Text(Type2Name(type))
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 11.5, weight: .medium))
                             .lineLimit(1)
                             .allowsTightening(true)
                             .contentTransition(.numericText())
@@ -78,20 +81,20 @@ struct InlineHUD: View {
                     .buttonStyle(PlainButtonStyle())
                 } else if type != .battery {
                     Text(Type2Name(type))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11.5, weight: .medium))
                         .lineLimit(1)
                         .allowsTightening(true)
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, type == .battery ? (isDynamicIsland ? 5 : 7) : 10)
-            .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
+            .padding(.leading, type == .battery ? 0 : 8)
+            .frame(width: wing + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
                 .fill(.black)
-                .frame(width: InlineHUD.centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: vm.closedNotchSize.width, type: type))
+                .frame(width: centerSpacer)
             
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 if (type == .battery) {
                     ZStack {
                         Circle()
@@ -109,8 +112,7 @@ struct InlineHUD: View {
                             .lineLimit(1)
                             .allowsTightening(true)
                     }
-                    .frame(width: 22, height: 22)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(width: 20, height: 20)
                 } else if (type == .mic) {
                     Text(value.isZero ? "muted" : "unmuted")
                         .font(.system(size: 11, weight: .medium))
@@ -118,10 +120,9 @@ struct InlineHUD: View {
                         .lineLimit(1)
                         .allowsTightening(true)
                         .multilineTextAlignment(.trailing)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
                         .contentTransition(.interpolate)
                 } else {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         DraggableProgressBar(value: $value, onChange: { v in
                             if type == .volume {
                                 VolumeManager.shared.setAbsolute(Float32(v))
@@ -129,31 +130,31 @@ struct InlineHUD: View {
                                 BrightnessManager.shared.setAbsolute(value: Float32(v))
                             }
                         })
-                        .frame(width: 44)
+                        .frame(width: 36)
                         
                         if (type == .volume && value.isZero) {
                             Text(loc("muted"))
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(size: 10.5, weight: .medium))
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                                 .allowsTightening(true)
                                 .multilineTextAlignment(.trailing)
-                                .frame(minWidth: 26, alignment: .trailing)
+                                .frame(minWidth: 24, alignment: .trailing)
                         } else if Defaults[.showClosedNotchHUDPercentage] {
                             Text("\(Int(value * 100))%")
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.gray)
                                 .lineLimit(1)
                                 .allowsTightening(true)
                                 .contentTransition(.numericText())
                                 .multilineTextAlignment(.trailing)
-                                .frame(minWidth: 26, alignment: .trailing)
+                                .frame(minWidth: 24, alignment: .trailing)
                         }
                     }
                 }
             }
-            .padding(.trailing, type == .battery ? (isDynamicIsland ? 5 : 7) : 10)
-            .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
+            .padding(.trailing, type == .battery ? 0 : 8)
+            .frame(width: wing + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .trailing)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
     }
@@ -201,56 +202,36 @@ struct InlineHUD: View {
         }
     }
 
-    static func leftColumnWidth(for type: SneakContentType) -> CGFloat {
+    static func wingWidth(for type: SneakContentType) -> CGFloat {
         switch type {
-        case .brightness:
-            return 78
-        case .backlight:
-            return 78
-        case .mic:
-            return 56
         case .battery:
-            return 26
+            return 32
+        case .mic:
+            return 52
         default:
             return 74
         }
     }
 
+    static func leftColumnWidth(for type: SneakContentType) -> CGFloat {
+        wingWidth(for: type)
+    }
+
     static func rightColumnWidth(for type: SneakContentType) -> CGFloat {
-        switch type {
-        case .mic:
-            return 56
-        case .battery:
-            return 26
-        default:
-            return 78
-        }
+        wingWidth(for: type)
     }
 
     static func centerSpacerWidth(isDynamicIsland: Bool, hasPhysicalNotch: Bool = false, closedNotchWidth: CGFloat, type: SneakContentType = .volume) -> CGFloat {
         if isDynamicIsland && !hasPhysicalNotch {
-            if type == .battery {
-                return 16
-            }
-            return 20
+            return type == .battery ? 14 : 16
         }
-        if type == .battery {
-            return max(0, closedNotchWidth + 12)
-        }
-        return max(0, closedNotchWidth + 8)
+        return max(0, closedNotchWidth + 12)
     }
 
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, hasPhysicalNotch: Bool = false, closedNotchWidth: CGFloat) -> CGFloat {
-        let left = leftColumnWidth(for: type)
-        let right = rightColumnWidth(for: type)
+        let wing = wingWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: closedNotchWidth, type: type)
-        let padding: CGFloat
-        if type == .battery {
-            padding = isDynamicIsland ? 10 : 13
-        } else {
-            padding = isDynamicIsland ? 16 : 20
-        }
-        return left + center + right + padding
+        return (wing * 2) + center
     }
 }
 

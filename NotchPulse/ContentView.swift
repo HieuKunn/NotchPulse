@@ -232,7 +232,8 @@ struct ContentView: View {
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
             let spacerWidth = mediaSpacerWidth(isDynamicIsland: isDynamicIsland, isInlineActive: isInlineMediaActive)
-            mediaWidth = (artSize * 2) + spacerWidth + (isDynamicIsland ? 27 : 32) + gestureProgress
+            let sidePadding: CGFloat = (isDynamicIsland && !hasPhysicalNotch) ? 28 : 34
+            mediaWidth = (artSize * 2) + spacerWidth + sidePadding + gestureProgress
         }
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
@@ -243,11 +244,13 @@ struct ContentView: View {
             if Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery {
                 chinWidth = InlineHUD.totalWidth(for: coordinator.sneakPeek.type, isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: vm.closedNotchSize.width) + gestureProgress
             } else {
-                let defaultHUDWidth = max(vm.closedNotchSize.width + 40, isDynamicIsland ? 260 : 250) + gestureProgress
+                let minDefaultHUDWidth = (isDynamicIsland && !hasPhysicalNotch) ? 260 : (vm.closedNotchSize.width + 80)
+                let defaultHUDWidth = max(minDefaultHUDWidth, isDynamicIsland ? 260 : 250) + gestureProgress
                 chinWidth = isMediaPlaying ? max(mediaWidth, defaultHUDWidth) : defaultHUDWidth
             }
         } else if coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music && Defaults[.sneakPeekStyles] == .standard && vm.notchState == .closed {
-            let defaultMusicWidth = max(vm.closedNotchSize.width + 40, isDynamicIsland ? 260 : 250) + gestureProgress
+            let minDefaultMusicWidth = (isDynamicIsland && !hasPhysicalNotch) ? 260 : (vm.closedNotchSize.width + 80)
+            let defaultMusicWidth = max(minDefaultMusicWidth, isDynamicIsland ? 260 : 250) + gestureProgress
             chinWidth = isMediaPlaying ? max(mediaWidth, defaultMusicWidth) : defaultMusicWidth
         } else if isMediaPlaying {
             chinWidth = mediaWidth
@@ -256,12 +259,12 @@ struct ContentView: View {
     }
 
     private func mediaSpacerWidth(isDynamicIsland: Bool, isInlineActive: Bool) -> CGFloat {
-        if isDynamicIsland {
-            let baseSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 16) : 56
-            let expandedSpacer: CGFloat = hasPhysicalNotch ? (vm.closedNotchSize.width + 160) : 170
+        if isDynamicIsland && !hasPhysicalNotch {
+            let baseSpacer: CGFloat = 56
+            let expandedSpacer: CGFloat = 160
             return isInlineActive ? expandedSpacer : baseSpacer
         } else {
-            return vm.closedNotchSize.width + (isInlineActive ? 144 : 16)
+            return vm.closedNotchSize.width + (isInlineActive ? 140 : 16)
         }
     }
 
@@ -655,10 +658,11 @@ struct ContentView: View {
                         Group {
                             if !isEffectivelyLocked && coordinator.sneakPeek.show && (Defaults[.inlineHUD] || coordinator.sneakPeek.type == .battery) && (coordinator.sneakPeek.type != .music) && vm.notchState == .closed {
                                 InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
+                                    .frame(maxWidth: .infinity, alignment: .center)
                                     .transition(.opacity)
                             } else if !isEffectivelyLocked && Defaults[.enableMediaFeature] && (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && musicManager.isPlaying && !musicManager.songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && coordinator.musicLiveActivityEnabled {
                                 MusicLiveActivity()
-                                    .frame(maxWidth: isDefaultHUDActive ? .infinity : nil, alignment: .center)
+                                    .frame(maxWidth: (isDynamicIsland && !hasPhysicalNotch && isDefaultHUDActive) ? .infinity : nil, alignment: .center)
                                     .transition(.opacity)
                             } else if !isEffectivelyLocked && vm.notchState == .open {
                                 NotchPulseHeader()
@@ -705,8 +709,9 @@ struct ContentView: View {
                                     }
                                 }
                             )
+                            .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.bottom, 10)
-                            .padding(.horizontal, isDynamicIsland ? 14 : 18)
+                            .padding(.horizontal, (isDynamicIsland && !hasPhysicalNotch) ? 14 : 18)
                         }
                         // Old sneak peek music
                         else if coordinator.sneakPeek.type == .music {
@@ -721,9 +726,10 @@ struct ContentView: View {
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .center)
                                 .foregroundStyle(.gray)
                                 .padding(.bottom, 10)
-                                .padding(.horizontal, isDynamicIsland ? 14 : 18)
+                                .padding(.horizontal, (isDynamicIsland && !hasPhysicalNotch) ? 14 : 18)
                             }
                         }
                     }
@@ -839,7 +845,7 @@ struct ContentView: View {
                     )
                 )
 
-            if isDefaultHUDActive {
+            if isDynamicIsland && !hasPhysicalNotch && isDefaultHUDActive {
                 Spacer()
             } else {
                 Rectangle()
@@ -855,7 +861,7 @@ struct ContentView: View {
                                         Defaults[.coloredSpectrogram]
                                             ? Color(nsColor: musicManager.avgColor) : Color.white
                                     )
-                                    .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .leading)
+                                    .frame(maxWidth: (isDynamicIsland && !hasPhysicalNotch) ? 70 : 55, alignment: .leading)
                                     .opacity(isInlineExpanded ? 1 : 0)
 
                                 Spacer(minLength: hasPhysicalNotch ? (vm.closedNotchSize.width + 24) : 16)
@@ -870,7 +876,7 @@ struct ContentView: View {
                                             ? Color(nsColor: musicManager.avgColor).opacity(0.85)
                                             : Color.white.opacity(0.7)
                                     )
-                                    .frame(maxWidth: isDynamicIsland ? (hasPhysicalNotch ? 65 : 70) : 55, alignment: .trailing)
+                                    .frame(maxWidth: (isDynamicIsland && !hasPhysicalNotch) ? 70 : 55, alignment: .trailing)
                                     .opacity(isInlineExpanded ? 1 : 0)
                             }
                         }
@@ -906,10 +912,10 @@ struct ContentView: View {
                 alignment: .center
             )
         }
-        .padding(.leading, isDynamicIsland ? (isDefaultHUDActive ? 14 : 15) : 18)
-        .padding(.trailing, isDynamicIsland ? (isDefaultHUDActive ? 14 : 12) : 14)
+        .padding(.leading, (isDynamicIsland && !hasPhysicalNotch) ? 14 : 10)
+        .padding(.trailing, (isDynamicIsland && !hasPhysicalNotch) ? 14 : 10)
         .frame(
-            maxWidth: isDefaultHUDActive ? .infinity : nil,
+            maxWidth: (isDynamicIsland && !hasPhysicalNotch && isDefaultHUDActive) ? .infinity : nil,
             alignment: .center
         )
         .frame(
