@@ -110,7 +110,8 @@ final class FaceIDOverlayWindowController {
     }
 
     var currentGeometry: FaceIDOverlayGeometry {
-        FaceIDOverlayGeometry.preferredScreen().map(FaceIDOverlayGeometry.forScreen) ?? FaceIDOverlayGeometry.forMainScreen()
+        let isEnrollment = FaceIDOverlayController.shared.phase == .onboarding
+        return FaceIDOverlayGeometry.preferredScreen(forEnrollment: isEnrollment).map(FaceIDOverlayGeometry.forScreen) ?? FaceIDOverlayGeometry.forMainScreen()
     }
 
     // MARK: - Click-through outside the visible panel
@@ -173,8 +174,10 @@ final class FaceIDOverlayWindowController {
         return newWindow
     }
 
-    private func reposition(_ window: FaceIDOverlayWindow) {
-        guard let screen = FaceIDOverlayGeometry.preferredScreen() else { return }
+    func reposition(_ windowToReposition: FaceIDOverlayWindow? = nil) {
+        guard let win = windowToReposition ?? self.window else { return }
+        let isEnrollment = FaceIDOverlayController.shared.phase == .onboarding
+        guard let screen = FaceIDOverlayGeometry.preferredScreen(forEnrollment: isEnrollment) else { return }
         let targetSize = FaceIDOverlayGeometry.windowSize(for: currentGeometry.style)
         let screenFrame = screen.frame
         let targetOrigin = NSPoint(
@@ -182,8 +185,8 @@ final class FaceIDOverlayWindowController {
             y: screenFrame.maxY - targetSize.height
         )
         let targetRect = NSRect(origin: targetOrigin, size: targetSize)
-        if window.frame != targetRect {
-            window.setFrame(targetRect, display: true)
+        if win.frame != targetRect {
+            win.setFrame(targetRect, display: true)
         }
     }
 

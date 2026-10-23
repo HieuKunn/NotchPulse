@@ -217,35 +217,23 @@ struct FaceIDOverlayGeometry {
 
     /// Picks the screen the overlay should show on. Follows NotchPulse's configured display:
     /// 1. If showing on all displays (`showOnAllDisplays` is true), prioritize the primary display
-    /// Resolution order:
-    /// 1. Screen associated with the active/resolved camera device (matching user expectation).
-    ///    - Built-in camera or MacBook notch screen always targets the built-in display where the user looks.
-    ///    - External webcam targets the external display.
-    /// 2. If all displays mode:
-    ///    - First screen per macOS System Settings (`NSScreen.screens.first ?? NSScreen.main`).
-    /// 3. If single display mode:
-    ///    a. User's explicitly preferred display (`preferredScreenUUID`).
-    ///    b. Active selected display (`selectedScreenUUID`).
-    ///    c. Active NotchPulse window's screen if present.
-    ///    d. Primary display per macOS System Settings (`NSScreen.screens.first ?? NSScreen.main`).
+    /// Picks the screen the overlay should show on.
+    /// - Parameter forEnrollment: If true (during setup of a new Face ID or recapture), routes the window
+    ///   to the screen where the camera is physically located so the user looks straight at the camera lens.
+    ///   If false (default for normal lock screen, resting notch, and Face ID unlock), strictly respects
+    ///   the user's configured display preference so the notch, lock screen, drop smile, and inline smile
+    ///   stay exactly where the user configured them.
     @MainActor
-    static func preferredScreen() -> NSScreen? {
-        // PRIORITY 1: The screen where the camera actually is!
-        // When enrolling Face ID or unlocking, the user looks directly into the camera lens.
-        // If the resolved camera is the Mac's built-in FaceTime HD/iSight camera (or on MacBooks with a physical notch),
-        // the Face ID capture panel MUST render directly at the top of that built-in screen.
-        let device = NotchPulseCameraDeviceCatalog.resolvedDevice()
-        let isBuiltInCamera = device?.deviceType == .builtInWideAngleCamera
-            || (device?.localizedName.localizedCaseInsensitiveContains("built-in") == true)
-            || (device?.localizedName.localizedCaseInsensitiveContains("facetime") == true)
-
-        if isBuiltInCamera || device == nil {
-            // Find the built-in Mac screen (physical notch or MacBook Retina)
-            if let builtInScreen = NSScreen.screens.first(where: { screenHasPhysicalNotch($0) || $0.isBuiltIn }) {
-                return builtInScreen
-            }
+    static func preferredScreen(forEnrollment: Bool = false) -> NSScreen? {
+        if forEnrollment {
+            return cameraScreen()
         }
+        return standardScreen()
+    }
 
+    /// Resolves the user's chosen display for NotchPulse.
+    @MainActor
+    static func standardScreen() -> NSScreen? {
         if Defaults[.showOnAllDisplays] {
             return NSScreen.screens.first ?? NSScreen.main
         }
@@ -262,6 +250,23 @@ struct FaceIDOverlayGeometry {
             return windowScreen
         }
         return NSScreen.screens.first ?? NSScreen.main
+    }
+
+    /// Screen associated with the active camera device, used exclusively for new Face ID setup / recapture.
+    @MainActor
+    static func cameraScreen() -> NSScreen? {
+        let device = NotchPulseCameraDeviceCatalog.resolvedDevice()
+        let isBuiltInCamera = device?.deviceType == .builtInWideAngleCamera
+            || (device?.localizedName.localizedCaseInsensitiveContains("built-in") == true)
+            || (device?.localizedName.localizedCaseInsensitiveContains("facetime") == true)
+
+        if isBuiltInCamera || device == nil {
+            // Find the built-in Mac screen (physical notch or MacBook Retina)
+            if let builtInScreen = NSScreen.screens.first(where: { screenHasPhysicalNotch($0) || $0.isBuiltIn }) {
+                return builtInScreen
+            }
+        }
+        return standardScreen()
     }
 }
 

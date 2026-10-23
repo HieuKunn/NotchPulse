@@ -421,7 +421,7 @@ final class FaceIDDirectionSweepWindowController {
         dismissTask = nil
         tearDownWindow()
 
-        guard let screen = NotchGeometry.preferredScreen() else { return }
+        guard let screen = NotchGeometry.preferredScreen(forEnrollment: true) else { return }
 
         let host = Host(controller: controller)
         host.isPresented = true
@@ -444,7 +444,7 @@ final class FaceIDDirectionSweepWindowController {
         dismissTask = nil
         tearDownWindow()
 
-        guard let screen = NotchGeometry.preferredScreen() else { return }
+        guard let screen = NotchGeometry.preferredScreen(forEnrollment: true) else { return }
 
         let hostingView = NSHostingView(rootView: FaceIDDirectionSweep(direction: direction))
         hostingView.sizingOptions = []

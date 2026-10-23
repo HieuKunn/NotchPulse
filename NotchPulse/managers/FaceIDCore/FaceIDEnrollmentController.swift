@@ -308,7 +308,7 @@ final class FaceIDEnrollmentController {
     /// Read fresh off the preferred screen each time rather than cached, so it stays
     /// correct across a display change mid-flow.
     private var currentPanelStyle: NotchPanelStyle {
-        NotchGeometry.preferredScreen().map(NotchGeometry.forScreen)?.style ?? .notch
+        NotchGeometry.preferredScreen(forEnrollment: true).map(NotchGeometry.forScreen)?.style ?? .notch
     }
 
     var panelSize: CGSize { FaceIDMetrics.panelSize(for: step, style: currentPanelStyle) }

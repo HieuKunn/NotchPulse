@@ -199,14 +199,17 @@ final class FaceIDOverlayController {
     /// On the very first show, `present()`/`presentOnboarding()` would otherwise render
     /// already-expanded with no prior "closed" frame for SwiftUI to animate away from.
     /// This runs one real closed-state show+render pass first, only on that first call.
-    private func primeWindowIfNeeded(_ completion: @escaping @MainActor @Sendable () -> Void) {
+    private func primeWindowIfNeeded(forOnboarding: Bool = false, _ completion: @escaping @MainActor @Sendable () -> Void) {
         guard !hasPrimedWindow else {
             completion()
             return
         }
         hasPrimedWindow = true
         content = .scan(.idle)
-        phase = .closed
+        phase = forOnboarding ? .onboarding : .closed
+        if forOnboarding {
+            windowController.reposition()
+        }
         windowController.show()
         windowController.displaySynchronously()
         DispatchQueue.main.async {
@@ -260,11 +263,15 @@ final class FaceIDOverlayController {
         resolveTask?.cancel(); resolveTask = nil
         scanTimeoutTask?.cancel(); scanTimeoutTask = nil
 
+        content = .onboarding(controller)
+        phase = .onboarding
         geometry = windowController.currentGeometry
-        primeWindowIfNeeded { [weak self] in
+        primeWindowIfNeeded(forOnboarding: true) { [weak self] in
             guard let self else { return }
             self.content = .onboarding(controller)
             self.phase = .onboarding
+            self.geometry = self.windowController.currentGeometry
+            self.windowController.reposition()
             self.windowController.show()
             self.updateInteractivity()
         }
@@ -295,6 +302,8 @@ final class FaceIDOverlayController {
             self.content = .scan(.idle)
             self.phase = .closed
             self.windowController.hide()
+            self.windowController.reposition()
+            self.geometry = self.windowController.currentGeometry
             onCompleted?()
         }
     }
