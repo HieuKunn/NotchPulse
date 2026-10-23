@@ -13,7 +13,7 @@
 - **Scroll-Wheel Fine Tuning**: Simply hover over any brightness slider and scroll with your trackpad or mouse wheel to fine-tune brightness in subtle, precise increments.
 - **Quick Preset Buttons**: Jump straight to 25%, 50%, 75%, or 100% brightness with one single click on the quick preset tags.
 
-### ⚙️ Customizable & Fluid Experience
-- **Dedicated Display Settings**: Turn Display Hub on or off, and toggle its presence in the Notch header to suit your workflow via Settings > Display.
-- **Dynamic Multi-Screen Detection**: Automatically updates whenever you connect or disconnect an external monitor or docking station.
-- **Zero-Lag Fluid Spring Motion**: Expands and collapses with smooth 120Hz ProMotion animation, seamlessly matching the height of your connected displays.
+### 🎨 Refined Layout & Physical Notch Geometry
+- **Hardware Notch Alignment**: Inline HUDs and closed media widgets now feature strict physical camera clearance and balanced symmetric wings, preventing icons and text from being obscured by the hardware cutout.
+- **Compact & Clean Hub Design**: Display Hub and Audio Hub now feature tailored dynamic heights with compact bottom margins, eliminating unnecessary empty space for a sleek, native look on both Notch and Dynamic Island.
+- **Enhanced Dynamic Island HUD Motion**: Default HUD media visualizers and status indicators smoothly transition to the edges when expanding the island.

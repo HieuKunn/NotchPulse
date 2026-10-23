@@ -3,7 +3,10 @@
 This document outlines the core rules, architectural guidelines, and release procedures for the NotchPulse project. All AI agents working on this codebase MUST read and strictly adhere to these instructions.
 
 > ⛔️ **DO NOT RELEASE UNLESS EXPLICITLY INSTRUCTED (STRICT RULE):**
-> If the user's prompt does NOT explicitly contain a direct command or request to release (e.g., "release", "publish", "tag", "release lại", "sửa lỗi build release", etc.), **DO NOT** bump versions/build numbers, **DO NOT** create or push git tags, and **DO NOT** trigger release workflows. Simply make code modifications, verify correctness, and commit normally.
+> If the user's prompt does NOT explicitly contain a direct command or request to release (e.g., "release", "publish", "tag", "release lại", "sửa lỗi build release", etc.), **DO NOT** bump versions/build numbers, **DO NOT** create or push git tags, and **DO NOT** trigger release workflows. Simply make code modifications, verify correctness, and keep changes unstaged/uncommitted.
+>
+> 🛑 **DO NOT COMMIT AFTER EVERY STEP (BATCH COMMITTING RULE):**
+> Do NOT create git commits or push after every small edit or individual task turn. Keep modifications in the working tree and verify correctness. Wait until a release is requested (or until the user explicitly instructs to commit) to commit and push all changes together in a single consolidated commit.
 >
 > 🚨 **MANDATORY RELEASE CHECKLIST (ONLY WHEN USER EXPLICITLY ASKS FOR RELEASE):**
 > 1. ✅ **Update Build Number & Version in Xcode Project:**
@@ -19,6 +22,7 @@ This document outlines the core rules, architectural guidelines, and release pro
 ---
 
 ## 1. Commit Messages & Release Notes Guidelines (MANDATORY)
+- **Batch Commits on Release:** Wait until release time (or an explicit user command to commit) before committing code. Avoid cluttering git history with micro-commits for each intermediate task step.
 - **Descriptive Commit Messages:** When committing code, ALWAYS provide a concise, itemized description of the specific changes and fixes. NEVER use generic messages like "update code" or "fix bug".
 - **English Release Notes (`RELEASE_NOTES.md`):**
   - **Single Latest Version Only (REQUIRED):** `RELEASE_NOTES.md` must ONLY contain the notes for the single newest release being published. Do NOT keep or append past version notes in this file; each release completely replaces `RELEASE_NOTES.md` with only the latest release section.
