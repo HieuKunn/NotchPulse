@@ -9,6 +9,7 @@ struct DisplayTarget: Equatable, Identifiable {
 	let shortName: String
 }
 
+@MainActor
 final class BrightnessManager: ObservableObject {
 	static let shared = BrightnessManager()
 
@@ -144,7 +145,7 @@ final class BrightnessManager: ObservableObject {
 		return displayBrightnessCache[displayID] ?? 0.5
 	}
 
-	@MainActor func setRelative(delta: Float, alternateScreen: Bool = false) {
+	func setRelative(delta: Float, alternateScreen: Bool = false) {
 		let displays = availableDisplays()
 		let builtinDisplay = displays.first(where: { $0.isBuiltin })
 		let externalDisplay = displays.first(where: { !$0.isBuiltin })
@@ -181,9 +182,6 @@ final class BrightnessManager: ObservableObject {
 		let clamped = max(0, min(1, value))
 		displayBrightnessCache[displayID] = clamped
 
-		// Instantly update software shade overlay for smooth external display response
-		DisplayShadeManager.shared.setBrightness(clamped, for: displayID)
-
 		Task { @MainActor in
 			_ = await client.setDisplayBrightness(clamped, for: displayID)
 			if displayID == activeDisplayID {
@@ -193,12 +191,10 @@ final class BrightnessManager: ObservableObject {
 	}
 
 	private func publish(brightness: Float, touchDate: Bool) {
-		DispatchQueue.main.async {
-			if self.rawBrightness != brightness || touchDate {
-				if touchDate { self.lastChangeAt = Date() }
-				self.rawBrightness = brightness
-				self.animatedBrightness = brightness
-			}
+		if self.rawBrightness != brightness || touchDate {
+			if touchDate { self.lastChangeAt = Date() }
+			self.rawBrightness = brightness
+			self.animatedBrightness = brightness
 		}
 	}
 }

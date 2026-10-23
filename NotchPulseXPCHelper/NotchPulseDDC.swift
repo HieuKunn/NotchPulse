@@ -109,7 +109,11 @@ final class NotchPulseDDC {
     private let ddcDataAddress: UInt32 = 0x51
     
     #if arch(arm64)
-    private var serviceCache: [CGDirectDisplayID: CFTypeRef] = [:]
+    struct DDCTransport {
+        let service: CFTypeRef
+        let chipAddress: UInt32
+    }
+    private var transportCache: [CGDirectDisplayID: DDCTransport] = [:]
     #endif
 
     private init() {
@@ -125,7 +129,7 @@ final class NotchPulseDDC {
     func invalidateCache() {
         ddcQueue.async {
             #if arch(arm64)
-            self.serviceCache.removeAll()
+            self.transportCache.removeAll()
             #endif
         }
     }
@@ -190,135 +194,88 @@ final class NotchPulseDDC {
         }
     }
 
-    // MARK: - Apple Silicon (ARM64) DDC Implementation
+    // MARK: - Apple Silicon (ARM64) DDC Implementation (Adapted from waydabber/m1ddc)
 
     #if arch(arm64)
-    private func serviceForDisplay(displayID: CGDirectDisplayID) -> CFTypeRef? {
-        if let cached = serviceCache[displayID] {
+    private func transportForDisplay(displayID: CGDirectDisplayID) -> DDCTransport? {
+        if let cached = transportCache[displayID] {
             return cached
         }
 
-        let candidates = findArm64Services()
-        guard !candidates.isEmpty else { return nil }
-
-        // If only 1 external display and 1 external service, pair directly
-        if candidates.count == 1 {
-            let matched = candidates[0].service
-            serviceCache[displayID] = matched
-            return matched
+        guard let dict = DynamicBridge.coreDisplayInfoDictionary(displayID),
+              let ioLocation = dict["IODisplayLocation"] as? String else {
+            return nil
         }
 
-        // Multiple external displays: Match by score (Vendor, Product ID, EDID, Name)
-        var bestService: CFTypeRef? = nil
-        var bestScore = -1
+        let adapter = IORegistryEntryCopyFromPath(kIOMainPortDefault, ioLocation as CFString)
+        guard adapter != 0 else { return nil }
+        defer { IOObjectRelease(adapter) }
 
-        let displayDict = DynamicBridge.coreDisplayInfoDictionary(displayID)
-        let targetVendor = (displayDict?[kDisplayVendorID] as? Int64) ?? Int64(CGDisplayVendorNumber(displayID))
-        let targetProduct = (displayDict?[kDisplayProductID] as? Int64) ?? Int64(CGDisplayModelNumber(displayID))
-        let targetSerial = (displayDict?[kDisplaySerialNumber] as? Int64) ?? Int64(CGDisplaySerialNumber(displayID))
-        let targetName = (displayDict?["DisplayProductName"] as? [String: String])?["en_US"]?.lowercased()
-
-        for candidate in candidates {
-            var score = 0
-            if candidate.location == "External" { score += 5 }
-            if targetVendor > 0, let mfg = candidate.manufacturerID, !mfg.isEmpty {
-                let vendorHex = String(format: "%04X", targetVendor)
-                if mfg.uppercased().contains(vendorHex) { score += 10 }
-            }
-            if targetProduct > 0, let prod = candidate.productName, !prod.isEmpty {
-                let prodHex = String(format: "%04X", targetProduct)
-                if prod.uppercased().contains(prodHex) { score += 10 }
-            }
-            if let targetName = targetName, let prod = candidate.productName, prod.lowercased().contains(targetName) {
-                score += 15
-            }
-            if targetSerial > 0, candidate.serialNumber == targetSerial {
-                score += 20
-            }
-
-            if score > bestScore {
-                bestScore = score
-                bestService = candidate.service
-            }
+        var selectedAdapterID: UInt64 = 0
+        guard IORegistryEntryGetRegistryEntryID(adapter, &selectedAdapterID) == KERN_SUCCESS else {
+            return nil
         }
 
-        let result = bestService ?? candidates.first?.service
-        if let result = result {
-            serviceCache[displayID] = result
-        }
-        return result
-    }
-
-    private struct DiscoveredService {
-        let service: CFTypeRef
-        let location: String
-        let edidUUID: String?
-        let manufacturerID: String?
-        let productName: String?
-        let serialNumber: Int64?
-    }
-
-    private func findArm64Services() -> [DiscoveredService] {
-        var results: [DiscoveredService] = []
         let root = IORegistryGetRootEntry(kIOMainPortDefault)
+        guard root != 0 else { return nil }
         defer { IOObjectRelease(root) }
 
-        var iterator: io_iterator_t = 0
-        guard IORegistryEntryCreateIterator(root, "IOService", IOOptionBits(kIORegistryIterateRecursively), &iterator) == KERN_SUCCESS else {
-            return results
+        var iter: io_iterator_t = 0
+        guard IORegistryEntryCreateIterator(root, "IOService", IOOptionBits(kIORegistryIterateRecursively), &iter) == KERN_SUCCESS else {
+            return nil
         }
-        defer { IOObjectRelease(iterator) }
+        defer { IOObjectRelease(iter) }
 
-        let namePtr = UnsafeMutablePointer<CChar>.allocate(capacity: MemoryLayout<io_name_t>.size)
-        defer { namePtr.deallocate() }
+        var fbMatches = false
+        let nameBuf = UnsafeMutablePointer<CChar>.allocate(capacity: 512)
+        defer { nameBuf.deallocate() }
 
-        var currentEDID: String? = nil
-        var currentMfg: String? = nil
-        var currentProd: String? = nil
-        var currentSerial: Int64? = nil
+        while case let s = IOIteratorNext(iter), s != 0 {
+            defer { IOObjectRelease(s) }
 
-        while case let entry = IOIteratorNext(iterator), entry != 0 {
-            defer { IOObjectRelease(entry) }
-            guard IORegistryEntryGetName(entry, namePtr) == KERN_SUCCESS else { continue }
-            let name = String(cString: namePtr)
-
-            if name.contains("AppleCLCD2") || name.contains("IOMobileFramebufferShim") {
-                if let unmanagedEdid = IORegistryEntryCreateCFProperty(entry, "EDID UUID" as CFString, kCFAllocatorDefault, 0),
-                   let edid = unmanagedEdid.takeRetainedValue() as? String {
-                    currentEDID = edid
+            if IOObjectConformsTo(s, "IOMobileFramebuffer") != 0 {
+                var fbID: UInt64 = 0
+                if IORegistryEntryGetRegistryEntryID(s, &fbID) == KERN_SUCCESS && fbID == selectedAdapterID {
+                    fbMatches = true
+                } else {
+                    fbMatches = false
                 }
-                if let unmanagedAttrs = IORegistryEntryCreateCFProperty(entry, "DisplayAttributes" as CFString, kCFAllocatorDefault, 0),
-                   let attrs = unmanagedAttrs.takeRetainedValue() as? NSDictionary,
-                   let prodAttrs = attrs["ProductAttributes"] as? NSDictionary {
-                    currentMfg = prodAttrs["ManufacturerID"] as? String
-                    currentProd = prodAttrs["ProductName"] as? String
-                    currentSerial = prodAttrs["SerialNumber"] as? Int64
-                }
-            } else if name.contains("DCPAVServiceProxy") {
-                if let unmanagedLoc = IORegistryEntryCreateCFProperty(entry, "Location" as CFString, kCFAllocatorDefault, 0),
-                   let loc = unmanagedLoc.takeRetainedValue() as? String, loc == "External" {
-                    if let avService = DynamicBridge.createAVService(entry) {
-                        results.append(DiscoveredService(
-                            service: avService,
-                            location: loc,
-                            edidUUID: currentEDID,
-                            manufacturerID: currentMfg,
-                            productName: currentProd,
-                            serialNumber: currentSerial
-                        ))
+                continue
+            }
+
+            IORegistryEntryGetName(s, nameBuf)
+            let sName = String(cString: nameBuf)
+            if fbMatches && sName == "DCPAVServiceProxy" {
+                if let loc = IORegistryEntryCreateCFProperty(s, "Location" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? String, loc == "External" {
+                    if let avService = DynamicBridge.createAVService(s) {
+                        let isMCDP = isMCDP29XX(service: s)
+                        let chipAddr: UInt32 = isMCDP ? 0xB7 : 0x37
+                        let transport = DDCTransport(service: avService, chipAddress: chipAddr)
+                        transportCache[displayID] = transport
+                        return transport
                     }
                 }
             }
         }
-        return results
+        return nil
+    }
+
+    private func isMCDP29XX(service: io_service_t) -> Bool {
+        var parent: io_registry_entry_t = 0
+        guard IORegistryEntryGetParentEntry(service, "IOService", &parent) == KERN_SUCCESS else { return false }
+        defer { IOObjectRelease(parent) }
+        if let prov = IORegistryEntryCreateCFProperty(parent, "EPICProviderClass" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? String {
+            return prov == "AppleDCPMCDP29XX"
+        }
+        return false
     }
 
     private func writeArm64(command: UInt8, value: UInt16, displayID: CGDirectDisplayID) -> Bool {
-        guard let service = serviceForDisplay(displayID: displayID) else { return false }
+        guard let transport = transportForDisplay(displayID: displayID) else { return false }
 
         let send: [UInt8] = [command, UInt8(value >> 8), UInt8(value & 0xFF)]
         var packet: [UInt8] = [UInt8(0x80 | (send.count + 1)), UInt8(send.count)] + send + [0]
-        var chkd: UInt8 = (UInt8(ddc7BitAddress) << 1) ^ UInt8(ddcDataAddress)
+        var chkd: UInt8 = (UInt8(transport.chipAddress) << 1) ^ UInt8(ddcDataAddress)
         for byte in packet.dropLast() {
             chkd ^= byte
         }
@@ -328,7 +285,7 @@ final class NotchPulseDDC {
         for _ in 1...3 {
             for _ in 1...2 {
                 usleep(10000)
-                let res = DynamicBridge.writeI2C(service: service, chipAddress: ddc7BitAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
+                let res = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
                 if res == 0 {
                     success = true
                 }
@@ -340,13 +297,13 @@ final class NotchPulseDDC {
     }
 
     private func readArm64(command: UInt8, displayID: CGDirectDisplayID) -> (UInt16, UInt16)? {
-        guard let service = serviceForDisplay(displayID: displayID) else { return nil }
+        guard let transport = transportForDisplay(displayID: displayID) else { return nil }
 
         let send: [UInt8] = [command]
         var reply = [UInt8](repeating: 0, count: 11)
 
         var packet: [UInt8] = [UInt8(0x80 | (send.count + 1)), UInt8(send.count)] + send + [0]
-        var chkd: UInt8 = (UInt8(ddc7BitAddress) << 1)
+        var chkd: UInt8 = (UInt8(transport.chipAddress) << 1)
         for byte in packet.dropLast() {
             chkd ^= byte
         }
@@ -354,11 +311,11 @@ final class NotchPulseDDC {
 
         for _ in 1...4 {
             usleep(10000)
-            if DynamicBridge.writeI2C(service: service, chipAddress: ddc7BitAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count)) != 0 {
+            if DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count)) != 0 {
                 continue
             }
-            usleep(50000)
-            if DynamicBridge.readI2C(service: service, chipAddress: ddc7BitAddress, dataAddress: 0, buffer: &reply, length: UInt32(reply.count)) == 0 {
+            usleep(transport.chipAddress == 0xB7 ? 50000 : 40000)
+            if DynamicBridge.readI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: 0, buffer: &reply, length: UInt32(reply.count)) == 0 {
                 var replyChk: UInt8 = 0x50
                 for b in reply.dropLast() {
                     replyChk ^= b

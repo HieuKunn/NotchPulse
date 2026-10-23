@@ -2567,8 +2567,6 @@ struct DisplaySettingsView: View {
             if enableDisplayHub {
                 Section(header: Text(loc("Appearance & Behavior"))) {
                     Toggle(loc("Show Display Hub Icon on Right Side of Notch"), isOn: $showDisplayHubInNotch)
-                    Toggle(loc("Enable Software Dimming Fallback"), isOn: $enableSoftwareDimming)
-                        .help(loc("Ensures smooth dimming on HDMI adapters, hubs, or monitors without hardware DDC response."))
                 }
 
                 Section(header: Text(loc("Connected Displays"))) {

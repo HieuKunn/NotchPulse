@@ -150,22 +150,22 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
             return
         }
 
-        // 2. Hardware DDC/CI Control (Dell, LG, Asus, Samsung, BenQ, HKC, etc.)
-        _ = NotchPulseDDC.setBrightness(clamped, for: did)
+        // 2. Direct Hardware DDC/CI Control (Dell, LG, Asus, Samsung, BenQ, HKC, etc.)
+        let ddcOk = NotchPulseDDC.setBrightness(clamped, for: did)
+        if ddcOk {
+            reply(true)
+            return
+        }
 
-        // 3. Legacy IOKit
+        // 3. Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
         if let io = ioServiceFor(displayID: did) {
             let ok = IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped) == kIOReturnSuccess
             IOObjectRelease(io)
-            if ok {
-                reply(true)
-                return
-            }
+            reply(ok)
+            return
         }
 
-        // 4. Software Gamma Fallback
-        let ok = setDisplayGammaBrightness(displayID: did, brightness: clamped)
-        reply(ok)
+        reply(false)
     }
 
     @objc func currentDisplayVolume(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void) {
@@ -194,20 +194,6 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
 
     @objc func setScreenBrightness(_ value: Float, with reply: @escaping (Bool) -> Void) {
         setDisplayBrightness(value, for: CGMainDisplayID(), with: reply)
-    }
-
-    private func setDisplayGammaBrightness(displayID: CGDirectDisplayID, brightness: Float) -> Bool {
-        let clamped = max(0.05, min(1.0, brightness))
-        var red = [CGGammaValue](repeating: 0, count: 256)
-        var green = [CGGammaValue](repeating: 0, count: 256)
-        var blue = [CGGammaValue](repeating: 0, count: 256)
-        for i in 0..<256 {
-            let linear = Float(i) / 255.0 * clamped
-            red[i] = CGGammaValue(linear)
-            green[i] = CGGammaValue(linear)
-            blue[i] = CGGammaValue(linear)
-        }
-        return CGSetDisplayTransferByTable(displayID, 256, &red, &green, &blue) == .success
     }
 
     // MARK: - Private helpers for DisplayServices / IOKit access

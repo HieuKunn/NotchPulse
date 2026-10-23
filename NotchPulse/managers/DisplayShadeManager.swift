@@ -27,30 +27,9 @@ final class DisplayShadeManager: ObservableObject {
     }
 
     func setBrightness(_ value: Float, for displayID: CGDirectDisplayID) {
-        let clamped = max(0.0, min(1.0, value))
-        displayBrightness[displayID] = clamped
-
-        // Only external third-party displays need the software shade overlay
-        guard Defaults[.enableSoftwareDimming], CGDisplayIsBuiltin(displayID) == 0 else {
-            DispatchQueue.main.async { [weak self] in
-                self?.removeShade(for: displayID)
-            }
-            return
-        }
-
-        // Target alpha: At 100% brightness (1.0), alpha is 0.0 (completely clear/transparent).
-        // At 0% brightness, alpha is 0.90 (comfortably dark without turning screen 100% black).
-        let shadeAlpha = CGFloat((1.0 - clamped) * 0.90)
-
+        // Pure hardware DDC is active; remove any remaining software shade windows
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if shadeAlpha <= 0.005 {
-                self.removeShade(for: displayID)
-            } else {
-                let shade = self.getOrCreateShade(for: displayID)
-                shade?.alphaValue = shadeAlpha
-                shade?.orderFrontRegardless()
-            }
+            self?.removeShade(for: displayID)
         }
     }
 
