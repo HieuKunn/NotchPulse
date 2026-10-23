@@ -84,7 +84,7 @@ struct InlineHUD: View {
                         .contentTransition(.numericText())
                 }
             }
-            .padding(.leading, type == .battery ? (isDynamicIsland ? 10 : 13) : 10)
+            .padding(.leading, type == .battery ? (isDynamicIsland ? 5 : 7) : 10)
             .frame(width: InlineHUD.leftColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: type == .battery ? .center : .leading)
             
             Rectangle()
@@ -152,7 +152,7 @@ struct InlineHUD: View {
                     }
                 }
             }
-            .padding(.trailing, type == .battery ? (isDynamicIsland ? 10 : 13) : 10)
+            .padding(.trailing, type == .battery ? (isDynamicIsland ? 5 : 7) : 10)
             .frame(width: InlineHUD.rightColumnWidth(for: type) + gestureProgress / 2, height: max(0, hudHeight - (hoverAnimation ? 0 : 12)), alignment: .center)
         }
         .frame(height: hudHeight + (hoverAnimation ? 8 : 0), alignment: .center)
@@ -246,7 +246,7 @@ struct InlineHUD: View {
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: closedNotchWidth, type: type)
         let padding: CGFloat
         if type == .battery {
-            padding = isDynamicIsland ? 20 : 26
+            padding = isDynamicIsland ? 10 : 13
         } else {
             padding = isDynamicIsland ? 16 : 20
         }

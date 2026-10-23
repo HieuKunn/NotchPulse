@@ -232,7 +232,7 @@ struct ContentView: View {
             let artSize: CGFloat = max(18, liveHeight - 12)
             let isInlineMediaActive = coordinator.expandingView.show && coordinator.expandingView.type == .music && Defaults[.sneakPeekStyles] == .inline
             let spacerWidth = mediaSpacerWidth(isDynamicIsland: isDynamicIsland, isInlineActive: isInlineMediaActive)
-            mediaWidth = (artSize * 2) + spacerWidth + (isDynamicIsland ? 24 : 28) + gestureProgress
+            mediaWidth = (artSize * 2) + spacerWidth + (isDynamicIsland ? 27 : 32) + gestureProgress
         }
 
         if coordinator.expandingView.type == .battery && coordinator.expandingView.show
@@ -890,7 +890,7 @@ struct ContentView: View {
                 alignment: .center
             )
         }
-        .padding(.leading, isDynamicIsland ? 12 : 14)
+        .padding(.leading, isDynamicIsland ? 15 : 18)
         .padding(.trailing, isDynamicIsland ? 12 : 14)
         .frame(
             height: liveHeight,
