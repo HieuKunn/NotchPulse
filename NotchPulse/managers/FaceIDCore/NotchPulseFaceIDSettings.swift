@@ -119,7 +119,7 @@ final class NotchPulseFaceIDSettings {
     }
     /// Nonisolated accessor so background verification routines can read the threshold without hop to MainActor.
     nonisolated static var currentMatchThreshold: Float {
-        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.52
+        (UserDefaults.standard.object(forKey: Key.matchThreshold) as? Float) ?? 0.66
     }
     /// Master switch for liveness checking. Off means face recognition
     /// alone decides an unlock — a photo of the enrolled user would pass.
@@ -252,13 +252,14 @@ final class NotchPulseFaceIDSettings {
         // Enabled by default — onboarding already enrolled a face and set a
         // password specifically to use Face Unlock.
         isFaceUnlockEnabled = defaults.object(forKey: Key.isFaceUnlockEnabled) as? Bool ?? true
-        // Matches `MatchConfidenceLevel.standard` — see FaceIDRecognitionSettingsPage.swift.
+        // Matches `MatchConfidenceLevel.standard` — see FaceIDRecognitionSettingsPage.swift / GlanceSettings.swift.
         if let stored = defaults.object(forKey: Key.matchThreshold) as? Float {
-            matchThreshold = stored
+            matchThreshold = stored < 0.58 ? 0.66 : stored
         } else if let legacy = defaults.object(forKey: "faceIDMatchThreshold") as? Double {
-            matchThreshold = Float(legacy)
+            let legacyFloat = Float(legacy)
+            matchThreshold = legacyFloat < 0.58 ? 0.66 : legacyFloat
         } else {
-            matchThreshold = 0.63
+            matchThreshold = 0.66
         }
         livenessChecksEnabled = defaults.object(forKey: Key.livenessChecksEnabled) as? Bool ?? true
         // Light by default — Heavy requires a blink/pose/depth signal a

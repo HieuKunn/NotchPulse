@@ -1,4 +1,4 @@
-## 🌟 Important Release: NotchPulse v5.4
+## 🌟 Important Release: NotchPulse v5.5
 
 > **Important Update:** This release brings seamless lock screen handover, responsive Face ID biometric matching, clean native overlay presentation, and perfect visual alignment with the physical notch and Dynamic Island.
 

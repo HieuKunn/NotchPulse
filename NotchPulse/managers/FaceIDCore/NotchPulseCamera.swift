@@ -248,8 +248,8 @@ final class NotchPulseCamera: NSObject {
     /// Renders a native-resolution crop of `imageRect` from `frame.source`, for spoof-cue extraction which
     /// needs pixel detail (screen texture, moiré, gloss) the downscaled working frame throws away.
     nonisolated static func renderCrop(from frame: CameraFrame, imageRect: CGRect, maxEdge: CGFloat = 448) -> CGImage? {
-        let workingWidth = frame.workingSize.width
-        let workingHeight = frame.workingSize.height
+        let workingWidth = CGFloat(frame.image.width)
+        let workingHeight = CGFloat(frame.image.height)
         guard workingWidth > 0, workingHeight > 0 else { return nil }
         let scaleX = frame.sourceSize.width / workingWidth
         let scaleY = frame.sourceSize.height / workingHeight

@@ -28,6 +28,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
+    /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
+    private let wrongFaceStreakThreshold = 6
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -349,7 +351,7 @@ final class NotchPulseFaceUnlockCoordinator {
         let livenessEnabled = NotchPulseFaceIDSettings.shared.livenessChecksEnabled
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
-        var hasSeenAnyFace = false
+        var consecutiveWrongFaceFrames = 0
 
         /// Cleared the moment a detected face fails to match, so a latched match can't be handed to whoever steps in next.
         var readyMatch: ScoredIdentity?
@@ -374,18 +376,17 @@ final class NotchPulseFaceUnlockCoordinator {
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                guard let result = try? pipeline.recognize(in: frame, preferNear: previousBoundingBox) else { return nil }
+                guard let result = try? pipeline.recognize(in: frame.image, preferNear: previousBoundingBox) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value
 
             guard let (result, livenessFrame) = outcome else {
-                // Keep searching for the full scan duration; never abort prematurely when face hasn't aligned yet.
+                consecutiveWrongFaceFrames = 0
                 lastFaceBoundingBox = nil
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
-            hasSeenAnyFace = true
             lastFaceBoundingBox = result.face.normalizedBoundingBox
 
             // Fed regardless of match, so liveness stays a genuinely independent gate rather than one starved by recognition confidence.
@@ -394,6 +395,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 let snapshot = liveness.observe(livenessFrame)
                 switch snapshot.decision {
                 case .denied:
+                    // Overrides everything, including a match and any confirmation that already happened.
                     lastOutcome = snapshot.decision.denialReason
                     return .spoofSuspected
                 case .confirmed(let cue):
@@ -409,9 +411,14 @@ final class NotchPulseFaceUnlockCoordinator {
             let matched = pipeline.bestMatch(in: scored, threshold: matchThreshold)
 
             if let matched {
+                consecutiveWrongFaceFrames = 0
                 readyMatch = matched
             } else {
                 readyMatch = nil
+                consecutiveWrongFaceFrames += 1
+                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                    return .consistentlyWrongFace
+                }
             }
 
             if let readyMatch, livenessConfirmed {
@@ -426,6 +433,6 @@ final class NotchPulseFaceUnlockCoordinator {
 
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
-        return hasSeenAnyFace ? .consistentlyWrongFace : .noResolution
+        return .noResolution
     }
 }

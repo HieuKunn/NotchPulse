@@ -206,15 +206,15 @@ struct AudioHubNotchView: View {
             AudioDeviceManager.shared.inputDevices
         let count = max(1, min(6, devices.count))
 
-        // NotchPulseHeader (32) + top padding (4) + header bar (30) + spacing (6) = 72
-        let headerHeight: CGFloat = 72
-        let rowHeight: CGFloat = 30
+        // NotchPulseHeader (~30) + top padding (2) + header bar (26) + spacing (4) = 56
+        let headerHeight: CGFloat = 56
+        let rowHeight: CGFloat = 28
         let rowSpacing: CGFloat = 4
         let devicesHeight = CGFloat(count) * rowHeight + CGFloat(max(0, count - 1)) * rowSpacing
-        let bottomPadding: CGFloat = 8
+        let bottomPadding: CGFloat = 6
 
         let total = headerHeight + devicesHeight + bottomPadding
-        return min(400, max(118, total))
+        return min(380, max(100, total))
     }
 
     private func updateDynamicHeight() {
