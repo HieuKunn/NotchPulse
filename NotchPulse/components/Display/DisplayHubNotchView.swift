@@ -80,16 +80,11 @@ struct DisplayHubNotchView: View {
         }
         .padding(.horizontal, 10)
         .padding(.top, 4)
-        .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear {
             brightnessManager.refreshAllDisplays()
             DispatchQueue.main.async {
                 updateDynamicHeight()
-            }
-        }
-        .onDisappear {
-            if coordinator.currentView != .display {
-                vm.customOpenHeight = nil
             }
         }
         .onChange(of: coordinator.currentView) { _, newView in
@@ -112,14 +107,17 @@ struct DisplayHubNotchView: View {
     @MainActor
     static func calculateHeight(displayCount: Int? = nil) -> CGFloat {
         let count = displayCount ?? BrightnessManager.shared.availableDisplays().count
-        let topBarOffset: CGFloat = 48
-        let headerBarHeight: CGFloat = 32
-        let rowHeight: CGFloat = 58
-        let spacing: CGFloat = 6
-        let bottomPadding: CGFloat = 16
+        let effectiveCount = max(1, min(4, count))
 
-        let contentHeight = headerBarHeight + (CGFloat(max(1, count)) * (rowHeight + spacing)) + bottomPadding
-        return min(380, max(140, topBarOffset + contentHeight))
+        // NotchPulseHeader (34) + DisplayHub top padding (4) + Header bar (30) + spacing (8) = 76
+        let headerHeight: CGFloat = 76
+        let rowHeight: CGFloat = 50
+        let spacing: CGFloat = 6
+        let rowsHeight = CGFloat(effectiveCount) * rowHeight + CGFloat(max(0, effectiveCount - 1)) * spacing
+        let bottomPadding: CGFloat = 24
+
+        let total = headerHeight + rowsHeight + bottomPadding
+        return min(400, max(150, total))
     }
 }
 

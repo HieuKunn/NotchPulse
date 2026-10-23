@@ -60,10 +60,13 @@ struct NotchPulseHeader: View {
                     HStack(spacing: 6) {
                         if enableAudioHub && showAudioHubInNotch {
                             Button(action: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                                     if coordinator.currentView == .audio {
                                         coordinator.currentView = .home
+                                        vm.customOpenHeight = nil
                                     } else {
+                                        AudioDeviceManager.shared.refreshDevices()
+                                        vm.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
                                         coordinator.currentView = .audio
                                     }
                                 }
@@ -82,10 +85,13 @@ struct NotchPulseHeader: View {
                         }
                         if enableDisplayHub && showDisplayHubInNotch {
                             Button(action: {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                                     if coordinator.currentView == .display {
                                         coordinator.currentView = .home
+                                        vm.customOpenHeight = nil
                                     } else {
+                                        BrightnessManager.shared.refreshAllDisplays()
+                                        vm.customOpenHeight = DisplayHubNotchView.calculateHeight()
                                         coordinator.currentView = .display
                                     }
                                 }

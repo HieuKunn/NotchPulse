@@ -543,9 +543,20 @@ struct ContentView: View {
         .environmentObject(vm)
         .onChange(of: coordinator.currentView) { _, newView in
             guard !SharingStateManager.shared.preventNotchClose else { return }
-            if newView != .audio && newView != .display && newView != .stats && vm.customOpenHeight != nil {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    vm.customOpenHeight = nil
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                switch newView {
+                case .audio:
+                    AudioDeviceManager.shared.refreshDevices()
+                    vm.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
+                case .display:
+                    BrightnessManager.shared.refreshAllDisplays()
+                    vm.customOpenHeight = DisplayHubNotchView.calculateHeight()
+                case .home, .shelf, .clipboard:
+                    if !CalendarStateViewModel.shared.isFullMonthExpanded {
+                        vm.customOpenHeight = nil
+                    }
+                case .stats:
+                    break
                 }
             }
         }
@@ -745,6 +756,7 @@ struct ContentView: View {
                             .id(NotchViews.display)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .top)
                 .compositingGroup()
                 .padding(.horizontal, isDynamicIsland ? 0 : topCornerRadius)
                 .transition(

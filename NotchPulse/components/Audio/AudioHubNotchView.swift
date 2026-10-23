@@ -173,16 +173,11 @@ struct AudioHubNotchView: View {
         }
         .padding(.horizontal, 10)
         .padding(.top, 4)
-        .frame(width: max(560, min(860, Defaults[.notchOpenWidth] - 28)))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear {
             audioManager.refreshDevices()
             DispatchQueue.main.async {
                 updateDynamicHeight()
-            }
-        }
-        .onDisappear {
-            if coordinator.currentView != .audio {
-                vm.customOpenHeight = nil
             }
         }
         .onChange(of: coordinator.currentView) { _, newView in
@@ -206,19 +201,24 @@ struct AudioHubNotchView: View {
     @MainActor
     static func calculateHeight(selectedTab: AudioHubTab? = nil) -> CGFloat {
         let currentTab = selectedTab ?? AudioDeviceManager.shared.selectedTab
-        let topBarOffset: CGFloat = 48
-        let headerBarHeight: CGFloat = 32
-        let spacing: CGFloat = 8
-        let devicesCount = currentTab == .output ?
-            max(1, AudioDeviceManager.shared.outputDevices.count) :
-            max(1, AudioDeviceManager.shared.inputDevices.count)
-        let devicesHeight = CGFloat(devicesCount) * 38
-        let bottomPadding: CGFloat = 16
-        let total = topBarOffset + headerBarHeight + spacing + devicesHeight + bottomPadding
-        return min(480, max(140, total))
+        let devices = currentTab == .output ?
+            AudioDeviceManager.shared.outputDevices :
+            AudioDeviceManager.shared.inputDevices
+        let count = max(1, min(6, devices.count))
+
+        // NotchPulseHeader (34) + top padding (4) + header bar (32) + spacing (8) = 78
+        let headerHeight: CGFloat = 78
+        let rowHeight: CGFloat = 32
+        let rowSpacing: CGFloat = 4
+        let devicesHeight = CGFloat(count) * rowHeight + CGFloat(max(0, count - 1)) * rowSpacing
+        let bottomPadding: CGFloat = 22
+
+        let total = headerHeight + devicesHeight + bottomPadding
+        return min(440, max(148, total))
     }
 
     private func updateDynamicHeight() {
+        guard coordinator.currentView == .audio else { return }
         let target = Self.calculateHeight(selectedTab: audioManager.selectedTab)
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
             vm.customOpenHeight = target
