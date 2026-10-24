@@ -238,7 +238,7 @@ struct LockScreenMediaView: View {
     }
 
     private var compactScrubberRow: some View {
-        TimelineView(.animation(minimumInterval: 0.1, paused: musicManager.playbackRate <= 0)) { timeline in
+        TimelineView(.animation(minimumInterval: 0.5, paused: musicManager.playbackRate <= 0)) { timeline in
             let currentEstimated = musicManager.estimatedPlaybackPosition(at: timeline.date)
             
             LockScreenScrubberView(
@@ -437,7 +437,7 @@ struct LockScreenMediaView: View {
             }
             
             // Thanh tiến trình lớn tương tác
-            TimelineView(.animation(minimumInterval: 0.1, paused: musicManager.playbackRate <= 0)) { timeline in
+            TimelineView(.animation(minimumInterval: 0.5, paused: musicManager.playbackRate <= 0)) { timeline in
                 let currentEstimated = musicManager.estimatedPlaybackPosition(at: timeline.date)
                 
                 LockScreenScrubberView(

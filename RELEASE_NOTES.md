@@ -1,6 +1,13 @@
 ## 🌟 Important Release: NotchPulse v5.5
 
-> **Important Update:** This release brings seamless lock screen handover, responsive Face ID biometric matching, clean native overlay presentation, and perfect visual alignment with the physical notch and Dynamic Island.
+> **Important Update:** This release brings substantial CPU efficiency improvements during active notch playback, seamless lock screen handover, responsive Face ID biometric matching, refined clipboard browsing, and clean edge-to-edge silhouette styling.
+
+### 📋 Enhanced Clipboard Browsing
+- **Comfortable 3-Item Viewport**: Expanded the Clipboard history panel height so at least 3 full items remain visible at a glance before scrolling, making text and snippet lookups much faster.
+
+### ⚡️ Massive CPU Optimization & Clean Silhouette
+- **Whisper-Quiet Media Scrubbing**: Throttled progress bar recalculations and synced lyrics evaluation to human-optimal intervals, preventing unnecessary redraw cycles and slashing open notch CPU usage.
+- **Crisp Edge Silhouette**: Removed unnecessary fuzzy drop shadows from the Notch and Dynamic Island panels for a clean, distraction-free aesthetic with reduced WindowServer composite overhead.
 
 ### 🎛️ Refined HUDs & Bluetooth Battery Protection
 - **Eliminated Bluetooth vs Volume Race Condition**: Switching audio output to connected Bluetooth headphones no longer triggers a false volume change HUD, keeping your battery status indicator steady and visible.

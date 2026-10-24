@@ -2263,9 +2263,6 @@ struct Advanced: View {
             }
             
             Section {
-                Defaults.Toggle(key: .enableShadow) {
-                    Text(loc("Enable window shadow"))
-                }
                 Defaults.Toggle(key: .cornerRadiusScaling) {
                     Text(loc("Corner radius scaling"))
                 }

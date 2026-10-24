@@ -5,6 +5,9 @@ struct ClipboardNotchView: View {
     @ObservedObject var clipboardManager = ClipboardManager.shared
     @EnvironmentObject var vm: NotchPulseViewModel
 
+    /// Open height that fits ~3 clipboard rows before scrolling.
+    static let preferredHeight: CGFloat = 250
+
     var body: some View {
         VStack(spacing: 6) {
             // Header
@@ -85,6 +88,11 @@ struct ClipboardNotchView: View {
             vm.isHoveringClipboard = isHovering
         }
         .onAppear {
+            if vm.customOpenHeight != Self.preferredHeight {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                    vm.customOpenHeight = Self.preferredHeight
+                }
+            }
             clipboardManager.checkImmediately()
         }
         .onDisappear {

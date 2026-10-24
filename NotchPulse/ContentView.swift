@@ -378,17 +378,6 @@ struct ContentView: View {
                     }
             }
             .compositingGroup()
-            .shadow(
-                color: isIsland
-                    ? (Defaults[.enableShadow] ? .black.opacity(0.65) : .clear)
-                    : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow])
-                        ? .black.opacity(0.7) : .clear),
-                radius: isIsland
-                    ? (Defaults[.enableShadow] ? (vm.notchState == .open || isFaceIDContentVisible ? 14 : 8) : 0)
-                    : (((vm.notchState == .open || isHovering || isFaceIDContentVisible) && Defaults[.enableShadow]) ? (Defaults[.cornerRadiusScaling] ? 6 : 4) : 0),
-                x: 0,
-                y: isIsland ? 4 : 0
-            )
             .padding(.top, isIsland ? effectiveTopOffset : 0)
             .contentShape(Rectangle())
             .offset(y: slideOffset)
@@ -554,7 +543,9 @@ struct ContentView: View {
                 case .display:
                     BrightnessManager.shared.refreshAllDisplays()
                     vm.customOpenHeight = DisplayHubNotchView.calculateHeight()
-                case .home, .shelf, .clipboard:
+                case .clipboard:
+                    vm.customOpenHeight = ClipboardNotchView.preferredHeight
+                case .home, .shelf:
                     if !CalendarStateViewModel.shared.isFullMonthExpanded {
                         vm.customOpenHeight = nil
                     }
