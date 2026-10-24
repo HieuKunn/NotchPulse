@@ -231,11 +231,7 @@ final class BrightnessManager: ObservableObject {
 			icon: target.isBuiltin ? "sun.max.fill" : "display"
 		)
 
-		if DisplayServicesBridge.canChangeBrightness(target.id) {
-			_ = DisplayServicesBridge.setBrightness(displayID: target.id, value: newBrightness)
-		} else {
-			dispatchHardwareWrite(for: target.id, value: newBrightness)
-		}
+		setBrightness(for: target.id, value: newBrightness)
 	}
 
 	func setAbsolute(value: Float) {
