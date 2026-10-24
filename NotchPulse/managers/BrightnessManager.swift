@@ -104,7 +104,7 @@ final class BrightnessManager: ObservableObject {
 		let displays = availableDisplays()
 		Task { @MainActor in
 			for d in displays {
-				if DisplayServicesBridge.canChangeBrightness(d.id),
+				if (CGDisplayIsBuiltin(d.id) != 0 || CGDisplayVendorNumber(d.id) == 0x0610) && DisplayServicesBridge.canChangeBrightness(d.id),
 				   let val = DisplayServicesBridge.getBrightness(d.id) {
 					displayBrightnessCache[d.id] = val
 				} else if let val = await client.currentDisplayBrightness(for: d.id) {
@@ -186,7 +186,7 @@ final class BrightnessManager: ObservableObject {
 	}
 
 	private func currentBrightnessFor(displayID: CGDirectDisplayID) async -> Float {
-		if DisplayServicesBridge.canChangeBrightness(displayID),
+		if (CGDisplayIsBuiltin(displayID) != 0 || CGDisplayVendorNumber(displayID) == 0x0610) && DisplayServicesBridge.canChangeBrightness(displayID),
 		   let val = DisplayServicesBridge.getBrightness(displayID) {
 			displayBrightnessCache[displayID] = val
 			return val
@@ -245,7 +245,9 @@ final class BrightnessManager: ObservableObject {
 			publish(brightness: clamped, touchDate: true)
 		}
 
-		if DisplayServicesBridge.canChangeBrightness(displayID) {
+		// ⚠️ QUAN TRỌNG: Chỉ dùng DisplayServices cho màn hình Builtin/Apple (Vendor 0x0610).
+		// Mọi màn hình bên thứ 3 (HKC, Dell, LG...) BẮT BUỘC phải dùng dispatchHardwareWrite để gửi DDC/CI phần cứng!
+		if (CGDisplayIsBuiltin(displayID) != 0 || CGDisplayVendorNumber(displayID) == 0x0610) && DisplayServicesBridge.canChangeBrightness(displayID) {
 			_ = DisplayServicesBridge.setBrightness(displayID: displayID, value: clamped)
 		} else {
 			dispatchHardwareWrite(for: displayID, value: clamped)

@@ -115,7 +115,7 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
         let did = CGDirectDisplayID(displayID)
 
         // 1. Apple Builtin or Apple-branded Display: DisplayServicesGetBrightness is fast & authoritative
-        if CGDisplayIsBuiltin(did) != 0 || CGDisplayVendorNumber(did) == 0x0610 || displayServicesCanChangeBrightness(displayID: did) {
+        if CGDisplayIsBuiltin(did) != 0 || CGDisplayVendorNumber(did) == 0x0610 {
             var b: Float = 0
             if displayServicesGetBrightness(displayID: did, out: &b) {
                 reply(NSNumber(value: b))
@@ -160,10 +160,13 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
         let clamped = max(0, min(1, value))
 
         // 1. Native Apple DisplayServices for Built-in Retina & Apple-branded Displays (Vendor 0x0610)
+        // ⚠️ QUAN TRỌNG: TUYỆT ĐỐI KHÔNG thêm check DisplayServicesCanChangeBrightness tại đây!
+        // DisplayServicesSetBrightness với màn hình bên thứ 3 (HKC, Dell, LG...) luôn trả về 0 (thành công giả),
+        // làm chặn mất pipeline phần cứng DDC/CI bên dưới!
         let isBuiltin = (CGDisplayIsBuiltin(did) != 0)
         let isAppleBranded = (CGDisplayVendorNumber(did) == 0x0610)
 
-        if isBuiltin || isAppleBranded || displayServicesCanChangeBrightness(displayID: did) {
+        if isBuiltin || isAppleBranded {
             let ok = displayServicesSetBrightness(displayID: did, value: clamped)
             reply(ok)
             return

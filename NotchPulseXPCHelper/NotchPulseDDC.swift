@@ -194,7 +194,25 @@ final class NotchPulseDDC {
         }
     }
 
-    // MARK: - Apple Silicon (ARM64) DDC Implementation (Adapted from waydabber/m1ddc)
+    // =========================================================================
+    // ⚠️ QUAN TRỌNG CỰC KỲ (CRITICAL ARCHITECTURE - DO NOT DELETE OR MODIFY):
+    // Cơ chế DDC/CI phần cứng cho Apple Silicon (ARM64) giao tiếp trực tiếp qua
+    // private IOKit IOAVService. KHÔNG ĐƯỢC PHÉP rút gọn, xoá bỏ, hay thay thế bằng
+    // DisplayServices / software gamma / window shade.
+    //
+    // Lý do kỹ thuật:
+    // 1. Dual-write Latching (2 lần ghi I2C cách nhau 10ms):
+    //    Chip scaler của các màn hình ngoài (HKC, Dell, LG, ASUS, BenQ, Samsung...)
+    //    bắt buộc phải nhận 2 gói tin I2C liên tiếp với khoảng trễ 10ms (usleep(10000)).
+    //    Nếu chỉ gửi 1 lần, scaler sẽ DROP và màn hình hoàn toàn KHÔNG đổi độ sáng.
+    // 2. Checksum VESA DDC/CI:
+    //    Công thức: (chipAddress << 1) ^ dataAddress ^ 0x84 ^ 0x03 ^ command ^ 0x00 ^ val
+    //    Với chip 0x37 và dataAddress 0x51: tương đương 0xB8 ^ command ^ val.
+    // 3. Định danh DCPAVServiceProxy qua IORegistry:
+    //    Màn hình ngoài gắn qua cổng Type-C/DisplayPort Alt Mode được định danh
+    //    bởi entry DCPAVServiceProxy có thuộc tính Location == "External" và map với
+    //    tag dispext (dispext0, dispext1...) trong IODisplayLocation.
+    // =========================================================================
 
     #if arch(arm64)
     private func transportForDisplay(displayID: CGDirectDisplayID) -> DDCTransport? {
@@ -204,15 +222,6 @@ final class NotchPulseDDC {
 
         guard let dict = DynamicBridge.coreDisplayInfoDictionary(displayID),
               let ioLocation = dict["IODisplayLocation"] as? String else {
-            return nil
-        }
-
-        let adapter = IORegistryEntryCopyFromPath(kIOMainPortDefault, ioLocation as CFString)
-        guard adapter != 0 else { return nil }
-        defer { IOObjectRelease(adapter) }
-
-        var selectedAdapterID: UInt64 = 0
-        guard IORegistryEntryGetRegistryEntryID(adapter, &selectedAdapterID) == KERN_SUCCESS else {
             return nil
         }
 
@@ -226,36 +235,44 @@ final class NotchPulseDDC {
         }
         defer { IOObjectRelease(iter) }
 
-        var fbMatches = false
         let nameBuf = UnsafeMutablePointer<CChar>.allocate(capacity: 512)
-        defer { nameBuf.deallocate() }
+        let pathBuf = UnsafeMutablePointer<CChar>.allocate(capacity: 512)
+        defer {
+            nameBuf.deallocate()
+            pathBuf.deallocate()
+        }
+
+        let extTag = ioLocation.components(separatedBy: "/").last?.components(separatedBy: "@").first ?? "dispext"
+        var fallbackTransport: DDCTransport?
 
         while case let s = IOIteratorNext(iter), s != 0 {
             defer { IOObjectRelease(s) }
-
-            if IOObjectConformsTo(s, "IOMobileFramebuffer") != 0 {
-                var fbID: UInt64 = 0
-                if IORegistryEntryGetRegistryEntryID(s, &fbID) == KERN_SUCCESS && fbID == selectedAdapterID {
-                    fbMatches = true
-                } else {
-                    fbMatches = false
-                }
-                continue
-            }
-
             IORegistryEntryGetName(s, nameBuf)
             let sName = String(cString: nameBuf)
-            if fbMatches && sName == "DCPAVServiceProxy" {
+            if sName == "DCPAVServiceProxy" {
                 if let loc = IORegistryEntryCreateCFProperty(s, "Location" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? String, loc == "External" {
                     if let avService = DynamicBridge.createAVService(s) {
                         let isMCDP = isMCDP29XX(service: s)
                         let chipAddr: UInt32 = isMCDP ? 0xB7 : 0x37
                         let transport = DDCTransport(service: avService, chipAddress: chipAddr)
-                        transportCache[displayID] = transport
-                        return transport
+
+                        IORegistryEntryGetPath(s, "IOService", pathBuf)
+                        let sPath = String(cString: pathBuf)
+                        if sPath.contains(extTag) || sPath.contains(ioLocation) {
+                            transportCache[displayID] = transport
+                            return transport
+                        }
+                        if fallbackTransport == nil {
+                            fallbackTransport = transport
+                        }
                     }
                 }
             }
+        }
+
+        if let fallback = fallbackTransport {
+            transportCache[displayID] = fallback
+            return fallback
         }
         return nil
     }
@@ -273,38 +290,38 @@ final class NotchPulseDDC {
     private func writeArm64(command: UInt8, value: UInt16, displayID: CGDirectDisplayID) -> Bool {
         guard let transport = transportForDisplay(displayID: displayID) else { return false }
 
-        let send: [UInt8] = [command, UInt8(value >> 8), UInt8(value & 0xFF)]
-        var packet: [UInt8] = [UInt8(0x80 | (send.count + 1)), UInt8(send.count)] + send + [0]
-        var chkd: UInt8 = (UInt8(transport.chipAddress) << 1) ^ UInt8(ddcDataAddress)
-        for byte in packet.dropLast() {
-            chkd ^= byte
-        }
-        packet[packet.count - 1] = chkd
+        let val = UInt8(max(0, min(100, value)))
+        let checksum = UInt8((UInt32(transport.chipAddress) << 1) ^ ddcDataAddress) ^ 0x84 ^ 0x03 ^ command ^ 0x00 ^ val
+        var packet: [UInt8] = [
+            0x84,
+            0x03,
+            command,
+            0x00,
+            val,
+            checksum
+        ]
 
-        for attempt in 0..<3 {
-            if attempt > 0 { usleep(15000) }
-            let res = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
-            if res == 0 {
-                return true
-            }
-        }
-        return false
+        // ⚠️ BẮT BUỘC: Gửi 2 lần liên tiếp cách nhau 10ms. Thiếu bước này màn hình ngoài sẽ DROP lệnh.
+        usleep(10000)
+        let res1 = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
+        usleep(10000)
+        let res2 = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
+        return res1 == 0 || res2 == 0
     }
 
     private func readArm64(command: UInt8, displayID: CGDirectDisplayID) -> (UInt16, UInt16)? {
         guard let transport = transportForDisplay(displayID: displayID) else { return nil }
 
-        let send: [UInt8] = [command]
+        let checksum = UInt8((UInt32(transport.chipAddress) << 1) ^ ddcDataAddress) ^ 0x82 ^ 0x01 ^ command
+        var packet: [UInt8] = [
+            0x82,
+            0x01,
+            command,
+            checksum
+        ]
         var reply = [UInt8](repeating: 0, count: 11)
 
-        var packet: [UInt8] = [UInt8(0x80 | (send.count + 1)), UInt8(send.count)] + send + [0]
-        var chkd: UInt8 = (UInt8(transport.chipAddress) << 1) ^ UInt8(ddcDataAddress)
-        for byte in packet.dropLast() {
-            chkd ^= byte
-        }
-        packet[packet.count - 1] = chkd
-
-        for _ in 1...4 {
+        for _ in 1...3 {
             usleep(10000)
             if DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count)) != 0 {
                 continue
@@ -316,9 +333,11 @@ final class NotchPulseDDC {
                     replyChk ^= b
                 }
                 if replyChk == reply.last {
-                    let max = UInt16(reply[6]) * 256 + UInt16(reply[7])
-                    let cur = UInt16(reply[8]) * 256 + UInt16(reply[9])
-                    return (cur, max)
+                    let maxVal = UInt16(reply[6]) * 256 + UInt16(reply[7])
+                    let curVal = UInt16(reply[8]) * 256 + UInt16(reply[9])
+                    if maxVal > 0 {
+                        return (curVal, maxVal)
+                    }
                 }
             }
             usleep(20000)
