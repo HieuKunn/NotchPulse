@@ -7,14 +7,14 @@
 //
 
 import AppKit
-import Defaults
+import CoreGraphics
 import Foundation
 
 final class DisplayShadeManager: ObservableObject {
     static let shared = DisplayShadeManager()
 
-    private var shades: [CGDirectDisplayID: NSWindow] = [:]
-    private var displayBrightness: [CGDirectDisplayID: Float] = [:]
+    // Original hardware gamma tables cached per display
+    private var originalGammaTables: [CGDirectDisplayID: (red: [CGGammaValue], green: [CGGammaValue], blue: [CGGammaValue], count: UInt32)] = [:]
 
     private init() {
         NotificationCenter.default.addObserver(
@@ -22,68 +22,52 @@ final class DisplayShadeManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.updateShadeFrames()
+            self?.originalGammaTables.removeAll()
         }
     }
 
     func setBrightness(_ value: Float, for displayID: CGDirectDisplayID) {
-        // Disabled: Never spawn full-screen shielding windows over user displays.
-        // Clean up any remaining shades to eliminate screen flicker.
-        removeAllShades()
+        let clamped = max(0.05, min(1.0, value))
+        applyGammaDimming(factor: clamped, for: displayID)
     }
 
-    private func getOrCreateShade(for displayID: CGDirectDisplayID) -> NSWindow? {
-        if let existing = shades[displayID] {
-            return existing
-        }
-
-        guard let screen = NSScreen.screens.first(where: {
-            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == displayID
-        }) else { return nil }
-
-        let shade = NSWindow(
-            contentRect: screen.frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        shade.title = "NotchPulse Display Shade (\(displayID))"
-        shade.isOpaque = false
-        shade.backgroundColor = .black
-        shade.ignoresMouseEvents = true
-        shade.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
-        shade.collectionBehavior = [.stationary, .canJoinAllSpaces, .ignoresCycle]
-        shade.alphaValue = 0.0
-        shade.orderFrontRegardless()
-
-        shades[displayID] = shade
-        return shade
-    }
-
-    func removeShade(for displayID: CGDirectDisplayID) {
-        DispatchQueue.main.async { [weak self] in
-            if let shade = self?.shades.removeValue(forKey: displayID) {
-                shade.orderOut(nil)
+    private func applyGammaDimming(factor: Float, for displayID: CGDirectDisplayID) {
+        // Retrieve or capture baseline un-dimmed gamma table
+        if originalGammaTables[displayID] == nil {
+            var red = [CGGammaValue](repeating: 0, count: 256)
+            var green = [CGGammaValue](repeating: 0, count: 256)
+            var blue = [CGGammaValue](repeating: 0, count: 256)
+            var sampleCount: UInt32 = 0
+            if CGGetDisplayTransferByTable(displayID, 256, &red, &green, &blue, &sampleCount) == .success, sampleCount > 0 {
+                originalGammaTables[displayID] = (red, green, blue, sampleCount)
             }
         }
+
+        guard let original = originalGammaTables[displayID] else { return }
+
+        if factor >= 0.999 {
+            // Restore native colors when at 100%
+            _ = CGSetDisplayTransferByTable(displayID, original.count, original.red, original.green, original.blue)
+            return
+        }
+
+        let gammaScale = CGGammaValue(factor)
+        let dimmedRed = original.red.map { $0 * gammaScale }
+        let dimmedGreen = original.green.map { $0 * gammaScale }
+        let dimmedBlue = original.blue.map { $0 * gammaScale }
+        _ = CGSetDisplayTransferByTable(displayID, original.count, dimmedRed, dimmedGreen, dimmedBlue)
     }
 
-    func updateShadeFrames() {
-        for (id, shade) in shades {
-            if let screen = NSScreen.screens.first(where: {
-                ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == id
-            }) {
-                shade.setFrame(screen.frame, display: true)
-            } else {
-                removeShade(for: id)
-            }
+    func restoreNativeDisplay(for displayID: CGDirectDisplayID) {
+        if let original = originalGammaTables[displayID] {
+            _ = CGSetDisplayTransferByTable(displayID, original.count, original.red, original.green, original.blue)
         }
     }
 
     func removeAllShades() {
-        for (_, shade) in shades {
-            shade.orderOut(nil)
+        for (id, original) in originalGammaTables {
+            _ = CGSetDisplayTransferByTable(id, original.count, original.red, original.green, original.blue)
         }
-        shades.removeAll()
+        originalGammaTables.removeAll()
     }
 }

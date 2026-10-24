@@ -98,7 +98,7 @@ const i18nData = {
     "shelf.dropText": "Drop files here",
 
     "feat5.title": "Hardware DDC External Display HUD",
-    "feat5.desc": "Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with native Apple keyboard shortcuts.",
+    "feat5.desc": "Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with cursor-aware F1/F2 keys and 2.2ms write coalescing.",
     "bento.ddcBrightness": "Dell UltraSharp 4K Brightness",
     "bento.ddcVolume": "Built-in Audio Volume",
 
@@ -120,7 +120,7 @@ const i18nData = {
     "feat8.desc": "Direct Apple Silicon SMC power controller. Caps charging at the 80% sweet spot to preserve battery cycle longevity, with one-tap 100% boost.",
 
     "feat9.title": "Smart Clipboard Manager & Stash",
-    "feat9.desc": "Access recent clips, code snippets, formatted text, and color hexes right inside the notch. Filter by app, search history in milliseconds, and paste instantly.",
+    "feat9.desc": "Comfortable 3-item viewport, instant search, and AppKit scroll bounds protection. Copy snippets, hex colors, and formatted text directly from the notch.",
 
     "feat10.title": "9-Language Native Localization",
     "feat10.desc": "Full native localized interface across English, Tiếng Việt, 繁體中文, 简体中文, 日本語, Deutsch, Français, Español, and العربية with real-time UI switching.",
@@ -128,15 +128,22 @@ const i18nData = {
     "feat11.title": "Native SMC Fan & Thermal Control",
     "feat11.desc": "Direct SMC hardware driver with auto root authorization. Control fan speeds (Auto, Max Blast, Silent, Custom RPM) and monitor CPU/GPU thermal sensors directly from the notch.",
 
-    "feat12.title": "Refined Lock Screen Media Player",
-    "feat12.desc": "Stunning edge-to-edge glass player with zero faint blur shadows. Seamlessly adapts control button colors and dynamic appearance between macOS Light & Dark modes.",
+    "feat12.title": "Interactive Audio Hub & Bluetooth Battery",
+    "feat12.desc": "Switch audio outputs and microphones directly inside the notch. Manage individual per-app volume sliders and track AirPods & Bluetooth headphone battery levels in real time.",
+    "bento.audioOutputs": "AirPods Pro • 92% Battery",
+    "bento.audioApps": "Per-App Audio Mixer • Spotify & Safari",
+    "bento.audioTabOutput": "Output",
+    "bento.audioTabInput": "Input",
+
+    "feat13.title": "macOS System Auth & Hands-Free Face ID",
+    "feat13.desc": "Intercepts administrative sudo prompts, Keychain credential requests, and Touch ID dialogs across macOS. Seamlessly authenticates with privacy-first on-device Apple Vision without typing passwords.",
+    "bento.authIntercept": "Terminal sudo & Keychain Intercept",
+    "bento.authFaceID": "Apple Vision Biometric Verification",
+    "bento.authStatus": "Authenticated Hands-Free",
 
     "bento.fanRpm": "4,800 RPM Turbo",
     "bento.fanCpuTemp": "CPU 42°C • Cool & Quiet",
     "bento.fanRootAuth": "Auto Root Daemon Active",
-    "bento.lockscreenTitle": "Midnight Resonance",
-    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
-    "bento.lockscreenDynamic": "Adaptive Dark & Light Sync",
 
     // Reviews Section
     "reviews.tag": "Global Community",
@@ -254,7 +261,7 @@ const i18nData = {
     "shelf.dropText": "Thả tệp vào đây",
 
     "feat5.title": "Điều Khiển Màn Hình Ngoài DDC HUD",
-    "feat5.desc": "Can thiệp phần cứng DDC/CI trực tiếp cho màn hình rời. Tăng giảm độ sáng thật, độ tương phản và âm lượng bằng phím tắt bàn phím tiện lợi.",
+    "feat5.desc": "Điều khiển độ sáng và âm lượng phần cứng màn hình ngoài thực thụ qua DDC/CI với phím F1/F2 nhận diện chuột thông minh và gộp lệnh I2C siêu tốc 2.2ms.",
     "bento.ddcBrightness": "Độ sáng màn hình Dell UltraSharp 4K",
     "bento.ddcVolume": "Âm lượng loa tích hợp",
 
@@ -276,7 +283,7 @@ const i18nData = {
     "feat8.desc": "Can thiệp trực tiếp bộ điều khiển nguồn SMC của Apple Silicon. Tự động dừng sạc ở mức tối ưu 80% để chống chai pin, hỗ trợ sạc đầy 100% chỉ với 1 chạm.",
 
     "feat9.title": "Bộ Nhớ Tạm Thông Minh & Lưu Trữ Nhanh",
-    "feat9.desc": "Quản lý lịch sử sao chép, đoạn mã, văn bản và mã màu ngay trên tai thỏ. Tìm kiếm tức thì theo mili-giây, lọc theo ứng dụng và dán nhanh chóng.",
+    "feat9.desc": "Khung nhìn 3 mục thoải mái, tìm kiếm tức thì và bảo vệ cuộn AppKit native. Sao chép và dán snippet, mã màu HEX, văn bản tiện lợi ngay trên notch.",
 
     "feat10.title": "Giao Diện 9 Ngôn Ngữ Bản Địa",
     "feat10.desc": "Hỗ trợ bản địa hóa toàn diện cho 9 ngôn ngữ: Tiếng Anh, Tiếng Việt, 繁體中文, 简体中文, 日本語, Deutsch, Français, Español, العربية với khả năng chuyển đổi tức thì.",
@@ -284,15 +291,22 @@ const i18nData = {
     "feat11.title": "Điều Khiển Quạt & Nhiệt Độ Phần Cứng Native",
     "feat11.desc": "Can thiệp trực tiếp SMC phần cứng với cơ chế tự động cấp quyền Root an toàn. Kiểm soát tốc độ quạt (Auto, Max Turbo, Silent, Tuỳ chỉnh RPM) và giám sát nhiệt độ CPU/GPU tức thì ngay từ Notch.",
 
-    "feat12.title": "Trình Phát Nhạc Màn Hình Khoá Đẳng Cấp",
-    "feat12.desc": "Thiết kế viền kính siêu mỏng sắc nét loại bỏ hoàn toàn bóng mờ lem nhem. Tự động đồng bộ màu biểu tượng và thích ứng mượt mà giữa chế độ Sáng & Tối theo macOS với điều khiển nhạc tức thì.",
+    "feat12.title": "Trung Tâm Âm Thanh & Pin Thiết Bị Bluetooth",
+    "feat12.desc": "Chuyển đổi thiết bị đầu ra và micro tức thì ngay trên notch. Điều chỉnh âm lượng riêng biệt cho từng ứng dụng và theo dõi phần trăm pin AirPods, tai nghe Bluetooth theo thời gian thực.",
+    "bento.audioOutputs": "AirPods Pro • 92% Pin",
+    "bento.audioApps": "Điều Chỉnh Âm Lượng Từng App • Spotify & Safari",
+    "bento.audioTabOutput": "Đầu ra",
+    "bento.audioTabInput": "Micro",
+
+    "feat13.title": "Mở Khoá Quyền Hệ Thống & Face ID Rảnh Tay",
+    "feat13.desc": "Tự động bắt lệnh quyền quản trị sudo, xác thực Keychain và hộp thoại Touch ID trên macOS. Xác thực sinh trắc học rảnh tay qua Apple Vision trên máy mà không cần gõ mật khẩu.",
+    "bento.authIntercept": "Bắt Lệnh sudo Terminal & Keychain",
+    "bento.authFaceID": "Xác Thực Sinh Trắc Học Apple Vision",
+    "bento.authStatus": "Đã Mở Khoá Tự Động Rảnh Tay",
 
     "bento.fanRpm": "4.800 RPM Cực Đại",
     "bento.fanCpuTemp": "CPU 42°C • Tản Nhiệt Siêu Mát",
     "bento.fanRootAuth": "Quyền Root Tự Động An Toàn",
-    "bento.lockscreenTitle": "Midnight Resonance",
-    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
-    "bento.lockscreenDynamic": "Thích Ứng Sáng / Tối macOS",
 
     // Reviews Section
     "reviews.tag": "Cộng Đồng Toàn Cầu",
@@ -410,7 +424,7 @@ const i18nData = {
     "shelf.dropText": "Dateien hier ablegen",
 
     "feat5.title": "Hardware DDC Display-Steuerung",
-    "feat5.desc": "Echte Hardware-Helligkeit und Lautstärke externer Monitore über DDC/CI mit Apple-Tastaturkurzbefehlen steuern.",
+    "feat5.desc": "Echte Hardware-Helligkeit und Audio externer Monitore über DDC/CI steuern – mit cursor-gesteuerten F1/F2-Tasten und schnellem 2,2ms Write-Coalescing.",
     "bento.ddcBrightness": "Dell UltraSharp 4K Helligkeit",
     "bento.ddcVolume": "Integrierte Lautstärke",
 
@@ -432,7 +446,7 @@ const i18nData = {
     "feat8.desc": "Direkte Apple Silicon SMC-Steuerung. Begrenzt das Laden auf schonende 80% für maximale Lebensdauer mit 1-Klick 100% Schnellladung.",
 
     "feat9.title": "Intelligente Zwischenablage & Snippets",
-    "feat9.desc": "Verlauf kopierter Texte, Code-Snippets und Farbcodes direkt in der Notch. Blitzschnelle Suche und sofortiges Einfügen.",
+    "feat9.desc": "Komfortabler 3-Elemente-Viewport, Sofortsuche und nativer AppKit-Scrollschutz. Snippets, Farbcodes und Text direkt aus der Notch kopieren.",
 
     "feat10.title": "Native Lokalisierung in 9 Sprachen",
     "feat10.desc": "Vollständige Benutzeroberfläche in Englisch, Vietnamesisch, Chinesisch (Trad./Simp.), Japanisch, Deutsch, Französisch, Spanisch und Arabisch.",
@@ -440,15 +454,22 @@ const i18nData = {
     "feat11.title": "Native SMC-Lüfter- & Temperatursteuerung",
     "feat11.desc": "Direkter SMC-Hardwaretreiber mit automatischer Root-Autorisierung. Lüfterstufen (Auto, Max Blast, Silent, Custom RPM) und CPU/GPU-Temperatur direkt in der Notch steuern.",
 
-    "feat12.title": "Eleganter Sperrbildschirm-Mediaplayer",
-    "feat12.desc": "Kristallklarer Glaseffekt ohne störende Randschatten. Passt Symbolfarben und Kontraste nahtlos an den macOS Hell-/Dunkelmodus an.",
+    "feat12.title": "Interaktiver Audio-Hub & Bluetooth-Batterie",
+    "feat12.desc": "Ausgabegeräte und Mikrofone direkt in der Notch umschalten. Individuelle Lautstärkeregler pro App verwalten und AirPods- & Bluetooth-Akkustände in Echtzeit überwachen.",
+    "bento.audioOutputs": "AirPods Pro • 92% Batterie",
+    "bento.audioApps": "App-Lautstärkemixer • Spotify & Safari",
+    "bento.audioTabOutput": "Ausgabe",
+    "bento.audioTabInput": "Eingabe",
+
+    "feat13.title": "macOS-Systemauthentifizierung & Hands-Free Face ID",
+    "feat13.desc": "Fängt sudo-Eingabeaufforderungen, Schlüsselbundabfragen und Touch ID-Dialoge unter macOS ab. Nahtlose Authentifizierung über On-Device Apple Vision ohne Passworteingabe.",
+    "bento.authIntercept": "Terminal-sudo & Schlüsselbund-Abfangung",
+    "bento.authFaceID": "Apple Vision Biometrische Verifizierung",
+    "bento.authStatus": "Hands-Free Authentifiziert",
 
     "bento.fanRpm": "4.800 U/min Turbo",
     "bento.fanCpuTemp": "CPU 42°C • Kühl & Leise",
     "bento.fanRootAuth": "Root-Daemon Aktiv",
-    "bento.lockscreenTitle": "Midnight Resonance",
-    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
-    "bento.lockscreenDynamic": "Hell-/Dunkelmodus Synchron",
 
     // Reviews Section
     "reviews.tag": "Globale Community",
@@ -567,7 +588,7 @@ const i18nData = {
     "shelf.dropText": "ここにファイルをドロップ",
 
     "feat5.title": "外部モニター DDC ハードウェア制御",
-    "feat5.desc": "DDC/CIプロトコル経由で外部モニター本来の輝度や音量をApple標準ショートカットで直接調整。",
+    "feat5.desc": "DDC/CIによりサードパーティ製モニターのハードウェア輝度と音量を直接制御。カーソル追従のF1/F2キーと2.2msの高速書き込み統合に対応。",
     "bento.ddcBrightness": "Dell UltraSharp 4K 輝度",
     "bento.ddcVolume": "内蔵オーディオ音量",
 
@@ -589,7 +610,7 @@ const i18nData = {
     "feat8.desc": "Apple Silicon SMC直接制御。バッテリー劣化を防ぐ80%充電リミットと、1タップでの100%フル充電切り替えに対応。",
 
     "feat9.title": "スマートクリップボード履歴",
-    "feat9.desc": "コピーしたテキスト、コード、カラーコードをノッチ上で瞬時に呼び出し。高速検索とスムーズなペースト。",
+    "feat9.desc": "快適な3項目表示、高速検索、AppKitネイティブスクロール保護。コード、カラーコード、テキストをノッチから瞬時にコピー＆ペースト。",
 
     "feat10.title": "9言語ネイティブローカライズ",
     "feat10.desc": "英語、ベトナム語、繁体字、簡体字、日本語、ドイツ語、フランス語、スペイン語、アラビア語のリアルタイム言語切り替えに対応。",
@@ -597,15 +618,22 @@ const i18nData = {
     "feat11.title": "ネイティブ SMC ファン＆温度管理",
     "feat11.desc": "自動Root認証を備えたSMC直接ハードウェア制御。ノッチから直接ファン速度（Auto、Max、静音、カスタムRPM）とCPU/GPU温度をリアルタイム管理。",
 
-    "feat12.title": "洗練されたロック画面メディアプレーヤー",
-    "feat12.desc": "不要なぼかし影を排除した高精細ガラスUI。macOSのライト/ダークモードに同期し、アイコンカラーを美しく最適化。",
+    "feat12.title": "オーディオハブ＆Bluetoothバッテリー管理",
+    "feat12.desc": "ノッチ内で直接出力先やマイクを瞬時に切り替え。アプリごとの音量スライダーの個別調整や、AirPods・Bluetoothヘッドフォンのバッテリー残量をリアルタイムで確認可能。",
+    "bento.audioOutputs": "AirPods Pro • バッテリー 92%",
+    "bento.audioApps": "アプリ別音量ミキサー • Spotify & Safari",
+    "bento.audioTabOutput": "出力",
+    "bento.audioTabInput": "入力",
+
+    "feat13.title": "macOSシステム認証＆ハンズフリーFace ID",
+    "feat13.desc": "macOSの管理者sudoプロンプト、キーチェーン認証、Touch IDダイアログを自動インターセプト。パスワード入力不要でオンデバイスApple Visionによる生体認証を実現。",
+    "bento.authIntercept": "Terminal sudo & キーチェーン横断インターセプト",
+    "bento.authFaceID": "Apple Vision 高精度生体認識",
+    "bento.authStatus": "ハンズフリー認証完了",
 
     "bento.fanRpm": "4,800 RPM ターボ",
     "bento.fanCpuTemp": "CPU 42°C • 低温静音",
     "bento.fanRootAuth": "Root認証自動管理",
-    "bento.lockscreenTitle": "Midnight Resonance",
-    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
-    "bento.lockscreenDynamic": "ライト/ダークモード完全同期",
 
     // Reviews Section
     "reviews.tag": "グローバルコミュニティ",
@@ -724,7 +752,7 @@ const i18nData = {
     "shelf.dropText": "將檔案拖曳至此",
 
     "feat5.title": "硬體級 DDC 外接螢幕控制",
-    "feat5.desc": "透過 DDC/CI 協定直接調整第三方螢幕的真實亮度與硬體音量，相容 Apple 原生快捷鍵。",
+    "feat5.desc": "透過 DDC/CI 直接控制第三方外接螢幕之硬體亮度與音量，支援游標感應 F1/F2 鍵位與 2.2ms 極速 I2C 合併寫入。",
     "bento.ddcBrightness": "Dell UltraSharp 4K 亮度",
     "bento.ddcVolume": "內建喇叭音量",
 
@@ -746,7 +774,7 @@ const i18nData = {
     "feat8.desc": "直接控制 Apple Silicon SMC 電源管理，將充電限制在 80% 最佳區間以延長電池壽命，出門前可一鍵充至 100%。",
 
     "feat9.title": "智慧剪貼簿管理與暫存",
-    "feat9.desc": "於瀏海即時檢視剪貼紀錄、程式碼片段、文字與色碼。毫秒級快速搜尋並一鍵貼上。",
+    "feat9.desc": "舒適 3 項目直覺視窗、毫秒級即時搜尋與 AppKit 原生捲動保護。在瀏海中隨選隨貼程式碼、HEX 色碼與格式化文字。",
 
     "feat10.title": "9 種語系原生多國語言",
     "feat10.desc": "完整支援繁體中文、簡體中文、英文、越南文、日文、德文、法文、西班牙文與阿拉伯文，切換即時生效。",
@@ -754,15 +782,22 @@ const i18nData = {
     "feat11.title": "原生 SMC 風扇與硬體溫度控制",
     "feat11.desc": "直接介入 SMC 硬體並支援自動 Root 權限調用。直接於瀏海監控 CPU/GPU 溫度，並自由切換風扇轉速（自動、全速、靜音、自訂 RPM）。",
 
-    "feat12.title": "極簡精緻鎖定畫面音樂播放器",
-    "feat12.desc": "邊緣清晰的磨砂玻璃卡片，完全去除突兀的模糊陰影。按鍵圖示色彩自動配對，並隨 macOS 淺色與深色外觀流暢切換。",
+    "feat12.title": "互動音訊控制中心與藍牙電量管理",
+    "feat12.desc": "直接在瀏海區域即時切換音訊輸出與麥克風。支援各應用程式獨立音量調節，並即時監控 AirPods 與藍牙耳機電量。",
+    "bento.audioOutputs": "AirPods Pro • 剩餘電量 92%",
+    "bento.audioApps": "個別應用程式音量混音 • Spotify & Safari",
+    "bento.audioTabOutput": "輸出",
+    "bento.audioTabInput": "輸入",
+
+    "feat13.title": "macOS 系統權限與免動手 Face ID 認證",
+    "feat13.desc": "自動攔截 macOS 管理者 sudo 提權、鑰匙圈認證與 Touch ID 提示。透過本機 Apple Vision 進行免動手臉部辨識，無須手動輸入密碼。",
+    "bento.authIntercept": "終端機 sudo 與鑰匙圈安全攔截",
+    "bento.authFaceID": "Apple Vision 本地神經網路驗證",
+    "bento.authStatus": "免動手無感極速解鎖",
 
     "bento.fanRpm": "4,800 RPM 渦輪全速",
     "bento.fanCpuTemp": "CPU 42°C • 涼爽靜音",
     "bento.fanRootAuth": "Root 守護程序自動啟用",
-    "bento.lockscreenTitle": "Midnight Resonance",
-    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
-    "bento.lockscreenDynamic": "深淺外觀智慧同步",
 
     // Reviews Section
     "reviews.tag": "全球開發者社群",
@@ -881,7 +916,7 @@ const i18nData = {
     "shelf.dropText": "拖拽文件到这里",
 
     "feat5.title": "DDC 协议外接显示器硬件控制",
-    "feat5.desc": "通过 DDC/CI 协议直接调节外接显示器的原生硬件亮度与音量，完美适配 Apple 键盘快捷键。",
+    "feat5.desc": "通过 DDC/CI 直接控制第三方外接显示器硬件亮度与音量，支持光标感应 F1/F2 键位与 2.2ms 极速 I2C 合并写入。",
     "bento.ddcBrightness": "Dell UltraSharp 4K 亮度",
     "bento.ddcVolume": "内置扬声器音量",
 
@@ -903,7 +938,7 @@ const i18nData = {
     "feat8.desc": "底层调用 Apple Silicon SMC 电源控制器，充电锁定 80% 黄金阈值以延长电池寿命，支持一键满电 100% 模式。",
 
     "feat9.title": "智能剪贴板历史管理",
-    "feat9.desc": "在刘海中快速调取复制历史、代码片段、富文本与颜色代码。支持毫秒级检索与即时粘贴。",
+    "feat9.desc": "舒适 3 项直观视窗、毫秒级即时检索与 AppKit 原生滚动保护。在刘海中随选随贴代码、HEX 色码与格式化文本。",
 
     "feat10.title": "9 种原生本地化语言",
     "feat10.desc": "全面支持简体中文、繁体中文、英语、越南语、日语、德语、法语、西班牙语与阿拉伯语，即时响应无缝切换。",
@@ -911,15 +946,22 @@ const i18nData = {
     "feat11.title": "原生 SMC 风扇与硬件温控系统",
     "feat11.desc": "直接对接 SMC 硬件并支持自动静默 Root 提权。直接在刘海区域调节风扇转速（自动、强劲全速、静音、自定义 RPM）并实时监控芯片温度。",
 
-    "feat12.title": "精细化锁屏多媒体控制中心",
-    "feat12.desc": "边缘细腻的高清微晶磨砂面板，告别冗余模糊阴影。按键与图标色彩自适应协调，随 macOS 深浅色外观无缝切换。",
+    "feat12.title": "交互式音频控制中心与蓝牙电量管理",
+    "feat12.desc": "直接在刘海区域即时切换音频输出与麦克风。支持各应用程序独立音量调节，并实时监控 AirPods 与蓝牙耳机电量。",
+    "bento.audioOutputs": "AirPods Pro • 剩余电量 92%",
+    "bento.audioApps": "独立应用音量混音 • Spotify & Safari",
+    "bento.audioTabOutput": "输出",
+    "bento.audioTabInput": "输入",
+
+    "feat13.title": "macOS 系统权限与免动手 Face ID 认证",
+    "feat13.desc": "自动拦截 macOS 管理员 sudo 提权、钥匙串认证与 Touch ID 提示。通过本地 Apple Vision 进行免动手面容识别，无需手动输入密码。",
+    "bento.authIntercept": "终端 sudo 与钥匙串安全拦截",
+    "bento.authFaceID": "Apple Vision 本地端神经网络验证",
+    "bento.authStatus": "免动手无感极速认证",
 
     "bento.fanRpm": "4,800 RPM 强劲全速",
     "bento.fanCpuTemp": "CPU 42°C • 酷冷低噪",
     "bento.fanRootAuth": "Root 守护进程安全激活",
-    "bento.lockscreenTitle": "Midnight Resonance",
-    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
-    "bento.lockscreenDynamic": "macOS 深浅外观自适应",
 
     // Reviews Section
     "reviews.tag": "全球社区",
@@ -1038,7 +1080,7 @@ const i18nData = {
     "shelf.dropText": "Suelta los archivos aquí",
 
     "feat5.title": "Control de Monitores Externos DDC",
-    "feat5.desc": "Controla el brillo real y volumen por hardware de monitores de terceros mediante DDC/CI con los atajos de teclado de Apple.",
+    "feat5.desc": "Controla brillo y volumen de hardware en monitores externos vía DDC/CI con teclas F1/F2 inteligentes según el cursor y coalescencia de 2,2ms.",
     "bento.ddcBrightness": "Brillo Dell UltraSharp 4K",
     "bento.ddcVolume": "Volumen de Audio Integrado",
 
@@ -1060,7 +1102,7 @@ const i18nData = {
     "feat8.desc": "Control directo de SMC en Apple Silicon. Limita la carga al 80% para evitar la degradación de la batería con modo rápido al 100%.",
 
     "feat9.title": "Gestor Inteligente de Portapapeles",
-    "feat9.desc": "Accede a textos copiados, fragmentos de código y códigos de color en el notch con búsqueda instantánea en milisegundos.",
+    "feat9.desc": "Cómoda vista de 3 elementos, búsqueda instantánea y protección de desplazamiento AppKit nativa. Copia snippets, códigos HEX y texto desde el notch.",
 
     "feat10.title": "Localización Nativa en 9 Idiomas",
     "feat10.desc": "Interfaz completamente traducida a inglés, vietnamita, chino (trad./simp.), japonés, alemán, francés, español y árabe en tiempo real.",
@@ -1068,15 +1110,22 @@ const i18nData = {
     "feat11.title": "Control Nativo de Ventiladores SMC y Térmica",
     "feat11.desc": "Control directo de hardware SMC con autorización root automática. Gestiona velocidades de ventilador (Auto, Max, Silencioso, RPM personalizado) y temperatura en tiempo real.",
 
-    "feat12.title": "Reproductor Pulido para Pantalla de Bloqueo",
-    "feat12.desc": "Diseño de cristal nítido sin sombras borrosas innecesarias. Sincroniza dinámicamente los colores de los controles con el modo claro/oscuro de macOS.",
+    "feat12.title": "Centro de Audio Interactivo y Batería Bluetooth",
+    "feat12.desc": "Cambia dispositivos de salida y micrófonos al instante desde el notch. Gestiona el volumen por aplicación y monitorea la batería de AirPods y auriculares Bluetooth en tiempo real.",
+    "bento.audioOutputs": "AirPods Pro • 92% Batería",
+    "bento.audioApps": "Mezclador por App • Spotify y Safari",
+    "bento.audioTabOutput": "Salida",
+    "bento.audioTabInput": "Entrada",
+
+    "feat13.title": "Autenticación del Sistema macOS y Face ID Manos Libres",
+    "feat13.desc": "Intercepta solicitudes de sudo, accesos a Llaveros y avisos de Touch ID en macOS. Autenticación biométrica fluida con Apple Vision en el dispositivo sin escribir contraseñas.",
+    "bento.authIntercept": "Intercepción de sudo y Llaveros",
+    "bento.authFaceID": "Verificación Biométrica Apple Vision",
+    "bento.authStatus": "Autenticado con Manos Libres",
 
     "bento.fanRpm": "4.800 RPM Turbo",
     "bento.fanCpuTemp": "CPU 42°C • Fresco y Silencioso",
     "bento.fanRootAuth": "Daemon Root Seguro Activo",
-    "bento.lockscreenTitle": "Midnight Resonance",
-    "bento.lockscreenArtist": "Pulse Lo-Fi Beats",
-    "bento.lockscreenDynamic": "Sincronización Claro / Oscuro",
 
     // Reviews Section
     "reviews.tag": "Comunidad Global",
@@ -1195,9 +1244,9 @@ function initSmoothScroll() {
 // =============================================================
 
 let appReleaseInfo = {
-  version: "v5.4",
-  versionShort: "v5.4",
-  name: "NotchPulse v5.4",
+  version: "v5.5",
+  versionShort: "v5.5",
+  name: "NotchPulse v5.5",
   downloadUrl: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg"
 };
 

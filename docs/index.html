@@ -111,7 +111,7 @@
     <div class="container">
       <div class="hero-tag-badge">
         <span>✨</span>
-        <span data-i18n="hero.badge">NotchPulse v5.4 Released</span>
+        <span data-i18n="hero.badge">NotchPulse v5.5 Released</span>
       </div>
 
       <h1 class="hero-title">
@@ -127,7 +127,7 @@
       <div class="hero-cta-group">
         <a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg" class="btn-primary" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span data-i18n="hero.downloadBtn">Download NotchPulse.dmg (v5.4) &rarr;</span>
+          <span data-i18n="hero.downloadBtn">Download NotchPulse.dmg (v5.5) &rarr;</span>
         </a>
 
         <!-- Copyable Homebrew command -->
@@ -537,15 +537,85 @@
           </div>
         </div>
 
-        <!-- Bento 5 (6-col): Hardware DDC Controls -->
-        <div class="bento-card bento-col-6 fade-in-section">
+        <!-- Bento 5 (Large 8-col): Interactive Audio Hub & Bluetooth Battery -->
+        <div class="bento-card bento-col-8 fade-in-section">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat12.title">Interactive Audio Hub &amp; Bluetooth Battery</h3>
+            <p class="bento-desc" data-i18n="feat12.desc">
+              Switch audio outputs and microphones directly inside the notch. Manage individual per-app volume sliders and track AirPods &amp; Bluetooth headphone battery levels in real time.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="audiohub-preview-widget">
+              <!-- Top Switcher -->
+              <div class="audiohub-tab-row">
+                <div class="audiohub-tabs">
+                  <span class="audiohub-tab-pill active">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <span data-i18n="bento.audioTabOutput">Output</span>
+                  </span>
+                  <span class="audiohub-tab-pill">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    <span data-i18n="bento.audioTabInput">Input</span>
+                  </span>
+                </div>
+                <div class="audiohub-device-pill">
+                  <span class="audiohub-bt-dot"></span>
+                  <span data-i18n="bento.audioOutputs">AirPods Pro • 92% Battery</span>
+                </div>
+              </div>
+
+              <!-- Main Output Volume Slider -->
+              <div class="audiohub-main-slider">
+                <div class="audiohub-slider-head">
+                  <span class="audiohub-slider-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                    <span>Master Output (AirPods Pro)</span>
+                  </span>
+                  <span class="audiohub-pct">78%</span>
+                </div>
+                <div class="audiohub-bar"><div class="audiohub-fill" style="width: 78%;"></div></div>
+              </div>
+
+              <!-- Per-App Volume Mixers -->
+              <div class="audiohub-apps-row">
+                <div class="audiohub-app-chip">
+                  <div class="audiohub-app-info">
+                    <span class="audiohub-app-icon" style="background: rgba(30, 215, 96, 0.2); color: #1ed760;">♪</span>
+                    <span>Spotify</span>
+                  </div>
+                  <div class="audiohub-app-bar"><div class="audiohub-app-fill" style="width: 85%;"></div></div>
+                  <span class="audiohub-app-vol">85%</span>
+                </div>
+                <div class="audiohub-app-chip">
+                  <div class="audiohub-app-info">
+                    <span class="audiohub-app-icon" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8;">🧭</span>
+                    <span>Safari</span>
+                  </div>
+                  <div class="audiohub-app-bar"><div class="audiohub-app-fill" style="width: 50%;"></div></div>
+                  <span class="audiohub-app-vol">50%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 6 (4-col): Hardware DDC External Display HUD -->
+        <div class="bento-card bento-col-4 fade-in-section delay-1">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
             </div>
             <h3 class="bento-title" data-i18n="feat5.title">Hardware DDC External Display HUD</h3>
             <p class="bento-desc" data-i18n="feat5.desc">
-              Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with native Apple keyboard shortcuts.
+              Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with cursor-aware F1/F2 keys and 2.2ms write coalescing.
             </p>
           </div>
 
@@ -572,13 +642,53 @@
           </div>
         </div>
 
-        <!-- Bento 6 (6-col): Live CPU, RAM & GPU System Monitor -->
-        <div class="bento-card bento-col-6 fade-in-section delay-1">
+        <!-- Bento 7 (4-col): macOS System Auth Interception -->
+        <div class="bento-card bento-col-4 fade-in-section">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat13.title">macOS System Auth &amp; Hands-Free Face ID</h3>
+            <p class="bento-desc" data-i18n="feat13.desc">
+              Intercepts administrative sudo prompts, Keychain credential requests, and Touch ID dialogs across macOS. Seamlessly authenticates with privacy-first on-device Apple Vision without typing passwords.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="auth-preview-widget">
+              <!-- Terminal sudo badge -->
+              <div class="auth-terminal-bar">
+                <span class="auth-term-dots"><i></i><i></i><i></i></span>
+                <span class="auth-term-title" data-i18n="bento.authIntercept">Terminal sudo &amp; Keychain Intercept</span>
+              </div>
+              <!-- Biometric verification glyph -->
+              <div class="auth-face-verify">
+                <div class="auth-face-ring">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3m0-8V5a2 2 0 0 0-2-2h-3"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                  </svg>
+                </div>
+                <div class="auth-face-text">
+                  <div class="auth-verify-bold" data-i18n="bento.authStatus">Authenticated Hands-Free</div>
+                  <div class="auth-verify-sub" data-i18n="bento.authFaceID">Apple Vision Biometric Verification</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 8 (Large 8-col): Live CPU, RAM & GPU System Monitor -->
+        <div class="bento-card bento-col-8 fade-in-section delay-1">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
             </div>
-            <h3 class="bento-title" data-i18n="feat6.title">Live CPU, RAM & GPU System Monitor</h3>
+            <h3 class="bento-title" data-i18n="feat6.title">Live CPU, RAM &amp; GPU System Monitor</h3>
             <p class="bento-desc" data-i18n="feat6.desc">
               Real-time hardware telemetry directly inside the notch. Track Apple Silicon unified memory pressure, CPU core clusters, and GPU load with 0% idle overhead.
             </p>
@@ -634,13 +744,13 @@
           </div>
         </div>
 
-        <!-- Bento 7 (Large 8-col): Regional Lunar & Multi-Country Calendar -->
+        <!-- Bento 9 (Large 8-col): Regional Lunar & Multi-Country Calendar -->
         <div class="bento-card bento-col-8 fade-in-section">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             </div>
-            <h3 class="bento-title" data-i18n="feat7.title">Regional Lunar & Multi-Country Calendar Engine</h3>
+            <h3 class="bento-title" data-i18n="feat7.title">Regional Lunar &amp; Multi-Country Calendar Engine</h3>
             <p class="bento-desc" data-i18n="feat7.desc">
               Astronomical offline calculation for Vietnamese Lunar (UTC+7, Dr. Ho Ngoc Duc), Chinese Nongli (UTC+8), Islamic Hijri, Hebrew, Buddhist, and Persian systems. Interactive Moon button reveals daily lunar dates under full month grid.
             </p>
@@ -681,7 +791,7 @@
           </div>
         </div>
 
-        <!-- Bento 8 (4-col): Smart Battery Health & 80% Limit -->
+        <!-- Bento 10 (4-col): Smart Battery Health & 80% Limit -->
         <div class="bento-card bento-col-4 fade-in-section delay-1">
           <div class="bento-header">
             <div class="bento-icon-badge">
@@ -714,13 +824,15 @@
           </div>
         </div>
 
-        <!-- Bento 9 (6-col): Smart Clipboard History & Quick Stash -->
-        <div class="bento-card bento-col-6 fade-in-section">
+        <!-- Trio Row: Bento 11 (4-col), Bento 12 (4-col), Bento 13 (4-col) -->
+
+        <!-- Bento 11 (4-col): Smart Clipboard History & Quick Stash -->
+        <div class="bento-card bento-col-4 fade-in-section">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
             </div>
-            <h3 class="bento-title" data-i18n="feat9.title">Smart Clipboard Manager & Stash</h3>
+            <h3 class="bento-title" data-i18n="feat9.title">Smart Clipboard Manager &amp; Stash</h3>
             <p class="bento-desc" data-i18n="feat9.desc">
               Access recent clips, code snippets, formatted text, and color hexes right inside the notch. Filter by app, search history in milliseconds, and paste instantly.
             </p>
@@ -738,16 +850,76 @@
               <div class="clipboard-item-row">
                 <div class="clipboard-item-left">
                   <span class="clipboard-tag" style="background: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.4); color: #4ade80;">HEX</span>
-                  <span class="clipboard-text">#D4C7BA (Warm Silk Beige)</span>
+                  <span class="clipboard-text">#D4C7BA (Warm Silk)</span>
                 </div>
                 <span class="clipboard-copy-btn">Just now</span>
+              </div>
+              <div class="clipboard-item-row">
+                <div class="clipboard-item-left">
+                  <span class="clipboard-tag" style="background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">URL</span>
+                  <span class="clipboard-text">notchpulse-app.web.app</span>
+                </div>
+                <span class="clipboard-copy-btn">2m ago</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Bento 10 (6-col): 9-Language Native Localization -->
-        <div class="bento-card bento-col-6 fade-in-section delay-1">
+        <!-- Bento 12 (4-col): Native SMC Fan & Thermal Control -->
+        <div class="bento-card bento-col-4 fade-in-section delay-1">
+          <div class="bento-header">
+            <div class="bento-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 12c0-3 2.5-5.5 5.5-5.5S23 9 23 12s-2.5 5.5-5.5 5.5S12 15 12 12Z"/>
+                <path d="M12 12c-3 0-5.5-2.5-5.5-5.5S9 1 12 1s5.5 2.5 5.5 5.5S15 12 12 12Z"/>
+                <path d="M12 12c0 3-2.5 5.5-5.5 5.5S1 15 1 12s2.5-5.5 5.5-5.5S12 9 12 12Z"/>
+                <path d="M12 12c3 0 5.5 2.5 5.5 5.5S15 23 12 23s-5.5-2.5-5.5-5.5S9 12 12 12Z"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat11.title">Native SMC Fan &amp; Thermal Control</h3>
+            <p class="bento-desc" data-i18n="feat11.desc">
+              Direct SMC hardware driver with auto root authorization. Control fan speeds (Auto, Max Blast, Silent, Custom RPM) and monitor CPU/GPU thermal sensors directly from the notch.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="fan-preview-widget">
+              <div class="fan-status-row">
+                <div class="fan-rpm-badge">
+                  <svg class="fan-spin-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 12c0-3 2-4 4-4s4 2 4 4-2 4-4 4-4-1-4-4Z"/>
+                    <path d="M12 12c-3 0-4-2-4-4s2-4 4-4 4 2 4 4-1 4-4 4Z"/>
+                    <path d="M12 12c0 3-2 4-4 4s-4-2-4-4 2-4 4-4 4 1 4 4Z"/>
+                    <path d="M12 12c3 0 4 2 4 4s-2 4-4 4-4-2-4-4 1-4 4-4Z"/>
+                  </svg>
+                  <span class="fan-rpm-val" data-i18n="bento.fanRpm">4,800 RPM Turbo</span>
+                </div>
+                <span class="fan-turbo-pill">Turbo Cool</span>
+              </div>
+              <div class="fan-modes-row">
+                <span class="fan-mode-btn">Auto</span>
+                <span class="fan-mode-btn active">Turbo</span>
+                <span class="fan-mode-btn">Silent</span>
+                <span class="fan-mode-btn">Custom</span>
+              </div>
+              <div class="fan-sub-info">
+                <span class="fan-temp-tag">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                  <span data-i18n="bento.fanCpuTemp">CPU 42°C • Cool &amp; Quiet</span>
+                </span>
+                <span style="font-size: 0.72rem; color: #4ade80; display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  <span data-i18n="bento.fanRootAuth">Auto Root Daemon Active</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 13 (4-col): 9-Language Native Localization -->
+        <div class="bento-card bento-col-4 fade-in-section delay-2">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -769,105 +941,6 @@
               <div class="lang-pill-item">🇫🇷 Français</div>
               <div class="lang-pill-item">🇪🇸 Español</div>
               <div class="lang-pill-item">🇸🇦 العربية</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bento 11 (6-col): Native SMC Fan & Thermal Control -->
-        <div class="bento-card bento-col-6 fade-in-section">
-          <div class="bento-header">
-            <div class="bento-icon-badge">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 12c0-3 2.5-5.5 5.5-5.5S23 9 23 12s-2.5 5.5-5.5 5.5S12 15 12 12Z"/>
-                <path d="M12 12c-3 0-5.5-2.5-5.5-5.5S9 1 12 1s5.5 2.5 5.5 5.5S15 12 12 12Z"/>
-                <path d="M12 12c0 3-2.5 5.5-5.5 5.5S1 15 1 12s2.5-5.5 5.5-5.5S12 9 12 12Z"/>
-                <path d="M12 12c3 0 5.5 2.5 5.5 5.5S15 23 12 23s-5.5-2.5-5.5-5.5S9 12 12 12Z"/>
-                <circle cx="12" cy="12" r="2"/>
-              </svg>
-            </div>
-            <h3 class="bento-title" data-i18n="feat11.title">Native SMC Fan & Thermal Control</h3>
-            <p class="bento-desc" data-i18n="feat11.desc">
-              Direct SMC hardware driver with auto root authorization. Control fan speeds (Auto, Max Blast, Silent, Custom RPM) and monitor CPU/GPU thermal sensors directly from the notch.
-            </p>
-          </div>
-
-          <div class="bento-preview-box">
-            <div class="fan-preview-widget">
-              <div class="fan-status-row">
-                <div class="fan-rpm-badge">
-                  <svg class="fan-spin-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 12c0-3 2-4 4-4s4 2 4 4-2 4-4 4-4-1-4-4Z"/>
-                    <path d="M12 12c-3 0-4-2-4-4s2-4 4-4 4 2 4 4-1 4-4 4Z"/>
-                    <path d="M12 12c0 3-2 4-4 4s-4-2-4-4 2-4 4-4 4 1 4 4Z"/>
-                    <path d="M12 12c3 0 4 2 4 4s-2 4-4 4-4-2-4-4 1-4 4-4Z"/>
-                  </svg>
-                  <span class="fan-rpm-val" data-i18n="bento.fanRpm">4,800 RPM Turbo</span>
-                </div>
-                <span class="fan-turbo-pill">Turbo Cool Active</span>
-              </div>
-              <div class="fan-modes-row">
-                <span class="fan-mode-btn">Auto</span>
-                <span class="fan-mode-btn active">Max Turbo</span>
-                <span class="fan-mode-btn">Silent</span>
-                <span class="fan-mode-btn">Custom</span>
-              </div>
-              <div class="fan-sub-info">
-                <span class="fan-temp-tag">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
-                  <span data-i18n="bento.fanCpuTemp">CPU 42°C • Cool & Quiet</span>
-                </span>
-                <span style="font-size: 0.72rem; color: #4ade80; display: inline-flex; align-items: center; gap: 4px;">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                  <span data-i18n="bento.fanRootAuth">Auto Root Daemon Active</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bento 12 (6-col): Refined Lock Screen Media Player -->
-        <div class="bento-card bento-col-6 fade-in-section delay-1">
-          <div class="bento-header">
-            <div class="bento-icon-badge">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
-              </svg>
-            </div>
-            <h3 class="bento-title" data-i18n="feat12.title">Refined Lock Screen Media Player</h3>
-            <p class="bento-desc" data-i18n="feat12.desc">
-              Stunning edge-to-edge glass player with zero faint blur shadows. Seamlessly adapts control button colors and dynamic appearance between macOS Light & Dark modes.
-            </p>
-          </div>
-
-          <div class="bento-preview-box">
-            <div class="lockscreen-media-widget">
-              <div class="lockscreen-card-mini">
-                <div class="lockscreen-art-wrap">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polygon points="10 8 16 12 10 16 10 8" fill="#FFFFFF"/>
-                  </svg>
-                </div>
-                <div class="lockscreen-track-meta">
-                  <div class="lockscreen-track-title" data-i18n="bento.lockscreenTitle">Midnight Resonance</div>
-                  <div class="lockscreen-track-artist" data-i18n="bento.lockscreenArtist">Pulse Lo-Fi Beats</div>
-                </div>
-                <div class="lockscreen-controls">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
-                </div>
-              </div>
-              <div class="lockscreen-bottom-badge">
-                <span class="lockscreen-adaptive-pill">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
-                  <span data-i18n="bento.lockscreenDynamic">Adaptive Dark & Light Sync</span>
-                </span>
-                <span style="font-size: 0.72rem; color: #38bdf8; font-weight: 500;">Zero-Blur Crisp Glass</span>
-              </div>
             </div>
           </div>
         </div>

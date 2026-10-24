@@ -1999,84 +1999,250 @@ a {
   font-weight: 600;
 }
 
-/* Bento 12: Refined Lock Screen Media Widget */
-.lockscreen-media-widget {
+/* Bento: Interactive Audio Hub & Bluetooth Battery Widget */
+.audiohub-preview-widget {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.audiohub-tab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.audiohub-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 3px;
+  border-radius: 980px;
+  border: 1px solid rgba(255, 235, 220, 0.1);
+}
+
+.audiohub-tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 980px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.audiohub-tab-pill.active {
+  background: rgba(141, 84, 40, 0.35);
+  color: #FFFFFF;
+  border: 1px solid rgba(141, 84, 40, 0.6);
+}
+
+.audiohub-device-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #4ade80;
+  padding: 4px 10px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 980px;
+}
+
+.audiohub-bt-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+
+.audiohub-main-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audiohub-slider-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.audiohub-slider-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audiohub-pct {
+  font-weight: 700;
+  color: var(--accent-caramel);
+}
+
+.audiohub-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 980px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 235, 220, 0.08);
+  overflow: hidden;
+}
+
+.audiohub-fill {
+  height: 100%;
+  border-radius: 980px;
+  background: linear-gradient(90deg, var(--accent-caramel), #fbbf24);
+}
+
+.audiohub-apps-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.audiohub-app-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 235, 220, 0.08);
+  border-radius: 10px;
+}
+
+.audiohub-app-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.audiohub-app-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+.audiohub-app-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 980px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.audiohub-app-fill {
+  height: 100%;
+  border-radius: 980px;
+  background: var(--text-primary);
+}
+
+.audiohub-app-vol {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Bento: macOS System Auth & Hands-Free Face ID Widget */
+.auth-preview-widget {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.lockscreen-card-mini {
+.auth-terminal-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  gap: 12px;
-}
-
-.lockscreen-art-wrap {
-  width: 38px;
-  height: 38px;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 235, 220, 0.1);
   border-radius: 8px;
-  background: linear-gradient(135deg, #f97316, #db2777);
+}
+
+.auth-term-dots {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  gap: 4px;
 }
 
-.lockscreen-track-meta {
-  flex: 1;
-  min-width: 0;
+.auth-term-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.lockscreen-track-title {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--text-primary);
+.auth-term-dots i:nth-child(1) { background: #ef4444; }
+.auth-term-dots i:nth-child(2) { background: #eab308; }
+.auth-term-dots i:nth-child(3) { background: #22c55e; }
+
+.auth-term-title {
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.lockscreen-track-artist {
+.auth-face-verify {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 12px;
+}
+
+.auth-face-ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(74, 222, 128, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.auth-face-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-verify-bold {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #4ade80;
+  letter-spacing: -0.01em;
+}
+
+.auth-verify-sub {
   font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 1px;
-}
-
-.lockscreen-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-primary);
-}
-
-.lockscreen-bottom-badge {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.lockscreen-adaptive-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  background: rgba(168, 85, 247, 0.12);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  border-radius: 980px;
-  color: #c084fc;
-  font-weight: 500;
 }
 
 
