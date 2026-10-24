@@ -115,7 +115,7 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
         let did = CGDirectDisplayID(displayID)
 
         // 1. Apple Builtin or Apple-branded Display: DisplayServicesGetBrightness is fast & authoritative
-        if CGDisplayIsBuiltin(did) != 0 || CGDisplayVendorNumber(did) == 0x0610 {
+        if CGDisplayIsBuiltin(did) != 0 || CGDisplayVendorNumber(did) == 0x0610 || displayServicesCanChangeBrightness(displayID: did) {
             var b: Float = 0
             if displayServicesGetBrightness(displayID: did, out: &b) {
                 reply(NSNumber(value: b))
@@ -123,30 +123,36 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
             }
         }
 
-        // 2. Direct Hardware DDC/CI read for external displays (VESA standard)
-        if let ddcVal = NotchPulseDDC.getBrightness(for: did) {
-            reply(NSNumber(value: ddcVal))
-            return
-        }
-
-        // 3. Fallback DisplayServices (for displays like LG UltraFine with Apple hardware integration)
-        var b: Float = 0
-        if displayServicesGetBrightness(displayID: did, out: &b) {
-            reply(NSNumber(value: b))
-            return
-        }
-
-        // 4. Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
-        if let io = ioServiceFor(displayID: did) {
-            var level: Float = 0
-            if IODisplayGetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, &level) == kIOReturnSuccess {
-                IOObjectRelease(io)
-                reply(NSNumber(value: level))
+        // 2. Direct Hardware DDC/CI read for external displays (VESA standard) async on global queue
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else {
+                reply(nil)
                 return
             }
-            IOObjectRelease(io)
+            if let ddcVal = NotchPulseDDC.getBrightness(for: did) {
+                reply(NSNumber(value: ddcVal))
+                return
+            }
+
+            // Fallback DisplayServices (for displays like LG UltraFine with Apple hardware integration)
+            var b: Float = 0
+            if self.displayServicesGetBrightness(displayID: did, out: &b) {
+                reply(NSNumber(value: b))
+                return
+            }
+
+            // Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
+            if let io = self.ioServiceFor(displayID: did) {
+                var level: Float = 0
+                if IODisplayGetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, &level) == kIOReturnSuccess {
+                    IOObjectRelease(io)
+                    reply(NSNumber(value: level))
+                    return
+                }
+                IOObjectRelease(io)
+            }
+            reply(nil)
         }
-        reply(nil)
     }
 
     @objc func setDisplayBrightness(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void) {
@@ -157,37 +163,43 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
         let isBuiltin = (CGDisplayIsBuiltin(did) != 0)
         let isAppleBranded = (CGDisplayVendorNumber(did) == 0x0610)
 
-        if isBuiltin || isAppleBranded {
+        if isBuiltin || isAppleBranded || displayServicesCanChangeBrightness(displayID: did) {
             let ok = displayServicesSetBrightness(displayID: did, value: clamped)
             reply(ok)
             return
         }
 
-        // 2. Direct Hardware DDC/CI Control for External Displays (Dell, LG, Asus, Samsung, BenQ, HKC, etc.)
-        let ddcOk = NotchPulseDDC.setBrightness(clamped, for: did)
-        if ddcOk {
-            reply(true)
-            return
-        }
-
-        // 3. Fallback: If DDC fails, test if DisplayServices actually works on this display
-        var testB: Float = 0
-        if displayServicesGetBrightness(displayID: did, out: &testB) {
-            if displayServicesSetBrightness(displayID: did, value: clamped) {
+        // 2. Direct Hardware DDC/CI Control for External Displays async on global queue
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else {
+                reply(false)
+                return
+            }
+            let ddcOk = NotchPulseDDC.setBrightness(clamped, for: did)
+            if ddcOk {
                 reply(true)
                 return
             }
-        }
 
-        // 4. Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
-        if let io = ioServiceFor(displayID: did) {
-            let ok = IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped) == kIOReturnSuccess
-            IOObjectRelease(io)
-            reply(ok)
-            return
-        }
+            // Fallback: If DDC fails, test if DisplayServices actually works on this display
+            var testB: Float = 0
+            if self.displayServicesGetBrightness(displayID: did, out: &testB) {
+                if self.displayServicesSetBrightness(displayID: did, value: clamped) {
+                    reply(true)
+                    return
+                }
+            }
 
-        reply(false)
+            // Fallback: Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
+            if let io = self.ioServiceFor(displayID: did) {
+                let ok = IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped) == kIOReturnSuccess
+                IOObjectRelease(io)
+                reply(ok)
+                return
+            }
+
+            reply(false)
+        }
     }
 
     @objc func currentDisplayVolume(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void) {
@@ -202,8 +214,10 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
     @objc func setDisplayVolume(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void) {
         let did = CGDirectDisplayID(displayID)
         let clamped = max(0, min(1, value))
-        let ok = NotchPulseDDC.setVolume(clamped, for: did)
-        reply(ok)
+        DispatchQueue.global(qos: .userInitiated).async {
+            let ok = NotchPulseDDC.setVolume(clamped, for: did)
+            reply(ok)
+        }
     }
 
     @objc func isScreenBrightnessAvailable(with reply: @escaping (Bool) -> Void) {
@@ -216,6 +230,15 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
 
     @objc func setScreenBrightness(_ value: Float, with reply: @escaping (Bool) -> Void) {
         setDisplayBrightness(value, for: CGMainDisplayID(), with: reply)
+    }
+
+    // MARK: - Private helpers for DisplayServices / IOKit access
+    private func displayServicesCanChangeBrightness(displayID: CGDirectDisplayID) -> Bool {
+        if CGDisplayIsBuiltin(displayID) != 0 { return true }
+        guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesCanChangeBrightness") else { return false }
+        typealias Fn = @convention(c) (CGDirectDisplayID) -> Int32
+        let fn = unsafeBitCast(sym, to: Fn.self)
+        return fn(displayID) != 0
     }
 
     // MARK: - Private helpers for DisplayServices / IOKit access

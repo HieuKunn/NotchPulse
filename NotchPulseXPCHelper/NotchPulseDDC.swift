@@ -281,20 +281,14 @@ final class NotchPulseDDC {
         }
         packet[packet.count - 1] = chkd
 
-        var success = false
-        for _ in 1...3 {
-            for _ in 1...2 {
-                usleep(10000)
-                let res = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
-                if res == 0 {
-                    success = true
-                    break
-                }
+        for attempt in 0..<3 {
+            if attempt > 0 { usleep(15000) }
+            let res = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
+            if res == 0 {
+                return true
             }
-            if success { break }
-            usleep(20000)
         }
-        return success
+        return false
     }
 
     private func readArm64(command: UInt8, displayID: CGDirectDisplayID) -> (UInt16, UInt16)? {

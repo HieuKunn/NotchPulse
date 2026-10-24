@@ -2,6 +2,49 @@
 import AppKit
 import CoreGraphics
 
+// MARK: - Direct In-Process DisplayServices Bridge (0ms latency, zero XPC overhead)
+enum DisplayServicesBridge {
+	private static let handle: UnsafeMutableRawPointer? = {
+		let paths = [
+			"/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices",
+			"/System/Library/PrivateFrameworks/DisplayServices.framework/Versions/Current/DisplayServices"
+		]
+		for p in paths {
+			if let h = dlopen(p, RTLD_LAZY) { return h }
+		}
+		return nil
+	}()
+
+	static func canChangeBrightness(_ displayID: CGDirectDisplayID) -> Bool {
+		if CGDisplayIsBuiltin(displayID) != 0 { return true }
+		guard let handle = handle,
+		      let sym = dlsym(handle, "DisplayServicesCanChangeBrightness") else { return false }
+		typealias Fn = @convention(c) (CGDirectDisplayID) -> Int32
+		let fn = unsafeBitCast(sym, to: Fn.self)
+		return fn(displayID) != 0
+	}
+
+	static func getBrightness(_ displayID: CGDirectDisplayID) -> Float? {
+		guard let handle = handle,
+		      let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
+		typealias Fn = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
+		let fn = unsafeBitCast(sym, to: Fn.self)
+		var tmp: Float = 0
+		if fn(displayID, &tmp) == 0 {
+			return tmp
+		}
+		return nil
+	}
+
+	static func setBrightness(displayID: CGDirectDisplayID, value: Float) -> Bool {
+		guard let handle = handle,
+		      let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return false }
+		typealias Fn = @convention(c) (CGDirectDisplayID, Float) -> Int32
+		let fn = unsafeBitCast(sym, to: Fn.self)
+		return fn(displayID, value) == 0
+	}
+}
+
 struct DisplayTarget: Equatable, Identifiable {
 	let id: CGDirectDisplayID
 	let isBuiltin: Bool
@@ -61,7 +104,10 @@ final class BrightnessManager: ObservableObject {
 		let displays = availableDisplays()
 		Task { @MainActor in
 			for d in displays {
-				if let val = await client.currentDisplayBrightness(for: d.id) {
+				if DisplayServicesBridge.canChangeBrightness(d.id),
+				   let val = DisplayServicesBridge.getBrightness(d.id) {
+					displayBrightnessCache[d.id] = val
+				} else if let val = await client.currentDisplayBrightness(for: d.id) {
 					displayBrightnessCache[d.id] = val
 				}
 			}
@@ -140,6 +186,11 @@ final class BrightnessManager: ObservableObject {
 	}
 
 	private func currentBrightnessFor(displayID: CGDirectDisplayID) async -> Float {
+		if DisplayServicesBridge.canChangeBrightness(displayID),
+		   let val = DisplayServicesBridge.getBrightness(displayID) {
+			displayBrightnessCache[displayID] = val
+			return val
+		}
 		if let val = await client.currentDisplayBrightness(for: displayID) {
 			displayBrightnessCache[displayID] = val
 			return val
@@ -151,13 +202,14 @@ final class BrightnessManager: ObservableObject {
 		let displays = availableDisplays()
 		guard !displays.isEmpty else { return }
 
-		let builtinDisplay = displays.first(where: { $0.isBuiltin })
-		let externalDisplay = displays.first(where: { !$0.isBuiltin })
+		let currentUnderCursor = detectedDisplay()
+		let otherDisplays = displays.filter { $0.id != currentUnderCursor.id }
 
-		// Default F1/F2 adjusts Mac built-in screen; holding Control adjusts external screen (or if lid is closed)
+		// Follow mouse cursor naturally (matching user expectation & MonitorControl)
+		// Holding Control acts as alternate target override
 		let target: DisplayTarget = alternateScreen
-			? (externalDisplay ?? builtinDisplay ?? displays[0])
-			: (builtinDisplay ?? externalDisplay ?? displays[0])
+			? (otherDisplays.first ?? currentUnderCursor)
+			: currentUnderCursor
 
 		activeDisplayID = target.id
 		currentDisplayName = target.shortName
@@ -179,7 +231,11 @@ final class BrightnessManager: ObservableObject {
 			icon: target.isBuiltin ? "sun.max.fill" : "display"
 		)
 
-		dispatchHardwareWrite(for: target.id, value: newBrightness)
+		if DisplayServicesBridge.canChangeBrightness(target.id) {
+			_ = DisplayServicesBridge.setBrightness(displayID: target.id, value: newBrightness)
+		} else {
+			dispatchHardwareWrite(for: target.id, value: newBrightness)
+		}
 	}
 
 	func setAbsolute(value: Float) {
@@ -193,7 +249,11 @@ final class BrightnessManager: ObservableObject {
 			publish(brightness: clamped, touchDate: true)
 		}
 
-		dispatchHardwareWrite(for: displayID, value: clamped)
+		if DisplayServicesBridge.canChangeBrightness(displayID) {
+			_ = DisplayServicesBridge.setBrightness(displayID: displayID, value: clamped)
+		} else {
+			dispatchHardwareWrite(for: displayID, value: clamped)
+		}
 	}
 
 	private func dispatchHardwareWrite(for displayID: CGDirectDisplayID, value: Float) {
@@ -204,9 +264,7 @@ final class BrightnessManager: ObservableObject {
 				while let nextValue = self?.pendingHardwareWrites.removeValue(forKey: displayID) {
 					_ = await self?.client.setDisplayBrightness(nextValue, for: displayID)
 					// If this is an external display, space writes slightly so the hardware I2C bus settles cleanly
-					if CGDisplayIsBuiltin(displayID) == 0 {
-						try? await Task.sleep(nanoseconds: 40_000_000) // 40ms
-					}
+					try? await Task.sleep(nanoseconds: 35_000_000) // 35ms
 				}
 				self?.activeWriteTasks[displayID] = nil
 			}
