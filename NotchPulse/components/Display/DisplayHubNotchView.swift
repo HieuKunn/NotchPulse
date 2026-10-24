@@ -127,6 +127,7 @@ private struct DisplayRowView: View {
     let target: DisplayTarget
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @State private var sliderValue: CGFloat = 0.5
+    @State private var isProgrammaticUpdate: Bool = false
 
     private var currentBrightness: Float {
         brightnessManager.brightness(for: target.id)
@@ -220,9 +221,17 @@ private struct DisplayRowView: View {
             sliderValue = CGFloat(currentBrightness)
         }
         .onChange(of: currentBrightness) { _, newVal in
-            sliderValue = CGFloat(newVal)
+            let newCGFloat = CGFloat(newVal)
+            if abs(sliderValue - newCGFloat) > 0.005 {
+                isProgrammaticUpdate = true
+                sliderValue = newCGFloat
+            }
         }
         .onChange(of: sliderValue) { _, newVal in
+            if isProgrammaticUpdate {
+                isProgrammaticUpdate = false
+                return
+            }
             if abs(Float(newVal) - currentBrightness) > 0.005 {
                 brightnessManager.setBrightness(for: target.id, value: Float(newVal))
             }

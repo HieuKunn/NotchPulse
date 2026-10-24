@@ -26,9 +26,13 @@ final class BrightnessManager: ObservableObject {
 	private let visibleDuration: TimeInterval = 1.2
 	private let client = XPCHelperClient.shared
 
+	private var pendingHardwareWrites: [CGDirectDisplayID: Float] = [:]
+	private var activeWriteTasks: [CGDirectDisplayID: Task<Void, Never>] = [:]
+
 	private init() {
 		updateDisplayInfo()
-		let initial = detectedDisplay()
+		let displays = availableDisplays()
+		let initial = displays.first(where: { $0.isBuiltin }) ?? displays.first ?? detectedDisplay()
 		activeDisplayID = initial.id
 		currentDisplayName = initial.shortName
 		isCurrentBuiltin = initial.isBuiltin
@@ -111,16 +115,14 @@ final class BrightnessManager: ObservableObject {
 		currentDisplayName = target.shortName
 		isCurrentBuiltin = target.isBuiltin
 
-		Task { @MainActor in
-			let brightness = await currentBrightnessFor(displayID: target.id)
-			publish(brightness: brightness, touchDate: true)
-			NotchPulseViewCoordinator.shared.toggleSneakPeek(
-				status: true,
-				type: .brightness,
-				value: CGFloat(brightness),
-				icon: target.isBuiltin ? "sun.max.fill" : "display"
-			)
-		}
+		let brightness = displayBrightnessCache[target.id] ?? (target.isBuiltin ? rawBrightness : 0.5)
+		publish(brightness: brightness, touchDate: true)
+		NotchPulseViewCoordinator.shared.toggleSneakPeek(
+			status: true,
+			type: .brightness,
+			value: CGFloat(brightness),
+			icon: target.isBuiltin ? "sun.max.fill" : "display"
+		)
 	}
 
 	func currentDisplayIcon(_ value: CGFloat = 0.5) -> String {
@@ -147,41 +149,37 @@ final class BrightnessManager: ObservableObject {
 
 	func setRelative(delta: Float, alternateScreen: Bool = false) {
 		let displays = availableDisplays()
-		let builtinDisplay = displays.first(where: { $0.isBuiltin })
-		let externalDisplays = displays.filter { !$0.isBuiltin }
-		let currentUnderCursor = detectedDisplay()
+		guard !displays.isEmpty else { return }
 
-		let target: DisplayTarget
-		if alternateScreen {
-			// When holding Control (alternate target modifier):
-			// If cursor is on built-in, adjust first external display. If on external, adjust built-in.
-			if currentUnderCursor.isBuiltin {
-				target = externalDisplays.first ?? builtinDisplay ?? currentUnderCursor
-			} else {
-				target = builtinDisplay ?? currentUnderCursor
-			}
-		} else {
-			// Natural intuitive targeting (matching MonitorControl / Lunar):
-			// Adjust whichever display the user's mouse cursor is currently pointing at!
-			target = currentUnderCursor
-		}
+		let builtinDisplay = displays.first(where: { $0.isBuiltin })
+		let externalDisplay = displays.first(where: { !$0.isBuiltin })
+
+		// Default F1/F2 adjusts Mac built-in screen; holding Control adjusts external screen (or if lid is closed)
+		let target: DisplayTarget = alternateScreen
+			? (externalDisplay ?? builtinDisplay ?? displays[0])
+			: (builtinDisplay ?? externalDisplay ?? displays[0])
 
 		activeDisplayID = target.id
 		currentDisplayName = target.shortName
 		isCurrentBuiltin = target.isBuiltin
 
-		Task { @MainActor in
-			let starting = await currentBrightnessFor(displayID: target.id)
-			let newBrightness = max(0, min(1, starting + delta))
-			setBrightness(for: target.id, value: newBrightness)
+		// Read immediately from memory cache — NEVER block or await slow I2C/DDC hardware reads on keypress!
+		let current = displayBrightnessCache[target.id] ?? (target.isBuiltin ? rawBrightness : 0.5)
+		let newBrightness = max(0, min(1, current + delta))
 
-			NotchPulseViewCoordinator.shared.toggleSneakPeek(
-				status: true,
-				type: .brightness,
-				value: CGFloat(newBrightness),
-				icon: target.isBuiltin ? "sun.max.fill" : "display"
-			)
+		displayBrightnessCache[target.id] = newBrightness
+		if target.id == activeDisplayID {
+			publish(brightness: newBrightness, touchDate: true)
 		}
+
+		NotchPulseViewCoordinator.shared.toggleSneakPeek(
+			status: true,
+			type: .brightness,
+			value: CGFloat(newBrightness),
+			icon: target.isBuiltin ? "sun.max.fill" : "display"
+		)
+
+		dispatchHardwareWrite(for: target.id, value: newBrightness)
 	}
 
 	func setAbsolute(value: Float) {
@@ -191,16 +189,26 @@ final class BrightnessManager: ObservableObject {
 	func setBrightness(for displayID: CGDirectDisplayID, value: Float) {
 		let clamped = max(0, min(1, value))
 		displayBrightnessCache[displayID] = clamped
+		if displayID == activeDisplayID {
+			publish(brightness: clamped, touchDate: true)
+		}
 
-		Task { @MainActor in
-			let ok = await client.setDisplayBrightness(clamped, for: displayID)
-			if !ok && CGDisplayIsBuiltin(displayID) == 0 {
-				DisplayShadeManager.shared.setBrightness(clamped, for: displayID)
-			} else if CGDisplayIsBuiltin(displayID) == 0 {
-				DisplayShadeManager.shared.removeShade(for: displayID)
-			}
-			if displayID == activeDisplayID {
-				publish(brightness: clamped, touchDate: true)
+		dispatchHardwareWrite(for: displayID, value: clamped)
+	}
+
+	private func dispatchHardwareWrite(for displayID: CGDirectDisplayID, value: Float) {
+		pendingHardwareWrites[displayID] = value
+
+		if activeWriteTasks[displayID] == nil {
+			activeWriteTasks[displayID] = Task { [weak self] in
+				while let nextValue = self?.pendingHardwareWrites.removeValue(forKey: displayID) {
+					_ = await self?.client.setDisplayBrightness(nextValue, for: displayID)
+					// If this is an external display, space writes slightly so the hardware I2C bus settles cleanly
+					if CGDisplayIsBuiltin(displayID) == 0 {
+						try? await Task.sleep(nanoseconds: 40_000_000) // 40ms
+					}
+				}
+				self?.activeWriteTasks[displayID] = nil
 			}
 		}
 	}
