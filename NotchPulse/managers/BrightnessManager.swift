@@ -248,9 +248,6 @@ final class BrightnessManager: ObservableObject {
 		if DisplayServicesBridge.canChangeBrightness(displayID) {
 			_ = DisplayServicesBridge.setBrightness(displayID: displayID, value: clamped)
 		} else {
-			// External third-party displays: Always apply seamless CoreGraphics gamma table dimming
-			// so the monitor dims 100% reliably regardless of OSD scenario mode, locked backlight, or DDC firmware quirks
-			DisplayShadeManager.shared.setBrightness(clamped, for: displayID)
 			dispatchHardwareWrite(for: displayID, value: clamped)
 		}
 	}
