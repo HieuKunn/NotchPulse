@@ -27,9 +27,18 @@ final class DisplayShadeManager: ObservableObject {
     }
 
     func setBrightness(_ value: Float, for displayID: CGDirectDisplayID) {
-        // Pure hardware DDC is active; remove any remaining software shade windows
+        guard CGDisplayIsBuiltin(displayID) == 0 else { return }
+        let clamped = max(0.0, min(1.0, value))
+        // Alpha of the black window: 0.0 when brightness is 1.0; 0.9 when brightness is 0.1
+        let shadeAlpha = CGFloat(max(0.0, 1.0 - clamped))
+
         DispatchQueue.main.async { [weak self] in
-            self?.removeShade(for: displayID)
+            guard let self = self else { return }
+            if shadeAlpha <= 0.01 {
+                self.removeShade(for: displayID)
+            } else if let shade = self.getOrCreateShade(for: displayID) {
+                shade.alphaValue = shadeAlpha
+            }
         }
     }
 
@@ -61,9 +70,11 @@ final class DisplayShadeManager: ObservableObject {
         return shade
     }
 
-    private func removeShade(for displayID: CGDirectDisplayID) {
-        if let shade = shades.removeValue(forKey: displayID) {
-            shade.orderOut(nil)
+    func removeShade(for displayID: CGDirectDisplayID) {
+        DispatchQueue.main.async { [weak self] in
+            if let shade = self?.shades.removeValue(forKey: displayID) {
+                shade.orderOut(nil)
+            }
         }
     }
 

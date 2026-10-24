@@ -80,6 +80,12 @@ final class NotchPulseCamera: NSObject {
         currentFrame = nil
     }
 
+    /// True while the active device's auto-exposure is still converging — every `start()` is a cold start, and in a dim room
+    /// the first ~0.5–1s of frames are underexposed enough to score below the match threshold.
+    var isAdjustingExposure: Bool {
+        currentInput?.device.isAdjustingExposure ?? false
+    }
+
     /// Exposed read-only so `CameraPreviewView` can attach a preview layer to the same session.
     let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()

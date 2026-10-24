@@ -30,6 +30,11 @@ final class NotchPulseFaceUnlockCoordinator {
     }
     /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
     private let wrongFaceStreakThreshold = 6
+    /// Every scan cold-starts the camera; frames before auto-exposure settles are discarded so an underexposed warm-up (dim
+    /// room, e.g. opening the lid in the morning) can't burn the wrong-face streak in under a second. The floor covers the
+    /// first frames arriving before AE even reports adjusting; the ceiling keeps a never-settling AE from eating the window.
+    private let cameraWarmUpFloor: Duration = .milliseconds(250)
+    private let cameraWarmUpCeiling: Duration = .milliseconds(1500)
 
     private(set) var statusMessage = "Idle"
     private(set) var lastOutcome: String?
@@ -361,6 +366,7 @@ final class NotchPulseFaceUnlockCoordinator {
         var lastFaceBoundingBox: CGRect?
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
+        let scanStartedAt = ContinuousClock.now
 
         while Date() < deadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
@@ -372,6 +378,14 @@ final class NotchPulseFaceUnlockCoordinator {
                 continue
             }
             lastProcessedFrameID = frame.id
+
+            // Dropped entirely (not fed to liveness or the streak) — a half-exposed frame is noise for both gates.
+            let warmUpElapsed = ContinuousClock.now - scanStartedAt
+            if warmUpElapsed < cameraWarmUpCeiling,
+               warmUpElapsed < cameraWarmUpFloor || camera.isAdjustingExposure {
+                try? await Task.sleep(nanoseconds: 20_000_000)
+                continue
+            }
 
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox

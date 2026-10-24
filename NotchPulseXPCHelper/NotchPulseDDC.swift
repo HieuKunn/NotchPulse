@@ -288,6 +288,7 @@ final class NotchPulseDDC {
                 let res = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
                 if res == 0 {
                     success = true
+                    break
                 }
             }
             if success { break }
@@ -303,7 +304,7 @@ final class NotchPulseDDC {
         var reply = [UInt8](repeating: 0, count: 11)
 
         var packet: [UInt8] = [UInt8(0x80 | (send.count + 1)), UInt8(send.count)] + send + [0]
-        var chkd: UInt8 = (UInt8(transport.chipAddress) << 1)
+        var chkd: UInt8 = (UInt8(transport.chipAddress) << 1) ^ UInt8(ddcDataAddress)
         for byte in packet.dropLast() {
             chkd ^= byte
         }

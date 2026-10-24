@@ -113,15 +113,30 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
 
     @objc func currentDisplayBrightness(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void) {
         let did = CGDirectDisplayID(displayID)
+
+        // 1. Apple Builtin or Apple-branded Display: DisplayServicesGetBrightness is fast & authoritative
+        if CGDisplayIsBuiltin(did) != 0 || CGDisplayVendorNumber(did) == 0x0610 {
+            var b: Float = 0
+            if displayServicesGetBrightness(displayID: did, out: &b) {
+                reply(NSNumber(value: b))
+                return
+            }
+        }
+
+        // 2. Direct Hardware DDC/CI read for external displays (VESA standard)
+        if let ddcVal = NotchPulseDDC.getBrightness(for: did) {
+            reply(NSNumber(value: ddcVal))
+            return
+        }
+
+        // 3. Fallback DisplayServices (for displays like LG UltraFine with Apple hardware integration)
         var b: Float = 0
         if displayServicesGetBrightness(displayID: did, out: &b) {
             reply(NSNumber(value: b))
             return
         }
-        if let ddcVal = NotchPulseDDC.getBrightness(for: did) {
-            reply(NSNumber(value: ddcVal))
-            return
-        }
+
+        // 4. Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
         if let io = ioServiceFor(displayID: did) {
             var level: Float = 0
             if IODisplayGetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, &level) == kIOReturnSuccess {
@@ -138,26 +153,33 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
         let did = CGDirectDisplayID(displayID)
         let clamped = max(0, min(1, value))
 
-        // 1. Native Apple DisplayServices (Built-in Retina, Apple Studio Display, Pro Display XDR, LG UltraFine)
-        if CGDisplayIsBuiltin(did) != 0 {
+        // 1. Native Apple DisplayServices for Built-in Retina & Apple-branded Displays (Vendor 0x0610)
+        let isBuiltin = (CGDisplayIsBuiltin(did) != 0)
+        let isAppleBranded = (CGDisplayVendorNumber(did) == 0x0610)
+
+        if isBuiltin || isAppleBranded {
             let ok = displayServicesSetBrightness(displayID: did, value: clamped)
             reply(ok)
             return
         }
 
-        if displayServicesSetBrightness(displayID: did, value: clamped) {
-            reply(true)
-            return
-        }
-
-        // 2. Direct Hardware DDC/CI Control (Dell, LG, Asus, Samsung, BenQ, HKC, etc.)
+        // 2. Direct Hardware DDC/CI Control for External Displays (Dell, LG, Asus, Samsung, BenQ, HKC, etc.)
         let ddcOk = NotchPulseDDC.setBrightness(clamped, for: did)
         if ddcOk {
             reply(true)
             return
         }
 
-        // 3. Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
+        // 3. Fallback: If DDC fails, test if DisplayServices actually works on this display
+        var testB: Float = 0
+        if displayServicesGetBrightness(displayID: did, out: &testB) {
+            if displayServicesSetBrightness(displayID: did, value: clamped) {
+                reply(true)
+                return
+            }
+        }
+
+        // 4. Legacy IOKit (Apple Cinema Displays / Legacy Thunderbolt)
         if let io = ioServiceFor(displayID: did) {
             let ok = IODisplaySetFloatParameter(io, 0, kIODisplayBrightnessKey as CFString, clamped) == kIOReturnSuccess
             IOObjectRelease(io)

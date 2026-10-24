@@ -148,12 +148,22 @@ final class BrightnessManager: ObservableObject {
 	func setRelative(delta: Float, alternateScreen: Bool = false) {
 		let displays = availableDisplays()
 		let builtinDisplay = displays.first(where: { $0.isBuiltin })
-		let externalDisplay = displays.first(where: { !$0.isBuiltin })
+		let externalDisplays = displays.filter { !$0.isBuiltin }
+		let currentUnderCursor = detectedDisplay()
+
 		let target: DisplayTarget
 		if alternateScreen {
-			target = externalDisplay ?? builtinDisplay ?? detectedDisplay()
+			// When holding Control (alternate target modifier):
+			// If cursor is on built-in, adjust first external display. If on external, adjust built-in.
+			if currentUnderCursor.isBuiltin {
+				target = externalDisplays.first ?? builtinDisplay ?? currentUnderCursor
+			} else {
+				target = builtinDisplay ?? currentUnderCursor
+			}
 		} else {
-			target = builtinDisplay ?? externalDisplay ?? detectedDisplay()
+			// Natural intuitive targeting (matching MonitorControl / Lunar):
+			// Adjust whichever display the user's mouse cursor is currently pointing at!
+			target = currentUnderCursor
 		}
 
 		activeDisplayID = target.id
@@ -183,7 +193,12 @@ final class BrightnessManager: ObservableObject {
 		displayBrightnessCache[displayID] = clamped
 
 		Task { @MainActor in
-			_ = await client.setDisplayBrightness(clamped, for: displayID)
+			let ok = await client.setDisplayBrightness(clamped, for: displayID)
+			if !ok && CGDisplayIsBuiltin(displayID) == 0 {
+				DisplayShadeManager.shared.setBrightness(clamped, for: displayID)
+			} else if CGDisplayIsBuiltin(displayID) == 0 {
+				DisplayShadeManager.shared.removeShade(for: displayID)
+			}
 			if displayID == activeDisplayID {
 				publish(brightness: clamped, touchDate: true)
 			}
