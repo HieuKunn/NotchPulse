@@ -105,7 +105,6 @@ final class NotchPulseDDC {
         case mute       = 0x8D
     }
     
-    private let ddc7BitAddress: UInt32 = 0x37
     private let ddcDataAddress: UInt32 = 0x51
     
     #if arch(arm64)

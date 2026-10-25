@@ -253,15 +253,6 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
     }
 
     // MARK: - Private helpers for DisplayServices / IOKit access
-    private func displayServicesCanChangeBrightness(displayID: CGDirectDisplayID) -> Bool {
-        if CGDisplayIsBuiltin(displayID) != 0 { return true }
-        guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesCanChangeBrightness") else { return false }
-        typealias Fn = @convention(c) (CGDirectDisplayID) -> Int32
-        let fn = unsafeBitCast(sym, to: Fn.self)
-        return fn(displayID) != 0
-    }
-
-    // MARK: - Private helpers for DisplayServices / IOKit access
     private func displayServicesGetBrightness(displayID: CGDirectDisplayID, out: inout Float) -> Bool {
         guard let sym = dlsym(DisplayServicesHandle.handle, "DisplayServicesGetBrightness") else { return false }
         typealias Fn = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32

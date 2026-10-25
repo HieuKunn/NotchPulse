@@ -86,7 +86,6 @@ final class BrightnessManager: ObservableObject {
 	@Published private(set) var hasExternalDisplay: Bool = false
 
 	@Published private(set) var displayBrightnessCache: [CGDirectDisplayID: Float] = [:]
-	@Published private(set) var ddcSupportedDisplays: Set<CGDirectDisplayID> = []
 
 	private let visibleDuration: TimeInterval = 1.2
 	private let client = XPCHelperClient.shared
@@ -176,11 +175,7 @@ final class BrightnessManager: ObservableObject {
 						displayBrightnessCache[d.id] = 0.8
 					}
 				} else {
-					// Màn hình ngoài vật lý: kiểm tra DDC và đọc độ sáng thật từ phần cứng
-					let isDDC = await client.isDDCSupported(for: d.id)
-					if isDDC {
-						ddcSupportedDisplays.insert(d.id)
-					}
+					// Màn hình ngoài vật lý: đọc độ sáng thật từ phần cứng qua DDC/CI
 					if let val = await client.currentDisplayBrightness(for: d.id) {
 						displayBrightnessCache[d.id] = val
 					}
@@ -387,7 +382,7 @@ final class BrightnessManager: ObservableObject {
 
 		// 1. Built-in Retina & Apple-branded (Studio Display / Pro Display XDR): Native DisplayServices
 		if (CGDisplayIsBuiltin(displayID) != 0 || CGDisplayVendorNumber(displayID) == 0x0610) && DisplayServicesBridge.canChangeBrightness(displayID) {
-			DisplayShadeManager.shared.restoreNativeDisplay(for: displayID)
+			DisplayShadeManager.shared.removeShade(for: displayID)
 			_ = DisplayServicesBridge.setBrightness(displayID: displayID, value: clamped)
 			return
 		}
@@ -396,12 +391,12 @@ final class BrightnessManager: ObservableObject {
 		// ⚠️ BẮT BUỘC 100% dùng dispatchHardwareWrite để gửi DDC/CI phần cứng thật, KHÔNG dùng shadow!
 		let isVirtual = isDisplaySidecarOrVirtual(displayID)
 		if !isVirtual {
-			// Đảm bảo không còn bất kỳ hiệu ứng gamma shadow nào trên màn hình vật lý
-			DisplayShadeManager.shared.restoreNativeDisplay(for: displayID)
+			// Đảm bảo không còn bất kỳ window shade overlay nào trên màn hình vật lý
+			DisplayShadeManager.shared.removeShade(for: displayID)
 			dispatchHardwareWrite(for: displayID, value: clamped)
 		} else {
 			// 3. Màn hình Sidecar (iPad), AirPlay hoặc màn hình ảo KHÔNG có chip DDC:
-			// Áp dụng Software Dimming (Gamma)
+			// Áp dụng Software Dimming (Black Window Shade Overlay)
 			DisplayShadeManager.shared.setBrightness(clamped, for: displayID)
 		}
 	}

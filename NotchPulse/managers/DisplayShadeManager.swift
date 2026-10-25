@@ -11,7 +11,7 @@ import CoreGraphics
 import Foundation
 
 @MainActor
-final class DisplayShadeManager: ObservableObject {
+final class DisplayShadeManager {
     static let shared = DisplayShadeManager()
 
     private var shades: [CGDirectDisplayID: NSWindow] = [:]
@@ -43,6 +43,17 @@ final class DisplayShadeManager: ObservableObject {
         let shadeAlpha = CGFloat(1.0 - clamped)
 
         guard let window = getOrCreateShade(for: displayID) else { return }
+
+        // Đảm bảo frame luôn bám sát màn hình nếu độ phân giải hoặc vị trí thay đổi
+        if let screen = NSScreen.screens.first(where: {
+            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == displayID
+        }) {
+            if window.frame != screen.frame {
+                window.setFrame(screen.frame, display: true)
+                window.contentView?.frame = NSRect(origin: .zero, size: screen.frame.size)
+            }
+        }
+
         window.alphaValue = shadeAlpha
         if !window.isVisible {
             window.orderFrontRegardless()
@@ -62,17 +73,23 @@ final class DisplayShadeManager: ObservableObject {
             contentRect: screen.frame,
             styleMask: [.borderless],
             backing: .buffered,
-            defer: false,
-            screen: screen
+            defer: false
         )
+        // Set frame trực tiếp theo toạ độ toàn cục của desktop để không bị cộng dồn toạ độ màn hình
+        shade.setFrame(screen.frame, display: true)
         shade.title = "NotchPulse Sidecar Shade (\(displayID))"
         shade.isOpaque = false
-        shade.backgroundColor = .black
+        shade.backgroundColor = .clear
+        shade.hasShadow = false
         shade.ignoresMouseEvents = true
         // ShieldingWindowLevel đảm bảo phủ lên toàn bộ nội dung hiển thị trên màn hình Sidecar
         shade.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
         shade.collectionBehavior = [.stationary, .canJoinAllSpaces, .ignoresCycle, .fullScreenAuxiliary]
-        shade.hasShadow = false
+
+        let visualView = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
+        visualView.wantsLayer = true
+        visualView.layer?.backgroundColor = NSColor.black.cgColor
+        shade.contentView = visualView
         shade.alphaValue = 0.0
 
         shades[displayID] = shade
@@ -91,14 +108,11 @@ final class DisplayShadeManager: ObservableObject {
                 ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == id
             }) {
                 shade.setFrame(screen.frame, display: true)
+                shade.contentView?.frame = NSRect(origin: .zero, size: screen.frame.size)
             } else {
                 removeShade(for: id)
             }
         }
-    }
-
-    func restoreNativeDisplay(for displayID: CGDirectDisplayID) {
-        removeShade(for: displayID)
     }
 
     func removeAllShades() {
