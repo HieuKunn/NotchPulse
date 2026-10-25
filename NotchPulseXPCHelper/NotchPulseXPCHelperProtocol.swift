@@ -27,6 +27,9 @@ import Foundation
     // Multi-display DDC audio volume access
     func currentDisplayVolume(for displayID: UInt32, with reply: @escaping (NSNumber?) -> Void)
     func setDisplayVolume(_ value: Float, for displayID: UInt32, with reply: @escaping (Bool) -> Void)
+    // DDC cache invalidation & hardware probe
+    func resetDDCCache(with reply: @escaping (Bool) -> Void)
+    func isDDCSupported(for displayID: UInt32, with reply: @escaping (Bool) -> Void)
 }
 
 /*

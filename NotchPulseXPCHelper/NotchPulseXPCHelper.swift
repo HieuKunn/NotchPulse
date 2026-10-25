@@ -235,6 +235,23 @@ class NotchPulseXPCHelper: NSObject, NotchPulseXPCHelperProtocol {
         setDisplayBrightness(value, for: CGMainDisplayID(), with: reply)
     }
 
+    // MARK: - DDC Cache Invalidation & Hardware Probe
+
+    @objc func resetDDCCache(with reply: @escaping (Bool) -> Void) {
+        NotchPulseDDC.shared.invalidateCache()
+        reply(true)
+    }
+
+    @objc func isDDCSupported(for displayID: UInt32, with reply: @escaping (Bool) -> Void) {
+        let did = CGDirectDisplayID(displayID)
+        if CGDisplayIsBuiltin(did) != 0 || CGDisplayVendorNumber(did) == 0x0610 {
+            reply(false) // Handled natively by Apple DisplayServices
+            return
+        }
+        let supported = NotchPulseDDC.shared.hasTransport(for: did)
+        reply(supported)
+    }
+
     // MARK: - Private helpers for DisplayServices / IOKit access
     private func displayServicesCanChangeBrightness(displayID: CGDirectDisplayID) -> Bool {
         if CGDisplayIsBuiltin(displayID) != 0 { return true }

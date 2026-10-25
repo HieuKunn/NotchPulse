@@ -134,6 +134,21 @@ final class NotchPulseDDC {
         }
     }
 
+    func hasTransport(for displayID: CGDirectDisplayID) -> Bool {
+        if CGDisplayIsBuiltin(displayID) != 0 {
+            return false
+        }
+        return ddcQueue.sync {
+            #if arch(arm64)
+            return transportForDisplay(displayID: displayID) != nil
+            #elseif arch(x86_64)
+            return framebufferForDisplay(displayID: displayID) != nil
+            #else
+            return false
+            #endif
+        }
+    }
+
     // MARK: - Public High-Level Controls
 
     static func setBrightness(_ value: Float, for displayID: CGDirectDisplayID) -> Bool {
@@ -306,7 +321,28 @@ final class NotchPulseDDC {
         let res1 = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
         usleep(10000)
         let res2 = DynamicBridge.writeI2C(service: transport.service, chipAddress: transport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
-        return res1 == 0 || res2 == 0
+        if res1 == 0 || res2 == 0 {
+            return true
+        }
+
+        // 🔄 SELF-HEALING RECOVERY:
+        // Nếu cả 2 lần gửi đều thất bại, con trỏ IOAVService có thể đã bị huỷ sau khi máy Mac ngủ (sleep/wake).
+        // Lập tức loại bỏ cache cũ, quét lại IORegistry để lấy IOAVService mới và thử ghi lại 1 lần nữa!
+        transportCache.removeValue(forKey: displayID)
+        if let freshTransport = transportForDisplay(displayID: displayID) {
+            let freshChecksum = UInt8((UInt32(freshTransport.chipAddress) << 1) ^ ddcDataAddress) ^ 0x84 ^ 0x03 ^ command ^ 0x00 ^ val
+            packet[5] = freshChecksum
+            usleep(10000)
+            let retry1 = DynamicBridge.writeI2C(service: freshTransport.service, chipAddress: freshTransport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
+            usleep(10000)
+            let retry2 = DynamicBridge.writeI2C(service: freshTransport.service, chipAddress: freshTransport.chipAddress, dataAddress: ddcDataAddress, buffer: &packet, length: UInt32(packet.count))
+            if retry1 == 0 || retry2 == 0 {
+                return true
+            }
+        }
+
+        transportCache.removeValue(forKey: displayID)
+        return false
     }
 
     private func readArm64(command: UInt8, displayID: CGDirectDisplayID) -> (UInt16, UInt16)? {
@@ -342,6 +378,9 @@ final class NotchPulseDDC {
             }
             usleep(20000)
         }
+
+        // Thất bại toàn bộ sau 3 lần thử -> xoá cache để tránh giữ con trỏ chết sau khi sleep
+        transportCache.removeValue(forKey: displayID)
         return nil
     }
     #endif

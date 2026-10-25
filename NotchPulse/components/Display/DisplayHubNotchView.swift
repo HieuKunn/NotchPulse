@@ -141,9 +141,9 @@ private struct DisplayRowView: View {
                     .fill(Color.white.opacity(0.08))
                     .frame(width: 34, height: 34)
                 
-                Image(systemName: target.isBuiltin ? "laptopcomputer" : "display")
+                Image(systemName: target.isBuiltin ? "laptopcomputer" : (target.isSidecarOrVirtual ? "ipad.and.iphone" : "display"))
                     .font(.system(size: 15))
-                    .foregroundStyle(target.isBuiltin ? Color.effectiveAccent : .white)
+                    .foregroundStyle(target.isBuiltin ? Color.effectiveAccent : (target.isSidecarOrVirtual ? Color.purple : .white))
             }
 
             // Name & Badge
@@ -155,15 +155,15 @@ private struct DisplayRowView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                     
-                    Text(target.isBuiltin ? loc("Retina") : loc("Hardware DDC"))
+                    let badgeText = target.isBuiltin ? loc("Retina") : (target.isSidecarOrVirtual ? loc("Sidecar") : loc("Hardware DDC"))
+                    let badgeColor = target.isBuiltin ? Color.effectiveAccent : (target.isSidecarOrVirtual ? Color.purple : Color.green)
+                    
+                    Text(badgeText)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(target.isBuiltin ? Color.effectiveAccent : Color.green.opacity(0.9))
+                        .foregroundStyle(badgeColor.opacity(0.9))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1.5)
-                        .background(
-                            (target.isBuiltin ? Color.effectiveAccent : Color.green)
-                                .opacity(0.15)
-                        )
+                        .background(badgeColor.opacity(0.15))
                         .clipShape(Capsule())
                 }
 

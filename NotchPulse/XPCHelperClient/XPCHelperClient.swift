@@ -311,6 +311,38 @@ final class XPCHelperClient: NSObject {
             return false
         }
     }
+
+    // MARK: - DDC Cache Invalidation & Hardware Probe
+
+    nonisolated func resetDDCCache() async -> Bool {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.resetDDCCache { success in
+                    continuation.resume(returning: success)
+                }
+            }
+        } catch {
+            return false
+        }
+    }
+
+    nonisolated func isDDCSupported(for displayID: UInt32) async -> Bool {
+        do {
+            let service = await MainActor.run {
+                ensureRemoteService()
+            }
+            return try await service.withContinuation { service, continuation in
+                service.isDDCSupported(for: displayID) { supported in
+                    continuation.resume(returning: supported)
+                }
+            }
+        } catch {
+            return false
+        }
+    }
 }
 
 extension Notification.Name {
