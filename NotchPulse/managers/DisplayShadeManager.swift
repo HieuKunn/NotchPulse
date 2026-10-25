@@ -10,11 +10,11 @@ import AppKit
 import CoreGraphics
 import Foundation
 
+@MainActor
 final class DisplayShadeManager: ObservableObject {
     static let shared = DisplayShadeManager()
 
-    // Original hardware gamma tables cached per display
-    private var originalGammaTables: [CGDirectDisplayID: (red: [CGGammaValue], green: [CGGammaValue], blue: [CGGammaValue], count: UInt32)] = [:]
+    private var shades: [CGDirectDisplayID: NSWindow] = [:]
 
     private init() {
         NotificationCenter.default.addObserver(
@@ -22,55 +22,89 @@ final class DisplayShadeManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.originalGammaTables.removeAll()
+            self?.updateShadeFrames()
         }
     }
 
-    /// Áp dụng Software Dimming (giảm sáng bằng Gamma Table) cho các màn hình KHÔNG có DDC phần cứng (như iPad Sidecar, AirPlay, màn ảo).
-    /// Tuyệt đối KHÔNG áp dụng cho các màn hình hỗ trợ DDC phần cứng (HKC, Dell, LG...) để đảm bảo độ sáng vật lý thật 100%.
+    /// Áp dụng Software Dimming (bằng Black Window Shade Overlay) cho các màn hình ảo / Sidecar (iPad, AirPlay).
+    /// Vì Sidecar/AirPlay không có chip GPU CRTC/DAC phần cứng, macOS mã hoá video trực tiếp từ WindowServer.
+    /// Do đó, lớp phủ NSWindow là cách duy nhất và chuẩn nhất để giảm sáng hiển thị trên iPad.
+    /// Tuyệt đối KHÔNG áp dụng cho màn hình ngoài vật lý có DDC (HKC, Dell, LG...).
     func setBrightness(_ value: Float, for displayID: CGDirectDisplayID) {
         let clamped = max(0.05, min(1.0, value))
-        applyGammaDimming(factor: clamped, for: displayID)
-    }
 
-    private func applyGammaDimming(factor: Float, for displayID: CGDirectDisplayID) {
-        if originalGammaTables[displayID] == nil {
-            var red = [CGGammaValue](repeating: 0, count: 256)
-            var green = [CGGammaValue](repeating: 0, count: 256)
-            var blue = [CGGammaValue](repeating: 0, count: 256)
-            var sampleCount: UInt32 = 0
-            if CGGetDisplayTransferByTable(displayID, 256, &red, &green, &blue, &sampleCount) == .success, sampleCount > 0 {
-                originalGammaTables[displayID] = (red, green, blue, sampleCount)
-            }
-        }
-
-        guard let original = originalGammaTables[displayID] else { return }
-
-        if factor >= 0.999 {
-            _ = CGSetDisplayTransferByTable(displayID, original.count, original.red, original.green, original.blue)
+        // Nếu ở mức 100% (>= 0.99), ẩn shade hoàn toàn để tiết kiệm tài nguyên GPU
+        if clamped >= 0.99 {
+            removeShade(for: displayID)
             return
         }
 
-        let gammaScale = CGGammaValue(factor)
-        let dimmedRed = original.red.map { $0 * gammaScale }
-        let dimmedGreen = original.green.map { $0 * gammaScale }
-        let dimmedBlue = original.blue.map { $0 * gammaScale }
-        _ = CGSetDisplayTransferByTable(displayID, original.count, dimmedRed, dimmedGreen, dimmedBlue)
+        // Mức độ mờ tối của lớp phủ: độ sáng 0.1 -> alpha 0.9, độ sáng 0.8 -> alpha 0.2
+        let shadeAlpha = CGFloat(1.0 - clamped)
+
+        guard let window = getOrCreateShade(for: displayID) else { return }
+        window.alphaValue = shadeAlpha
+        if !window.isVisible {
+            window.orderFrontRegardless()
+        }
+    }
+
+    private func getOrCreateShade(for displayID: CGDirectDisplayID) -> NSWindow? {
+        if let existing = shades[displayID] {
+            return existing
+        }
+
+        guard let screen = NSScreen.screens.first(where: {
+            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == displayID
+        }) else { return nil }
+
+        let shade = NSWindow(
+            contentRect: screen.frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false,
+            screen: screen
+        )
+        shade.title = "NotchPulse Sidecar Shade (\(displayID))"
+        shade.isOpaque = false
+        shade.backgroundColor = .black
+        shade.ignoresMouseEvents = true
+        // ShieldingWindowLevel đảm bảo phủ lên toàn bộ nội dung hiển thị trên màn hình Sidecar
+        shade.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+        shade.collectionBehavior = [.stationary, .canJoinAllSpaces, .ignoresCycle, .fullScreenAuxiliary]
+        shade.hasShadow = false
+        shade.alphaValue = 0.0
+
+        shades[displayID] = shade
+        return shade
+    }
+
+    func removeShade(for displayID: CGDirectDisplayID) {
+        if let shade = shades.removeValue(forKey: displayID) {
+            shade.orderOut(nil)
+        }
+    }
+
+    func updateShadeFrames() {
+        for (id, shade) in shades {
+            if let screen = NSScreen.screens.first(where: {
+                ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == id
+            }) {
+                shade.setFrame(screen.frame, display: true)
+            } else {
+                removeShade(for: id)
+            }
+        }
     }
 
     func restoreNativeDisplay(for displayID: CGDirectDisplayID) {
-        if let original = originalGammaTables[displayID] {
-            _ = CGSetDisplayTransferByTable(displayID, original.count, original.red, original.green, original.blue)
-        } else {
-            CGDisplayRestoreColorSyncSettings()
-        }
+        removeShade(for: displayID)
     }
 
     func removeAllShades() {
-        for (id, original) in originalGammaTables {
-            _ = CGSetDisplayTransferByTable(id, original.count, original.red, original.green, original.blue)
+        for (_, shade) in shades {
+            shade.orderOut(nil)
         }
-        originalGammaTables.removeAll()
-        CGDisplayRestoreColorSyncSettings()
+        shades.removeAll()
     }
 }
