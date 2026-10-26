@@ -21,72 +21,64 @@ struct SettingsView: View {
         NavigationSplitView {
             List(selection: $selectedTab) {
                 NavigationLink(value: "General") {
-                    SettingsSidebarRow(title: tabTitle(for: "General"), icon: "gear", color: .gray)
+                    Label(tabTitle(for: "General"), systemImage: "gear")
                 }
                 NavigationLink(value: "Appearance") {
-                    SettingsSidebarRow(title: tabTitle(for: "Appearance"), icon: "paintbrush.fill", color: .cyan)
+                    Label(tabTitle(for: "Appearance"), systemImage: "paintbrush.fill")
                 }
                 NavigationLink(value: "Media") {
-                    SettingsSidebarRow(title: tabTitle(for: "Media"), icon: "play.circle.fill", color: .pink)
+                    Label(tabTitle(for: "Media"), systemImage: "play.circle.fill")
                 }
                 NavigationLink(value: "Calendar") {
-                    SettingsSidebarRow(title: tabTitle(for: "Calendar"), icon: "calendar", color: .red)
+                    Label(tabTitle(for: "Calendar"), systemImage: "calendar")
                 }
                 NavigationLink(value: "HUD") {
-                    SettingsSidebarRow(title: tabTitle(for: "HUD"), icon: "gauge.with.dots.needle.33percent", color: .indigo)
+                    Label(tabTitle(for: "HUD"), systemImage: "gauge.with.dots.needle.33percent")
                 }
                 NavigationLink(value: "SystemMonitor") {
-                    SettingsSidebarRow(title: tabTitle(for: "SystemMonitor"), icon: "chart.bar.fill", color: .green)
+                    Label(tabTitle(for: "SystemMonitor"), systemImage: "chart.bar.fill")
                 }
                 NavigationLink(value: "FaceID") {
-                    SettingsSidebarRow(title: tabTitle(for: "FaceID"), icon: "faceid", color: .blue)
+                    Label(tabTitle(for: "FaceID"), systemImage: "faceid")
                 }
                 NavigationLink(value: "Shelf") {
-                    SettingsSidebarRow(title: tabTitle(for: "Shelf"), icon: "tray.fill", color: .teal)
+                    Label(tabTitle(for: "Shelf"), systemImage: "tray.fill")
                 }
                 NavigationLink(value: "Clipboard") {
-                    SettingsSidebarRow(title: tabTitle(for: "Clipboard"), icon: "doc.on.clipboard.fill", color: .purple)
+                    Label(tabTitle(for: "Clipboard"), systemImage: "doc.on.clipboard.fill")
                 }
                 NavigationLink(value: "Audio") {
-                    SettingsSidebarRow(title: tabTitle(for: "Audio"), icon: "speaker.wave.2.fill", color: .orange)
+                    Label(tabTitle(for: "Audio"), systemImage: "speaker.wave.2.fill")
                 }
                 NavigationLink(value: "Display") {
-                    SettingsSidebarRow(title: tabTitle(for: "Display"), icon: "sun.max.fill", color: .yellow)
+                    Label(tabTitle(for: "Display"), systemImage: "sun.max.fill")
                 }
                 NavigationLink(value: "Shortcuts") {
-                    SettingsSidebarRow(title: tabTitle(for: "Shortcuts"), icon: "command.square.fill", color: .gray)
+                    Label(tabTitle(for: "Shortcuts"), systemImage: "command.square.fill")
                 }
                 NavigationLink(value: "Advanced") {
-                    SettingsSidebarRow(title: tabTitle(for: "Advanced"), icon: "slider.horizontal.3", color: .orange)
+                    Label(tabTitle(for: "Advanced"), systemImage: "slider.horizontal.3")
                 }
                 NavigationLink(value: "Language") {
-                    SettingsSidebarRow(title: tabTitle(for: "Language"), icon: "globe", color: .blue)
+                    Label(tabTitle(for: "Language"), systemImage: "globe")
                 }
                 NavigationLink(value: "About") {
-                    SettingsSidebarRow(title: tabTitle(for: "About"), icon: "info.circle.fill", color: .secondary)
+                    Label(tabTitle(for: "About"), systemImage: "info.circle.fill")
                 }
             }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 200, ideal: 225, max: 250)
+            .font(.system(size: 14, weight: .medium))
+            .listStyle(SidebarListStyle())
+            .tint(.effectiveAccent)
+            .toolbar(removing: .sidebarToggle)
+            .navigationSplitViewColumnWidth(min: 210, ideal: 225, max: 250)
         } detail: {
             detailContent
                 .formStyle(.grouped)
-                .navigationTitle(tabTitle(for: selectedTab))
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button(role: .destructive) {
-                            if let appDelegate = NSApp.delegate as? AppDelegate {
-                                appDelegate.isUserInitiatedQuit = true
-                                appDelegate.quitApplication()
-                            } else if let appDelegate = AppDelegate.shared {
-                                appDelegate.isUserInitiatedQuit = true
-                                appDelegate.quitApplication()
-                            }
-                        } label: {
-                            Label(loc("Quit app"), systemImage: "power")
-                        }
-                        .help(loc("Quit NotchPulse"))
-                    }
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    SettingsDetailHeaderBar(
+                        title: tabTitle(for: selectedTab),
+                        showQuitButton: true
+                    )
                 }
         }
         .navigationSplitViewStyle(.balanced)
@@ -153,23 +145,50 @@ struct SettingsView: View {
     }
 }
 
-private struct SettingsSidebarRow: View {
+/// Dedicated macOS-style top header bar matching System Settings (Sonoma/Sequoia).
+/// Pinned at top with frosted material backdrop and subtle divider, letting form content
+/// glide cleanly underneath without any text collision.
+struct SettingsDetailHeaderBar: View {
     let title: String
-    let icon: String
-    let color: Color
+    var showQuitButton: Bool = false
+    @Default(.appLanguage) private var appLanguage
 
     var body: some View {
-        Label {
-            Text(title)
-                .font(.system(size: 13, weight: .regular))
-        } icon: {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 20, height: 20)
-                .background(color.gradient)
-                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 14) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.primary)
+                    .lineLimit(1)
+
+                Spacer()
+
+                if showQuitButton {
+                    Button(role: .destructive) {
+                        if let appDelegate = NSApp.delegate as? AppDelegate {
+                            appDelegate.isUserInitiatedQuit = true
+                            appDelegate.quitApplication()
+                        } else if let appDelegate = AppDelegate.shared {
+                            appDelegate.isUserInitiatedQuit = true
+                            appDelegate.quitApplication()
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "power")
+                            Text(loc("Quit app"))
+                        }
+                        .font(.system(size: 11, weight: .medium))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .padding(.horizontal, 24)
+            .frame(height: 52)
+            
+            Divider()
         }
+        .background(.bar)
     }
 }
 
