@@ -6,8 +6,9 @@
 - **Comfortable 3-Item Viewport**: Expanded the Clipboard history panel height so at least 3 full items remain visible at a glance before scrolling, making text and snippet lookups much faster.
 
 ### 🍏 Native macOS System Styling & Apple HIG Architecture
-- **True macOS Native Settings**: Modernized Settings window with native window transparency and authentic sidebar vibrancy (frosted glass blur), allowing wallpaper light sampling just like macOS System Settings.
-- **Unified Section Headers**: Refined detail header bar with bold SF Pro typography and streamlined 42pt height, eliminating top blank space and gliding cleanly over scrolled content without text collision.
+- **True macOS Native Settings**: Modernized Settings window with native window transparency and authentic sidebar vibrancy (frosted glass blur), allowing desktop wallpaper light sampling just like macOS System Settings.
+- **Unified 52pt Frosted Header Bar**: Refined detail header bar with native SF Pro 14pt semibold typography and standard 52pt unified height, featuring a delicate hairline separator and authentic system material blur (`.bar`) that softly blurs content as it scrolls underneath.
+- **Instant Settings Search**: Integrated real-time search directly in the sidebar, instantly filtering tabs and keywords to jump directly to any preference.
 - **Declarative System Materials**: Feature Tour instruction cards and Face ID setup panels now utilize hierarchical system materials (`.regularMaterial`, `.thickMaterial`) and semantic dynamic styles (`.primary`, `.secondary`), automatically adapting across macOS versions, Light/Dark appearance, and Reduce Transparency modes.
 - **Enhanced Display Hub Tour**: Added interactive Display Hub spotlight walkthrough with full localization across all 9 supported languages.
 

@@ -26,6 +26,8 @@ struct L10n {
     
     private static let translations: [AppLanguage: [String: String]] = [
         .english: [
+            "Search Settings...": "Search Settings...",
+            "No settings found": "No settings found",
             "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.",
             "COOLING & FAN SPEED": "COOLING & FAN SPEED",
             "0 RPM (Silent)": "0 RPM (Silent)",
@@ -548,6 +550,8 @@ struct L10n {
             "Image Conversion Failed": "Image Conversion Failed"
         ],
         .vietnamese: [
+            "Search Settings...": "Tìm kiếm cài đặt...",
+            "No settings found": "Không tìm thấy cài đặt",
             "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Mở rộng ngăn nhiệt độ để theo dõi nhiệt độ CPU/GPU và điều chỉnh tốc độ quạt của Mac theo thời gian thực.",
             "COOLING & FAN SPEED": "TẢN NHIỆT & TỐC ĐỘ QUẠT",
             "0 RPM (Silent)": "0 RPM (Yên tĩnh)",
@@ -1070,6 +1074,8 @@ struct L10n {
             "Image Conversion Failed": "Chuyển đổi ảnh thất bại"
         ],
         .german: [
+            "Search Settings...": "Einstellungen suchen...",
+            "No settings found": "Keine Einstellungen gefunden",
             "Display": "Bildschirm",
             "Displays": "Bildschirme",
             "Enable Display Hub": "Display-Hub aktivieren",
@@ -1593,6 +1599,8 @@ struct L10n {
             "Image Conversion Failed": "Bildkonvertierung fehlgeschlagen"
         ],
         .traditionalChinese: [
+            "Search Settings...": "搜尋設定...",
+            "No settings found": "找不到相關設定",
             "Display": "顯示器",
             "Displays": "顯示器",
             "Enable Display Hub": "啟用顯示中心",
@@ -2116,6 +2124,8 @@ struct L10n {
             "Image Conversion Failed": "圖片轉換失敗"
         ],
         .simplifiedChinese: [
+            "Search Settings...": "搜索设置...",
+            "No settings found": "未找到相关设置",
             "Display": "显示器",
             "Displays": "显示器",
             "Enable Display Hub": "启用显示中心",
@@ -2639,6 +2649,8 @@ struct L10n {
             "Image Conversion Failed": "图像转换失败"
         ],
         .japanese: [
+            "Search Settings...": "設定を検索...",
+            "No settings found": "設定が見つかりません",
             "Display": "ディスプレイ",
             "Displays": "ディスプレイ",
             "Enable Display Hub": "ディスプレイハブを有効にする",
@@ -3162,6 +3174,8 @@ struct L10n {
             "Image Conversion Failed": "画像の変換に失敗しました"
         ],
         .french: [
+            "Search Settings...": "Rechercher dans les réglages...",
+            "No settings found": "Aucun réglage trouvé",
             "Display": "Écran",
             "Displays": "Écrans",
             "Enable Display Hub": "Activer le Hub Écran",
@@ -3685,6 +3699,8 @@ struct L10n {
             "Image Conversion Failed": "Échec de la conversion de l'image"
         ],
         .spanish: [
+            "Search Settings...": "Buscar en ajustes...",
+            "No settings found": "No se encontraron ajustes",
             "Display": "Pantalla",
             "Displays": "Pantallas",
             "Enable Display Hub": "Activar Centro de Pantallas",
@@ -4208,6 +4224,8 @@ struct L10n {
             "Image Conversion Failed": "Error al convertir la imagen"
         ],
         .arabic: [
+            "Search Settings...": "البحث في الإعدادات...",
+            "No settings found": "لم يتم العثور على إعدادات",
             "Display": "شاشة العرض",
             "Displays": "شاشات العرض",
             "Enable Display Hub": "تفعيل مركز الشاشات",

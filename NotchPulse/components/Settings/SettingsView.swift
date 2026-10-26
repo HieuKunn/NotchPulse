@@ -8,10 +8,47 @@ import SwiftUI
 
 struct SettingsView: View {
     @State private var selectedTab = "General"
+    @State private var searchText = ""
     @State private var accentColorUpdateTrigger = UUID()
     @Default(.appLanguage) private var appLanguage
 
     let updaterController: SPUStandardUpdaterController?
+
+    private struct SettingsTabItem: Identifiable {
+        let id: String
+        let icon: String
+        let keywords: [String]
+    }
+
+    private let allTabs: [SettingsTabItem] = [
+        SettingsTabItem(id: "General", icon: "gear", keywords: ["general", "cài đặt chung", "chung", "notch", "dynamic island", "island", "width", "kích thước", "hover", "style", "feature tour", "hướng dẫn"]),
+        SettingsTabItem(id: "Appearance", icon: "paintbrush.fill", keywords: ["appearance", "giao diện", "theme", "chủ đề", "accent", "color", "màu sắc", "dark", "light"]),
+        SettingsTabItem(id: "Media", icon: "play.circle.fill", keywords: ["media", "music", "âm nhạc", "nhạc", "lyrics", "lời bài hát", "player", "spotify", "apple music"]),
+        SettingsTabItem(id: "Calendar", icon: "calendar", keywords: ["calendar", "lịch", "event", "sự kiện", "reminders", "nhắc nhở", "tháng", "ngày"]),
+        SettingsTabItem(id: "HUD", icon: "gauge.with.dots.needle.33percent", keywords: ["hud", "volume", "âm lượng", "brightness", "độ sáng", "keyboard", "bàn phím"]),
+        SettingsTabItem(id: "SystemMonitor", icon: "chart.bar.fill", keywords: ["system monitor", "theo dõi hệ thống", "cpu", "ram", "memory", "bộ nhớ", "gpu", "fan", "quạt", "temperature", "nhiệt độ", "stats"]),
+        SettingsTabItem(id: "FaceID", icon: "faceid", keywords: ["face id", "faceid", "mở khóa khuôn mặt", "khuôn mặt", "camera", "unlock", "security", "bảo mật"]),
+        SettingsTabItem(id: "Shelf", icon: "tray.fill", keywords: ["shelf", "ngăn chứa", "drag", "drop", "kéo thả", "file", "tệp"]),
+        SettingsTabItem(id: "Clipboard", icon: "doc.on.clipboard.fill", keywords: ["clipboard", "khay nhớ tạm", "copy", "paste", "sao chép", "lịch sử", "history"]),
+        SettingsTabItem(id: "Audio", icon: "speaker.wave.2.fill", keywords: ["audio", "âm thanh", "speaker", "loa", "mic", "microphone", "headphone", "tai nghe", "output", "input"]),
+        SettingsTabItem(id: "Display", icon: "sun.max.fill", keywords: ["display", "màn hình", "brightness", "độ sáng", "screen", "monitor"]),
+        SettingsTabItem(id: "Shortcuts", icon: "command.square.fill", keywords: ["shortcuts", "phim tắt", "keyboard", "hotkey", "bàn phím"]),
+        SettingsTabItem(id: "Advanced", icon: "slider.horizontal.3", keywords: ["advanced", "nâng cao", "reset", "khôi phục", "cache", "bộ nhớ đệm"]),
+        SettingsTabItem(id: "Language", icon: "globe", keywords: ["language", "ngôn ngữ", "tiếng việt", "english", "deutsch", "french", "spanish", "japanese", "chinese"]),
+        SettingsTabItem(id: "About", icon: "info.circle.fill", keywords: ["about", "giới thiệu", "version", "phiên bản", "update", "cập nhật", "developer"])
+    ]
+
+    private var filteredTabs: [SettingsTabItem] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return allTabs }
+        return allTabs.filter { tab in
+            let title = tabTitle(for: tab.id).lowercased()
+            if title.contains(trimmed) || tab.id.lowercased().contains(trimmed) {
+                return true
+            }
+            return tab.keywords.contains { $0.lowercased().contains(trimmed) }
+        }
+    }
 
     init(updaterController: SPUStandardUpdaterController? = nil) {
         self.updaterController = updaterController
@@ -19,58 +56,95 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selectedTab) {
-                NavigationLink(value: "General") {
-                    Label(tabTitle(for: "General"), systemImage: "gear")
+            VStack(spacing: 0) {
+                // Logo + App Name Header (Pushed down below traffic lights, larger text)
+                HStack(spacing: 8) {
+                    if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
+                        Image(nsImage: appIcon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 22, height: 22)
+                            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    } else {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(Color.effectiveAccent)
+                    }
+
+                    Text("NotchPulse")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Color.primary)
+
+                    Spacer()
                 }
-                NavigationLink(value: "Appearance") {
-                    Label(tabTitle(for: "Appearance"), systemImage: "paintbrush.fill")
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+
+                // Search Bar in Settings
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+
+                    TextField(loc("Search Settings..."), text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .onSubmit {
+                            if let first = filteredTabs.first {
+                                selectedTab = first.id
+                            }
+                        }
+
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                NavigationLink(value: "Media") {
-                    Label(tabTitle(for: "Media"), systemImage: "play.circle.fill")
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+                )
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
+
+                // Vertical Settings Tabs
+                List(selection: $selectedTab) {
+                    if filteredTabs.isEmpty {
+                        VStack(spacing: 6) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 18))
+                                .foregroundStyle(.secondary)
+                            Text(loc("No settings found"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 24)
+                    } else {
+                        ForEach(filteredTabs) { tab in
+                            NavigationLink(value: tab.id) {
+                                Label(tabTitle(for: tab.id), systemImage: tab.icon)
+                            }
+                        }
+                    }
                 }
-                NavigationLink(value: "Calendar") {
-                    Label(tabTitle(for: "Calendar"), systemImage: "calendar")
-                }
-                NavigationLink(value: "HUD") {
-                    Label(tabTitle(for: "HUD"), systemImage: "gauge.with.dots.needle.33percent")
-                }
-                NavigationLink(value: "SystemMonitor") {
-                    Label(tabTitle(for: "SystemMonitor"), systemImage: "chart.bar.fill")
-                }
-                NavigationLink(value: "FaceID") {
-                    Label(tabTitle(for: "FaceID"), systemImage: "faceid")
-                }
-                NavigationLink(value: "Shelf") {
-                    Label(tabTitle(for: "Shelf"), systemImage: "tray.fill")
-                }
-                NavigationLink(value: "Clipboard") {
-                    Label(tabTitle(for: "Clipboard"), systemImage: "doc.on.clipboard.fill")
-                }
-                NavigationLink(value: "Audio") {
-                    Label(tabTitle(for: "Audio"), systemImage: "speaker.wave.2.fill")
-                }
-                NavigationLink(value: "Display") {
-                    Label(tabTitle(for: "Display"), systemImage: "sun.max.fill")
-                }
-                NavigationLink(value: "Shortcuts") {
-                    Label(tabTitle(for: "Shortcuts"), systemImage: "command.square.fill")
-                }
-                NavigationLink(value: "Advanced") {
-                    Label(tabTitle(for: "Advanced"), systemImage: "slider.horizontal.3")
-                }
-                NavigationLink(value: "Language") {
-                    Label(tabTitle(for: "Language"), systemImage: "globe")
-                }
-                NavigationLink(value: "About") {
-                    Label(tabTitle(for: "About"), systemImage: "info.circle.fill")
-                }
+                .font(.system(size: 14, weight: .medium))
+                .listStyle(SidebarListStyle())
             }
-            .font(.system(size: 14, weight: .medium))
-            .listStyle(SidebarListStyle())
             .tint(.effectiveAccent)
             .toolbar(removing: .sidebarToggle)
-            .navigationSplitViewColumnWidth(min: 210, ideal: 225, max: 250)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 270)
         } detail: {
             detailContent
                 .formStyle(.grouped)
@@ -81,6 +155,7 @@ struct SettingsView: View {
                     )
                 }
                 .background(Color(nsColor: .windowBackgroundColor))
+                .ignoresSafeArea(edges: .top)
         }
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
@@ -147,18 +222,19 @@ struct SettingsView: View {
 }
 
 /// Dedicated macOS-style top header bar matching System Settings (Sonoma/Sequoia).
-/// Pinned at top with frosted material backdrop and subtle divider, letting form content
-/// glide cleanly underneath without any text collision.
+/// Pinned at top with frosted material backdrop (.bar) without harsh divider lines,
+/// letting form content glide cleanly underneath with native material blur.
 struct SettingsDetailHeaderBar: View {
     let title: String
     var showQuitButton: Bool = false
     @Default(.appLanguage) private var appLanguage
+    @State private var isQuitHovered = false
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
                 Text(title)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.primary)
                     .lineLimit(1)
 
@@ -178,15 +254,26 @@ struct SettingsDetailHeaderBar: View {
                             Image(systemName: "power")
                             Text(loc("Quit app"))
                         }
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(isQuitHovered ? Color.red : Color.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(isQuitHovered ? Color.red.opacity(0.12) : Color.clear)
+                        )
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .buttonStyle(.plain)
+                    .onHover { hovering in
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            isQuitHovered = hovering
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 24)
-            .frame(height: 42)
-            
+            .frame(height: 52)
+
             Divider()
         }
         .background(.bar)
