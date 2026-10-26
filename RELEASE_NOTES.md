@@ -9,7 +9,8 @@
 ### 🍏 100% Native macOS System Styling & Apple HIG Declarative UI
 - **True macOS Native Settings**: Modernized Settings window with native window transparency and authentic sidebar vibrancy (frosted glass blur), allowing desktop wallpaper light sampling just like macOS System Settings.
 - **Unified 52pt Frosted Header Bar**: Refined detail header bar with native SF Pro 14pt semibold typography and standard 52pt unified height, featuring a delicate hairline separator and authentic system material blur (`.bar`) that softly blurs content as it scrolls underneath.
-- **Instant Settings Search**: Integrated real-time search directly in the sidebar, instantly filtering tabs and keywords to jump directly to any preference.
+- **Deep Settings Search Indexer**: Search now scans all toggles, sliders, pickers, and descriptions across every setting tab in your active language, with instant diacritic-insensitive matching and live sidebar hints.
+- **Clean Scrollbar-Free Interface**: Completely removed the vertical scrollbar from the settings detail pane for a distraction-free, edge-to-edge layout while keeping mouse and trackpad scrolling silky smooth.
 - **100% Declarative Semantic Tokens**: Audited the entire app to completely eliminate manual RGB hex/white color tokens. All controls, toggles, indicators, and charts now use Apple dynamic semantic tokens (`.primary`, `.secondary`, `.effectiveAccent`, `.green`, `.orange`, `.red`), automatically adapting across Light/Dark modes and accessibility settings.
 - **Hierarchical System Materials**: Feature Tour instruction cards and Face ID setup panels now utilize native system materials (`.regularMaterial`, `.thickMaterial`, `.bar`), fully respecting Reduce Transparency preferences.
 - **Enhanced Display Hub Tour**: Added interactive Display Hub spotlight walkthrough with full localization across all 9 supported languages.

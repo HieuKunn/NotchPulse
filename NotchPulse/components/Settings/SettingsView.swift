@@ -17,37 +17,208 @@ struct SettingsView: View {
     private struct SettingsTabItem: Identifiable {
         let id: String
         let icon: String
-        let keywords: [String]
+        let elements: [String]
     }
 
     private let allTabs: [SettingsTabItem] = [
-        SettingsTabItem(id: "General", icon: "gear", keywords: ["general", "cài đặt chung", "chung", "notch", "dynamic island", "island", "width", "kích thước", "hover", "style", "feature tour", "hướng dẫn"]),
-        SettingsTabItem(id: "Appearance", icon: "paintbrush.fill", keywords: ["appearance", "giao diện", "theme", "chủ đề", "accent", "color", "màu sắc", "dark", "light"]),
-        SettingsTabItem(id: "Media", icon: "play.circle.fill", keywords: ["media", "music", "âm nhạc", "nhạc", "lyrics", "lời bài hát", "player", "spotify", "apple music"]),
-        SettingsTabItem(id: "Calendar", icon: "calendar", keywords: ["calendar", "lịch", "event", "sự kiện", "reminders", "nhắc nhở", "tháng", "ngày"]),
-        SettingsTabItem(id: "HUD", icon: "gauge.with.dots.needle.33percent", keywords: ["hud", "volume", "âm lượng", "brightness", "độ sáng", "keyboard", "bàn phím"]),
-        SettingsTabItem(id: "SystemMonitor", icon: "chart.bar.fill", keywords: ["system monitor", "theo dõi hệ thống", "cpu", "ram", "memory", "bộ nhớ", "gpu", "fan", "quạt", "temperature", "nhiệt độ", "stats"]),
-        SettingsTabItem(id: "FaceID", icon: "faceid", keywords: ["face id", "faceid", "mở khóa khuôn mặt", "khuôn mặt", "camera", "unlock", "security", "bảo mật"]),
-        SettingsTabItem(id: "Shelf", icon: "tray.fill", keywords: ["shelf", "ngăn chứa", "drag", "drop", "kéo thả", "file", "tệp"]),
-        SettingsTabItem(id: "Clipboard", icon: "doc.on.clipboard.fill", keywords: ["clipboard", "khay nhớ tạm", "copy", "paste", "sao chép", "lịch sử", "history"]),
-        SettingsTabItem(id: "Audio", icon: "speaker.wave.2.fill", keywords: ["audio", "âm thanh", "speaker", "loa", "mic", "microphone", "headphone", "tai nghe", "output", "input"]),
-        SettingsTabItem(id: "Display", icon: "sun.max.fill", keywords: ["display", "màn hình", "brightness", "độ sáng", "screen", "monitor"]),
-        SettingsTabItem(id: "Shortcuts", icon: "command.square.fill", keywords: ["shortcuts", "phim tắt", "keyboard", "hotkey", "bàn phím"]),
-        SettingsTabItem(id: "Advanced", icon: "slider.horizontal.3", keywords: ["advanced", "nâng cao", "reset", "khôi phục", "cache", "bộ nhớ đệm"]),
-        SettingsTabItem(id: "Language", icon: "globe", keywords: ["language", "ngôn ngữ", "tiếng việt", "english", "deutsch", "french", "spanish", "japanese", "chinese"]),
-        SettingsTabItem(id: "About", icon: "info.circle.fill", keywords: ["about", "giới thiệu", "version", "phiên bản", "update", "cập nhật", "developer"])
+        SettingsTabItem(
+            id: "General",
+            icon: "gear",
+            elements: [
+                "Feature Tour", "Interactive Spotlight walkthrough highlighting all Notch features.",
+                "Notch Dimensions (Width)", "Notch Width", "Compact (580px)", "Standard (740px)", "Wide (860px)",
+                "Controls the horizontal expansion length when the notch or dynamic island is open.",
+                "System features", "Show menu bar icon", "Launch at login", "Show on all displays", "Preferred display",
+                "Notch sizing", "Notch height on notch displays", "Match real notch height", "Match menu bar height", "Custom height",
+                "Notch height on non-notch displays", "Custom notch size",
+                "Hover & Gestures", "Open notch on hover", "Extend hover area", "Hover area padding", "Minimum hover duration",
+                "Enable gestures", "Gesture sensitivity",
+                "Notch Style", "MacBook Notch", "Dynamic Island", "Dynamic Island top offset",
+                "Camera Mirror", "Mirror shape", "Rectangle", "Circle",
+                "Emojis", "Show emojis"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Appearance",
+            icon: "paintbrush.fill",
+            elements: [
+                "General", "Always show tabs", "Show settings icon in notch",
+                "Media", "Colored spectrogram", "Player tinting", "Enable blur effect behind album art", "Slider color",
+                "Match album art", "Default",
+                "Custom music live activity animation", "Use music visualizer spectrogram", "Selected animation", "No custom animation available",
+                "Accent color", "System accent", "Custom accent color", "Blue", "Purple", "Pink", "Red", "Orange", "Yellow", "Green", "Graphite",
+                "App icon"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Media",
+            icon: "play.circle.fill",
+            elements: [
+                "Enable Media & Music Player", "Display track info, interactive playback controls, and lyrics in the Notch.",
+                "Media Source", "Music Source", "Now Playing", "Spotify", "Apple Music", "YouTube Music",
+                "Media playback live activity", "Show music live activity", "Show sneak peek on playback changes", "Sneak Peek Style",
+                "Standard", "Inline", "Compact", "Media inactivity timeout", "Full screen behavior", "Hide for all apps",
+                "Media controls", "Music Slot Configuration", "Layout Preview", "Progress bar style", "Seek step", "Backward 15s", "Forward 15s",
+                "Lyrics", "Enable synced lyrics", "Apple Music synced lyrics", "Spotify synced lyrics", "Auto-scroll to current lyric line",
+                "Lyrics font size", "Lyrics animation", "Lyrics blur",
+                "Universal App Audio Engine", "App Volume Engine", "Adjust volume across all applications"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Calendar",
+            icon: "calendar",
+            elements: [
+                "Calendar integration", "Enable calendar and events", "Sync reminders", "Reminders integration",
+                "Alternate calendar", "Lunar calendar", "Islamic calendar", "Hebrew calendar", "Show lunar calendar",
+                "Show full event titles", "Always show full event titles",
+                "Past events", "Show past events today", "Auto-scroll to next event", "Upcoming events",
+                "Calendar access", "Reminders access", "Calendar permissions"
+            ]
+        ),
+        SettingsTabItem(
+            id: "HUD",
+            icon: "gauge.with.dots.needle.33percent",
+            elements: [
+                "Volume HUD", "System volume indicator", "Replace native volume HUD",
+                "Brightness HUD", "Display brightness indicator", "Replace native brightness HUD",
+                "Keyboard backlight HUD", "Keyboard brightness indicator",
+                "Inline HUD", "Show compact inline HUD inside notch", "Standard HUD",
+                "Show power status notifications", "Battery status", "Power adapter status", "Charging indicator",
+                "Show HUD on lock screen"
+            ]
+        ),
+        SettingsTabItem(
+            id: "SystemMonitor",
+            icon: "chart.bar.fill",
+            elements: [
+                "System Monitor (Stats)", "Monitor real-time CPU, RAM, and GPU load in a dedicated Notch tab inspired by the 'Stats' app.",
+                "System Monitoring Access: Active (Darwin Mach & IOKit native APIs)",
+                "Show top resource-consuming processes", "Display Options",
+                "Cooling & Fan Speed", "CPU & GPU temperatures", "Fan speed", "RPM", "Fan profiles",
+                "Auto", "Balanced", "Smart", "Max", "Custom", "Passive cooling (Fanless)", "Privileged helper tool", "SMC fan control"
+            ]
+        ),
+        SettingsTabItem(
+            id: "FaceID",
+            icon: "faceid",
+            elements: [
+                "Face ID", "Allow NotchPulse to recognize your face", "Allow NotchPulse to unlock your Mac",
+                "Camera access", "Face ID camera", "Built-in FaceTime HD Camera", "Continuity Camera",
+                "Apple biometrics fallback", "Allow Touch ID, Apple Watch, or system password",
+                "Authorize system prompts", "Automatically verify with Face ID when macOS requires admin approval or installer confirmation.",
+                "Auto-lock", "Auto-lock interval", "Lock on sleep", "Recognition tolerance", "Strict", "Balanced", "Relaxed",
+                "Quality threshold", "Re-enroll face", "Security", "Keychain encryption"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Shelf",
+            icon: "tray.fill",
+            elements: [
+                "Notch Shelf", "Drop zone", "Drag and drop", "Auto-clear items on drag-out", "Pin shelf open",
+                "Shelf storage", "Temporary file tray", "File drop"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Clipboard",
+            icon: "doc.on.clipboard.fill",
+            elements: [
+                "Clipboard History", "Clipboard Manager", "Save copied text and images", "3-item viewport",
+                "Clear clipboard history", "History capacity limit", "Image preview thumbnail", "One-click copy", "Relative timestamp"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Audio",
+            icon: "speaker.wave.2.fill",
+            elements: [
+                "Audio Hub", "Audio output", "Audio input", "Sound devices", "Speakers", "Microphones",
+                "Headphones", "Default audio device", "Volume slider", "Mute toggle", "Sound routing"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Display",
+            icon: "sun.max.fill",
+            elements: [
+                "Display Hub", "Screen brightness", "Multiple displays", "Monitors", "External display brightness",
+                "DDC/CI hardware brightness", "Mirror display"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Shortcuts",
+            icon: "command.square.fill",
+            elements: [
+                "Shortcuts", "Keyboard shortcuts", "Hotkeys", "Global key bindings", "Toggle notch", "Open shelf",
+                "Toggle clipboard", "Toggle mute", "Play/Pause", "Next track", "Previous track"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Advanced",
+            icon: "slider.horizontal.3",
+            elements: [
+                "Reset settings", "Restore default preferences", "Clear app cache", "Re-run Onboarding",
+                "Start Feature Tour", "Accessibility permission", "Diagnostic logs"
+            ]
+        ),
+        SettingsTabItem(
+            id: "Language",
+            icon: "globe",
+            elements: [
+                "App Language", "Language", "Ngôn ngữ", "Tiếng Việt", "English", "Deutsch", "Français", "Español", "日本語", "简体中文"
+            ]
+        ),
+        SettingsTabItem(
+            id: "About",
+            icon: "info.circle.fill",
+            elements: [
+                "About", "NotchPulse", "Version", "Phiên bản", "Automatically check for updates",
+                "Automatically download updates", "Check for Updates…", "Release notes", "Developer", "GitHub"
+            ]
+        )
     ]
 
     private var filteredTabs: [SettingsTabItem] {
-        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return allTabs }
+        let normalizedQuery = trimmed.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+
         return allTabs.filter { tab in
-            let title = tabTitle(for: tab.id).lowercased()
-            if title.contains(trimmed) || tab.id.lowercased().contains(trimmed) {
+            // 1. Match tab title in current language
+            let title = tabTitle(for: tab.id)
+            let normalizedTitle = title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            if normalizedTitle.contains(normalizedQuery) {
                 return true
             }
-            return tab.keywords.contains { $0.lowercased().contains(trimmed) }
+
+            // 2. Match any setting element translated into current language
+            for item in tab.elements {
+                let localized = loc(item)
+                let normalizedItem = localized.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                if normalizedItem.contains(normalizedQuery) {
+                    return true
+                }
+            }
+            return false
         }
+    }
+
+    private func matchingSubtext(for tab: SettingsTabItem) -> String? {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let normalizedQuery = trimmed.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+
+        let title = tabTitle(for: tab.id)
+        let normalizedTitle = title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+        if normalizedTitle.contains(normalizedQuery) {
+            return nil
+        }
+
+        for item in tab.elements {
+            let localized = loc(item)
+            let normalizedItem = localized.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            if normalizedItem.contains(normalizedQuery) {
+                return localized
+            }
+        }
+        return nil
     }
 
     init(updaterController: SPUStandardUpdaterController? = nil) {
@@ -134,13 +305,23 @@ struct SettingsView: View {
                     } else {
                         ForEach(filteredTabs) { tab in
                             NavigationLink(value: tab.id) {
-                                Label(tabTitle(for: tab.id), systemImage: tab.icon)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Label(tabTitle(for: tab.id), systemImage: tab.icon)
+                                    if let hint = matchingSubtext(for: tab) {
+                                        Text("↳ \(hint)")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .padding(.leading, 24)
+                                    }
+                                }
                             }
                         }
                     }
                 }
                 .font(.system(size: 14, weight: .medium))
                 .listStyle(SidebarListStyle())
+                .scrollIndicators(.hidden)
             }
             .tint(.effectiveAccent)
             .toolbar(removing: .sidebarToggle)
@@ -148,6 +329,8 @@ struct SettingsView: View {
         } detail: {
             detailContent
                 .formStyle(.grouped)
+                .scrollIndicators(.hidden)
+                .background(ScrollViewScrollerHider())
                 .safeAreaInset(edge: .top, spacing: 0) {
                     SettingsDetailHeaderBar(
                         title: tabTitle(for: selectedTab),
@@ -277,6 +460,38 @@ struct SettingsDetailHeaderBar: View {
             Divider()
         }
         .background(.bar)
+    }
+}
+
+/// Native AppKit bridge to ensure vertical scroll indicators are completely hidden
+/// across all macOS versions, regardless of system "Show scroll bars: Always" preferences.
+private struct ScrollViewScrollerHider: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            hideScroller(for: view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            hideScroller(for: nsView)
+        }
+    }
+
+    private func hideScroller(for view: NSView) {
+        var current: NSView? = view
+        while let p = current {
+            if let sv = p as? NSScrollView {
+                sv.hasVerticalScroller = false
+                sv.hasHorizontalScroller = false
+                sv.verticalScroller = nil
+                sv.autohidesScrollers = true
+                break
+            }
+            current = p.superview
+        }
     }
 }
 

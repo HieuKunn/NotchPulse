@@ -12,7 +12,7 @@ struct FaceIDSettingsView: View {
     @State private var isSyncing: Bool = false
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
                 if !isAccessibilityGranted || !isCameraGranted {
                     permissionsWarning
