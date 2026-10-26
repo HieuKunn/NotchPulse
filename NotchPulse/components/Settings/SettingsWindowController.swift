@@ -43,8 +43,8 @@ class SettingsWindowController: NSWindowController {
         
         window.title = "NotchPulse Settings"
         window.titlebarAppearsTransparent = true
-        window.isOpaque = true
-        window.backgroundColor = .windowBackgroundColor
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.titleVisibility = .hidden
         window.toolbarStyle = .unified
         window.isMovableByWindowBackground = false

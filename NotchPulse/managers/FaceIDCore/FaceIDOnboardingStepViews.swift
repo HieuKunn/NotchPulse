@@ -345,12 +345,12 @@ struct NameStepView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(loc("Name this face"))
                 .font(FaceIDTheme.Font.title)
-                .foregroundStyle(FaceIDTheme.textPrimary)
+                .foregroundStyle(.primary)
                 .padding(.leading, 4)
 
             Text(loc("Used to tell enrolled faces apart when more than one person is set up on this Mac."))
                 .font(FaceIDTheme.Font.passwordCaption)
-                .foregroundStyle(FaceIDTheme.textSecondary)
+                .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 4)
 
@@ -363,7 +363,7 @@ struct NameStepView: View {
             if let error = controller.nameError {
                 Text(error)
                     .font(FaceIDTheme.Font.rowDetail)
-                    .foregroundStyle(FaceIDTheme.statusDenied)
+                    .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -393,12 +393,12 @@ struct PasswordStepView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(loc("Enter your password"))
                 .font(FaceIDTheme.Font.title)
-                .foregroundStyle(FaceIDTheme.textPrimary)
+                .foregroundStyle(.primary)
                 .padding(.leading, 4)
 
             Text(loc("Your password is required to unlock your Mac. It is encrypted and securely stored on your device. NotchPulse works entirely offline, so your password never leaves your Mac."))
                 .font(FaceIDTheme.Font.passwordCaption)
-                .foregroundStyle(FaceIDTheme.textSecondary)
+                .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 4)
 
@@ -412,7 +412,7 @@ struct PasswordStepView: View {
             if let error = controller.passwordError {
                 Text(error)
                     .font(FaceIDTheme.Font.rowDetail)
-                    .foregroundStyle(FaceIDTheme.statusDenied)
+                    .foregroundStyle(.red)
             }
 
             // Spacer(minLength: 0)
@@ -443,7 +443,7 @@ struct CompleteStepView: View {
         HStack(spacing: 12) {
             Text(loc("You're all set"))
                 .font(FaceIDTheme.Font.title)
-                .foregroundStyle(FaceIDTheme.textPrimary)
+                .foregroundStyle(.primary)
             Spacer(minLength: 4)
             AnimatedCheckmark(color: .white, lineWidth: 5)
                 .frame(width: 20, height: 15)

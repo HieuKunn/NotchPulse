@@ -5,6 +5,12 @@
 ### 📋 Enhanced Clipboard Browsing
 - **Comfortable 3-Item Viewport**: Expanded the Clipboard history panel height so at least 3 full items remain visible at a glance before scrolling, making text and snippet lookups much faster.
 
+### 🍏 Native macOS System Styling & Apple HIG Architecture
+- **True macOS Native Settings**: Modernized Settings window with native window transparency and authentic sidebar vibrancy (frosted glass blur), allowing wallpaper light sampling just like macOS System Settings.
+- **Unified Section Headers**: Refined detail header bar with bold SF Pro typography and streamlined 42pt height, eliminating top blank space and gliding cleanly over scrolled content without text collision.
+- **Declarative System Materials**: Feature Tour instruction cards and Face ID setup panels now utilize hierarchical system materials (`.regularMaterial`, `.thickMaterial`) and semantic dynamic styles (`.primary`, `.secondary`), automatically adapting across macOS versions, Light/Dark appearance, and Reduce Transparency modes.
+- **Enhanced Display Hub Tour**: Added interactive Display Hub spotlight walkthrough with full localization across all 9 supported languages.
+
 ### ⚡️ Massive CPU Optimization & Clean Silhouette
 - **Whisper-Quiet Media Scrubbing**: Throttled progress bar recalculations and synced lyrics evaluation to human-optimal intervals, preventing unnecessary redraw cycles and slashing open notch CPU usage.
 - **Crisp Edge Silhouette**: Removed unnecessary fuzzy drop shadows from the Notch and Dynamic Island panels for a clean, distraction-free aesthetic with reduced WindowServer composite overhead.

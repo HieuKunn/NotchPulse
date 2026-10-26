@@ -80,6 +80,7 @@ struct SettingsView: View {
                         showQuitButton: true
                     )
                 }
+                .background(Color(nsColor: .windowBackgroundColor))
         }
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
@@ -157,7 +158,7 @@ struct SettingsDetailHeaderBar: View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 14) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Color.primary)
                     .lineLimit(1)
 
@@ -184,7 +185,7 @@ struct SettingsDetailHeaderBar: View {
                 }
             }
             .padding(.horizontal, 24)
-            .frame(height: 52)
+            .frame(height: 42)
             
             Divider()
         }

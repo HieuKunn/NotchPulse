@@ -247,8 +247,8 @@ struct FeatureTourView: View {
                         HStack(alignment: .top, spacing: -4) {
                             Image(systemName: "arrowtriangle.left.fill")
                                 .font(.system(size: 18))
-                                .foregroundColor(Color.white.opacity(0.96))
-                                .shadow(color: Color.black.opacity(0.2), radius: 4, x: -2)
+                                .foregroundStyle(.regularMaterial)
+                                .shadow(color: Color.black.opacity(0.15), radius: 4, x: -2)
                                 .padding(.top, arrowTopPadding)
                                 .zIndex(3)
                             
@@ -259,8 +259,8 @@ struct FeatureTourView: View {
                         VStack(spacing: 0) {
                             Image(systemName: "arrowtriangle.up.fill")
                                 .font(.system(size: 18))
-                                .foregroundColor(Color.white.opacity(0.96))
-                                .shadow(color: Color.black.opacity(0.2), radius: 4, y: -2)
+                                .foregroundStyle(.regularMaterial)
+                                .shadow(color: Color.black.opacity(0.15), radius: 4, y: -2)
                                 .zIndex(3)
                             
                             instructionCard
@@ -308,23 +308,23 @@ struct FeatureTourView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(Color.black.opacity(0.08))
+                        .fill(.quaternary)
                         .frame(width: 44, height: 44)
                     
                     Image(systemName: currentStep.icon)
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.black)
+                        .foregroundStyle(.primary)
                 }
                 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(loc(currentStep.title))
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(.black)
+                        .foregroundStyle(.primary)
                         .id("title_\(currentStepIndex)_\(appLanguage.rawValue)")
                     
                     Text(loc("Step %d of %d", currentStepIndex + 1, steps.count))
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color.black.opacity(0.6))
+                        .foregroundStyle(.secondary)
                 }
                 
                 Spacer()
@@ -335,7 +335,7 @@ struct FeatureTourView: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(Color.black.opacity(0.45))
+                        .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -343,7 +343,7 @@ struct FeatureTourView: View {
             // Description
             Text(loc(currentStep.description))
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(Color.black.opacity(0.85))
+                .foregroundStyle(.primary)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -355,7 +355,7 @@ struct FeatureTourView: View {
                 HStack(spacing: 5) {
                     ForEach(0..<steps.count, id: \.self) { index in
                         Capsule()
-                            .fill(index == currentStepIndex ? Color.black : Color.black.opacity(0.2))
+                            .fill(index == currentStepIndex ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
                             .frame(width: index == currentStepIndex ? 16 : 6, height: 6)
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStepIndex)
                     }
@@ -370,10 +370,10 @@ struct FeatureTourView: View {
                     }) {
                         Text(loc("Back"))
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color.black.opacity(0.75))
+                            .foregroundStyle(.primary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Capsule().fill(Color.black.opacity(0.08)))
+                            .background(Capsule().fill(.quaternary))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -395,10 +395,10 @@ struct FeatureTourView: View {
                         }
                     }
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(Color.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
-                    .background(Capsule().fill(Color.black))
+                    .background(Capsule().fill(Color.effectiveAccent))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -406,13 +406,13 @@ struct FeatureTourView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.96))
+                .fill(.regularMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                        .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
                 )
         )
-        .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 12)
+        .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)
     }
     
     private func repositionWindow() {

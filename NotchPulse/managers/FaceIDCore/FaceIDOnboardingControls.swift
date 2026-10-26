@@ -19,10 +19,17 @@ struct PillButton: View {
         let button = Button(action: action) {
             Text(loc(title))
                 .font(FaceIDTheme.Font.button)
-                .foregroundStyle(FaceIDTheme.textPrimary)
+                .foregroundStyle(style == .primary ? Color.white : Color.primary)
                 .frame(width: width, height: FaceIDMetrics.pillButtonHeight)
                 .background(background)
                 .clipShape(Capsule())
+                .overlay(
+                    Group {
+                        if style == .secondary {
+                            Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                        }
+                    }
+                )
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.4)
@@ -35,8 +42,13 @@ struct PillButton: View {
         }
     }
 
-    private var background: Color {
-        style == .primary ? FaceIDTheme.accent : FaceIDTheme.surface
+    @ViewBuilder
+    private var background: some View {
+        if style == .primary {
+            Color.effectiveAccent
+        } else {
+            Color(nsColor: .controlBackgroundColor)
+        }
     }
 }
 
@@ -57,10 +69,10 @@ struct PermissionRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(loc(title))
                     .font(FaceIDTheme.Font.rowTitle)
-                    .foregroundStyle(FaceIDTheme.textPrimary)
+                    .foregroundStyle(.primary)
                 Text(loc(detail))
                     .font(FaceIDTheme.Font.rowDetail)
-                    .foregroundStyle(FaceIDTheme.textDetail)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
@@ -70,10 +82,13 @@ struct PermissionRow: View {
             Button(action: grant) {
                 Text(granted ? loc("Granted") : loc("Grant"))
                     .font(FaceIDTheme.Font.grantLabel)
-                    .foregroundStyle(FaceIDTheme.textPrimary)
+                    .foregroundStyle(.primary)
                     .frame(width: FaceIDMetrics.grantButtonSize.width, height: FaceIDMetrics.grantButtonSize.height)
-                    .background(FaceIDTheme.surfaceRaised)
+                    .background(Color(nsColor: .controlBackgroundColor))
                     .clipShape(Capsule())
+                    .overlay(
+                        Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                    )
             }
             .buttonStyle(.plain)
             .disabled(granted)
@@ -82,7 +97,7 @@ struct PermissionRow: View {
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity)
         .frame(height: FaceIDMetrics.permissionRowHeight)
-        .background(FaceIDTheme.surface)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.6))
         .clipShape(Capsule())
     }
 }
@@ -96,18 +111,22 @@ struct PillSecureField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        SecureField("", text: $text, prompt: Text(loc(placeholder)).foregroundStyle(FaceIDTheme.placeholder))
+        SecureField("", text: $text, prompt: Text(loc(placeholder)).foregroundStyle(.secondary))
             .textFieldStyle(.plain)
             .font(FaceIDTheme.Font.passwordPlaceholder)
-            .foregroundStyle(FaceIDTheme.textPrimary)
+            .foregroundStyle(.primary)
             .focused($isFocused)
             .onSubmit(onSubmit)
             .background(OnboardingFieldFirstResponder(enabled: autofocus, onReady: { isFocused = true }))
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity)
             .frame(height: 40)
-            .background(FaceIDTheme.surface)
+            .background(Color(nsColor: .controlBackgroundColor))
             .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(isFocused ? AnyShapeStyle(Color.effectiveAccent) : AnyShapeStyle(Color.primary.opacity(0.12)), lineWidth: isFocused ? 1.5 : 0.5)
+            )
     }
 }
 
@@ -121,18 +140,22 @@ struct PillTextField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        TextField("", text: $text, prompt: Text(loc(placeholder)).foregroundStyle(FaceIDTheme.placeholder))
+        TextField("", text: $text, prompt: Text(loc(placeholder)).foregroundStyle(.secondary))
             .textFieldStyle(.plain)
             .font(FaceIDTheme.Font.passwordPlaceholder)
-            .foregroundStyle(FaceIDTheme.textPrimary)
+            .foregroundStyle(.primary)
             .focused($isFocused)
             .onSubmit(onSubmit)
             .background(OnboardingFieldFirstResponder(enabled: autofocus, onReady: { isFocused = true }))
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity)
             .frame(height: 40)
-            .background(FaceIDTheme.surface)
+            .background(Color(nsColor: .controlBackgroundColor))
             .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(isFocused ? AnyShapeStyle(Color.effectiveAccent) : AnyShapeStyle(Color.primary.opacity(0.12)), lineWidth: isFocused ? 1.5 : 0.5)
+            )
     }
 }
 
