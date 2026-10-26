@@ -24,15 +24,17 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var anyDropZoneTargeting: Bool = false
     @Published var isCurrentlyDraggingGlobal: Bool = false
     @Published var customOpenHeight: CGFloat? = nil
+    var effectiveOpenHeight: CGFloat {
+        if coordinator.currentView == .clipboard {
+            return ClipboardNotchView.preferredHeight
+        }
+        return customOpenHeight ?? notchSize.height
+    }
     var cancellables: Set<AnyCancellable> = []
     
     @Published var hideOnClosed: Bool = false
     @Published var isHoverRevealed: Bool = false
 
-    @Published var edgeAutoOpenActive: Bool = false
-    @Published var isHoveringCalendar: Bool = false
-    @Published var isHoveringClipboard: Bool = false
-    @Published var clipboardScrolledToBottom: Bool = true
     @Published var isBatteryPopoverActive: Bool = false
     
     @Published var featureTourTarget: String? = nil
@@ -261,12 +263,14 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
         let topOffset = isDynamicIsland ? effectiveDynamicIslandTopOffset(for: screen) : 0
         let currentWidth = notchState == .open ? (isDynamicIsland ? notchSize.width : (notchSize.width + cornerRadiusInsets.opened.top * 2)) : (isDynamicIsland ? compactDynamicIslandWidth : closedNotchSize.width)
-        let currentHeight = notchState == .open ? (customOpenHeight ?? notchSize.height) : (isDynamicIsland ? 32 : closedNotchSize.height)
+        let currentHeight = notchState == .open ? effectiveOpenHeight : (isDynamicIsland ? 32 : closedNotchSize.height)
         
-        let baseY = frame.maxY - currentHeight - topOffset
-        let baseX = frame.midX - currentWidth / 2
+        let extraPad: CGFloat = (notchState == .closed && Defaults[.extendHoverArea]) ? CGFloat(Defaults[.hoverAreaPadding]) : 0
+        let baseY = frame.maxY - currentHeight - topOffset - extraPad
+        let baseX = frame.midX - currentWidth / 2 - extraPad
+        let totalW = currentWidth + (extraPad * 2)
         
-        return position.y >= (baseY - 10) && position.y <= frame.maxY && position.x >= baseX && position.x <= baseX + currentWidth
+        return position.y >= baseY && position.y <= frame.maxY && position.x >= baseX && position.x <= baseX + totalW
     }
 
     func open() {
@@ -275,6 +279,9 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.coordinator.sneakPeek.show = false
         self.notchSize = openNotchSize
         self.notchState = .open
+        if coordinator.currentView == .clipboard {
+            self.customOpenHeight = ClipboardNotchView.preferredHeight
+        }
         
         MusicManager.shared.isUIActive = true
         MusicManager.shared.forceUpdate()
@@ -305,16 +312,12 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.isBatteryPopoverActive = false
         self.coordinator.dismissExpandingView(animated: false)
         self.coordinator.sneakPeek.show = false
-        self.edgeAutoOpenActive = false
 
         self.dragDetectorTargeting = false
         self.dropZoneTargeting = false
         self.generalDropTargeting = false
         self.anyDropZoneTargeting = false
         self.dropEvent = false
-        self.isHoveringClipboard = false
-        self.isHoveringCalendar = false
-        self.clipboardScrolledToBottom = true
 
         if !LockScreenMediaWindow.shared.isWindowVisible {
             MusicManager.shared.isUIActive = false

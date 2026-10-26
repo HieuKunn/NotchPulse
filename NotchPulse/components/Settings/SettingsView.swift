@@ -5,7 +5,6 @@ import KeyboardShortcuts
 import LaunchAtLogin
 import Sparkle
 import SwiftUI
-import SwiftUIIntrospect
 
 struct SettingsView: View {
     @State private var selectedTab = "General"
@@ -22,155 +21,77 @@ struct SettingsView: View {
         NavigationSplitView {
             List(selection: $selectedTab) {
                 NavigationLink(value: "General") {
-                    Label(tabTitle(for: "General"), systemImage: "gear")
+                    SettingsSidebarRow(title: tabTitle(for: "General"), icon: "gear", color: .gray)
                 }
                 NavigationLink(value: "Appearance") {
-                    Label(tabTitle(for: "Appearance"), systemImage: "paintbrush.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "Appearance"), icon: "paintbrush.fill", color: .cyan)
                 }
                 NavigationLink(value: "Media") {
-                    Label(tabTitle(for: "Media"), systemImage: "play.circle.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "Media"), icon: "play.circle.fill", color: .pink)
                 }
                 NavigationLink(value: "Calendar") {
-                    Label(tabTitle(for: "Calendar"), systemImage: "calendar")
+                    SettingsSidebarRow(title: tabTitle(for: "Calendar"), icon: "calendar", color: .red)
                 }
                 NavigationLink(value: "HUD") {
-                    Label(tabTitle(for: "HUD"), systemImage: "gauge.with.dots.needle.33percent")
+                    SettingsSidebarRow(title: tabTitle(for: "HUD"), icon: "gauge.with.dots.needle.33percent", color: .indigo)
                 }
                 NavigationLink(value: "SystemMonitor") {
-                    Label(tabTitle(for: "SystemMonitor"), systemImage: "chart.bar.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "SystemMonitor"), icon: "chart.bar.fill", color: .green)
                 }
                 NavigationLink(value: "FaceID") {
-                    Label(tabTitle(for: "FaceID"), systemImage: "faceid")
+                    SettingsSidebarRow(title: tabTitle(for: "FaceID"), icon: "faceid", color: .blue)
                 }
-//                NavigationLink(value: "Downloads") {
-//                    Label(tabTitle(for: "Downloads"), systemImage: "square.and.arrow.down")
-//                }
                 NavigationLink(value: "Shelf") {
-                    Label(tabTitle(for: "Shelf"), systemImage: "tray.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "Shelf"), icon: "tray.fill", color: .teal)
                 }
                 NavigationLink(value: "Clipboard") {
-                    Label(tabTitle(for: "Clipboard"), systemImage: "doc.on.clipboard.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "Clipboard"), icon: "doc.on.clipboard.fill", color: .purple)
                 }
                 NavigationLink(value: "Audio") {
-                    Label(tabTitle(for: "Audio"), systemImage: "speaker.wave.2.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "Audio"), icon: "speaker.wave.2.fill", color: .orange)
                 }
                 NavigationLink(value: "Display") {
-                    Label(tabTitle(for: "Display"), systemImage: "sun.max.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "Display"), icon: "sun.max.fill", color: .yellow)
                 }
                 NavigationLink(value: "Shortcuts") {
-                    Label(tabTitle(for: "Shortcuts"), systemImage: "command.square.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "Shortcuts"), icon: "command.square.fill", color: .gray)
                 }
-                // NavigationLink(value: "Extensions") {
-                //     Label(tabTitle(for: "Extensions"), systemImage: "puzzlepiece.extension")
-                // }
                 NavigationLink(value: "Advanced") {
-                    Label(tabTitle(for: "Advanced"), systemImage: "slider.horizontal.3")
+                    SettingsSidebarRow(title: tabTitle(for: "Advanced"), icon: "slider.horizontal.3", color: .orange)
                 }
                 NavigationLink(value: "Language") {
-                    Label(tabTitle(for: "Language"), systemImage: "globe")
+                    SettingsSidebarRow(title: tabTitle(for: "Language"), icon: "globe", color: .blue)
                 }
                 NavigationLink(value: "About") {
-                    Label(tabTitle(for: "About"), systemImage: "info.circle.fill")
+                    SettingsSidebarRow(title: tabTitle(for: "About"), icon: "info.circle.fill", color: .secondary)
                 }
             }
-            .font(.system(size: 14.5, weight: .medium))
-            .listStyle(SidebarListStyle())
-            .tint(.effectiveAccent)
-            .toolbar(removing: .sidebarToggle)
-            .navigationSplitViewColumnWidth(min: 210, ideal: 225, max: 250)
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 225, max: 250)
         } detail: {
-            VStack(spacing: 0) {
-                SettingsDetailHeaderBar(
-                    title: tabTitle(for: selectedTab),
-                    showQuitButton: true
-                )
-
-                ZStack(alignment: .top) {
-                    Group {
-                        switch selectedTab {
-                        case "General":
-                            GeneralSettings()
-                        case "Appearance":
-                            Appearance()
-                        case "Media":
-                            Media()
-                        case "Calendar":
-                            CalendarSettings()
-                        case "HUD":
-                            HUD()
-                        case "SystemMonitor":
-                            SystemMonitorSettingsView()
-                        case "FaceID":
-                            FaceIDSettingsView()
-                        case "Shelf":
-                            Shelf()
-                        case "Clipboard":
-                            ClipboardSettingsView()
-                        case "Audio":
-                            AudioSettingsView()
-                        case "Display":
-                            DisplaySettingsView()
-                        case "Shortcuts":
-                            Shortcuts()
-                        case "Extensions":
-                            GeneralSettings()
-                        case "Advanced":
-                            Advanced()
-                        case "Language":
-                            LanguageSettingsView()
-                        case "About":
-                            let controller = updaterController ?? SettingsWindowController.shared.updaterController
-                            if let controller = controller {
-                                About(updaterController: controller)
-                            } else {
-                                // Fallback with shared updater delegates
-                                About(
-                                    updaterController: SPUStandardUpdaterController(
-                                        startingUpdater: false,
-                                        updaterDelegate: AppUpdaterDelegate.shared,
-                                        userDriverDelegate: AppUpdaterDelegate.shared))
+            detailContent
+                .formStyle(.grouped)
+                .navigationTitle(tabTitle(for: selectedTab))
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(role: .destructive) {
+                            if let appDelegate = NSApp.delegate as? AppDelegate {
+                                appDelegate.isUserInitiatedQuit = true
+                                appDelegate.quitApplication()
+                            } else if let appDelegate = AppDelegate.shared {
+                                appDelegate.isUserInitiatedQuit = true
+                                appDelegate.quitApplication()
                             }
-                        default:
-                            GeneralSettings()
+                        } label: {
+                            Label(loc("Quit app"), systemImage: "power")
                         }
+                        .help(loc("Quit NotchPulse"))
                     }
-                    .hideScrollbar()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .mask {
-                        VStack(spacing: 0) {
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .clear, location: 0.0),
-                                    .init(color: .black, location: 1.0)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 20)
-
-                            Rectangle()
-                                .fill(Color.black)
-                        }
-                    }
-                    .clipped()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(edges: .top)
         }
         .navigationSplitViewStyle(.balanced)
-        .toolbar(removing: .sidebarToggle)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text("")
-                    .frame(width: 0, height: 0)
-                    .accessibilityHidden(true)
-            }
-        }
         .formStyle(.grouped)
-        .frame(minWidth: 740, minHeight: 600)
-        .applyGlassEffect()
+        .frame(minWidth: 720, minHeight: 560)
         .tint(.effectiveAccent)
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
@@ -178,8 +99,77 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var detailContent: some View {
+        switch selectedTab {
+        case "General":
+            GeneralSettings()
+        case "Appearance":
+            Appearance()
+        case "Media":
+            Media()
+        case "Calendar":
+            CalendarSettings()
+        case "HUD":
+            HUD()
+        case "SystemMonitor":
+            SystemMonitorSettingsView()
+        case "FaceID":
+            FaceIDSettingsView()
+        case "Shelf":
+            Shelf()
+        case "Clipboard":
+            ClipboardSettingsView()
+        case "Audio":
+            AudioSettingsView()
+        case "Display":
+            DisplaySettingsView()
+        case "Shortcuts":
+            Shortcuts()
+        case "Extensions":
+            GeneralSettings()
+        case "Advanced":
+            Advanced()
+        case "Language":
+            LanguageSettingsView()
+        case "About":
+            let controller = updaterController ?? SettingsWindowController.shared.updaterController
+            if let controller = controller {
+                About(updaterController: controller)
+            } else {
+                About(
+                    updaterController: SPUStandardUpdaterController(
+                        startingUpdater: false,
+                        updaterDelegate: AppUpdaterDelegate.shared,
+                        userDriverDelegate: AppUpdaterDelegate.shared))
+            }
+        default:
+            GeneralSettings()
+        }
+    }
+
     private func tabTitle(for tab: String) -> String {
         L10n.tr(tab, lang: appLanguage)
+    }
+}
+
+private struct SettingsSidebarRow: View {
+    let title: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        Label {
+            Text(title)
+                .font(.system(size: 13, weight: .regular))
+        } icon: {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 20, height: 20)
+                .background(color.gradient)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        }
     }
 }
 
@@ -672,8 +662,6 @@ struct GeneralSettings: View {
             notchSizingSection
             NotchBehaviour()
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 
@@ -934,8 +922,6 @@ struct HUD: View {
             }
             .disabled(!Defaults[.hudReplacement])
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
@@ -1084,8 +1070,6 @@ struct SystemMonitorSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onAppear {
             monitor.shouldFetchProcesses = (expandedMetric != nil)
@@ -1443,8 +1427,6 @@ struct Media: View {
         .onAppear {
             isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 
@@ -1589,8 +1571,6 @@ struct CalendarSettings: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onAppear {
             Task {
@@ -1712,8 +1692,6 @@ struct About: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-            .scrollContentBackground(.hidden)
-            .hideScrollbar()
             VStack(spacing: 0) {
                 Divider()
                 Text(loc("Made with 🫶🏻 for NotchPulse"))
@@ -1861,8 +1839,6 @@ struct Shelf: View {
                     .foregroundColor(.secondary)
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 }
@@ -2328,8 +2304,6 @@ struct Advanced: View {
                 Text(loc("Window Behavior"))
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
         .onAppear {
             loadCustomColor()
@@ -2464,8 +2438,6 @@ struct ClipboardSettingsView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 }
@@ -2529,8 +2501,6 @@ struct AudioSettingsView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 }
@@ -2610,8 +2580,6 @@ struct DisplaySettingsView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 }
@@ -2635,8 +2603,6 @@ struct Shortcuts: View {
                 KeyboardShortcuts.Recorder(loc("Toggle Notch Open:"), name: .toggleNotchOpen)
             }
         }
-        .scrollContentBackground(.hidden)
-        .hideScrollbar()
         .accentColor(.effectiveAccent)
     }
 }
@@ -2693,66 +2659,6 @@ func warningBadge(_ text: String, _ description: String) -> some View {
     HUD()
 }
 
-extension View {
-    @ViewBuilder
-    func applyGlassEffect() -> some View {
-        self
-            .scrollContentBackground(.hidden)
-            .background {
-                FaceIDVisualEffectView(material: .sidebar, blendingMode: .behindWindow)
-                    .ignoresSafeArea()
-            }
-    }
-}
-
-/// Dedicated top header bar displayed across all settings tabs in the detail column.
-/// Provides an Apple-standard frosted glass backdrop and divider so scrolling content
-/// disappears cleanly behind it rather than colliding with title text.
-struct SettingsDetailHeaderBar: View {
-    let title: String
-    var showQuitButton: Bool = false
-    @Default(.appLanguage) private var appLanguage
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(title)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Color.primary)
-                .lineLimit(1)
-
-            Spacer()
-
-            if showQuitButton {
-                Button {
-                    if let appDelegate = NSApp.delegate as? AppDelegate {
-                        appDelegate.isUserInitiatedQuit = true
-                        appDelegate.quitApplication()
-                    } else if let appDelegate = AppDelegate.shared {
-                        appDelegate.isUserInitiatedQuit = true
-                        appDelegate.quitApplication()
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "power")
-                        Text(loc("Quit app"))
-                    }
-                    .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-                .contentShape(Rectangle())
-            }
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
-        .frame(minHeight: 52)
-        .background {
-            Color(nsColor: .windowBackgroundColor)
-        }
-        .zIndex(100)
-    }
-}
 
 // MARK: - Language Settings View
 struct LanguageSettingsView: View {
@@ -2773,20 +2679,6 @@ struct LanguageSettingsView: View {
             } header: {
                 Text(loc("App Language"))
             }
-        }
-        .formStyle(.grouped)
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
-        .padding(.bottom, 24)
-    }
-}
-
-extension View {
-    fileprivate func hideScrollbar() -> some View {
-        self.introspect(.scrollView, on: .macOS(.v12, .v13, .v14, .v15)) { (scrollView: NSScrollView) in
-            scrollView.hasVerticalScroller = false
-            scrollView.hasHorizontalScroller = false
-            scrollView.autohidesScrollers = true
         }
     }
 }

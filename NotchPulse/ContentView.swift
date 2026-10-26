@@ -16,7 +16,8 @@ struct ContentView: View {
 
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
-    @State private var hoverTask: Task<Void, Never>?
+    @State private var hoverOpenTask: Task<Void, Never>?
+    @State private var hoverCloseTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
     @State private var fullscreenHoverDebounceTask: Task<Void, Never>?
@@ -35,6 +36,8 @@ struct ContentView: View {
     @Default(.notchOpenWidth) var notchOpenWidth
     @Default(.expandedDragDetection) var expandedDragDetection: Bool
     @Default(.dragDetectionPadding) var dragDetectionPadding: Double
+    @Default(.extendHoverArea) var extendHoverArea: Bool
+    @Default(.hoverAreaPadding) var hoverAreaPadding: Double
 
     private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
     private let openAnimation = Animation.spring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
@@ -47,9 +50,6 @@ struct ContentView: View {
     @State private var isScanPulseDimmed = false
     @State private var scanPulseTask: Task<Void, Never>?
     @State private var visualIsFaceIDExpanded: Bool = false
-
-    private let extendedHoverPadding: CGFloat = 30
-    private let zeroHeightHoverPadding: CGFloat = 10
 
     // CRITICAL ARCHITECTURAL NOTE: DO NOT DELETE OR WRAP WITH @ObservedObject!
     // FaceIDOverlayController is annotated with @Observable (Swift Observation framework),
@@ -319,7 +319,7 @@ struct ContentView: View {
             return targetFaceIDSize.height
         }
         if vm.notchState == .open {
-            return vm.customOpenHeight ?? vm.notchSize.height
+            return vm.effectiveOpenHeight
         }
         if isEffectivelyLocked {
             return baseClosedHeight
@@ -386,6 +386,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
+            topEdgeHoverSensor
             dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
@@ -453,8 +454,10 @@ struct ContentView: View {
                     }
                     .onChange(of: vm.notchState) { _, newState in
                         if newState == .closed {
-                            hoverTask?.cancel()
-                            hoverTask = nil
+                            hoverOpenTask?.cancel()
+                            hoverOpenTask = nil
+                            hoverCloseTask?.cancel()
+                            hoverCloseTask = nil
                             self.isHovering = false
                             if vm.hideOnClosed {
                                 Task { @MainActor in
@@ -926,6 +929,37 @@ struct ContentView: View {
     }
 
     @ViewBuilder
+    private var topEdgeHoverSensor: some View {
+        if vm.notchState == .closed && !isEffectivelyLocked {
+            let extraPad: CGFloat = extendHoverArea ? CGFloat(hoverAreaPadding) : 0
+            let sensorWidth: CGFloat = (isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth) + (extraPad * 2)
+            let sensorHeight: CGFloat = (isDynamicIsland ? (effectiveTopOffset + 32) : baseClosedHeight) + extraPad
+
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(width: sensorWidth, height: sensorHeight, alignment: .top)
+                .onHover { hovering in
+                    handleHover(hovering)
+                    if shouldHandleFaceIDHover(hovering: hovering) {
+                        FaceIDOverlayController.shared.setHovering(hovering)
+                        if hovering && faceIDOverlay.phase != .onboarding {
+                            FaceIDOverlayController.shared.activate()
+                        }
+                    }
+                }
+                .onTapGesture {
+                    if shouldHandleFaceIDTap() {
+                        FaceIDOverlayController.shared.activate()
+                        return
+                    }
+                    if vm.notchState == .closed {
+                        doOpen()
+                    }
+                }
+        }
+    }
+
+    @ViewBuilder
     var dragDetector: some View {
         EmptyView()
     }
@@ -933,8 +967,10 @@ struct ContentView: View {
     private func doOpen() {
         coordinator.dismissExpandingView(animated: false)
         coordinator.sneakPeek.show = false
-        hoverTask?.cancel()
-        hoverTask = nil
+        hoverOpenTask?.cancel()
+        hoverOpenTask = nil
+        hoverCloseTask?.cancel()
+        hoverCloseTask = nil
         withAnimation(animationSpring) {
             vm.open()
         }
@@ -943,8 +979,10 @@ struct ContentView: View {
     private func doClose() {
         coordinator.dismissExpandingView(animated: false)
         coordinator.sneakPeek.show = false
-        hoverTask?.cancel()
-        hoverTask = nil
+        hoverOpenTask?.cancel()
+        hoverOpenTask = nil
+        hoverCloseTask?.cancel()
+        hoverCloseTask = nil
         self.isHovering = false
         withAnimation(animationSpring) {
             vm.close()
@@ -969,9 +1007,12 @@ struct ContentView: View {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
         if faceIDOverlay.phase != .closed || isFaceIDSettlingAfterClose { return }
         fullscreenHoverDebounceTask?.cancel()
-        hoverTask?.cancel()
 
         if hovering {
+            // Cancel any pending close grace period immediately when mouse re-enters!
+            hoverCloseTask?.cancel()
+            hoverCloseTask = nil
+
             if isEffectivelyLocked {
                 FaceIDOverlayController.shared.activate()
                 return
@@ -987,11 +1028,18 @@ struct ContentView: View {
                 if vm.notchState == .closed && Defaults[.enableHaptics] {
                     haptics.toggle()
                 }
+            } else if vm.hideOnClosed && !vm.isHoverRevealed {
+                withAnimation(animationSpring) {
+                    vm.isHoverRevealed = true
+                }
             }
 
             guard vm.notchState == .closed,
                   !coordinator.sneakPeek.show,
                   Defaults[.openNotchOnHover] else { return }
+
+            // If an open task is already counting down, let it proceed without reset!
+            if hoverOpenTask != nil { return }
 
             let delay = max(0.0, Defaults[.minimumHoverDuration])
             if delay <= 0.02 {
@@ -999,7 +1047,7 @@ struct ContentView: View {
                 return
             }
 
-            hoverTask = Task { @MainActor in
+            hoverOpenTask = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled,
                       !self.isEffectivelyLocked,
@@ -1007,11 +1055,20 @@ struct ContentView: View {
                       self.isHovering,
                       !self.coordinator.sneakPeek.show else { return }
                 self.doOpen()
+                self.hoverOpenTask = nil
             }
         } else {
-            hoverTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(200))
+            // Mouse exited: provide a grace period (100ms when closed, 200ms when open)
+            // so micro-jitters or moving between sensor and notch do NOT cancel open task!
+            hoverCloseTask?.cancel()
+            let gracePeriodMs: Int = vm.notchState == .closed ? 100 : 200
+
+            hoverCloseTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(gracePeriodMs))
                 guard !Task.isCancelled else { return }
+
+                self.hoverOpenTask?.cancel()
+                self.hoverOpenTask = nil
 
                 withAnimation(animationSpring) {
                     self.isHovering = false
@@ -1025,6 +1082,7 @@ struct ContentView: View {
                         self.vm.isHoverRevealed = false
                     }
                 }
+                self.hoverCloseTask = nil
             }
         }
     }

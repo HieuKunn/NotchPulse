@@ -1,5 +1,4 @@
 import SwiftUI
-import Defaults
 
 struct ClipboardNotchView: View {
     @ObservedObject var clipboardManager = ClipboardManager.shared
@@ -42,10 +41,7 @@ struct ClipboardNotchView: View {
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, maxHeight: 150)
-                .onAppear {
-                    vm.clipboardScrolledToBottom = true
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 8) {
@@ -57,41 +53,17 @@ struct ClipboardNotchView: View {
                     }
                     .padding(.horizontal, 4)
                     .padding(.bottom, 6)
-                    .background(
-                        ClipboardScrollWheelHelper { isAtBottom in
-                            if vm.clipboardScrolledToBottom != isAtBottom {
-                                vm.clipboardScrolledToBottom = isAtBottom
-                            }
-                        }
-                    )
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onAppear {
-                    let atBottom = clipboardManager.history.count <= 3
-                    if vm.clipboardScrolledToBottom != atBottom {
-                        vm.clipboardScrolledToBottom = atBottom
-                    }
-                }
-                .onChange(of: clipboardManager.history.count) { _, newCount in
-                    let atBottom = newCount <= 3
-                    if vm.clipboardScrolledToBottom != atBottom {
-                        vm.clipboardScrolledToBottom = atBottom
-                    }
-                }
             }
         }
         .padding(.horizontal, 10)
         .padding(.top, 2)
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onHover { isHovering in
-            vm.isHoveringClipboard = isHovering
-        }
         .onAppear {
             if vm.customOpenHeight != Self.preferredHeight {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                    vm.customOpenHeight = Self.preferredHeight
-                }
+                vm.customOpenHeight = Self.preferredHeight
             }
             clipboardManager.checkImmediately()
         }
@@ -101,94 +73,11 @@ struct ClipboardNotchView: View {
     }
 }
 
-// MARK: - AppKit Scroll Helper for Clipboard
-private struct ClipboardScrollWheelHelper: NSViewRepresentable {
-    var onScrollStateChanged: ((Bool) -> Void)? = nil
-
-    func makeNSView(context: Context) -> HelperView {
-        let view = HelperView()
-        view.onScrollStateChanged = onScrollStateChanged
-        return view
-    }
-
-    func updateNSView(_ nsView: HelperView, context: Context) {
-        nsView.onScrollStateChanged = onScrollStateChanged
-        nsView.checkSetup()
-    }
-
-    class HelperView: NSView {
-        private var boundsObserver: NSObjectProtocol?
-        var onScrollStateChanged: ((Bool) -> Void)?
-        private var lastState: Bool? = nil
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            if window != nil {
-                checkSetup()
-            } else {
-                cleanup()
-            }
-        }
-
-        override func viewDidMoveToSuperview() {
-            super.viewDidMoveToSuperview()
-            if superview != nil {
-                checkSetup()
-            }
-        }
-
-        deinit {
-            cleanup()
-        }
-
-        private func cleanup() {
-            if let b = boundsObserver {
-                NotificationCenter.default.removeObserver(b)
-                boundsObserver = nil
-            }
-        }
-
-        func evaluateBottom() {
-            guard let sv = self.enclosingScrollView else { return }
-            let clip = sv.contentView
-            let doc = sv.documentView
-            let docHeight = doc?.bounds.height ?? 0
-            let clipHeight = clip.bounds.height
-            let originY = clip.bounds.origin.y
-
-            let isAtBottom: Bool
-            if docHeight <= clipHeight + 4 {
-                isAtBottom = true
-            } else {
-                isAtBottom = (originY + clipHeight >= docHeight - 8)
-            }
-
-            guard lastState != isAtBottom else { return }
-            lastState = isAtBottom
-
-            DispatchQueue.main.async { [weak self] in
-                self?.onScrollStateChanged?(isAtBottom)
-            }
-        }
-
-        func checkSetup() {
-            guard window != nil else { return }
-
-            if let scrollView = enclosingScrollView, boundsObserver == nil {
-                let clipView = scrollView.contentView
-                clipView.postsBoundsChangedNotifications = true
-
-                boundsObserver = NotificationCenter.default.addObserver(
-                    forName: NSView.boundsDidChangeNotification,
-                    object: clipView,
-                    queue: .main
-                ) { [weak self] _ in
-                    self?.evaluateBottom()
-                }
-            }
-        }
-    }
-}
+private let relativeDateFormatter: RelativeDateTimeFormatter = {
+    let formatter = RelativeDateTimeFormatter()
+    formatter.unitsStyle = .abbreviated
+    return formatter
+}()
 
 private let clipboardThumbnailCache: NSCache<NSUUID, NSImage> = {
     let cache = NSCache<NSUUID, NSImage>()
@@ -323,8 +212,6 @@ struct ClipboardRowView: View {
     }
     
     private func formatTimestamp(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        relativeDateFormatter.localizedString(for: date, relativeTo: Date())
     }
 }

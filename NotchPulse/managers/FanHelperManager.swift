@@ -1,36 +1,6 @@
 import Foundation
 import AppKit
 
-public struct FanDaemonTelemetry: Equatable {
-    public let fanCount: Int
-    public let actualRPM: Int
-    public let targetRPM: Int
-    public let minRPM: Int
-    public let maxRPM: Int
-    public let isManual: Bool
-    public let peakTemp: Double
-    public let manualEngaged: Bool
-
-    public init(
-        fanCount: Int = 1,
-        actualRPM: Int = 0,
-        targetRPM: Int = 0,
-        minRPM: Int = 2317,
-        maxRPM: Int = 6550,
-        isManual: Bool = false,
-        peakTemp: Double = 0.0,
-        manualEngaged: Bool = false
-    ) {
-        self.fanCount = fanCount
-        self.actualRPM = actualRPM
-        self.targetRPM = targetRPM
-        self.minRPM = minRPM
-        self.maxRPM = maxRPM
-        self.isManual = isManual
-        self.peakTemp = peakTemp
-        self.manualEngaged = manualEngaged
-    }
-}
 
 public final class FanHelperManager: ObservableObject {
     public static let shared = FanHelperManager()
@@ -38,7 +8,7 @@ public final class FanHelperManager: ObservableObject {
     public static let socketPath = "/var/run/notchpulse_fan.sock"
     public static let daemonPlistPath = "/Library/LaunchDaemons/com.notchpulse.fanhelper.plist"
     public static let installedBinaryPath = "/Library/PrivilegedHelperTools/notchpulse-fanhelper"
-    public static let expectedDaemonVersion = "2.1.0"
+    public static let expectedDaemonVersion = "2.1.1"
 
     public static var bundledBinaryPath: String {
         if let resPath = Bundle.main.path(forResource: "notchpulse-fanhelper", ofType: nil),
@@ -51,9 +21,6 @@ public final class FanHelperManager: ObservableObject {
 
     @Published public private(set) var isHelperInstalled: Bool = false
     @Published public private(set) var isInstalling: Bool = false
-    @Published public private(set) var latestTelemetry: FanDaemonTelemetry?
-    @Published public private(set) var lastCommandLog: String = "Ready"
-    @Published public private(set) var lastCommandTimestamp: Date? = nil
 
     private var lastInstallAttemptTime: Date = .distantPast
     private let heartbeatQueue = DispatchQueue(label: "com.notchpulse.fanhelper.heartbeat", qos: .utility)
@@ -97,7 +64,7 @@ public final class FanHelperManager: ObservableObject {
     /// - Uses NotchPulseVault master password silently if present (0 clicks / 0 prompts)
     /// - Otherwise presents native macOS prompt if userInitiated is true
     public func promptInstallIfNeeded(userInitiated: Bool = false, onSuccess: (() -> Void)? = nil) {
-        if checkHelperStatus() {
+        if isHelperInstalled {
             onSuccess?()
             return
         }
@@ -108,28 +75,36 @@ public final class FanHelperManager: ObservableObject {
             return
         }
 
-        // 1. Silent install via NotchPulseVault if password already exists
-        if NotchPulseVault.hasStoredPassword() {
-            installWithStoredPassword { [weak self] success in
-                if success {
-                    onSuccess?()
-                } else if userInitiated {
-                    // Only prompt native administrator dialog if user explicitly initiated
-                    DispatchQueue.main.async {
-                        self?.installHelperViaAppleScript { success2 in
-                            if success2 { onSuccess?() }
+        // Perform socket check on utility queue to avoid stalling main thread
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self = self else { return }
+            if self.checkHelperStatus() {
+                DispatchQueue.main.async { onSuccess?() }
+                return
+            }
+
+            // 1. Silent install via NotchPulseVault if password already exists
+            if NotchPulseVault.hasStoredPassword() {
+                self.installWithStoredPassword { success in
+                    if success {
+                        onSuccess?()
+                    } else if userInitiated {
+                        DispatchQueue.main.async {
+                            self.installHelperViaAppleScript { success2 in
+                                if success2 { onSuccess?() }
+                            }
                         }
                     }
                 }
+                return
             }
-            return
-        }
 
-        // 2. Only present native prompt if user explicitly initiated
-        if userInitiated {
-            DispatchQueue.main.async { [weak self] in
-                self?.installHelperViaAppleScript { success in
-                    if success { onSuccess?() }
+            // 2. Only present native prompt if user explicitly initiated
+            if userInitiated {
+                DispatchQueue.main.async {
+                    self.installHelperViaAppleScript { success in
+                        if success { onSuccess?() }
+                    }
                 }
             }
         }
@@ -349,9 +324,9 @@ public final class FanHelperManager: ObservableObject {
         var nosigpipe: Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, socklen_t(MemoryLayout<Int32>.size))
 
-        var sendTimeout = timeval(tv_sec: 1, tv_usec: 500_000)
+        var sendTimeout = timeval(tv_sec: 4, tv_usec: 0)
         setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &sendTimeout, socklen_t(MemoryLayout<timeval>.size))
-        var recvTimeout = timeval(tv_sec: 1, tv_usec: 500_000)
+        var recvTimeout = timeval(tv_sec: 4, tv_usec: 0)
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, socklen_t(MemoryLayout<timeval>.size))
 
         var addr = sockaddr_un()
@@ -390,82 +365,12 @@ public final class FanHelperManager: ObservableObject {
         guard FileManager.default.fileExists(atPath: sock) else {
             return nil
         }
-        let reply = sendCommandRaw(command)
-        let trimmedCmd = command.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedCmd != "heartbeat" && trimmedCmd != "ping" && trimmedCmd != "status" {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                if let reply = reply {
-                    self.lastCommandLog = "\(trimmedCmd) ➔ \(reply)"
-                } else {
-                    self.lastCommandLog = "\(trimmedCmd) ➔ (No reply)"
-                }
-                self.lastCommandTimestamp = Date()
-            }
-        }
-        return reply
-    }
-
-    /// Fetches structured real-time status from the privileged daemon and updates latestTelemetry
-    public func refreshTelemetry(completion: ((FanDaemonTelemetry?) -> Void)? = nil) {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else {
-                completion?(nil)
-                return
-            }
-            guard let jsonStr = self.sendCommandRaw("status"),
-                  let data = jsonStr.data(using: .utf8) else {
-                DispatchQueue.main.async {
-                    self.latestTelemetry = nil
-                    completion?(nil)
-                }
-                return
-            }
-
-            do {
-                if let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let fans = obj["fans"] as? [[String: Any]],
-                   let firstFan = fans.first {
-                    let actual = firstFan["actual"] as? Int ?? 0
-                    let target = firstFan["target"] as? Int ?? 0
-                    let min = firstFan["min"] as? Int ?? 2317
-                    let max = firstFan["max"] as? Int ?? 6550
-                    let isMan = (firstFan["manual"] as? Int ?? 0) == 1
-                    let temp = obj["temp"] as? Double ?? 0.0
-                    let engaged = (obj["manual_engaged"] as? Int ?? 0) == 1
-
-                    let telemetry = FanDaemonTelemetry(
-                        fanCount: fans.count,
-                        actualRPM: actual,
-                        targetRPM: target,
-                        minRPM: min,
-                        maxRPM: max,
-                        isManual: isMan,
-                        peakTemp: temp,
-                        manualEngaged: engaged
-                    )
-                    DispatchQueue.main.async {
-                        self.latestTelemetry = telemetry
-                        self.isHelperInstalled = true
-                        completion?(telemetry)
-                    }
-                } else {
-                    DispatchQueue.main.async { completion?(nil) }
-                }
-            } catch {
-                DispatchQueue.main.async { completion?(nil) }
-            }
-        }
+        return sendCommandRaw(command)
     }
 
     /// Fetches running daemon version string
     public func fetchDaemonVersion() -> String? {
         return sendCommandWithReply("version")
-    }
-
-    /// Fetches structured real-time status from the privileged daemon
-    public func fetchDaemonStatus() -> String? {
-        return sendCommandWithReply("status")
     }
 
     /// Sends watchdog heartbeat to keep manual fan speed profile active
@@ -498,40 +403,50 @@ public final class FanHelperManager: ObservableObject {
 
     /// Verifies helper daemon is installed AND up to date; upgrades silently if needed
     public func ensureHelperUpToDate(completion: ((Bool) -> Void)? = nil) {
-        let installed = checkHelperStatus()
-        guard installed else {
-            promptInstallIfNeeded(userInitiated: false, onSuccess: { completion?(true) })
-            return
-        }
-
-        let currentVer = fetchDaemonVersion()
-        if currentVer == Self.expectedDaemonVersion {
-            completion?(true)
-            return
-        }
-
-        // Running daemon is older than bundled binary.
-        // Attempt fast zero-prompt socket upgrade if supported
-        let src = Self.bundledBinaryPath
-        if FileManager.default.fileExists(atPath: src) {
-            if let reply = sendCommandWithReply("upgrade \(src)"), reply == "OK" {
-                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                    let ok = self?.fetchDaemonVersion() == Self.expectedDaemonVersion
-                    DispatchQueue.main.async { completion?(ok) }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self = self else {
+                DispatchQueue.main.async { completion?(false) }
+                return
+            }
+            let installed = self.checkHelperStatus()
+            guard installed else {
+                DispatchQueue.main.async {
+                    self.promptInstallIfNeeded(userInitiated: false, onSuccess: { completion?(true) })
                 }
                 return
             }
-        }
 
-        // Fallback to silent Vault install only (never prompt in background)
-        if NotchPulseVault.hasStoredPassword() {
-            installWithStoredPassword { success in
-                DispatchQueue.main.async {
-                    completion?(success)
+            let currentVer = self.fetchDaemonVersion()
+            if currentVer == Self.expectedDaemonVersion {
+                DispatchQueue.main.async { completion?(true) }
+                return
+            }
+
+            // Running daemon is older than bundled binary.
+            // Attempt fast zero-prompt socket upgrade if supported
+            let src = Self.bundledBinaryPath
+            if FileManager.default.fileExists(atPath: src) {
+                if let reply = self.sendCommandWithReply("upgrade \(src)"), reply == "OK" {
+                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                        let ok = self?.fetchDaemonVersion() == Self.expectedDaemonVersion
+                        DispatchQueue.main.async { completion?(ok) }
+                    }
+                    return
                 }
             }
-        } else {
-            completion?(false)
+
+            // Fallback to silent Vault install only (never prompt in background)
+            if NotchPulseVault.hasStoredPassword() {
+                self.installWithStoredPassword { success in
+                    DispatchQueue.main.async {
+                        completion?(success)
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    completion?(false)
+                }
+            }
         }
     }
 

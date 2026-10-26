@@ -362,7 +362,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding
                 let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let openHeight = max(targetVM.customOpenHeight ?? 0, max(targetVM.notchSize.height, openNotchSize.height))
+                let openHeight = max(targetVM.effectiveOpenHeight, openNotchSize.height)
                 return CGRect(
                     x: screenFrame.midX - (openWidth / 2 + padding),
                     y: screenFrame.maxY - (openHeight + padding + topOffset),

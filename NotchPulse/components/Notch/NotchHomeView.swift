@@ -507,9 +507,6 @@ struct NotchHomeView: View {
                 CalendarView()
                     .frame(width: calendarWidth, height: isCalendarFullPage ? 228 : 148, alignment: .top)
                     .clipped()
-                    .onHover { isHovering in
-                        vm.isHoveringCalendar = isHovering
-                    }
                     .environmentObject(vm)
                     .compositingGroup()
                     .transition(.opacity)

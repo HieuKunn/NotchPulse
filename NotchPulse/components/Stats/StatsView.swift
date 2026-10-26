@@ -356,7 +356,7 @@ struct StatsView: View {
             if expandedMetric != nil || isThermalExpanded {
                 expandedMetric = nil
                 isThermalExpanded = false
-                if NotchPulseViewCoordinator.shared.currentView != .audio && NotchPulseViewCoordinator.shared.currentView != .display {
+                if NotchPulseViewCoordinator.shared.currentView != .audio && NotchPulseViewCoordinator.shared.currentView != .display && NotchPulseViewCoordinator.shared.currentView != .clipboard {
                     withAnimation(NotchPulseViewModel.notchSpring) {
                         vm.customOpenHeight = nil
                     }
@@ -776,12 +776,21 @@ private struct CoolingHeaderView: View {
     }
 }
 
+private struct FanProfileButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
 private struct CoolingSliderView: View {
     @ObservedObject var monitor: SystemMonitorManager
     @State private var dragPercent: Double? = nil
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             GeometryReader { sliderGeo in
                 let sw: CGFloat = sliderGeo.size.width
                 let activeFraction: Double = {
@@ -791,11 +800,14 @@ private struct CoolingSliderView: View {
                     if monitor.selectedFanProfile == .custom {
                         return Double(monitor.customFanPercent) / 100.0
                     }
+                    if monitor.selectedFanProfile == .max {
+                        return 1.0
+                    }
                     return Double(monitor.currentFanSpeedPercent) / 100.0
                 }()
                 let progress: CGFloat = CGFloat(min(1.0, max(0.0, activeFraction)))
                 let barWidth: CGFloat = max(0, sw * progress)
-                let knobOffset: CGFloat = max(0, min(sw - 11, sw * progress - 5.5))
+                let knobOffset: CGFloat = max(0, min(sw - 12, sw * progress - 6))
 
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -814,9 +826,10 @@ private struct CoolingSliderView: View {
 
                     Circle()
                         .fill(Color.white)
-                        .frame(width: 11, height: 11)
+                        .frame(width: 12, height: 12)
                         .offset(x: knobOffset)
                 }
+                .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
@@ -825,17 +838,24 @@ private struct CoolingSliderView: View {
                             let fraction = Double(clampedX / max(1.0, sw))
                             dragPercent = fraction
                             let pct = Int(round(fraction * 100.0))
-                            monitor.setCustomFanPercent(pct)
+                            monitor.setCustomFanPercent(pct, isLiveDragging: true)
                         }
-                        .onEnded { _ in
+                        .onEnded { val in
+                            let clampedX = max(0, min(sw, val.location.x))
+                            let fraction = Double(clampedX / max(1.0, sw))
                             dragPercent = nil
-                            FanHelperManager.shared.promptInstallIfNeeded(userInitiated: true) {
-                                monitor.reapplyActiveProfileOnWake()
+                            let pct = Int(round(fraction * 100.0))
+                            monitor.setCustomFanPercent(pct, isLiveDragging: false)
+                            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
+                            if !FanHelperManager.shared.isHelperInstalled {
+                                FanHelperManager.shared.promptInstallIfNeeded(userInitiated: true) {
+                                    monitor.reapplyActiveProfileOnWake()
+                                }
                             }
                         }
                 )
             }
-            .frame(height: 11)
+            .frame(height: 16)
 
             HStack {
                 Text("0 RPM")
@@ -859,30 +879,32 @@ private struct CoolingProfileButtonsView: View {
             ForEach(NotchPulseFanProfile.allCases) { profile in
                 let isSelected: Bool = monitor.selectedFanProfile == profile
                 Button(action: {
+                    NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
                     withAnimation(.easeInOut(duration: 0.15)) {
                         monitor.setFanProfile(profile)
                     }
-                    if profile != .auto {
+                    if profile != .auto && !FanHelperManager.shared.isHelperInstalled {
                         FanHelperManager.shared.promptInstallIfNeeded(userInitiated: true) {
                             monitor.reapplyActiveProfileOnWake()
                         }
                     }
                 }) {
                     Text(profile.title)
-                        .font(.system(size: 9, weight: isSelected ? .bold : .medium))
+                        .font(.system(size: 9.5, weight: isSelected ? .bold : .medium))
                         .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.65))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 3.5)
+                        .frame(height: 22)
                         .background(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(isSelected ? Color.cyan.opacity(0.26) : Color.white.opacity(0.05))
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(isSelected ? Color.cyan.opacity(0.28) : Color.white.opacity(0.05))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .stroke(isSelected ? Color.cyan.opacity(0.65) : Color.white.opacity(0.08), lineWidth: 0.8)
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .stroke(isSelected ? Color.cyan.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 0.8)
                         )
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(FanProfileButtonStyle())
             }
         }
     }
@@ -959,13 +981,13 @@ private struct ThermalAndFanCard: View {
             let rightW = max(60, (totalW - spacing) * 0.30)
 
             HStack(spacing: spacing) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 5) {
                     CoolingHeaderView(feedbackText: fanFeedbackText)
                     CoolingSliderView(monitor: monitor)
                     CoolingProfileButtonsView(monitor: monitor)
                 }
                 .padding(8)
-                .frame(width: leftW, height: 86)
+                .frame(width: leftW, height: 90)
                 .background(Color.white.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay(
@@ -975,7 +997,7 @@ private struct ThermalAndFanCard: View {
 
                 SocGaugeView(monitor: monitor)
                     .padding(8)
-                    .frame(width: rightW, height: 86)
+                    .frame(width: rightW, height: 90)
                     .background(Color.white.opacity(0.04))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay(
@@ -985,13 +1007,39 @@ private struct ThermalAndFanCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(height: 86)
+        .frame(height: 90)
     }
 
     private var fanFeedbackText: String {
-        if monitor.currentFanRPM == 0 {
-            return loc("0 RPM (Silent)")
+        switch monitor.selectedFanProfile {
+        case .auto:
+            if monitor.currentFanRPM == 0 {
+                return loc("0 RPM (Auto / Silent)")
+            }
+            return "\(monitor.currentFanRPM) RPM (Auto)"
+        case .balanced:
+            if monitor.currentFanRPM == 0 {
+                return "\(loc("Spinning up...")) (\(monitor.currentFanSpeedPercent)%)"
+            }
+            return "\(monitor.currentFanRPM) RPM (\(monitor.currentFanSpeedPercent)%)"
+        case .smart:
+            if monitor.currentFanRPM == 0 {
+                return "\(loc("Spinning up...")) (\(monitor.currentFanSpeedPercent)%)"
+            }
+            return "\(monitor.currentFanRPM) RPM (\(monitor.currentFanSpeedPercent)%)"
+        case .max:
+            if monitor.currentFanRPM == 0 {
+                return loc("Spinning up (Max)...")
+            }
+            return "\(monitor.currentFanRPM) RPM (Max 100%)"
+        case .custom:
+            if monitor.customFanPercent <= 0 {
+                return loc("0 RPM (Silent)")
+            }
+            if monitor.currentFanRPM == 0 {
+                return "\(loc("Spinning up...")) (\(monitor.customFanPercent)%)"
+            }
+            return "\(monitor.currentFanRPM) RPM (\(monitor.customFanPercent)%)"
         }
-        return "\(monitor.currentFanRPM) RPM"
     }
 }

@@ -12,7 +12,7 @@
 #include <IOKit/IOKitLib.h>
 
 #define SOCKET_PATH "/var/run/notchpulse_fan.sock"
-#define DAEMON_VERSION "2.1.0"
+#define DAEMON_VERSION "2.1.1"
 #define HEARTBEAT_TIMEOUT_SEC 15.0
 #define SAFETY_OVERRIDE_TEMP 95.0f
 
@@ -241,29 +241,44 @@ static int getFanCount(void) {
 }
 
 static int unlockFans(void) {
-    if (g_manualEngaged) return 1;
     int count = getFanCount();
     if (count <= 0) return 0;
 
-    if (g_hasFtst) {
-        // M1-M4 path: Ftst=1 suppresses thermalmonitord (500ms delay)
-        uint8_t one = 1;
-        smcWriteKey("Ftst", &one, 1);
-        usleep(500000); // 500ms
+    // Check if hardware mode keys are already set to manual (1)
+    if (g_manualEngaged) {
+        int allManual = 1;
+        for (int i = 0; i < count; i++) {
+            char modeKey[16];
+            snprintf(modeKey, sizeof(modeKey), g_modeKeyTemplate, i);
+            uint8_t bytes[32];
+            uint32_t sz = 0;
+            if (!smcReadKey(modeKey, bytes, &sz) || sz < 1 || bytes[0] != 1) {
+                allManual = 0;
+                break;
+            }
+        }
+        if (allManual) return 1;
     }
 
-    // Set each fan to manual mode with retry deadline (up to 5s)
+    if (g_hasFtst) {
+        // M1-M4 path: Ftst=1 suppresses thermalmonitord (150ms delay is ample)
+        uint8_t one = 1;
+        smcWriteKey("Ftst", &one, 1);
+        usleep(150000); // 150ms
+    }
+
+    // Set each fan to manual mode with fast retry
     for (int i = 0; i < count; i++) {
         char modeKey[16];
         snprintf(modeKey, sizeof(modeKey), g_modeKeyTemplate, i);
         uint8_t one = 1;
         int unlocked = 0;
-        for (int retry = 0; retry < 50; retry++) {
+        for (int retry = 0; retry < 30; retry++) {
             if (smcWriteKey(modeKey, &one, 1)) {
                 unlocked = 1;
                 break;
             }
-            usleep(100000); // 100ms
+            usleep(25000); // 25ms
         }
         if (!unlocked) {
             return 0;

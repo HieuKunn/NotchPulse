@@ -158,7 +158,7 @@ struct FeatureTourView: View {
             
             // Calculate active notch spotlight frame
             let openWidth: CGFloat = vm.notchSize.width > 0 ? vm.notchSize.width : Defaults[.notchOpenWidth]
-            let openHeight: CGFloat = (vm.customOpenHeight ?? vm.notchSize.height) > 0 ? (vm.customOpenHeight ?? vm.notchSize.height) : 180
+            let openHeight: CGFloat = vm.effectiveOpenHeight > 0 ? vm.effectiveOpenHeight : 180
             
             let spotlightWidth = openWidth + 24
             let spotlightHeight = openHeight + 14
@@ -439,6 +439,8 @@ struct FeatureTourView: View {
             } else if currentStep.viewType == .audio {
                 AudioDeviceManager.shared.refreshDevices()
                 targetVM.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
+            } else if currentStep.viewType == .clipboard {
+                targetVM.customOpenHeight = ClipboardNotchView.preferredHeight
             } else {
                 targetVM.customOpenHeight = nil
             }
