@@ -4,8 +4,8 @@ struct ClipboardNotchView: View {
     @ObservedObject var clipboardManager = ClipboardManager.shared
     @EnvironmentObject var vm: NotchPulseViewModel
 
-    /// Open height that fits ~3 clipboard rows before scrolling.
-    static let preferredHeight: CGFloat = 250
+    /// Open height that fits 3 full clipboard rows comfortably before scrolling.
+    static let preferredHeight: CGFloat = 285
 
     var body: some View {
         VStack(spacing: 6) {

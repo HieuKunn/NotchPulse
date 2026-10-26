@@ -138,6 +138,14 @@ struct FeatureTourView: View {
             target: "audio"
         ),
         FeatureTourStep(
+            title: "Display Hub",
+            description: "Control built-in and external monitor brightness seamlessly with native hardware DDC/CI controls directly inside the notch.",
+            icon: "sun.max.fill",
+            tabColor: .yellow,
+            viewType: .display,
+            target: "display"
+        ),
+        FeatureTourStep(
             title: "Settings & Options",
             description: "Click the gear icon in the Notch header to open settings and customize NotchPulse to your liking.",
             icon: "gear",
@@ -439,6 +447,9 @@ struct FeatureTourView: View {
             } else if currentStep.viewType == .audio {
                 AudioDeviceManager.shared.refreshDevices()
                 targetVM.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
+            } else if currentStep.viewType == .display {
+                BrightnessManager.shared.refreshAllDisplays()
+                targetVM.customOpenHeight = DisplayHubNotchView.calculateHeight()
             } else if currentStep.viewType == .clipboard {
                 targetVM.customOpenHeight = ClipboardNotchView.preferredHeight
             } else {
