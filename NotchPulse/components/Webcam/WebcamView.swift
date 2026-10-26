@@ -23,16 +23,16 @@ struct CameraPreviewView: View {
                 if !webcamManager.isSessionRunning {
                     ZStack {
                         RoundedRectangle(cornerRadius: Defaults[.mirrorShape] == .rectangle ? !Defaults[.cornerRadiusScaling] ? MusicPlayerImageSizes.cornerRadiusInset.closed : 12 : 100)
-                            .fill(Color(red: 20/255, green: 20/255, blue: 20/255))
-                            .strokeBorder(.white.opacity(0.04), lineWidth: 1)
+                            .fill(Color(nsColor: .controlBackgroundColor))
+                            .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
                             .frame(width: geometry.size.width, height: geometry.size.width)
                         VStack(spacing: 8) {
                             Image(systemName: webcamManager.authorizationStatus == .denied ? "exclamationmark.triangle" : "web.camera")
-                                .foregroundStyle(.gray)
+                                .foregroundStyle(.secondary)
                                 .font(.system(size: geometry.size.width/3.5))
                             Text(webcamManager.authorizationStatus == .denied ? "Access Denied" : "Mirror")
                                 .font(.caption2)
-                                .foregroundColor(.gray)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }

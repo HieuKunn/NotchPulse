@@ -25,8 +25,8 @@ enum FaceIDTheme {
     static let textSecondary = Color(red: 0x94 / 255, green: 0x94 / 255, blue: 0x94 / 255)
     static let textDetail = Color(red: 0xBD / 255, green: 0xBD / 255, blue: 0xBD / 255)
     static let placeholder = Color(red: 0x2F / 255, green: 0x2F / 255, blue: 0x2F / 255)
-    static let statusGranted = Color(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255)
-    static let statusDenied = Color(red: 0xFF / 255, green: 0x45 / 255, blue: 0x3A / 255)
+    static let statusGranted = Color.green
+    static let statusDenied = Color.red
 
     //Badge colors
     static let badgeGeneral = [Color(red: 0x9C / 255, green: 0x9C / 255, blue: 0xA1 / 255), // top: light grey

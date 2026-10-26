@@ -36,23 +36,23 @@ struct LockScreenMediaView: View {
     }
     
     private var compactCardBg: Color {
-        isLightMode ? Color.white : Color(white: 0.10)
+        Color(nsColor: .windowBackgroundColor)
     }
     
     private var compactCardBorder: Color {
-        isLightMode ? Color.black.opacity(0.12) : Color.white.opacity(0.15)
+        Color(nsColor: .separatorColor)
     }
     
     private var compactPrimaryText: Color {
-        isLightMode ? Color.black : Color.white
+        Color.primary
     }
     
     private var compactSecondaryText: Color {
-        isLightMode ? Color.black.opacity(0.65) : Color.white.opacity(0.70)
+        Color.secondary
     }
     
     private var compactIconColor: Color {
-        isLightMode ? Color.black : Color.white
+        Color.primary
     }
     
     var body: some View {

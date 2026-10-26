@@ -1576,17 +1576,19 @@ struct CalendarSettings: View {
                         .controlSize(.large)
                 }
             }
-            Defaults.Toggle(key: .hideCompletedReminders) {
-                Text(loc("Hide completed reminders"))
-            }
-            Defaults.Toggle(key: .hideAllDayEvents) {
-                Text(loc("Hide all-day events"))
-            }
-            Defaults.Toggle(key: .autoScrollToNextEvent) {
-                Text(loc("Auto-scroll to next event"))
-            }
-            Defaults.Toggle(key: .showFullEventTitles) {
-                Text(loc("Always show full event titles"))
+            Section(header: Text(loc("Display Options"))) {
+                Defaults.Toggle(key: .hideCompletedReminders) {
+                    Text(loc("Hide completed reminders"))
+                }
+                Defaults.Toggle(key: .hideAllDayEvents) {
+                    Text(loc("Hide all-day events"))
+                }
+                Defaults.Toggle(key: .autoScrollToNextEvent) {
+                    Text(loc("Auto-scroll to next event"))
+                }
+                Defaults.Toggle(key: .showFullEventTitles) {
+                    Text(loc("Always show full event titles"))
+                }
             }
 
             Section(header: Text(loc("Lunar Calendar Region"))) {
@@ -2224,14 +2226,14 @@ struct Advanced: View {
         
         var color: Color {
             switch self {
-            case .blue: return Color(red: 0.0, green: 0.478, blue: 1.0)
-            case .purple: return Color(red: 0.686, green: 0.322, blue: 0.871)
-            case .pink: return Color(red: 1.0, green: 0.176, blue: 0.333)
-            case .red: return Color(red: 1.0, green: 0.271, blue: 0.227)
-            case .orange: return Color(red: 1.0, green: 0.584, blue: 0.0)
-            case .yellow: return Color(red: 1.0, green: 0.8, blue: 0.0)
-            case .green: return Color(red: 0.4, green: 0.824, blue: 0.176)
-            case .graphite: return Color(red: 0.557, green: 0.557, blue: 0.576)
+            case .blue: return .blue
+            case .purple: return .purple
+            case .pink: return .pink
+            case .red: return .red
+            case .orange: return .orange
+            case .yellow: return .yellow
+            case .green: return .green
+            case .graphite: return .gray
             }
         }
     }
@@ -2714,16 +2716,6 @@ struct Shortcuts: View {
     }
 }
 
-func proFeatureBadge() -> some View {
-    Text(loc("Upgrade to Pro"))
-        .foregroundStyle(Color(red: 0.545, green: 0.196, blue: 0.98))
-        .font(.footnote.bold())
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 4).stroke(
-                Color(red: 0.545, green: 0.196, blue: 0.98), lineWidth: 1))
-}
 
 func comingSoonTag() -> some View {
     Text(loc("Coming soon"))

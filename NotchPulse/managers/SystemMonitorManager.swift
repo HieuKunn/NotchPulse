@@ -20,9 +20,9 @@ public enum TemperatureLevel {
 
     public var color: Color {
         switch self {
-        case .cool: return Color(red: 0.20, green: 0.85, blue: 0.40)
-        case .warm: return Color(red: 1.00, green: 0.75, blue: 0.00)
-        case .hot: return Color(red: 1.00, green: 0.25, blue: 0.20)
+        case .cool: return .green
+        case .warm: return .orange
+        case .hot: return .red
         }
     }
 }

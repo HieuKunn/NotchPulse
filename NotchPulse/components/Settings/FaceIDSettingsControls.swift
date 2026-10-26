@@ -159,11 +159,11 @@ struct SettingsGroup<Content: View>: View {
             content()
         }
         .background(SettingsMetrics.rowColor)
+        .clipShape(RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
+            RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous)
                 .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius))
     }
 }
 
@@ -188,7 +188,7 @@ struct NotchPulseToggle: View {
             .toggleStyle(.switch)
             .labelsHidden()
             .controlSize(.small)
-            .tint(FaceIDTheme.accent)
+            .tint(Color.effectiveAccent)
     }
 }
 
@@ -226,7 +226,7 @@ struct SettingsSlider: View {
                 ),
                 in: Double(range.lowerBound)...Double(range.upperBound)
             )
-            .tint(FaceIDTheme.accent)
+            .tint(Color.effectiveAccent)
         }
         .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
         .padding(.vertical, 10)
@@ -287,7 +287,7 @@ private struct SettingsActionButton: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
-                .background(isDestructive ? Color.red.opacity(0.85) : FaceIDTheme.accent)
+                .background(isDestructive ? Color.red.opacity(0.85) : Color.effectiveAccent)
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -320,7 +320,7 @@ struct SettingsSteppedSliderRowContent: View {
             }
             Slider(value: $index, in: 0...Double(max(stopCount - 1, 1)), step: 1)
                 .controlSize(.regular)
-                .tint(FaceIDTheme.accent)
+                .tint(Color.effectiveAccent)
                 .padding(.top, 8)
         }
         .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
@@ -389,7 +389,7 @@ struct SettingsPrimaryButton: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, compact ? 14 : 16)
                 .padding(.vertical, compact ? 6 : 7)
-                .background(FaceIDTheme.accent)
+                .background(Color.effectiveAccent)
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -527,7 +527,7 @@ struct SettingsOptionTile<Preview: View>: View {
                     .background {
                         SettingsMetrics.optionPreviewFill
                         if isSelected {
-                            FaceIDTheme.accent.opacity(SettingsMetrics.optionPreviewSelectedTintOpacity)
+                            Color.effectiveAccent.opacity(SettingsMetrics.optionPreviewSelectedTintOpacity)
                         }
                     }
                     .clipShape(RoundedRectangle(cornerRadius: SettingsMetrics.optionPreviewCornerRadius, style: .continuous))
@@ -572,7 +572,7 @@ struct SettingsOptionTile<Preview: View>: View {
                                 style: .continuous
                             )
                             .strokeBorder(
-                                FaceIDTheme.accent,
+                                Color.effectiveAccent,
                                 lineWidth: SettingsMetrics.optionSelectionStrokeWidth
                             )
                             .padding(-expansion)

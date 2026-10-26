@@ -248,7 +248,6 @@ struct FeatureTourView: View {
                             Image(systemName: "arrowtriangle.left.fill")
                                 .font(.system(size: 18))
                                 .foregroundStyle(.regularMaterial)
-                                .shadow(color: Color.black.opacity(0.15), radius: 4, x: -2)
                                 .padding(.top, arrowTopPadding)
                                 .zIndex(3)
                             
@@ -260,7 +259,6 @@ struct FeatureTourView: View {
                             Image(systemName: "arrowtriangle.up.fill")
                                 .font(.system(size: 18))
                                 .foregroundStyle(.regularMaterial)
-                                .shadow(color: Color.black.opacity(0.15), radius: 4, y: -2)
                                 .zIndex(3)
                             
                             instructionCard
@@ -443,7 +441,7 @@ struct FeatureTourView: View {
             targetVM.featureTourTarget = currentStep.target
             CalendarStateViewModel.shared.isFullMonthExpanded = false
             if currentStep.target == "fan" {
-                targetVM.customOpenHeight = 285
+                targetVM.customOpenHeight = 300
             } else if currentStep.viewType == .audio {
                 AudioDeviceManager.shared.refreshDevices()
                 targetVM.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)

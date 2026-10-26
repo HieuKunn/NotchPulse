@@ -548,12 +548,10 @@ struct ContentView: View {
                     vm.customOpenHeight = DisplayHubNotchView.calculateHeight()
                 case .clipboard:
                     vm.customOpenHeight = ClipboardNotchView.preferredHeight
-                case .home, .shelf:
+                case .home, .shelf, .stats:
                     if !CalendarStateViewModel.shared.isFullMonthExpanded {
                         vm.customOpenHeight = nil
                     }
-                case .stats:
-                    break
                 }
             }
         }

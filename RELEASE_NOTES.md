@@ -2,14 +2,16 @@
 
 > **Important Update:** This release brings substantial CPU efficiency improvements during active notch playback, seamless lock screen handover, responsive Face ID biometric matching, refined clipboard browsing, and clean edge-to-edge silhouette styling.
 
-### 📋 Enhanced Clipboard Browsing
-- **Comfortable 3-Item Viewport**: Expanded the Clipboard history panel height so at least 3 full items remain visible at a glance before scrolling, making text and snippet lookups much faster.
+### 📋 Enhanced Clipboard Browsing & Dynamic Tab Heights
+- **Strict 3-Item Viewport**: Calibrated the Clipboard panel height to precisely 232pt, displaying exactly 3 full clipboard cards and header while cleanly hiding overflow items below the fold until scrolled.
+- **Independent Tab Height Retraction**: Resolved an issue where switching from expanded views (such as Clipboard, Audio, or Display) to System Monitor left an empty black gap. Each tab now preserves and smoothly retracts to its own native height.
 
-### 🍏 Native macOS System Styling & Apple HIG Architecture
+### 🍏 100% Native macOS System Styling & Apple HIG Declarative UI
 - **True macOS Native Settings**: Modernized Settings window with native window transparency and authentic sidebar vibrancy (frosted glass blur), allowing desktop wallpaper light sampling just like macOS System Settings.
 - **Unified 52pt Frosted Header Bar**: Refined detail header bar with native SF Pro 14pt semibold typography and standard 52pt unified height, featuring a delicate hairline separator and authentic system material blur (`.bar`) that softly blurs content as it scrolls underneath.
 - **Instant Settings Search**: Integrated real-time search directly in the sidebar, instantly filtering tabs and keywords to jump directly to any preference.
-- **Declarative System Materials**: Feature Tour instruction cards and Face ID setup panels now utilize hierarchical system materials (`.regularMaterial`, `.thickMaterial`) and semantic dynamic styles (`.primary`, `.secondary`), automatically adapting across macOS versions, Light/Dark appearance, and Reduce Transparency modes.
+- **100% Declarative Semantic Tokens**: Audited the entire app to completely eliminate manual RGB hex/white color tokens. All controls, toggles, indicators, and charts now use Apple dynamic semantic tokens (`.primary`, `.secondary`, `.effectiveAccent`, `.green`, `.orange`, `.red`), automatically adapting across Light/Dark modes and accessibility settings.
+- **Hierarchical System Materials**: Feature Tour instruction cards and Face ID setup panels now utilize native system materials (`.regularMaterial`, `.thickMaterial`, `.bar`), fully respecting Reduce Transparency preferences.
 - **Enhanced Display Hub Tour**: Added interactive Display Hub spotlight walkthrough with full localization across all 9 supported languages.
 
 ### ⚡️ Massive CPU Optimization & Clean Silhouette

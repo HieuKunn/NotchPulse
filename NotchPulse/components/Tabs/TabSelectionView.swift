@@ -64,7 +64,7 @@ struct TabSelectionView: View {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 vm.customOpenHeight = ClipboardNotchView.preferredHeight
             }
-        } else if tabView != .stats && vm.customOpenHeight != nil {
+        } else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 vm.customOpenHeight = nil
             }

@@ -604,17 +604,17 @@ private struct MonthDayCellButton: View {
                         Text("\(dayNumber)")
                             .font(.system(size: 9.5, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
                             .monospacedDigit()
-                            .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : (isHovered ? .white : Color(white: 0.85))))
+                            .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : (isHovered ? .white : .primary)))
                         Text(AlternateCalendarHelper.gridCellString(for: date, type: alternateCalendarType))
                             .font(.system(size: 7.0, weight: .regular, design: .rounded))
-                            .foregroundColor(isSelected ? .white.opacity(0.9) : (isToday ? Color.effectiveAccent.opacity(0.9) : Color(white: 0.52)))
+                            .foregroundColor(isSelected ? .white.opacity(0.9) : (isToday ? Color.effectiveAccent.opacity(0.9) : .secondary))
                             .lineLimit(1)
                     }
                 } else {
                     Text("\(dayNumber)")
                         .font(.system(size: 11, weight: isToday || isSelected ? .bold : .medium, design: .rounded))
                         .monospacedDigit()
-                        .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : (isHovered ? .white : Color(white: 0.78))))
+                        .foregroundColor(isSelected ? .white : (isToday ? Color.effectiveAccent : (isHovered ? .white : .primary.opacity(0.8))))
                         .offset(y: 0.5)
                 }
             }
@@ -733,7 +733,7 @@ struct FullMonthCalendarGrid<TrailingContent: View>: View {
             if showLunarCalendar {
                 Text(loc("Note: This calendar is for quick reference only; timezone offsets and lunar calculations may result in up to ~98% accuracy across all days."))
                     .font(.system(size: 8, weight: .regular, design: .rounded))
-                    .foregroundColor(Color(white: 0.45))
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity)
@@ -770,7 +770,7 @@ struct DayEventsPanelView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(selectedDate.formatted(.dateTime.weekday(.wide)))
                         .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundColor(Color(white: 0.55))
+                        .foregroundColor(.secondary)
                         .textCase(.uppercase)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("\(Calendar.current.component(.day, from: selectedDate))")
@@ -779,7 +779,7 @@ struct DayEventsPanelView: View {
 
                         Text(AlternateCalendarHelper.dayDetailString(for: selectedDate, type: alternateCalendarType))
                             .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(Color(white: 0.6))
+                            .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
                 }
@@ -798,10 +798,10 @@ struct DayEventsPanelView: View {
                 VStack(spacing: 6) {
                     Image(systemName: "calendar.badge.checkmark")
                         .font(.system(size: 20))
-                        .foregroundColor(Color(white: 0.4))
+                        .foregroundColor(.secondary)
                     Text(loc("No events"))
                         .font(.caption)
-                        .foregroundColor(Color(white: 0.5))
+                        .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -960,7 +960,7 @@ struct CalendarView: View {
                         }
                         Text(displayedDate.formatted(.dateTime.year()))
                             .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundColor(Color(white: 0.65))
+                            .foregroundColor(.secondary)
                     }
                 }
                 .buttonStyle(.plain)
@@ -1130,13 +1130,13 @@ struct EmptyEventsView: View {
         VStack {
             Image(systemName: "calendar.badge.checkmark")
                 .font(.title)
-                .foregroundColor(Color(white: 0.65))
+                .foregroundColor(.secondary)
             Text(Calendar.current.isDateInToday(selectedDate) ? loc("No events today") : loc("No events"))
                 .font(.subheadline)
                 .foregroundColor(.white)
             Text(loc("Enjoy your free time!"))
                 .font(.caption)
-                .foregroundColor(Color(white: 0.65))
+                .foregroundColor(.secondary)
         }
     }
 }

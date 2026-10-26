@@ -281,6 +281,12 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.notchState = .open
         if coordinator.currentView == .clipboard {
             self.customOpenHeight = ClipboardNotchView.preferredHeight
+        } else if coordinator.currentView == .audio {
+            self.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
+        } else if coordinator.currentView == .display {
+            self.customOpenHeight = DisplayHubNotchView.calculateHeight()
+        } else {
+            self.customOpenHeight = nil
         }
         
         MusicManager.shared.isUIActive = true

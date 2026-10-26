@@ -493,7 +493,7 @@ struct StatsView: View {
             switch monitor.ramPressure {
             case "Critical": return .red
             case "Warning": return .yellow
-            default: return Color(red: 0.35, green: 0.85, blue: 0.45)
+            default: return .green
             }
         }()
 
@@ -928,10 +928,10 @@ private struct SocGaugeView: View {
                     .stroke(
                         AngularGradient(
                             gradient: Gradient(colors: [
-                                Color(red: 0.20, green: 0.85, blue: 0.40),
-                                Color(red: 1.00, green: 0.80, blue: 0.00),
-                                Color(red: 1.00, green: 0.55, blue: 0.00),
-                                Color(red: 1.00, green: 0.20, blue: 0.20)
+                                .green,
+                                .yellow,
+                                .orange,
+                                .red
                             ]),
                             center: .center,
                             startAngle: .degrees(-90),
