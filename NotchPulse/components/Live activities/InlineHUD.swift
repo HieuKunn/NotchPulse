@@ -226,7 +226,7 @@ struct InlineHUD: View {
             return type == .battery ? 14 : 16
         }
         if type == .battery {
-            return max(0, closedNotchWidth - 6)
+            return max(0, closedNotchWidth + 14)
         }
         return max(0, closedNotchWidth + 12)
     }

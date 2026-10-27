@@ -29,7 +29,7 @@ final class NotchPulseFaceUnlockCoordinator {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
     /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
-    private let wrongFaceStreakThreshold = 6
+    private let wrongFaceStreakThreshold = 14
     /// Every scan cold-starts the camera; frames before auto-exposure settles are discarded so an underexposed warm-up (dim
     /// room, e.g. opening the lid in the morning) can't burn the wrong-face streak in under a second. The floor covers the
     /// first frames arriving before AE even reports adjusting; the ceiling keeps a never-settling AE from eating the window.
