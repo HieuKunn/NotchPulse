@@ -1283,6 +1283,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E80000020000000100000001 /* SettingsSharedComponents.swift in Sources */,
+				E82000000000000100000001 /* AboutSettingsPage.swift in Sources */,
+				E82000010000000100000001 /* AdvancedSettingsPage.swift in Sources */,
+				E82000020000000100000001 /* AppearanceSettingsPage.swift in Sources */,
+				E82000030000000100000001 /* AudioSettingsPage.swift in Sources */,
+				E82000040000000100000001 /* CalendarSettingsPage.swift in Sources */,
+				E82000050000000100000001 /* ClipboardSettingsPage.swift in Sources */,
+				E82000060000000100000001 /* DisplaySettingsPage.swift in Sources */,
+				E82000070000000100000001 /* GeneralSettingsPage.swift in Sources */,
+				E82000080000000100000001 /* HUDSettingsPage.swift in Sources */,
+				E82000090000000100000001 /* LanguageSettingsPage.swift in Sources */,
+				E820000A0000000100000001 /* MediaSettingsPage.swift in Sources */,
+				E820000B0000000100000001 /* ShelfSettingsPage.swift in Sources */,
+				E820000C0000000100000001 /* ShortcutsSettingsPage.swift in Sources */,
+				E820000D0000000100000001 /* SystemMonitorSettingsPage.swift in Sources */,
 				B1AD00032ED0000100000003 /* AudioHubNotchView.swift in Sources */,
 				B1DD00032ED0000100000003 /* DisplayHubNotchView.swift in Sources */,
 				B1AD00052ED0000100000005 /* AudioDeviceManager.swift in Sources */,

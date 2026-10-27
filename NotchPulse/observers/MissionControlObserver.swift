@@ -108,7 +108,7 @@ final class MissionControlObserver: ObservableObject {
     }
     
     deinit {
-        stopMonitoring()
+        activeCheckTimer?.invalidate()
         for token in workspaceObservers {
             NSWorkspace.shared.notificationCenter.removeObserver(token)
         }

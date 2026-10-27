@@ -3,8 +3,6 @@ import SwiftUI
 import Defaults
 
 final class PassthroughTourHostingView<Content: View>: NSHostingView<Content> {
-    override var isFlipped: Bool { true }
-
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard FeatureTourController.shared.isTourActive else {
             return super.hitTest(point)

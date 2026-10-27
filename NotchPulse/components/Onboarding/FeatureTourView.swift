@@ -399,7 +399,7 @@ struct FeatureTourView: View {
                 .fill(.thickMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.separator, lineWidth: 0.5)
+                        .stroke(.separator, lineWidth: 0.5)
                 )
         )
         .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)

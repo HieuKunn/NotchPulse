@@ -532,7 +532,7 @@ struct LockScreenMediaView: View {
         case .shuffle:
             LockScreenButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? .tint : .secondary,
+                iconColor: musicManager.isShuffled ? Color.effectiveAccent : .secondary,
                 size: 28,
                 action: { musicManager.toggleShuffle() }
             )
@@ -602,7 +602,7 @@ struct LockScreenMediaView: View {
         case .shuffle:
             LockScreenButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? .tint : .white.opacity(0.85),
+                iconColor: musicManager.isShuffled ? Color.effectiveAccent : .white.opacity(0.85),
                 size: 32,
                 action: { musicManager.toggleShuffle() }
             )
@@ -676,7 +676,7 @@ struct LockScreenMediaView: View {
         HStack(spacing: 4) {
             LockScreenButton(
                 icon: volumeIcon,
-                iconColor: isCurrentlyMuted ? .tertiary : .secondary,
+                iconColor: isCurrentlyMuted ? Color.secondary.opacity(0.5) : .secondary,
                 size: 28,
                 action: {
                     withAnimation(.easeInOut(duration: 0.16)) {
@@ -911,13 +911,13 @@ private struct LockScreenScrubberView: View {
             HStack {
                 Text(timeFormatted(seconds: effectiveElapsed))
                     .font(isCompact ? .caption2.monospacedDigit().weight(.medium) : .caption.monospacedDigit().weight(.medium))
-                    .foregroundStyle(isCompact ? .secondary : .white.opacity(0.75))
+                    .foregroundStyle(isCompact ? Color.secondary : Color.white.opacity(0.75))
                 
                 Spacer()
                 
                 Text("-" + timeFormatted(seconds: max(0, duration - effectiveElapsed)))
                     .font(isCompact ? .caption2.monospacedDigit().weight(.medium) : .caption.monospacedDigit().weight(.medium))
-                    .foregroundStyle(isCompact ? .secondary : .white.opacity(0.75))
+                    .foregroundStyle(isCompact ? Color.secondary : Color.white.opacity(0.75))
             }
         }
         .onChange(of: estimatedPlaybackTime) { _, newTime in
