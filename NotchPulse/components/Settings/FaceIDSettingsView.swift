@@ -4,6 +4,7 @@ import AVFoundation
 import ApplicationServices
 
 struct FaceIDSettingsView: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Bindable private var pocController = NotchPulsePOCController.shared
     
     @State private var isAccessibilityGranted: Bool = AXIsProcessTrusted()
@@ -12,39 +13,59 @@ struct FaceIDSettingsView: View {
     @State private var isSyncing: Bool = false
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
-                if !isAccessibilityGranted || !isCameraGranted {
-                    permissionsWarning
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
+                    if !isAccessibilityGranted || !isCameraGranted {
+                        permissionsWarning
+                    }
+
+                    // 1. Face Unlock
+                    SettingsSectionTitle(text: loc("Face Unlock"))
+                    FaceIDUnlockOptionsPage()
+                        .id("faceid_general")
+                        .searchHighlight(highlightedId == "faceid_general")
+
+                    // 2. Enrolled Faces
+                    SettingsSectionTitle(text: loc("Enrolled Faces"))
+                    YourFaceSettingsPage()
+
+                    // 3. Password & Security
+                    SettingsSectionTitle(text: loc("Password & Security"))
+                    PasswordSettingsPage()
+                        .id("faceid_security")
+                        .searchHighlight(highlightedId == "faceid_security")
+
+                    // 4. Camera
+                    SettingsSectionTitle(text: loc("Camera"))
+                    CameraSettingsPage()
+                        .id("faceid_camera")
+                        .searchHighlight(highlightedId == "faceid_camera")
+
+                    // 5. Recognition & Liveness
+                    SettingsSectionTitle(text: loc("Recognition"))
+                    RecognitionSettingsPage()
+                        .id("faceid_tolerance")
+                        .searchHighlight(highlightedId == "faceid_tolerance")
+
+                    // 6. Lock Screen Media Player
+                    SettingsSectionTitle(text: loc("Lock Screen Media Player"))
+                    lockScreenMediaPlayerSection
                 }
-
-                // 1. Face Unlock
-                SettingsSectionTitle(text: loc("Face Unlock"))
-                FaceIDUnlockOptionsPage()
-
-                // 2. Enrolled Faces
-                SettingsSectionTitle(text: loc("Enrolled Faces"))
-                YourFaceSettingsPage()
-
-                // 3. Password & Security
-                SettingsSectionTitle(text: loc("Password & Security"))
-                PasswordSettingsPage()
-
-                // 4. Camera
-                SettingsSectionTitle(text: loc("Camera"))
-                CameraSettingsPage()
-
-                // 5. Recognition & Liveness
-                SettingsSectionTitle(text: loc("Recognition"))
-                RecognitionSettingsPage()
-
-                // 6. Lock Screen Media Player
-                SettingsSectionTitle(text: loc("Lock Screen Media Player"))
-                lockScreenMediaPlayerSection
+                .padding(.horizontal, SettingsMetrics.contentHorizontalPadding)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal, SettingsMetrics.contentHorizontalPadding)
-            .padding(.top, 16)
-            .padding(.bottom, 32)
+            .onChange(of: highlightedId) { _, target in
+                if let target = target {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(70))
+                        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                            proxy.scrollTo(target, anchor: .center)
+                        }
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {

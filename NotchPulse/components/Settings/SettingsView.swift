@@ -6,193 +6,419 @@ import LaunchAtLogin
 import Sparkle
 import SwiftUI
 
+struct SettingsHighlightedIdKey: EnvironmentKey {
+    static let defaultValue: String? = nil
+}
+
+extension EnvironmentValues {
+    var settingsHighlightedId: String? {
+        get { self[SettingsHighlightedIdKey.self] }
+        set { self[SettingsHighlightedIdKey.self] = $0 }
+    }
+}
+
+struct SettingsSearchHighlightModifier: ViewModifier {
+    let isHighlighted: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if isHighlighted {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.effectiveAccent, lineWidth: 2)
+                        .shadow(color: Color.effectiveAccent.opacity(0.4), radius: 6)
+                        .padding(-2)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: isHighlighted)
+    }
+}
+
+extension View {
+    func searchHighlight(_ isHighlighted: Bool) -> some View {
+        modifier(SettingsSearchHighlightModifier(isHighlighted: isHighlighted))
+    }
+}
+
+func checkVideoInput() -> Bool {
+    AVCaptureDevice.default(for: .video) != nil
+}
+
+struct SettingsSectionItem: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let keywords: [String]
+}
+
+struct SettingsTabItem: Identifiable {
+    let id: String
+    let icon: String
+    let sections: [SettingsSectionItem]
+}
+
 struct SettingsView: View {
     @State private var selectedTab = "General"
     @State private var searchText = ""
     @State private var accentColorUpdateTrigger = UUID()
+    @State private var scrollToItemId: String? = nil
+    @State private var highlightedItemId: String? = nil
+    @State private var scrollTrigger = UUID()
     @Default(.appLanguage) private var appLanguage
 
     let updaterController: SPUStandardUpdaterController?
-
-    private struct SettingsTabItem: Identifiable {
-        let id: String
-        let icon: String
-        let elements: [String]
-    }
 
     private let allTabs: [SettingsTabItem] = [
         SettingsTabItem(
             id: "General",
             icon: "gear",
-            elements: [
-                "Feature Tour", "Interactive Spotlight walkthrough highlighting all Notch features.",
-                "Notch Dimensions (Width)", "Notch Width", "Compact (580px)", "Standard (740px)", "Wide (860px)",
-                "Controls the horizontal expansion length when the notch or dynamic island is open.",
-                "System features", "Show menu bar icon", "Launch at login", "Show on all displays", "Preferred display",
-                "Notch sizing", "Notch height on notch displays", "Match real notch height", "Match menu bar height", "Custom height",
-                "Notch height on non-notch displays", "Custom notch size",
-                "Hover & Gestures", "Open notch on hover", "Extend hover area", "Hover area padding", "Minimum hover duration",
-                "Enable gestures", "Gesture sensitivity",
-                "Notch Style", "MacBook Notch", "Dynamic Island", "Dynamic Island top offset",
-                "Camera Mirror", "Mirror shape", "Rectangle", "Circle",
-                "Emojis", "Show emojis"
+            sections: [
+                SettingsSectionItem(
+                    id: "feature_tour",
+                    title: "Feature Tour",
+                    keywords: ["Feature Tour", "Interactive Spotlight walkthrough highlighting all Notch features.", "Spotlight", "Tour", "Onboarding", "Hướng dẫn"]
+                ),
+                SettingsSectionItem(
+                    id: "notch_style",
+                    title: "Notch Style",
+                    keywords: ["Notch Style", "MacBook Notch", "Dynamic Island", "Dynamic Island top offset", "Kiểu notch"]
+                ),
+                SettingsSectionItem(
+                    id: "notch_dimensions",
+                    title: "Notch Dimensions (Width)",
+                    keywords: ["Notch Dimensions (Width)", "Notch Width", "Expanded Width", "Compact (580px)", "Standard (740px)", "Wide (860px)", "Controls the horizontal expansion length", "Chiều rộng"]
+                ),
+                SettingsSectionItem(
+                    id: "system_features",
+                    title: "System features",
+                    keywords: ["System features", "Show menu bar icon", "Launch at login", "Show on all displays", "Preferred display", "Automatically switch displays", "Khởi động cùng hệ thống"]
+                ),
+                SettingsSectionItem(
+                    id: "camera_mirror",
+                    title: "Camera Mirror",
+                    keywords: ["Camera Mirror", "Enable NotchPulse mirror", "Mirror shape", "Circle", "Square", "Rectangle", "Gương camera", "Gương soi", "Mirror"]
+                ),
+                SettingsSectionItem(
+                    id: "notch_sizing",
+                    title: "Notch sizing",
+                    keywords: ["Notch sizing", "Notch height on notch displays", "Match real notch height", "Match menu bar height", "Custom height", "Notch height on non-notch displays", "Custom notch size", "Độ cao notch"]
+                ),
+                SettingsSectionItem(
+                    id: "notch_behavior",
+                    title: "Notch behavior",
+                    keywords: ["Notch behavior", "Hover & Gestures", "Open notch on hover", "Enable haptic feedback", "Restore last tab on hover", "Hover delay", "Extend hover area", "Hover detection range", "Hành vi rê chuột", "Rê chuột mở notch"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Appearance",
             icon: "paintbrush.fill",
-            elements: [
-                "General", "Always show tabs", "Show settings icon in notch",
-                "Media", "Colored spectrogram", "Player tinting", "Enable blur effect behind album art", "Slider color",
-                "Match album art", "Default",
-                "Custom music live activity animation", "Use music visualizer spectrogram", "Selected animation", "No custom animation available",
-                "Accent color", "System accent", "Custom accent color", "Blue", "Purple", "Pink", "Red", "Orange", "Yellow", "Green", "Graphite",
-                "App icon"
+            sections: [
+                SettingsSectionItem(
+                    id: "appearance_general",
+                    title: "General",
+                    keywords: ["Always show tabs", "Show settings icon in notch", "Giao diện"]
+                ),
+                SettingsSectionItem(
+                    id: "appearance_media",
+                    title: "Media",
+                    keywords: ["Colored spectrogram", "Player tinting", "Enable blur effect behind album art", "Slider color", "Match album art", "Default"]
+                ),
+                SettingsSectionItem(
+                    id: "appearance_visualizer",
+                    title: "Custom music live activity animation",
+                    keywords: ["Custom music live activity animation", "Use music visualizer spectrogram", "Selected animation", "Hiệu ứng sóng nhạc", "Custom vizualizers (Lottie)"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Media",
             icon: "play.circle.fill",
-            elements: [
-                "Enable Media & Music Player", "Display track info, interactive playback controls, and lyrics in the Notch.",
-                "Media Source", "Music Source", "Now Playing", "Spotify", "Apple Music", "YouTube Music",
-                "Media playback live activity", "Show music live activity", "Show sneak peek on playback changes", "Sneak Peek Style",
-                "Standard", "Inline", "Compact", "Media inactivity timeout", "Full screen behavior", "Hide for all apps",
-                "Media controls", "Music Slot Configuration", "Layout Preview", "Progress bar style", "Seek step", "Backward 15s", "Forward 15s",
-                "Lyrics", "Enable synced lyrics", "Apple Music synced lyrics", "Spotify synced lyrics", "Auto-scroll to current lyric line",
-                "Lyrics font size", "Lyrics animation", "Lyrics blur",
-                "Universal App Audio Engine", "App Volume Engine", "Adjust volume across all applications"
+            sections: [
+                SettingsSectionItem(
+                    id: "media_enable",
+                    title: "Enable Media & Music Player",
+                    keywords: ["Enable Media & Music Player", "Display track info, interactive playback controls, and lyrics in the Notch.", "Trình phát nhạc"]
+                ),
+                SettingsSectionItem(
+                    id: "media_source",
+                    title: "Media Source",
+                    keywords: ["Media Source", "Music Source", "Now Playing", "Spotify", "Apple Music", "YouTube Music", "Nguồn phát"]
+                ),
+                SettingsSectionItem(
+                    id: "media_live_activity",
+                    title: "Media playback live activity",
+                    keywords: ["Show music live activity", "Show sneak peek on playback changes", "Sneak Peek Style", "Standard", "Inline", "Compact", "Media inactivity timeout", "Full screen behavior", "Hide for all apps"]
+                ),
+                SettingsSectionItem(
+                    id: "media_controls",
+                    title: "Media controls",
+                    keywords: ["Media controls", "Music Slot Configuration", "Layout Preview", "Progress bar style", "Seek step", "Backward 15s", "Forward 15s"]
+                ),
+                SettingsSectionItem(
+                    id: "media_lyrics",
+                    title: "Lyrics",
+                    keywords: ["Lyrics", "Enable synced lyrics", "Apple Music synced lyrics", "Spotify synced lyrics", "Auto-scroll to current lyric line", "Lyrics font size", "Lyrics animation", "Lyrics blur", "Lời bài hát"]
+                ),
+                SettingsSectionItem(
+                    id: "media_volume",
+                    title: "Universal App Audio Engine",
+                    keywords: ["Universal App Audio Engine", "App Volume Engine", "Adjust volume across all applications", "Âm lượng từng ứng dụng"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Calendar",
             icon: "calendar",
-            elements: [
-                "Calendar integration", "Enable calendar and events", "Sync reminders", "Reminders integration",
-                "Alternate calendar", "Lunar calendar", "Islamic calendar", "Hebrew calendar", "Show lunar calendar",
-                "Show full event titles", "Always show full event titles",
-                "Past events", "Show past events today", "Auto-scroll to next event", "Upcoming events",
-                "Calendar access", "Reminders access", "Calendar permissions"
+            sections: [
+                SettingsSectionItem(
+                    id: "calendar_integration",
+                    title: "Calendar integration",
+                    keywords: ["Calendar integration", "Enable calendar and events", "Sync reminders", "Reminders integration", "Calendar access", "Reminders access", "Calendar permissions", "Lịch và nhắc nhở"]
+                ),
+                SettingsSectionItem(
+                    id: "calendar_alternate",
+                    title: "Alternate calendar",
+                    keywords: ["Alternate calendar", "Lunar calendar", "Islamic calendar", "Hebrew calendar", "Show lunar calendar", "Lịch âm", "Lịch vạn niên"]
+                ),
+                SettingsSectionItem(
+                    id: "calendar_options",
+                    title: "Calendar options",
+                    keywords: ["Show full event titles", "Always show full event titles", "Past events", "Show past events today", "Auto-scroll to next event", "Upcoming events"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "HUD",
             icon: "gauge.with.dots.needle.33percent",
-            elements: [
-                "Volume HUD", "System volume indicator", "Replace native volume HUD",
-                "Brightness HUD", "Display brightness indicator", "Replace native brightness HUD",
-                "Keyboard backlight HUD", "Keyboard brightness indicator",
-                "Inline HUD", "Show compact inline HUD inside notch", "Standard HUD",
-                "Show power status notifications", "Battery status", "Power adapter status", "Charging indicator",
-                "Show HUD on lock screen"
+            sections: [
+                SettingsSectionItem(
+                    id: "hud_volume",
+                    title: "Volume HUD",
+                    keywords: ["Volume HUD", "System volume indicator", "Replace native volume HUD", "Âm lượng", "Thanh âm lượng"]
+                ),
+                SettingsSectionItem(
+                    id: "hud_brightness",
+                    title: "Brightness HUD",
+                    keywords: ["Brightness HUD", "Display brightness indicator", "Replace native brightness HUD", "Độ sáng màn hình"]
+                ),
+                SettingsSectionItem(
+                    id: "hud_keyboard",
+                    title: "Keyboard backlight HUD",
+                    keywords: ["Keyboard backlight HUD", "Keyboard brightness indicator", "Đèn nền bàn phím"]
+                ),
+                SettingsSectionItem(
+                    id: "hud_inline",
+                    title: "Inline HUD",
+                    keywords: ["Inline HUD", "Show compact inline HUD inside notch", "Standard HUD", "HUD gọn gàng trong notch"]
+                ),
+                SettingsSectionItem(
+                    id: "hud_power",
+                    title: "Power status notifications",
+                    keywords: ["Show power status notifications", "Battery status", "Power adapter status", "Charging indicator", "Show HUD on lock screen", "Pin", "Thông báo cắm sạc"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "SystemMonitor",
             icon: "chart.bar.fill",
-            elements: [
-                "System Monitor (Stats)", "Monitor real-time CPU, RAM, and GPU load in a dedicated Notch tab inspired by the 'Stats' app.",
-                "System Monitoring Access: Active (Darwin Mach & IOKit native APIs)",
-                "Show top resource-consuming processes", "Display Options",
-                "Cooling & Fan Speed", "CPU & GPU temperatures", "Fan speed", "RPM", "Fan profiles",
-                "Auto", "Balanced", "Smart", "Max", "Custom", "Passive cooling (Fanless)", "Privileged helper tool", "SMC fan control"
+            sections: [
+                SettingsSectionItem(
+                    id: "sysmon_enable",
+                    title: "System Monitor (Stats)",
+                    keywords: ["System Monitor (Stats)", "Monitor real-time CPU, RAM, and GPU load", "System Monitoring Access", "Theo dõi hệ thống", "CPU", "RAM", "GPU"]
+                ),
+                SettingsSectionItem(
+                    id: "sysmon_display",
+                    title: "Display Options",
+                    keywords: ["Show top resource-consuming processes", "Display Options", "Tiến trình tốn tài nguyên"]
+                ),
+                SettingsSectionItem(
+                    id: "sysmon_cooling",
+                    title: "Cooling & Fan Speed",
+                    keywords: ["Cooling & Fan Speed", "CPU & GPU temperatures", "Fan speed", "RPM", "Fan profiles", "Auto", "Balanced", "Smart", "Max", "Custom", "Passive cooling (Fanless)", "Privileged helper tool", "SMC fan control", "Quạt tản nhiệt", "Nhiệt độ"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "FaceID",
             icon: "faceid",
-            elements: [
-                "Face ID", "Allow NotchPulse to recognize your face", "Allow NotchPulse to unlock your Mac",
-                "Camera access", "Face ID camera", "Built-in FaceTime HD Camera", "Continuity Camera",
-                "Apple biometrics fallback", "Allow Touch ID, Apple Watch, or system password",
-                "Authorize system prompts", "Automatically verify with Face ID when macOS requires admin approval or installer confirmation.",
-                "Auto-lock", "Auto-lock interval", "Lock on sleep", "Recognition tolerance", "Strict", "Balanced", "Relaxed",
-                "Quality threshold", "Re-enroll face", "Security", "Keychain encryption"
+            sections: [
+                SettingsSectionItem(
+                    id: "faceid_general",
+                    title: "Face ID",
+                    keywords: ["Face ID", "Allow NotchPulse to recognize your face", "Allow NotchPulse to unlock your Mac", "Mở khóa khuôn mặt"]
+                ),
+                SettingsSectionItem(
+                    id: "faceid_camera",
+                    title: "Face ID camera",
+                    keywords: ["Camera access", "Face ID camera", "Built-in FaceTime HD Camera", "Continuity Camera"]
+                ),
+                SettingsSectionItem(
+                    id: "faceid_security",
+                    title: "Security & Fallback",
+                    keywords: ["Apple biometrics fallback", "Allow Touch ID, Apple Watch, or system password", "Authorize system prompts", "Keychain encryption"]
+                ),
+                SettingsSectionItem(
+                    id: "faceid_tolerance",
+                    title: "Auto-lock & Recognition",
+                    keywords: ["Auto-lock", "Auto-lock interval", "Lock on sleep", "Recognition tolerance", "Strict", "Balanced", "Relaxed", "Quality threshold", "Re-enroll face"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Shelf",
             icon: "tray.fill",
-            elements: [
-                "Notch Shelf", "Drop zone", "Drag and drop", "Auto-clear items on drag-out", "Pin shelf open",
-                "Shelf storage", "Temporary file tray", "File drop"
+            sections: [
+                SettingsSectionItem(
+                    id: "shelf_general",
+                    title: "Notch Shelf",
+                    keywords: ["Notch Shelf", "Drop zone", "Drag and drop", "Auto-clear items on drag-out", "Pin shelf open", "Kệ lưu trữ", "Kéo thả file"]
+                ),
+                SettingsSectionItem(
+                    id: "shelf_storage",
+                    title: "Shelf storage",
+                    keywords: ["Shelf storage", "Temporary file tray", "File drop"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Clipboard",
             icon: "doc.on.clipboard.fill",
-            elements: [
-                "Clipboard History", "Clipboard Manager", "Save copied text and images", "3-item viewport",
-                "Clear clipboard history", "History capacity limit", "Image preview thumbnail", "One-click copy", "Relative timestamp"
+            sections: [
+                SettingsSectionItem(
+                    id: "clipboard_general",
+                    title: "Clipboard History",
+                    keywords: ["Clipboard History", "Clipboard Manager", "Save copied text and images", "3-item viewport", "Lịch sử sao chép"]
+                ),
+                SettingsSectionItem(
+                    id: "clipboard_options",
+                    title: "Clipboard Options",
+                    keywords: ["Clear clipboard history", "History capacity limit", "Image preview thumbnail", "One-click copy", "Relative timestamp"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Audio",
             icon: "speaker.wave.2.fill",
-            elements: [
-                "Audio Hub", "Audio output", "Audio input", "Sound devices", "Speakers", "Microphones",
-                "Headphones", "Default audio device", "Volume slider", "Mute toggle", "Sound routing"
+            sections: [
+                SettingsSectionItem(
+                    id: "audio_hub",
+                    title: "Audio Hub",
+                    keywords: ["Audio Hub", "Audio output", "Audio input", "Sound devices", "Speakers", "Microphones", "Headphones", "Âm thanh"]
+                ),
+                SettingsSectionItem(
+                    id: "audio_routing",
+                    title: "Sound routing",
+                    keywords: ["Default audio device", "Volume slider", "Mute toggle", "Sound routing"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Display",
             icon: "sun.max.fill",
-            elements: [
-                "Display Hub", "Screen brightness", "Multiple displays", "Monitors", "External display brightness",
-                "DDC/CI hardware brightness", "Mirror display"
+            sections: [
+                SettingsSectionItem(
+                    id: "display_hub",
+                    title: "Display Hub",
+                    keywords: ["Display Hub", "Screen brightness", "Hardware DDC/CI brightness control for external monitors", "Quản lý màn hình"]
+                ),
+                SettingsSectionItem(
+                    id: "display_monitors",
+                    title: "Connected Displays",
+                    keywords: ["Connected Displays", "Multiple displays", "Monitors", "External display brightness", "Retina", "Hardware DDC"]
+                ),
+                SettingsSectionItem(
+                    id: "display_features",
+                    title: "Display Features",
+                    keywords: ["Hardware DDC/CI Control", "Per-Display Brightness Sliders", "DDC/CI hardware brightness"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Shortcuts",
             icon: "command.square.fill",
-            elements: [
-                "Shortcuts", "Keyboard shortcuts", "Hotkeys", "Global key bindings", "Toggle notch", "Open shelf",
-                "Toggle clipboard", "Toggle mute", "Play/Pause", "Next track", "Previous track"
+            sections: [
+                SettingsSectionItem(
+                    id: "shortcuts_media",
+                    title: "Media Shortcuts",
+                    keywords: ["Shortcuts", "Keyboard shortcuts", "Hotkeys", "Global key bindings", "Toggle Sneak Peek", "Phím tắt"]
+                ),
+                SettingsSectionItem(
+                    id: "shortcuts_notch",
+                    title: "Notch Shortcuts",
+                    keywords: ["Toggle Notch Open", "Toggle notch", "Open shelf", "Toggle clipboard"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Advanced",
             icon: "slider.horizontal.3",
-            elements: [
-                "Reset settings", "Restore default preferences", "Clear app cache", "Re-run Onboarding",
-                "Start Feature Tour", "Accessibility permission", "Diagnostic logs"
+            sections: [
+                SettingsSectionItem(
+                    id: "advanced_accent",
+                    title: "Accent color",
+                    keywords: ["Accent color", "System accent", "Custom accent color", "Color Presets", "Pick a color", "Blue", "Purple", "Pink", "Red", "Orange", "Yellow", "Green", "Graphite", "Màu chủ đạo"]
+                ),
+                SettingsSectionItem(
+                    id: "advanced_appearance",
+                    title: "Window Appearance",
+                    keywords: ["Window Appearance", "Corner radius scaling", "Bo góc"]
+                ),
+                SettingsSectionItem(
+                    id: "advanced_icon",
+                    title: "App icon",
+                    keywords: ["App icon", "Biểu tượng ứng dụng"]
+                ),
+                SettingsSectionItem(
+                    id: "advanced_behavior",
+                    title: "Window Behavior",
+                    keywords: ["Window Behavior", "Hide title bar", "Show notch on lock screen", "Hide from screen recording", "Màn hình khóa"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "Language",
             icon: "globe",
-            elements: [
-                "App Language", "Language", "Ngôn ngữ", "Tiếng Việt", "English", "Deutsch", "Français", "Español", "日本語", "简体中文"
+            sections: [
+                SettingsSectionItem(
+                    id: "language_display",
+                    title: "App Language",
+                    keywords: ["App Language", "Language", "Ngôn ngữ", "Tiếng Việt", "English", "Deutsch", "Français", "Español", "日本語", "简体中文"]
+                )
             ]
         ),
         SettingsTabItem(
             id: "About",
             icon: "info.circle.fill",
-            elements: [
-                "About", "NotchPulse", "Version", "Phiên bản", "Automatically check for updates",
-                "Automatically download updates", "Check for Updates…", "Release notes", "Developer", "GitHub"
+            sections: [
+                SettingsSectionItem(
+                    id: "about_app",
+                    title: "About NotchPulse",
+                    keywords: ["About", "NotchPulse", "Version", "Phiên bản", "Release notes", "Developer", "GitHub", "Thông tin"]
+                ),
+                SettingsSectionItem(
+                    id: "about_updates",
+                    title: "Software Update",
+                    keywords: ["Automatically check for updates", "Automatically download updates", "Check for Updates…", "Cập nhật phần mềm"]
+                )
             ]
         )
     ]
 
-    private var filteredTabs: [SettingsTabItem] {
+    private func matchingSections(for tab: SettingsTabItem) -> [SettingsSectionItem] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return allTabs }
+        guard !trimmed.isEmpty else { return [] }
         let normalizedQuery = trimmed.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
 
-        return allTabs.filter { tab in
-            // 1. Match tab title in current language
-            let title = tabTitle(for: tab.id)
-            let normalizedTitle = title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            if normalizedTitle.contains(normalizedQuery) {
+        return tab.sections.filter { section in
+            let localizedTitle = loc(section.title)
+            if localizedTitle.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current).contains(normalizedQuery) {
                 return true
             }
-
-            // 2. Match any setting element translated into current language
-            for item in tab.elements {
-                let localized = loc(item)
-                let normalizedItem = localized.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-                if normalizedItem.contains(normalizedQuery) {
+            for kw in section.keywords {
+                let localizedKw = loc(kw)
+                if localizedKw.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current).contains(normalizedQuery) {
                     return true
                 }
             }
@@ -200,25 +426,35 @@ struct SettingsView: View {
         }
     }
 
-    private func matchingSubtext(for tab: SettingsTabItem) -> String? {
+    private var filteredTabs: [SettingsTabItem] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+        guard !trimmed.isEmpty else { return allTabs }
         let normalizedQuery = trimmed.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
 
-        let title = tabTitle(for: tab.id)
-        let normalizedTitle = title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-        if normalizedTitle.contains(normalizedQuery) {
-            return nil
+        return allTabs.filter { tab in
+            let title = tabTitle(for: tab.id)
+            if title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current).contains(normalizedQuery) {
+                return true
+            }
+            return !matchingSections(for: tab).isEmpty
         }
+    }
 
-        for item in tab.elements {
-            let localized = loc(item)
-            let normalizedItem = localized.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            if normalizedItem.contains(normalizedQuery) {
-                return localized
+    private func selectSearchItem(tabId: String, sectionId: String) {
+        selectedTab = tabId
+        scrollToItemId = sectionId
+        highlightedItemId = sectionId
+        scrollTrigger = UUID()
+
+        // Automatically fade out highlight after 1.8 seconds
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1800))
+            withAnimation(.easeOut(duration: 0.4)) {
+                if highlightedItemId == sectionId {
+                    highlightedItemId = nil
+                }
             }
         }
-        return nil
     }
 
     init(updaterController: SPUStandardUpdaterController? = nil) {
@@ -229,41 +465,58 @@ struct SettingsView: View {
         NavigationSplitView {
             VStack(spacing: 0) {
                 // Logo + App Name Header (Pushed down below traffic lights, larger text)
-                HStack(spacing: 8) {
+                HStack(spacing: 9) {
                     if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
                         Image(nsImage: appIcon)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 22, height: 22)
-                            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                            .frame(width: 24, height: 24)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     } else {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(Color.effectiveAccent)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.secondary)
                     }
 
-                    Text("NotchPulse")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color.primary)
+                    HStack(spacing: 6) {
+                        Text("NotchPulse")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.primary)
+
+                        Text("v\(Bundle.main.releaseVersionNumber ?? "5.5")")
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(Color(nsColor: .quaternaryLabelColor).opacity(0.55))
+                            )
+                    }
 
                     Spacer()
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
+                .padding(.top, 12)
+                .padding(.bottom, 9)
 
                 // Search Bar in Settings
-                HStack(spacing: 6) {
+                HStack(spacing: 7) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
 
                     TextField(loc("Search Settings..."), text: $searchText)
                         .textFieldStyle(.plain)
                         .font(.system(size: 12))
                         .onSubmit {
-                            if let first = filteredTabs.first {
-                                selectedTab = first.id
+                            if let firstTab = filteredTabs.first {
+                                let matches = matchingSections(for: firstTab)
+                                if let firstMatch = matches.first {
+                                    selectSearchItem(tabId: firstTab.id, sectionId: firstMatch.id)
+                                } else {
+                                    selectedTab = firstTab.id
+                                }
                             }
                         }
 
@@ -272,22 +525,22 @@ struct SettingsView: View {
                             searchText = ""
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 11))
+                                .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
                         .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
                 )
                 .padding(.horizontal, 12)
-                .padding(.bottom, 6)
+                .padding(.bottom, 8)
 
                 // Vertical Settings Tabs
                 List(selection: $selectedTab) {
@@ -302,18 +555,68 @@ struct SettingsView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 24)
+                    } else if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        ForEach(allTabs) { tab in
+                            NavigationLink(value: tab.id) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: tab.icon)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(selectedTab == tab.id ? Color.white : Color(nsColor: .secondaryLabelColor))
+                                        .frame(width: 18, alignment: .center)
+
+                                    Text(tabTitle(for: tab.id))
+                                        .foregroundStyle(selectedTab == tab.id ? Color.white : Color.primary)
+                                }
+                            }
+                        }
                     } else {
                         ForEach(filteredTabs) { tab in
-                            NavigationLink(value: tab.id) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Label(tabTitle(for: tab.id), systemImage: tab.icon)
-                                    if let hint = matchingSubtext(for: tab) {
-                                        Text("↳ \(hint)")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                            .padding(.leading, 24)
+                            let matches = matchingSections(for: tab)
+                            Section {
+                                NavigationLink(value: tab.id) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: tab.icon)
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(selectedTab == tab.id ? Color.white : Color(nsColor: .secondaryLabelColor))
+                                            .frame(width: 18, alignment: .center)
+
+                                        Text(tabTitle(for: tab.id))
+                                            .foregroundStyle(selectedTab == tab.id ? Color.white : Color.primary)
                                     }
+                                }
+                                .simultaneousGesture(TapGesture().onEnded {
+                                    if let first = matches.first {
+                                        selectSearchItem(tabId: tab.id, sectionId: first.id)
+                                    } else if let firstSec = tab.sections.first {
+                                        selectSearchItem(tabId: tab.id, sectionId: firstSec.id)
+                                    }
+                                })
+
+                                ForEach(matches) { sec in
+                                    Button {
+                                        selectSearchItem(tabId: tab.id, sectionId: sec.id)
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Text("↳")
+                                                .foregroundStyle(selectedTab == tab.id && scrollToItemId == sec.id ? Color.effectiveAccent : .secondary)
+                                            Text(loc(sec.title))
+                                                .font(.system(size: 11, weight: selectedTab == tab.id && scrollToItemId == sec.id ? .semibold : .regular))
+                                                .foregroundStyle(selectedTab == tab.id && scrollToItemId == sec.id ? Color.effectiveAccent : .primary)
+                                                .lineLimit(1)
+                                            Spacer()
+                                        }
+                                        .padding(.leading, 24)
+                                        .padding(.vertical, 3)
+                                        .padding(.trailing, 6)
+                                        .background(
+                                            selectedTab == tab.id && scrollToItemId == sec.id
+                                                ? Color.effectiveAccent.opacity(0.12)
+                                                : Color.clear
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -327,18 +630,34 @@ struct SettingsView: View {
             .toolbar(removing: .sidebarToggle)
             .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 270)
         } detail: {
-            detailContent
-                .formStyle(.grouped)
-                .scrollIndicators(.hidden)
-                .background(ScrollViewScrollerHider())
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    SettingsDetailHeaderBar(
-                        title: tabTitle(for: selectedTab),
-                        showQuitButton: true
-                    )
-                }
-                .background(Color(nsColor: .windowBackgroundColor))
-                .ignoresSafeArea(edges: .top)
+            ScrollViewReader { proxy in
+                detailContent
+                    .environment(\.settingsHighlightedId, highlightedItemId)
+                    .formStyle(.grouped)
+                    .scrollIndicators(.hidden)
+                    .background(ScrollViewScrollerHider())
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        SettingsDetailHeaderBar(
+                            title: tabTitle(for: selectedTab),
+                            showQuitButton: true
+                        )
+                    }
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .ignoresSafeArea(edges: .top)
+                    .onChange(of: scrollTrigger) { _, _ in
+                        guard let targetId = scrollToItemId else { return }
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(70))
+                            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                                proxy.scrollTo(targetId, anchor: .center)
+                            }
+                            try? await Task.sleep(for: .milliseconds(120))
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                                proxy.scrollTo(targetId, anchor: .center)
+                            }
+                        }
+                    }
+            }
         }
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
@@ -588,6 +907,7 @@ struct NotchWidthLivePreview: View {
 }
 
 struct GeneralSettings: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @State private var screens: [(uuid: String, name: String)] = NSScreen.screens.compactMap { screen in
         guard let uuid = screen.displayUUID else { return nil }
         return (uuid, screen.localizedName)
@@ -627,6 +947,30 @@ struct GeneralSettings: View {
                 SharingStateManager.shared.preventNotchClose = false
                 NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var cameraMirrorSection: some View {
+        Section {
+            Defaults.Toggle(key: .showMirror) {
+                Text(loc("Enable NotchPulse mirror"))
+            }
+            .disabled(!checkVideoInput())
+
+            Picker(loc("Mirror shape"), selection: $mirrorShape) {
+                Text(loc("Circle"))
+                    .tag(MirrorShapeEnum.circle)
+                Text(loc("Square"))
+                    .tag(MirrorShapeEnum.rectangle)
+            }
+        } header: {
+            Text(loc("Camera Mirror"))
+                .id("camera_mirror")
+        } footer: {
+            Text(loc("Display a live selfie camera preview directly in your Notch or Dynamic Island."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -977,12 +1321,32 @@ struct GeneralSettings: View {
                 .buttonStyle(PlainButtonStyle())
                 .contentShape(Rectangle())
             }
+            .id("feature_tour")
+            .searchHighlight(highlightedId == "feature_tour")
 
             styleSection
+                .id("notch_style")
+                .searchHighlight(highlightedId == "notch_style")
+
             dimensionsSection
+                .id("notch_dimensions")
+                .searchHighlight(highlightedId == "notch_dimensions")
+
             systemFeaturesSection
+                .id("system_features")
+                .searchHighlight(highlightedId == "system_features")
+
+            cameraMirrorSection
+                .id("camera_mirror")
+                .searchHighlight(highlightedId == "camera_mirror")
+
             notchSizingSection
+                .id("notch_sizing")
+                .searchHighlight(highlightedId == "notch_sizing")
+
             NotchBehaviour()
+                .id("notch_behavior")
+                .searchHighlight(highlightedId == "notch_behavior")
         }
         .accentColor(.effectiveAccent)
     }
@@ -1135,6 +1499,7 @@ struct GeneralSettings: View {
 //}
 
 struct HUD: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @EnvironmentObject var vm: NotchPulseViewModel
     @Default(.inlineHUD) var inlineHUD
     @Default(.enableGradient) var enableGradient
@@ -1179,6 +1544,8 @@ struct HUD: View {
                     .padding(.top, 6)
                 }
             }
+            .id("hud_volume")
+            .searchHighlight(highlightedId == "hud_volume")
             
             Section {
                 Picker(loc("Option key behaviour"), selection: $optionKeyAction) {
@@ -1217,7 +1584,10 @@ struct HUD: View {
                     Text(loc("Open Notch"))
                     customBadge(text: loc("Beta"))
                 }
+                .id("hud_power")
             }
+            .id("hud_power")
+            .searchHighlight(highlightedId == "hud_power")
             .disabled(!hudReplacement)
             
             Section {
@@ -1241,7 +1611,10 @@ struct HUD: View {
                 }
             } header: {
                 Text(loc("Closed Notch"))
+                    .id("hud_inline")
             }
+            .id("hud_inline")
+            .searchHighlight(highlightedId == "hud_inline")
             .disabled(!Defaults[.hudReplacement])
         }
         .accentColor(.effectiveAccent)
@@ -1268,6 +1641,7 @@ struct HUD: View {
 }
 
 struct SystemMonitorSettingsView: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Default(.enableSystemMonitor) var enableSystemMonitor
     @Default(.systemMonitorShowProcesses) var showProcesses
     @ObservedObject private var monitor = SystemMonitorManager.shared
@@ -1304,6 +1678,8 @@ struct SystemMonitorSettingsView: View {
                 }
                 .padding(.top, 4)
             }
+            .id("sysmon_enable")
+            .searchHighlight(highlightedId == "sysmon_enable")
 
             Section {
                 Defaults.Toggle(key: .systemMonitorShowProcesses) {
@@ -1311,7 +1687,10 @@ struct SystemMonitorSettingsView: View {
                 }
             } header: {
                 Text(loc("Display Options"))
+                    .id("sysmon_display")
             }
+            .id("sysmon_display")
+            .searchHighlight(highlightedId == "sysmon_display")
             .disabled(!enableSystemMonitor)
 
             Section {
@@ -1386,11 +1765,14 @@ struct SystemMonitorSettingsView: View {
                 HardwareFanDiagnosticsView()
             } header: {
                 Text(loc("Hardware Fan Control & Profiles"))
+                    .id("sysmon_cooling")
             } footer: {
                 Text(loc("Apple Silicon SMC fan hardware controls & operational profiles guide."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+            .id("sysmon_cooling")
+            .searchHighlight(highlightedId == "sysmon_cooling")
         }
         .accentColor(.effectiveAccent)
         .onAppear {
@@ -1596,6 +1978,7 @@ private struct MonitorProcessList: View {
 }
 
 struct Media: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Default(.waitInterval) var waitInterval
     @Default(.mediaController) var mediaController
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
@@ -1627,6 +2010,8 @@ struct Media: View {
                         .controlSize(.large)
                 }
             }
+            .id("media_enable")
+            .searchHighlight(highlightedId == "media_enable")
 
             Section {
                 Picker(loc("Music Source"), selection: $mediaController) {
@@ -1642,6 +2027,7 @@ struct Media: View {
                 }
             } header: {
                 Text(loc("Media Source"))
+                    .id("media_source")
             } footer: {
                 if MusicManager.shared.isNowPlayingDeprecated {
                     HStack {
@@ -1663,6 +2049,8 @@ struct Media: View {
                     .font(.caption)
                 }
             }
+            .id("media_source")
+            .searchHighlight(highlightedId == "media_source")
             
             Section {
                 Toggle(
@@ -1700,7 +2088,10 @@ struct Media: View {
                 }
             } header: {
                 Text(loc("Media playback live activity"))
+                    .id("media_live_activity")
             }
+            .id("media_live_activity")
+            .searchHighlight(highlightedId == "media_live_activity")
             
             Section {
                 MusicSlotConfigurationView()
@@ -1740,11 +2131,14 @@ struct Media: View {
                 .disabled(isSyncing)
             } header: {
                 Text(loc("Media controls"))
+                    .id("media_controls")
             }  footer: {
                 Text(loc("Customize which controls appear in the music player. Grant automation access for Spotify and Apple Music to keep playback and lyrics precisely in sync."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            .id("media_controls")
+            .searchHighlight(highlightedId == "media_controls")
         }
         .onAppear {
             isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
@@ -1763,6 +2157,7 @@ struct Media: View {
 }
 
 struct CalendarSettings: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @ObservedObject private var calendarManager = CalendarManager.shared
     @Default(.showCalendar) var showCalendar: Bool
     @Default(.hideCompletedReminders) var hideCompletedReminders
@@ -1791,7 +2186,10 @@ struct CalendarSettings: View {
                         .controlSize(.large)
                 }
             }
-            Section(header: Text(loc("Display Options"))) {
+            .id("calendar_integration")
+            .searchHighlight(highlightedId == "calendar_integration")
+
+            Section(header: Text(loc("Display Options")).id("calendar_options")) {
                 Defaults.Toggle(key: .hideCompletedReminders) {
                     Text(loc("Hide completed reminders"))
                 }
@@ -1805,8 +2203,10 @@ struct CalendarSettings: View {
                     Text(loc("Always show full event titles"))
                 }
             }
+            .id("calendar_options")
+            .searchHighlight(highlightedId == "calendar_options")
 
-            Section(header: Text(loc("Lunar Calendar Region"))) {
+            Section(header: Text(loc("Lunar Calendar Region")).id("calendar_alternate")) {
                 Picker(loc("Lunar Calendar Region"), selection: $alternateCalendarType) {
                     ForEach(AlternateCalendarType.allCases) { type in
                         Text(type.localizedName(for: appLanguage)).tag(type)
@@ -1821,6 +2221,8 @@ struct CalendarSettings: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
+            .id("calendar_alternate")
+            .searchHighlight(highlightedId == "calendar_alternate")
 
             Section(header: Text(loc("Calendars"))) {
                 if calendarManager.calendarAuthorizationStatus != .fullAccess {
@@ -1923,6 +2325,7 @@ func lighterColor(from nsColor: NSColor, amount: CGFloat = 0.14) -> Color {
 }
 
 struct About: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @State private var showBuildNumber: Bool = false
     @State private var copiedEmail: Bool = false
     let updaterController: SPUStandardUpdaterController
@@ -1955,8 +2358,12 @@ struct About: View {
                 } header: {
                     Text(loc("Version info"))
                 }
+                .id("about_app")
+                .searchHighlight(highlightedId == "about_app")
 
                 UpdaterSettingsView(updater: updaterController.updater)
+                    .id("about_updates")
+                    .searchHighlight(highlightedId == "about_updates")
 
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
@@ -2031,6 +2438,7 @@ struct About: View {
 }
 
 struct Shelf: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
     @Default(.shakeAutoCloseDelay) var shakeAutoCloseDelay
@@ -2064,6 +2472,8 @@ struct Shelf: View {
                         .controlSize(.large)
                 }
             }
+            .id("shelf_general")
+            .searchHighlight(highlightedId == "shelf_general")
 
             Section {
                 Defaults.Toggle(key: .openShelfByDefault) {
@@ -2120,7 +2530,7 @@ struct Shelf: View {
                                 }
                             }
                             .frame(width: 16, height: 16)
-                            .foregroundColor(.accentColor)
+                            .foregroundStyle(.secondary)
                             Text(provider.id)
                         }
                         .tag(provider.id)
@@ -2140,7 +2550,7 @@ struct Shelf: View {
                             }
                         }
                         .frame(width: 16, height: 16)
-                        .foregroundColor(.accentColor)
+                        .foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(loc("Currently selected")): \(selectedProvider.id)")
                                 .font(.caption)
@@ -2162,12 +2572,15 @@ struct Shelf: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            .id("shelf_storage")
+            .searchHighlight(highlightedId == "shelf_storage")
         }
         .accentColor(.effectiveAccent)
     }
 }
 
 struct Appearance: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
     @Default(.sliderColor) var sliderColor
@@ -2192,7 +2605,10 @@ struct Appearance: View {
 
             } header: {
                 Text(loc("General"))
+                    .id("appearance_general")
             }
+            .id("appearance_general")
+            .searchHighlight(highlightedId == "appearance_general")
 
             Section {
                 Defaults.Toggle(key: .coloredSpectrogram) {
@@ -2210,7 +2626,10 @@ struct Appearance: View {
                 }
             } header: {
                 Text(loc("Media"))
+                    .id("appearance_media")
             }
+            .id("appearance_media")
+            .searchHighlight(highlightedId == "appearance_media")
 
             Section {
                 Toggle(
@@ -2246,7 +2665,10 @@ struct Appearance: View {
                     Text(loc("Custom music live activity animation"))
                     customBadge(text: loc("Coming soon"))
                 }
+                .id("appearance_visualizer")
             }
+            .id("appearance_visualizer")
+            .searchHighlight(highlightedId == "appearance_visualizer")
 
             Section {
                 List {
@@ -2385,37 +2807,13 @@ struct Appearance: View {
                     }
                 }
             }
-
-            Section {
-                Defaults.Toggle(key: .showMirror) {
-                    Text(loc("Enable NotchPulse mirror"))
-                }
-                    .disabled(!checkVideoInput())
-                Picker(loc("Mirror shape"), selection: $mirrorShape) {
-                    Text(loc("Circle"))
-                        .tag(MirrorShapeEnum.circle)
-                    Text(loc("Square"))
-                        .tag(MirrorShapeEnum.rectangle)
-                }
-            } header: {
-                HStack {
-                    Text(loc("Additional features"))
-                }
-            }
         }
         .accentColor(.effectiveAccent)
-    }
-
-    func checkVideoInput() -> Bool {
-        if AVCaptureDevice.default(for: .video) != nil {
-            return true
-        }
-
-        return false
     }
 }
 
 struct Advanced: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Default(.useCustomAccentColor) var useCustomAccentColor
     @Default(.customAccentColorData) var customAccentColorData
     @Default(.showOnLockScreen) var showOnLockScreen
@@ -2558,6 +2956,8 @@ struct Advanced: View {
                     .foregroundStyle(.secondary)
                     .font(.caption)
             }
+            .id("advanced_accent")
+            .searchHighlight(highlightedId == "advanced_accent")
             .onAppear {
                 initializeAccentColorState()
             }
@@ -2569,6 +2969,8 @@ struct Advanced: View {
             } header: {
                 Text(loc("Window Appearance"))
             }
+            .id("advanced_appearance")
+            .searchHighlight(highlightedId == "advanced_appearance")
             
             Section {
                 HStack {
@@ -2581,8 +2983,8 @@ struct Advanced: View {
                                 .background(
                                     RoundedRectangle(cornerRadius: 20, style: .circular)
                                         .strokeBorder(
-                                            icon == selectedIcon ? Color.effectiveAccent : .clear,
-                                             lineWidth: 2.5
+                                             icon == selectedIcon ? Color.effectiveAccent : .clear,
+                                              lineWidth: 2.5
                                         )
                                 )
 
@@ -2613,6 +3015,8 @@ struct Advanced: View {
                     customBadge(text: loc("Coming soon"))
                 }
             }
+            .id("advanced_icon")
+            .searchHighlight(highlightedId == "advanced_icon")
             
             Section {
                 Defaults.Toggle(key: .hideTitleBar) {
@@ -2627,6 +3031,8 @@ struct Advanced: View {
             } header: {
                 Text(loc("Window Behavior"))
             }
+            .id("advanced_behavior")
+            .searchHighlight(highlightedId == "advanced_behavior")
         }
         .accentColor(.effectiveAccent)
         .onAppear {
@@ -2721,6 +3127,7 @@ struct AccentCircleButton: View {
 }
 
 struct ClipboardSettingsView: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @ObservedObject var clipboardManager = ClipboardManager.shared
     @Default(.enableClipboardManager) var enableClipboardManager
     @Default(.clipboardMaxItems) var clipboardMaxItems
@@ -2744,6 +3151,8 @@ struct ClipboardSettingsView: View {
                         .controlSize(.large)
                 }
             }
+            .id("clipboard_general")
+            .searchHighlight(highlightedId == "clipboard_general")
 
             if enableClipboardManager {
                 Section {
@@ -2760,6 +3169,8 @@ struct ClipboardSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .id("clipboard_options")
+                .searchHighlight(highlightedId == "clipboard_options")
             }
         }
         .accentColor(.effectiveAccent)
@@ -2767,6 +3178,7 @@ struct ClipboardSettingsView: View {
 }
 
 struct AudioSettingsView: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Default(.enableAudioHub) var enableAudioHub
     @ObservedObject var audioManager = AudioDeviceManager.shared
 
@@ -2789,6 +3201,8 @@ struct AudioSettingsView: View {
                         .controlSize(.large)
                 }
             }
+            .id("audio_hub")
+            .searchHighlight(highlightedId == "audio_hub")
 
             if enableAudioHub {
                 Section(header: Text(loc("Features"))) {
@@ -2796,7 +3210,7 @@ struct AudioSettingsView: View {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "speaker.wave.2.fill")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.effectiveAccent)
+                                .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(loc("Quick Device Switcher"))
@@ -2810,7 +3224,7 @@ struct AudioSettingsView: View {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "slider.horizontal.3")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.effectiveAccent)
+                                .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(loc("Per-Device Volume & Mute"))
@@ -2823,6 +3237,8 @@ struct AudioSettingsView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .id("audio_routing")
+                .searchHighlight(highlightedId == "audio_routing")
             }
         }
         .accentColor(.effectiveAccent)
@@ -2830,6 +3246,7 @@ struct AudioSettingsView: View {
 }
 
 struct DisplaySettingsView: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Default(.enableDisplayHub) var enableDisplayHub
     @ObservedObject var brightnessManager = BrightnessManager.shared
 
@@ -2852,13 +3269,15 @@ struct DisplaySettingsView: View {
                         .controlSize(.large)
                 }
             }
+            .id("display_hub")
+            .searchHighlight(highlightedId == "display_hub")
 
             if enableDisplayHub {
-                Section(header: Text(loc("Connected Displays"))) {
+                Section(header: Text(loc("Connected Displays")).id("display_monitors")) {
                     ForEach(brightnessManager.availableDisplays()) { target in
                         HStack {
                             Image(systemName: target.isBuiltin ? "laptopcomputer" : "display")
-                                .foregroundStyle(Color.effectiveAccent)
+                                .foregroundStyle(.secondary)
                                 .frame(width: 20)
                             Text(target.localizedName)
                                 .font(.subheadline.weight(.medium))
@@ -2869,13 +3288,15 @@ struct DisplaySettingsView: View {
                         }
                     }
                 }
+                .id("display_monitors")
+                .searchHighlight(highlightedId == "display_monitors")
 
-                Section(header: Text(loc("Features"))) {
+                Section(header: Text(loc("Features")).id("display_features")) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "sun.max.fill")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.effectiveAccent)
+                                .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(loc("Hardware DDC/CI Control"))
@@ -2889,7 +3310,7 @@ struct DisplaySettingsView: View {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "slider.horizontal.below.rectangle")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.effectiveAccent)
+                                .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(loc("Per-Display Brightness Sliders"))
@@ -2902,6 +3323,8 @@ struct DisplaySettingsView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .id("display_features")
+                .searchHighlight(highlightedId == "display_features")
             }
         }
         .accentColor(.effectiveAccent)
@@ -2909,12 +3332,15 @@ struct DisplaySettingsView: View {
 }
 
 struct Shortcuts: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
+
     var body: some View {
         Form {
             Section {
                 KeyboardShortcuts.Recorder(loc("Toggle Sneak Peek:"), name: .toggleSneakPeek)
             } header: {
                 Text(loc("Media"))
+                    .id("shortcuts_media")
             } footer: {
                 Text(
                     loc("Sneak Peek shows the media title and artist under the notch for a few seconds.")
@@ -2923,9 +3349,17 @@ struct Shortcuts: View {
                 .foregroundStyle(.secondary)
                 .font(.caption)
             }
+            .id("shortcuts_media")
+            .searchHighlight(highlightedId == "shortcuts_media")
+
             Section {
                 KeyboardShortcuts.Recorder(loc("Toggle Notch Open:"), name: .toggleNotchOpen)
+            } header: {
+                Text(loc("Notch"))
+                    .id("shortcuts_notch")
             }
+            .id("shortcuts_notch")
+            .searchHighlight(highlightedId == "shortcuts_notch")
         }
         .accentColor(.effectiveAccent)
     }
@@ -2976,6 +3410,7 @@ func warningBadge(_ text: String, _ description: String) -> some View {
 
 // MARK: - Language Settings View
 struct LanguageSettingsView: View {
+    @Environment(\.settingsHighlightedId) private var highlightedId
     @Default(.appLanguage) private var appLanguage
 
     var body: some View {
@@ -2993,6 +3428,8 @@ struct LanguageSettingsView: View {
             } header: {
                 Text(loc("App Language"))
             }
+            .id("language_display")
+            .searchHighlight(highlightedId == "language_display")
         }
     }
 }
