@@ -29,6 +29,7 @@ struct GeneralSettingsPage: View {
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
     @Default(.menubarIcon) var menubarIcon
+    @Default(.enableHaptics) var enableHaptics
 
     @State private var autoClosePreviewTask: Task<Void, Never>? = nil
 
@@ -271,7 +272,7 @@ struct GeneralSettingsPage: View {
             // MARK: - Notch Behavior
             Section {
                 Toggle(loc("Open notch on hover"), isOn: $openNotchOnHover)
-                Toggle(loc("Enable haptic feedback"), isOn: Defaults[.enableHaptics].binding)
+                Toggle(loc("Enable haptic feedback"), isOn: $enableHaptics)
 
                 Toggle(isOn: $coordinator.openLastTabByDefault) {
                     Text(loc("Restore last tab on hover"))

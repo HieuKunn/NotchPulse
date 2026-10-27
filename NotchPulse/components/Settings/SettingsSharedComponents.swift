@@ -49,6 +49,28 @@ struct NotchWidthLivePreview: View {
     let width: CGFloat
     let style: NotchStyle
 
+    private var previewBarWidth: CGFloat {
+        let normalized = (width - 560.0) / (960.0 - 560.0)
+        let scaled = 160.0 + normalized * 200.0
+        return max(160.0, min(360.0, scaled))
+    }
+
+    @ViewBuilder
+    private var notchBackgroundShape: some View {
+        if style == .dynamicIsland {
+            Capsule().fill(Color.black)
+        } else {
+            UnevenRoundedRectangle(
+                cornerRadii: .init(
+                    topLeading: 0,
+                    bottomLeading: 12,
+                    bottomTrailing: 12,
+                    topTrailing: 0
+                )
+            ).fill(Color.black)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 6) {
             ZStack(alignment: .top) {
@@ -85,24 +107,8 @@ struct NotchWidthLivePreview: View {
                             .foregroundStyle(Color.effectiveAccent)
                     }
                     .padding(.horizontal, 12)
-                    .frame(
-                        width: max(160, min(360, 160 + (width - 560) / (960 - 560) * 200)),
-                        height: 28
-                    )
-                    .background(
-                        style == .dynamicIsland ?
-                        AnyView(Capsule().fill(Color.black)) :
-                        AnyView(
-                            UnevenRoundedRectangle(
-                                cornerRadii: .init(
-                                    topLeading: 0,
-                                    bottomLeading: 12,
-                                    bottomTrailing: 12,
-                                    topTrailing: 0
-                                )
-                            ).fill(Color.black)
-                        )
-                    )
+                    .frame(width: previewBarWidth, height: 28)
+                    .background(notchBackgroundShape)
                     .animation(.spring(response: 0.25, dampingFraction: 0.8), value: width)
                     .animation(.spring(response: 0.25, dampingFraction: 0.8), value: style)
                 }
@@ -111,7 +117,7 @@ struct NotchWidthLivePreview: View {
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color.separator, lineWidth: 0.5)
+                    .stroke(.separator, lineWidth: 0.5)
             )
 
             HStack {

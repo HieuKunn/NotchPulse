@@ -56,5 +56,3 @@ struct FaceIDUnlockOptionsPage: View {
         }
     }
 }
-
-typealias GeneralSettingsPage = FaceIDUnlockOptionsPage

@@ -563,7 +563,7 @@ struct LockScreenMediaView: View {
         case .repeatMode:
             LockScreenButton(
                 icon: repeatIcon,
-                iconColor: musicManager.repeatMode == .off ? .secondary : .tint,
+                iconColor: musicManager.repeatMode == .off ? .secondary : Color.effectiveAccent,
                 size: 28,
                 action: { musicManager.toggleRepeat() }
             )
