@@ -62,9 +62,11 @@ final class MissionControlObserver: ObservableObject {
     func startMonitoring(onMissionControlDetected: @escaping () -> Void) {
         stopMonitoring()
         activeCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            if self.checkIsMissionControlActive() {
-                onMissionControlDetected()
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if self.checkIsMissionControlActive() {
+                    onMissionControlDetected()
+                }
             }
         }
     }

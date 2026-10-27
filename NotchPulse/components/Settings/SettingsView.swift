@@ -13,7 +13,7 @@ struct SettingsHighlightedIdKey: EnvironmentKey {
 extension EnvironmentValues {
     var settingsHighlightedId: String? {
         get { self[SettingsHighlightedIdKey.self] }
-        set { self[SettingsHighlightedIdKey.self] = $0 }
+        set { self[SettingsHighlightedIdKey.self] = newValue }
     }
 }
 
