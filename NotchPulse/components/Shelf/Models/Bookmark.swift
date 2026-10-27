@@ -21,8 +21,13 @@ struct Bookmark: Sendable, Equatable, Codable {
             NSLog("✅ Successfully created bookmark for \(url.path)")
             self.data = bookmark
         } catch {
-            NSLog("❌ Failed to create bookmark for \(url.path): \(error.localizedDescription)")
-            throw error
+            if let fallbackBookmark = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+                NSLog("⚠️ Created non-security scoped fallback bookmark for \(url.path)")
+                self.data = fallbackBookmark
+            } else {
+                NSLog("❌ Failed to create bookmark for \(url.path): \(error.localizedDescription)")
+                throw error
+            }
         }
     }
 
@@ -42,6 +47,9 @@ struct Bookmark: Sendable, Equatable, Codable {
             }
             return (url, nil)
         } catch {
+            if let fallbackURL = try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale) {
+                return (fallbackURL, nil)
+            }
             NSLog("❌ Failed to resolve bookmark: \(error.localizedDescription)")
             return (nil, nil)
         }

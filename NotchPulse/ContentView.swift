@@ -347,6 +347,7 @@ struct ContentView: View {
         let isHiddenInFS = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
         let offscreenDistance = currentNotchHeight + (isIsland ? effectiveTopOffset : 0) + 30
         let slideOffset: CGFloat = isHiddenInFS ? -offscreenDistance : 0
+        let isOpen = vm.notchState == .open
 
         NotchLayout()
             .frame(
@@ -354,13 +355,51 @@ struct ContentView: View {
                 height: currentNotchHeight,
                 alignment: .top
             )
-            .background(.black)
+            .background {
+                if isOpen {
+                    ZStack {
+                        // Native macOS Ultra Thick Material for desktop translucency & refraction
+                        Rectangle()
+                            .fill(.ultraThickMaterial)
+
+                        // Deep Liquid Obsidian Glass gradient:
+                        // Starts 100% black at the very top to seamlessly merge with the MacBook physical camera notch,
+                        // and gently transitions to deep obsidian glass down the contour.
+                        Rectangle()
+                            .fill(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: Color.black, location: 0.0),
+                                        .init(color: Color.black.opacity(0.94), location: 0.20),
+                                        .init(color: Color.black.opacity(0.86), location: 1.0)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                    }
+                } else {
+                    // Closed state: pure black to match hardware notch exactly
+                    Color.black
+                }
+            }
             .conditionalModifier(isIsland) { view in
                 view
                     .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+                            .strokeBorder(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: Color.white.opacity(isOpen ? 0.35 : 0.12), location: 0.0),
+                                        .init(color: Color.white.opacity(isOpen ? 0.16 : 0.08), location: 0.40),
+                                        .init(color: Color.white.opacity(isOpen ? 0.08 : 0.04), location: 1.0)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
                     }
             }
             .conditionalModifier(!isIsland) { view in
@@ -374,7 +413,18 @@ struct ContentView: View {
                     }
                     .overlay {
                         currentNotchShape
-                            .stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0), lineWidth: 0.8)
+                            .stroke(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: Color.white.opacity(isOpen ? 0.32 : 0), location: 0.0),
+                                        .init(color: Color.white.opacity(isOpen ? 0.14 : 0), location: 0.35),
+                                        .init(color: Color.white.opacity(isOpen ? 0.06 : 0), location: 1.0)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.75
+                            )
                     }
             }
             .compositingGroup()
@@ -412,6 +462,9 @@ struct ContentView: View {
                             .onTapGesture {
                                 if shouldHandleFaceIDTap() {
                                     FaceIDOverlayController.shared.activate()
+                                    return
+                                }
+                                if MissionControlObserver.shared.checkIsMissionControlActive() {
                                     return
                                 }
                                 if vm.notchState == .closed {
@@ -453,7 +506,16 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.notchState) { _, newState in
-                        if newState == .closed {
+                        if newState == .open {
+                            MissionControlObserver.shared.startMonitoring {
+                                Task { @MainActor in
+                                    if self.vm.notchState == .open && self.canCloseOnHoverExit {
+                                        self.doClose()
+                                    }
+                                }
+                            }
+                        } else if newState == .closed {
+                            MissionControlObserver.shared.stopMonitoring()
                             hoverOpenTask?.cancel()
                             hoverOpenTask = nil
                             hoverCloseTask?.cancel()
@@ -767,7 +829,7 @@ struct ContentView: View {
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
             }
         }
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
+        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting, onDropReceived: { vm.dropEvent = true }))
     }
 
     @ViewBuilder
@@ -928,7 +990,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var topEdgeHoverSensor: some View {
-        if vm.notchState == .closed && !isEffectivelyLocked {
+        if vm.notchState == .closed && !isEffectivelyLocked && !MissionControlObserver.shared.checkIsMissionControlActive() {
             let extraPad: CGFloat = extendHoverArea ? CGFloat(hoverAreaPadding) : 0
             let sensorWidth: CGFloat = (isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth) + (extraPad * 2)
             let sensorHeight: CGFloat = (isDynamicIsland ? (effectiveTopOffset + 32) : baseClosedHeight) + extraPad
@@ -950,6 +1012,9 @@ struct ContentView: View {
                         FaceIDOverlayController.shared.activate()
                         return
                     }
+                    if MissionControlObserver.shared.checkIsMissionControlActive() {
+                        return
+                    }
                     if vm.notchState == .closed {
                         doOpen()
                     }
@@ -963,8 +1028,8 @@ struct ContentView: View {
     }
 
     private func doOpen() {
+        guard !MissionControlObserver.shared.checkIsMissionControlActive() else { return }
         coordinator.dismissExpandingView(animated: false)
-        coordinator.sneakPeek.show = false
         hoverOpenTask?.cancel()
         hoverOpenTask = nil
         hoverCloseTask?.cancel()
@@ -1011,6 +1076,16 @@ struct ContentView: View {
             hoverCloseTask?.cancel()
             hoverCloseTask = nil
 
+            // Block hover expansion when Mission Control is active!
+            if MissionControlObserver.shared.checkIsMissionControlActive() {
+                hoverOpenTask?.cancel()
+                hoverOpenTask = nil
+                if vm.notchState == .open && canCloseOnHoverExit {
+                    self.doClose()
+                }
+                return
+            }
+
             if isEffectivelyLocked {
                 FaceIDOverlayController.shared.activate()
                 return
@@ -1051,6 +1126,7 @@ struct ContentView: View {
                       !self.isEffectivelyLocked,
                       self.vm.notchState == .closed,
                       self.isHovering,
+                      !MissionControlObserver.shared.checkIsMissionControlActive(),
                       !self.coordinator.sneakPeek.show else { return }
                 self.doOpen()
                 self.hoverOpenTask = nil
@@ -1109,6 +1185,7 @@ struct FullScreenDropDelegate: DropDelegate {
 
 struct GeneralDropTargetDelegate: DropDelegate {
     @Binding var isTargeted: Bool
+    var onDropReceived: (() -> Void)? = nil
 
     func dropEntered(info: DropInfo) {
         isTargeted = true
@@ -1129,6 +1206,7 @@ struct GeneralDropTargetDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         isTargeted = false
+        onDropReceived?()
         let providers = info.itemProviders(for: [.fileURL, .url, .utf8PlainText, .plainText, .data])
         if !providers.isEmpty {
             ShelfStateViewModel.shared.load(providers)

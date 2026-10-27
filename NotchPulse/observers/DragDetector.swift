@@ -20,6 +20,7 @@ final class DragDetector {
     private var mouseDownPasteboardCount: Int = -1
     private var lastKnownIdleCount: Int = -1
     private var isContentDragging: Bool = false
+    var isDragging: Bool { isContentDragging }
     private var hasEnteredNotchRegion: Bool = false
     private var lastCheckedDragCount: Int = -1
     private var cachedHasValidContent: Bool = false

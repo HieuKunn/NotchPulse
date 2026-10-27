@@ -10,21 +10,23 @@ struct HoverButton: View {
     @State private var isHovering = false
 
     var body: some View {
-        let size = CGFloat(scale == .large ? 40 : 30)
+        let size = CGFloat(scale == .large ? 36 : 28)
         
         Button(action: action) {
             ZStack {
-                Color.black.opacity(0.001)
-                Capsule()
-                    .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
+                Circle()
+                    .fill(isHovering ? Color.white.opacity(0.12) : Color.clear)
+                    .frame(width: size, height: size)
+                Circle()
+                    .stroke(isHovering ? Color.white.opacity(0.16) : Color.clear, lineWidth: 0.5)
                     .frame(width: size, height: size)
                 Image(systemName: icon)
-                    .foregroundColor(iconColor)
+                    .foregroundStyle(iconColor)
                     .contentTransition(contentTransition)
-                    .font(scale == .large ? .largeTitle : .body)
+                    .font(scale == .large ? .title3.weight(.bold) : .system(size: 12, weight: .semibold))
             }
             .frame(width: size, height: size)
-            .contentShape(Rectangle())
+            .contentShape(Circle())
         }
         .buttonStyle(PlainButtonStyle())
         .onHover { hovering in

@@ -411,25 +411,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = nil
         dragAutoCloseTasks[uuid]?.cancel()
+        dragAutoCloseTasks[uuid] = nil
         
         SharingStateManager.shared.preventNotchClose = true
         
+        let targetVM = (Defaults[.showOnAllDisplays] ? viewModels[uuid] : nil) ?? vm
+        
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-                viewModel.open()
-            } else {
-                vm.open()
-            }
             coordinator.currentView = .shelf
+            targetVM.open()
         }
         
-        // Auto-close if drag enters but is left idle without dropping within close delay
-        let delaySeconds = max(2.0, Defaults[.shakeAutoCloseDelay])
+        // Ensure window is brought to front above active Finder or other windows
+        if Defaults[.showOnAllDisplays] {
+            if let win = NotchSpaceManager.shared.notchSpace.windows.first(where: { $0.screen == screen || $0.screen?.displayUUID == uuid }) {
+                win.orderFrontRegardless()
+            } else {
+                window?.orderFrontRegardless()
+            }
+        } else {
+            window?.orderFrontRegardless()
+        }
+        
+        // Auto-close only if drag enters but is left completely idle without dropping, dragging, or hovering
+        let delaySeconds = max(4.0, Defaults[.shakeAutoCloseDelay])
         dragAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(delaySeconds))
             guard !Task.isCancelled, let self = self else { return }
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            if !targetVM.dropEvent && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
+            let detector = self.dragDetectors[uuid]
+            if !targetVM.anyDropZoneTargeting &&
+               !targetVM.dropEvent &&
+               !(detector?.isDragging ?? false) &&
+               !targetVM.isMouseHovering() &&
+               !ShelfStateViewModel.shared.isPinned &&
+               !CalendarStateViewModel.shared.isPinned &&
+               targetVM.notchState == .open {
                 SharingStateManager.shared.preventNotchClose = false
                 targetVM.close()
             }
@@ -442,11 +459,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid]?.cancel()
         dragAutoCloseTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled, let self = self else { return }
             
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
+            guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent && !targetVM.isMouseHovering() else { return }
             
             SharingStateManager.shared.preventNotchClose = false
             if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
@@ -461,19 +478,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid]?.cancel()
         dragAutoCloseTasks[uuid]?.cancel()
         
-        // Immediately close when drag is dropped or cancelled, without waiting
-        SharingStateManager.shared.preventNotchClose = false
-        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-        targetVM.dropEvent = false
-        targetVM.anyDropZoneTargeting = false
-        targetVM.generalDropTargeting = false
-        targetVM.shelfDropTargeting = false
-        targetVM.dragDetectorTargeting = false
-        targetVM.dropZoneTargeting = false
-        targetVM.shareDropTargeting = false
-        
-        if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
-            targetVM.close()
+        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
+            // Give AppKit / SwiftUI drop operations time to complete performDrop and load providers
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled, let self = self else { return }
+            
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            SharingStateManager.shared.preventNotchClose = false
+            
+            // If the item was dropped into the shelf or cursor is still hovering over the notch,
+            // keep the shelf open so the user can see their added item and interact with it
+            if targetVM.dropEvent || targetVM.isMouseHovering() || ShelfStateViewModel.shared.isPinned || CalendarStateViewModel.shared.isPinned {
+                targetVM.dropEvent = false
+                self.resetAllDropAndDragTargeting()
+                return
+            }
+            
+            self.resetAllDropAndDragTargeting()
+            if targetVM.notchState == .open {
+                targetVM.close()
+            }
         }
     }
 

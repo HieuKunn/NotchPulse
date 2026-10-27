@@ -76,6 +76,7 @@ class NotchPulseSkyLightWindow: NSPanel {
         hasShadow = false
         isReleasedWhenClosed = false
         acceptsMouseMovedEvents = true
+        hidesOnDeactivate = false
         
         // Force dark appearance regardless of system setting
         appearance = NSAppearance(named: .darkAqua)

@@ -332,29 +332,30 @@ struct FeatureTourView: View {
                     onFinish()
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.title3)
                         .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.borderless)
+                .help(loc("Close Tour"))
             }
             
             // Description
             Text(loc(currentStep.description))
-                .font(.system(size: 13, weight: .regular))
+                .font(.body)
                 .foregroundStyle(.primary)
-                .lineSpacing(4)
+                .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .id("desc_\(currentStepIndex)_\(appLanguage.rawValue)")
             
             // Footer Navigation
-            HStack(spacing: 8) {
-                // Dots
+            HStack(spacing: 10) {
+                // Progress Dots
                 HStack(spacing: 5) {
                     ForEach(0..<steps.count, id: \.self) { index in
                         Capsule()
-                            .fill(index == currentStepIndex ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
-                            .frame(width: index == currentStepIndex ? 16 : 6, height: 6)
+                            .fill(index == currentStepIndex ? AnyShapeStyle(Color.effectiveAccent) : AnyShapeStyle(.quaternary))
+                            .frame(width: index == currentStepIndex ? 18 : 6, height: 6)
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStepIndex)
                     }
                 }
@@ -362,18 +363,12 @@ struct FeatureTourView: View {
                 Spacer()
                 
                 if currentStepIndex > 0 {
-                    Button(action: {
+                    Button(loc("Back")) {
                         currentStepIndex -= 1
                         updateNotch()
-                    }) {
-                        Text(loc("Back"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Capsule().fill(.quaternary))
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
                 }
                 
                 Button(action: {
@@ -389,25 +384,22 @@ struct FeatureTourView: View {
                         Text(loc(currentStepIndex < steps.count - 1 ? "Next" : "Finish"))
                         if currentStepIndex < steps.count - 1 {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.caption.weight(.bold))
                         }
                     }
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .background(Capsule().fill(Color.effectiveAccent))
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .tint(Color.effectiveAccent)
             }
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.regularMaterial)
+                .fill(.thickMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                        .stroke(Color.separator, lineWidth: 0.5)
                 )
         )
         .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)

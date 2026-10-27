@@ -3,6 +3,8 @@ import SwiftUI
 import Defaults
 
 final class PassthroughTourHostingView<Content: View>: NSHostingView<Content> {
+    override var isFlipped: Bool { true }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard FeatureTourController.shared.isTourActive else {
             return super.hitTest(point)
@@ -10,8 +12,8 @@ final class PassthroughTourHostingView<Content: View>: NSHostingView<Content> {
         guard let cardRect = FeatureTourController.shared.interactiveCardRect else {
             return nil
         }
-        // point in hitTest is in window / superview coordinates. Convert to local flipped coordinates:
-        let localPoint = self.convert(point, from: self.superview)
+        // Convert point from window coordinates to view's flipped coordinates
+        let localPoint = self.convert(point, from: nil)
         let expandedCardRect = cardRect.insetBy(dx: -12, dy: -12)
         if expandedCardRect.contains(localPoint) {
             return super.hitTest(point)

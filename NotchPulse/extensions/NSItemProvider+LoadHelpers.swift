@@ -14,6 +14,12 @@ extension NSItemProvider {
         if hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             return await loadFileURL(typeIdentifier: UTType.fileURL.identifier)
         }
+        if hasItemConformingToTypeIdentifier("com.apple.finder.node") {
+            return await loadFileURL(typeIdentifier: "com.apple.finder.node")
+        }
+        if hasItemConformingToTypeIdentifier("NSFilenamesPboardType") {
+            return await loadFileURL(typeIdentifier: "NSFilenamesPboardType")
+        }
         return nil
     }
     
