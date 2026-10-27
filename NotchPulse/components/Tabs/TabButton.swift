@@ -9,8 +9,7 @@ struct TabButton: View {
     var body: some View {
         Button(action: onClick) {
             Image(systemName: icon)
-                .font(.system(size: 11.5, weight: selected ? .semibold : .medium))
-                .padding(.horizontal, 13)
+                .padding(.horizontal, 15)
                 .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
         }

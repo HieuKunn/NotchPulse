@@ -7,21 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E80000020000000100000001 /* SettingsSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80000010000000100000001 /* SettingsSharedComponents.swift */; };
-		E82000000000000100000001 /* AboutSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000000000000100000001 /* AboutSettingsPage.swift */; };
-		E82000010000000100000001 /* AdvancedSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000010000000100000001 /* AdvancedSettingsPage.swift */; };
-		E82000020000000100000001 /* AppearanceSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000020000000100000001 /* AppearanceSettingsPage.swift */; };
-		E82000030000000100000001 /* AudioSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000030000000100000001 /* AudioSettingsPage.swift */; };
-		E82000040000000100000001 /* CalendarSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000040000000100000001 /* CalendarSettingsPage.swift */; };
-		E82000050000000100000001 /* ClipboardSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000050000000100000001 /* ClipboardSettingsPage.swift */; };
-		E82000060000000100000001 /* DisplaySettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000060000000100000001 /* DisplaySettingsPage.swift */; };
-		E82000070000000100000001 /* GeneralSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000070000000100000001 /* GeneralSettingsPage.swift */; };
-		E82000080000000100000001 /* HUDSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000080000000100000001 /* HUDSettingsPage.swift */; };
-		E82000090000000100000001 /* LanguageSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81000090000000100000001 /* LanguageSettingsPage.swift */; };
-		E820000A0000000100000001 /* MediaSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E810000A0000000100000001 /* MediaSettingsPage.swift */; };
-		E820000B0000000100000001 /* ShelfSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E810000B0000000100000001 /* ShelfSettingsPage.swift */; };
-		E820000C0000000100000001 /* ShortcutsSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E810000C0000000100000001 /* ShortcutsSettingsPage.swift */; };
-		E820000D0000000100000001 /* SystemMonitorSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E810000D0000000100000001 /* SystemMonitorSettingsPage.swift */; };
 		00F5A59EDEF40C44ACAA05B8 /* NotchPulseFaceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF2E8CFBDCE7190F18A1B1C /* NotchPulseFaceDetector.swift */; };
 		0152AAE85AAC764E2898AF1C /* FeatureTourView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA1B2CCE41EDFBB9BFA5DD4 /* FeatureTourView.swift */; };
 		06E0CC5B63D38C4AC96E9439 /* FaceIDOnboardingControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */; };
@@ -291,21 +276,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		E80000010000000100000001 /* SettingsSharedComponents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsSharedComponents.swift; sourceTree = "<group>"; };
-		E81000000000000100000001 /* AboutSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AboutSettingsPage.swift; sourceTree = "<group>"; };
-		E81000010000000100000001 /* AdvancedSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsPage.swift; sourceTree = "<group>"; };
-		E81000020000000100000001 /* AppearanceSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppearanceSettingsPage.swift; sourceTree = "<group>"; };
-		E81000030000000100000001 /* AudioSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioSettingsPage.swift; sourceTree = "<group>"; };
-		E81000040000000100000001 /* CalendarSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalendarSettingsPage.swift; sourceTree = "<group>"; };
-		E81000050000000100000001 /* ClipboardSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClipboardSettingsPage.swift; sourceTree = "<group>"; };
-		E81000060000000100000001 /* DisplaySettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DisplaySettingsPage.swift; sourceTree = "<group>"; };
-		E81000070000000100000001 /* GeneralSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPage.swift; sourceTree = "<group>"; };
-		E81000080000000100000001 /* HUDSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HUDSettingsPage.swift; sourceTree = "<group>"; };
-		E81000090000000100000001 /* LanguageSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LanguageSettingsPage.swift; sourceTree = "<group>"; };
-		E810000A0000000100000001 /* MediaSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MediaSettingsPage.swift; sourceTree = "<group>"; };
-		E810000B0000000100000001 /* ShelfSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShelfSettingsPage.swift; sourceTree = "<group>"; };
-		E810000C0000000100000001 /* ShortcutsSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShortcutsSettingsPage.swift; sourceTree = "<group>"; };
-		E810000D0000000100000001 /* SystemMonitorSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SystemMonitorSettingsPage.swift; sourceTree = "<group>"; };
 		01E04BBA519F17AAAEC83683 /* FaceIDOnboardingControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOnboardingControls.swift; sourceTree = "<group>"; };
 		09DEF060F7197B05866F7137 /* FaceIDMinimalUnlockView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDMinimalUnlockView.swift; sourceTree = "<group>"; };
 		0A7355EF797D41B289F17CA2 /* ClipboardNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardNotchView.swift; sourceTree = "<group>"; };
@@ -985,32 +955,9 @@
 			path = Notch;
 			sourceTree = "<group>";
 		};
-				E80000030000000100000001 /* Pages */ = {
-			isa = PBXGroup;
-			children = (
-				E81000000000000100000001 /* AboutSettingsPage.swift */,
-				E81000010000000100000001 /* AdvancedSettingsPage.swift */,
-				E81000020000000100000001 /* AppearanceSettingsPage.swift */,
-				E81000030000000100000001 /* AudioSettingsPage.swift */,
-				E81000040000000100000001 /* CalendarSettingsPage.swift */,
-				E81000050000000100000001 /* ClipboardSettingsPage.swift */,
-				E81000060000000100000001 /* DisplaySettingsPage.swift */,
-				E81000070000000100000001 /* GeneralSettingsPage.swift */,
-				E81000080000000100000001 /* HUDSettingsPage.swift */,
-				E81000090000000100000001 /* LanguageSettingsPage.swift */,
-				E810000A0000000100000001 /* MediaSettingsPage.swift */,
-				E810000B0000000100000001 /* ShelfSettingsPage.swift */,
-				E810000C0000000100000001 /* ShortcutsSettingsPage.swift */,
-				E810000D0000000100000001 /* SystemMonitorSettingsPage.swift */,
-			);
-			path = Pages;
-			sourceTree = "<group>";
-		};
 		B18654302C6F4590000B926A /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				E80000010000000100000001 /* SettingsSharedComponents.swift */,
-				E80000030000000100000001 /* Pages */,
 				F1D200082ED0000100000001 /* FaceIDSettingsView.swift */,
 				11F748832ECB27DC00F841DB /* MusicSlotConfigurationView.swift */,
 				11C5E3152DFE88510065821E /* SettingsView.swift */,
@@ -1283,21 +1230,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E80000020000000100000001 /* SettingsSharedComponents.swift in Sources */,
-				E82000000000000100000001 /* AboutSettingsPage.swift in Sources */,
-				E82000010000000100000001 /* AdvancedSettingsPage.swift in Sources */,
-				E82000020000000100000001 /* AppearanceSettingsPage.swift in Sources */,
-				E82000030000000100000001 /* AudioSettingsPage.swift in Sources */,
-				E82000040000000100000001 /* CalendarSettingsPage.swift in Sources */,
-				E82000050000000100000001 /* ClipboardSettingsPage.swift in Sources */,
-				E82000060000000100000001 /* DisplaySettingsPage.swift in Sources */,
-				E82000070000000100000001 /* GeneralSettingsPage.swift in Sources */,
-				E82000080000000100000001 /* HUDSettingsPage.swift in Sources */,
-				E82000090000000100000001 /* LanguageSettingsPage.swift in Sources */,
-				E820000A0000000100000001 /* MediaSettingsPage.swift in Sources */,
-				E820000B0000000100000001 /* ShelfSettingsPage.swift in Sources */,
-				E820000C0000000100000001 /* ShortcutsSettingsPage.swift in Sources */,
-				E820000D0000000100000001 /* SystemMonitorSettingsPage.swift in Sources */,
 				B1AD00032ED0000100000003 /* AudioHubNotchView.swift in Sources */,
 				B1DD00032ED0000100000003 /* DisplayHubNotchView.swift in Sources */,
 				B1AD00052ED0000100000005 /* AudioDeviceManager.swift in Sources */,
@@ -1506,7 +1438,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 404;
+				CURRENT_PROJECT_VERSION = 403;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1514,7 +1446,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1532,7 +1464,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 404;
+				CURRENT_PROJECT_VERSION = 403;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1540,7 +1472,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1689,7 +1621,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 404;
+				CURRENT_PROJECT_VERSION = 403;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1716,7 +1648,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1743,7 +1675,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 404;
+				CURRENT_PROJECT_VERSION = 403;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1769,7 +1701,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

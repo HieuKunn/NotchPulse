@@ -234,7 +234,13 @@ struct InlineHUD: View {
     static func totalWidth(for type: SneakContentType, isDynamicIsland: Bool, hasPhysicalNotch: Bool = false, closedNotchWidth: CGFloat) -> CGFloat {
         let wing = wingWidth(for: type)
         let center = centerSpacerWidth(isDynamicIsland: isDynamicIsland, hasPhysicalNotch: hasPhysicalNotch, closedNotchWidth: closedNotchWidth, type: type)
-        let sideMargin: CGFloat = (type == .battery && hasPhysicalNotch) ? 12 : 0
+        let sideMargin: CGFloat
+        if type == .battery {
+            sideMargin = hasPhysicalNotch ? 12 : 0
+        } else {
+            // Provide subtle black margin (8pt per side) so volume & brightness HUDs don't sit right against the curved corners
+            sideMargin = 16
+        }
         return (wing * 2) + center + sideMargin
     }
 }

@@ -347,7 +347,6 @@ struct ContentView: View {
         let isHiddenInFS = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
         let offscreenDistance = currentNotchHeight + (isIsland ? effectiveTopOffset : 0) + 30
         let slideOffset: CGFloat = isHiddenInFS ? -offscreenDistance : 0
-        let isOpen = vm.notchState == .open
 
         NotchLayout()
             .frame(
@@ -355,51 +354,13 @@ struct ContentView: View {
                 height: currentNotchHeight,
                 alignment: .top
             )
-            .background {
-                if isOpen {
-                    ZStack {
-                        // Native macOS Ultra Thick Material for desktop translucency & refraction
-                        Rectangle()
-                            .fill(.ultraThickMaterial)
-
-                        // Deep Liquid Obsidian Glass gradient:
-                        // Starts 100% black at the very top to seamlessly merge with the MacBook physical camera notch,
-                        // and gently transitions to deep obsidian glass down the contour.
-                        Rectangle()
-                            .fill(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: Color.black, location: 0.0),
-                                        .init(color: Color.black.opacity(0.94), location: 0.20),
-                                        .init(color: Color.black.opacity(0.86), location: 1.0)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                    }
-                } else {
-                    // Closed state: pure black to match hardware notch exactly
-                    Color.black
-                }
-            }
+            .background(.black)
             .conditionalModifier(isIsland) { view in
                 view
                     .clipShape(RoundedRectangle(cornerRadius: islandRadius, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: islandRadius, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: Color.white.opacity(isOpen ? 0.35 : 0.12), location: 0.0),
-                                        .init(color: Color.white.opacity(isOpen ? 0.16 : 0.08), location: 0.40),
-                                        .init(color: Color.white.opacity(isOpen ? 0.08 : 0.04), location: 1.0)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 0.8
-                            )
+                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
                     }
             }
             .conditionalModifier(!isIsland) { view in
@@ -413,18 +374,7 @@ struct ContentView: View {
                     }
                     .overlay {
                         currentNotchShape
-                            .stroke(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: Color.white.opacity(isOpen ? 0.32 : 0), location: 0.0),
-                                        .init(color: Color.white.opacity(isOpen ? 0.14 : 0), location: 0.35),
-                                        .init(color: Color.white.opacity(isOpen ? 0.06 : 0), location: 1.0)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 0.75
-                            )
+                            .stroke(Color.white.opacity((isDynamicIsland && vm.notchState == .open) ? 0.10 : 0), lineWidth: 0.8)
                     }
             }
             .compositingGroup()
@@ -1030,6 +980,7 @@ struct ContentView: View {
     private func doOpen() {
         guard !MissionControlObserver.shared.checkIsMissionControlActive() else { return }
         coordinator.dismissExpandingView(animated: false)
+        coordinator.sneakPeek.show = false
         hoverOpenTask?.cancel()
         hoverOpenTask = nil
         hoverCloseTask?.cancel()

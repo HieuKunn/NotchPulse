@@ -26,20 +26,33 @@ struct LockScreenMediaView: View {
     
     @State private var showCompactVolumeSlider: Bool = false
     @State private var showFullScreenVolumeSlider: Bool = false
+    @State private var localVolume: Double? = nil
+    @State private var lastVolumeUpdateTime: Date = .distantPast
     
-    private let lyricsTimer = Timer.publish(every: 0.35, tolerance: 0.1, on: .main, in: .common).autoconnect()
+    private let lyricsTimer = Timer.publish(every: 0.4, tolerance: 0.1, on: .main, in: .common).autoconnect()
     
     private var isLightMode: Bool {
         windowController.isLightMode
     }
     
-    private var compactArtistColor: Color {
-        if playerColorTinting {
-            return isLightMode
-                ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.35)
-                : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.75)
-        }
-        return .secondary
+    private var compactCardBg: Color {
+        Color(nsColor: .windowBackgroundColor)
+    }
+    
+    private var compactCardBorder: Color {
+        Color(nsColor: .separatorColor)
+    }
+    
+    private var compactPrimaryText: Color {
+        Color.primary
+    }
+    
+    private var compactSecondaryText: Color {
+        Color.secondary
+    }
+    
+    private var compactIconColor: Color {
+        Color.primary
     }
     
     var body: some View {
@@ -85,9 +98,17 @@ struct LockScreenMediaView: View {
     }
     
     // =========================================================================
-    // MARK: - 1. Compact Player View (Apple HIG Native Lock Screen Widget)
+    // MARK: - 1. Compact Player View (iPhone-style Lock Screen Card)
     // =========================================================================
-    
+    private var compactArtistColor: Color {
+        if playerColorTinting {
+            return isLightMode
+                ? Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.35)
+                : Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.75)
+        }
+        return compactSecondaryText
+    }
+
     private var compactAlbumArtView: some View {
         ZStack(alignment: .bottomTrailing) {
             Image(nsImage: musicManager.albumArt)
@@ -96,48 +117,49 @@ struct LockScreenMediaView: View {
                 .frame(width: 54, height: 54)
                 .overlay {
                     if !musicManager.isPlaying {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.black.opacity(0.30))
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.black.opacity(0.35))
                             .allowsHitTesting(false)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             
+            // Icon app phát nhạc (Apple Music, Spotify, ...)
             if !musicManager.usingAppIconForArtwork && !musicManager.songTitle.isEmpty {
                 AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 16, height: 16)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
-                    )
                     .offset(x: 3, y: 3)
             }
         }
-        .scaleEffect(musicManager.isPlaying ? 1.0 : 0.94)
+        .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
     }
 
     private var compactHeaderRow: some View {
         HStack(alignment: .center, spacing: 12) {
-            compactAlbumArtView
+            // Album Art (54x54) - Tương tự AlbumArtView trong Notch
+            Button {
+                windowController.setFullScreen(true)
+            } label: {
+                compactAlbumArtView
+            }
+            .buttonStyle(.plain)
+            .help("Click to expand to full-screen lyrics")
             
-            VStack(alignment: .leading, spacing: 3) {
+            // Tên bài hát & Ca sĩ hiển thị cố định, dài quá thì "..."
+            VStack(alignment: .leading, spacing: 2) {
                 Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(compactPrimaryText)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(maxWidth: 270, alignment: .leading)
+                    .frame(maxWidth: 268, alignment: .leading)
                 
                 Text(musicManager.artistName)
-                    .font(.subheadline)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundStyle(compactArtistColor)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -148,10 +170,28 @@ struct LockScreenMediaView: View {
         }
     }
 
+    private var compactQuoteBubbleColor: Color {
+        if isLightMode {
+            return Color(nsColor: musicManager.avgColor).ensureMaximumBrightness(factor: 0.45)
+        } else {
+            return Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.85)
+        }
+    }
+
+    private func compactLyricColor(isActive: Bool) -> Color {
+        if isLightMode {
+            if musicManager.isFetchingLyrics { return Color.black.opacity(0.50) }
+            return isActive ? Color.black.opacity(0.92) : Color.black.opacity(0.58)
+        } else {
+            if musicManager.isFetchingLyrics { return Color.white.opacity(0.60) }
+            return isActive ? Color.white.opacity(0.95) : Color.white.opacity(0.65)
+        }
+    }
+
     private func resolveCompactLyricText(elapsed: Double) -> (text: String, isPersian: Bool) {
         let line: String
         if musicManager.isFetchingLyrics {
-            line = loc("Loading lyrics…")
+            line = "Loading lyrics…"
         } else if !musicManager.syncedLyrics.isEmpty {
             line = musicManager.lyricLine(at: elapsed)
         } else {
@@ -173,24 +213,27 @@ struct LockScreenMediaView: View {
             let activeIndex = musicManager.currentLyricIndex(at: effectiveElapsed)
             let lyric = resolveCompactLyricText(elapsed: effectiveElapsed)
             
-            HStack(spacing: 6) {
-                Image(systemName: "quote.bubble.fill")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.tint)
-                
-                Text(lyric.text)
-                    .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(lyric.text)")
-                    .font(lyric.isPersian ? .custom("Vazirmatn-Regular", size: 12) : .caption.weight(.medium))
-                    .foregroundStyle(activeIndex != nil ? .primary : .secondary)
-                    .lineLimit(1)
-                    .transition(.opacity.combined(with: .offset(y: 2)))
-                    .animation(.easeInOut(duration: 0.25), value: activeIndex)
-                
-                Spacer(minLength: 0)
+            Button {
+                windowController.setFullScreen(true)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "quote.bubble.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(compactQuoteBubbleColor)
+                    
+                    Text(lyric.text)
+                        .id(activeIndex != nil ? "compact-lyric-\(activeIndex!)" : "compact-lyric-\(lyric.text)")
+                        .font(lyric.isPersian ? .custom("Vazirmatn-Regular", size: 12) : .system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(compactLyricColor(isActive: activeIndex != nil))
+                        .lineLimit(1)
+                        .transition(.opacity.combined(with: .offset(y: 2)))
+                        .animation(.easeInOut(duration: 0.25), value: activeIndex)
+                    
+                    Spacer()
+                }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(.quaternary.opacity(0.45), in: Capsule())
+            .buttonStyle(.plain)
+            .help("Click to expand to full-screen lyrics")
         }
     }
 
@@ -218,8 +261,9 @@ struct LockScreenMediaView: View {
         HStack(spacing: 0) {
             Spacer()
             
+            // Các nút điều khiển theo cấu hình slots đã cài đặt
             let slots = activeSlots
-            HStack(spacing: slots.count > 3 ? 18 : 26) {
+            HStack(spacing: slots.count > 3 ? 18 : 28) {
                 ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
                     compactSlotButton(for: slot)
                 }
@@ -232,13 +276,16 @@ struct LockScreenMediaView: View {
         }
     }
 
+    // =========================================================================
+    // MARK: - 1. Compact Player View (iPhone-style Lock Screen Card)
+    // =========================================================================
     private var compactPlayerView: some View {
         let hasLyrics = lockScreenPlayerShowLyrics && (
             !musicManager.syncedLyrics.isEmpty ||
             !musicManager.currentLyrics.isEmpty
         )
         
-        return VStack(spacing: 10) {
+        return VStack(spacing: 9) {
             compactHeaderRow
             
             if hasLyrics {
@@ -252,42 +299,45 @@ struct LockScreenMediaView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .frame(width: LockScreenMediaWindow.compactCardWidth, height: hasLyrics ? 228 : 190)
-        .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(.separator.opacity(0.35), lineWidth: 0.5)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(compactCardBg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .strokeBorder(compactCardBorder, lineWidth: 1.2)
+                )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
     
     // =========================================================================
-    // MARK: - 2. Full-Screen Immersive Player View (Apple Music Style Karaoke)
+    // MARK: - 2. Full-Screen Immersive Player View (Ảnh bìa to + Lời bài hát)
     // =========================================================================
-    
     private var fullScreenPlayerView: some View {
         ZStack {
+            // Nền Ambient lấy trực tiếp ảnh bìa bài hát phóng to và làm mờ tràn viền toàn màn hình
             ambientDynamicBackground
             
             GeometryReader { geo in
                 let w = geo.size.width
                 let h = geo.size.height
-                let albumSize = min(max(h * 0.44, 280), 520)
+                let albumSize = min(max(h * 0.44, 280), 550)
                 let contentWidth = w * 0.85
                 let hasLyrics = !musicManager.syncedLyrics.isEmpty || !musicManager.currentLyrics.isEmpty
                 
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    HStack(alignment: .center, spacing: w * 0.06) {
+                    HStack(alignment: .center, spacing: w * 0.05) {
                         if hasLyrics {
                             fullScreenLeftColumn(albumSize: albumSize)
-                                .frame(width: contentWidth * 0.44)
+                                .frame(width: contentWidth * 0.45)
                             
-                            fullScreenLyricsColumn(columnWidth: contentWidth * 0.52, viewHeight: h * 0.72)
-                                .frame(width: contentWidth * 0.52)
+                            fullScreenLyricsColumn(columnWidth: contentWidth * 0.50, viewHeight: h * 0.7)
+                                .frame(width: contentWidth * 0.50)
                         } else {
                             fullScreenLeftColumn(albumSize: albumSize)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                                .frame(width: albumSize * 1.3)
                         }
                     }
                     .padding(.horizontal, w * 0.075)
@@ -300,36 +350,36 @@ struct LockScreenMediaView: View {
         .ignoresSafeArea()
     }
     
+    // Nền Ambient lấy trực tiếp ảnh bìa bài hát phóng to và làm mờ tràn toàn màn hình
     private var ambientDynamicBackground: some View {
         GeometryReader { geo in
             ZStack {
+                // Lớp nền đen sâu đề phòng khi ảnh đang load hoặc trong suốt
                 Color.black
                 
+                // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
                 Image(nsImage: musicManager.albumArt)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: geo.size.width, height: geo.size.height)
-                    .scaleEffect(1.3)
-                    .blur(radius: 70, opaque: true)
-                
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                
-                Color.black.opacity(0.30)
+                    .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
+                    .blur(radius: 65, opaque: true)
+                    .overlay(
+                        // Lớp phủ đen trong suốt nhẹ để chữ và điều khiển luôn tương phản rõ nét
+                        Color.black.opacity(0.35)
+                    )
             }
             .frame(width: geo.size.width, height: geo.size.height)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                windowController.setFullScreen(false)
-            }
             .clipped()
             .animation(.easeInOut(duration: 0.5), value: musicManager.albumArt)
         }
         .ignoresSafeArea()
     }
     
+    // Cột trái Full Screen: Ảnh bài hát to + Thông tin + Điều khiển
     private func fullScreenLeftColumn(albumSize: CGFloat) -> some View {
         VStack(spacing: albumSize * 0.07) {
+            // Ảnh bìa bài hát to nổi bật (bấm vào để thu nhỏ về compact)
             Button {
                 windowController.setFullScreen(false)
             } label: {
@@ -341,16 +391,11 @@ struct LockScreenMediaView: View {
                         .overlay {
                             if !musicManager.isPlaying {
                                 RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
-                                    .fill(Color.black.opacity(0.30))
+                                    .fill(Color.black.opacity(0.35))
                                     .allowsHitTesting(false)
                             }
                         }
                         .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
-                        )
-                        .shadow(color: .black.opacity(0.35), radius: 24, x: 0, y: 12)
                     
                     if !musicManager.usingAppIconForArtwork && !musicManager.songTitle.isEmpty {
                         AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
@@ -358,10 +403,6 @@ struct LockScreenMediaView: View {
                             .aspectRatio(contentMode: .fit)
                             .frame(width: albumSize * 0.11, height: albumSize * 0.11)
                             .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.025, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: albumSize * 0.025, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
-                            )
                             .offset(x: albumSize * 0.02, y: albumSize * 0.02)
                     }
                 }
@@ -369,8 +410,9 @@ struct LockScreenMediaView: View {
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
             }
             .buttonStyle(.plain)
-            .help(loc("Click artwork to collapse"))
+            .help("Click artwork to collapse")
             
+            // Thông tin bài hát
             VStack(spacing: albumSize * 0.02) {
                 Text(musicManager.songTitle.isEmpty ? (musicManager.isPlayerIdle ? loc("Not Playing") : "") : musicManager.songTitle)
                     .font(.system(size: max(albumSize * 0.075, 20), weight: .bold, design: .rounded))
@@ -380,20 +422,21 @@ struct LockScreenMediaView: View {
                     .multilineTextAlignment(.center)
                 
                 Text(musicManager.artistName)
-                    .font(.system(size: max(albumSize * 0.052, 15), weight: .medium, design: .rounded))
-                    .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.82))
+                    .font(.system(size: max(albumSize * 0.055, 15), weight: .medium, design: .rounded))
+                    .foregroundStyle(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.8))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 
                 if !musicManager.album.isEmpty {
                     Text(musicManager.album)
                         .font(.system(size: max(albumSize * 0.04, 12), weight: .regular))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(.white.opacity(0.5))
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
             }
             
+            // Thanh tiến trình lớn tương tác
             TimelineView(.animation(minimumInterval: 0.5, paused: musicManager.playbackRate <= 0)) { timeline in
                 let currentEstimated = musicManager.estimatedPlaybackPosition(at: timeline.date)
                 
@@ -412,6 +455,7 @@ struct LockScreenMediaView: View {
                 .frame(width: albumSize * 1.3)
             }
             
+            // Bộ phím điều khiển đồng bộ
             let slots = activeSlots
             HStack(spacing: slots.count > 3 ? 20 : 28) {
                 ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
@@ -424,6 +468,7 @@ struct LockScreenMediaView: View {
         }
     }
     
+    // Cột phải Full Screen: Lời bài hát đồng bộ toàn màn hình
     @ViewBuilder
     private func fullScreenLyricsColumn(columnWidth: CGFloat, viewHeight: CGFloat) -> some View {
         let baseFontSize = min(max(columnWidth * 0.065, 24), 48)
@@ -457,7 +502,7 @@ struct LockScreenMediaView: View {
                                             isCurrent
                                             ? Color.white
                                             : isPast
-                                            ? Color.white.opacity(0.35)
+                                            ? Color.white.opacity(0.32)
                                             : Color.white.opacity(0.65)
                                         )
                                         .multilineTextAlignment(.leading)
@@ -502,7 +547,7 @@ struct LockScreenMediaView: View {
                     Image(systemName: "music.note.list")
                         .font(.system(size: 44))
                         .foregroundStyle(.white.opacity(0.3))
-                    Text(musicManager.isPlaying ? loc("Playing Music") : loc("Paused"))
+                    Text(musicManager.isPlaying ? "Playing Music" : "Paused")
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.6))
                     Spacer()
@@ -532,23 +577,26 @@ struct LockScreenMediaView: View {
         case .shuffle:
             LockScreenButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? Color.effectiveAccent : .secondary,
+                iconColor: musicManager.isShuffled ? Color.green : compactIconColor,
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.toggleShuffle() }
             )
         case .previous:
             LockScreenButton(
                 icon: "backward.fill",
-                iconColor: .primary,
+                iconColor: compactIconColor,
                 size: 30,
+                isLight: isLightMode,
                 action: { musicManager.previousTrack() }
             )
         case .playPause:
             LockScreenButton(
                 icon: musicManager.isPlaying ? "pause.fill" : "play.fill",
-                iconColor: .primary,
+                iconColor: compactIconColor,
                 size: 38,
                 isPrimary: true,
+                isLight: isLightMode,
                 action: {
                     musicManager.togglePlay()
                 }
@@ -556,15 +604,17 @@ struct LockScreenMediaView: View {
         case .next:
             LockScreenButton(
                 icon: "forward.fill",
-                iconColor: .primary,
+                iconColor: compactIconColor,
                 size: 30,
+                isLight: isLightMode,
                 action: { musicManager.nextTrack() }
             )
         case .repeatMode:
             LockScreenButton(
                 icon: repeatIcon,
-                iconColor: musicManager.repeatMode == .off ? .secondary : Color.effectiveAccent,
+                iconColor: repeatIconColor,
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.toggleRepeat() }
             )
         case .volume:
@@ -572,23 +622,26 @@ struct LockScreenMediaView: View {
         case .favorite:
             LockScreenButton(
                 icon: musicManager.isFavoriteTrack ? "heart.fill" : "heart",
-                iconColor: musicManager.isFavoriteTrack ? .red : .secondary,
+                iconColor: musicManager.isFavoriteTrack ? Color.red : compactIconColor,
                 size: 28,
                 disabled: !musicManager.canFavoriteTrack,
+                isLight: isLightMode,
                 action: { musicManager.toggleFavoriteTrack() }
             )
         case .goBackward:
             LockScreenButton(
                 icon: "gobackward.15",
-                iconColor: .secondary,
+                iconColor: compactIconColor,
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.skip(seconds: -15) }
             )
         case .goForward:
             LockScreenButton(
                 icon: "goforward.15",
-                iconColor: .secondary,
+                iconColor: compactIconColor,
                 size: 28,
+                isLight: isLightMode,
                 action: { musicManager.skip(seconds: 15) }
             )
         case .none:
@@ -602,7 +655,7 @@ struct LockScreenMediaView: View {
         case .shuffle:
             LockScreenButton(
                 icon: "shuffle",
-                iconColor: musicManager.isShuffled ? Color.effectiveAccent : .white.opacity(0.85),
+                iconColor: musicManager.isShuffled ? Color.green : .white,
                 size: 32,
                 action: { musicManager.toggleShuffle() }
             )
@@ -639,14 +692,14 @@ struct LockScreenMediaView: View {
         case .repeatMode:
             LockScreenButton(
                 icon: repeatIcon,
-                iconColor: musicManager.repeatMode == .off ? .white.opacity(0.85) : .red,
+                iconColor: musicManager.repeatMode == .off ? .white : .red,
                 size: 32,
                 action: { musicManager.toggleRepeat() }
             )
         case .favorite:
             LockScreenButton(
                 icon: musicManager.isFavoriteTrack ? "heart.fill" : "heart",
-                iconColor: musicManager.isFavoriteTrack ? .red : .white.opacity(0.85),
+                iconColor: musicManager.isFavoriteTrack ? Color.red : .white,
                 size: 32,
                 disabled: !musicManager.canFavoriteTrack,
                 action: { musicManager.toggleFavoriteTrack() }
@@ -654,14 +707,14 @@ struct LockScreenMediaView: View {
         case .goBackward:
             LockScreenButton(
                 icon: "gobackward.15",
-                iconColor: .white.opacity(0.85),
+                iconColor: .white,
                 size: 32,
                 action: { musicManager.skip(seconds: -15) }
             )
         case .goForward:
             LockScreenButton(
                 icon: "goforward.15",
-                iconColor: .white.opacity(0.85),
+                iconColor: .white,
                 size: 32,
                 action: { musicManager.skip(seconds: 15) }
             )
@@ -672,12 +725,14 @@ struct LockScreenMediaView: View {
         }
     }
     
+    // Nút Volume tương tác trong Compact Card
     private var compactVolumeButton: some View {
         HStack(spacing: 4) {
             LockScreenButton(
                 icon: volumeIcon,
-                iconColor: isCurrentlyMuted ? Color.secondary.opacity(0.5) : .secondary,
+                iconColor: isCurrentlyMuted ? (isLightMode ? Color.black.opacity(0.35) : Color.white.opacity(0.35)) : compactIconColor,
                 size: 28,
+                isLight: isLightMode,
                 action: {
                     withAnimation(.easeInOut(duration: 0.16)) {
                         showCompactVolumeSlider.toggle()
@@ -699,8 +754,7 @@ struct LockScreenMediaView: View {
                             musicManager.setVolume(to: newValue)
                         }
                     ),
-                    isLight: isLightMode,
-                    isCompact: true
+                    isLight: isLightMode
                 )
                 .frame(width: 58, height: 14)
                 .background(
@@ -714,6 +768,7 @@ struct LockScreenMediaView: View {
         }
     }
     
+    // Nút Volume tương tác trong Full Screen
     private var fullScreenVolumeButton: some View {
         HStack(spacing: 6) {
             LockScreenButton(
@@ -740,9 +795,7 @@ struct LockScreenMediaView: View {
                         set: { newValue in
                             musicManager.setVolume(to: newValue)
                         }
-                    ),
-                    isLight: false,
-                    isCompact: false
+                    )
                 )
                 .frame(width: 80, height: 16)
                 .background(
@@ -758,10 +811,21 @@ struct LockScreenMediaView: View {
     
     private var repeatIcon: String {
         switch musicManager.repeatMode {
-        case .off, .all:
+        case .off:
+            return "repeat"
+        case .all:
             return "repeat"
         case .one:
             return "repeat.1"
+        }
+    }
+
+    private var repeatIconColor: Color {
+        switch musicManager.repeatMode {
+        case .off:
+            return compactIconColor
+        case .all, .one:
+            return .red
         }
     }
     
@@ -780,6 +844,8 @@ struct LockScreenMediaView: View {
             return "speaker.wave.3.fill"
         }
     }
+    
+
     
     private func scrollToActiveLyric(proxy: ScrollViewProxy, forceTop: Bool = false) {
         guard !musicManager.syncedLyrics.isEmpty else { return }
@@ -813,7 +879,7 @@ struct LockScreenMediaView: View {
 }
 
 // =========================================================================
-// MARK: - LockScreenScrubberView (Apple Native Timeline Scrubber)
+// MARK: - LockScreenScrubberView (Thanh trượt tua nhạc tương tác cao cấp)
 // =========================================================================
 
 private struct LockScreenScrubberView: View {
@@ -848,29 +914,33 @@ private struct LockScreenScrubberView: View {
         } else if sliderColorPref == .accent {
             return .effectiveAccent
         } else {
-            return isCompact ? .primary : .white
+            return (isCompact && isLight) ? Color.black.opacity(0.85) : .white
         }
     }
     
     var body: some View {
         VStack(spacing: 4) {
+            // Thanh tiến trình với thanh trượt kéo thả
             GeometryReader { geo in
                 let width = max(1, geo.size.width)
-                let height: CGFloat = dragging ? (isCompact ? 7 : 9) : (isHoveringTrack ? (isCompact ? 6 : 8) : (isCompact ? 4 : 5))
+                let height: CGFloat = dragging ? (isCompact ? 8 : 10) : (isHoveringTrack ? (isCompact ? 7 : 8) : (isCompact ? 5 : 6))
                 let filledWidth = width * CGFloat(progress)
                 
                 ZStack(alignment: .leading) {
+                    // Thanh rãnh nền
                     Capsule()
-                        .fill(isCompact ? Color.secondary.opacity(0.20) : Color.white.opacity(0.22))
+                        .fill((isCompact && isLight) ? Color.black.opacity(0.12) : Color.white.opacity(0.18))
                         .frame(height: height)
                     
+                    // Thanh tiến trình đã phát
                     Capsule()
                         .fill(trackColor)
                         .frame(width: max(height, filledWidth), height: height)
                     
+                    // Nút đầu ngón tay / chấm tròn chỉ báo khi di chuột hoặc kéo
                     if dragging || isHoveringTrack {
                         Circle()
-                            .fill(isCompact ? Color.primary : Color.white)
+                            .fill((isCompact && isLight) ? Color.black : Color.white)
                             .frame(width: height + 6, height: height + 6)
                             .offset(x: max(0, min(width - (height + 6), filledWidth - (height + 6) / 2)))
                             .transition(.scale.combined(with: .opacity))
@@ -908,16 +978,23 @@ private struct LockScreenScrubberView: View {
             }
             .frame(height: isCompact ? 10 : 12)
             
+            // Nhãn thời gian: Đã phát (bên trái) và Còn lại (bên phải)
             HStack {
                 Text(timeFormatted(seconds: effectiveElapsed))
-                    .font(isCompact ? .caption2.monospacedDigit().weight(.medium) : .caption.monospacedDigit().weight(.medium))
-                    .foregroundStyle(isCompact ? Color.secondary : Color.white.opacity(0.75))
+                    .font(.system(size: isCompact ? 11 : 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(
+                        playerColorTinting
+                            ? (isLight
+                                ? Color(nsColor: color).ensureMaximumBrightness(factor: 0.40)
+                                : Color(nsColor: color).ensureMinimumBrightness(factor: 0.75))
+                            : ((isCompact && isLight) ? Color.black.opacity(0.60) : .white.opacity(0.65))
+                    )
                 
                 Spacer()
                 
                 Text("-" + timeFormatted(seconds: max(0, duration - effectiveElapsed)))
-                    .font(isCompact ? .caption2.monospacedDigit().weight(.medium) : .caption.monospacedDigit().weight(.medium))
-                    .foregroundStyle(isCompact ? Color.secondary : Color.white.opacity(0.75))
+                    .font(.system(size: isCompact ? 11 : 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle((isCompact && isLight) ? Color.black.opacity(0.60) : .white.opacity(0.65))
             }
         }
         .onChange(of: estimatedPlaybackTime) { _, newTime in
@@ -935,47 +1012,48 @@ private struct LockScreenScrubberView: View {
 }
 
 // =========================================================================
-// MARK: - LockScreenButton (Declarative Native Apple Button)
+// MARK: - LockScreenButton (Nút điều khiển với hiệu ứng Hover & Nhấn mượt mà)
 // =========================================================================
 
 private struct LockScreenButton: View {
     let icon: String
-    var iconColor: Color? = nil
-    var size: CGFloat = 28
+    var iconColor: Color = .white
+    var size: CGFloat = 30
     var isPrimary: Bool = false
     var disabled: Bool = false
+    var isLight: Bool = false
     let action: () -> Void
     
-    @State private var isHovering: Bool = false
+    @State private var isHovering = false
     
     var body: some View {
-        let hitSize = isPrimary ? size + 10 : size + 6
-        let iconSize = isPrimary ? size * 0.54 : size * 0.50
+        let hitSize: CGFloat = isPrimary ? (size + 14) : (size + 8)
+        let iconSize: CGFloat = isPrimary ? (size * 0.62) : (size * 0.52)
         
         Button(action: action) {
             ZStack {
+                Color.black.opacity(0.001)
                 Circle()
                     .fill(
-                        isPrimary
-                            ? (isHovering ? Color.primary.opacity(0.18) : Color.primary.opacity(0.10))
-                            : (isHovering ? Color.primary.opacity(0.10) : Color.clear)
+                        isHovering && !disabled
+                            ? (isLight ? Color.black.opacity(0.08) : Color.white.opacity(0.18))
+                            : Color.clear
                     )
                     .frame(width: hitSize, height: hitSize)
-                
                 Image(systemName: icon)
                     .font(.system(size: iconSize, weight: isPrimary ? .bold : .medium))
-                    .foregroundStyle(iconColor ?? (isPrimary ? .primary : .secondary))
+                    .foregroundStyle(iconColor)
                     .contentTransition(.symbolEffect)
-                    .offset(x: (icon == "play.fill" && isPrimary) ? 1.0 : 0)
+                    .offset(x: (icon == "play.fill" && isPrimary) ? 1.5 : 0)
             }
             .frame(width: hitSize, height: hitSize)
-            .contentShape(Circle())
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(disabled)
         .opacity(disabled ? 0.35 : 1.0)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(.smooth(duration: 0.18)) {
                 isHovering = hovering
             }
         }
@@ -983,31 +1061,30 @@ private struct LockScreenButton: View {
 }
 
 // =========================================================================
-// MARK: - LockScreenVolumeSlider (Native Volume Pill Slider)
+// MARK: - LockScreenVolumeSlider (Thanh trượt âm lượng trực quan)
 // =========================================================================
 
 private struct LockScreenVolumeSlider: View {
     @Binding var volume: Double
     var isLight: Bool = false
-    var isCompact: Bool = true
     @State private var dragging: Bool = false
     @State private var localVolume: Double? = nil
     
     var body: some View {
         GeometryReader { geo in
             let width = max(1, geo.size.width)
-            let height = CGFloat(dragging ? 6 : 4)
+            let height = CGFloat(dragging ? 7 : 4.5)
             let curVal = localVolume ?? volume
             let fillWidth = width * CGFloat(min(max(curVal, 0.0), 1.0))
             
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(isCompact ? Color.secondary.opacity(0.20) : Color.white.opacity(0.22))
+                    .fill(isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.2))
                     .frame(height: height)
                 
                 Capsule()
-                    .fill(isCompact ? Color.primary : Color.white)
-                    .frame(width: max(height, fillWidth), height: height)
+                    .fill(isLight ? Color.black.opacity(0.85) : Color.white.opacity(0.92))
+                    .frame(width: fillWidth, height: height)
             }
             .frame(maxHeight: .infinity, alignment: .center)
             .contentShape(Rectangle())
@@ -1030,3 +1107,5 @@ private struct LockScreenVolumeSlider: View {
         }
     }
 }
+
+

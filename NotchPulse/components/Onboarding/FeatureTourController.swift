@@ -71,6 +71,7 @@ final class FeatureTourController: NSObject, ObservableObject {
         window.setFrame(screen.frame, display: true)
         window.isReleasedWhenClosed = false
         window.identifier = NSUserInterfaceItemIdentifier("FeatureTourWindow")
+        window.appearance = NSAppearance(named: .darkAqua)
 
         window.contentView = PassthroughTourHostingView(
             rootView: FeatureTourView(onFinish: { [weak self] in

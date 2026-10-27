@@ -48,6 +48,77 @@ struct SpotlightCutoutShape: Shape {
     }
 }
 
+struct TourSpeechBubbleShape: Shape {
+    let isLeadingArrow: Bool
+    let arrowOffset: CGFloat
+    var cornerRadius: CGFloat = 18
+    var arrowWidth: CGFloat = 16
+    var arrowHeight: CGFloat = 8
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        if isLeadingArrow {
+            let clampedY = max(rect.minY + cornerRadius + arrowWidth / 2,
+                               min(rect.maxY - cornerRadius - arrowWidth / 2, arrowOffset))
+            let bodyRect = CGRect(x: rect.minX + arrowHeight, y: rect.minY,
+                                  width: rect.width - arrowHeight, height: rect.height)
+
+            path.move(to: CGPoint(x: bodyRect.minX, y: bodyRect.minY + cornerRadius))
+            path.addLine(to: CGPoint(x: bodyRect.minX, y: clampedY - arrowWidth / 2))
+            path.addLine(to: CGPoint(x: rect.minX, y: clampedY))
+            path.addLine(to: CGPoint(x: bodyRect.minX, y: clampedY + arrowWidth / 2))
+            path.addLine(to: CGPoint(x: bodyRect.minX, y: bodyRect.maxY - cornerRadius))
+
+            path.addArc(tangent1End: CGPoint(x: bodyRect.minX, y: bodyRect.maxY),
+                        tangent2End: CGPoint(x: bodyRect.minX + cornerRadius, y: bodyRect.maxY),
+                        radius: cornerRadius)
+            path.addLine(to: CGPoint(x: bodyRect.maxX - cornerRadius, y: bodyRect.maxY))
+            path.addArc(tangent1End: CGPoint(x: bodyRect.maxX, y: bodyRect.maxY),
+                        tangent2End: CGPoint(x: bodyRect.maxX, y: bodyRect.maxY - cornerRadius),
+                        radius: cornerRadius)
+            path.addLine(to: CGPoint(x: bodyRect.maxX, y: bodyRect.minY + cornerRadius))
+            path.addArc(tangent1End: CGPoint(x: bodyRect.maxX, y: bodyRect.minY),
+                        tangent2End: CGPoint(x: bodyRect.maxX - cornerRadius, y: bodyRect.minY),
+                        radius: cornerRadius)
+            path.addLine(to: CGPoint(x: bodyRect.minX + cornerRadius, y: bodyRect.minY))
+            path.addArc(tangent1End: CGPoint(x: bodyRect.minX, y: bodyRect.minY),
+                        tangent2End: CGPoint(x: bodyRect.minX, y: bodyRect.minY + cornerRadius),
+                        radius: cornerRadius)
+        } else {
+            let clampedX = max(rect.minX + cornerRadius + arrowWidth / 2,
+                               min(rect.maxX - cornerRadius - arrowWidth / 2, arrowOffset))
+            let bodyRect = CGRect(x: rect.minX, y: rect.minY + arrowHeight,
+                                  width: rect.width, height: rect.height - arrowHeight)
+
+            path.move(to: CGPoint(x: bodyRect.minX + cornerRadius, y: bodyRect.minY))
+            path.addLine(to: CGPoint(x: clampedX - arrowWidth / 2, y: bodyRect.minY))
+            path.addLine(to: CGPoint(x: clampedX, y: rect.minY))
+            path.addLine(to: CGPoint(x: clampedX + arrowWidth / 2, y: bodyRect.minY))
+            path.addLine(to: CGPoint(x: bodyRect.maxX - cornerRadius, y: bodyRect.minY))
+
+            path.addArc(tangent1End: CGPoint(x: bodyRect.maxX, y: bodyRect.minY),
+                        tangent2End: CGPoint(x: bodyRect.maxX, y: bodyRect.minY + cornerRadius),
+                        radius: cornerRadius)
+            path.addLine(to: CGPoint(x: bodyRect.maxX, y: bodyRect.maxY - cornerRadius))
+            path.addArc(tangent1End: CGPoint(x: bodyRect.maxX, y: bodyRect.maxY),
+                        tangent2End: CGPoint(x: bodyRect.maxX - cornerRadius, y: bodyRect.maxY),
+                        radius: cornerRadius)
+            path.addLine(to: CGPoint(x: bodyRect.minX + cornerRadius, y: bodyRect.maxY))
+            path.addArc(tangent1End: CGPoint(x: bodyRect.minX, y: bodyRect.maxY),
+                        tangent2End: CGPoint(x: bodyRect.minX, y: bodyRect.maxY - cornerRadius),
+                        radius: cornerRadius)
+            path.addLine(to: CGPoint(x: bodyRect.minX, y: bodyRect.minY + cornerRadius))
+            path.addArc(tangent1End: CGPoint(x: bodyRect.minX, y: bodyRect.minY),
+                        tangent2End: CGPoint(x: bodyRect.minX + cornerRadius, y: bodyRect.minY),
+                        radius: cornerRadius)
+        }
+
+        path.closeSubpath()
+        return path
+    }
+}
+
 struct FeatureTourView: View {
     let onFinish: () -> Void
     
@@ -242,50 +313,27 @@ struct FeatureTourView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.82), value: openWidth)
                 
                 // Small Floating Instruction Card
-                Group {
-                    if isGearTarget {
-                        HStack(alignment: .top, spacing: -4) {
-                            Image(systemName: "arrowtriangle.left.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(.regularMaterial)
-                                .padding(.top, arrowTopPadding)
-                                .zIndex(3)
-                            
-                            instructionCard
-                                .frame(width: cardWidth)
+                floatingCard(isGearTarget: isGearTarget, arrowTopPadding: arrowTopPadding, cardWidth: cardWidth)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear
+                                .onAppear {
+                                    FeatureTourController.shared.interactiveCardRect = geo.frame(in: .global)
+                                }
+                                .onChange(of: geo.frame(in: .global)) { _, newFrame in
+                                    FeatureTourController.shared.interactiveCardRect = newFrame
+                                }
                         }
-                    } else {
-                        VStack(spacing: 0) {
-                            Image(systemName: "arrowtriangle.up.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(.regularMaterial)
-                                .zIndex(3)
-                            
-                            instructionCard
-                                .frame(width: cardWidth)
-                                .padding(.top, -4)
-                        }
-                    }
-                }
-                .background(
-                    GeometryReader { geo in
-                        Color.clear
-                            .onAppear {
-                                FeatureTourController.shared.interactiveCardRect = geo.frame(in: .global)
-                            }
-                            .onChange(of: geo.frame(in: .global)) { _, newFrame in
-                                FeatureTourController.shared.interactiveCardRect = newFrame
-                            }
-                    }
-                )
-                .position(
-                    x: cardX,
-                    y: cardY
-                )
-                .animation(.spring(response: 0.4, dampingFraction: 0.82), value: currentStepIndex)
-                .animation(.spring(response: 0.4, dampingFraction: 0.82), value: openHeight)
+                    )
+                    .position(
+                        x: cardX,
+                        y: cardY
+                    )
+                    .animation(.spring(response: 0.4, dampingFraction: 0.82), value: currentStepIndex)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.82), value: openHeight)
             }
         }
+        .preferredColorScheme(.dark)
         .id("\(appLanguage.rawValue)")
         .onAppear {
             FeatureTourController.shared.isTourActive = true
@@ -300,29 +348,57 @@ struct FeatureTourView: View {
         }
     }
     
-    private var instructionCard: some View {
-        VStack(spacing: 16) {
+    @ViewBuilder
+    private func floatingCard(isGearTarget: Bool, arrowTopPadding: CGFloat, cardWidth: CGFloat) -> some View {
+        let bubbleShape = TourSpeechBubbleShape(
+            isLeadingArrow: isGearTarget,
+            arrowOffset: isGearTarget ? arrowTopPadding : cardWidth / 2,
+            cornerRadius: 18,
+            arrowWidth: 16,
+            arrowHeight: 8
+        )
+
+        instructionCardContent
+            .padding(.horizontal, 18)
+            .padding(.top, isGearTarget ? 18 : 26)
+            .padding(.leading, isGearTarget ? 26 : 18)
+            .padding(.bottom, 18)
+            .padding(.trailing, 18)
+            .frame(width: cardWidth + (isGearTarget ? 8 : 0))
+            .background(
+                bubbleShape
+                    .fill(.thickMaterial)
+                    .overlay(
+                        bubbleShape
+                            .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.35), radius: 24, x: 0, y: 12)
+    }
+
+    private var instructionCardContent: some View {
+        VStack(spacing: 14) {
             // Header
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(.quaternary)
-                        .frame(width: 44, height: 44)
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(Color.effectiveAccent.opacity(0.18))
+                        .frame(width: 40, height: 40)
                     
                     Image(systemName: currentStep.icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(Color.effectiveAccent)
                 }
                 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(loc("Step %d of %d", currentStepIndex + 1, steps.count).uppercased())
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    
                     Text(loc(currentStep.title))
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
                         .id("title_\(currentStepIndex)_\(appLanguage.rawValue)")
-                    
-                    Text(loc("Step %d of %d", currentStepIndex + 1, steps.count))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
                 }
                 
                 Spacer()
@@ -341,9 +417,9 @@ struct FeatureTourView: View {
             
             // Description
             Text(loc(currentStep.description))
-                .font(.body)
-                .foregroundStyle(.primary)
-                .lineSpacing(3)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.primary.opacity(0.92))
+                .lineSpacing(3.5)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .id("desc_\(currentStepIndex)_\(appLanguage.rawValue)")
@@ -393,16 +469,6 @@ struct FeatureTourView: View {
                 .tint(Color.effectiveAccent)
             }
         }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.thickMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(.separator, lineWidth: 0.5)
-                )
-        )
-        .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)
     }
     
     private func repositionWindow() {

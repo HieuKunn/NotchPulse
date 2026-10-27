@@ -83,13 +83,13 @@ struct TabSelectionView: View {
     private func tabBackground(isSelected: Bool) -> some View {
         if isSelected {
             Capsule()
-                .fill(Color.white.opacity(0.20))
+                .fill(Color(nsColor: .secondarySystemFill))
                 .matchedGeometryEffect(id: "capsule", in: animation)
         }
     }
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 0) {
             ForEach(tabs) { tab in
                 let isSelected = (tab.view == coordinator.currentView)
                 let isSpotlight = (vm.featureTourTarget == String(describing: tab.view))
@@ -97,13 +97,10 @@ struct TabSelectionView: View {
                     selectTab(tab.view)
                 }
                 .frame(height: 26)
-                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                .foregroundStyle(isSelected ? Color.white : Color.gray)
                 .background(tabBackground(isSelected: isSelected))
             }
         }
-        .padding(2)
-        .background(Color.white.opacity(0.06), in: Capsule())
-        .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 0.5))
         .clipShape(Capsule())
     }
 }
