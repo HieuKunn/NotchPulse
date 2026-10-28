@@ -1123,7 +1123,7 @@ class MusicManager: ObservableObject {
 
         // On-demand fetch artwork for restored historical session
         if snapshot.artworkData == nil && !snapshot.title.isEmpty {
-            self.fetchArtwork(for: snapshot.title, artist: snapshot.artist, album: snapshot.album, bundleIdentifier: snapshot.bundleIdentifier)
+            self.resolveMissingArtwork()
         }
 
         self.triggerFlipAnimation()
