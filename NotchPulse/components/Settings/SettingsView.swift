@@ -544,6 +544,36 @@ struct SettingsView: View {
 
                 // Vertical Settings Tabs
                 List(selection: $selectedTab) {
+                    ForEach(filteredTabs) { tab in
+                        let matches = matchingSections(for: tab)
+                        NavigationLink(value: tab.id) {
+                            HStack(spacing: 8) {
+                                Image(systemName: tab.icon)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(selectedTab == tab.id ? Color.white : Color(nsColor: .secondaryLabelColor))
+                                    .frame(width: 18, alignment: .center)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(tabTitle(for: tab.id))
+                                        .foregroundStyle(selectedTab == tab.id ? Color.white : Color.primary)
+
+                                    if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
+                                        Text(matches.map { loc($0.title) }.joined(separator: " • "))
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(selectedTab == tab.id ? Color.white.opacity(0.8) : Color.secondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                            }
+                        }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            if let first = matches.first {
+                                selectSearchItem(tabId: tab.id, sectionId: first.id)
+                            }
+                        })
+                    }
+                }
+                .overlay {
                     if filteredTabs.isEmpty {
                         VStack(spacing: 6) {
                             Image(systemName: "magnifyingglass")
@@ -553,73 +583,8 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 24)
-                    } else if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        ForEach(allTabs) { tab in
-                            NavigationLink(value: tab.id) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: tab.icon)
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundStyle(selectedTab == tab.id ? Color.white : Color(nsColor: .secondaryLabelColor))
-                                        .frame(width: 18, alignment: .center)
-
-                                    Text(tabTitle(for: tab.id))
-                                        .foregroundStyle(selectedTab == tab.id ? Color.white : Color.primary)
-                                }
-                            }
-                        }
-                    } else {
-                        ForEach(filteredTabs) { tab in
-                            let matches = matchingSections(for: tab)
-                            Section {
-                                NavigationLink(value: tab.id) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: tab.icon)
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundStyle(selectedTab == tab.id ? Color.white : Color(nsColor: .secondaryLabelColor))
-                                            .frame(width: 18, alignment: .center)
-
-                                        Text(tabTitle(for: tab.id))
-                                            .foregroundStyle(selectedTab == tab.id ? Color.white : Color.primary)
-                                    }
-                                }
-                                .simultaneousGesture(TapGesture().onEnded {
-                                    if let first = matches.first {
-                                        selectSearchItem(tabId: tab.id, sectionId: first.id)
-                                    } else if let firstSec = tab.sections.first {
-                                        selectSearchItem(tabId: tab.id, sectionId: firstSec.id)
-                                    }
-                                })
-
-                                ForEach(matches) { sec in
-                                    Button {
-                                        selectSearchItem(tabId: tab.id, sectionId: sec.id)
-                                    } label: {
-                                        HStack(spacing: 6) {
-                                            Text("↳")
-                                                .foregroundStyle(selectedTab == tab.id && scrollToItemId == sec.id ? Color.effectiveAccent : .secondary)
-                                            Text(loc(sec.title))
-                                                .font(.system(size: 11, weight: selectedTab == tab.id && scrollToItemId == sec.id ? .semibold : .regular))
-                                                .foregroundStyle(selectedTab == tab.id && scrollToItemId == sec.id ? Color.effectiveAccent : .primary)
-                                                .lineLimit(1)
-                                            Spacer()
-                                        }
-                                        .padding(.leading, 24)
-                                        .padding(.vertical, 3)
-                                        .padding(.trailing, 6)
-                                        .background(
-                                            selectedTab == tab.id && scrollToItemId == sec.id
-                                                ? Color.effectiveAccent.opacity(0.12)
-                                                : Color.clear
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                                        .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .padding(.top, 32)
                     }
                 }
                 .font(.system(size: 14, weight: .medium))
