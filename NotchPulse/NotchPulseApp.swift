@@ -90,7 +90,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowScreenDidChangeObservers: [Any] = []
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
-    var dragAutoCloseTasks: [String: Task<Void, Never>] = [:]
     var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
     private var currentViewObserver: AnyCancellable?
     private(set) var faceIDCameraWindow: NSWindow?
@@ -99,14 +98,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func resetAllDropAndDragTargeting() {
         for vm in viewModels.values {
             vm.dragDetectorTargeting = false
-            vm.generalDropTargeting = false
             vm.dropZoneTargeting = false
             vm.shareDropTargeting = false
             vm.shelfDropTargeting = false
             vm.anyDropZoneTargeting = false
         }
         vm.dragDetectorTargeting = false
-        vm.generalDropTargeting = false
         vm.dropZoneTargeting = false
         vm.shareDropTargeting = false
         vm.shelfDropTargeting = false
@@ -410,8 +407,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = nil
-        dragAutoCloseTasks[uuid]?.cancel()
         
+        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+        targetVM.dragDetectorTargeting = true
         SharingStateManager.shared.preventNotchClose = true
         
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -422,27 +420,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             coordinator.currentView = .shelf
         }
-        
-        // Auto-close if drag enters but is left idle without dropping within close delay
-        let delaySeconds = max(2.0, Defaults[.shakeAutoCloseDelay])
-        dragAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(delaySeconds))
-            guard !Task.isCancelled, let self = self else { return }
-            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            if !targetVM.dropEvent && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
-                SharingStateManager.shared.preventNotchClose = false
-                targetVM.close()
-            }
-        }
     }
 
     private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
         dragExitDebounceTasks[uuid]?.cancel()
-        dragAutoCloseTasks[uuid]?.cancel()
+        
+        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+        targetVM.dragDetectorTargeting = false
+        
         dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: .milliseconds(600))
             guard !Task.isCancelled, let self = self else { return }
             
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
@@ -459,21 +448,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
         
         dragExitDebounceTasks[uuid]?.cancel()
-        dragAutoCloseTasks[uuid]?.cancel()
         
-        // Immediately close when drag is dropped or cancelled, without waiting
-        SharingStateManager.shared.preventNotchClose = false
         let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-        targetVM.dropEvent = false
-        targetVM.anyDropZoneTargeting = false
-        targetVM.generalDropTargeting = false
-        targetVM.shelfDropTargeting = false
         targetVM.dragDetectorTargeting = false
-        targetVM.dropZoneTargeting = false
-        targetVM.shareDropTargeting = false
         
-        if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
-            targetVM.close()
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard let self = self else { return }
+            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            
+            // If dropEvent was received, leave shelf open so the user can see their added item
+            if targetVM.dropEvent {
+                SharingStateManager.shared.preventNotchClose = false
+                return
+            }
+            
+            SharingStateManager.shared.preventNotchClose = false
+            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !targetVM.anyDropZoneTargeting && targetVM.notchState == .open {
+                targetVM.close()
+            }
         }
     }
 

@@ -148,9 +148,6 @@ struct ShelfView: View {
                     .padding(.horizontal, 4)
                 }
                 .scrollIndicators(.never)
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $isShelfTargeted) { providers in
-                    handleDrop(providers: providers)
-                }
             }
         }
         .onAppear {

@@ -779,7 +779,6 @@ struct ContentView: View {
                 .opacity(gestureProgress != 0 ? 1.0 - min(abs(gestureProgress) * 0.1, 0.3) : 1.0)
             }
         }
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting, onDropReceived: { vm.dropEvent = true }))
     }
 
     @ViewBuilder
@@ -1130,39 +1129,6 @@ struct FullScreenDropDelegate: DropDelegate {
     func performDrop(info _: DropInfo) -> Bool {
         isTargeted = false
         onDrop()
-        return true
-    }
-}
-
-struct GeneralDropTargetDelegate: DropDelegate {
-    @Binding var isTargeted: Bool
-    var onDropReceived: (() -> Void)? = nil
-
-    func dropEntered(info: DropInfo) {
-        isTargeted = true
-        Task { @MainActor in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                NotchPulseViewCoordinator.shared.currentView = .shelf
-            }
-        }
-    }
-
-    func dropExited(info: DropInfo) {
-        isTargeted = false
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        return DropProposal(operation: .copy)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        isTargeted = false
-        onDropReceived?()
-        let providers = info.itemProviders(for: [.fileURL, .url, .utf8PlainText, .plainText, .data])
-        if !providers.isEmpty {
-            ShelfStateViewModel.shared.load(providers)
-            return true
-        }
         return true
     }
 }

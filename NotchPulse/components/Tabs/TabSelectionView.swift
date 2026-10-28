@@ -42,7 +42,6 @@ struct TabSelectionView: View {
         (NSApp.delegate as? AppDelegate)?.resetAllDropAndDragTargeting()
         vm.dragDetectorTargeting = false
         vm.dropZoneTargeting = false
-        vm.generalDropTargeting = false
         vm.anyDropZoneTargeting = false
         CalendarStateViewModel.shared.isFullMonthExpanded = false
         CalendarStateViewModel.shared.isPinned = false

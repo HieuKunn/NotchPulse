@@ -16,7 +16,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published private(set) var notchState: NotchState = .closed
 
     @Published var dragDetectorTargeting: Bool = false
-    @Published var generalDropTargeting: Bool = false
     @Published var dropZoneTargeting: Bool = false
     @Published var shareDropTargeting: Bool = false
     @Published var shelfDropTargeting: Bool = false
@@ -66,9 +65,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         notchSize = getClosedNotchSize(screenUUID: screenUUID)
         closedNotchSize = notchSize
 
-        // Only actual shelf drop-zones and the drag-detector trigger anyDropZoneTargeting.
-        // generalDropTargeting (dragging app windows near the notch) is intentionally excluded
-        // so that moving app windows close to the notch never opens the shelf.
+        // Actual shelf drop-zones and the drag-detector trigger anyDropZoneTargeting.
         Publishers.MergeMany(
             $shareDropTargeting.map { _ in () },
             $shelfDropTargeting.map { _ in () },
@@ -321,7 +318,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
         self.dragDetectorTargeting = false
         self.dropZoneTargeting = false
-        self.generalDropTargeting = false
         self.anyDropZoneTargeting = false
         self.dropEvent = false
 
