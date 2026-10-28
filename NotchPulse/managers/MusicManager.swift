@@ -263,9 +263,6 @@ class MusicManager: ObservableObject {
                 self.artworkData = data
                 self.updateArtwork(data)
                 self.triggerFlipAnimation()
-                if let lastIdx = self.mediaSessionStack.indices.last {
-                    self.mediaSessionStack[lastIdx].artworkData = data
-                }
             }
         }
     }
@@ -454,9 +451,6 @@ class MusicManager: ObservableObject {
                             self.artworkData = data
                             self.updateArtwork(data)
                             self.triggerFlipAnimation()
-                            if let lastIdx = self.mediaSessionStack.indices.last {
-                                self.mediaSessionStack[lastIdx].artworkData = data
-                            }
                         }
                     } else {
                         // If resolution failed (e.g. Wi-Fi still reconnecting right on wake), retry once after 2.5s
@@ -744,7 +738,7 @@ class MusicManager: ObservableObject {
                         } else {
                             self.syncedLyrics = []
                         }
-                        if let lastIdx = self.mediaSessionStack.indices.last {
+                        if let lastIdx = self.mediaSessionStack.indices.last, self.mediaSessionStack[lastIdx].title == self.songTitle {
                             self.mediaSessionStack[lastIdx].currentLyrics = self.currentLyrics
                             self.mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
                         }
@@ -1021,7 +1015,7 @@ class MusicManager: ObservableObject {
             lastUpdated: state.lastUpdated,
             syncedLyrics: self.syncedLyrics,
             currentLyrics: self.currentLyrics,
-            artworkData: self.artworkData
+            artworkData: nil // Keep memory lean: do not hoard heavy raw artwork in historical stack
         )
 
         mediaSessionStack.append(snapshot)
@@ -1125,6 +1119,11 @@ class MusicManager: ObservableObject {
         } else {
             self.albumArt = defaultImage
             self.calculateAverageColor()
+        }
+
+        // On-demand fetch artwork for restored historical session
+        if snapshot.artworkData == nil && !snapshot.title.isEmpty {
+            self.fetchArtwork(for: snapshot.title, artist: snapshot.artist, album: snapshot.album, bundleIdentifier: snapshot.bundleIdentifier)
         }
 
         self.triggerFlipAnimation()

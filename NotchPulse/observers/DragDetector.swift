@@ -23,9 +23,20 @@ final class DragDetector {
     private var hasEnteredNotchRegion: Bool = false
     private var lastCheckedDragCount: Int = -1
     private var cachedHasValidContent: Bool = false
+    private var cachedRegion: CGRect = .zero
+    private var lastRegionFetchTime: TimeInterval = 0
 
     private let regionProvider: () -> CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
+
+    private func getActiveRegion() -> CGRect {
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - lastRegionFetchTime > 0.25 || cachedRegion.isEmpty {
+            cachedRegion = regionProvider()
+            lastRegionFetchTime = now
+        }
+        return cachedRegion
+    }
 
     private static let validIdentifiers: Set<String> = [
         NSPasteboard.PasteboardType.fileURL.rawValue,
@@ -120,21 +131,33 @@ final class DragDetector {
             let isNewDragOperation = (self.mouseDownPasteboardCount != -1 && currentCount != self.mouseDownPasteboardCount) ||
                                      (self.mouseDownPasteboardCount == -1 && currentCount != self.lastKnownIdleCount)
 
-            if (self.isContentDragging || isNewDragOperation) && self.hasValidDragContent() {
+            guard self.isContentDragging || isNewDragOperation else { return }
+
+            if !self.isContentDragging {
+                guard self.hasValidDragContent() else { return }
                 self.isContentDragging = true
-                let mouseLocation = NSEvent.mouseLocation
-                self.onDragMove?(mouseLocation)
-                
-                // Track entry into the dynamic notch region (which expands when shelf is open)
-                let activeRegion = self.regionProvider()
-                let containsMouse = activeRegion.contains(mouseLocation)
-                if containsMouse && !self.hasEnteredNotchRegion {
-                    self.hasEnteredNotchRegion = true
-                    self.onDragEntersNotchRegion?()
-                } else if !containsMouse && self.hasEnteredNotchRegion {
-                    self.hasEnteredNotchRegion = false
-                    self.onDragExitsNotchRegion?()
-                }
+            }
+
+            let mouseLocation = NSEvent.mouseLocation
+            let activeRegion = self.getActiveRegion()
+
+            // Spatial filter: if mouse is far below the active notch region and not already inside, skip
+            if !self.hasEnteredNotchRegion && mouseLocation.y < (activeRegion.minY - 120) {
+                return
+            }
+
+            self.onDragMove?(mouseLocation)
+            
+            // Track entry into the dynamic notch region (which expands when shelf is open)
+            let containsMouse = activeRegion.contains(mouseLocation)
+            if containsMouse && !self.hasEnteredNotchRegion {
+                self.hasEnteredNotchRegion = true
+                self.cachedRegion = .zero // Invalidate cache so open shelf size is immediately reflected
+                self.onDragEntersNotchRegion?()
+            } else if !containsMouse && self.hasEnteredNotchRegion {
+                self.hasEnteredNotchRegion = false
+                self.cachedRegion = .zero
+                self.onDragExitsNotchRegion?()
             }
         }
 
@@ -142,6 +165,8 @@ final class DragDetector {
             guard let self = self else { return }
             self.lastKnownIdleCount = self.dragPasteboard.changeCount
             self.mouseDownPasteboardCount = -1
+            self.cachedRegion = .zero
+            self.lastRegionFetchTime = 0
             let wasInRegion = self.hasEnteredNotchRegion
             self.hasEnteredNotchRegion = false
             self.isContentDragging = false

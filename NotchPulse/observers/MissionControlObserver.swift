@@ -61,7 +61,7 @@ final class MissionControlObserver: ObservableObject {
     /// Start polling while the Notch is open to detect if the user invokes Mission Control via trackpad gesture or shortcut.
     func startMonitoring(onMissionControlDetected: @escaping () -> Void) {
         stopMonitoring()
-        activeCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 if self.checkIsMissionControlActive() {
@@ -69,6 +69,8 @@ final class MissionControlObserver: ObservableObject {
                 }
             }
         }
+        timer.tolerance = 0.1
+        activeCheckTimer = timer
     }
     
     func stopMonitoring() {

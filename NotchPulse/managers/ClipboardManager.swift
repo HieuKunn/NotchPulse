@@ -239,12 +239,12 @@ final class ClipboardManager: ObservableObject {
             }
         }
 
-        // 2. High-speed, zero-CPU polling (0.15s / 150ms) for context menu copies, drag copies, and apps without key events
-        // Checking pasteboard.changeCount is a single integer lookup (< 2 microseconds), taking 0.0% CPU.
-        let timer = Timer(timeInterval: 0.4, repeats: true) { [weak self] _ in
+        // 2. Low-frequency background polling (1.5s) for context menu copies, drag copies, and apps without key events.
+        // Primary copy actions (Cmd+C / Cmd+X / Screenshot) are captured instantly by key event monitors above.
+        let timer = Timer(timeInterval: 1.5, repeats: true) { [weak self] _ in
             self?.checkForChanges()
         }
-        timer.tolerance = 0.1
+        timer.tolerance = 0.5
         RunLoop.main.add(timer, forMode: .common)
         self.pollTimer = timer
 
@@ -482,11 +482,13 @@ final class ClipboardManager: ObservableObject {
                 }
             }
             history = Array(history.prefix(limit))
+            saveHistory()
         }
     }
 
     private func saveHistory() {
-        let itemsToSave = Array(history.prefix(30))
+        let limit = max(5, maxItems)
+        let itemsToSave = Array(history.prefix(limit))
         if let data = try? JSONEncoder().encode(itemsToSave) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
@@ -497,7 +499,8 @@ final class ClipboardManager: ObservableObject {
            let items = try? JSONDecoder().decode([ClipboardItem].self, from: data) {
             // Sanitize history: ensure legacy items don't hoard large uncompressed images in thumbnailData
             var sanitized: [ClipboardItem] = []
-            for var item in items {
+            let limit = max(5, maxItems)
+            for var item in items.prefix(limit) {
                 if item.isImage, let thumb = item.thumbnailData, thumb.count > 40_000 {
                     if let downscaled = Self.generateThumbnailData(from: thumb, maxDimension: 96) {
                         item.thumbnailData = downscaled
@@ -554,6 +557,13 @@ final class ClipboardManager: ObservableObject {
         }
         history.removeAll()
         UserDefaults.standard.removeObject(forKey: storageKey)
+
+        // Wipe all files in temporary cache directory to guarantee zero disk waste
+        if let files = try? FileManager.default.contentsOfDirectory(at: Self.clipboardTempDir, includingPropertiesForKeys: nil) {
+            for file in files {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
     }
 
     // MARK: - Temp Cache & Zero-RAM-Spike Image Downscaling Helpers

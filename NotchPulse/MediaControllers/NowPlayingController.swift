@@ -68,6 +68,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private var pipeHandler: JSONLinesPipeHandler?
     private var setupObserverTask: Task<Void, Never>?
     private var streamTask: Task<Void, Never>?
+    private var wakeTask: Task<Void, Never>?
     private var wakeObserver: NSObjectProtocol?
 
     // MARK: - Initialization
@@ -103,9 +104,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { [weak self] in
+            self?.wakeTask?.cancel()
+            self?.wakeTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(600))
-                guard let self = self else { return }
+                guard !Task.isCancelled, let self = self else { return }
                 await self.setupNowPlayingObserver()
             }
         }
@@ -118,6 +120,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     deinit {
         setupObserverTask?.cancel()
         streamTask?.cancel()
+        wakeTask?.cancel()
         
         if let observer = wakeObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
@@ -128,15 +131,19 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             Task { await pipeHandler.close() }
         }
         
-        if let process = self.process {
-            if process.isRunning {
-                process.interrupt()
-                process.terminate()
-            }
-        }
-
+        terminateProcessSafely(self.process)
         self.process = nil
         self.pipeHandler = nil
+    }
+
+    private func terminateProcessSafely(_ proc: Process?) {
+        guard let proc = proc, proc.isRunning else { return }
+        let pid = proc.processIdentifier
+        proc.interrupt()
+        proc.terminate()
+        if pid > 0 {
+            kill(pid, SIGKILL)
+        }
     }
 
     // MARK: - Helper
@@ -918,13 +925,14 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     // MARK: - Setup Methods
     private func setupNowPlayingObserver() async {
         guard !Task.isCancelled else { return }
+        streamTask?.cancel()
+        streamTask = nil
         if let oldPipe = self.pipeHandler {
             await oldPipe.close()
             self.pipeHandler = nil
         }
-        if let oldProc = self.process, oldProc.isRunning {
-            oldProc.interrupt()
-            oldProc.terminate()
+        if let oldProc = self.process {
+            terminateProcessSafely(oldProc)
             self.process = nil
         }
         guard !Task.isCancelled else { return }

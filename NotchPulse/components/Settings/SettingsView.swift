@@ -543,52 +543,69 @@ struct SettingsView: View {
                 .padding(.bottom, 8)
 
                 // Vertical Settings Tabs
-                List(selection: $selectedTab) {
-                    ForEach(filteredTabs) { tab in
-                        let matches = matchingSections(for: tab)
-                        NavigationLink(value: tab.id) {
-                            HStack(spacing: 8) {
-                                Image(systemName: tab.icon)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(selectedTab == tab.id ? Color.white : Color(nsColor: .secondaryLabelColor))
-                                    .frame(width: 18, alignment: .center)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(tabTitle(for: tab.id))
-                                        .foregroundStyle(selectedTab == tab.id ? Color.white : Color.primary)
-
-                                    if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
-                                        Text(matches.map { loc($0.title) }.joined(separator: " • "))
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(selectedTab == tab.id ? Color.white.opacity(0.8) : Color.secondary)
-                                            .lineLimit(1)
+                ScrollView {
+                    LazyVStack(spacing: 3) {
+                        if filteredTabs.isEmpty {
+                            VStack(spacing: 6) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.secondary)
+                                Text(loc("No settings found"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 32)
+                        } else {
+                            ForEach(filteredTabs) { tab in
+                                let matches = matchingSections(for: tab)
+                                let isSelected = (selectedTab == tab.id)
+                                Button {
+                                    withAnimation(.easeOut(duration: 0.15)) {
+                                        selectedTab = tab.id
                                     }
+                                    if let first = matches.first {
+                                        selectSearchItem(tabId: tab.id, sectionId: first.id)
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: tab.icon)
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(isSelected ? Color.white : Color(nsColor: .secondaryLabelColor))
+                                            .frame(width: 18, alignment: .center)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(tabTitle(for: tab.id))
+                                                .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                                                .foregroundStyle(isSelected ? Color.white : Color.primary)
+
+                                            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
+                                                Text(matches.map { loc($0.title) }.joined(separator: " • "))
+                                                    .font(.system(size: 10))
+                                                    .foregroundStyle(isSelected ? Color.white.opacity(0.8) : Color.secondary)
+                                                    .lineLimit(1)
+                                            }
+                                        }
+
+                                        Spacer(minLength: 0)
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        isSelected
+                                            ? Color.effectiveAccent
+                                            : Color.clear
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                    .contentShape(Rectangle())
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .simultaneousGesture(TapGesture().onEnded {
-                            if let first = matches.first {
-                                selectSearchItem(tabId: tab.id, sectionId: first.id)
-                            }
-                        })
                     }
+                    .padding(.horizontal, 10)
+                    .padding(.top, 4)
                 }
-                .overlay {
-                    if filteredTabs.isEmpty {
-                        VStack(spacing: 6) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 18))
-                                .foregroundStyle(.secondary)
-                            Text(loc("No settings found"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .padding(.top, 32)
-                    }
-                }
-                .font(.system(size: 14, weight: .medium))
-                .listStyle(SidebarListStyle())
                 .scrollIndicators(.hidden)
             }
             .tint(.effectiveAccent)
