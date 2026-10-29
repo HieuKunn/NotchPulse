@@ -3,13 +3,56 @@ import SwiftUI
 import Defaults
 import Sparkle
 
+final class SettingsWindow: NSWindow {
+    var trafficLightTopInset: CGFloat = 15.0
+    var trafficLightLeftInset: CGFloat = 13.0
+
+    override func layoutIfNeeded() {
+        super.layoutIfNeeded()
+        adjustTrafficLights()
+    }
+
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(frameRect, display: flag)
+        adjustTrafficLights()
+    }
+
+    override func setFrame(_ frameRect: NSRect, display flag: Bool, animate animateFlag: Bool) {
+        super.setFrame(frameRect, display: flag, animate: animateFlag)
+        adjustTrafficLights()
+    }
+
+    override func makeKeyAndOrderFront(_ sender: Any?) {
+        super.makeKeyAndOrderFront(sender)
+        adjustTrafficLights()
+    }
+
+    func adjustTrafficLights() {
+        let buttons: [(NSWindow.ButtonType, CGFloat)] = [
+            (.closeButton, 0),
+            (.miniaturizeButton, 23),
+            (.zoomButton, 46)
+        ]
+
+        for (type, offset) in buttons {
+            guard let button = standardWindowButton(type),
+                  let superview = button.superview else { continue }
+            var f = button.frame
+            f.origin.x = trafficLightLeftInset + offset
+            let newY = superview.isFlipped ? trafficLightTopInset : (superview.bounds.height - f.height - trafficLightTopInset)
+            f.origin.y = newY
+            button.setFrameOrigin(f.origin)
+        }
+    }
+}
+
 class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
     var updaterController: SPUStandardUpdaterController?
     private var vm: NotchPulseViewModel?
     
     private init() {
-        let window = NSWindow(
+        let window = SettingsWindow(
             contentRect: NSRect(x: 0, y: 0, width: 740, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
@@ -65,6 +108,10 @@ class SettingsWindowController: NSWindowController {
     }
     
     func showWindow() {
+        // Ensure notch preview is closed and notch is cleanly closed so it doesn't jitter behind settings
+        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
+        self.vm?.close(force: true)
+        
         // Set app to regular mode first
         NSApp.setActivationPolicy(.regular)
         
@@ -93,6 +140,7 @@ class SettingsWindowController: NSWindowController {
         // Force window to front after activation
         DispatchQueue.main.async { [weak self] in
             self?.window?.makeKeyAndOrderFront(nil)
+            (self?.window as? SettingsWindow)?.adjustTrafficLights()
         }
     }
     
@@ -132,4 +180,11 @@ extension SettingsWindowController: NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
     }
     
+    func windowDidResize(_ notification: Notification) {
+        (window as? SettingsWindow)?.adjustTrafficLights()
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        (window as? SettingsWindow)?.adjustTrafficLights()
+    }
 }

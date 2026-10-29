@@ -415,7 +415,7 @@ struct WheelPicker: View {
         }
         .scrollIndicators(.never)
         .scrollPosition(id: $scrollPosition, anchor: .center)
-        .safeAreaPadding(.horizontal)
+        .safeAreaPadding(.horizontal, 4)
         .sensoryFeedback(.alignment, trigger: haptics)
         .onAppear {
             DispatchQueue.main.async {
@@ -944,7 +944,7 @@ struct CalendarView: View {
     // MARK: - Normal mode (day-wheel + events beside media)
     private var normalModeView: some View {
         VStack(spacing: 2) {
-            HStack(alignment: .center, spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
                 // Month/year header button → go to fullMonth
                 Button {
                     enterFullMonth()
@@ -964,7 +964,8 @@ struct CalendarView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .frame(minWidth: 54, alignment: .leading)
+                .padding(.leading, 8)
+                .frame(minWidth: 62, alignment: .leading)
                 .opacity((vm.featureTourTarget == "calendar" && isTourBlinking) ? 0.25 : 1.0)
                 .scaleEffect((vm.featureTourTarget == "calendar" && isTourBlinking) ? 1.08 : 1.0)
 
@@ -972,9 +973,11 @@ struct CalendarView: View {
                     .mask(
                         LinearGradient(
                             stops: [
-                                .init(color: .clear, location: 0),
-                                .init(color: .black, location: 0.10),
-                                .init(color: .black, location: 0.90),
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .black.opacity(0.4), location: 0.06),
+                                .init(color: .black, location: 0.14),
+                                .init(color: .black, location: 0.86),
+                                .init(color: .black.opacity(0.4), location: 0.94),
                                 .init(color: .clear, location: 1.0)
                             ],
                             startPoint: .leading,

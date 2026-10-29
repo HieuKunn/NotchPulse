@@ -929,17 +929,17 @@ struct ContentView: View {
 
     private var canCloseOnHoverExit: Bool {
         !vm.isBatteryPopoverActive &&
-        !SharingStateManager.shared.preventNotchClose &&
         !ShelfStateViewModel.shared.isPinned &&
         !CalendarStateViewModel.shared.isPinned &&
         !FeatureTourController.shared.isTourActive &&
         !vm.anyDropZoneTargeting &&
+        !vm.dragDetectorTargeting &&
         !vm.dropEvent
     }
 
     @ViewBuilder
     private var topEdgeHoverSensor: some View {
-        if vm.notchState == .closed && !isEffectivelyLocked && !MissionControlObserver.shared.checkIsMissionControlActive() {
+        if vm.notchState == .closed && !isEffectivelyLocked && !MissionControlObserver.shared.checkIsMissionControlActive() && !(SettingsWindowController.shared.window?.isVisible == true) {
             let extraPad: CGFloat = extendHoverArea ? CGFloat(hoverAreaPadding) : 0
             let sensorWidth: CGFloat = (isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth) + (extraPad * 2)
             let sensorHeight: CGFloat = (isDynamicIsland ? (effectiveTopOffset + 32) : baseClosedHeight) + extraPad
@@ -1026,6 +1026,16 @@ struct ContentView: View {
             hoverCloseTask?.cancel()
             hoverCloseTask = nil
 
+            // Block hover expansion when Settings window is open!
+            if SettingsWindowController.shared.window?.isVisible == true {
+                hoverOpenTask?.cancel()
+                hoverOpenTask = nil
+                if vm.notchState == .open && canCloseOnHoverExit {
+                    self.doClose()
+                }
+                return
+            }
+
             // Block hover expansion when Mission Control is active!
             if MissionControlObserver.shared.checkIsMissionControlActive() {
                 hoverOpenTask?.cancel()
@@ -1071,15 +1081,16 @@ struct ContentView: View {
             }
 
             hoverOpenTask = Task { @MainActor in
+                defer { self.hoverOpenTask = nil }
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled,
                       !self.isEffectivelyLocked,
                       self.vm.notchState == .closed,
                       self.isHovering,
+                      !(SettingsWindowController.shared.window?.isVisible == true),
                       !MissionControlObserver.shared.checkIsMissionControlActive(),
                       !self.coordinator.sneakPeek.show else { return }
                 self.doOpen()
-                self.hoverOpenTask = nil
             }
         } else {
             // Mouse exited: provide a grace period (100ms when closed, 200ms when open)
@@ -1088,6 +1099,7 @@ struct ContentView: View {
             let gracePeriodMs: Int = vm.notchState == .closed ? 100 : 200
 
             hoverCloseTask = Task { @MainActor in
+                defer { self.hoverCloseTask = nil }
                 try? await Task.sleep(for: .milliseconds(gracePeriodMs))
                 guard !Task.isCancelled else { return }
 
@@ -1099,6 +1111,7 @@ struct ContentView: View {
                 }
 
                 if self.vm.notchState == .open && self.canCloseOnHoverExit {
+                    SharingStateManager.shared.preventNotchClose = false
                     self.doClose()
                 }
                 if self.vm.hideOnClosed && self.vm.notchState == .closed {
@@ -1106,7 +1119,6 @@ struct ContentView: View {
                         self.vm.isHoverRevealed = false
                     }
                 }
-                self.hoverCloseTask = nil
             }
         }
     }

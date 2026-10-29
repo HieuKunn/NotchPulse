@@ -48,21 +48,7 @@ struct DisplayHubNotchView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
 
-                // Settings Shortcut
-                Button(action: {
-                    DispatchQueue.main.async {
-                        SettingsWindowController.shared.showWindow()
-                    }
-                }) {
-                    Image(systemName: "gear")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24, height: 24)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 8)
             .padding(.top, 2)

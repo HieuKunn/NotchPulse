@@ -497,7 +497,7 @@ struct SettingsView: View {
                     Spacer()
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
+                .padding(.top, 18)
                 .padding(.bottom, 9)
 
                 // Search Bar in Settings
@@ -561,9 +561,7 @@ struct SettingsView: View {
                                 let matches = matchingSections(for: tab)
                                 let isSelected = (selectedTab == tab.id)
                                 Button {
-                                    withAnimation(.easeOut(duration: 0.15)) {
-                                        selectedTab = tab.id
-                                    }
+                                    selectedTab = tab.id
                                     if let first = matches.first {
                                         selectSearchItem(tabId: tab.id, sectionId: first.id)
                                     }
