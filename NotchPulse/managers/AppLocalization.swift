@@ -26,6 +26,8 @@ struct L10n {
     
     private static let translations: [AppLanguage: [String: String]] = [
         .english: [
+            "Preload expanded notch after launch": "Preload expanded notch after launch",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.",
             "Search Settings...": "Search Settings...",
             "No settings found": "No settings found",
             "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.",
@@ -550,6 +552,8 @@ struct L10n {
             "Image Conversion Failed": "Image Conversion Failed"
         ],
         .vietnamese: [
+            "Preload expanded notch after launch": "Tải trước giao diện notch mở rộng khi khởi động",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "Tải giao diện mở rộng sau khi khởi động để mở lần đầu mượt hơn. Tốn thêm CPU và RAM lúc khởi động.",
             "Search Settings...": "Tìm kiếm cài đặt...",
             "No settings found": "Không tìm thấy cài đặt",
             "Expand the thermal drawer to monitor CPU/GPU temperatures and adjust your Mac fan speed in real-time.": "Mở rộng ngăn nhiệt độ để theo dõi nhiệt độ CPU/GPU và điều chỉnh tốc độ quạt của Mac theo thời gian thực.",
@@ -1074,6 +1078,8 @@ struct L10n {
             "Image Conversion Failed": "Chuyển đổi ảnh thất bại"
         ],
         .german: [
+            "Preload expanded notch after launch": "Erweiterte Notch nach dem Start vorladen",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "Lädt die erweiterte Ansicht kurz nach dem Start für ein flüssigeres erstes Öffnen. Benötigt beim Start mehr CPU und Arbeitsspeicher.",
             "Search Settings...": "Einstellungen suchen...",
             "No settings found": "Keine Einstellungen gefunden",
             "Display": "Bildschirm",
@@ -1599,6 +1605,8 @@ struct L10n {
             "Image Conversion Failed": "Bildkonvertierung fehlgeschlagen"
         ],
         .traditionalChinese: [
+            "Preload expanded notch after launch": "啟動後預先載入展開的瀏海介面",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "啟動後載入展開介面，讓第一次開啟更順暢。啟動時會使用更多 CPU 和記憶體。",
             "Search Settings...": "搜尋設定...",
             "No settings found": "找不到相關設定",
             "Display": "顯示器",
@@ -2124,6 +2132,8 @@ struct L10n {
             "Image Conversion Failed": "圖片轉換失敗"
         ],
         .simplifiedChinese: [
+            "Preload expanded notch after launch": "启动后预加载展开的刘海界面",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "启动后加载展开界面，让首次打开更流畅。启动时会使用更多 CPU 和内存。",
             "Search Settings...": "搜索设置...",
             "No settings found": "未找到相关设置",
             "Display": "显示器",
@@ -2649,6 +2659,8 @@ struct L10n {
             "Image Conversion Failed": "图像转换失败"
         ],
         .japanese: [
+            "Preload expanded notch after launch": "起動後に拡張ノッチを事前読み込み",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "起動後に拡張画面を読み込み、初回表示を滑らかにします。起動時の CPU とメモリ使用量が増えます。",
             "Search Settings...": "設定を検索...",
             "No settings found": "設定が見つかりません",
             "Display": "ディスプレイ",
@@ -3174,6 +3186,8 @@ struct L10n {
             "Image Conversion Failed": "画像の変換に失敗しました"
         ],
         .french: [
+            "Preload expanded notch after launch": "Précharger le notch étendu au démarrage",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "Charge l’interface étendue peu après le démarrage pour une première ouverture plus fluide. Utilise davantage de CPU et de mémoire au démarrage.",
             "Search Settings...": "Rechercher dans les réglages...",
             "No settings found": "Aucun réglage trouvé",
             "Display": "Écran",
@@ -3699,6 +3713,8 @@ struct L10n {
             "Image Conversion Failed": "Échec de la conversion de l'image"
         ],
         .spanish: [
+            "Preload expanded notch after launch": "Precargar el notch expandido al iniciar",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "Carga la interfaz expandida poco después de iniciar para abrirla con más fluidez la primera vez. Usa más CPU y memoria al iniciar.",
             "Search Settings...": "Buscar en ajustes...",
             "No settings found": "No se encontraron ajustes",
             "Display": "Pantalla",
@@ -4224,6 +4240,8 @@ struct L10n {
             "Image Conversion Failed": "Error al convertir la imagen"
         ],
         .arabic: [
+            "Preload expanded notch after launch": "التحميل المسبق للنوتش الموسّع عند التشغيل",
+            "Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup.": "يحمّل الواجهة الموسّعة بعد التشغيل لتفتح بسلاسة في المرة الأولى. يستهلك مزيدًا من المعالج والذاكرة عند التشغيل.",
             "Search Settings...": "البحث في الإعدادات...",
             "No settings found": "لم يتم العثور على إعدادات",
             "Display": "شاشة العرض",

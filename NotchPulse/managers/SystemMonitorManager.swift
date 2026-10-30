@@ -811,8 +811,6 @@ public class SystemMonitorManager: ObservableObject {
     // MARK: - Thermal & Fan Metrics Computation (1s interval)
     private func updateThermalMetrics(forceImmediate: Bool = false) {
         let thermalState = ProcessInfo.processInfo.thermalState
-        _ = fetchCPUUsage()
-        _ = fetchGPUUsage()
 
         // 1. Fetch real hardware sensor temperature from SMC / IOHID
         guard let realHardwareTemp = SMCService.shared.getHardwareTemperature(), realHardwareTemp > 20.0 && realHardwareTemp < 115.0 else {

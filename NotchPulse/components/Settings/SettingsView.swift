@@ -91,7 +91,7 @@ struct SettingsView: View {
                 SettingsSectionItem(
                     id: "system_features",
                     title: "System features",
-                    keywords: ["System features", "Show menu bar icon", "Launch at login", "Show on all displays", "Preferred display", "Automatically switch displays", "Khởi động cùng hệ thống"]
+                    keywords: ["System features", "Show menu bar icon", "Launch at login", "Preload expanded notch after launch", "Show on all displays", "Preferred display", "Automatically switch displays", "Khởi động cùng hệ thống"]
                 ),
                 SettingsSectionItem(
                     id: "camera_mirror",
@@ -1164,6 +1164,14 @@ struct GeneralSettings: View {
             }
             .tint(.effectiveAccent)
             LaunchAtLogin.Toggle(loc("Launch at login"))
+            VStack(alignment: .leading, spacing: 4) {
+                Defaults.Toggle(key: .preloadExpandedNotch) {
+                    Text(loc("Preload expanded notch after launch"))
+                }
+                Text(loc("Loads the expanded interface shortly after launch for a smoother first open. Uses extra CPU and memory at startup."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Defaults.Toggle(key: .showOnAllDisplays) {
                 Text(loc("Show on all displays"))
             }
@@ -1281,18 +1289,18 @@ struct GeneralSettings: View {
                 }) {
                     HStack(spacing: 12) {
                         Image(systemName: "sparkles")
-                            .foregroundColor(.white)
-                            .font(.system(size: 16))
+                            .foregroundStyle(.primary)
+                            .font(.title3)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(loc("Feature Tour"))
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.headline)
                             Text(loc("Interactive Spotlight walkthrough highlighting all Notch features."))
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.tertiary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)

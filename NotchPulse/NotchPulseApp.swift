@@ -181,7 +181,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         collapseAllNotches(force: true)
-        ClipboardManager.shared.stopMonitoring()
+        if Defaults[.enableClipboardManager] {
+            ClipboardManager.shared.stopMonitoring()
+        }
         SystemMonitorManager.shared.stopMonitoring()
         
         let shouldKeepWindow = Defaults[.showOnLockScreen]
@@ -227,7 +229,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         isScreenLocked = false
         LockScreenWakeObserver.shared.handleUnlockTransition()
         setupDetectors() // Re-enable Ghost Windows, Radar and Hover Detectors after unlocking
-        ClipboardManager.shared.startMonitoring()
+        if Defaults[.enableClipboardManager] {
+            ClipboardManager.shared.startMonitoring()
+        }
         FullscreenMediaDetector.shared.reevaluate()
         
         let shouldKeepWindow = Defaults[.showOnLockScreen]
@@ -561,16 +565,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsWindowController.shared.setUpdaterController(updater, viewModel: self.vm)
         }
 
-        // Start clipboard monitoring immediately at app launch
-        _ = ClipboardManager.shared
-
-        // Pre-warm MusicManager immediately at app launch
-        _ = MusicManager.shared
-
-        // Pre-warm ArcFace Neural Engine model if FaceID is enabled
+        // Start the Face ID model warm-up before optional media and clipboard work.
         if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled {
             ArcFaceEmbedder.warmUp()
         }
+
+        // Initialize clipboard history only when the feature is enabled.
+        if Defaults[.enableClipboardManager] {
+            _ = ClipboardManager.shared
+        }
+
+        // Pre-warm MusicManager immediately at app launch
+        _ = MusicManager.shared
 
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: nil
@@ -824,22 +830,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         previousScreens = NSScreen.screens
 
-        // First-open UI warm-up: the FIRST time the notch opens after launch, SwiftUI
-        // builds the entire open-state view tree (music, calendar, clipboard, shelf...)
-        // and fetches first data in one 1.5-2s main-thread stall that runs DURING the
-        // user's first open animation — measured hitches of ~1700ms at notch=open.
-        // Opening+closing invisibly shortly after launch pays that cost once while the
-        // user isn't watching, so every real open afterwards animates smoothly.
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(6))
-            guard let self, !self.isUserInitiatedQuit else { return }
-            let vm = self.vm
-            guard vm.notchState == .closed, !SharingStateManager.shared.preventNotchClose else { return }
-            vm.open()
-            try? await Task.sleep(for: .milliseconds(650))
-            guard vm.notchState == .open, !SharingStateManager.shared.preventNotchClose else { return }
-            withAnimation(NotchPulseViewModel.notchCloseSpring) {
-                vm.close()
+        // Optional UI preloading is independent of the early Face ID model warm-up.
+        // Keep it off by default to avoid constructing every expanded tab at launch.
+        if Defaults[.preloadExpandedNotch] {
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(6))
+                guard let self, !self.isUserInitiatedQuit, !self.isScreenLocked,
+                      Defaults[.preloadExpandedNotch] else { return }
+                let vm = self.vm
+                guard vm.notchState == .closed, !SharingStateManager.shared.preventNotchClose else { return }
+                vm.open()
+                try? await Task.sleep(for: .milliseconds(650))
+                guard vm.notchState == .open, !self.isScreenLocked,
+                      !SharingStateManager.shared.preventNotchClose else { return }
+                withAnimation(NotchPulseViewModel.notchCloseSpring) {
+                    vm.close()
+                }
             }
         }
     }

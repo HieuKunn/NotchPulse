@@ -143,6 +143,8 @@ final class ClipboardManager: ObservableObject {
 
     private let processingQueue = DispatchQueue(label: "com.notchpulse.clipboard.processing", qos: .userInitiated)
     private var pollTimer: Timer?
+    private var isMonitoring = false
+    private var lastPasteboardChangeAt = Date()
     private var copyKeyMonitor: Any?
     private let pasteboard = NSPasteboard.general
     private var lastChangeCount: Int = -1
@@ -203,6 +205,7 @@ final class ClipboardManager: ObservableObject {
     }
 
     private func teardownMonitoringOnMain() {
+        isMonitoring = false
         pollTimer?.invalidate()
         pollTimer = nil
         if let monitor = copyKeyMonitor {
@@ -213,6 +216,9 @@ final class ClipboardManager: ObservableObject {
 
     private func setupMonitoringOnMain() {
         teardownMonitoringOnMain()
+        guard isEnabled else { return }
+        isMonitoring = true
+        lastPasteboardChangeAt = Date()
 
         // 1. Instant event-driven copy detector: Fires with multi-tick check on Cmd+C / Cmd+X / Screenshots
         if AXIsProcessTrusted() {
@@ -239,17 +245,25 @@ final class ClipboardManager: ObservableObject {
             }
         }
 
-        // 2. Low-frequency background polling (1.5s) for context menu copies, drag copies, and apps without key events.
-        // Primary copy actions (Cmd+C / Cmd+X / Screenshot) are captured instantly by key event monitors above.
-        let timer = Timer(timeInterval: 1.5, repeats: true) { [weak self] _ in
-            self?.checkForChanges()
-        }
-        timer.tolerance = 0.5
-        RunLoop.main.add(timer, forMode: .common)
-        self.pollTimer = timer
-
+        // Poll context menu and drag copies. Slow down after inactivity; the key
+        // monitor above still checks common copy actions immediately.
+        scheduleNextPoll()
         // Check immediately on startup
         self.checkForChanges()
+    }
+
+    private func scheduleNextPoll() {
+        guard isMonitoring else { return }
+        pollTimer?.invalidate()
+        let interval: TimeInterval = Date().timeIntervalSince(lastPasteboardChangeAt) < 30 ? 1.5 : 3
+        let timer = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.checkForChanges()
+            self.scheduleNextPoll()
+        }
+        timer.tolerance = interval * 0.25
+        RunLoop.main.add(timer, forMode: .common)
+        pollTimer = timer
     }
 
     func checkImmediately() {
@@ -276,10 +290,11 @@ final class ClipboardManager: ObservableObject {
     ]
 
     private func checkForChanges() {
-        guard isEnabled else { return }
+        guard isEnabled, isMonitoring else { return }
         let currentCount = pasteboard.changeCount
         guard currentCount != lastChangeCount else { return }
         lastChangeCount = currentCount
+        lastPasteboardChangeAt = Date()
 
         // 1. Check Raw Images FIRST (Prevents web browsers & Electron apps from having their images shadowed by fallback text URLs / HTML)
         let hasImageTypes = pasteboard.types?.contains(where: { Self.supportedImageTypes.contains($0) }) ?? false

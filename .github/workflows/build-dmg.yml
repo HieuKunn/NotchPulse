@@ -26,6 +26,9 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Check Localization Keys
+        run: python3 scripts/check_localization.py
+
       - name: Select Xcode
         run: |
           echo "Danh sách Xcode có sẵn trên máy ảo:"
