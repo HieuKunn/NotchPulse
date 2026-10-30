@@ -39,7 +39,8 @@ enum NotchPulseSecureFaceStore {
         try ciphertext.write(to: fileURL, options: .atomic)
     }
 
-    static func deleteAll() {
-        try? FileManager.default.removeItem(at: fileURL)
+    static func deleteAll() throws {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        try FileManager.default.removeItem(at: fileURL)
     }
 }

@@ -164,18 +164,18 @@ final class NotchPulseFaceEnrollmentStore {
     func reloadIfUnlocked() {
         guard NotchPulseVault.isSessionUnlocked else {
             isLocked = true
+            hasLoadedSuccessfully = false
             return
         }
 
         do {
             let loaded = try NotchPulseSecureFaceStore.load()
-            if !loaded.isEmpty || identities.isEmpty {
-                identities = loaded
-            }
+            identities = loaded
             hasLoadedSuccessfully = true
             loadFailure = nil
             isLocked = false
         } catch {
+            hasLoadedSuccessfully = false
             loadFailure = error.localizedDescription
             if case NotchPulseVaultError.sessionLocked = error {
                 isLocked = true
@@ -198,16 +198,17 @@ final class NotchPulseFaceEnrollmentStore {
 
         let sample = FaceSample(embedding: embedding, pose: pose, capturedAt: Date(), quality: quality)
 
-        if let index = identities.firstIndex(where: { $0.name == trimmed }) {
-            if identities[index].modelIdentifier != embedder.modelIdentifier {
-                identities[index].samples = [sample]
+        var updated = identities
+        if let index = updated.firstIndex(where: { $0.name == trimmed }) {
+            if updated[index].modelIdentifier != embedder.modelIdentifier {
+                updated[index].samples = [sample]
             } else {
-                identities[index].samples.append(sample)
+                updated[index].samples.append(sample)
             }
-            identities[index].modelIdentifier = embedder.modelIdentifier
-            identities[index].embeddingDimension = embedder.embeddingDimension
+            updated[index].modelIdentifier = embedder.modelIdentifier
+            updated[index].embeddingDimension = embedder.embeddingDimension
         } else {
-            identities.append(FaceIdentity(
+            updated.append(FaceIdentity(
                 id: UUID(),
                 name: trimmed,
                 samples: [sample],
@@ -216,7 +217,8 @@ final class NotchPulseFaceEnrollmentStore {
                 createdAt: Date()
             ))
         }
-        try persist()
+        try persist(updated)
+        identities = updated
         return true
     }
 
@@ -253,7 +255,7 @@ final class NotchPulseFaceEnrollmentStore {
             )
             updated.append(committed)
         }
-        try NotchPulseSecureFaceStore.save(updated)
+        try persist(updated)
         identities = updated
         return committed
     }
@@ -284,24 +286,30 @@ final class NotchPulseFaceEnrollmentStore {
     }
 
     func delete(_ identity: FaceIdentity) throws {
-        identities.removeAll { $0.id == identity.id }
-        try persist()
+        let updated = identities.filter { $0.id != identity.id }
+        try persist(updated)
+        identities = updated
     }
 
     /// Removes the file outright (rather than writing an empty array) — the teardown path when the session key
     /// itself is being removed, so no orphaned encrypted file is left behind for the next setup to trip over.
-    func deleteAll() {
+    func deleteAll() throws {
+        try NotchPulseSecureFaceStore.deleteAll()
         identities.removeAll()
-        NotchPulseSecureFaceStore.deleteAll()
         loadFailure = nil
         hasLoadedSuccessfully = true
+        isLocked = false
     }
 
     private func persist() throws {
+        try persist(identities)
+    }
+
+    private func persist(_ updated: [FaceIdentity]) throws {
         // Refuses to write when the last load failed, so an unreadable store can't be silently replaced by an empty array.
-        guard hasLoadedSuccessfully else {
+        guard hasLoadedSuccessfully, !isLocked, loadFailure == nil else {
             throw NotchPulseFaceEnrollmentStoreError.storeUnreadable
         }
-        try NotchPulseSecureFaceStore.save(identities)
+        try NotchPulseSecureFaceStore.save(updated)
     }
 }

@@ -72,8 +72,8 @@ enum NotchPulseVault {
                         _cachedPassword = plaintext
                         sessionLock.unlock()
                         let unified = UnifiedVaultPayload(keyData: data, passwordData: plaintext)
-                        if let encoded = try? JSONEncoder().encode(unified) {
-                            try? NotchPulseKeychainManager.save(account: sessionKeyAccount, data: encoded)
+                        if let encoded = try? JSONEncoder().encode(unified),
+                           (try? NotchPulseKeychainManager.save(account: sessionKeyAccount, data: encoded)) != nil {
                             try? NotchPulseKeychainManager.delete(account: passwordBlobAccount)
                             NSLog("[NotchPulseVault] Successfully migrated legacy passwordBlob to unified sessionKey.")
                         }
@@ -119,12 +119,14 @@ enum NotchPulseVault {
         let key = SymmetricKey(size: .bits256)
         let keyData = key.withUnsafeBytes { Data($0) }
         let payload = UnifiedVaultPayload(keyData: keyData, passwordData: nil)
-        if let encoded = try? JSONEncoder().encode(payload) {
-            try? NotchPulseKeychainManager.save(
+        guard let encoded = try? JSONEncoder().encode(payload),
+              (try? NotchPulseKeychainManager.save(
                 account: sessionKeyAccount,
                 data: encoded,
                 accessControl: nil
-            )
+              )) != nil else {
+            NSLog("[NotchPulseVault] Could not persist the new session key; refusing to use an ephemeral key.")
+            return nil
         }
         sessionLock.lock()
         _cachedKey = key
@@ -259,10 +261,10 @@ enum NotchPulseVault {
     nonisolated static func unlockSession(reason: String = "") async throws {
         if cachedKey() != nil { return }
         if let key = tryAutoLoadKey() {
-            sessionLock.lock()
-            _cachedKey = key
-            _lastActivityAt = Date()
-            sessionLock.unlock()
+            sessionLock.withLock {
+                _cachedKey = key
+                _lastActivityAt = Date()
+            }
             NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
             return
         }
@@ -273,19 +275,19 @@ enum NotchPulseVault {
             let data = try NotchPulseKeychainManager.read(account: sessionKeyAccount, context: context)
             if let payload = try? JSONDecoder().decode(UnifiedVaultPayload.self, from: data) {
                 let key = SymmetricKey(data: payload.keyData)
-                sessionLock.lock()
-                _cachedKey = key
-                _cachedPassword = payload.passwordData
-                _lastActivityAt = Date()
-                sessionLock.unlock()
+                sessionLock.withLock {
+                    _cachedKey = key
+                    _cachedPassword = payload.passwordData
+                    _lastActivityAt = Date()
+                }
                 NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
                 return
             } else if data.count == 32 {
                 let key = SymmetricKey(data: data)
-                sessionLock.lock()
-                _cachedKey = key
-                _lastActivityAt = Date()
-                sessionLock.unlock()
+                sessionLock.withLock {
+                    _cachedKey = key
+                    _lastActivityAt = Date()
+                }
                 NotificationCenter.default.post(name: .secureCredentialSessionDidChange, object: nil)
                 return
             }
@@ -369,15 +371,13 @@ enum NotchPulseVault {
         return _cachedKey != nil
     }
 
-    /// Deletes both Keychain items and clears the cached session key.
+    /// Removes the stored password while retaining the key used by encrypted face identities.
     nonisolated static func deletePassword() throws {
-        if let key = cachedKey() {
-            let keyData = key.withUnsafeBytes { Data($0) }
-            let payload = UnifiedVaultPayload(keyData: keyData, passwordData: nil)
-            if let encoded = try? JSONEncoder().encode(payload) {
-                try? NotchPulseKeychainManager.save(account: sessionKeyAccount, data: encoded)
-            }
-        }
+        guard let key = cachedKey() ?? ensureSessionKey() else { throw NotchPulseVaultError.sessionLocked }
+        let keyData = key.withUnsafeBytes { Data($0) }
+        let payload = UnifiedVaultPayload(keyData: keyData, passwordData: nil)
+        let encoded = try JSONEncoder().encode(payload)
+        try NotchPulseKeychainManager.save(account: sessionKeyAccount, data: encoded)
         if NotchPulseKeychainManager.exists(account: passwordBlobAccount) {
             try? NotchPulseKeychainManager.delete(account: passwordBlobAccount)
         }

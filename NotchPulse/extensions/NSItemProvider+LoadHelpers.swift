@@ -34,28 +34,7 @@ extension NSItemProvider {
                         return
                     }
                     self.suggestedName = self.suggestedName ?? url.lastPathComponent
-                    
-                    let fileManager = FileManager.default
-                    let folderURL = url.deletingLastPathComponent()
-
-                    do {
-                        // Delete the file first
-                        try fileManager.removeItem(at: url)
-                        print("Deleted file: \(url.path)")
-
-                        // Check folder contents
-                        let contents = try fileManager.contentsOfDirectory(atPath: folderURL.path)
-                        if contents.isEmpty {
-                            try fileManager.removeItem(at: folderURL)
-                            print("Folder was empty, deleted folder: \(folderURL.path)")
-                        } else {
-                            print("Folder not deleted — it still contains \(contents.count) item(s).")
-                        }
-
-                    } catch {
-                        print("Error: \(error.localizedDescription)")
-                    }
-                    
+                    // The URL belongs to the item provider. Its owner or the system cleans it up.
                     cont.resume(returning: data)
                 } else if let data = item as? Data {
                     cont.resume(returning: data)

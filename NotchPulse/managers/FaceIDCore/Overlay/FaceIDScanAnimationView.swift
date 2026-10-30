@@ -37,7 +37,8 @@ struct FaceIDScanAnimationView: NSViewRepresentable {
 }
 
 final class FaceIDScanAnimationHostView: NSView {
-    private static var firstFrameCache: [String: CGImage] = [:]
+    nonisolated private static let firstFrameCacheLock = NSLock()
+    nonisolated(unsafe) private static var firstFrameCache: [String: CGImage] = [:]
 
     static func prewarm() {
         Task.detached(priority: .utility) {
@@ -47,8 +48,8 @@ final class FaceIDScanAnimationHostView: NSView {
         }
     }
 
-    private static func firstFrame(for resourceName: String) -> CGImage? {
-        if let cached = firstFrameCache[resourceName] { return cached }
+    nonisolated private static func firstFrame(for resourceName: String) -> CGImage? {
+        if let cached = firstFrameCacheLock.withLock({ firstFrameCache[resourceName] }) { return cached }
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4") else { return nil }
         let asset = AVURLAsset(url: url)
         let generator = AVAssetImageGenerator(asset: asset)
@@ -56,8 +57,11 @@ final class FaceIDScanAnimationHostView: NSView {
         generator.requestedTimeToleranceBefore = .zero
         generator.requestedTimeToleranceAfter = .zero
         if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
-            firstFrameCache[resourceName] = cgImage
-            return cgImage
+            return firstFrameCacheLock.withLock {
+                if let cached = firstFrameCache[resourceName] { return cached }
+                firstFrameCache[resourceName] = cgImage
+                return cgImage
+            }
         }
         return nil
     }

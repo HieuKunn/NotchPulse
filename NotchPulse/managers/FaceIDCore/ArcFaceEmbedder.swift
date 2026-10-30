@@ -59,9 +59,9 @@ final class ArcFaceEmbedder: FaceEmbedder, @unchecked Sendable {
 
     // Loaded and cached — thread-safe accessor that retries on access instead of permanently trapping nil.
     static var shared: ArcFaceEmbedder? {
-        setupWakeObserverIfNeeded()
         _sharedLock.lock()
         defer { _sharedLock.unlock() }
+        setupWakeObserverIfNeeded()
         if let existing = _sharedInstance { return existing }
         if let instance = try? ArcFaceEmbedder() {
             _sharedInstance = instance

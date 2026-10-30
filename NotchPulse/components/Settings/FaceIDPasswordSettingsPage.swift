@@ -83,13 +83,11 @@ struct PasswordSettingsPage: View {
 
     // MARK: - Actions
 
-    /// Face samples must be deleted before the password/session key —
-    /// `deletePassword()` clears the cached session key, and deleting the
-    /// face store requires an unlocked session.
+    /// Update the Keychain first so a failed write leaves the face enrollment intact.
     private func removePassword() {
         do {
-            NotchPulseFaceEnrollmentStore.shared.deleteAll()
             try NotchPulseVault.deletePassword()
+            try NotchPulseFaceEnrollmentStore.shared.deleteAll()
             pocController.refreshCredentialStatus()
             statusMessage = loc("Password and face enrollment removed.")
         } catch {

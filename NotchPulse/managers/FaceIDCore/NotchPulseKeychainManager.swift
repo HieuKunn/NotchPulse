@@ -48,7 +48,7 @@ enum NotchPulseKeychainManager {
         // 1. First attempt direct query without LAContext.
         // Items saved with kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (such as our unified sessionKey)
         // succeed immediately even on the lock screen without any prompt or UI evaluation.
-        var query: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
@@ -101,14 +101,20 @@ enum NotchPulseKeychainManager {
         }
     }
 
-    /// Replaces any existing item. Pass `accessControl` to gate future reads behind Touch ID; `nil` for device-local, unlock-only.
+    /// Updates an existing item in place so a failed write cannot destroy the previous secret.
+    /// Pass `accessControl` for a new Touch ID-gated item; `nil` creates a device-local, unlock-only item.
     nonisolated static func save(account: String, data: Data, accessControl: SecAccessControl? = nil) throws {
-        let deleteQuery: [String: Any] = [
+        let itemQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account
         ]
-        SecItemDelete(deleteQuery as CFDictionary)
+        let updateStatus = SecItemUpdate(
+            itemQuery as CFDictionary,
+            [kSecValueData as String: data] as CFDictionary
+        )
+        if updateStatus == errSecSuccess { return }
+        guard updateStatus == errSecItemNotFound else { throw KeychainError.osStatus(updateStatus) }
 
         var addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

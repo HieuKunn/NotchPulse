@@ -22,18 +22,19 @@ class TemporaryFileStorageService {
     }
     
     func removeTemporaryFileIfNeeded(at url: URL) {
-        let tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
+        let tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory()).standardizedFileURL
+        let fileURL = url.standardizedFileURL
+        let folderURL = fileURL.deletingLastPathComponent()
 
-        guard url.path.hasPrefix(tempDirectory.path) else {
+        guard folderURL.deletingLastPathComponent() == tempDirectory,
+              UUID(uuidString: folderURL.lastPathComponent) != nil else {
             print("Attempted to remove temporary file outside temp directory: \(url.path)")
             return
         }
 
-        let folderURL = url.deletingLastPathComponent()
-
         do {
-            try FileManager.default.removeItem(at: url)
-            print("Deleted file: \(url.path)")
+            try FileManager.default.removeItem(at: fileURL)
+            print("Deleted file: \(fileURL.path)")
 
             let contents = try FileManager.default.contentsOfDirectory(atPath: folderURL.path)
             if contents.isEmpty {
@@ -56,7 +57,8 @@ class TemporaryFileStorageService {
         
         switch type {
         case .data(let data, let suggestedName):
-            let filename = suggestedName ?? ".dat"
+            let proposedName = (suggestedName as NSString?)?.lastPathComponent ?? ""
+            let filename = proposedName.isEmpty || proposedName == "." || proposedName == ".." ? "\(uuid).dat" : proposedName
             let dirURL = tempDir.appendingPathComponent(uuid, isDirectory: true)
             let fileURL = dirURL.appendingPathComponent(filename)
             

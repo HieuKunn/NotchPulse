@@ -312,16 +312,13 @@ final class ClipboardManager: ObservableObject {
                     guard let self = self else { return }
                     autoreleasepool {
                         // Generate thumbnail (max 96x96 px)
-                        guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 96) ?? rawData.prefix(60_000) as Data? else { return }
+                        guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 96) else { return }
 
                         // Save full image to disk temp file so RAM stays untouched
                         let itemId = UUID()
                         let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).dat")
-                        if let fullData = Self.generateOptimizedImageData(from: rawData, maxDimension: 1600) {
-                            try? fullData.write(to: tempFile, options: .atomic)
-                        } else {
-                            try? rawData.write(to: tempFile, options: .atomic)
-                        }
+                        let fullData = Self.generateOptimizedImageData(from: rawData, maxDimension: 1600) ?? rawData
+                        guard (try? fullData.write(to: tempFile, options: .atomic)) != nil else { return }
 
                         let item = ClipboardItem(
                             id: itemId,
@@ -447,7 +444,7 @@ final class ClipboardManager: ObservableObject {
         self.history.removeAll { existing in
             if existing.id == item.id {
                 if let path = existing.diskFilePath, path != item.diskFilePath {
-                    try? FileManager.default.removeItem(atPath: path)
+                    Self.removeCachedImageFile(at: path)
                 }
                 return true
             }
@@ -457,7 +454,7 @@ final class ClipboardManager: ObservableObject {
             if item.isImage && existing.isImage {
                 if let d1 = item.thumbnailData, let d2 = existing.thumbnailData, d1 == d2 {
                     if let path = existing.diskFilePath, path != item.diskFilePath {
-                        try? FileManager.default.removeItem(atPath: path)
+                        Self.removeCachedImageFile(at: path)
                     }
                     return true
                 }
@@ -478,7 +475,7 @@ final class ClipboardManager: ObservableObject {
             let removed = history.suffix(from: limit)
             for item in removed {
                 if let path = item.diskFilePath {
-                    try? FileManager.default.removeItem(atPath: path)
+                    Self.removeCachedImageFile(at: path)
                 }
             }
             history = Array(history.prefix(limit))
@@ -515,7 +512,13 @@ final class ClipboardManager: ObservableObject {
     func copyToPasteboard(_ item: ClipboardItem) {
         pasteboard.clearContents()
 
-        if item.isImage {
+        if item.type == .image,
+           let fileURL = item.urlString.flatMap(URL.init(string:)),
+           fileURL.isFileURL,
+           FileManager.default.fileExists(atPath: fileURL.path) {
+            // Images copied as files in Finder must paste back as files, not as decoded pixels.
+            pasteboard.writeObjects([fileURL as NSURL])
+        } else if item.isImage {
             // Autoreleasepool ensures full image representation is purged from RAM as soon as written to pasteboard
             autoreleasepool {
                 let fullData: Data? = {
@@ -527,8 +530,10 @@ final class ClipboardManager: ObservableObject {
 
                 if let data = fullData, let image = NSImage(data: data) {
                     pasteboard.writeObjects([image])
-                    pasteboard.setData(data, forType: .png)
-                    pasteboard.setData(data, forType: NSPasteboard.PasteboardType("public.png"))
+                    if let source = CGImageSourceCreateWithData(data as CFData, nil),
+                       let imageType = CGImageSourceGetType(source) {
+                        pasteboard.setData(data, forType: NSPasteboard.PasteboardType(imageType as String))
+                    }
                 }
             }
         } else if item.type == .file || (item.urlString?.hasPrefix("file://") == true),
@@ -552,7 +557,7 @@ final class ClipboardManager: ObservableObject {
     func clearHistory() {
         for item in history {
             if let path = item.diskFilePath {
-                try? FileManager.default.removeItem(atPath: path)
+                Self.removeCachedImageFile(at: path)
             }
         }
         history.removeAll()
@@ -573,6 +578,15 @@ final class ClipboardManager: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }()
+
+    /// Finder image entries point at the user's original file. Only files created in our cache are ours to delete.
+    private static func removeCachedImageFile(at path: String) {
+        let fileURL = URL(fileURLWithPath: path).standardizedFileURL
+        guard fileURL.deletingLastPathComponent() == clipboardTempDir.standardizedFileURL,
+              fileURL.pathExtension == "dat",
+              UUID(uuidString: fileURL.deletingPathExtension().lastPathComponent) != nil else { return }
+        try? FileManager.default.removeItem(at: fileURL)
+    }
 
     private static func extractRawData(from image: NSImage) -> Data? {
         if let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) {
@@ -662,9 +676,8 @@ final class ClipboardManager: ObservableObject {
     }
 
     private func cleanupOrphanedTempFiles() {
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            guard let self = self else { return }
-            let validPaths = Set(self.history.compactMap { $0.diskFilePath })
+        let validPaths = Set(history.compactMap { $0.diskFilePath })
+        DispatchQueue.global(qos: .background).async {
             if let files = try? FileManager.default.contentsOfDirectory(at: Self.clipboardTempDir, includingPropertiesForKeys: nil) {
                 for file in files {
                     if !validPaths.contains(file.path) {
