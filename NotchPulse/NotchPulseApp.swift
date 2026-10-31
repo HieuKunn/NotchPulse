@@ -421,11 +421,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-                viewModel.open()
+                viewModel.open(targetView: .shelf)
             } else {
-                vm.open()
+                vm.open(targetView: .shelf)
             }
-            coordinator.currentView = .shelf
         }
     }
 

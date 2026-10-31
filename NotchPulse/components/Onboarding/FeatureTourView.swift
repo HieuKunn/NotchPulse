@@ -495,7 +495,6 @@ struct FeatureTourView: View {
         FeatureTourController.shared.isTourActive = true
         let targetVM = activeVM
         withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-            coordinator.currentView = currentStep.viewType
             targetVM.featureTourTarget = currentStep.target
             CalendarStateViewModel.shared.isFullMonthExpanded = false
             if currentStep.target == "fan" {
@@ -511,7 +510,7 @@ struct FeatureTourView: View {
             } else {
                 targetVM.customOpenHeight = nil
             }
-            targetVM.open()
+            targetVM.open(targetView: currentStep.viewType)
         }
         
         // Ensure open Notch window stays in front and interactive on every tour step

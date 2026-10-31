@@ -270,7 +270,13 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         return position.y >= baseY && position.y <= frame.maxY && position.x >= baseX && position.x <= baseX + totalW
     }
 
-    func open() {
+    func open(targetView: NotchViews? = nil) {
+        if let targetView {
+            coordinator.currentView = targetView
+        } else if !coordinator.openLastTabByDefault {
+            coordinator.currentView = .home
+        }
+
         CalendarStateViewModel.shared.isFullMonthExpanded = false
         self.coordinator.dismissExpandingView(animated: false)
         self.coordinator.sneakPeek.show = false

@@ -25,7 +25,7 @@ final class DragDetector {
     private var isContentDragging: Bool = false
     private var hasEnteredNotchRegion: Bool = false
     private var lastCheckedDragCount: Int = -1
-    private var cachedHasValidContent: Bool = false
+    private var cachedHasAutoOpenContent: Bool = false
     private var cachedRegion: CGRect = .zero
     private var lastRegionFetchTime: TimeInterval = 0
 
@@ -41,7 +41,10 @@ final class DragDetector {
         return cachedRegion
     }
 
-    private static let validIdentifiers: Set<String> = [
+    /// Types that are strong evidence of a transferable object. Text, HTML and
+    /// RTF are intentionally excluded: selecting text also emits mouse-drag
+    /// events and must never auto-open Shelf.
+    private static let autoOpenIdentifiers: Set<String> = [
         NSPasteboard.PasteboardType.fileURL.rawValue,
         "NSFilenamesPboardType",
         "Apple URL pasteboard type",
@@ -49,20 +52,14 @@ final class DragDetector {
         "com.apple.NSFilePromiseItemMetaData",
         "com.apple.pasteboard.promised-file-content-type",
         "Apple promised file pasteboard type",
+        "Apple files promise pasteboard type",
         "com.apple.finder.node",
         UTType.url.identifier,
         UTType.fileURL.identifier,
-        UTType.utf8PlainText.identifier,
-        UTType.plainText.identifier,
-        UTType.text.identifier,
         UTType.image.identifier,
         UTType.png.identifier,
         UTType.jpeg.identifier,
-        UTType.tiff.identifier,
-        NSPasteboard.PasteboardType.string.rawValue,
-        NSPasteboard.PasteboardType.html.rawValue,
-        NSPasteboard.PasteboardType.rtf.rawValue,
-        "NSStringPboardType"
+        UTType.tiff.identifier
     ]
 
     init(regionProvider: @escaping () -> CGRect) {
@@ -72,34 +69,34 @@ final class DragDetector {
 
     // MARK: - Private Helpers
     
-    /// Checks if the drag pasteboard contains valid content types that can be dropped on the shelf
-    private func hasValidDragContent(forceRefresh: Bool = false) -> Bool {
+    /// Checks whether this drag is safe to use for automatic Shelf activation.
+    /// Shelf's own drop destinations still accept plain text once already open.
+    private func hasAutoOpenDragContent(forceRefresh: Bool = false) -> Bool {
         let currentCount = dragPasteboard.changeCount
         if !forceRefresh && currentCount == lastCheckedDragCount {
-            return cachedHasValidContent
+            return cachedHasAutoOpenContent
         }
         lastCheckedDragCount = currentCount
 
         guard let types = dragPasteboard.types, !types.isEmpty else {
-            cachedHasValidContent = false
+            cachedHasAutoOpenContent = false
             return false
         }
         
         for type in types {
-            if Self.validIdentifiers.contains(type.rawValue) {
-                cachedHasValidContent = true
+            if Self.autoOpenIdentifiers.contains(type.rawValue) {
+                cachedHasAutoOpenContent = true
                 return true
             }
             if let utType = UTType(type.rawValue),
                (utType.conforms(to: .fileURL) ||
                 utType.conforms(to: .url) ||
-                utType.conforms(to: .text) ||
                 utType.conforms(to: .image)) {
-                cachedHasValidContent = true
+                cachedHasAutoOpenContent = true
                 return true
             }
         }
-        cachedHasValidContent = false
+        cachedHasAutoOpenContent = false
         return false
     }
 
@@ -141,7 +138,7 @@ final class DragDetector {
         isContentDragging = false
         hasEnteredNotchRegion = false
         lastCheckedDragCount = -1
-        cachedHasValidContent = false
+        cachedHasAutoOpenContent = false
         cachedRegion = .zero
     }
 
@@ -150,14 +147,22 @@ final class DragDetector {
         let mouseLocation = NSEvent.mouseLocation
         let activeRegion = getActiveRegion()
 
-        // `changeCount` is the fast path. The proximity payload check is a
-        // fallback for Finder/apps that populate the drag pasteboard before our
-        // mouse-down monitor runs, leaving the count unchanged for the session.
-        let isNewDragOperation = (mouseDownPasteboardCount != -1 && currentCount != mouseDownPasteboardCount) ||
-                                 currentCount != lastKnownIdleCount
+        // A payload must be fresh for this mouse session. Reading a valid-looking
+        // type merely because the pointer is near the notch reuses stale drag
+        // pasteboard data and turns text selection into a false file drag.
+        let isNewDragOperation: Bool
+        if mouseDownPasteboardCount != -1 {
+            // Prefer the baseline from this exact press. An older pasteboard
+            // change must not leak into a new text-selection gesture.
+            isNewDragOperation = currentCount != mouseDownPasteboardCount
+        } else {
+            // Covers the rare case where monitoring starts after the press but
+            // while an external file drag is already in progress.
+            isNewDragOperation = currentCount != lastKnownIdleCount
+        }
         let isNearNotch = mouseLocation.y >= (activeRegion.minY - 120)
-        guard isContentDragging || isNewDragOperation || isNearNotch else { return }
-        let hasCurrentPayload = hasValidDragContent(forceRefresh: !isContentDragging)
+        guard isContentDragging || isNewDragOperation else { return }
+        let hasCurrentPayload = hasAutoOpenDragContent(forceRefresh: !isContentDragging)
         if !isContentDragging {
             guard hasCurrentPayload else { return }
             isContentDragging = true
@@ -186,7 +191,7 @@ final class DragDetector {
         cachedRegion = .zero
         lastRegionFetchTime = 0
         lastCheckedDragCount = -1
-        cachedHasValidContent = false
+        cachedHasAutoOpenContent = false
         hasEnteredNotchRegion = false
         isContentDragging = false
         if wasInRegion {
@@ -213,7 +218,7 @@ final class DragDetector {
         hasEnteredNotchRegion = false
         mouseDownPasteboardCount = -1
         lastCheckedDragCount = -1
-        cachedHasValidContent = false
+        cachedHasAutoOpenContent = false
     }
 
     deinit {
