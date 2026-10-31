@@ -8,6 +8,7 @@ struct ShelfView: View {
     @StateObject var selection = ShelfSelectionModel.shared
     @StateObject private var quickLookService = QuickLookService()
     @State private var isShelfTargeted = false
+    @State private var dropEventResetTask: Task<Void, Never>?
     private let spacing: CGFloat = 8
 
     var body: some View {
@@ -43,8 +44,22 @@ struct ShelfView: View {
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         guard !selection.isDragging else { return false }
+        isShelfTargeted = false
+        vm.shelfDropTargeting = false
         vm.dropEvent = true
         ShelfStateViewModel.shared.load(providers)
+        dropEventResetTask?.cancel()
+        dropEventResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled else { return }
+            vm.dropEvent = false
+            if !tvm.isPinned,
+               !CalendarStateViewModel.shared.isPinned,
+               !vm.anyDropZoneTargeting,
+               !vm.isMouseHovering() {
+                vm.close()
+            }
+        }
         return true
     }
     
@@ -138,20 +153,107 @@ struct ShelfView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView(.horizontal) {
-                    HStack(spacing: spacing) {
-                        ForEach(tvm.items) { item in
-                            ShelfItemView(item: item)
-                                .environmentObject(quickLookService)
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        HStack(spacing: spacing) {
+                            ForEach(tvm.items) { item in
+                                ShelfItemView(item: item)
+                                    .environmentObject(quickLookService)
+                                    .id(item.id)
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    .background(ShelfScrollWheelHelper())
+                    .scrollIndicators(.never)
+                    .onChange(of: tvm.items.count) { oldCount, newCount in
+                        guard newCount > oldCount, let lastID = tvm.items.last?.id else { return }
+                        Task { @MainActor in
+                            await Task.yield()
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(lastID, anchor: .trailing)
+                            }
                         }
                     }
-                    .padding(.horizontal, 4)
                 }
-                .scrollIndicators(.never)
             }
         }
         .onAppear {
             ShelfStateViewModel.shared.cleanupInvalidItems()
+        }
+    }
+}
+
+/// Routes a regular mouse wheel's vertical delta into the Shelf's horizontal
+/// `NSScrollView`. Trackpad horizontal gestures keep their native behavior.
+private struct ShelfScrollWheelHelper: NSViewRepresentable {
+    func makeNSView(context: Context) -> HelperView {
+        HelperView()
+    }
+
+    func updateNSView(_ nsView: HelperView, context: Context) {
+        nsView.installMonitorIfNeeded()
+    }
+
+    final class HelperView: NSView {
+        private var monitor: Any?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if window == nil {
+                removeMonitor()
+            } else {
+                installMonitorIfNeeded()
+            }
+        }
+
+        override func viewDidMoveToSuperview() {
+            super.viewDidMoveToSuperview()
+            if superview != nil {
+                installMonitorIfNeeded()
+            }
+        }
+
+        deinit {
+            removeMonitor()
+        }
+
+        func installMonitorIfNeeded() {
+            guard monitor == nil, window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+                guard let self,
+                      let window = self.window,
+                      event.window === window,
+                      let scrollView = self.enclosingScrollView else {
+                    return event
+                }
+
+                let point = scrollView.convert(event.locationInWindow, from: nil)
+                guard scrollView.bounds.contains(point) else { return event }
+
+                let deltaX = event.scrollingDeltaX
+                let deltaY = event.scrollingDeltaY
+                guard abs(deltaY) > abs(deltaX), abs(deltaY) > 0 else { return event }
+
+                let clipView = scrollView.contentView
+                let documentWidth = scrollView.documentView?.bounds.width ?? 0
+                let maximumX = max(0, documentWidth - clipView.bounds.width)
+                guard maximumX > 0 else { return event }
+
+                let multiplier: CGFloat = event.hasPreciseScrollingDeltas ? 1 : 16
+                var origin = clipView.bounds.origin
+                origin.x = min(maximumX, max(0, origin.x - deltaY * multiplier))
+                clipView.scroll(to: origin)
+                scrollView.reflectScrolledClipView(clipView)
+                return nil
+            }
+        }
+
+        func removeMonitor() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
         }
     }
 }

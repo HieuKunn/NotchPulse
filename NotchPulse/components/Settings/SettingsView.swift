@@ -2427,6 +2427,7 @@ struct About: View {
 
 struct Shelf: View {
     @Environment(\.settingsHighlightedId) private var highlightedId
+    @Default(.notchPulseShelf) var notchPulseShelf: Bool
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
     @Default(.shakeAutoCloseDelay) var shakeAutoCloseDelay
@@ -2458,6 +2459,12 @@ struct Shelf: View {
                         .labelsHidden()
                         .toggleStyle(.switch)
                         .controlSize(.large)
+                        .onChange(of: notchPulseShelf) {
+                            NotificationCenter.default.post(
+                                name: Notification.Name.expandedDragDetectionChanged,
+                                object: nil
+                            )
+                        }
                 }
             }
             .id("shelf_general")
@@ -2493,6 +2500,12 @@ struct Shelf: View {
                         Text(shelfDragOpenPadding == 0 ? loc("Off") : "+\(Int(shelfDragOpenPadding))px")
                             .foregroundStyle(.secondary)
                     }
+                }
+                .onChange(of: shelfDragOpenPadding) {
+                    NotificationCenter.default.post(
+                        name: Notification.Name.expandedDragDetectionChanged,
+                        object: nil
+                    )
                 }
                 Text(loc("While dragging a file, hovering this close to the notch opens the shelf instantly — no shake needed. Lets you drag files straight out of the Dock (e.g. the Downloads stack) into the shelf. Set to 0 to require the shake gesture instead."))
                     .font(.caption)

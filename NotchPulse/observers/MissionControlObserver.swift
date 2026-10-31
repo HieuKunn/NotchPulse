@@ -34,20 +34,23 @@ final class MissionControlObserver: ObservableObject {
         for w in list {
             if (w[kCGWindowOwnerName as String] as? String) == "Dock" {
                 let layer = w[kCGWindowLayer as String] as? Int ?? -1
-                // On macOS Sonoma & Sequoia, the Dock process displays a full-screen canvas window at layer 20
-                // (or layer 18 on older macOS) strictly while Mission Control or Exposé is active.
+                // Mission Control creates a nearly full-screen Dock canvas. Small
+                // layer 18/20 Dock windows also exist during normal desktop use, so
+                // a fixed 400pt threshold produces false positives and kills hover.
                 if layer == 20 || layer == 18 {
+                    let alpha = (w[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1
+                    guard alpha > 0.05 else { continue }
                     let boundsDict = w[kCGWindowBounds as String] as? NSDictionary
                     if let bounds = boundsDict.flatMap({ CGRect(dictionaryRepresentation: $0) }) {
-                        if bounds.width >= 400 && bounds.height >= 400 {
+                        let coversScreen = NSScreen.screens.contains { screen in
+                            bounds.width >= screen.frame.width * 0.80 &&
+                            bounds.height >= screen.frame.height * 0.80
+                        }
+                        if coversScreen {
                             cachedResult = true
                             if !isMissionControlActive { isMissionControlActive = true }
                             return true
                         }
-                    } else {
-                        cachedResult = true
-                        if !isMissionControlActive { isMissionControlActive = true }
-                        return true
                     }
                 }
             }

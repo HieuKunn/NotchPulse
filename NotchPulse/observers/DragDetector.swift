@@ -16,6 +16,9 @@ final class DragDetector {
     private var mouseDownMonitor: Any?
     private var mouseDraggedMonitor: Any?
     private var mouseUpMonitor: Any?
+    private var localMouseDownMonitor: Any?
+    private var localMouseDraggedMonitor: Any?
+    private var localMouseUpMonitor: Any?
 
     private var mouseDownPasteboardCount: Int = -1
     private var lastKnownIdleCount: Int = -1
@@ -43,6 +46,9 @@ final class DragDetector {
         "NSFilenamesPboardType",
         "Apple URL pasteboard type",
         "com.apple.pasteboard.promised-file-url",
+        "com.apple.NSFilePromiseItemMetaData",
+        "com.apple.pasteboard.promised-file-content-type",
+        "Apple promised file pasteboard type",
         "com.apple.finder.node",
         UTType.url.identifier,
         UTType.fileURL.identifier,
@@ -67,9 +73,9 @@ final class DragDetector {
     // MARK: - Private Helpers
     
     /// Checks if the drag pasteboard contains valid content types that can be dropped on the shelf
-    private func hasValidDragContent() -> Bool {
+    private func hasValidDragContent(forceRefresh: Bool = false) -> Bool {
         let currentCount = dragPasteboard.changeCount
-        if currentCount == lastCheckedDragCount {
+        if !forceRefresh && currentCount == lastCheckedDragCount {
             return cachedHasValidContent
         }
         lastCheckedDragCount = currentCount
@@ -85,7 +91,10 @@ final class DragDetector {
                 return true
             }
             if let utType = UTType(type.rawValue),
-               utType.conforms(to: .item) || utType.conforms(to: .content) || utType.conforms(to: .data) {
+               (utType.conforms(to: .fileURL) ||
+                utType.conforms(to: .url) ||
+                utType.conforms(to: .text) ||
+                utType.conforms(to: .image)) {
                 cachedHasValidContent = true
                 return true
             }
@@ -98,87 +107,98 @@ final class DragDetector {
         stopMonitoring()
         lastKnownIdleCount = dragPasteboard.changeCount
 
-        mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
-            guard let self = self else { return }
-            self.mouseDownPasteboardCount = self.dragPasteboard.changeCount
-            self.isContentDragging = false
-            self.hasEnteredNotchRegion = false
+        mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
+            self?.beginPotentialDrag()
+        }
+        localMouseDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            self?.beginPotentialDrag()
+            return event
         }
 
         // Track drag movement and notch region intersection
-        mouseDraggedMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] _ in
-            guard let self = self else { return }
-
-            let isMousePressed = (NSEvent.pressedMouseButtons & 1) != 0
-            if !isMousePressed {
-                if self.isContentDragging || self.hasEnteredNotchRegion {
-                    let wasInRegion = self.hasEnteredNotchRegion
-                    self.isContentDragging = false
-                    self.hasEnteredNotchRegion = false
-                    self.mouseDownPasteboardCount = -1
-                    self.lastKnownIdleCount = self.dragPasteboard.changeCount
-                    if wasInRegion {
-                        self.onDragExitsNotchRegion?()
-                    }
-                    self.onDragEnded?()
-                }
-                return
-            }
-
-            let currentCount = self.dragPasteboard.changeCount
-            
-            // Detect if a file/URL drag operation started during this mouse gesture
-            let isNewDragOperation = (self.mouseDownPasteboardCount != -1 && currentCount != self.mouseDownPasteboardCount) ||
-                                     (self.mouseDownPasteboardCount == -1 && currentCount != self.lastKnownIdleCount)
-
-            guard self.isContentDragging || isNewDragOperation else { return }
-
-            if !self.isContentDragging {
-                guard self.hasValidDragContent() else { return }
-                self.isContentDragging = true
-            }
-
-            let mouseLocation = NSEvent.mouseLocation
-            let activeRegion = self.getActiveRegion()
-
-            // Spatial filter: if mouse is far below the active notch region and not already inside, skip
-            if !self.hasEnteredNotchRegion && mouseLocation.y < (activeRegion.minY - 120) {
-                return
-            }
-
-            self.onDragMove?(mouseLocation)
-            
-            // Track entry into the dynamic notch region (which expands when shelf is open)
-            let containsMouse = activeRegion.contains(mouseLocation)
-            if containsMouse && !self.hasEnteredNotchRegion {
-                self.hasEnteredNotchRegion = true
-                self.cachedRegion = .zero // Invalidate cache so open shelf size is immediately reflected
-                self.onDragEntersNotchRegion?()
-            } else if !containsMouse && self.hasEnteredNotchRegion {
-                self.hasEnteredNotchRegion = false
-                self.cachedRegion = .zero
-                self.onDragExitsNotchRegion?()
-            }
+        mouseDraggedMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged) { [weak self] _ in
+            self?.handleMouseDragged()
+        }
+        localMouseDraggedMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { [weak self] event in
+            self?.handleMouseDragged()
+            return event
         }
 
-        mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] _ in
-            guard let self = self else { return }
-            self.lastKnownIdleCount = self.dragPasteboard.changeCount
-            self.mouseDownPasteboardCount = -1
-            self.cachedRegion = .zero
-            self.lastRegionFetchTime = 0
-            let wasInRegion = self.hasEnteredNotchRegion
-            self.hasEnteredNotchRegion = false
-            self.isContentDragging = false
-            if wasInRegion {
-                self.onDragExitsNotchRegion?()
-            }
-            self.onDragEnded?()
+        mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
+            self?.finishDrag()
+        }
+        // A global monitor does not receive mouse-up events delivered to our own
+        // window. Catch the local release so dropping onto Shelf always ends the
+        // detector session and clears preventNotchClose.
+        localMouseUpMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+            self?.finishDrag()
+            return event
+        }
+    }
+
+    private func beginPotentialDrag() {
+        mouseDownPasteboardCount = dragPasteboard.changeCount
+        isContentDragging = false
+        hasEnteredNotchRegion = false
+        lastCheckedDragCount = -1
+        cachedHasValidContent = false
+        cachedRegion = .zero
+    }
+
+    private func handleMouseDragged() {
+        let currentCount = dragPasteboard.changeCount
+        let mouseLocation = NSEvent.mouseLocation
+        let activeRegion = getActiveRegion()
+
+        // `changeCount` is the fast path. The proximity payload check is a
+        // fallback for Finder/apps that populate the drag pasteboard before our
+        // mouse-down monitor runs, leaving the count unchanged for the session.
+        let isNewDragOperation = (mouseDownPasteboardCount != -1 && currentCount != mouseDownPasteboardCount) ||
+                                 currentCount != lastKnownIdleCount
+        let isNearNotch = mouseLocation.y >= (activeRegion.minY - 120)
+        guard isContentDragging || isNewDragOperation || isNearNotch else { return }
+        let hasCurrentPayload = hasValidDragContent(forceRefresh: !isContentDragging)
+        if !isContentDragging {
+            guard hasCurrentPayload else { return }
+            isContentDragging = true
+        }
+
+        if !hasEnteredNotchRegion && !isNearNotch { return }
+        onDragMove?(mouseLocation)
+
+        let containsMouse = activeRegion.contains(mouseLocation)
+        if containsMouse && !hasEnteredNotchRegion {
+            hasEnteredNotchRegion = true
+            cachedRegion = .zero
+            onDragEntersNotchRegion?()
+        } else if !containsMouse && hasEnteredNotchRegion {
+            hasEnteredNotchRegion = false
+            cachedRegion = .zero
+            onDragExitsNotchRegion?()
+        }
+    }
+
+    private func finishDrag() {
+        let wasDragging = isContentDragging || hasEnteredNotchRegion
+        let wasInRegion = hasEnteredNotchRegion
+        lastKnownIdleCount = dragPasteboard.changeCount
+        mouseDownPasteboardCount = -1
+        cachedRegion = .zero
+        lastRegionFetchTime = 0
+        lastCheckedDragCount = -1
+        cachedHasValidContent = false
+        hasEnteredNotchRegion = false
+        isContentDragging = false
+        if wasInRegion {
+            onDragExitsNotchRegion?()
+        }
+        if wasDragging {
+            onDragEnded?()
         }
     }
 
     func stopMonitoring() {
-        [mouseDownMonitor, mouseDraggedMonitor, mouseUpMonitor].forEach { monitor in
+        [mouseDownMonitor, mouseDraggedMonitor, mouseUpMonitor, localMouseDownMonitor, localMouseDraggedMonitor, localMouseUpMonitor].forEach { monitor in
             if let monitor = monitor {
                 NSEvent.removeMonitor(monitor)
             }
@@ -186,9 +206,14 @@ final class DragDetector {
         mouseDownMonitor = nil
         mouseDraggedMonitor = nil
         mouseUpMonitor = nil
+        localMouseDownMonitor = nil
+        localMouseDraggedMonitor = nil
+        localMouseUpMonitor = nil
         isContentDragging = false
         hasEnteredNotchRegion = false
         mouseDownPasteboardCount = -1
+        lastCheckedDragCount = -1
+        cachedHasValidContent = false
     }
 
     deinit {

@@ -34,8 +34,6 @@ struct ContentView: View {
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
-    @Default(.expandedDragDetection) var expandedDragDetection: Bool
-    @Default(.dragDetectionPadding) var dragDetectionPadding: Double
     @Default(.extendHoverArea) var extendHoverArea: Bool
     @Default(.hoverAreaPadding) var hoverAreaPadding: Double
 
@@ -399,7 +397,6 @@ struct ContentView: View {
                     .animation(faceIDAnimation, value: targetFaceIDSize)
                     .animation(.smooth, value: gestureProgress)
                     .onHover { hovering in
-                        handleHover(hovering)
                         if shouldHandleFaceIDHover(hovering: hovering) {
                             FaceIDOverlayController.shared.setHovering(hovering)
                             if hovering && faceIDOverlay.phase != .onboarding {
@@ -540,6 +537,14 @@ struct ContentView: View {
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
         .compositingGroup()
+        .background {
+            if !isEffectivelyLocked {
+                NotchHoverTrackingBridge(
+                    isInsideNotch: { vm.isMouseHovering() },
+                    onHoverChanged: { hovering in handleHover(hovering) }
+                )
+            }
+        }
         .scaleEffect(
             x: gestureScale,
             y: gestureScale,
@@ -939,7 +944,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var topEdgeHoverSensor: some View {
-        if vm.notchState == .closed && !isEffectivelyLocked && !MissionControlObserver.shared.checkIsMissionControlActive() && !(SettingsWindowController.shared.window?.isVisible == true) {
+        if vm.notchState == .closed && !isEffectivelyLocked && !(SettingsWindowController.shared.window?.isVisible == true) {
             let extraPad: CGFloat = extendHoverArea ? CGFloat(hoverAreaPadding) : 0
             let sensorWidth: CGFloat = (isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth) + (extraPad * 2)
             let sensorHeight: CGFloat = (isDynamicIsland ? (effectiveTopOffset + 32) : baseClosedHeight) + extraPad
@@ -948,7 +953,6 @@ struct ContentView: View {
                 .contentShape(Rectangle())
                 .frame(width: sensorWidth, height: sensorHeight, alignment: .top)
                 .onHover { hovering in
-                    handleHover(hovering)
                     if shouldHandleFaceIDHover(hovering: hovering) {
                         FaceIDOverlayController.shared.setHovering(hovering)
                         if hovering && faceIDOverlay.phase != .onboarding {
@@ -1093,10 +1097,11 @@ struct ContentView: View {
                 self.doOpen()
             }
         } else {
-            // Mouse exited: provide a grace period (100ms when closed, 200ms when open)
-            // so micro-jitters or moving between sensor and notch do NOT cancel open task!
+            // Keep the grace period longer than the sensor-to-open-notch handoff.
+            // The spring needs ~380ms and SwiftUI can briefly emit an exit while
+            // replacing the compact hit region with the expanded one.
             hoverCloseTask?.cancel()
-            let gracePeriodMs: Int = vm.notchState == .closed ? 100 : 200
+            let gracePeriodMs = 280
 
             hoverCloseTask = Task { @MainActor in
                 defer { self.hoverCloseTask = nil }
@@ -1111,8 +1116,12 @@ struct ContentView: View {
                 }
 
                 if self.vm.notchState == .open && self.canCloseOnHoverExit {
-                    SharingStateManager.shared.preventNotchClose = false
-                    self.doClose()
+                    // A drag hold may become stale after the pointer leaves, but an
+                    // actual system share/AirDrop session must retain the notch.
+                    if !SharingStateManager.shared.isInteractionActive {
+                        SharingStateManager.shared.preventNotchClose = false
+                        self.doClose()
+                    }
                 }
                 if self.vm.hideOnClosed && self.vm.notchState == .closed {
                     withAnimation(animationSpring) {
@@ -1124,6 +1133,100 @@ struct ContentView: View {
     }
 
 
+}
+
+/// A stable AppKit tracking area for the complete window. SwiftUI's `.onHover`
+/// can emit a false exit when the notch changes size because its hit-test region
+/// is rebuilt. This bridge keeps one tracking owner alive and evaluates the
+/// current notch geometry directly.
+private struct NotchHoverTrackingBridge: NSViewRepresentable {
+    let isInsideNotch: @MainActor () -> Bool
+    let onHoverChanged: @MainActor (Bool) -> Void
+
+    func makeNSView(context: Context) -> TrackingView {
+        let view = TrackingView()
+        view.isInsideNotch = isInsideNotch
+        view.onHoverChanged = onHoverChanged
+        return view
+    }
+
+    func updateNSView(_ nsView: TrackingView, context: Context) {
+        nsView.isInsideNotch = isInsideNotch
+        nsView.onHoverChanged = onHoverChanged
+        nsView.scheduleEvaluation()
+    }
+
+    @MainActor
+    final class TrackingView: NSView {
+        var isInsideNotch: (() -> Bool)?
+        var onHoverChanged: ((Bool) -> Void)?
+        private var trackingAreaRef: NSTrackingArea?
+        private var lastInside = false
+        private var evaluationScheduled = false
+
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            nil
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            window?.acceptsMouseMovedEvents = true
+            updateTrackingAreas()
+            scheduleEvaluation()
+        }
+
+        override func updateTrackingAreas() {
+            if let trackingAreaRef {
+                removeTrackingArea(trackingAreaRef)
+            }
+            let area = NSTrackingArea(
+                rect: bounds,
+                options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
+                owner: self,
+                userInfo: nil
+            )
+            addTrackingArea(area)
+            trackingAreaRef = area
+            super.updateTrackingAreas()
+        }
+
+        override func mouseEntered(with event: NSEvent) {
+            evaluateHover()
+        }
+
+        override func mouseMoved(with event: NSEvent) {
+            evaluateHover()
+        }
+
+        override func mouseDragged(with event: NSEvent) {
+            evaluateHover()
+        }
+
+        override func mouseExited(with event: NSEvent) {
+            evaluateHover()
+        }
+
+        func scheduleEvaluation() {
+            guard !evaluationScheduled else { return }
+            evaluationScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.evaluationScheduled = false
+                self.evaluateHover()
+            }
+        }
+
+        private func evaluateHover() {
+            guard window != nil, let isInsideNotch else { return }
+            let inside = isInsideNotch()
+            // Re-emit `true` while moving inside so hover can recover immediately
+            // after Settings or Mission Control stops blocking expansion.
+            if inside || inside != lastInside {
+                lastInside = inside
+                onHoverChanged?(inside)
+            }
+        }
+    }
 }
 
 struct FullScreenDropDelegate: DropDelegate {

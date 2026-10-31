@@ -22,6 +22,8 @@ struct FileShareView: View {
             .background(NSViewHost(view: $hostView))
             .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image], isTargeted: $isTargeted) { providers in
                 interactionNonce = .init()
+                isTargeted = false
+                vm.shareDropTargeting = false
                 vm.dropEvent = true
                 Task { await handleDrop(providers) }
                 return true
@@ -105,7 +107,10 @@ struct FileShareView: View {
 
     private func handleDrop(_ providers: [NSItemProvider]) async {
         isProcessing = true
-        defer { isProcessing = false }
+        defer {
+            isProcessing = false
+            vm.dropEvent = false
+        }
         await quickShare.shareDroppedFiles(providers, using: selectedProvider, from: hostView)
     }
     

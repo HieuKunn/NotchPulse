@@ -298,15 +298,16 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         if !force && FeatureTourController.shared.isTourActive {
             return
         }
+        // Refusing a close must not partially reset the currently open view.
+        // In particular, sharing may hold the notch open for an extended time.
+        if !force && SharingStateManager.shared.preventNotchClose {
+            return
+        }
         self.customOpenHeight = nil
         CalendarStateViewModel.shared.isPinned = false
         CalendarStateViewModel.shared.isFullMonthExpanded = false
         if force {
             ShelfStateViewModel.shared.isPinned = false
-        }
-        // Do not close while a share picker or sharing service is active unless forced (e.g. on lock screen)
-        if !force && SharingStateManager.shared.preventNotchClose {
-            return
         }
         guard force || notchState != .closed else { return }
         self.notchSize = getClosedNotchSize(screenUUID: self.screenUUID)

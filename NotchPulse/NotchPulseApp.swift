@@ -328,7 +328,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupDragDetectors() {
         cleanupDragDetectors()
 
-        guard Defaults[.expandedDragDetection] else { return }
+        guard Defaults[.notchPulseShelf], Defaults[.shelfDragOpenPadding] > 0 else { return }
 
         if Defaults[.showOnAllDisplays] {
             for screen in NSScreen.screens {
@@ -355,7 +355,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self = self else { return .zero }
             let screenFrame = screen.frame
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
-            let padding = CGFloat(Defaults[.dragDetectionPadding])
+            let padding = CGFloat(Defaults[.shelfDragOpenPadding])
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
             let topOffset = isDynamicIsland ? effectiveDynamicIslandTopOffset(for: screen) : 0
@@ -373,7 +373,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
                 let closedSize = targetVM.closedNotchSize
-                let closedWidth = isDynamicIsland ? compactDynamicIslandWidth : (closedSize.width > 0 ? closedSize.width : 185.0)
+                let compactWidth = isDynamicIsland ? compactDynamicIslandWidth : (closedSize.width > 0 ? closedSize.width : 185.0)
+                // Use the future Shelf footprint as the activation target. Requiring
+                // the pointer to hit only the tiny closed notch made fast drags miss.
+                let closedWidth = max(compactWidth, CGFloat(Defaults[.notchOpenWidth]))
                 let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 34.0)
                 return CGRect(
                     x: screenFrame.midX - (closedWidth / 2 + padding),
@@ -441,7 +444,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
             
-            SharingStateManager.shared.preventNotchClose = false
+            if !SharingStateManager.shared.isInteractionActive {
+                SharingStateManager.shared.preventNotchClose = false
+            }
             if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
                 targetVM.close()
             }
@@ -463,11 +468,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // If dropEvent was received, leave shelf open so the user can see their added item
             if targetVM.dropEvent {
-                SharingStateManager.shared.preventNotchClose = false
+                if !SharingStateManager.shared.isInteractionActive {
+                    SharingStateManager.shared.preventNotchClose = false
+                }
                 return
             }
             
-            SharingStateManager.shared.preventNotchClose = false
+            if !SharingStateManager.shared.isInteractionActive {
+                SharingStateManager.shared.preventNotchClose = false
+            }
             if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !targetVM.anyDropZoneTargeting && targetVM.notchState == .open {
                 targetVM.close()
             }

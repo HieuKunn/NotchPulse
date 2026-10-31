@@ -23,6 +23,7 @@ final class SharingStateManager: ObservableObject {
 	}
 
 	@Published var preventNotchClose: Bool = false
+	var isInteractionActive: Bool { activeSessions > 0 }
 
 	private var activeDelegates: [UUID: SharingLifecycleDelegate] = [:]
 
@@ -99,7 +100,10 @@ final class SharingLifecycleDelegate: NSObject, NSSharingServiceDelegate, NSShar
 	private func startTimeoutFallback() {
 		timeoutTask?.cancel()
 		timeoutTask = Task { @MainActor [weak self] in
-			try? await Task.sleep(for: .seconds(2))
+			// Some system services (notably AirDrop) can legitimately stay open
+			// while the user chooses a recipient. Two seconds released the notch
+			// underneath an active picker; keep this only as a stale-session failsafe.
+			try? await Task.sleep(for: .seconds(120))
 			guard let self = self, !Task.isCancelled else { return }
 			if !self.finished {
 				self.finishIfNeeded()
