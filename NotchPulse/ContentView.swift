@@ -949,9 +949,15 @@ struct ContentView: View {
     @ViewBuilder
     private var topEdgeHoverSensor: some View {
         if !isEffectivelyLocked && !(SettingsWindowController.shared.window?.isVisible == true) {
-            let extraPad: CGFloat = extendHoverArea ? CGFloat(hoverAreaPadding) : 0
+            // When the notch is hidden in fullscreen, reserve only the actual
+            // screen edge for revealing it. Applying the normal hover padding
+            // here steals usable space below the menu-bar edge.
+            let isFullscreenEdgeReveal = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
+            let extraPad: CGFloat = (!isFullscreenEdgeReveal && extendHoverArea) ? CGFloat(hoverAreaPadding) : 0
             let sensorWidth: CGFloat = (isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth) + (extraPad * 2)
-            let sensorHeight: CGFloat = (isDynamicIsland ? (effectiveTopOffset + 32) : baseClosedHeight) + extraPad
+            let sensorHeight: CGFloat = isFullscreenEdgeReveal
+                ? 2
+                : (isDynamicIsland ? (effectiveTopOffset + 32) : baseClosedHeight) + extraPad
 
             Color.clear
                 .contentShape(Rectangle())
