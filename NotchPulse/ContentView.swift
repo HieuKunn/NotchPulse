@@ -952,6 +952,12 @@ struct ContentView: View {
                 .contentShape(Rectangle())
                 .frame(width: sensorWidth, height: sensorHeight, alignment: .top)
                 .onHover { hovering in
+                    // The visible notch slides fully off-screen while hidden in
+                    // fullscreen, so its tracking bridge can no longer receive
+                    // pointer events. Keep this top-edge sensor wired to the same
+                    // hover state machine so approaching the screen edge reveals
+                    // and opens the notch as usual.
+                    handleHover(hovering)
                     if shouldHandleFaceIDHover(hovering: hovering) {
                         FaceIDOverlayController.shared.setHovering(hovering)
                         if hovering && faceIDOverlay.phase != .onboarding {
