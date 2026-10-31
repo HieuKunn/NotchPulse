@@ -19,6 +19,8 @@ struct ContentView: View {
     @State private var hoverOpenTask: Task<Void, Never>?
     @State private var hoverCloseTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
+    @State private var isMainNotchHovered = false
+    @State private var isTopEdgeHovered = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
     @State private var fullscreenHoverDebounceTask: Task<Void, Never>?
 
@@ -391,7 +393,10 @@ struct ContentView: View {
                     .background {
                         if !isEffectivelyLocked {
                             NotchHoverTrackingBridge(
-                                onHoverChanged: { hovering in handleHover(hovering) }
+                                onHoverChanged: { hovering in
+                                    isMainNotchHovered = hovering
+                                    handleHover(hovering || isTopEdgeHovered)
+                                }
                             )
                         }
                     }
@@ -943,7 +948,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var topEdgeHoverSensor: some View {
-        if vm.notchState == .closed && !isEffectivelyLocked && !(SettingsWindowController.shared.window?.isVisible == true) {
+        if !isEffectivelyLocked && !(SettingsWindowController.shared.window?.isVisible == true) {
             let extraPad: CGFloat = extendHoverArea ? CGFloat(hoverAreaPadding) : 0
             let sensorWidth: CGFloat = (isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth) + (extraPad * 2)
             let sensorHeight: CGFloat = (isDynamicIsland ? (effectiveTopOffset + 32) : baseClosedHeight) + extraPad
@@ -952,12 +957,11 @@ struct ContentView: View {
                 .contentShape(Rectangle())
                 .frame(width: sensorWidth, height: sensorHeight, alignment: .top)
                 .onHover { hovering in
-                    // The visible notch slides fully off-screen while hidden in
-                    // fullscreen, so its tracking bridge can no longer receive
-                    // pointer events. Keep this top-edge sensor wired to the same
-                    // hover state machine so approaching the screen edge reveals
-                    // and opens the notch as usual.
-                    handleHover(hovering)
+                    // Keep this edge sensor mounted while the notch expands. On
+                    // Dynamic Island displays the pointer can remain in the gap
+                    // above the pill, outside the expanded panel's bounds.
+                    isTopEdgeHovered = hovering
+                    handleHover(hovering || isMainNotchHovered)
                     if shouldHandleFaceIDHover(hovering: hovering) {
                         FaceIDOverlayController.shared.setHovering(hovering)
                         if hovering && faceIDOverlay.phase != .onboarding {
@@ -1005,8 +1009,8 @@ struct ContentView: View {
         hoverOpenTask = nil
         hoverCloseTask?.cancel()
         hoverCloseTask = nil
-        self.isHovering = false
         withAnimation(animationSpring) {
+            self.isHovering = false
             vm.close()
         }
     }
@@ -1116,8 +1120,8 @@ struct ContentView: View {
                 self.hoverOpenTask?.cancel()
                 self.hoverOpenTask = nil
 
-                withAnimation(animationSpring) {
-                    self.isHovering = false
+                if self.isMainNotchHovered || self.isTopEdgeHovered {
+                    return
                 }
 
                 if self.vm.notchState == .open && self.canCloseOnHoverExit {
@@ -1126,7 +1130,11 @@ struct ContentView: View {
                     if !SharingStateManager.shared.isInteractionActive {
                         SharingStateManager.shared.preventNotchClose = false
                         self.doClose()
+                    } else {
+                        withAnimation(animationSpring) { self.isHovering = false }
                     }
+                } else {
+                    withAnimation(animationSpring) { self.isHovering = false }
                 }
                 if self.vm.hideOnClosed && self.vm.notchState == .closed {
                     withAnimation(animationSpring) {
