@@ -388,6 +388,13 @@ struct ContentView: View {
             dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
+                    .background {
+                        if !isEffectivelyLocked {
+                            NotchHoverTrackingBridge(
+                                onHoverChanged: { hovering in handleHover(hovering) }
+                            )
+                        }
+                    }
                     .animation(animationSpring, value: vm.notchState)
                     .animation(animationSpring, value: currentNotchWidth)
                     .animation(animationSpring, value: currentNotchHeight)
@@ -537,14 +544,6 @@ struct ContentView: View {
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
         .compositingGroup()
-        .background {
-            if !isEffectivelyLocked {
-                NotchHoverTrackingBridge(
-                    isInsideNotch: { vm.isMouseHovering() },
-                    onHoverChanged: { hovering in handleHover(hovering) }
-                )
-            }
-        }
         .scaleEffect(
             x: gestureScale,
             y: gestureScale,
@@ -1140,25 +1139,21 @@ struct ContentView: View {
 /// is rebuilt. This bridge keeps one tracking owner alive and evaluates the
 /// current notch geometry directly.
 private struct NotchHoverTrackingBridge: NSViewRepresentable {
-    let isInsideNotch: @MainActor () -> Bool
     let onHoverChanged: @MainActor (Bool) -> Void
 
     func makeNSView(context: Context) -> TrackingView {
         let view = TrackingView()
-        view.isInsideNotch = isInsideNotch
         view.onHoverChanged = onHoverChanged
         return view
     }
 
     func updateNSView(_ nsView: TrackingView, context: Context) {
-        nsView.isInsideNotch = isInsideNotch
         nsView.onHoverChanged = onHoverChanged
         nsView.scheduleEvaluation()
     }
 
     @MainActor
     final class TrackingView: NSView {
-        var isInsideNotch: (() -> Bool)?
         var onHoverChanged: ((Bool) -> Void)?
         private var trackingAreaRef: NSTrackingArea?
         private var lastInside = false
@@ -1217,8 +1212,9 @@ private struct NotchHoverTrackingBridge: NSViewRepresentable {
         }
 
         private func evaluateHover() {
-            guard window != nil, let isInsideNotch else { return }
-            let inside = isInsideNotch()
+            guard let window else { return }
+            let pointInView = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+            let inside = !isHidden && bounds.contains(pointInView)
             // Re-emit `true` while moving inside so hover can recover immediately
             // after Settings or Mission Control stops blocking expansion.
             if inside || inside != lastInside {

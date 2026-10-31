@@ -163,8 +163,11 @@ struct ShelfView: View {
                             }
                         }
                         .padding(.horizontal, 4)
+                        // Keep the AppKit helper inside the scroll document view.
+                        // Attaching it to ScrollView itself leaves no enclosing
+                        // NSScrollView on some SwiftUI hierarchy layouts.
+                        .background(ShelfScrollWheelHelper())
                     }
-                    .background(ShelfScrollWheelHelper())
                     .scrollIndicators(.never)
                     .onChange(of: tvm.items.count) { oldCount, newCount in
                         guard newCount > oldCount, let lastID = tvm.items.last?.id else { return }
@@ -231,9 +234,10 @@ private struct ShelfScrollWheelHelper: NSViewRepresentable {
                 let point = scrollView.convert(event.locationInWindow, from: nil)
                 guard scrollView.bounds.contains(point) else { return event }
 
-                let deltaX = event.scrollingDeltaX
-                let deltaY = event.scrollingDeltaY
-                guard abs(deltaY) > abs(deltaX), abs(deltaY) > 0 else { return event }
+                // Match Calendar's proven behavior: a regular vertical wheel is
+                // consumed as horizontal shelf movement. Native horizontal
+                // trackpad gestures remain handled by the ScrollView itself.
+                guard event.scrollingDeltaX == 0, event.scrollingDeltaY != 0 else { return event }
 
                 let clipView = scrollView.contentView
                 let documentWidth = scrollView.documentView?.bounds.width ?? 0
@@ -242,7 +246,7 @@ private struct ShelfScrollWheelHelper: NSViewRepresentable {
 
                 let multiplier: CGFloat = event.hasPreciseScrollingDeltas ? 1 : 16
                 var origin = clipView.bounds.origin
-                origin.x = min(maximumX, max(0, origin.x - deltaY * multiplier))
+                origin.x = min(maximumX, max(0, origin.x - event.scrollingDeltaY * multiplier))
                 clipView.scroll(to: origin)
                 scrollView.reflectScrolledClipView(clipView)
                 return nil
