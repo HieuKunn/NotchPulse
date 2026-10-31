@@ -394,6 +394,15 @@ struct ContentView: View {
                         if !isEffectivelyLocked {
                             NotchHoverTrackingBridge(
                                 onHoverChanged: { hovering in
+                                    // While fullscreen hiding is active, the visible
+                                    // notch is off-screen but this background bridge
+                                    // still occupies its original layout height. Do
+                                    // not let that invisible area reveal the notch;
+                                    // only the dedicated 2pt top-edge sensor may do so.
+                                    if isEffectivelyHiddenInFullscreen {
+                                        isMainNotchHovered = false
+                                        return
+                                    }
                                     isMainNotchHovered = hovering
                                     handleHover(hovering || isTopEdgeHovered)
                                 }
