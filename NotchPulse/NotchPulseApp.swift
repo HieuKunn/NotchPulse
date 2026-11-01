@@ -79,7 +79,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     var quickShareService = QuickShareService.shared
     var whatsNewWindow: NSWindow?
-    var closeNotchTask: Task<Void, Never>?
+    // Auto-close timers belong to the display that opened the notch. A single
+    // shared task lets opening one display cancel the timer for another one.
+    var closeNotchTasks: [String: Task<Void, Never>] = [:]
     private var previousScreens: [NSScreen]?
     private var onboardingWindowController: NSWindowController?
     private var screenLockedObserver: Any?
@@ -90,8 +92,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowScreenDidChangeObservers: [Any] = []
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
-    var shakeAutoCloseTasks: [String: Task<Void, Never>] = [:]
-    private var currentViewObserver: AnyCancellable?
     private(set) var faceIDCameraWindow: NSWindow?
     private(set) var faceIDCameraVM: NotchPulseViewModel?
 
@@ -108,6 +108,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         vm.shareDropTargeting = false
         vm.shelfDropTargeting = false
         vm.anyDropZoneTargeting = false
+    }
+
+    /// Resolves one display's state for every display-aware event path.
+    ///
+    /// In all-displays mode the UUID is the source of truth. Falling back to
+    /// the singleton VM in that mode makes a drag, shortcut, or preview on an
+    /// external display mutate the hidden single-display state instead.
+    private func viewModel(for screen: NSScreen?) -> NotchPulseViewModel? {
+        guard let screen else { return Defaults[.showOnAllDisplays] ? nil : vm }
+        guard Defaults[.showOnAllDisplays] else { return vm }
+        guard let uuid = screen.displayUUID else { return nil }
+        return viewModels[uuid]
+    }
+
+    private func screenUnderPointer() -> NSScreen? {
+        let location = NSEvent.mouseLocation
+        return NSScreen.screens.first(where: { $0.frame.contains(location) }) ?? NSScreen.main
     }
 
     static weak var shared: AppDelegate?
@@ -130,6 +147,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func cleanupForTermination() {
         NSApplication.shared.windows.forEach { $0.orderOut(nil) }
+        closeNotchTasks.values.forEach { $0.cancel() }
+        closeNotchTasks.removeAll()
         cleanupWindows()
         cleanupDragDetectors()
         FaceIDOverlayController.shared.disarm()
@@ -211,8 +230,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func collapseAllNotches(force: Bool = true) {
         SharingStateManager.shared.preventNotchClose = false
-        ShelfStateViewModel.shared.isPinned = false
-        CalendarStateViewModel.shared.isPinned = false
+        for viewModel in viewModels.values {
+            viewModel.isShelfPinned = false
+            viewModel.isCalendarPinned = false
+            viewModel.isCalendarFullMonthExpanded = false
+        }
+        vm.isShelfPinned = false
+        vm.isCalendarPinned = false
+        vm.isCalendarFullMonthExpanded = false
         withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
             self.vm.close(force: force)
             for (_, subVm) in self.viewModels {
@@ -286,17 +311,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func cleanupWindows(shouldInvert: Bool = false) {
-        let shouldCleanupMulti = shouldInvert ? !Defaults[.showOnAllDisplays] : Defaults[.showOnAllDisplays]
-        
-        if shouldCleanupMulti {
-            windows.values.forEach { window in
-                window.close()
-                NotchSpaceManager.shared.notchSpace.windows.remove(window)
-            }
-            windows.removeAll()
-            viewModels.removeAll()
-        } else if let window = window {
+    private func cleanupWindows() {
+        // Always tear down both display modes. The setting can change while a
+        // previous mode is still animating, so choosing one mode from the new
+        // preference can leave an orphaned window or view model alive.
+        closeNotchTasks.values.forEach { $0.cancel() }
+        closeNotchTasks.removeAll()
+        for viewModel in viewModels.values {
+            viewModel.close(force: true)
+        }
+        vm.close(force: true)
+
+        for displayWindow in Array(windows.values) {
+            displayWindow.close()
+            NotchSpaceManager.shared.notchSpace.windows.remove(displayWindow)
+        }
+        windows.removeAll()
+        viewModels.removeAll()
+
+        if let window {
             window.close()
             NotchSpaceManager.shared.notchSpace.windows.remove(window)
             self.window = nil
@@ -354,11 +387,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let detector = DragDetector { [weak self] in
             guard let self = self else { return .zero }
             let screenFrame = screen.frame
-            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            guard let targetVM = self.viewModel(for: screen) else { return .zero }
             let padding = CGFloat(Defaults[.shelfDragOpenPadding])
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let topOffset = isDynamicIsland ? effectiveDynamicIslandTopOffset(for: screen) : 0
+            let topOffset = (isDynamicIsland && !screenHasPhysicalNotch(screen))
+                ? effectiveDynamicIslandTopOffset(for: screen)
+                : 0
             
             if targetVM.notchState == .open {
                 // When open, the region covers the ENTIRE open shelf plus expansion padding
@@ -415,16 +450,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid]?.cancel()
         dragExitDebounceTasks[uuid] = nil
         
-        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+        guard let targetVM = viewModel(for: screen) else { return }
         targetVM.dragDetectorTargeting = true
         SharingStateManager.shared.preventNotchClose = true
         
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-                viewModel.open(targetView: .shelf)
-            } else {
-                vm.open(targetView: .shelf)
-            }
+            targetVM.open(targetView: .shelf)
         }
     }
 
@@ -433,20 +464,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         dragExitDebounceTasks[uuid]?.cancel()
         
-        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+        guard let targetVM = viewModel(for: screen) else { return }
         targetVM.dragDetectorTargeting = false
         
         dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(600))
             guard !Task.isCancelled, let self = self else { return }
             
-            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            guard let targetVM = self.viewModel(for: screen) else { return }
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
             
             if !SharingStateManager.shared.isInteractionActive {
                 SharingStateManager.shared.preventNotchClose = false
             }
-            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && targetVM.notchState == .open {
+            if !targetVM.isShelfPinned && !targetVM.isCalendarPinned && targetVM.notchState == .open {
                 targetVM.close()
             }
         }
@@ -457,13 +488,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         dragExitDebounceTasks[uuid]?.cancel()
         
-        let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+        guard let targetVM = viewModel(for: screen) else { return }
         targetVM.dragDetectorTargeting = false
         
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(400))
             guard let self = self else { return }
-            let targetVM = (Defaults[.showOnAllDisplays] ? self.viewModels[uuid] : nil) ?? self.vm
+            guard let targetVM = self.viewModel(for: screen) else { return }
             
             // If dropEvent was received, leave shelf open so the user can see their added item
             if targetVM.dropEvent {
@@ -476,7 +507,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if !SharingStateManager.shared.isInteractionActive {
                 SharingStateManager.shared.preventNotchClose = false
             }
-            if !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned && !targetVM.anyDropZoneTargeting && targetVM.notchState == .open {
+            if !targetVM.isShelfPinned && !targetVM.isCalendarPinned && !targetVM.anyDropZoneTargeting && targetVM.notchState == .open {
                 targetVM.close()
             }
         }
@@ -626,7 +657,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self else { return }
-                self.cleanupWindows(shouldInvert: true)
+                self.cleanupWindows()
                 self.adjustWindowPosition(changeAlpha: true)
                 self.setupDetectors()
             }
@@ -641,37 +672,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NotificationCenter.default.addObserver(
-            forName: Notification.Name.previewNotchWidth, object: nil, queue: .main
-        ) { [weak self] notification in
-            Task { @MainActor in
-                guard let self = self else { return }
-                let width = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
-                // Rule: Only 1 notch active at a time! Only preview on the screen containing mouse cursor.
-                let mouseLocation = NSEvent.mouseLocation
-                let activeScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
-                let activeVM: NotchPulseViewModel
-                if Defaults[.showOnAllDisplays], let uuid = activeScreen?.displayUUID, let sub = self.viewModels[uuid] {
-                    activeVM = sub
-                } else {
-                    activeVM = self.vm
-                }
-                SharingStateManager.shared.preventNotchClose = true
-                activeVM.notchSize = CGSize(width: width, height: openNotchSize.height)
-                if activeVM.notchState != .open {
-                    activeVM.open()
-                }
-            }
-        }
-
-        NotificationCenter.default.addObserver(
             forName: Notification.Name.closeNotchPreview, object: nil, queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self else { return }
                 SharingStateManager.shared.preventNotchClose = false
-                self.vm.close(force: true)
-                for (_, subVm) in self.viewModels {
-                    subVm.close(force: true)
+                withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
+                    self.vm.close(force: true)
+                    for subVm in self.viewModels.values {
+                        subVm.close(force: true)
+                    }
                 }
             }
         }
@@ -725,7 +735,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         KeyboardShortcuts.onKeyDown(for: .toggleSneakPeek) { [weak self] in
             guard let self = self else { return }
-            guard self.vm.notchState == .closed else { return }
+            let targetVM = self.viewModel(for: self.screenUnderPointer()) ?? self.vm
+            guard targetVM.notchState == .closed else { return }
             if Defaults[.sneakPeekStyles] == .inline {
                 let newStatus = !self.coordinator.expandingView.show
                 self.coordinator.toggleExpandingView(status: newStatus, type: .music)
@@ -742,23 +753,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { [weak self] in
                 guard let self = self else { return }
 
-                let mouseLocation = NSEvent.mouseLocation
+                let viewModel = self.viewModel(for: self.screenUnderPointer()) ?? self.vm
+                let displayKey = viewModel.screenUUID ?? "single-display"
 
-                var viewModel = self.vm
-
-                if Defaults[.showOnAllDisplays] {
-                    for screen in NSScreen.screens {
-                        if screen.frame.contains(mouseLocation) {
-                            if let uuid = screen.displayUUID, let screenViewModel = self.viewModels[uuid] {
-                                viewModel = screenViewModel
-                                break
-                            }
-                        }
-                    }
-                }
-
-                self.closeNotchTask?.cancel()
-                self.closeNotchTask = nil
+                self.closeNotchTasks[displayKey]?.cancel()
+                self.closeNotchTasks[displayKey] = nil
 
                 switch viewModel.notchState {
                 case .closed:
@@ -774,7 +773,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                             }
                         } catch { }
                     }
-                    self.closeNotchTask = task
+                    self.closeNotchTasks[displayKey] = task
                 case .open:
                     await MainActor.run {
                         viewModel.close()
@@ -801,14 +800,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         setupDetectors()
-
-        currentViewObserver = coordinator.$currentView
-            .sink { [weak self] view in
-                if view != .shelf {
-                    self?.shakeAutoCloseTasks.values.forEach { $0.cancel() }
-                    self?.shakeAutoCloseTasks.removeAll()
-                }
-            }
 
         let isFirstInstall = coordinator.firstLaunch
         let isUpdated = isAppUpdated()
@@ -912,7 +903,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let currentScreenUUIDs = Set(NSScreen.screens.compactMap { $0.displayUUID })
 
             // Remove windows for screens that no longer exist
-            for uuid in windows.keys where !currentScreenUUIDs.contains(uuid) {
+            for uuid in Array(windows.keys) where !currentScreenUUIDs.contains(uuid) {
                 if let window = windows[uuid] {
                     window.close()
                     NotchSpaceManager.shared.notchSpace.windows.remove(window)

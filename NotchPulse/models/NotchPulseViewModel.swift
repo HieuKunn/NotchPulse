@@ -14,6 +14,10 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     @Published var contentType: ContentType = .normal
     @Published private(set) var notchState: NotchState = .closed
+    /// Display-local tab selection. The global coordinator still owns app-wide
+    /// preferences, but an all-displays setup must not make every notch switch
+    /// tabs when one display is interacted with.
+    @Published var currentView: NotchViews = .home
 
     @Published var dragDetectorTargeting: Bool = false
     @Published var dropZoneTargeting: Bool = false
@@ -24,7 +28,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var isCurrentlyDraggingGlobal: Bool = false
     @Published var customOpenHeight: CGFloat? = nil
     var effectiveOpenHeight: CGFloat {
-        if coordinator.currentView == .clipboard {
+        if currentView == .clipboard {
             return ClipboardNotchView.preferredHeight
         }
         return customOpenHeight ?? notchSize.height
@@ -35,6 +39,9 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var isHoverRevealed: Bool = false
 
     @Published var isBatteryPopoverActive: Bool = false
+    @Published var isShelfPinned: Bool = false
+    @Published var isCalendarPinned: Bool = false
+    @Published var isCalendarFullMonthExpanded: Bool = false
     
     @Published var featureTourTarget: String? = nil
 
@@ -79,25 +86,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         .assign(to: \.anyDropZoneTargeting, on: self)
         .store(in: &cancellables)
 
-        NotificationCenter.default.publisher(for: .notchDidOpen)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] notification in
-                guard let self = self else { return }
-                guard !SharingStateManager.shared.preventNotchClose else { return }
-                guard let activeVM = notification.object as? NotchPulseViewModel else { return }
-                // Rule: Only 1 notch open at any time across all displays!
-                // If another display's notch opened, this notch must close immediately and unpin.
-                if self !== activeVM && self.notchState == .open && !FeatureTourController.shared.isTourActive {
-                    ShelfStateViewModel.shared.isPinned = false
-                    CalendarStateViewModel.shared.isPinned = false
-                    SharingStateManager.shared.preventNotchClose = false
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        self.close(force: true)
-                    }
-                }
-            }
-            .store(in: &cancellables)
-        
         setupDetectorObserver()
     }
     
@@ -209,9 +197,9 @@ class NotchPulseViewModel: NSObject, ObservableObject {
                 }
                 webcamManager.stopSession()
             } else if webcamManager.cameraAvailable {
-                if NotchPulseViewCoordinator.shared.currentView != .home {
+                if currentView != .home {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                        NotchPulseViewCoordinator.shared.currentView = .home
+                        currentView = .home
                     }
                 }
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
@@ -258,7 +246,9 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         guard let frame = getScreenFrame(screenUUID) else { return false }
         let screen = resolveScreen(screenUUID: screenUUID)
         let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-        let topOffset = isDynamicIsland ? effectiveDynamicIslandTopOffset(for: screen) : 0
+        let topOffset = (isDynamicIsland && !screenHasPhysicalNotch(screen))
+            ? effectiveDynamicIslandTopOffset(for: screen)
+            : 0
         let currentWidth = notchState == .open ? (isDynamicIsland ? notchSize.width : (notchSize.width + cornerRadiusInsets.opened.top * 2)) : (isDynamicIsland ? compactDynamicIslandWidth : closedNotchSize.width)
         let currentHeight = notchState == .open ? effectiveOpenHeight : (isDynamicIsland ? 32 : closedNotchSize.height)
         
@@ -272,21 +262,21 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
     func open(targetView: NotchViews? = nil) {
         if let targetView {
-            coordinator.currentView = targetView
+            currentView = targetView
         } else if !coordinator.openLastTabByDefault {
-            coordinator.currentView = .home
+            currentView = .home
         }
 
-        CalendarStateViewModel.shared.isFullMonthExpanded = false
+        isCalendarFullMonthExpanded = false
         self.coordinator.dismissExpandingView(animated: false)
         self.coordinator.sneakPeek.show = false
         self.notchSize = openNotchSize
         self.notchState = .open
-        if coordinator.currentView == .clipboard {
+        if currentView == .clipboard {
             self.customOpenHeight = ClipboardNotchView.preferredHeight
-        } else if coordinator.currentView == .audio {
+        } else if currentView == .audio {
             self.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
-        } else if coordinator.currentView == .display {
+        } else if currentView == .display {
             self.customOpenHeight = DisplayHubNotchView.calculateHeight()
         } else {
             self.customOpenHeight = nil
@@ -295,8 +285,6 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         MusicManager.shared.isUIActive = true
         MusicManager.shared.forceUpdate()
 
-        // Rule: Only 1 notch open at any time across all displays!
-        NotificationCenter.default.post(name: .notchDidOpen, object: self)
     }
 
     func close(force: Bool = false) {
@@ -310,10 +298,10 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             return
         }
         self.customOpenHeight = nil
-        CalendarStateViewModel.shared.isPinned = false
-        CalendarStateViewModel.shared.isFullMonthExpanded = false
+        isCalendarPinned = false
+        isCalendarFullMonthExpanded = false
         if force {
-            ShelfStateViewModel.shared.isPinned = false
+            isShelfPinned = false
         }
         guard force || notchState != .closed else { return }
         self.notchSize = getClosedNotchSize(screenUUID: self.screenUUID)
@@ -328,7 +316,10 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         self.anyDropZoneTargeting = false
         self.dropEvent = false
 
-        if !LockScreenMediaWindow.shared.isWindowVisible {
+        let anotherDisplayIsOpen = (NSApp.delegate as? AppDelegate)?.viewModels.values.contains {
+            $0 !== self && $0.notchState == .open
+        } == true
+        if !LockScreenMediaWindow.shared.isWindowVisible && !anotherDisplayIsOpen {
             MusicManager.shared.isUIActive = false
         }
         Task(priority: .background) {
@@ -342,11 +333,11 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
         // Reset currentView to .home on close quietly after the collapse completes (350ms),
         // preventing internal tab-switch animations from clashing with the notch collapse animation
-        if !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned)) {
+        if !SharingStateManager.shared.preventNotchClose && (force || (!coordinator.openLastTabByDefault && !isShelfPinned && !isCalendarPinned)) {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(350))
                 guard let self = self, self.notchState == .closed else { return }
-                self.coordinator.currentView = .home
+                self.currentView = .home
             }
         }
     }

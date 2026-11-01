@@ -12,7 +12,6 @@ import SwiftUI
 
 struct DisplayHubNotchView: View {
     @ObservedObject var brightnessManager = BrightnessManager.shared
-    @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @EnvironmentObject var vm: NotchPulseViewModel
 
     private var displays: [DisplayTarget] {
@@ -73,7 +72,7 @@ struct DisplayHubNotchView: View {
                 updateDynamicHeight()
             }
         }
-        .onChange(of: coordinator.currentView) { _, newView in
+        .onChange(of: vm.currentView) { _, newView in
             if newView == .display {
                 DispatchQueue.main.async {
                     updateDynamicHeight()
@@ -83,7 +82,7 @@ struct DisplayHubNotchView: View {
     }
 
     private func updateDynamicHeight() {
-        guard coordinator.currentView == .display else { return }
+        guard vm.currentView == .display else { return }
         let targetHeight = Self.calculateHeight(displayCount: displays.count)
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
             vm.customOpenHeight = targetHeight

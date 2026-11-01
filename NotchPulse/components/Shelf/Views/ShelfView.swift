@@ -36,7 +36,7 @@ struct ShelfView: View {
         }
         .onChange(of: vm.notchState) { _, newState in
             if newState == .closed && !NotchPulseViewCoordinator.shared.openLastTabByDefault {
-                tvm.isPinned = false
+                vm.isShelfPinned = false
             }
         }
         .quickLookPresenter(using: quickLookService)
@@ -53,8 +53,8 @@ struct ShelfView: View {
             try? await Task.sleep(for: .milliseconds(1200))
             guard !Task.isCancelled else { return }
             vm.dropEvent = false
-            if !tvm.isPinned,
-               !CalendarStateViewModel.shared.isPinned,
+            if !vm.isShelfPinned,
+               !vm.isCalendarPinned,
                !vm.anyDropZoneTargeting,
                !vm.isMouseHovering() {
                 vm.close()
@@ -112,27 +112,27 @@ struct ShelfView: View {
     var pinButton: some View {
         Button {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                tvm.isPinned.toggle()
+                vm.isShelfPinned.toggle()
             }
-            if !tvm.isPinned && !vm.isMouseHovering() {
+            if !vm.isShelfPinned && !vm.isMouseHovering() {
                 vm.close()
             }
         } label: {
-            Image(systemName: tvm.isPinned ? "pin.fill" : "pin")
+            Image(systemName: vm.isShelfPinned ? "pin.fill" : "pin")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(tvm.isPinned ? Color.effectiveAccent : Color.white.opacity(0.65))
+                .foregroundStyle(vm.isShelfPinned ? Color.effectiveAccent : Color.white.opacity(0.65))
                 .frame(width: 26, height: 26)
                 .background(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(tvm.isPinned ? Color.effectiveAccent.opacity(0.22) : Color.white.opacity(0.08))
+                        .fill(vm.isShelfPinned ? Color.effectiveAccent.opacity(0.22) : Color.white.opacity(0.08))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(tvm.isPinned ? Color.effectiveAccent.opacity(0.6) : Color.white.opacity(0.12), lineWidth: 1)
+                        .stroke(vm.isShelfPinned ? Color.effectiveAccent.opacity(0.6) : Color.white.opacity(0.12), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
-        .help(tvm.isPinned ? loc("Unpin Shelf (Close on hover exit)") : loc("Pin Shelf (Keep open when hovering out)"))
+        .help(vm.isShelfPinned ? loc("Unpin Shelf (Close on hover exit)") : loc("Pin Shelf (Keep open when hovering out)"))
     }
 
     var content: some View {

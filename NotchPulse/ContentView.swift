@@ -19,10 +19,10 @@ struct ContentView: View {
     @State private var hoverOpenTask: Task<Void, Never>?
     @State private var hoverCloseTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
-    @State private var isMainNotchHovered = false
     @State private var isTopEdgeHovered = false
+    @State private var isSettingsWindowVisible = false
+    @State private var hoverTransitionGeneration = 0
     @State private var anyDropDebounceTask: Task<Void, Never>?
-    @State private var fullscreenHoverDebounceTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
 
@@ -120,7 +120,8 @@ struct ContentView: View {
     }
 
     private var effectiveTopOffset: CGFloat {
-        effectiveDynamicIslandTopOffset(for: currentScreen, userOffset: dynamicIslandTopOffset)
+        guard isDynamicIsland && !hasPhysicalNotch else { return 0 }
+        return effectiveDynamicIslandTopOffset(for: currentScreen, userOffset: dynamicIslandTopOffset)
     }
 
     private var faceIDOpenSize: CGSize {
@@ -390,25 +391,6 @@ struct ContentView: View {
             dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
-                    .background {
-                        if !isEffectivelyLocked {
-                            NotchHoverTrackingBridge(
-                                onHoverChanged: { hovering in
-                                    // While fullscreen hiding is active, the visible
-                                    // notch is off-screen but this background bridge
-                                    // still occupies its original layout height. Do
-                                    // not let that invisible area reveal the notch;
-                                    // only the dedicated 2pt top-edge sensor may do so.
-                                    if isEffectivelyHiddenInFullscreen {
-                                        isMainNotchHovered = false
-                                        return
-                                    }
-                                    isMainNotchHovered = hovering
-                                    handleHover(hovering || isTopEdgeHovered)
-                                }
-                            )
-                        }
-                    }
                     .animation(animationSpring, value: vm.notchState)
                     .animation(animationSpring, value: currentNotchWidth)
                     .animation(animationSpring, value: currentNotchHeight)
@@ -488,7 +470,7 @@ struct ContentView: View {
                             hoverOpenTask = nil
                             hoverCloseTask?.cancel()
                             hoverCloseTask = nil
-                            self.isHovering = false
+                            self.isHovering = self.isTopEdgeHovered
                             if vm.hideOnClosed {
                                 Task { @MainActor in
                                     try? await Task.sleep(for: .milliseconds(350))
@@ -502,6 +484,7 @@ struct ContentView: View {
                         }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .previewNotchWidth)) { notification in
+                        guard shouldHandlePreviewOnThisDisplay(notification) else { return }
                         let targetWidth = (notification.object as? CGFloat) ?? Defaults[.notchOpenWidth]
                         SharingStateManager.shared.preventNotchClose = true
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -509,12 +492,6 @@ struct ContentView: View {
                                 vm.open()
                             }
                             vm.notchSize = CGSize(width: targetWidth, height: openNotchSize.height)
-                        }
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
-                        SharingStateManager.shared.preventNotchClose = false
-                        withAnimation(.spring(response: 0.45, dampingFraction: 1.0)) {
-                            vm.close(force: true)
                         }
                     }
                     .onChange(of: notchOpenWidth) { _, newWidth in
@@ -560,11 +537,10 @@ struct ContentView: View {
         .compositingGroup()
         .background {
             ScreenEdgeHoverTrackingBridge(
-                regionProvider: { topEdgeTrackingRegion },
+                regionProvider: { hoverTrackingRegion },
                 isEnabled: { topEdgeTrackingEnabled },
                 onHoverChanged: { hovering in
-                    isTopEdgeHovered = hovering
-                    handleHover(hovering || isMainNotchHovered)
+                    updateHoverSource(topEdge: hovering)
                 }
             )
         }
@@ -576,7 +552,7 @@ struct ContentView: View {
         .animation(.smooth, value: gestureProgress)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
-        .onChange(of: coordinator.currentView) { _, newView in
+        .onChange(of: vm.currentView) { _, newView in
             guard !SharingStateManager.shared.preventNotchClose else { return }
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 switch newView {
@@ -589,7 +565,7 @@ struct ContentView: View {
                 case .clipboard:
                     vm.customOpenHeight = ClipboardNotchView.preferredHeight
                 case .home, .shelf, .stats:
-                    if !CalendarStateViewModel.shared.isFullMonthExpanded {
+                    if !vm.isCalendarFullMonthExpanded {
                         vm.customOpenHeight = nil
                     }
                 }
@@ -603,7 +579,7 @@ struct ContentView: View {
                     doOpen(targetView: .shelf)
                 } else {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        coordinator.currentView = .shelf
+                        vm.currentView = .shelf
                     }
                 }
                 return
@@ -619,15 +595,37 @@ struct ContentView: View {
                 }
 
                 vm.dropEvent = false
-                if !SharingStateManager.shared.preventNotchClose && !ShelfStateViewModel.shared.isPinned && !CalendarStateViewModel.shared.isPinned {
+                if !SharingStateManager.shared.preventNotchClose && !vm.isShelfPinned && !vm.isCalendarPinned {
                     self.doClose()
                 }
             }
         }
         .onAppear {
+            isSettingsWindowVisible = SettingsWindowController.shared.window?.isVisible == true
             updateScanPulse()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeVisibleNotification)) { notification in
+            guard let settingsWindow = SettingsWindowController.shared.window,
+                  notification.object as? NSWindow === settingsWindow else { return }
+            isSettingsWindowVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didHideNotification)) { notification in
+            guard let settingsWindow = SettingsWindowController.shared.window,
+                  notification.object as? NSWindow === settingsWindow else { return }
+            isSettingsWindowVisible = false
+            // Re-evaluate immediately so hover can open the notch without
+            // requiring an extra mouse movement after Settings closes.
+            isTopEdgeHovered = false
+            isHovering = false
+        }
         .onDisappear {
+            hoverTransitionGeneration &+= 1
+            hoverOpenTask?.cancel()
+            hoverOpenTask = nil
+            hoverCloseTask?.cancel()
+            hoverCloseTask = nil
+            anyDropDebounceTask?.cancel()
+            anyDropDebounceTask = nil
             stopScanPulse()
         }
     }
@@ -771,7 +769,7 @@ struct ContentView: View {
             .zIndex(2)
             if !isEffectivelyLocked && vm.notchState == .open && !isFaceIDActive {
                 VStack {
-                    switch coordinator.currentView {
+                    switch vm.currentView {
                     case .home:
                         NotchHomeView(albumArtNamespace: albumArtNamespace)
                             .id(NotchViews.home)
@@ -958,8 +956,8 @@ struct ContentView: View {
 
     private var canCloseOnHoverExit: Bool {
         !vm.isBatteryPopoverActive &&
-        !ShelfStateViewModel.shared.isPinned &&
-        !CalendarStateViewModel.shared.isPinned &&
+        !vm.isShelfPinned &&
+        !vm.isCalendarPinned &&
         !FeatureTourController.shared.isTourActive &&
         !vm.anyDropZoneTargeting &&
         !vm.dragDetectorTargeting &&
@@ -967,7 +965,7 @@ struct ContentView: View {
     }
 
     private var topEdgeTrackingEnabled: Bool {
-        !isEffectivelyLocked && !(SettingsWindowController.shared.window?.isVisible == true)
+        !isEffectivelyLocked && !isSettingsWindowVisible
     }
 
     private var topEdgeSensorSize: CGSize {
@@ -983,14 +981,32 @@ struct ContentView: View {
     /// Global AppKit coordinates use a bottom-left origin, so the top edge is
     /// `screen.frame.maxY`. The extra point above maxY keeps the exact boundary
     /// inside the region when WindowServer reports a clamped edge coordinate.
-    private var topEdgeTrackingRegion: CGRect {
+    /// One global region tracks both the closed/open notch and the fullscreen
+    /// reveal strip. Keeping one tracker prevents the notch-body tracker and
+    /// edge tracker from racing each other during a spring resize.
+    private var hoverTrackingRegion: CGRect {
         guard topEdgeTrackingEnabled, let screen = currentScreen else { return .null }
-        let size = topEdgeSensorSize
+        let isFullscreenEdgeReveal = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
+        if isFullscreenEdgeReveal {
+            let hiddenWidth = isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth
+            return CGRect(
+                x: screen.frame.midX - hiddenWidth / 2,
+                y: screen.frame.maxY - 2,
+                width: hiddenWidth,
+                height: 3
+            )
+        }
+
+        let extraPad: CGFloat = vm.notchState == .closed && extendHoverArea
+            ? CGFloat(hoverAreaPadding)
+            : 0
+        let width = currentNotchWidth + extraPad * 2
+        let height = currentNotchHeight + (isDynamicIsland ? effectiveTopOffset : 0) + extraPad
         return CGRect(
-            x: screen.frame.midX - size.width / 2,
-            y: screen.frame.maxY - size.height,
-            width: size.width,
-            height: size.height + 1
+            x: screen.frame.midX - width / 2,
+            y: screen.frame.maxY - height,
+            width: width,
+            height: height + 1
         )
     }
 
@@ -1023,6 +1039,7 @@ struct ContentView: View {
 
     private func doOpen(targetView: NotchViews? = nil) {
         guard !MissionControlObserver.shared.checkIsMissionControlActive() else { return }
+        hoverTransitionGeneration &+= 1
         coordinator.dismissExpandingView(animated: false)
         coordinator.sneakPeek.show = false
         hoverOpenTask?.cancel()
@@ -1035,6 +1052,7 @@ struct ContentView: View {
     }
 
     private func doClose() {
+        hoverTransitionGeneration &+= 1
         coordinator.dismissExpandingView(animated: false)
         coordinator.sneakPeek.show = false
         hoverOpenTask?.cancel()
@@ -1048,6 +1066,25 @@ struct ContentView: View {
     }
 
     // MARK: - Hover Management
+
+    /// Feeds the single display hover tracker into the state machine.
+    private func updateHoverSource(topEdge: Bool) {
+        isTopEdgeHovered = topEdge
+        handleHover(topEdge)
+    }
+
+    private func shouldHandlePreviewOnThisDisplay(_ notification: Notification) -> Bool {
+        guard Defaults[.showOnAllDisplays] else { return true }
+        if let targetUUID = notification.userInfo?["displayUUID"] as? String {
+            return targetUUID == vm.screenUUID
+        }
+        return screenUnderPointer()?.displayUUID == vm.screenUUID
+    }
+
+    private var screenUnderPointer: NSScreen? {
+        let location = NSEvent.mouseLocation
+        return NSScreen.screens.first(where: { $0.frame.contains(location) }) ?? NSScreen.main
+    }
 
     private func shouldHandleFaceIDHover(hovering: Bool) -> Bool {
         if isEffectivelyLocked { return true }
@@ -1064,10 +1101,11 @@ struct ContentView: View {
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
         if faceIDOverlay.phase != .closed || isFaceIDSettlingAfterClose { return }
-        fullscreenHoverDebounceTask?.cancel()
-
         if hovering {
             // Cancel any pending close grace period immediately when mouse re-enters!
+            if hoverCloseTask != nil {
+                hoverTransitionGeneration &+= 1
+            }
             hoverCloseTask?.cancel()
             hoverCloseTask = nil
 
@@ -1075,6 +1113,7 @@ struct ContentView: View {
             if SettingsWindowController.shared.window?.isVisible == true {
                 hoverOpenTask?.cancel()
                 hoverOpenTask = nil
+                isHovering = false
                 if vm.notchState == .open && canCloseOnHoverExit {
                     self.doClose()
                 }
@@ -1085,6 +1124,7 @@ struct ContentView: View {
             if MissionControlObserver.shared.checkIsMissionControlActive() {
                 hoverOpenTask?.cancel()
                 hoverOpenTask = nil
+                isHovering = false
                 if vm.notchState == .open && canCloseOnHoverExit {
                     self.doClose()
                 }
@@ -1142,19 +1182,18 @@ struct ContentView: View {
             // The spring needs ~380ms and SwiftUI can briefly emit an exit while
             // replacing the compact hit region with the expanded one.
             hoverCloseTask?.cancel()
+            hoverOpenTask?.cancel()
+            hoverOpenTask = nil
+            hoverTransitionGeneration &+= 1
+            let transitionGeneration = hoverTransitionGeneration
             let gracePeriodMs = 280
 
             hoverCloseTask = Task { @MainActor in
                 defer { self.hoverCloseTask = nil }
                 try? await Task.sleep(for: .milliseconds(gracePeriodMs))
-                guard !Task.isCancelled else { return }
-
-                self.hoverOpenTask?.cancel()
-                self.hoverOpenTask = nil
-
-                if self.isMainNotchHovered || self.isTopEdgeHovered {
-                    return
-                }
+                guard !Task.isCancelled,
+                      self.hoverTransitionGeneration == transitionGeneration,
+                      !self.isTopEdgeHovered else { return }
 
                 if self.vm.notchState == .open && self.canCloseOnHoverExit {
                     // A drag hold may become stale after the pointer leaves, but an
@@ -1180,9 +1219,9 @@ struct ContentView: View {
 
 }
 
-/// Tracks the screen-edge activation zone from global mouse coordinates instead
-/// of relying on a 1–2pt SwiftUI hit area at the window boundary. This remains
-/// stable in fullscreen Spaces and when the closed notch is translated offscreen.
+/// Tracks the complete per-display hover region from global mouse coordinates
+/// instead of relying on SwiftUI hit areas that are rebuilt during resizing.
+/// This remains stable in fullscreen Spaces and while the notch is animating.
 private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
     let regionProvider: @MainActor () -> CGRect
     let isEnabled: @MainActor () -> Bool
@@ -1299,96 +1338,6 @@ private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
         deinit {
             if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
             if let localMonitor { NSEvent.removeMonitor(localMonitor) }
-        }
-    }
-}
-
-/// A stable AppKit tracking area for the visible notch. SwiftUI's `.onHover`
-/// can emit a false exit when the notch changes size because its hit-test region
-/// is rebuilt. This bridge keeps one tracking owner alive across that resize.
-private struct NotchHoverTrackingBridge: NSViewRepresentable {
-    let onHoverChanged: @MainActor (Bool) -> Void
-
-    func makeNSView(context: Context) -> TrackingView {
-        let view = TrackingView()
-        view.onHoverChanged = onHoverChanged
-        return view
-    }
-
-    func updateNSView(_ nsView: TrackingView, context: Context) {
-        nsView.onHoverChanged = onHoverChanged
-        nsView.scheduleEvaluation()
-    }
-
-    @MainActor
-    final class TrackingView: NSView {
-        var onHoverChanged: ((Bool) -> Void)?
-        private var trackingAreaRef: NSTrackingArea?
-        private var lastInside = false
-        private var evaluationScheduled = false
-
-        override func hitTest(_ point: NSPoint) -> NSView? {
-            nil
-        }
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            window?.acceptsMouseMovedEvents = true
-            updateTrackingAreas()
-            scheduleEvaluation()
-        }
-
-        override func updateTrackingAreas() {
-            if let trackingAreaRef {
-                removeTrackingArea(trackingAreaRef)
-            }
-            let area = NSTrackingArea(
-                rect: bounds,
-                options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
-                owner: self,
-                userInfo: nil
-            )
-            addTrackingArea(area)
-            trackingAreaRef = area
-            super.updateTrackingAreas()
-        }
-
-        override func mouseEntered(with event: NSEvent) {
-            evaluateHover()
-        }
-
-        override func mouseMoved(with event: NSEvent) {
-            evaluateHover()
-        }
-
-        override func mouseDragged(with event: NSEvent) {
-            evaluateHover()
-        }
-
-        override func mouseExited(with event: NSEvent) {
-            evaluateHover()
-        }
-
-        func scheduleEvaluation() {
-            guard !evaluationScheduled else { return }
-            evaluationScheduled = true
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.evaluationScheduled = false
-                self.evaluateHover()
-            }
-        }
-
-        private func evaluateHover() {
-            guard let window else { return }
-            let pointInView = convert(window.mouseLocationOutsideOfEventStream, from: nil)
-            let inside = !isHidden && bounds.contains(pointInView)
-            // Re-emit `true` while moving inside so hover can recover immediately
-            // after Settings or Mission Control stops blocking expansion.
-            if inside || inside != lastInside {
-                lastInside = inside
-                onHoverChanged?(inside)
-            }
         }
     }
 }

@@ -5,7 +5,6 @@ struct NotchPulseHeader: View {
     @EnvironmentObject var vm: NotchPulseViewModel
 
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
-    @StateObject var tvm = ShelfStateViewModel.shared
 
     @Default(.enableAudioHub) var enableAudioHub
     @Default(.showAudioHubInNotch) var showAudioHubInNotch
@@ -45,8 +44,8 @@ struct NotchPulseHeader: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
-                        ShelfStateViewModel.shared.isPinned = false
-                        CalendarStateViewModel.shared.isPinned = false
+                        vm.isShelfPinned = false
+                        vm.isCalendarPinned = false
                         vm.close()
                     }
                 }
@@ -60,22 +59,22 @@ struct NotchPulseHeader: View {
                         if enableAudioHub && showAudioHubInNotch {
                             Button(action: {
                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                                    if coordinator.currentView == .audio {
-                                        coordinator.currentView = .home
+                                    if vm.currentView == .audio {
+                                        vm.currentView = .home
                                         vm.customOpenHeight = nil
                                     } else {
                                         AudioDeviceManager.shared.refreshDevices()
                                         vm.customOpenHeight = AudioHubNotchView.calculateHeight(selectedTab: AudioDeviceManager.shared.selectedTab)
-                                        coordinator.currentView = .audio
+                                        vm.currentView = .audio
                                     }
                                 }
                             }) {
                                 Capsule()
-                                    .fill(coordinator.currentView == .audio ? Color.white.opacity(0.2) : .black)
+                                    .fill(vm.currentView == .audio ? Color.white.opacity(0.2) : .black)
                                     .frame(width: 30, height: 30)
                                     .overlay {
                                         Image(systemName: "speaker.wave.2.fill")
-                                            .foregroundColor(coordinator.currentView == .audio ? .white : .gray)
+                                            .foregroundColor(vm.currentView == .audio ? .white : .gray)
                                             .padding()
                                             .imageScale(.medium)
                                     }
@@ -85,22 +84,22 @@ struct NotchPulseHeader: View {
                         if enableDisplayHub {
                             Button(action: {
                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                                    if coordinator.currentView == .display {
-                                        coordinator.currentView = .home
+                                    if vm.currentView == .display {
+                                        vm.currentView = .home
                                         vm.customOpenHeight = nil
                                     } else {
                                         BrightnessManager.shared.refreshAllDisplays()
                                         vm.customOpenHeight = DisplayHubNotchView.calculateHeight()
-                                        coordinator.currentView = .display
+                                        vm.currentView = .display
                                     }
                                 }
                             }) {
                                 Capsule()
-                                    .fill(coordinator.currentView == .display ? Color.white.opacity(0.2) : .black)
+                                    .fill(vm.currentView == .display ? Color.white.opacity(0.2) : .black)
                                     .frame(width: 30, height: 30)
                                     .overlay {
                                         Image(systemName: "sun.max.fill")
-                                            .foregroundColor(coordinator.currentView == .display ? .white : .gray)
+                                            .foregroundColor(vm.currentView == .display ? .white : .gray)
                                             .padding()
                                             .imageScale(.medium)
                                     }

@@ -106,7 +106,7 @@ struct SettingsRow<Trailing: View>: View {
 
     var body: some View {
         SettingsRowContent(title: title, subtitle: subtitle, info: info, trailing: trailing)
-            .background(SettingsMetrics.rowColor)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
                     .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
@@ -158,7 +158,7 @@ struct SettingsGroup<Content: View>: View {
         VStack(spacing: 0) {
             content()
         }
-        .background(SettingsMetrics.rowColor)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous)
@@ -230,7 +230,7 @@ struct SettingsSlider: View {
         }
         .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
         .padding(.vertical, 10)
-        .background(SettingsMetrics.rowColor)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
                 .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
@@ -428,7 +428,7 @@ struct SettingsEmptyStateView: View {
         }
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
-        .background(SettingsMetrics.rowColor)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
                 .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
@@ -488,7 +488,7 @@ struct SettingsOptionCard<Content: View>: View {
         SettingsOptionRow(content: content)
             .background(
                 RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
-                    .fill(SettingsMetrics.rowColor)
+                    .fill(.regularMaterial)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)

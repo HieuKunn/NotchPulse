@@ -45,7 +45,6 @@ enum SettingsMetrics {
     static let rowHeight: CGFloat = 44
     /// Standard continuous corner radius matching macOS System Settings grouped cards.
     static let rowRadius: CGFloat = 10
-    static let rowColor = Color(nsColor: .controlBackgroundColor)
     static let rowBorder = Color(nsColor: .separatorColor).opacity(0.35)
     static let rowBorderWidth: CGFloat = 0.5
     static let rowFont = Font.system(size: 13, weight: .regular)

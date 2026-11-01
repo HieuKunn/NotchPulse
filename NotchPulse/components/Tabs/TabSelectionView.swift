@@ -43,10 +43,10 @@ struct TabSelectionView: View {
         vm.dragDetectorTargeting = false
         vm.dropZoneTargeting = false
         vm.anyDropZoneTargeting = false
-        CalendarStateViewModel.shared.isFullMonthExpanded = false
-        CalendarStateViewModel.shared.isPinned = false
+        vm.isCalendarFullMonthExpanded = false
+        vm.isCalendarPinned = false
         if tabView != .shelf {
-            ShelfStateViewModel.shared.isPinned = false
+            vm.isShelfPinned = false
         }
         if tabView == .audio {
             AudioDeviceManager.shared.refreshDevices()
@@ -74,7 +74,7 @@ struct TabSelectionView: View {
         }
         MusicManager.shared.isUIActive = (tabView == .home)
         withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-            coordinator.currentView = tabView
+            vm.currentView = tabView
         }
     }
 
@@ -90,7 +90,7 @@ struct TabSelectionView: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(tabs) { tab in
-                let isSelected = (tab.view == coordinator.currentView)
+                let isSelected = (tab.view == vm.currentView)
                 let isSpotlight = (vm.featureTourTarget == String(describing: tab.view))
                 TabButton(label: tab.label, icon: tab.icon, selected: isSelected) {
                     selectTab(tab.view)

@@ -501,36 +501,35 @@ final class CalendarStateViewModel: ObservableObject {
 }
 
 struct CalendarPinButton: View {
-    @ObservedObject private var state = CalendarStateViewModel.shared
     @EnvironmentObject var vm: NotchPulseViewModel
     @State private var isHovered: Bool = false
 
     var body: some View {
         Button {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                state.isPinned.toggle()
+                vm.isCalendarPinned.toggle()
             }
-            if !state.isPinned && !vm.isMouseHovering() {
+            if !vm.isCalendarPinned && !vm.isMouseHovering() {
                 vm.close()
             }
         } label: {
-            Image(systemName: state.isPinned ? "pin.fill" : "pin")
+            Image(systemName: vm.isCalendarPinned ? "pin.fill" : "pin")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(state.isPinned ? Color.effectiveAccent : (isHovered ? Color.white : Color.white.opacity(0.7)))
+                .foregroundStyle(vm.isCalendarPinned ? Color.effectiveAccent : (isHovered ? Color.white : Color.white.opacity(0.7)))
                 .frame(width: 24, height: 24)
                 .background(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(state.isPinned ? Color.effectiveAccent.opacity(isHovered ? 0.28 : 0.20) : Color.white.opacity(isHovered ? 0.16 : 0.08))
+                        .fill(vm.isCalendarPinned ? Color.effectiveAccent.opacity(isHovered ? 0.28 : 0.20) : Color.white.opacity(isHovered ? 0.16 : 0.08))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .strokeBorder(state.isPinned ? Color.effectiveAccent.opacity(0.45) : Color.white.opacity(isHovered ? 0.18 : 0.08), lineWidth: 0.8)
+                        .strokeBorder(vm.isCalendarPinned ? Color.effectiveAccent.opacity(0.45) : Color.white.opacity(isHovered ? 0.18 : 0.08), lineWidth: 0.8)
                 )
                 .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-        .help(state.isPinned ? loc("Unpin Calendar (Close on hover exit)") : loc("Pin Calendar (Keep open when hovering out)"))
+        .help(vm.isCalendarPinned ? loc("Unpin Calendar (Close on hover exit)") : loc("Pin Calendar (Keep open when hovering out)"))
     }
 }
 
@@ -870,7 +869,7 @@ struct CalendarView: View {
                 displayedDate = selectedDate
             }
         }
-        .onChange(of: CalendarStateViewModel.shared.isFullMonthExpanded) { _, expanded in
+        .onChange(of: vm.isCalendarFullMonthExpanded) { _, expanded in
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 if expanded {
                     mode = .dayDetail
@@ -881,10 +880,10 @@ struct CalendarView: View {
                 }
             }
         }
-        .onChange(of: coordinator.currentView) { _, newView in
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
+        .onChange(of: vm.currentView) { _, newView in
+            vm.isCalendarFullMonthExpanded = false
             mode = .normal
-            CalendarStateViewModel.shared.isPinned = false
+            vm.isCalendarPinned = false
             if newView != .audio && newView != .display && newView != .stats && newView != .clipboard {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     vm.customOpenHeight = nil
@@ -893,9 +892,9 @@ struct CalendarView: View {
         }
         .onChange(of: vm.notchState) { _, newState in
             if newState == .closed {
-                CalendarStateViewModel.shared.isFullMonthExpanded = false
+                vm.isCalendarFullMonthExpanded = false
                 mode = .normal
-                CalendarStateViewModel.shared.isPinned = false
+                vm.isCalendarPinned = false
                 vm.customOpenHeight = nil
             }
             Task { @MainActor in
@@ -905,10 +904,10 @@ struct CalendarView: View {
             }
         }
         .onAppear {
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            vm.isCalendarFullMonthExpanded = false
             mode = .normal
-            CalendarStateViewModel.shared.isPinned = false
-            if coordinator.currentView != .audio && coordinator.currentView != .display && coordinator.currentView != .stats && coordinator.currentView != .clipboard {
+            vm.isCalendarPinned = false
+            if vm.currentView != .audio && vm.currentView != .display && vm.currentView != .stats && vm.currentView != .clipboard {
                 vm.customOpenHeight = nil
             }
             if vm.featureTourTarget == "calendar" {
@@ -925,10 +924,10 @@ struct CalendarView: View {
             }
         }
         .onDisappear {
-            CalendarStateViewModel.shared.isFullMonthExpanded = false
+            vm.isCalendarFullMonthExpanded = false
             mode = .normal
-            CalendarStateViewModel.shared.isPinned = false
-            if coordinator.currentView != .audio && coordinator.currentView != .display && coordinator.currentView != .stats && coordinator.currentView != .clipboard {
+            vm.isCalendarPinned = false
+            if vm.currentView != .audio && vm.currentView != .display && vm.currentView != .stats && vm.currentView != .clipboard {
                 vm.customOpenHeight = nil
             }
         }
@@ -1096,8 +1095,8 @@ struct CalendarView: View {
     // MARK: - Helpers
     private func enterFullMonth() {
         displayedDate = selectedDate
-        CalendarStateViewModel.shared.isPinned = true
-        CalendarStateViewModel.shared.isFullMonthExpanded = true
+        vm.isCalendarPinned = true
+        vm.isCalendarFullMonthExpanded = true
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             mode = .dayDetail
             vm.customOpenHeight = 285
@@ -1108,8 +1107,8 @@ struct CalendarView: View {
     }
 
     private func exitFullPage() {
-        CalendarStateViewModel.shared.isPinned = false
-        CalendarStateViewModel.shared.isFullMonthExpanded = false
+        vm.isCalendarPinned = false
+        vm.isCalendarFullMonthExpanded = false
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             mode = .normal
             vm.customOpenHeight = nil

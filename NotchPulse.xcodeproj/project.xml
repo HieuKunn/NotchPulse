@@ -1528,7 +1528,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>349</string>
+				<string>423</string>
 				<key>DEVELOPMENT_TEAM</key>
 				<string></string>
 				<key>GENERATE_INFOPLIST_FILE</key>
@@ -1542,7 +1542,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>5.4</string>
+				<string>5.5</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulseXPCHelper</string>
 				<key>PRODUCT_NAME</key>
@@ -1576,7 +1576,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>349</string>
+				<string>423</string>
 				<key>DEVELOPMENT_TEAM</key>
 				<string></string>
 				<key>GENERATE_INFOPLIST_FILE</key>
@@ -1590,7 +1590,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>5.4</string>
+				<string>5.5</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulseXPCHelper</string>
 				<key>PRODUCT_NAME</key>
@@ -3064,7 +3064,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>349</string>
+				<string>423</string>
 				<key>DEAD_CODE_STRIPPING</key>
 				<string>YES</string>
 				<key>DEVELOPMENT_ASSET_PATHS</key>
@@ -3112,7 +3112,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>5.4</string>
+				<string>5.5</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulse</string>
 				<key>PRODUCT_NAME</key>
@@ -3161,7 +3161,7 @@
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
 				<key>CURRENT_PROJECT_VERSION</key>
-				<string>349</string>
+				<string>423</string>
 				<key>DEAD_CODE_STRIPPING</key>
 				<string>YES</string>
 				<key>DEVELOPMENT_ASSET_PATHS</key>
@@ -3207,7 +3207,7 @@
 				<key>MACOSX_DEPLOYMENT_TARGET</key>
 				<string>14.0</string>
 				<key>MARKETING_VERSION</key>
-				<string>5.4</string>
+				<string>5.5</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
 				<string>com.notchpulse.NotchPulse</string>
 				<key>PRODUCT_NAME</key>

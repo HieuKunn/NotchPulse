@@ -64,13 +64,13 @@ struct MusicSlotConfigurationView: View {
                 }
             }
             .padding(12)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(.regularMaterial)
             .cornerRadius(8)
 
             VStack(spacing: 8) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(NSColor.controlBackgroundColor))
+                        .fill(.regularMaterial)
                         .frame(width: 56, height: 56)
 
                     Image(systemName: "trash")
@@ -119,7 +119,7 @@ struct MusicSlotConfigurationView: View {
                             VStack(spacing: 6) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color(NSColor.controlBackgroundColor))
+                                        .fill(.regularMaterial)
                                         .frame(width: 44, height: 44)
 
                                     if control != .none {
@@ -195,7 +195,7 @@ struct MusicSlotConfigurationView: View {
             Spacer()
         }
         .padding(8)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .background(.regularMaterial)
         .cornerRadius(6)
     }
 
@@ -203,7 +203,7 @@ struct MusicSlotConfigurationView: View {
     private func slotPreview(for slot: MusicControlButton) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor))
+                .fill(.regularMaterial)
                 .frame(width: 44, height: 44)
 
             if slot != .none {

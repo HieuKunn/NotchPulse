@@ -34,7 +34,6 @@ extension Notification.Name {
     static let mediaControllerChanged = Notification.Name("mediaControllerChanged")
     static let previewNotchWidth = Notification.Name("previewNotchWidth")
     static let closeNotchPreview = Notification.Name("closeNotchPreview")
-    static let notchDidOpen = Notification.Name("notchDidOpen")
     static let selectedScreenChanged = Notification.Name("SelectedScreenChanged")
     static let notchHeightChanged = Notification.Name("NotchHeightChanged")
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")

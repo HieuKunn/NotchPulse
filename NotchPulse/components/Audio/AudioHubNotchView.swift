@@ -4,7 +4,6 @@ import SwiftUI
 
 struct AudioHubNotchView: View {
     @ObservedObject var audioManager = AudioDeviceManager.shared
-    @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
     @EnvironmentObject var vm: NotchPulseViewModel
 
     @AppStorage("NotchPulse_AudioHubAppsExpanded") private var isAppsExpanded: Bool = true
@@ -166,7 +165,7 @@ struct AudioHubNotchView: View {
                 updateDynamicHeight()
             }
         }
-        .onChange(of: coordinator.currentView) { _, newView in
+        .onChange(of: vm.currentView) { _, newView in
             if newView == .audio {
                 DispatchQueue.main.async {
                     updateDynamicHeight()
@@ -205,7 +204,7 @@ struct AudioHubNotchView: View {
     }
 
     private func updateDynamicHeight() {
-        guard coordinator.currentView == .audio else { return }
+        guard vm.currentView == .audio else { return }
         let target = Self.calculateHeight(selectedTab: audioManager.selectedTab)
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
             vm.customOpenHeight = target

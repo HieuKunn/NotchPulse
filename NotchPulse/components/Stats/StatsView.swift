@@ -356,7 +356,7 @@ struct StatsView: View {
             if expandedMetric != nil || isThermalExpanded {
                 expandedMetric = nil
                 isThermalExpanded = false
-                if NotchPulseViewCoordinator.shared.currentView != .audio && NotchPulseViewCoordinator.shared.currentView != .display && NotchPulseViewCoordinator.shared.currentView != .clipboard {
+                if vm.currentView != .audio && vm.currentView != .display && vm.currentView != .clipboard {
                     withAnimation(NotchPulseViewModel.notchSpring) {
                         vm.customOpenHeight = nil
                     }

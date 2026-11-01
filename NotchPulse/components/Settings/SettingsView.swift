@@ -533,8 +533,7 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
                         .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
@@ -542,71 +541,57 @@ struct SettingsView: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 8)
 
-                // Vertical Settings Tabs
-                ScrollView {
-                    LazyVStack(spacing: 3) {
-                        if filteredTabs.isEmpty {
-                            VStack(spacing: 6) {
-                                Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(.secondary)
-                                Text(loc("No settings found"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 32)
-                        } else {
-                            ForEach(filteredTabs) { tab in
-                                let matches = matchingSections(for: tab)
-                                let isSelected = (selectedTab == tab.id)
-                                Button {
-                                    selectedTab = tab.id
-                                    if let first = matches.first {
-                                        selectSearchItem(tabId: tab.id, sectionId: first.id)
-                                    }
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: tab.icon)
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundStyle(isSelected ? Color.white : Color(nsColor: .secondaryLabelColor))
-                                            .frame(width: 18, alignment: .center)
+                // Use the system sidebar list so macOS owns selection, vibrancy,
+                // accessibility contrast, and the correct appearance for each OS.
+                List {
+                    if filteredTabs.isEmpty {
+                        ContentUnavailableView {
+                            Label(loc("No settings found"), systemImage: "magnifyingglass")
+                        }
+                        .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(filteredTabs) { tab in
+                            let matches = matchingSections(for: tab)
+                            let isSelected = selectedTab == tab.id
 
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(tabTitle(for: tab.id))
-                                                .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
-                                                .foregroundStyle(isSelected ? Color.white : Color.primary)
-
-                                            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
-                                                Text(matches.map { loc($0.title) }.joined(separator: " • "))
-                                                    .font(.system(size: 10))
-                                                    .foregroundStyle(isSelected ? Color.white.opacity(0.8) : Color.secondary)
-                                                    .lineLimit(1)
-                                            }
-                                        }
-
-                                        Spacer(minLength: 0)
-                                    }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        isSelected
-                                            ? Color.effectiveAccent
-                                            : Color.clear
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                    .contentShape(Rectangle())
+                            Button {
+                                selectedTab = tab.id
+                                if let first = matches.first {
+                                    selectSearchItem(tabId: tab.id, sectionId: first.id)
                                 }
-                                .buttonStyle(.plain)
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: tab.icon)
+                                        .foregroundStyle(isSelected ? .primary : .secondary)
+                                        .frame(width: 18, alignment: .center)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(tabTitle(for: tab.id))
+                                            .font(.body.weight(isSelected ? .semibold : .regular))
+                                            .foregroundStyle(.primary)
+
+                                        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
+                                            Text(matches.map { loc($0.title) }.joined(separator: " • "))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    Spacer(minLength: 0)
+                                }
                             }
+                            .buttonStyle(.plain)
+                            .listRowBackground(isSelected ? Color.accentColor.opacity(0.85) : Color.clear)
                         }
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.top, 4)
                 }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .background(.sidebar)
                 .scrollIndicators(.hidden)
             }
             .tint(.effectiveAccent)
+            .background(.sidebar)
             .toolbar(removing: .sidebarToggle)
             .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 270)
         } detail: {
@@ -622,7 +607,9 @@ struct SettingsView: View {
                             showQuitButton: true
                         )
                     }
-                    .background(Color(nsColor: .windowBackgroundColor))
+                    // Semantic window material: macOS chooses the appropriate
+                    // opaque, translucent, or accessibility-safe treatment.
+                    .background(.window)
                     .ignoresSafeArea(edges: .top)
                     .onChange(of: scrollTrigger) { _, _ in
                         guard let targetId = scrollToItemId else { return }
@@ -802,7 +789,7 @@ struct NotchWidthLivePreview: View {
         VStack(spacing: 6) {
             ZStack(alignment: .top) {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .fill(.regularMaterial)
                     .frame(height: 64)
                     .overlay(
                         Rectangle()
@@ -965,7 +952,7 @@ struct GeneralSettings: View {
                     VStack(spacing: 8) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(nsColor: .controlBackgroundColor))
+                                .fill(.regularMaterial)
                                 .frame(height: 52)
 
                             // Mini Notch illustration (attached to top)
@@ -1003,7 +990,7 @@ struct GeneralSettings: View {
                     VStack(spacing: 8) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(nsColor: .controlBackgroundColor))
+                                .fill(.regularMaterial)
                                 .frame(height: 52)
 
                             // Mini Dynamic Island illustration (floating pill)

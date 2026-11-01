@@ -81,7 +81,7 @@ struct YourFaceSettingsPage: View {
         }
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
-        .background(SettingsMetrics.rowColor)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
                 .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
