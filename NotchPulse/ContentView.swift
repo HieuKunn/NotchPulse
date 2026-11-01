@@ -1078,7 +1078,7 @@ struct ContentView: View {
         if let targetUUID = notification.userInfo?["displayUUID"] as? String {
             return targetUUID == vm.screenUUID
         }
-        return screenUnderPointer()?.displayUUID == vm.screenUUID
+        return screenUnderPointer?.displayUUID == vm.screenUUID
     }
 
     private var screenUnderPointer: NSScreen? {
