@@ -40,6 +40,7 @@ extension Notification.Name {
     static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
     static let expandedDragDetectionChanged = Notification.Name("expandedDragDetectionChanged")
     static let faceIDPhaseChanged = Notification.Name("faceIDPhaseChanged")
+    static let settingsWindowVisibilityChanged = Notification.Name("settingsWindowVisibilityChanged")
 }
 
 // Media controller types for selection in settings

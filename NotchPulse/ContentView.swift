@@ -388,7 +388,6 @@ struct ContentView: View {
     private var notchContent: some View {
         ZStack(alignment: .top) {
             topEdgeHoverSensor
-            dragDetector
             VStack(spacing: 0) {
                 mainNotchContainer
                     .animation(animationSpring, value: vm.notchState)
@@ -535,6 +534,12 @@ struct ContentView: View {
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
         .compositingGroup()
+        // Keep a registered drop destination alive before the notch opens.
+        // Creating Shelf's onDrop only after an external drag has started can
+        // make AppKit continue routing the drop to the Desktop underneath.
+        .background(alignment: .top) {
+            dragDetector
+        }
         .background {
             ScreenEdgeHoverTrackingBridge(
                 regionProvider: { hoverTrackingRegion },
@@ -604,19 +609,15 @@ struct ContentView: View {
             isSettingsWindowVisible = SettingsWindowController.shared.window?.isVisible == true
             updateScanPulse()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didOrderOnScreenNotification)) { notification in
-            guard let settingsWindow = SettingsWindowController.shared.window,
-                  notification.object as? NSWindow === settingsWindow else { return }
-            isSettingsWindowVisible = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didOrderOffScreenNotification)) { notification in
-            guard let settingsWindow = SettingsWindowController.shared.window,
-                  notification.object as? NSWindow === settingsWindow else { return }
-            isSettingsWindowVisible = false
-            // Re-evaluate immediately so hover can open the notch without
-            // requiring an extra mouse movement after Settings closes.
-            isTopEdgeHovered = false
-            isHovering = false
+        .onReceive(NotificationCenter.default.publisher(for: .settingsWindowVisibilityChanged)) { notification in
+            guard let isVisible = notification.userInfo?["isVisible"] as? Bool else { return }
+            isSettingsWindowVisible = isVisible
+            if !isVisible {
+                // Re-evaluate immediately so hover can open the notch without
+                // requiring an extra mouse movement after Settings closes.
+                isTopEdgeHovered = false
+                isHovering = false
+            }
         }
         .onDisappear {
             hoverTransitionGeneration &+= 1
@@ -1038,7 +1039,24 @@ struct ContentView: View {
 
     @ViewBuilder
     var dragDetector: some View {
-        EmptyView()
+        if Defaults[.notchPulseShelf] {
+            Color.clear
+                .frame(
+                    width: max(CGFloat(Defaults[.notchOpenWidth]), vm.closedNotchSize.width),
+                    height: max(openNotchSize.height, vm.effectiveOpenHeight)
+                )
+                .contentShape(Rectangle())
+                .onDrop(
+                    of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image],
+                    isTargeted: $vm.dragDetectorTargeting
+                ) { providers in
+                    guard !ShelfSelectionModel.shared.isDragging else { return false }
+                    vm.dropEvent = true
+                    vm.open(targetView: .shelf)
+                    ShelfStateViewModel.shared.load(providers)
+                    return true
+                }
+        }
     }
 
     private func doOpen(targetView: NotchViews? = nil) {

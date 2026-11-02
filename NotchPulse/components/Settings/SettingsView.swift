@@ -611,7 +611,6 @@ struct SettingsView: View {
             .toolbar(removing: .sidebarToggle)
             .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 270)
         }
-    }
 
     @ViewBuilder
     private var settingsDetail: some View {

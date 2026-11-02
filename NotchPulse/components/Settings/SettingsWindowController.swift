@@ -120,6 +120,7 @@ class SettingsWindowController: NSWindowController {
             .environmentObject(self.vm ?? NotchPulseViewModel())
         let hostingView = NSHostingView(rootView: settingsView)
         window?.contentView = hostingView
+        publishVisibility(true)
         
         // If window is already visible, bring it to front properly
         if window?.isVisible == true {
@@ -153,12 +154,21 @@ class SettingsWindowController: NSWindowController {
     private func relinquishFocus() {
         FaceIDOverlayController.shared.disarm()
         window?.orderOut(nil)
+        publishVisibility(false)
         
         // Removed: Freeing contentView here causes a white screen bug in macOS when switching app policies.
         // window?.contentView = nil
         
         // Set app back to accessory mode immediately
         NSApp.setActivationPolicy(.accessory)
+    }
+
+    private func publishVisibility(_ isVisible: Bool) {
+        NotificationCenter.default.post(
+            name: .settingsWindowVisibilityChanged,
+            object: window,
+            userInfo: ["isVisible": isVisible]
+        )
     }
 }
 

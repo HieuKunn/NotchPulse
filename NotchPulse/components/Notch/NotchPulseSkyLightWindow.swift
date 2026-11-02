@@ -45,7 +45,12 @@ final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
 
 class NotchPulseSkyLightWindow: NSPanel {
     private var isSkyLightEnabled: Bool = false
+    private var isFileDragElevated: Bool = false
     private var observers: Set<AnyCancellable> = []
+
+    private var restingLevel: NSWindow.Level {
+        isSkyLightEnabled ? .mainMenu + 2 : .mainMenu + 3
+    }
     
     override init(
         contentRect: NSRect,
@@ -72,7 +77,7 @@ class NotchPulseSkyLightWindow: NSPanel {
         backgroundColor = .clear
         isMovable = false
         isMovableByWindowBackground = false
-        level = .mainMenu + 3
+        level = restingLevel
         hasShadow = false
         isReleasedWhenClosed = false
         acceptsMouseMovedEvents = true
@@ -112,7 +117,9 @@ class NotchPulseSkyLightWindow: NSPanel {
         if !isSkyLightEnabled {
             SkyLightOperator.shared.delegateWindow(self)
             isSkyLightEnabled = true
-            level = .mainMenu + 2
+            if !isFileDragElevated {
+                level = restingLevel
+            }
         }
     }
     
@@ -120,8 +127,26 @@ class NotchPulseSkyLightWindow: NSPanel {
         if isSkyLightEnabled {
             SkyLightOperator.shared.undelegateWindow(self)
             isSkyLightEnabled = false
-            level = .mainMenu + 3
+            if !isFileDragElevated {
+                level = restingLevel
+            }
         }
+    }
+
+    /// Keeps the drop destination above the source app and Desktop while an
+    /// external file drag is active. The normal level is restored as soon as
+    /// that drag ends, so regular notch interaction is unaffected.
+    func beginFileDragTargeting() {
+        isFileDragElevated = true
+        level = .screenSaver
+        orderFrontRegardless()
+    }
+
+    func endFileDragTargeting() {
+        guard isFileDragElevated else { return }
+        isFileDragElevated = false
+        level = restingLevel
+        orderFrontRegardless()
     }
     
     // MARK: - Position Safety

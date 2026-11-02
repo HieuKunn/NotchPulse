@@ -122,6 +122,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return viewModels[uuid]
     }
 
+    private func notchWindow(for screen: NSScreen) -> NotchPulseSkyLightWindow? {
+        if Defaults[.showOnAllDisplays] {
+            guard let uuid = screen.displayUUID else { return nil }
+            return windows[uuid] as? NotchPulseSkyLightWindow
+        }
+        return window as? NotchPulseSkyLightWindow
+    }
+
     private func screenUnderPointer() -> NSScreen? {
         let location = NSEvent.mouseLocation
         return NSScreen.screens.first(where: { $0.frame.contains(location) }) ?? NSScreen.main
@@ -348,6 +356,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func cleanupDragDetectors() {
         dragExitDebounceTasks.values.forEach { $0.cancel() }
         dragExitDebounceTasks.removeAll()
+        windows.values.forEach { ($0 as? NotchPulseSkyLightWindow)?.endFileDragTargeting() }
+        (window as? NotchPulseSkyLightWindow)?.endFileDragTargeting()
         dragDetectors.values.forEach { detector in
             detector.stopMonitoring()
         }
@@ -451,6 +461,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks[uuid] = nil
         
         guard let targetVM = viewModel(for: screen) else { return }
+        notchWindow(for: screen)?.beginFileDragTargeting()
         targetVM.dragDetectorTargeting = true
         SharingStateManager.shared.preventNotchClose = true
         
@@ -473,6 +484,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             guard let targetVM = self.viewModel(for: screen) else { return }
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
+
+            self.notchWindow(for: screen)?.endFileDragTargeting()
             
             if !SharingStateManager.shared.isInteractionActive {
                 SharingStateManager.shared.preventNotchClose = false
@@ -495,6 +508,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .milliseconds(400))
             guard let self = self else { return }
             guard let targetVM = self.viewModel(for: screen) else { return }
+            self.notchWindow(for: screen)?.endFileDragTargeting()
             
             // If dropEvent was received, leave shelf open so the user can see their added item
             if targetVM.dropEvent {
