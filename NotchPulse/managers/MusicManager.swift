@@ -118,6 +118,8 @@ class MusicManager: ObservableObject {
     @Published var isFetchingLyrics: Bool = false
     @Published var syncedLyrics: [(time: Double, text: String)] = []
     private var checkedTracksWithNoLyrics = Set<String>()
+    private var lyricsFetchTask: Task<Void, Never>? = nil
+    private var lyricsRequestId: UInt64 = 0
     @Published var canFavoriteTrack: Bool = false
     @Published var isFavoriteTrack: Bool = false
     @Published var isUIActive: Bool = false {
@@ -202,6 +204,9 @@ class MusicManager: ObservableObject {
     }
     
     public func destroy() {
+        lyricsRequestId &+= 1
+        lyricsFetchTask?.cancel()
+        lyricsFetchTask = nil
         debounceIdleTask?.cancel()
         cancellables.removeAll()
         controllerCancellables.removeAll()
@@ -404,8 +409,12 @@ class MusicManager: ObservableObject {
         // Handle artwork and visual transitions for changed content
         if hasContentChange {
             if titleChanged || artistChanged {
+                self.lyricsRequestId &+= 1
+                self.lyricsFetchTask?.cancel()
+                self.lyricsFetchTask = nil
                 self.syncedLyrics = []
                 self.currentLyrics = ""
+                self.isFetchingLyrics = false
             }
             self.triggerFlipAnimation()
 
@@ -485,15 +494,6 @@ class MusicManager: ObservableObject {
             if !state.title.isEmpty && !state.artist.isEmpty && state.isPlaying {
                 self.updateSneakPeek()
             }
-
-            // Fetch lyrics on content change only if UI is visible (Lazy loading)
-            if self.isUIActive && Defaults[.enableLyrics] {
-                self.fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
-            } else {
-                self.currentLyrics = ""
-                self.syncedLyrics = []
-                self.isFetchingLyrics = false
-            }
         }
 
         let timeChanged: Bool
@@ -554,6 +554,22 @@ class MusicManager: ObservableObject {
         }
         
         self.timestampDate = state.lastUpdated
+
+        // Fetch lyrics on content change only if UI is visible (Lazy loading)
+        // Checked after songTitle, artistName and bundleIdentifier are synchronized
+        if hasContentChange {
+            if self.isUIActive && Defaults[.enableLyrics] {
+                self.fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
+            } else {
+                self.lyricsRequestId &+= 1
+                self.lyricsFetchTask?.cancel()
+                self.lyricsFetchTask = nil
+                self.currentLyrics = ""
+                self.syncedLyrics = []
+                self.isFetchingLyrics = false
+            }
+        }
+
         self.recordMediaSession(from: state)
     }
 
@@ -620,27 +636,46 @@ class MusicManager: ObservableObject {
 
     func fetchLyricsIfAvailable(bundleIdentifier: String?, title: String, artist: String) {
         guard isUIActive && Defaults[.enableLyrics] else { return }
+
+        self.lyricsRequestId &+= 1
+        let currentRequestId = self.lyricsRequestId
+
+        lyricsFetchTask?.cancel()
+        lyricsFetchTask = nil
+
         guard !title.isEmpty else {
-            DispatchQueue.main.async {
-                self.isFetchingLyrics = false
-                self.currentLyrics = ""
-                self.syncedLyrics = []
-            }
+            self.isFetchingLyrics = false
+            self.currentLyrics = ""
+            self.syncedLyrics = []
             return
+        }
+
+        self.isFetchingLyrics = true
+        self.currentLyrics = ""
+        self.syncedLyrics = []
+
+        let targetTitle = title
+        let targetArtist = artist
+        let targetBundle = bundleIdentifier ?? ""
+
+        let isTargetActive = { [weak self] () -> Bool in
+            guard let self = self else { return false }
+            return !Task.isCancelled &&
+                self.lyricsRequestId == currentRequestId &&
+                self.songTitle == targetTitle &&
+                self.artistName == targetArtist &&
+                (self.bundleIdentifier ?? "") == targetBundle
         }
 
         // Prefer native Apple Music lyrics when available
         if let bundleIdentifier = bundleIdentifier, bundleIdentifier.contains("com.apple.Music") {
-            Task { @MainActor in
+            lyricsFetchTask = Task { @MainActor in
                 let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music")
                 guard !runningApps.isEmpty else {
-                    await self.fetchLyricsFromWeb(title: title, artist: artist)
+                    await self.fetchLyricsFromWeb(title: targetTitle, artist: targetArtist, requestId: currentRequestId, targetBundle: targetBundle)
                     return
                 }
 
-                self.isFetchingLyrics = true
-                self.currentLyrics = ""
-                self.syncedLyrics = []
                 do {
                     let script = """
                     tell application \"Music\"
@@ -664,23 +699,28 @@ class MusicManager: ObservableObject {
                         end if
                     end tell
                     """
-                    if let result = try await AppleScriptHelper.execute(script), let lyricsString = result.stringValue, !lyricsString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    if let result = try await AppleScriptHelper.execute(script),
+                       let lyricsString = result.stringValue,
+                       !lyricsString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        guard isTargetActive() else { return }
                         self.currentLyrics = lyricsString.trimmingCharacters(in: .whitespacesAndNewlines)
                         self.isFetchingLyrics = false
                         self.syncedLyrics = []
+                        if let lastIdx = self.mediaSessionStack.indices.last, self.mediaSessionStack[lastIdx].title == self.songTitle {
+                            self.mediaSessionStack[lastIdx].currentLyrics = self.currentLyrics
+                            self.mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
+                        }
                         return
                     }
                 } catch {
                     // fall through to web lookup
                 }
-                await self.fetchLyricsFromWeb(title: title, artist: artist)
+                guard isTargetActive() else { return }
+                await self.fetchLyricsFromWeb(title: targetTitle, artist: targetArtist, requestId: currentRequestId, targetBundle: targetBundle)
             }
         } else {
-            Task { @MainActor in
-                self.isFetchingLyrics = true
-                self.currentLyrics = ""
-                self.syncedLyrics = []
-                await self.fetchLyricsFromWeb(title: title, artist: artist)
+            lyricsFetchTask = Task { @MainActor in
+                await self.fetchLyricsFromWeb(title: targetTitle, artist: targetArtist, requestId: currentRequestId, targetBundle: targetBundle)
             }
         }
     }
@@ -709,49 +749,76 @@ class MusicManager: ObservableObject {
     }
 
     @MainActor
-    private func fetchLyricsFromWeb(title: String, artist: String) async {
+    private func fetchLyricsFromWeb(title: String, artist: String, requestId: UInt64, targetBundle: String) async {
+        let isTargetActive = { [weak self] () -> Bool in
+            guard let self = self else { return false }
+            return !Task.isCancelled &&
+                self.lyricsRequestId == requestId &&
+                self.songTitle == title &&
+                self.artistName == artist &&
+                (self.bundleIdentifier ?? "") == targetBundle
+        }
+
+        guard isTargetActive() else { return }
+
         let cleanTitle = normalizedQuery(cleanSongTitle(title))
         let cleanArtist = normalizedQuery(artist)
-        
+
         let searchUrls: [String] = [
             // 1. Exact track_name & artist_name
             "https://lrclib.net/api/search?track_name=\(cleanTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&artist_name=\(cleanArtist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
             // 2. Loose query search
             "https://lrclib.net/api/search?q=\("\(cleanTitle) \(cleanArtist)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
         ]
-        
+
+        var hadSuccessfulResponse = false
+
         for urlString in searchUrls {
+            guard isTargetActive() else { return }
             guard let url = URL(string: urlString) else { continue }
             do {
                 let (data, response) = try await URLSession.shared.data(from: url)
+                guard isTargetActive() else { return }
                 guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { continue }
-                if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-                   let first = jsonArray.first {
-                    let plain = (first["plainLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                    let synced = (first["syncedLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                    let resolved = plain.isEmpty ? Self.stripLRCTimestamps(from: synced) : plain
-                    if !resolved.isEmpty {
-                        self.currentLyrics = resolved
-                        self.isFetchingLyrics = false
-                        if !synced.isEmpty {
-                            self.syncedLyrics = self.parseLRC(synced)
-                        } else {
-                            self.syncedLyrics = []
+
+                hadSuccessfulResponse = true
+                if let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                    // Search through candidates rather than blindly taking first
+                    for candidate in jsonArray {
+                        let plain = (candidate["plainLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        let synced = (candidate["syncedLyrics"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        let resolved = plain.isEmpty ? Self.stripLRCTimestamps(from: synced) : plain
+                        if !resolved.isEmpty {
+                            guard isTargetActive() else { return }
+                            self.currentLyrics = resolved
+                            self.isFetchingLyrics = false
+                            if !synced.isEmpty {
+                                self.syncedLyrics = self.parseLRC(synced)
+                            } else {
+                                self.syncedLyrics = []
+                            }
+                            if let lastIdx = self.mediaSessionStack.indices.last, self.mediaSessionStack[lastIdx].title == self.songTitle {
+                                self.mediaSessionStack[lastIdx].currentLyrics = self.currentLyrics
+                                self.mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
+                            }
+                            return
                         }
-                        if let lastIdx = self.mediaSessionStack.indices.last, self.mediaSessionStack[lastIdx].title == self.songTitle {
-                            self.mediaSessionStack[lastIdx].currentLyrics = self.currentLyrics
-                            self.mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
-                        }
-                        return
                     }
                 }
             } catch {
+                if Task.isCancelled || !isTargetActive() { return }
                 continue
             }
         }
-        
-        let trackKey = "\(title.lowercased())---\(artist.lowercased())"
-        self.checkedTracksWithNoLyrics.insert(trackKey)
+
+        guard isTargetActive() else { return }
+
+        // Only mark permanently as no-lyrics if we successfully contacted the server and received no matching lyrics
+        if hadSuccessfulResponse {
+            let trackKey = "\(title.lowercased())---\(artist.lowercased())"
+            self.checkedTracksWithNoLyrics.insert(trackKey)
+        }
+
         self.currentLyrics = ""
         self.isFetchingLyrics = false
         self.syncedLyrics = []
@@ -997,6 +1064,11 @@ class MusicManager: ObservableObject {
         // If this session previously existed deeper in the stack, remove it so we can push to top
         mediaSessionStack.removeAll { $0.id == sessionId }
 
+        // Only persist lyrics in snapshot if current global lyrics belong to this exact session
+        let matchesActiveTrack = (self.songTitle == cleanTitle && self.artistName == state.artist && (self.bundleIdentifier ?? "") == effectiveBundle)
+        let snapshotSyncedLyrics = matchesActiveTrack ? self.syncedLyrics : []
+        let snapshotCurrentLyrics = matchesActiveTrack ? self.currentLyrics : ""
+
         let snapshot = MediaSessionSnapshot(
             id: sessionId,
             bundleIdentifier: effectiveBundle,
@@ -1013,8 +1085,8 @@ class MusicManager: ObservableObject {
             isFavorite: state.isFavorite,
             usingAppIconForArtwork: self.usingAppIconForArtwork,
             lastUpdated: state.lastUpdated,
-            syncedLyrics: self.syncedLyrics,
-            currentLyrics: self.currentLyrics,
+            syncedLyrics: snapshotSyncedLyrics,
+            currentLyrics: snapshotCurrentLyrics,
             artworkData: nil // Keep memory lean: do not hoard heavy raw artwork in historical stack
         )
 
@@ -1082,6 +1154,12 @@ class MusicManager: ObservableObject {
 
     @MainActor
     private func restoreSession(_ snapshot: MediaSessionSnapshot) {
+        // Cancel in-flight lyrics requests and invalidate generation on session restore
+        self.lyricsRequestId &+= 1
+        self.lyricsFetchTask?.cancel()
+        self.lyricsFetchTask = nil
+        self.isFetchingLyrics = false
+
         var isActuallyPlaying = snapshot.isPlaying
         if let bid = snapshot.bundleIdentifier, !bid.isEmpty {
             let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
@@ -1126,6 +1204,11 @@ class MusicManager: ObservableObject {
             self.resolveMissingArtwork()
         }
 
+        // On-demand fetch lyrics if restored session has no cached lyrics
+        if self.isUIActive && Defaults[.enableLyrics] && self.currentLyrics.isEmpty && self.syncedLyrics.isEmpty {
+            self.ensureLyricsLoaded()
+        }
+
         self.triggerFlipAnimation()
     }
 
@@ -1142,6 +1225,11 @@ class MusicManager: ObservableObject {
         self.isPlayerIdle = true
         self.elapsedTime = 0
         self.songDuration = 0
+        // Reset and invalidate in-flight lyrics requests when clearing to idle
+        self.lyricsRequestId &+= 1
+        self.lyricsFetchTask?.cancel()
+        self.lyricsFetchTask = nil
+        self.isFetchingLyrics = false
         self.syncedLyrics = []
         self.currentLyrics = ""
     }
