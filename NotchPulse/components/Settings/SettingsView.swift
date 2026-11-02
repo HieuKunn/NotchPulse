@@ -602,12 +602,9 @@ struct SettingsView: View {
                     }
                 }
                 .listStyle(.sidebar)
-                .scrollContentBackground(.hidden)
-                .background(.sidebar)
                 .scrollIndicators(.hidden)
             }
             .tint(.effectiveAccent)
-            .background(.sidebar)
             .toolbar(removing: .sidebarToggle)
             .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 270)
         }
@@ -626,7 +623,7 @@ struct SettingsView: View {
                         showQuitButton: true
                     )
                 }
-                .background(.window)
+                .background(Color(nsColor: .windowBackgroundColor))
                 .ignoresSafeArea(edges: .top)
                 .onChange(of: scrollTrigger) { _, _ in
                     guard let targetId = scrollToItemId else { return }
