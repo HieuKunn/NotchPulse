@@ -463,7 +463,23 @@ struct SettingsView: View {
 
     private var settingsContent: some View {
         NavigationSplitView {
-            VStack(spacing: 0) {
+            settingsSidebar
+        } detail: {
+            settingsDetail
+        }
+        .navigationSplitViewStyle(.balanced)
+        .formStyle(.grouped)
+        .frame(minWidth: 720, minHeight: 560)
+        .tint(.effectiveAccent)
+        .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
+            accentColorUpdateTrigger = UUID()
+        }
+    }
+
+    @ViewBuilder
+    private var settingsSidebar: some View {
+        VStack(spacing: 0) {
                 // Logo + App Name Header (Pushed down below traffic lights, larger text)
                 HStack(spacing: 9) {
                     if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
@@ -594,45 +610,38 @@ struct SettingsView: View {
             .background(.sidebar)
             .toolbar(removing: .sidebarToggle)
             .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 270)
-        } detail: {
-            ScrollViewReader { proxy in
-                detailContent
-                    .environment(\.settingsHighlightedId, highlightedItemId)
-                    .formStyle(.grouped)
-                    .scrollIndicators(.hidden)
-                    .background(ScrollViewScrollerHider())
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        SettingsDetailHeaderBar(
-                            title: tabTitle(for: selectedTab),
-                            showQuitButton: true
-                        )
-                    }
-                    // Semantic window material: macOS chooses the appropriate
-                    // opaque, translucent, or accessibility-safe treatment.
-                    .background(.window)
-                    .ignoresSafeArea(edges: .top)
-                    .onChange(of: scrollTrigger) { _, _ in
-                        guard let targetId = scrollToItemId else { return }
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .milliseconds(70))
-                            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                                proxy.scrollTo(targetId, anchor: .center)
-                            }
-                            try? await Task.sleep(for: .milliseconds(120))
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                                proxy.scrollTo(targetId, anchor: .center)
-                            }
+        }
+    }
+
+    @ViewBuilder
+    private var settingsDetail: some View {
+        ScrollViewReader { proxy in
+            detailContent
+                .environment(\.settingsHighlightedId, highlightedItemId)
+                .formStyle(.grouped)
+                .scrollIndicators(.hidden)
+                .background(ScrollViewScrollerHider())
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    SettingsDetailHeaderBar(
+                        title: tabTitle(for: selectedTab),
+                        showQuitButton: true
+                    )
+                }
+                .background(.window)
+                .ignoresSafeArea(edges: .top)
+                .onChange(of: scrollTrigger) { _, _ in
+                    guard let targetId = scrollToItemId else { return }
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(70))
+                        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                            proxy.scrollTo(targetId, anchor: .center)
+                        }
+                        try? await Task.sleep(for: .milliseconds(120))
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                            proxy.scrollTo(targetId, anchor: .center)
                         }
                     }
-            }
-        }
-        .navigationSplitViewStyle(.balanced)
-        .formStyle(.grouped)
-        .frame(minWidth: 720, minHeight: 560)
-        .tint(.effectiveAccent)
-        .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
-            accentColorUpdateTrigger = UUID()
+                }
         }
     }
 

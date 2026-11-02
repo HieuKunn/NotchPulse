@@ -604,12 +604,12 @@ struct ContentView: View {
             isSettingsWindowVisible = SettingsWindowController.shared.window?.isVisible == true
             updateScanPulse()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeVisibleNotification)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didOrderOnScreenNotification)) { notification in
             guard let settingsWindow = SettingsWindowController.shared.window,
                   notification.object as? NSWindow === settingsWindow else { return }
             isSettingsWindowVisible = true
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didHideNotification)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didOrderOffScreenNotification)) { notification in
             guard let settingsWindow = SettingsWindowController.shared.window,
                   notification.object as? NSWindow === settingsWindow else { return }
             isSettingsWindowVisible = false
