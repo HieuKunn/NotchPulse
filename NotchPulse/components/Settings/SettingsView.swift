@@ -461,7 +461,7 @@ struct SettingsView: View {
         self.updaterController = updaterController
     }
 
-    var body: some View {
+    private var settingsContent: some View {
         NavigationSplitView {
             VStack(spacing: 0) {
                 // Logo + App Name Header (Pushed down below traffic lights, larger text)
@@ -634,6 +634,10 @@ struct SettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
         }
+    }
+
+    var body: some View {
+        settingsContent
     }
 
     @ViewBuilder

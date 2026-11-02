@@ -385,7 +385,7 @@ struct ContentView: View {
             .opacity(isHiddenInFS ? 0 : 1)
     }
 
-    var body: some View {
+    private var notchContent: some View {
         ZStack(alignment: .top) {
             topEdgeHoverSensor
             dragDetector
@@ -628,6 +628,10 @@ struct ContentView: View {
             anyDropDebounceTask = nil
             stopScanPulse()
         }
+    }
+
+    var body: some View {
+        notchContent
     }
 
     private func updateScanPulse() {
