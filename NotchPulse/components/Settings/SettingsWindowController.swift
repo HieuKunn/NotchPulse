@@ -51,6 +51,7 @@ class SettingsWindowController: NSWindowController {
     var updaterController: SPUStandardUpdaterController?
     private var vm: NotchPulseViewModel?
     private var isPresented = false
+    private var hasInstalledSettingsContent = false
     
     private init() {
         let window = SettingsWindow(
@@ -79,6 +80,7 @@ class SettingsWindowController: NSWindowController {
             let settingsView = SettingsView(updaterController: updaterController)
                 .environmentObject(self.vm ?? NotchPulseViewModel())
             window?.contentView = NSHostingView(rootView: settingsView)
+            hasInstalledSettingsContent = true
         }
     }
     
@@ -113,10 +115,14 @@ class SettingsWindowController: NSWindowController {
 
         // Reuse the existing hosting hierarchy. Rebuilding the complete
         // NavigationSplitView on every click causes a visible hitch.
-        if window.contentView == nil {
+        // AppKit creates an empty default content view for NSWindow. Checking
+        // only for nil can therefore leave a visible window with traffic
+        // lights but no SettingsView mounted inside it.
+        if !hasInstalledSettingsContent {
             let settingsView = SettingsView(updaterController: updaterController)
                 .environmentObject(vm ?? NotchPulseViewModel())
             window.contentView = NSHostingView(rootView: settingsView)
+            hasInstalledSettingsContent = true
         }
 
         if !window.isVisible {
