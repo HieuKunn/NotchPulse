@@ -458,9 +458,9 @@ struct SettingsView: View {
     }
 
     private func selectTab(_ tabId: String) {
-        withAnimation(.easeInOut(duration: 0.18)) {
-            selectedTab = tabId
-        }
+        // Let NavigationSplitView/List perform its native selection update.
+        // An extra cross-fade here makes changing panes feel delayed.
+        selectedTab = tabId
     }
 
     init(updaterController: SPUStandardUpdaterController? = nil) {
@@ -476,6 +476,10 @@ struct SettingsView: View {
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
         .frame(minWidth: 720, minHeight: 560)
+        // Use the semantic system window color as an opaque content surface.
+        // It resolves to light/dark automatically and avoids a full-window
+        // wallpaper blur, which is needlessly expensive for a settings pane.
+        .background(Color(nsColor: .windowBackgroundColor))
         .tint(.effectiveAccent)
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
@@ -502,18 +506,11 @@ struct SettingsView: View {
 
                     HStack(spacing: 6) {
                         Text("NotchPulse")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.primary)
+                            .font(.headline)
 
                         Text("v\(Bundle.main.releaseVersionNumber ?? "5.5")")
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .font(.caption)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule()
-                                    .fill(Color(nsColor: .quaternaryLabelColor).opacity(0.55))
-                            )
                     }
 
                     Spacer()
@@ -522,96 +519,45 @@ struct SettingsView: View {
                 .padding(.top, 18)
                 .padding(.bottom, 9)
 
-                // Search Bar in Settings
-                HStack(spacing: 7) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-
-                    TextField(loc("Search Settings..."), text: $searchText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 12))
-                        .onSubmit {
-                            if let firstTab = filteredTabs.first {
-                                let matches = matchingSections(for: firstTab)
-                                if let firstMatch = matches.first {
-                                    selectSearchItem(tabId: firstTab.id, sectionId: firstMatch.id)
-                                } else {
-                                    selectTab(firstTab.id)
-                                }
-                            }
-                        }
-
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
-                )
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
-
                 // Use the system sidebar list so macOS owns selection, vibrancy,
                 // accessibility contrast, and the correct appearance for each OS.
-                List {
+                List(selection: selectedTabBinding) {
                     if filteredTabs.isEmpty {
                         ContentUnavailableView {
                             Label(loc("No settings found"), systemImage: "magnifyingglass")
                         }
-                        .listRowBackground(Color.clear)
                     } else {
                         ForEach(filteredTabs) { tab in
                             let matches = matchingSections(for: tab)
-                            let isSelected = selectedTab == tab.id
 
-                            Button {
-                                selectTab(tab.id)
-                                if let first = matches.first {
-                                    selectSearchItem(tabId: tab.id, sectionId: first.id)
-                                }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: tab.icon)
-                                        .foregroundStyle(isSelected ? .primary : .secondary)
-                                        .frame(width: 18, alignment: .center)
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(tabTitle(for: tab.id))
 
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(tabTitle(for: tab.id))
-                                            .font(.body.weight(isSelected ? .semibold : .regular))
-                                            .foregroundStyle(.primary)
-
-                                        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
-                                            Text(matches.map { loc($0.title) }.joined(separator: " • "))
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
+                                    if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
+                                        Text(matches.map { loc($0.title) }.joined(separator: " • "))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
                                     }
-                                    Spacer(minLength: 0)
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            } icon: {
+                                Image(systemName: tab.icon)
                             }
-                            .buttonStyle(.plain)
-                            .contentShape(Rectangle())
-                            .listRowBackground(isSelected ? Color.accentColor.opacity(0.85) : Color.clear)
+                            .tag(tab.id)
                         }
                     }
                 }
                 .listStyle(.sidebar)
-                .scrollIndicators(.hidden)
+                .searchable(
+                    text: $searchText,
+                    placement: .sidebar,
+                    prompt: loc("Search Settings...")
+                )
             }
+            // Keep the whole sidebar on the same dynamic system surface. The
+            // List still uses Apple's sidebar style for row geometry/behavior.
+            .background(Color(nsColor: .windowBackgroundColor))
             .tint(.effectiveAccent)
             .toolbar(removing: .sidebarToggle)
             // Keep the sidebar/detail boundary fixed. A ranged column width
@@ -623,12 +569,8 @@ struct SettingsView: View {
     private var settingsDetail: some View {
         ScrollViewReader { proxy in
             detailContent
-                .id(selectedTab)
-                .transition(.opacity)
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
-                .scrollIndicators(.hidden)
-                .background(ScrollViewScrollerHider())
                 .safeAreaInset(edge: .top, spacing: 0) {
                     SettingsDetailHeaderBar(
                         title: tabTitle(for: selectedTab),
@@ -636,11 +578,9 @@ struct SettingsView: View {
                     )
                     .zIndex(1)
                 }
-                // Keep the detail pane translucent as well. A semantic
-                // material lets WindowServer provide vibrancy on newer macOS,
-                // the appropriate blur on older macOS, and an opaque fallback
-                // when Reduce Transparency is enabled.
-                .background(.regularMaterial)
+                // Detail content uses a solid semantic system surface. Grouped
+                // Form sections provide the hierarchy without a large blur.
+                .background(Color(nsColor: .windowBackgroundColor))
                 .ignoresSafeArea(edges: .top)
                 .onChange(of: scrollTrigger) { _, _ in
                     guard let targetId = scrollToItemId else { return }
@@ -656,7 +596,16 @@ struct SettingsView: View {
                     }
                 }
         }
-        .animation(.easeInOut(duration: 0.18), value: selectedTab)
+    }
+
+    private var selectedTabBinding: Binding<String?> {
+        Binding(
+            get: { selectedTab },
+            set: { newValue in
+                guard let newValue, newValue != selectedTab else { return }
+                selectTab(newValue)
+            }
+        )
     }
 
     var body: some View {
@@ -730,8 +679,7 @@ struct SettingsDetailHeaderBar: View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.primary)
+                    .font(.headline)
                     .lineLimit(1)
 
                 Spacer()
@@ -772,39 +720,7 @@ struct SettingsDetailHeaderBar: View {
 
             Divider()
         }
-        .background(.regularMaterial)
-    }
-}
-
-/// Native AppKit bridge to ensure vertical scroll indicators are completely hidden
-/// across all macOS versions, regardless of system "Show scroll bars: Always" preferences.
-private struct ScrollViewScrollerHider: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async {
-            hideScroller(for: view)
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async {
-            hideScroller(for: nsView)
-        }
-    }
-
-    private func hideScroller(for view: NSView) {
-        var current: NSView? = view
-        while let p = current {
-            if let sv = p as? NSScrollView {
-                sv.hasVerticalScroller = false
-                sv.hasHorizontalScroller = false
-                sv.verticalScroller = nil
-                sv.autohidesScrollers = true
-                break
-            }
-            current = p.superview
-        }
+        .background(.bar)
     }
 }
 
