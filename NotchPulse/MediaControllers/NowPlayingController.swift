@@ -69,6 +69,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private var setupObserverTask: Task<Void, Never>?
     private var streamTask: Task<Void, Never>?
     private var wakeTask: Task<Void, Never>?
+    private var artworkRetryTask: Task<Void, Never>?
     private var wakeObserver: NSObjectProtocol?
 
     // MARK: - Initialization
@@ -121,6 +122,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         setupObserverTask?.cancel()
         streamTask?.cancel()
         wakeTask?.cancel()
+        artworkRetryTask?.cancel()
         
         if let observer = wakeObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
@@ -991,6 +993,22 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
     }
 
+    private func scheduleArtworkRetry() {
+        artworkRetryTask?.cancel()
+        artworkRetryTask = Task { [weak self] in
+            // Progressively retry fetching artwork at 350ms and 750ms if MediaRemote hasn't emitted it yet
+            for delay in [350, 400] {
+                try? await Task.sleep(for: .milliseconds(delay))
+                guard !Task.isCancelled, let self = self else { return }
+                if self.playbackState.artwork == nil, let paths = Self.getAdapterPaths() {
+                    await self.fetchInitialNowPlayingInfo(paths: paths)
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
     // MARK: - Async Stream Processing
     private func processJSONStream() async {
         guard let pipeHandler = self.pipeHandler else { return }
@@ -1100,6 +1118,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
         if let artworkDataString = payload.artworkData, !artworkDataString.isEmpty {
+            artworkRetryTask?.cancel()
+            artworkRetryTask = nil
             if trackChanged || self.playbackState.artwork == nil {
                 newPlaybackState.artwork = Data(
                     base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1111,8 +1131,14 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             // Do NOT wipe artwork if the track has not changed!
             if trackChanged {
                 newPlaybackState.artwork = nil
+                if !newPlaybackState.title.isEmpty {
+                    scheduleArtworkRetry()
+                }
             } else {
                 newPlaybackState.artwork = self.playbackState.artwork
+                if newPlaybackState.artwork == nil && !newPlaybackState.title.isEmpty && artworkRetryTask == nil {
+                    scheduleArtworkRetry()
+                }
             }
         }
 

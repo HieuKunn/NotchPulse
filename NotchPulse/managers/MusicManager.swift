@@ -120,19 +120,26 @@ class MusicManager: ObservableObject {
     private var checkedTracksWithNoLyrics = Set<String>()
     private var lyricsFetchTask: Task<Void, Never>? = nil
     private var lyricsRequestId: UInt64 = 0
+    private var artworkRepollTask: Task<Void, Never>? = nil
     @Published var canFavoriteTrack: Bool = false
     @Published var isFavoriteTrack: Bool = false
     @Published var isUIActive: Bool = false {
         didSet {
             guard oldValue != isUIActive else { return }
             activeController?.setUIActive(isUIActive)
-            if isUIActive && Defaults[.enableLyrics] {
-                ensureLyricsLoaded()
+            if isUIActive {
+                if Defaults[.enableLyrics] {
+                    ensureLyricsLoaded()
+                }
+                ensureArtworkLoaded()
             }
         }
     }
 
-    private var artworkData: Data? = nil
+    public private(set) var artworkData: Data? = nil
+    public var hasArtwork: Bool {
+        return artworkData != nil && !usingAppIconForArtwork
+    }
     /// Track last isPlaying to detect resume after a long idle period.
     private var lastIsPlaying: Bool = false
 
@@ -207,6 +214,8 @@ class MusicManager: ObservableObject {
         lyricsRequestId &+= 1
         lyricsFetchTask?.cancel()
         lyricsFetchTask = nil
+        artworkRepollTask?.cancel()
+        artworkRepollTask = nil
         debounceIdleTask?.cancel()
         cancellables.removeAll()
         controllerCancellables.removeAll()
@@ -255,6 +264,17 @@ class MusicManager: ObservableObject {
             return
         }
 
+        if let controller = self.activeController, controller.isActive() {
+            Task { @MainActor [weak self] in
+                guard let self = self, self.songTitle == currentTitle else { return }
+                if let yt = controller as? YouTubeMusicController {
+                    await yt.pollPlaybackState()
+                } else {
+                    await controller.updatePlaybackInfo()
+                }
+            }
+        }
+
         UniversalArtworkResolver.shared.resolveArtwork(
             title: currentTitle,
             artist: currentArtist,
@@ -268,6 +288,33 @@ class MusicManager: ObservableObject {
                 self.artworkData = data
                 self.updateArtwork(data)
                 self.triggerFlipAnimation()
+            }
+        }
+    }
+
+    private func scheduleArtworkRepoll(for title: String, artist: String) {
+        artworkRepollTask?.cancel()
+        guard !title.isEmpty else { return }
+        let targetTitle = title
+        let targetArtist = artist
+
+        artworkRepollTask = Task { @MainActor [weak self] in
+            for delayMs in [350, 450, 600] {
+                try? await Task.sleep(for: .milliseconds(delayMs))
+                guard !Task.isCancelled, let self = self else { return }
+                guard self.songTitle == targetTitle && self.artistName == targetArtist else { return }
+                guard self.artworkData == nil || self.usingAppIconForArtwork else { return }
+
+                if let controller = self.activeController, controller.isActive() {
+                    if let yt = controller as? YouTubeMusicController {
+                        await yt.pollPlaybackState()
+                    } else {
+                        await controller.updatePlaybackInfo()
+                    }
+                }
+                if self.artworkData == nil || self.usingAppIconForArtwork {
+                    self.resolveMissingArtwork()
+                }
             }
         }
     }
@@ -419,12 +466,16 @@ class MusicManager: ObservableObject {
             self.triggerFlipAnimation()
 
             if let artwork = state.artwork {
+                self.artworkRepollTask?.cancel()
+                self.artworkRepollTask = nil
                 self.usingAppIconForArtwork = false
-                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 320)
+                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 640)
                 self.artworkData = optimized
                 self.updateArtwork(optimized)
                 UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: state.title, artist: state.artist)
             } else if let cached = UniversalArtworkResolver.shared.cachedArtwork(title: state.title, artist: state.artist) {
+                self.artworkRepollTask?.cancel()
+                self.artworkRepollTask = nil
                 self.usingAppIconForArtwork = false
                 self.artworkData = cached
                 self.updateArtwork(cached)
@@ -456,6 +507,8 @@ class MusicManager: ObservableObject {
                         DispatchQueue.main.async {
                             // Verify track hasn't changed while resolving
                             guard self.songTitle == currentTitle else { return }
+                            self.artworkRepollTask?.cancel()
+                            self.artworkRepollTask = nil
                             self.usingAppIconForArtwork = false
                             self.artworkData = data
                             self.updateArtwork(data)
@@ -473,6 +526,8 @@ class MusicManager: ObservableObject {
                             ) { [weak self] retryData in
                                 guard let self = self, let retryData = retryData, self.songTitle == currentTitle else { return }
                                 DispatchQueue.main.async {
+                                    self.artworkRepollTask?.cancel()
+                                    self.artworkRepollTask = nil
                                     self.usingAppIconForArtwork = false
                                     self.artworkData = retryData
                                     self.updateArtwork(retryData)
@@ -482,6 +537,10 @@ class MusicManager: ObservableObject {
                         }
                     }
                 }
+
+                // Automatic staggered re-poll of active controller (at 350ms and 850ms)
+                // captures embedded/decoded artwork from MediaRemote/Spotify/Music without needing Notch open
+                self.scheduleArtworkRepoll(for: state.title, artist: state.artist)
             }
 
             // Update last artwork change values
@@ -631,6 +690,15 @@ class MusicManager: ObservableObject {
         if checkedTracksWithNoLyrics.contains(trackKey) { return }
         if currentLyrics.isEmpty && syncedLyrics.isEmpty && !isFetchingLyrics {
             fetchLyricsIfAvailable(bundleIdentifier: bundleIdentifier, title: songTitle, artist: artistName)
+        }
+    }
+
+    // MARK: - Artwork Verification
+    func ensureArtworkLoaded() {
+        guard !songTitle.isEmpty else { return }
+        if artworkData == nil || usingAppIconForArtwork {
+            forceUpdate()
+            resolveMissingArtwork()
         }
     }
 
@@ -964,7 +1032,7 @@ class MusicManager: ObservableObject {
             if let source = CGImageSourceCreateWithData(artworkData as CFData, nil),
                let cgImage = CGImageSourceCreateImageAtIndex(source, 0, [
                    kCGImageSourceCreateThumbnailFromImageAlways: true,
-                   kCGImageSourceThumbnailMaxPixelSize: 320,
+                   kCGImageSourceThumbnailMaxPixelSize: 640,
                    kCGImageSourceCreateThumbnailWithTransform: true
                ] as CFDictionary) {
                 // Display at 2x Retina backing scale
@@ -1019,9 +1087,7 @@ class MusicManager: ObservableObject {
         workItem?.cancel()
         withAnimation(.smooth) {
             self.albumArt = newAlbumArt
-            if Defaults[.coloredSpectrogram] {
-                self.calculateAverageColor()
-            }
+            self.calculateAverageColor()
         }
     }
 
@@ -1225,6 +1291,8 @@ class MusicManager: ObservableObject {
         self.isPlayerIdle = true
         self.elapsedTime = 0
         self.songDuration = 0
+        self.artworkRepollTask?.cancel()
+        self.artworkRepollTask = nil
         // Reset and invalidate in-flight lyrics requests when clearing to idle
         self.lyricsRequestId &+= 1
         self.lyricsFetchTask?.cancel()

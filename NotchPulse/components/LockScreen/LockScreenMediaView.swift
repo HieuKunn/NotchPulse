@@ -73,15 +73,18 @@ struct LockScreenMediaView: View {
         .onAppear {
             windowController.syncTheme()
             musicManager.ensureLyricsLoaded()
+            musicManager.ensureArtworkLoaded()
         }
         .onChange(of: musicManager.songTitle) { _, _ in
             activeLyricIndex = 0
             musicManager.ensureLyricsLoaded()
+            musicManager.ensureArtworkLoaded()
         }
         .onChange(of: windowController.isFullScreen) { _, isFull in
             if isFull {
                 let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
                 activeLyricIndex = musicManager.currentLyricIndex(at: elapsed) ?? 0
+                musicManager.ensureArtworkLoaded()
             }
         }
         .task(id: "\(windowController.isWindowVisible)-\(windowController.isFullScreen)-\(musicManager.isPlaying)-\(musicManager.syncedLyrics.isEmpty)") {

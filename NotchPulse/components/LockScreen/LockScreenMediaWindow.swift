@@ -198,6 +198,9 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     func setFullScreen(_ fullScreen: Bool) {
         guard let screen = getTargetScreen() else { return }
         self.isFullScreen = fullScreen
+        if fullScreen {
+            MusicManager.shared.ensureArtworkLoaded()
+        }
         
         let targetRect = targetFrame(for: screen)
         NSAnimationContext.runAnimationGroup { context in
@@ -234,6 +237,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         isWindowVisible = true
         MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()
+        MusicManager.shared.ensureArtworkLoaded()
     }
     
     func hide(immediately: Bool = false) {

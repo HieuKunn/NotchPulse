@@ -437,7 +437,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
                 artworkFetchTask = Task {
                     do {
                         let data = try await ImageService.shared.fetchImageData(from: url)
-                        let optimized = UniversalArtworkResolver.shared.optimizeArtwork(data, maxDimension: 320)
+                        let optimized = UniversalArtworkResolver.shared.optimizeArtwork(data, maxDimension: 640)
                         await MainActor.run { [weak self] in
                             self?.playbackState.artwork = optimized
                         }
