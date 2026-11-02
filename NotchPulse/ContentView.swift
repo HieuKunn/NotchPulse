@@ -20,7 +20,6 @@ struct ContentView: View {
     @State private var hoverCloseTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var isTopEdgeHovered = false
-    @State private var isSettingsWindowVisible = false
     @State private var hoverTransitionGeneration = 0
     @State private var anyDropDebounceTask: Task<Void, Never>?
 
@@ -65,7 +64,6 @@ struct ContentView: View {
         lockObserver.isScreenLocked
             || NotchPulseLockMonitor.isScreenActuallyLocked()
             || faceIDOverlay.isSessionActive
-            || faceIDOverlay.isArmed
             || faceIDOverlay.phase == .scanning
     }
 
@@ -609,26 +607,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            isSettingsWindowVisible = SettingsWindowController.shared.window?.isVisible == true
             updateScanPulse()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .settingsWindowVisibilityChanged)) { notification in
-            guard let isVisible = notification.userInfo?["isVisible"] as? Bool else { return }
-            isSettingsWindowVisible = isVisible
-            if !isVisible {
-                // Re-evaluate immediately so hover can open the notch without
-                // requiring an extra mouse movement after Settings closes.
-                isTopEdgeHovered = false
-                isHovering = false
-                Task { @MainActor in
-                    // The tracking bridge intentionally ignores events while
-                    // Settings is frontmost. Re-sample the stationary pointer
-                    // once after the window is gone so hover resumes instantly.
-                    await Task.yield()
-                    guard !isSettingsWindowVisible else { return }
-                    updateHoverSource(topEdge: hoverTrackingRegion.contains(NSEvent.mouseLocation))
-                }
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
             // Settings and other preview callers force the notch closed. Any
@@ -995,7 +974,7 @@ struct ContentView: View {
     }
 
     private var topEdgeTrackingEnabled: Bool {
-        !isEffectivelyLocked && !isSettingsWindowVisible
+        !isEffectivelyLocked
     }
 
     private var topEdgeSensorSize: CGSize {
@@ -1156,17 +1135,6 @@ struct ContentView: View {
             hoverCloseTask?.cancel()
             hoverCloseTask = nil
 
-            // Block hover expansion when Settings window is open!
-            if SettingsWindowController.shared.window?.isVisible == true {
-                hoverOpenTask?.cancel()
-                hoverOpenTask = nil
-                isHovering = false
-                if vm.notchState == .open && canCloseOnHoverExit {
-                    self.doClose()
-                }
-                return
-            }
-
             // Block hover expansion when Mission Control is active!
             if MissionControlObserver.shared.checkIsMissionControlActive() {
                 hoverOpenTask?.cancel()
@@ -1212,14 +1180,20 @@ struct ContentView: View {
                 return
             }
 
+            hoverTransitionGeneration &+= 1
+            let transitionGeneration = hoverTransitionGeneration
             hoverOpenTask = Task { @MainActor in
-                defer { self.hoverOpenTask = nil }
+                defer {
+                    if self.hoverTransitionGeneration == transitionGeneration {
+                        self.hoverOpenTask = nil
+                    }
+                }
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled,
+                      self.hoverTransitionGeneration == transitionGeneration,
                       !self.isEffectivelyLocked,
                       self.vm.notchState == .closed,
                       self.isHovering,
-                      !(SettingsWindowController.shared.window?.isVisible == true),
                       !MissionControlObserver.shared.checkIsMissionControlActive(),
                       !self.coordinator.sneakPeek.show else { return }
                 self.doOpen()
@@ -1236,7 +1210,11 @@ struct ContentView: View {
             let gracePeriodMs = 280
 
             hoverCloseTask = Task { @MainActor in
-                defer { self.hoverCloseTask = nil }
+                defer {
+                    if self.hoverTransitionGeneration == transitionGeneration {
+                        self.hoverCloseTask = nil
+                    }
+                }
                 try? await Task.sleep(for: .milliseconds(gracePeriodMs))
                 guard !Task.isCancelled,
                       self.hoverTransitionGeneration == transitionGeneration,

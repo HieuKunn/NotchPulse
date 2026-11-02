@@ -50,7 +50,7 @@ class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
     var updaterController: SPUStandardUpdaterController?
     private var vm: NotchPulseViewModel?
-    private var isVisibilityPublished = false
+    private var isPresented = false
     
     private init() {
         let window = SettingsWindow(
@@ -111,47 +111,50 @@ class SettingsWindowController: NSWindowController {
     func showWindow() {
         guard let window else { return }
 
-        // Reuse the existing hosting hierarchy. Rebuilding the whole Settings
-        // tree on every click causes a visible hitch, especially with the
-        // NavigationSplitView and its many settings pages.
-        if window.isVisible {
-            NSApp.activate(ignoringOtherApps: true)
-            window.orderFrontRegardless()
-            window.makeKeyAndOrderFront(nil)
-            return
-        }
-
-        // Ensure notch preview is closed before the first presentation.
-        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
-        vm?.close(force: true)
-        NSApp.setActivationPolicy(.regular)
-
+        // Reuse the existing hosting hierarchy. Rebuilding the complete
+        // NavigationSplitView on every click causes a visible hitch.
         if window.contentView == nil {
             let settingsView = SettingsView(updaterController: updaterController)
                 .environmentObject(vm ?? NotchPulseViewModel())
             window.contentView = NSHostingView(rootView: settingsView)
         }
 
-        window.center()
-        publishVisibility(true)
-        window.orderFrontRegardless()
-        window.makeKeyAndOrderFront(nil)
-        (window as? SettingsWindow)?.adjustTrafficLights()
-        
-        // Activate the app and ensure window gets focus
+        if !window.isVisible {
+            window.center()
+        }
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+
+        // Switching from accessory to regular can complete on the following
+        // run-loop turn. Present both immediately and once more afterwards so
+        // clicks from a context menu or the notch gear cannot leave a window
+        // marked visible but hidden behind another app.
+        let activationPolicyChanged = NSApp.activationPolicy() != .regular
+        if activationPolicyChanged {
+            NSApp.setActivationPolicy(.regular)
+        }
         NSApp.activate(ignoringOtherApps: true)
+        presentWindow(window)
+        if activationPolicyChanged {
+            DispatchQueue.main.async { [weak self, weak window] in
+                guard let self, let window, self.isPresented else { return }
+                NSApp.activate(ignoringOtherApps: true)
+                self.presentWindow(window)
+            }
+        }
     }
-    
-    override func close() {
-        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
-        super.close()
-        relinquishFocus()
+
+    private func presentWindow(_ window: NSWindow) {
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        isPresented = true
+        (window as? SettingsWindow)?.adjustTrafficLights()
     }
     
     private func relinquishFocus() {
         FaceIDOverlayController.shared.disarm()
-        window?.orderOut(nil)
-        publishVisibility(false)
+        isPresented = false
         
         // Removed: Freeing contentView here causes a white screen bug in macOS when switching app policies.
         // window?.contentView = nil
@@ -160,20 +163,10 @@ class SettingsWindowController: NSWindowController {
         NSApp.setActivationPolicy(.accessory)
     }
 
-    private func publishVisibility(_ isVisible: Bool) {
-        guard isVisibilityPublished != isVisible else { return }
-        isVisibilityPublished = isVisible
-        NotificationCenter.default.post(
-            name: .settingsWindowVisibilityChanged,
-            object: window,
-            userInfo: ["isVisible": isVisible]
-        )
-    }
 }
 
 extension SettingsWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
         relinquishFocus()
     }
     

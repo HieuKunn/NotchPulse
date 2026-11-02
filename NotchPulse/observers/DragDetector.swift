@@ -24,6 +24,7 @@ final class DragDetector {
     private var lastKnownIdleCount: Int = -1
     private var isContentDragging: Bool = false
     private var hasEnteredNotchRegion: Bool = false
+    private var hasEverEnteredNotchRegion: Bool = false
     private var lastCheckedDragCount: Int = -1
     private var cachedHasAutoOpenContent: Bool = false
     private var cachedRegion: CGRect = .zero
@@ -137,6 +138,7 @@ final class DragDetector {
         mouseDownPasteboardCount = dragPasteboard.changeCount
         isContentDragging = false
         hasEnteredNotchRegion = false
+        hasEverEnteredNotchRegion = false
         lastCheckedDragCount = -1
         cachedHasAutoOpenContent = false
         cachedRegion = .zero
@@ -174,6 +176,7 @@ final class DragDetector {
         let containsMouse = activeRegion.contains(mouseLocation)
         if containsMouse && !hasEnteredNotchRegion {
             hasEnteredNotchRegion = true
+            hasEverEnteredNotchRegion = true
             cachedRegion = .zero
             onDragEntersNotchRegion?()
         } else if !containsMouse && hasEnteredNotchRegion {
@@ -184,7 +187,7 @@ final class DragDetector {
     }
 
     private func finishDrag() {
-        let wasDragging = isContentDragging || hasEnteredNotchRegion
+        let wasRelevantDrag = hasEverEnteredNotchRegion
         let wasInRegion = hasEnteredNotchRegion
         lastKnownIdleCount = dragPasteboard.changeCount
         mouseDownPasteboardCount = -1
@@ -193,11 +196,12 @@ final class DragDetector {
         lastCheckedDragCount = -1
         cachedHasAutoOpenContent = false
         hasEnteredNotchRegion = false
+        hasEverEnteredNotchRegion = false
         isContentDragging = false
         if wasInRegion {
             onDragExitsNotchRegion?()
         }
-        if wasDragging {
+        if wasRelevantDrag {
             onDragEnded?()
         }
     }
@@ -216,6 +220,7 @@ final class DragDetector {
         localMouseUpMonitor = nil
         isContentDragging = false
         hasEnteredNotchRegion = false
+        hasEverEnteredNotchRegion = false
         mouseDownPasteboardCount = -1
         lastCheckedDragCount = -1
         cachedHasAutoOpenContent = false

@@ -297,6 +297,11 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         if !force && SharingStateManager.shared.preventNotchClose {
             return
         }
+        // Drag state is display-local. A drag over one display must keep only
+        // that display's notch alive and must not block independent notches.
+        if !force && (isCurrentlyDraggingGlobal || anyDropZoneTargeting || dropEvent) {
+            return
+        }
         self.customOpenHeight = nil
         isCalendarPinned = false
         isCalendarFullMonthExpanded = false
@@ -313,7 +318,10 @@ class NotchPulseViewModel: NSObject, ObservableObject {
 
         self.dragDetectorTargeting = false
         self.dropZoneTargeting = false
+        self.shareDropTargeting = false
+        self.shelfDropTargeting = false
         self.anyDropZoneTargeting = false
+        self.isCurrentlyDraggingGlobal = false
         self.dropEvent = false
 
         let anotherDisplayIsOpen = (NSApp.delegate as? AppDelegate)?.viewModels.values.contains {

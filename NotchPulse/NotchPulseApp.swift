@@ -102,12 +102,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             vm.shareDropTargeting = false
             vm.shelfDropTargeting = false
             vm.anyDropZoneTargeting = false
+            vm.isCurrentlyDraggingGlobal = false
+            vm.dropEvent = false
         }
         vm.dragDetectorTargeting = false
         vm.dropZoneTargeting = false
         vm.shareDropTargeting = false
         vm.shelfDropTargeting = false
         vm.anyDropZoneTargeting = false
+        vm.isCurrentlyDraggingGlobal = false
+        vm.dropEvent = false
     }
 
     /// Resolves one display's state for every display-aware event path.
@@ -362,6 +366,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             detector.stopMonitoring()
         }
         dragDetectors.removeAll()
+        resetAllDropAndDragTargeting()
     }
 
     func setupDetectors() {
@@ -462,8 +467,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         guard let targetVM = viewModel(for: screen) else { return }
         notchWindow(for: screen)?.beginFileDragTargeting()
+        targetVM.isCurrentlyDraggingGlobal = true
         targetVM.dragDetectorTargeting = true
-        SharingStateManager.shared.preventNotchClose = true
         
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             targetVM.open(targetView: .shelf)
@@ -485,11 +490,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let targetVM = self.viewModel(for: screen) else { return }
             guard !targetVM.anyDropZoneTargeting && !targetVM.dropEvent else { return }
 
+            targetVM.isCurrentlyDraggingGlobal = false
             self.notchWindow(for: screen)?.endFileDragTargeting()
-            
-            if !SharingStateManager.shared.isInteractionActive {
-                SharingStateManager.shared.preventNotchClose = false
-            }
             if !targetVM.isShelfPinned && !targetVM.isCalendarPinned && targetVM.notchState == .open {
                 targetVM.close()
             }
@@ -503,23 +505,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         guard let targetVM = viewModel(for: screen) else { return }
         targetVM.dragDetectorTargeting = false
+        targetVM.isCurrentlyDraggingGlobal = false
         
-        Task { @MainActor [weak self] in
+        dragExitDebounceTasks[uuid] = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(400))
-            guard let self = self else { return }
+            guard !Task.isCancelled, let self = self else { return }
             guard let targetVM = self.viewModel(for: screen) else { return }
             self.notchWindow(for: screen)?.endFileDragTargeting()
             
             // If dropEvent was received, leave shelf open so the user can see their added item
             if targetVM.dropEvent {
-                if !SharingStateManager.shared.isInteractionActive {
-                    SharingStateManager.shared.preventNotchClose = false
-                }
                 return
-            }
-            
-            if !SharingStateManager.shared.isInteractionActive {
-                SharingStateManager.shared.preventNotchClose = false
             }
             if !targetVM.isShelfPinned && !targetVM.isCalendarPinned && !targetVM.anyDropZoneTargeting && targetVM.notchState == .open {
                 targetVM.close()
