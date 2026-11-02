@@ -120,7 +120,10 @@ struct ContentView: View {
     }
 
     private var effectiveTopOffset: CGFloat {
-        guard isDynamicIsland && !hasPhysicalNotch else { return 0 }
+        // Dynamic Island is a floating style even on a MacBook with a real
+        // notch. The user-selected gap is global, so every display must use
+        // the same top offset instead of making the built-in screen flush.
+        guard isDynamicIsland else { return 0 }
         return effectiveDynamicIslandTopOffset(for: currentScreen, userOffset: dynamicIslandTopOffset)
     }
 
@@ -617,7 +620,29 @@ struct ContentView: View {
                 // requiring an extra mouse movement after Settings closes.
                 isTopEdgeHovered = false
                 isHovering = false
+                Task { @MainActor in
+                    // The tracking bridge intentionally ignores events while
+                    // Settings is frontmost. Re-sample the stationary pointer
+                    // once after the window is gone so hover resumes instantly.
+                    await Task.yield()
+                    guard !isSettingsWindowVisible else { return }
+                    updateHoverSource(topEdge: hoverTrackingRegion.contains(NSEvent.mouseLocation))
+                }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .closeNotchPreview)) { _ in
+            // Settings and other preview callers force the notch closed. Any
+            // hover task created before that transition must be cancelled, or
+            // it can reopen/close the notch after the new state is already set.
+            hoverTransitionGeneration &+= 1
+            hoverOpenTask?.cancel()
+            hoverOpenTask = nil
+            hoverCloseTask?.cancel()
+            hoverCloseTask = nil
+            anyDropDebounceTask?.cancel()
+            anyDropDebounceTask = nil
+            isTopEdgeHovered = false
+            isHovering = false
         }
         .onDisappear {
             hoverTransitionGeneration &+= 1

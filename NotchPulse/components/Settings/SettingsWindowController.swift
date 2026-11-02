@@ -50,6 +50,7 @@ class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
     var updaterController: SPUStandardUpdaterController?
     private var vm: NotchPulseViewModel?
+    private var isVisibilityPublished = false
     
     private init() {
         let window = SettingsWindow(
@@ -108,41 +109,37 @@ class SettingsWindowController: NSWindowController {
     }
     
     func showWindow() {
-        // Ensure notch preview is closed and notch is cleanly closed so it doesn't jitter behind settings
-        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
-        self.vm?.close(force: true)
-        
-        // Set app to regular mode first
-        NSApp.setActivationPolicy(.regular)
-        
-        // Always recreate the view hierarchy because macOS destroys window layers when switching to accessory mode
-        let settingsView = SettingsView(updaterController: updaterController)
-            .environmentObject(self.vm ?? NotchPulseViewModel())
-        let hostingView = NSHostingView(rootView: settingsView)
-        window?.contentView = hostingView
-        publishVisibility(true)
-        
-        // If window is already visible, bring it to front properly
-        if window?.isVisible == true {
+        guard let window else { return }
+
+        // Reuse the existing hosting hierarchy. Rebuilding the whole Settings
+        // tree on every click causes a visible hitch, especially with the
+        // NavigationSplitView and its many settings pages.
+        if window.isVisible {
             NSApp.activate(ignoringOtherApps: true)
-            window?.orderFrontRegardless()
-            window?.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            window.makeKeyAndOrderFront(nil)
             return
         }
-        
-        // Show the window with proper ordering
-        window?.orderFrontRegardless()
-        window?.makeKeyAndOrderFront(nil)
-        window?.center()
+
+        // Ensure notch preview is closed before the first presentation.
+        NotificationCenter.default.post(name: .closeNotchPreview, object: nil)
+        vm?.close(force: true)
+        NSApp.setActivationPolicy(.regular)
+
+        if window.contentView == nil {
+            let settingsView = SettingsView(updaterController: updaterController)
+                .environmentObject(vm ?? NotchPulseViewModel())
+            window.contentView = NSHostingView(rootView: settingsView)
+        }
+
+        window.center()
+        publishVisibility(true)
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+        (window as? SettingsWindow)?.adjustTrafficLights()
         
         // Activate the app and ensure window gets focus
         NSApp.activate(ignoringOtherApps: true)
-        
-        // Force window to front after activation
-        DispatchQueue.main.async { [weak self] in
-            self?.window?.makeKeyAndOrderFront(nil)
-            (self?.window as? SettingsWindow)?.adjustTrafficLights()
-        }
     }
     
     override func close() {
@@ -164,6 +161,8 @@ class SettingsWindowController: NSWindowController {
     }
 
     private func publishVisibility(_ isVisible: Bool) {
+        guard isVisibilityPublished != isVisible else { return }
+        isVisibilityPublished = isVisible
         NotificationCenter.default.post(
             name: .settingsWindowVisibilityChanged,
             object: window,

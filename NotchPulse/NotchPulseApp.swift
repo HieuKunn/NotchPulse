@@ -401,7 +401,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let padding = CGFloat(Defaults[.shelfDragOpenPadding])
             
             let isDynamicIsland = Defaults[.notchStyle] == .dynamicIsland
-            let topOffset = (isDynamicIsland && !screenHasPhysicalNotch(screen))
+            let topOffset = isDynamicIsland
                 ? effectiveDynamicIslandTopOffset(for: screen)
                 : 0
             

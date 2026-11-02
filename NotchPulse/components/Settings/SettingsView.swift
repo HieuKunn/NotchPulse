@@ -441,7 +441,7 @@ struct SettingsView: View {
     }
 
     private func selectSearchItem(tabId: String, sectionId: String) {
-        selectedTab = tabId
+        selectTab(tabId)
         scrollToItemId = sectionId
         highlightedItemId = sectionId
         scrollTrigger = UUID()
@@ -454,6 +454,12 @@ struct SettingsView: View {
                     highlightedItemId = nil
                 }
             }
+        }
+    }
+
+    private func selectTab(_ tabId: String) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            selectedTab = tabId
         }
     }
 
@@ -531,7 +537,7 @@ struct SettingsView: View {
                                 if let firstMatch = matches.first {
                                     selectSearchItem(tabId: firstTab.id, sectionId: firstMatch.id)
                                 } else {
-                                    selectedTab = firstTab.id
+                                    selectTab(firstTab.id)
                                 }
                             }
                         }
@@ -571,7 +577,7 @@ struct SettingsView: View {
                             let isSelected = selectedTab == tab.id
 
                             Button {
-                                selectedTab = tab.id
+                                selectTab(tab.id)
                                 if let first = matches.first {
                                     selectSearchItem(tabId: tab.id, sectionId: first.id)
                                 }
@@ -595,8 +601,10 @@ struct SettingsView: View {
                                     }
                                     Spacer(minLength: 0)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                             .listRowBackground(isSelected ? Color.accentColor.opacity(0.85) : Color.clear)
                         }
                     }
@@ -606,13 +614,17 @@ struct SettingsView: View {
             }
             .tint(.effectiveAccent)
             .toolbar(removing: .sidebarToggle)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 270)
+            // Keep the sidebar/detail boundary fixed. A ranged column width
+            // makes macOS expose a draggable splitter between the two panes.
+            .navigationSplitViewColumnWidth(240)
         }
 
     @ViewBuilder
     private var settingsDetail: some View {
         ScrollViewReader { proxy in
             detailContent
+                .id(selectedTab)
+                .transition(.opacity)
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.hidden)
@@ -622,8 +634,13 @@ struct SettingsView: View {
                         title: tabTitle(for: selectedTab),
                         showQuitButton: true
                     )
+                    .zIndex(1)
                 }
-                .background(Color(nsColor: .windowBackgroundColor))
+                // Keep the detail pane translucent as well. A semantic
+                // material lets WindowServer provide vibrancy on newer macOS,
+                // the appropriate blur on older macOS, and an opaque fallback
+                // when Reduce Transparency is enabled.
+                .background(.regularMaterial)
                 .ignoresSafeArea(edges: .top)
                 .onChange(of: scrollTrigger) { _, _ in
                     guard let targetId = scrollToItemId else { return }
@@ -639,6 +656,7 @@ struct SettingsView: View {
                     }
                 }
         }
+        .animation(.easeInOut(duration: 0.18), value: selectedTab)
     }
 
     var body: some View {
@@ -754,7 +772,7 @@ struct SettingsDetailHeaderBar: View {
 
             Divider()
         }
-        .background(.bar)
+        .background(.regularMaterial)
     }
 }
 
