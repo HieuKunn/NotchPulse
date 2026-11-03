@@ -7,7 +7,7 @@
 
 ### 🔒 Reliable Lock Screen & Fluid Unlock
 
-- **Lock Screen Media Reliability**: Resolved an issue where the lock screen media view could disappear unexpectedly during the system lock transition. Integrated unified SkyLight lock-space delegation and robust session supervision to ensure media stays visible and responsive on the lock screen.
+- **Lock Screen Media Visibility**: Resolved an issue where the lock screen media player could get trapped beneath the lock screen layer. The media player is now exclusively delegated to the native lock-space layer with progressive re-assertions and synchronous rasterization, ensuring it remains immediately visible and responsive when the screen locks.
 - **Smooth Unlock Fade**: Lock Screen media (both full-screen immersive and compact card views) now fades away seamlessly in step with macOS's native lock screen unlock animation, eliminating visual stutter and desktop hitching.
 - **Unobstructed Media Controls**: Full-screen lock screen media controls and artwork thumbnails receive mouse clicks freely without interference from Face ID.
 - **Top-Bezel Hover Sensor**: In full-screen media mode, Face ID hover activation is strictly confined to the physical notch bezel directly around the camera.

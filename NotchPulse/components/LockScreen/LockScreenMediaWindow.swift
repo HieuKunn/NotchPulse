@@ -1,7 +1,6 @@
 import Cocoa
 import Combine
 import Defaults
-import SkyLightWindow
 import SwiftUI
 
 @MainActor
@@ -16,6 +15,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var lyricsCancellables = Set<AnyCancellable>()
     private var hideGeneration: Int = 0
     private var assignedScreenUUID: String?
+    private var lockReassertionTask: Task<Void, Never>?
     
     static func detectIsDark() -> Bool {
         if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") {
@@ -191,6 +191,10 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
                 }
             }
         }
+        if let skyLight = FaceIDOverlaySkyLight.shared {
+            skyLight.delegate(self)
+        }
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
         alphaValue = 1.0
         orderFrontRegardless()
     }
@@ -225,17 +229,14 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         
         hideGeneration += 1
         let targetRect = targetFrame(for: screen)
-        if !isWindowVisible {
-            setFrame(targetRect, display: false)
-        } else if !isFullScreen {
-            checkAndRepositionIfNeeded(animated: true)
-        }
+        setFrame(targetRect, display: true)
+        contentView?.layoutSubtreeIfNeeded()
+        displayIfNeeded()
         
         if let skyLight = FaceIDOverlaySkyLight.shared {
             skyLight.delegate(self)
+            isSkyLightAttached = true
         }
-        SkyLightOperator.shared.delegateWindow(self)
-        isSkyLightAttached = true
         
         level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
         self.alphaValue = 1.0
@@ -245,9 +246,24 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()
         MusicManager.shared.ensureArtworkLoaded()
+        
+        lockReassertionTask?.cancel()
+        lockReassertionTask = Task { @MainActor [weak self] in
+            for delayMs in [150, 350, 650, 1000] {
+                try? await Task.sleep(for: .milliseconds(delayMs))
+                guard let self = self, !Task.isCancelled, self.isWindowVisible else { break }
+                if let skyLight = FaceIDOverlaySkyLight.shared {
+                    skyLight.delegate(self)
+                }
+                self.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                self.orderFrontRegardless()
+            }
+        }
     }
     
     private func finalizeHide() {
+        lockReassertionTask?.cancel()
+        lockReassertionTask = nil
         self.orderOut(nil)
         self.isFullScreen = false
         self.isWindowVisible = false
@@ -257,7 +273,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         }
         if self.isSkyLightAttached {
             FaceIDOverlaySkyLight.shared?.undelegate(self)
-            SkyLightOperator.shared.undelegateWindow(self)
             self.isSkyLightAttached = false
         }
     }
