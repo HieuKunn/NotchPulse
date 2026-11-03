@@ -51,6 +51,30 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
 
     // MARK: - SPUStandardUserDriverDelegate
     
+    /// Ensures scheduled update prompts are handled and presented with high priority.
+    func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool {
+        return true
+    }
+
+    /// Called before an update dialog is presented.
+    /// In an accessory (LSUIElement) app, elevating to .regular activation policy ensures
+    /// the update prompt window pops up in the foreground instead of being hidden behind other apps.
+    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        DispatchQueue.main.async {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+            AppDelegate.shared?.collapseAllNotches(force: true)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                NSApp.activate(ignoringOtherApps: true)
+                for window in NSApp.windows where window.className.contains("SU") || window.title.contains("Update") {
+                    window.makeKeyAndOrderFront(nil)
+                    window.orderFrontRegardless()
+                }
+            }
+        }
+    }
+
     /// Called before showing a modal alert window (e.g. "You're up to date!").
     /// In an accessory (LSUIElement) app, showing a modal alert without switching to .regular
     /// activation policy and raising window level causes the alert to be trapped behind
@@ -63,6 +87,16 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
 
     /// Called after showing a modal alert window. Restores accessory mode if Settings is not visible.
     func standardUserDriverDidShowModalAlert() {
+        DispatchQueue.main.async {
+            if SettingsWindowController.shared.window?.isVisible != true {
+                NSApp.setActivationPolicy(.accessory)
+            }
+            AppDelegate.shared?.adjustWindowPosition(changeAlpha: false)
+        }
+    }
+
+    /// Called when the update session finishes (e.g. dismissed, skipped, or finished).
+    func standardUserDriverWillFinishUpdateSession() {
         DispatchQueue.main.async {
             if SettingsWindowController.shared.window?.isVisible != true {
                 NSApp.setActivationPolicy(.accessory)

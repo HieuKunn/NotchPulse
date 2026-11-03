@@ -223,24 +223,21 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             contentView = hostingView
         }
         
+        hideGeneration += 1
+        let targetRect = targetFrame(for: screen)
         if !isWindowVisible {
-            hideGeneration += 1
-            let targetRect = targetFrame(for: screen)
             setFrame(targetRect, display: false)
-            
-            SkyLightOperator.shared.delegateWindow(self)
-            isSkyLightAttached = true
-            
-            level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
-            self.alphaValue = 1.0
-            orderFrontRegardless()
-            isWindowVisible = true
-        } else {
-            // Already visible: if in compact mode, smoothly adapt height if lyrics appeared/disappeared; if in fullscreen, leave untouched!
-            if !isFullScreen {
-                checkAndRepositionIfNeeded(animated: true)
-            }
+        } else if !isFullScreen {
+            checkAndRepositionIfNeeded(animated: true)
         }
+        
+        SkyLightOperator.shared.delegateWindow(self)
+        isSkyLightAttached = true
+        
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
+        self.alphaValue = 1.0
+        orderFrontRegardless()
+        isWindowVisible = true
         
         MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()

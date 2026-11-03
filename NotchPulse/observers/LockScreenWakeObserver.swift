@@ -49,8 +49,21 @@ final class LockScreenWakeObserver: ObservableObject {
     private func startLockSessionSupervisor() {
         lockSessionTimer?.cancel()
         lockSessionTimer = Task { @MainActor [weak self] in
+            // Step 1: Wait until WindowServer confirms screen is actually locked before monitoring for unlock
+            var confirmedLocked = false
+            for _ in 0..<20 {
+                try? await Task.sleep(for: .milliseconds(150))
+                guard let self = self, self.isScreenLocked else { return }
+                if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                    confirmedLocked = true
+                    break
+                }
+            }
+            guard confirmedLocked else { return }
+
+            // Step 2: Now actively monitor for unlock
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(100))
+                try? await Task.sleep(for: .milliseconds(120))
                 guard let self = self, self.isScreenLocked else { break }
                 
                 let actuallyLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
@@ -88,8 +101,7 @@ final class LockScreenWakeObserver: ObservableObject {
             // Progressively re-assert visibility as WindowServer transitions into lock screen space
             for delayMs in [150, 350, 650, 1000] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
-                guard !Task.isCancelled, self.isScreenLocked && NotchPulseLockMonitor.isScreenActuallyLocked() else { break }
-                self.isScreenLocked = true
+                guard !Task.isCancelled, self.isScreenLocked else { break }
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
             }
@@ -234,7 +246,7 @@ final class LockScreenWakeObserver: ObservableObject {
     
     private func shouldShowLockScreenMedia() -> Bool {
         guard isScreenLocked else { return false }
-        guard NotchPulseLockMonitor.isScreenActuallyLocked() && Defaults[.enableLockScreenPlayer] else { return false }
+        guard Defaults[.enableLockScreenPlayer] else { return false }
         let title = MusicManager.shared.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty && title != "I'm Handsome" else { return false }
         return true

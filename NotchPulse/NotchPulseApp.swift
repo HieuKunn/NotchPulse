@@ -271,6 +271,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         FullscreenMediaDetector.shared.reevaluate()
         
+        // Check for updates when unlocking if automatic checks are enabled
+        if let updater = SettingsWindowController.shared.updaterController?.updater,
+           updater.automaticallyChecksForUpdates {
+            updater.checkForUpdatesInBackground()
+        }
+        
         let shouldKeepWindow = Defaults[.showOnLockScreen]
         if !shouldKeepWindow {
             adjustWindowPosition(changeAlpha: true)
@@ -855,6 +861,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 withAnimation(NotchPulseViewModel.notchCloseSpring) {
                     vm.close()
                 }
+            }
+        }
+
+        // Automatically check for updates in background shortly after launch
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            guard let self = self, !self.isUserInitiatedQuit else { return }
+            if let updater = SettingsWindowController.shared.updaterController?.updater,
+               updater.automaticallyChecksForUpdates {
+                updater.checkForUpdatesInBackground()
             }
         }
     }
