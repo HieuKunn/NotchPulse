@@ -169,9 +169,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Helper
     private func getEffectiveBundleID() -> String {
-        if let mgrBid = MusicManager.shared.bundleIdentifier, !mgrBid.isEmpty {
-            return mgrBid
-        }
         if !playbackState.bundleIdentifier.isEmpty {
             return playbackState.bundleIdentifier
         }
@@ -551,7 +548,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             .replacingOccurrences(of: "\"", with: "\\\"")
             .replacingOccurrences(of: "\n", with: " ")
 
-        let targetTitle = (!MusicManager.shared.songTitle.isEmpty ? MusicManager.shared.songTitle : playbackState.title)
+        let targetTitle = playbackState.title
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let escapedTargetTitle = targetTitle
             .replacingOccurrences(of: "\\", with: "\\\\")

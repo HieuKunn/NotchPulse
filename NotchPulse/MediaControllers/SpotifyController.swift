@@ -30,6 +30,7 @@ class SpotifyController: MediaControllerProtocol {
     private var lastArtworkURL: String?
     private var artworkFetchTask: Task<Void, Never>?
     private var periodicSyncTask: Task<Void, Never>?
+    private var isUIActive: Bool = false
     
     init() {
         setupPlaybackStateChangeObserver()
@@ -144,7 +145,7 @@ class SpotifyController: MediaControllerProtocol {
 
         playbackState = state
 
-        if state.isPlaying && MusicManager.shared.isUIActive {
+        if state.isPlaying && isUIActive {
             startPeriodicSyncIfNeeded()
         } else if !state.isPlaying {
             stopPeriodicSync()
@@ -178,6 +179,7 @@ class SpotifyController: MediaControllerProtocol {
     }
 
     func setUIActive(_ active: Bool) {
+        self.isUIActive = active
         if active && playbackState.isPlaying {
             Task { await resyncPositionOnly() }
         } else if !active {

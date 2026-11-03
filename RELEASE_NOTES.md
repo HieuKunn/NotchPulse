@@ -1,8 +1,9 @@
 ## NotchPulse v5.5
 
-### ⚡️ Instant Update Prompt
+### ⚡️ Instant Update Prompt & Stability
 
 - **Proactive Release Notifications**: When a new NotchPulse update is published, NotchPulse immediately presents a clear update prompt in the foreground right away upon launch or wake. You can view what's new and update with a single click without having to manually check or dig through settings.
+- **Startup Reliability**: Fixed an issue where the application could terminate unexpectedly upon launch while initializing media services.
 
 ### 🔒 Reliable Lock Screen & Fluid Unlock
 

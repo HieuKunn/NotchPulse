@@ -23,6 +23,7 @@ class AppleMusicController: MediaControllerProtocol {
 
     private var notificationTask: Task<Void, Never>?
     private var periodicSyncTask: Task<Void, Never>?
+    private var isUIActive: Bool = false
     
     // MARK: - Initialization
     init() {
@@ -156,7 +157,7 @@ class AppleMusicController: MediaControllerProtocol {
         updatedState.lastUpdated = Date()
         self.playbackState = updatedState
 
-        if updatedState.isPlaying && MusicManager.shared.isUIActive {
+        if updatedState.isPlaying && isUIActive {
             startPeriodicSyncIfNeeded()
         } else if !updatedState.isPlaying {
             stopPeriodicSync()
@@ -164,6 +165,7 @@ class AppleMusicController: MediaControllerProtocol {
     }
 
     func setUIActive(_ active: Bool) {
+        self.isUIActive = active
         if active && playbackState.isPlaying {
             Task { await resyncPositionOnly() }
         } else if !active {

@@ -51,9 +51,12 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
 
     // MARK: - SPUStandardUserDriverDelegate
     
-    /// Ensures scheduled update prompts are handled and presented with high priority.
+    /// Returns false so Sparkle delegates presenting the scheduled update to us.
+    /// In an accessory (LSUIElement) app, Sparkle's default scheduler defers showing the update alert
+    /// until NSApplicationDidBecomeActiveNotification, which never fires for menu-bar apps.
+    /// By returning false, we intercept it and immediately invoke checkForUpdates() with .regular policy.
     func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool {
-        return true
+        return false
     }
 
     /// Called before an update dialog is presented.
@@ -64,6 +67,10 @@ class AppUpdaterDelegate: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDel
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
             AppDelegate.shared?.collapseAllNotches(force: true)
+            
+            if !handleShowingUpdate {
+                SettingsWindowController.shared.updaterController?.updater.checkForUpdates()
+            }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 NSApp.activate(ignoringOtherApps: true)
