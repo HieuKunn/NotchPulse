@@ -66,6 +66,26 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             self.checkAndRepositionIfNeeded(animated: true)
         }
         .store(in: &lyricsCancellables)
+
+        MusicManager.shared.$albumArt
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self, self.isWindowVisible else { return }
+                self.contentView?.needsDisplay = true
+                self.contentView?.layer?.setNeedsDisplay()
+                self.displayIfNeeded()
+            }
+            .store(in: &lyricsCancellables)
+
+        MusicManager.shared.$songTitle
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self, self.isWindowVisible else { return }
+                self.contentView?.needsDisplay = true
+                self.contentView?.layer?.setNeedsDisplay()
+                self.displayIfNeeded()
+            }
+            .store(in: &lyricsCancellables)
     }
     
     private func configureWindow() {

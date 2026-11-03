@@ -3,7 +3,12 @@ import Foundation
 class AppleScriptHelper {
     @discardableResult
     class func execute(_ scriptText: String) async throws -> NSAppleEventDescriptor? {
-        try await withCheckedThrowingContinuation { continuation in
+        // Fast abort if screen is actually locked to prevent 120-second AESendMessage hangs
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked() else {
+            throw NSError(domain: "AppleScriptError", code: -1743, userInfo: [NSLocalizedDescriptionKey: "Screen is locked; AppleEvents are blocked"])
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
             Task.detached(priority: .userInitiated) {
                 let script = NSAppleScript(source: scriptText)
                 var error: NSDictionary?

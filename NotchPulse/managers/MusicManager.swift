@@ -1352,13 +1352,17 @@ class MusicManager: ObservableObject {
             } else {
                 let ok = await NowPlayingController.sendUniversalCommand("send", arg: "0")
                 if !ok {
-                    let bundleID = bundleIdentifier ?? ""
-                    if bundleID == "com.apple.Music" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
-                    } else if bundleID == "com.spotify.client" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
-                    } else {
+                    if NotchPulseLockMonitor.isScreenActuallyLocked() {
                         NowPlayingController.postMediaKeyEvent(for: 0)
+                    } else {
+                        let bundleID = bundleIdentifier ?? ""
+                        if bundleID == "com.apple.Music" {
+                            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
+                        } else if bundleID == "com.spotify.client" {
+                            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+                        } else {
+                            NowPlayingController.postMediaKeyEvent(for: 0)
+                        }
                     }
                 }
             }
@@ -1376,13 +1380,17 @@ class MusicManager: ObservableObject {
             } else {
                 let ok = await NowPlayingController.sendUniversalCommand("send", arg: "1")
                 if !ok {
-                    let bundleID = bundleIdentifier ?? ""
-                    if bundleID == "com.apple.Music" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
-                    } else if bundleID == "com.spotify.client" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
-                    } else {
+                    if NotchPulseLockMonitor.isScreenActuallyLocked() {
                         NowPlayingController.postMediaKeyEvent(for: 1)
+                    } else {
+                        let bundleID = bundleIdentifier ?? ""
+                        if bundleID == "com.apple.Music" {
+                            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
+                        } else if bundleID == "com.spotify.client" {
+                            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
+                        } else {
+                            NowPlayingController.postMediaKeyEvent(for: 1)
+                        }
                     }
                 }
             }
@@ -1444,13 +1452,17 @@ class MusicManager: ObservableObject {
             } else {
                 let ok = await NowPlayingController.sendUniversalCommand("send", arg: "2")
                 if !ok {
-                    let bundleID = bundleIdentifier ?? ""
-                    if bundleID == "com.apple.Music" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
-                    } else if bundleID == "com.spotify.client" {
-                        try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
-                    } else {
+                    if NotchPulseLockMonitor.isScreenActuallyLocked() {
                         NowPlayingController.postMediaKeyEvent(for: 2)
+                    } else {
+                        let bundleID = bundleIdentifier ?? ""
+                        if bundleID == "com.apple.Music" {
+                            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
+                        } else if bundleID == "com.spotify.client" {
+                            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
+                        } else {
+                            NowPlayingController.postMediaKeyEvent(for: 2)
+                        }
                     }
                 }
             }
@@ -1464,6 +1476,9 @@ class MusicManager: ObservableObject {
         Task {
             if let activeController = activeController {
                 await activeController.nextTrack()
+            } else if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                await NowPlayingController.sendUniversalCommand("send", arg: "4")
+                NowPlayingController.postMediaKeyEvent(for: 4)
             } else {
                 let bundleID = bundleIdentifier ?? ""
                 if bundleID == "com.apple.Music" {
@@ -1487,6 +1502,9 @@ class MusicManager: ObservableObject {
         Task {
             if let activeController = activeController {
                 await activeController.previousTrack()
+            } else if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                await NowPlayingController.sendUniversalCommand("send", arg: "5")
+                NowPlayingController.postMediaKeyEvent(for: 5)
             } else {
                 let bundleID = bundleIdentifier ?? ""
                 if bundleID == "com.apple.Music" {
@@ -1870,6 +1888,9 @@ public final class UniversalArtworkResolver {
 
     /// Queries the browser window via AppleScript to extract the active YouTube watch URL and its thumbnail
     private func fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: String, targetTitle: String) async -> Data? {
+        guard !NotchPulseLockMonitor.isScreenActuallyLocked() else {
+            return nil
+        }
         guard !NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty else {
             return nil
         }

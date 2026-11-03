@@ -778,6 +778,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func nextTrack() async {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            await Self.sendUniversalCommand("send", arg: "4")
+            Self.postMediaKeyEvent(for: 4)
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
@@ -797,6 +802,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func previousTrack() async {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            await Self.sendUniversalCommand("send", arg: "5")
+            Self.postMediaKeyEvent(for: 5)
+            return
+        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")

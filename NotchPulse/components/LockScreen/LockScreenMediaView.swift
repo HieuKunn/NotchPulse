@@ -80,6 +80,11 @@ struct LockScreenMediaView: View {
             musicManager.ensureLyricsLoaded()
             musicManager.ensureArtworkLoaded()
         }
+        .onChange(of: musicManager.albumArt) { _, _ in
+            windowController.contentView?.needsDisplay = true
+            windowController.contentView?.layer?.setNeedsDisplay()
+            windowController.displayIfNeeded()
+        }
         .onChange(of: windowController.isFullScreen) { _, isFull in
             if isFull {
                 let elapsed = musicManager.estimatedPlaybackPosition(at: Date())
@@ -118,6 +123,7 @@ struct LockScreenMediaView: View {
         ZStack(alignment: .bottomTrailing) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
+                .id("\(musicManager.songTitle)-\(musicManager.artistName)-\(musicManager.albumArt.hash)")
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 54, height: 54)
                 .overlay {
@@ -365,6 +371,7 @@ struct LockScreenMediaView: View {
                 // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
                 Image(nsImage: musicManager.albumArt)
                     .resizable()
+                    .id("\(musicManager.songTitle)-\(musicManager.artistName)-\(musicManager.albumArt.hash)")
                     .aspectRatio(contentMode: .fill)
                     .frame(width: geo.size.width, height: geo.size.height)
                     .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
@@ -391,6 +398,7 @@ struct LockScreenMediaView: View {
                 ZStack(alignment: .bottomTrailing) {
                     Image(nsImage: musicManager.albumArt)
                         .resizable()
+                        .id("\(musicManager.songTitle)-\(musicManager.artistName)-\(musicManager.albumArt.hash)")
                         .aspectRatio(contentMode: .fill)
                         .frame(width: albumSize, height: albumSize)
                         .overlay {

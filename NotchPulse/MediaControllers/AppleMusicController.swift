@@ -216,6 +216,23 @@ class AppleMusicController: MediaControllerProtocol {
     // MARK: - Private Methods
     
     private func executeCommand(_ command: String) async {
+        if NotchPulseLockMonitor.isScreenActuallyLocked() {
+            switch command {
+            case "play":
+                _ = await NowPlayingController.sendUniversalCommand("send", arg: "0")
+            case "pause":
+                _ = await NowPlayingController.sendUniversalCommand("send", arg: "1")
+            case "playpause":
+                _ = await NowPlayingController.sendUniversalCommand("send", arg: "2")
+            case "next track":
+                _ = await NowPlayingController.sendUniversalCommand("send", arg: "4")
+            case "previous track":
+                _ = await NowPlayingController.sendUniversalCommand("send", arg: "5")
+            default:
+                break
+            }
+            return
+        }
         let script = "tell application \"Music\" to \(command)"
         try? await AppleScriptHelper.executeVoid(script)
     }
