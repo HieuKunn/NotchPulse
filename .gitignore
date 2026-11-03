@@ -65,3 +65,4 @@ glance-main/
 
 *.pth
 .firebase/
+.agents/antigravity/

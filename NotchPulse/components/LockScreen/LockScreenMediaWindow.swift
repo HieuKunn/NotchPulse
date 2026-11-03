@@ -66,26 +66,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             self.checkAndRepositionIfNeeded(animated: true)
         }
         .store(in: &lyricsCancellables)
-
-        MusicManager.shared.$albumArt
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self = self, self.isWindowVisible else { return }
-                self.contentView?.needsDisplay = true
-                self.contentView?.layer?.setNeedsDisplay()
-                self.displayIfNeeded()
-            }
-            .store(in: &lyricsCancellables)
-
-        MusicManager.shared.$songTitle
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self = self, self.isWindowVisible else { return }
-                self.contentView?.needsDisplay = true
-                self.contentView?.layer?.setNeedsDisplay()
-                self.displayIfNeeded()
-            }
-            .store(in: &lyricsCancellables)
     }
     
     private func configureWindow() {
@@ -231,8 +211,6 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     func show() {
-        hideGeneration += 1
-        
         guard let screen = getTargetScreen() else { return }
         
         // Sync system appearance (Dark Mode vs Light Mode)
@@ -245,16 +223,25 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             contentView = hostingView
         }
         
-        let targetRect = targetFrame(for: screen)
-        setFrame(targetRect, display: true)
+        if !isWindowVisible {
+            hideGeneration += 1
+            let targetRect = targetFrame(for: screen)
+            setFrame(targetRect, display: false)
+            
+            SkyLightOperator.shared.delegateWindow(self)
+            isSkyLightAttached = true
+            
+            level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
+            self.alphaValue = 1.0
+            orderFrontRegardless()
+            isWindowVisible = true
+        } else {
+            // Already visible: if in compact mode, smoothly adapt height if lyrics appeared/disappeared; if in fullscreen, leave untouched!
+            if !isFullScreen {
+                checkAndRepositionIfNeeded(animated: true)
+            }
+        }
         
-        SkyLightOperator.shared.delegateWindow(self)
-        isSkyLightAttached = true
-        
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
-        self.alphaValue = 1.0
-        orderFrontRegardless()
-        isWindowVisible = true
         MusicManager.shared.isUIActive = true
         MusicManager.shared.ensureLyricsLoaded()
         MusicManager.shared.ensureArtworkLoaded()
@@ -286,15 +273,17 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             self.animator().alphaValue = 0.0
         }, completionHandler: { [weak self] in
-            guard let self = self, self.hideGeneration == currentGen else { return }
-            self.orderOut(nil)
-            self.contentView = nil
-            self.isFullScreen = false
-            self.isWindowVisible = false
-            MusicManager.shared.isUIActive = false
-            if self.isSkyLightAttached {
-                SkyLightOperator.shared.undelegateWindow(self)
-                self.isSkyLightAttached = false
+            DispatchQueue.main.async {
+                guard let self = self, self.hideGeneration == currentGen else { return }
+                self.orderOut(nil)
+                self.contentView = nil
+                self.isFullScreen = false
+                self.isWindowVisible = false
+                MusicManager.shared.isUIActive = false
+                if self.isSkyLightAttached {
+                    SkyLightOperator.shared.undelegateWindow(self)
+                    self.isSkyLightAttached = false
+                }
             }
         })
     }

@@ -280,6 +280,9 @@ struct ContentView: View {
     private var isEffectivelyHiddenInFullscreen: Bool {
         vm.hideOnClosed && !vm.isHoverRevealed && !isEffectivelyLocked
     }
+    private var isLockScreenMediaFullScreen: Bool {
+        LockScreenMediaWindow.shared.isWindowVisible && LockScreenMediaWindow.shared.isFullScreen
+    }
     private var isDynamicIsland: Bool { notchStyle == .dynamicIsland }
     private var baseClosedHeight: CGFloat {
         if hasPhysicalNotch && !isDynamicIsland {
@@ -346,7 +349,7 @@ struct ContentView: View {
     @ViewBuilder
     private var mainNotchContainer: some View {
         let isIsland = isDynamicIsland
-        let isHiddenInFS = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
+        let isHiddenInFS = (isEffectivelyHiddenInFullscreen || isLockScreenMediaFullScreen) && vm.notchState == .closed
         let offscreenDistance = currentNotchHeight + (isIsland ? effectiveTopOffset : 0) + 30
         let slideOffset: CGFloat = isHiddenInFS ? -offscreenDistance : 0
 
@@ -974,7 +977,7 @@ struct ContentView: View {
     }
 
     private var topEdgeTrackingEnabled: Bool {
-        !isEffectivelyLocked
+        !isEffectivelyLocked || isLockScreenMediaFullScreen
     }
 
     private var topEdgeSensorSize: CGSize {

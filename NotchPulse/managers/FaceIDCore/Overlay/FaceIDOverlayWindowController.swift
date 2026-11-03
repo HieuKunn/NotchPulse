@@ -53,6 +53,7 @@ final class FaceIDOverlayWindowController {
         if NotchPulseLockMonitor.isScreenActuallyLocked(), let skyLight = FaceIDOverlaySkyLight.shared {
             skyLight.delegate(window)
             isSkyLightDelegated = true
+            window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
 
             // Progressively re-assert visibility as WindowServer transitions into lock screen space
             lockReassertionTask = Task { @MainActor [weak self, weak window] in
@@ -85,6 +86,7 @@ final class FaceIDOverlayWindowController {
         if isSkyLightDelegated, let skyLight = FaceIDOverlaySkyLight.shared {
             skyLight.undelegate(window)
             isSkyLightDelegated = false
+            window.level = .mainMenu + 3
         }
         window.orderOut(nil)
         updateCursorPolling()
@@ -125,6 +127,13 @@ final class FaceIDOverlayWindowController {
     private func updateMousePassthrough() {
         guard let window else { return }
         guard wantsInteractive else {
+            window.ignoresMouseEvents = true
+            return
+        }
+        // When Lock Screen Media is fullscreen and Face ID is closed, allow clicks to pass through
+        // to LockScreenMediaWindow so media controls are not blocked by the closed overlay.
+        let isMediaFullScreen = LockScreenMediaWindow.shared.isWindowVisible && LockScreenMediaWindow.shared.isFullScreen
+        if isMediaFullScreen && FaceIDOverlayController.shared.phase == .closed {
             window.ignoresMouseEvents = true
             return
         }

@@ -254,7 +254,14 @@ final class LockScreenWakeObserver: ObservableObject {
             if immediately || !isScreenLocked {
                 LockScreenMediaWindow.shared.hideImmediately()
             } else {
-                LockScreenMediaWindow.shared.hide()
+                // Debounce hide by 2.0s to prevent window tear-down / flashing during inter-track transitions
+                hideDebounceTask = Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .milliseconds(2000))
+                    guard !Task.isCancelled, let self = self else { return }
+                    if !self.shouldShowLockScreenMedia() {
+                        LockScreenMediaWindow.shared.hide()
+                    }
+                }
             }
         }
     }

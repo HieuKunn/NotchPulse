@@ -54,7 +54,64 @@ struct SettingsSectionItem: Identifiable, Hashable {
 struct SettingsTabItem: Identifiable {
     let id: String
     let icon: String
+    let badgeColor: Color
     let sections: [SettingsSectionItem]
+}
+
+struct SettingsBadgeView: View {
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(color.gradient)
+                .frame(width: 20, height: 20)
+
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+    }
+}
+
+struct SettingsSearchBar: View {
+    @Binding var text: String
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            TextField(loc("Search"), text: $text)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .focused($isFocused)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(isFocused ? Color.effectiveAccent.opacity(0.8) : Color(nsColor: .separatorColor).opacity(0.5), lineWidth: isFocused ? 1.5 : 0.5)
+        )
+    }
 }
 
 struct SettingsView: View {
@@ -72,6 +129,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "General",
             icon: "gear",
+            badgeColor: Color(nsColor: .systemGray),
             sections: [
                 SettingsSectionItem(
                     id: "feature_tour",
@@ -113,6 +171,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Appearance",
             icon: "paintbrush.fill",
+            badgeColor: Color(nsColor: .systemIndigo),
             sections: [
                 SettingsSectionItem(
                     id: "appearance_general",
@@ -134,6 +193,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Media",
             icon: "play.circle.fill",
+            badgeColor: Color.pink,
             sections: [
                 SettingsSectionItem(
                     id: "media_enable",
@@ -170,6 +230,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Calendar",
             icon: "calendar",
+            badgeColor: Color.red,
             sections: [
                 SettingsSectionItem(
                     id: "calendar_integration",
@@ -191,6 +252,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "HUD",
             icon: "gauge.with.dots.needle.33percent",
+            badgeColor: Color.orange,
             sections: [
                 SettingsSectionItem(
                     id: "hud_volume",
@@ -222,6 +284,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "SystemMonitor",
             icon: "chart.bar.fill",
+            badgeColor: Color.green,
             sections: [
                 SettingsSectionItem(
                     id: "sysmon_enable",
@@ -243,6 +306,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "FaceID",
             icon: "faceid",
+            badgeColor: Color.blue,
             sections: [
                 SettingsSectionItem(
                     id: "faceid_general",
@@ -269,6 +333,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Shelf",
             icon: "tray.fill",
+            badgeColor: Color.indigo,
             sections: [
                 SettingsSectionItem(
                     id: "shelf_general",
@@ -285,6 +350,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Clipboard",
             icon: "doc.on.clipboard.fill",
+            badgeColor: Color.teal,
             sections: [
                 SettingsSectionItem(
                     id: "clipboard_general",
@@ -301,6 +367,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Audio",
             icon: "speaker.wave.2.fill",
+            badgeColor: Color.red,
             sections: [
                 SettingsSectionItem(
                     id: "audio_hub",
@@ -317,6 +384,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Display",
             icon: "sun.max.fill",
+            badgeColor: Color.blue,
             sections: [
                 SettingsSectionItem(
                     id: "display_hub",
@@ -338,6 +406,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Shortcuts",
             icon: "command.square.fill",
+            badgeColor: Color.purple,
             sections: [
                 SettingsSectionItem(
                     id: "shortcuts_media",
@@ -354,6 +423,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Advanced",
             icon: "slider.horizontal.3",
+            badgeColor: Color.gray,
             sections: [
                 SettingsSectionItem(
                     id: "advanced_accent",
@@ -380,6 +450,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "Language",
             icon: "globe",
+            badgeColor: Color.blue,
             sections: [
                 SettingsSectionItem(
                     id: "language_display",
@@ -391,6 +462,7 @@ struct SettingsView: View {
         SettingsTabItem(
             id: "About",
             icon: "info.circle.fill",
+            badgeColor: Color.gray,
             sections: [
                 SettingsSectionItem(
                     id: "about_app",
@@ -476,9 +548,6 @@ struct SettingsView: View {
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
         .frame(minWidth: 720, minHeight: 560)
-        // Use the semantic system window color as an opaque content surface.
-        // It resolves to light/dark automatically and avoids a full-window
-        // wallpaper blur, which is needlessly expensive for a settings pane.
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(.effectiveAccent)
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
@@ -490,80 +559,91 @@ struct SettingsView: View {
     @ViewBuilder
     private var settingsSidebar: some View {
         VStack(spacing: 0) {
-                // Logo + App Name Header (Pushed down below traffic lights, larger text)
-                HStack(spacing: 9) {
-                    if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
-                        Image(nsImage: appIcon)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24)
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    } else {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.secondary)
-                    }
+            // 1. Search Bar (Apple System Settings capsule style pinned at the top)
+            SettingsSearchBar(text: $searchText)
+                .padding(.horizontal, 14)
+                .padding(.top, 14)
+                .padding(.bottom, 8)
 
-                    HStack(spacing: 6) {
-                        Text("NotchPulse")
-                            .font(.headline)
-
-                        Text("v\(Bundle.main.releaseVersionNumber ?? "5.5")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
+            // 2. App Profile Card (Under Search, matching Apple Account card in System Settings)
+            HStack(spacing: 10) {
+                if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
+                    Image(nsImage: appIcon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 32, height: 32)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .shadow(color: Color.black.opacity(0.12), radius: 2, y: 1)
+                } else {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 18)
-                .padding(.bottom, 9)
 
-                // Use the system sidebar list so macOS owns selection, vibrancy,
-                // accessibility contrast, and the correct appearance for each OS.
-                List(selection: selectedTabBinding) {
-                    if filteredTabs.isEmpty {
-                        ContentUnavailableView {
-                            Label(loc("No settings found"), systemImage: "magnifyingglass")
-                        }
-                    } else {
-                        ForEach(filteredTabs) { tab in
-                            let matches = matchingSections(for: tab)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("NotchPulse")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
 
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(tabTitle(for: tab.id))
-
-                                    if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
-                                        Text(matches.map { loc($0.title) }.joined(separator: " • "))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                }
-                            } icon: {
-                                Image(systemName: tab.icon)
-                            }
-                            .tag(tab.id)
-                        }
-                    }
+                    Text("v\(Bundle.main.releaseVersionNumber ?? "5.5")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                .listStyle(.sidebar)
-                .searchable(
-                    text: $searchText,
-                    placement: .sidebar,
-                    prompt: loc("Search Settings...")
-                )
+
+                Spacer()
             }
-            // Keep the whole sidebar on the same dynamic system surface. The
-            // List still uses Apple's sidebar style for row geometry/behavior.
-            .background(Color(nsColor: .windowBackgroundColor))
-            .tint(.effectiveAccent)
-            .toolbar(removing: .sidebarToggle)
-            // Keep the sidebar/detail boundary fixed. A ranged column width
-            // makes macOS expose a draggable splitter between the two panes.
-            .navigationSplitViewColumnWidth(240)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.45))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 0.5)
+            )
+            .padding(.horizontal, 14)
+            .padding(.bottom, 6)
+
+            // 3. Native List with simple tinted icons
+            List(selection: selectedTabBinding) {
+                if filteredTabs.isEmpty {
+                    ContentUnavailableView {
+                        Label(loc("No settings found"), systemImage: "magnifyingglass")
+                    }
+                } else {
+                    ForEach(filteredTabs) { tab in
+                        let matches = matchingSections(for: tab)
+
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(tabTitle(for: tab.id))
+                                    .font(.system(size: 13, weight: .regular))
+
+                                if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
+                                    Text(matches.map { loc($0.title) }.joined(separator: " • "))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                        } icon: {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color.effectiveAccent)
+                                .frame(width: 20, height: 20, alignment: .center)
+                        }
+                        .tag(tab.id)
+                    }
+                }
+            }
+            .listStyle(.sidebar)
         }
+        .background(Color(nsColor: .windowBackgroundColor))
+        .tint(.effectiveAccent)
+        .toolbar(removing: .sidebarToggle)
+        .navigationSplitViewColumnWidth(240)
+    }
 
     @ViewBuilder
     private var settingsDetail: some View {
@@ -671,7 +751,7 @@ struct SettingsView: View {
 /// letting form content glide cleanly underneath with native material blur.
 struct SettingsDetailHeaderBar: View {
     let title: String
-    var showQuitButton: Bool = false
+    var showQuitButton: Bool = true
     @Default(.appLanguage) private var appLanguage
     @State private var isQuitHovered = false
 
@@ -679,7 +759,8 @@ struct SettingsDetailHeaderBar: View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 Text(title)
-                    .font(.headline)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 Spacer()
@@ -787,10 +868,10 @@ struct NotchWidthLivePreview: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
             )
             
             HStack {
@@ -920,8 +1001,8 @@ struct GeneralSettings: View {
                     }
                     .padding(10)
                     .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(notchStyle == .notch ? Color.accentColor : Color.gray.opacity(0.25), lineWidth: notchStyle == .notch ? 2 : 1)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(notchStyle == .notch ? Color.effectiveAccent : Color(nsColor: .separatorColor).opacity(0.5), lineWidth: notchStyle == .notch ? 2 : 1)
                     )
                 }
                 .buttonStyle(.plain)
@@ -957,6 +1038,11 @@ struct GeneralSettings: View {
                                 .fontWeight(notchStyle == .dynamicIsland ? .semibold : .regular)
                         }
                     }
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(notchStyle == .dynamicIsland ? Color.effectiveAccent : Color(nsColor: .separatorColor).opacity(0.5), lineWidth: notchStyle == .dynamicIsland ? 2 : 1)
+                    )
                 }
                 .buttonStyle(.plain)
             }

@@ -58,6 +58,20 @@ struct LockScreenMediaView: View {
             if windowController.isFullScreen {
                 fullScreenPlayerView
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    .overlay(alignment: .top) {
+                        // Top edge hover/tap sensor to trigger Face ID seamlessly during Full Screen Media
+                        Color.clear
+                            .frame(height: 28)
+                            .contentShape(Rectangle())
+                            .onHover { hovering in
+                                if hovering {
+                                    FaceIDOverlayController.shared.activate()
+                                }
+                            }
+                            .onTapGesture {
+                                FaceIDOverlayController.shared.activate()
+                            }
+                    }
             } else {
                 compactPlayerView
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -79,11 +93,6 @@ struct LockScreenMediaView: View {
             activeLyricIndex = 0
             musicManager.ensureLyricsLoaded()
             musicManager.ensureArtworkLoaded()
-        }
-        .onChange(of: musicManager.albumArt) { _, _ in
-            windowController.contentView?.needsDisplay = true
-            windowController.contentView?.layer?.setNeedsDisplay()
-            windowController.displayIfNeeded()
         }
         .onChange(of: windowController.isFullScreen) { _, isFull in
             if isFull {
@@ -123,7 +132,6 @@ struct LockScreenMediaView: View {
         ZStack(alignment: .bottomTrailing) {
             Image(nsImage: musicManager.albumArt)
                 .resizable()
-                .id("\(musicManager.songTitle)-\(musicManager.artistName)-\(musicManager.albumArt.hash)")
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 54, height: 54)
                 .overlay {
@@ -371,7 +379,6 @@ struct LockScreenMediaView: View {
                 // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
                 Image(nsImage: musicManager.albumArt)
                     .resizable()
-                    .id("\(musicManager.songTitle)-\(musicManager.artistName)-\(musicManager.albumArt.hash)")
                     .aspectRatio(contentMode: .fill)
                     .frame(width: geo.size.width, height: geo.size.height)
                     .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
@@ -398,7 +405,6 @@ struct LockScreenMediaView: View {
                 ZStack(alignment: .bottomTrailing) {
                     Image(nsImage: musicManager.albumArt)
                         .resizable()
-                        .id("\(musicManager.songTitle)-\(musicManager.artistName)-\(musicManager.albumArt.hash)")
                         .aspectRatio(contentMode: .fill)
                         .frame(width: albumSize, height: albumSize)
                         .overlay {

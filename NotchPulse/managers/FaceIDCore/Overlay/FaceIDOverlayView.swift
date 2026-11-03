@@ -13,6 +13,7 @@ private struct InteractivePanelFramePreferenceKey: PreferenceKey {
 
 struct FaceIDOverlayView: View {
     let controller: FaceIDOverlayController
+    @ObservedObject private var mediaWindow = LockScreenMediaWindow.shared
 
     @State private var isHovering = false
 
@@ -143,10 +144,18 @@ struct FaceIDOverlayView: View {
         )
     }
 
+    private var isLockScreenMediaFullScreen: Bool {
+        mediaWindow.isWindowVisible && mediaWindow.isFullScreen
+    }
+
     /// Top-aligned inside the fixed window frame, resting at pillTopGap for dynamic island
-    /// and 0 for physical notch.
+    /// and 0 for physical notch. When Lock Screen Media is fullscreen and Face ID is closed,
+    /// tucks up offscreen into the top edge so it doesn't obstruct media.
     private var verticalOffset: CGFloat {
         guard style == .pill else { return 0 }
+        if isLockScreenMediaFullScreen && !visualIsExpanded {
+            return -FaceIDOverlayGeometry.pillClosedSize.height - 20
+        }
         return FaceIDOverlayGeometry.pillTopGap
     }
 
@@ -296,6 +305,9 @@ struct FaceIDOverlayView: View {
         // Positioned using padding so the view's layout, hit-testing, and coordinate space
         // match the exact on-screen resting position of the dynamic island.
         .padding(.top, verticalOffset)
+        .offset(y: (style == .notch && isLockScreenMediaFullScreen && !visualIsExpanded) ? -currentSize.height - 10 : 0)
+        .opacity((isLockScreenMediaFullScreen && !visualIsExpanded) ? 0 : 1)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isLockScreenMediaFullScreen)
         .animation(.easeOut(duration: 0.18), value: isHovering)
         .contentShape(FaceIDOverlayShape(topRadius: topRadius, bottomRadius: bottomRadius, style: style))
         .onHover { hovering in
