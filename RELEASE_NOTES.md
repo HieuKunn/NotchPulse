@@ -20,6 +20,6 @@
 
 ### 🍏 Native Settings Experience
 
-- **Native Search Bar**: Integrated a rounded macOS-style search field directly in the sidebar for searching preferences across all supported languages.
-- **Clean Sidebar Navigation**: Streamlined tab icons with clean accent-colored system symbols and preserved solid system background surfaces for optimal legibility.
+- **Native AppKit Search Field**: Integrated macOS's genuine AppKit search field (`NSSearchField`) with native rounded bezel, depth shadow, clear button, and system focus rings for searching preferences across all supported languages.
+- **Vibrant Squircle Badges**: Restored Apple System Settings-style gradient squircle icon badges across all settings categories for seamless visual harmony with macOS.
 - **Quick App Access**: Convenient shortcut to quit the application directly from the settings header.

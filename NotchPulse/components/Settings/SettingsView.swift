@@ -64,53 +64,67 @@ struct SettingsBadgeView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
+            RoundedRectangle(cornerRadius: 5.5, style: .continuous)
                 .fill(color.gradient)
                 .frame(width: 20, height: 20)
 
             Image(systemName: icon)
+                .symbolRenderingMode(.monochrome)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.white)
         }
+        .frame(width: 20, height: 20)
     }
 }
 
-struct SettingsSearchBar: View {
+/// 100% Native AppKit NSSearchField matching Apple System Settings.
+/// Provides native 3D rounded bezel, depth shadow, clear button, and system focus ring.
+struct NativeSearchField: NSViewRepresentable {
     @Binding var text: String
-    @FocusState private var isFocused: Bool
+    var prompt: String = ""
 
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
 
-            TextField(loc("Search"), text: $text)
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-                .focused($isFocused)
+    func makeNSView(context: Context) -> NSSearchField {
+        let searchField = NSSearchField()
+        searchField.placeholderString = prompt
+        searchField.bezelStyle = .roundedBezel
+        searchField.focusRingType = .default
+        searchField.centersPlaceholder = false
+        searchField.sendsSearchStringImmediately = true
+        searchField.font = .systemFont(ofSize: 12)
+        searchField.delegate = context.coordinator
+        searchField.target = context.coordinator
+        searchField.action = #selector(Coordinator.textDidChange(_:))
+        return searchField
+    }
 
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
+    func updateNSView(_ nsView: NSSearchField, context: Context) {
+        if nsView.stringValue != text {
+            nsView.stringValue = text
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(
-            Capsule(style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .stroke(isFocused ? Color.effectiveAccent.opacity(0.8) : Color(nsColor: .separatorColor).opacity(0.5), lineWidth: isFocused ? 1.5 : 0.5)
-        )
+        if nsView.placeholderString != prompt {
+            nsView.placeholderString = prompt
+        }
+    }
+
+    class Coordinator: NSObject, NSSearchFieldDelegate {
+        @Binding var text: String
+
+        init(text: Binding<String>) {
+            self._text = text
+        }
+
+        func controlTextDidChange(_ obj: Notification) {
+            guard let field = obj.object as? NSSearchField else { return }
+            self.text = field.stringValue
+        }
+
+        @objc func textDidChange(_ sender: NSSearchField) {
+            self.text = sender.stringValue
+        }
     }
 }
 
@@ -559,8 +573,9 @@ struct SettingsView: View {
     @ViewBuilder
     private var settingsSidebar: some View {
         VStack(spacing: 0) {
-            // 1. Search Bar (Apple System Settings capsule style pinned at the top)
-            SettingsSearchBar(text: $searchText)
+            // 1. Native Search Field (AppKit NSSearchField matching Apple System Settings)
+            NativeSearchField(text: $searchText, prompt: loc("Search"))
+                .frame(height: 22)
                 .padding(.horizontal, 14)
                 .padding(.top, 14)
                 .padding(.bottom, 8)
@@ -628,10 +643,7 @@ struct SettingsView: View {
                                 }
                             }
                         } icon: {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Color.effectiveAccent)
-                                .frame(width: 20, height: 20, alignment: .center)
+                            SettingsBadgeView(icon: tab.icon, color: tab.badgeColor)
                         }
                         .tag(tab.id)
                     }
