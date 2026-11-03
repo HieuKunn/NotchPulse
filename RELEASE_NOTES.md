@@ -6,16 +6,16 @@
 
 ### 🔒 Reliable Lock Screen & Fluid Unlock
 
-- **Lock Screen Media Reliability**: Resolved an issue where the lock screen media view could disappear unexpectedly during the system lock transition. Media now stays smoothly visible on the lock screen as intended.
+- **Lock Screen Media Reliability**: Resolved an issue where the lock screen media view could disappear unexpectedly during the system lock transition. Integrated unified SkyLight lock-space delegation and robust session supervision to ensure media stays visible and responsive on the lock screen.
 - **Smooth Unlock Fade**: Lock Screen media (both full-screen immersive and compact card views) now fades away seamlessly in step with macOS's native lock screen unlock animation, eliminating visual stutter and desktop hitching.
 - **Unobstructed Media Controls**: Full-screen lock screen media controls and artwork thumbnails receive mouse clicks freely without interference from Face ID.
 - **Top-Bezel Hover Sensor**: In full-screen media mode, Face ID hover activation is strictly confined to the physical notch bezel directly around the camera.
 
-### 🎵 Media & Artwork Fidelity
+### 🎵 Smart Multi-Media Registry & Session Continuity
 
+- **Intelligent Media Fallback & Switching**: NotchPulse now maintains an active session registry across multiple media apps and browser tabs. If a current media session stops or closes, playback automatically reverts to the previous session; if that session finishes, it intelligently prioritizes whichever media was newest without dropping or destroying sessions.
+- **Direct Playback Control Routing**: Media controls (play, pause, next, previous) target the specific active application or browser tab matching the current track title directly, eliminating cross-talk between background paused players and active audio.
 - **Precise Artwork Resolution**: Media player prioritizes official, high-resolution album artwork from streaming catalogs (iTunes Store & Deezer) for web and desktop players alike. Browser background YouTube tabs are never mistakenly matched as cover art for unrelated music.
-- **Multi-Source Playback Routing**: Media controls (play, pause, next, previous) intelligently target whichever media source is currently playing or newest across your system (such as YouTube, Spotify Web, or desktop music apps) rather than mistakenly controlling paused background tabs.
-- **Smart Session Continuity**: Closing or stopping an active media session automatically restores the previous player session and its album artwork cleanly without losing track info or artwork.
 
 ### 🍏 Native Settings Experience
 

@@ -403,31 +403,8 @@ class MusicManager: ObservableObject {
             self.isPlaying = false
             self.playbackRate = 0
 
-            // Prune dead sessions whose apps are no longer running
-            self.mediaSessionStack.removeAll { snapshot in
-                guard let bid = snapshot.bundleIdentifier, !bid.isEmpty else { return false }
-                return NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
-            }
-
-            // Drop current dead session and restore the most recent valid previous session
-            if !self.mediaSessionStack.isEmpty {
-                self.mediaSessionStack.removeLast()
-            }
-            while let previous = self.mediaSessionStack.last {
-                if let bid = previous.bundleIdentifier, !bid.isEmpty {
-                    let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
-                    if !isRunning {
-                        self.mediaSessionStack.removeLast()
-                        continue
-                    }
-                }
-                self.restoreSession(previous)
-                return
-            }
-
-            self.mediaSessionStack.removeAll()
-            self.resetToIdle()
-            self.updateIdleState(state: false)
+            let closedId = "\(self.bundleIdentifier ?? "")---\(self.songTitle)---\(self.artistName)"
+            self.handleActiveMediaStopped(closedSessionId: closedId)
             return
         }
 
@@ -443,6 +420,13 @@ class MusicManager: ObservableObject {
 
             if state.isPlaying && !state.title.isEmpty && !state.artist.isEmpty {
                 self.updateSneakPeek()
+            } else if !state.isPlaying {
+                // If current media just paused, check if another session is actively playing in the background
+                let currentId = "\(self.bundleIdentifier ?? "")---\(state.title)---\(state.artist)"
+                if let playingSession = mediaSessionStack.last(where: { $0.id != currentId && $0.isPlaying }) {
+                    restoreSession(playingSession)
+                    return
+                }
             }
         } else if self.isPlayerIdle && state.isPlaying {
             withAnimation(.smooth) {
@@ -1112,40 +1096,40 @@ class MusicManager: ObservableObject {
         let effectiveBundle = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "")
         let sessionId = "\(effectiveBundle)---\(cleanTitle)---\(state.artist)"
 
-        // If this session is already at the top of the stack, update its latest values
-        if let lastIdx = mediaSessionStack.indices.last, mediaSessionStack[lastIdx].id == sessionId {
-            mediaSessionStack[lastIdx].isPlaying = state.isPlaying
-            mediaSessionStack[lastIdx].currentTime = state.currentTime
-            mediaSessionStack[lastIdx].duration = state.duration
-            mediaSessionStack[lastIdx].playbackRate = state.playbackRate
-            mediaSessionStack[lastIdx].isShuffled = state.isShuffled
-            mediaSessionStack[lastIdx].repeatMode = state.repeatMode
-            mediaSessionStack[lastIdx].volume = state.volume
-            mediaSessionStack[lastIdx].isFavorite = state.isFavorite
-            mediaSessionStack[lastIdx].lastUpdated = state.lastUpdated
-            if !self.syncedLyrics.isEmpty {
-                mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
+        let matchesActiveTrack = (self.songTitle == cleanTitle && self.artistName == state.artist && (self.bundleIdentifier ?? "") == effectiveBundle)
+        let snapshotSyncedLyrics = matchesActiveTrack ? self.syncedLyrics : []
+        let snapshotCurrentLyrics = matchesActiveTrack ? self.currentLyrics : ""
+        let snapshotArtwork = state.artwork ?? (matchesActiveTrack ? self.artworkData : nil)
+
+        // If this session is already in the stack, update its latest values
+        if let idx = mediaSessionStack.firstIndex(where: { $0.id == sessionId }) {
+            mediaSessionStack[idx].isPlaying = state.isPlaying
+            mediaSessionStack[idx].currentTime = state.currentTime
+            mediaSessionStack[idx].duration = state.duration
+            mediaSessionStack[idx].playbackRate = state.playbackRate
+            mediaSessionStack[idx].isShuffled = state.isShuffled
+            mediaSessionStack[idx].repeatMode = state.repeatMode
+            mediaSessionStack[idx].volume = state.volume
+            mediaSessionStack[idx].isFavorite = state.isFavorite
+            mediaSessionStack[idx].lastUpdated = Date()
+            if !snapshotSyncedLyrics.isEmpty {
+                mediaSessionStack[idx].syncedLyrics = snapshotSyncedLyrics
             }
-            if !self.currentLyrics.isEmpty {
-                mediaSessionStack[lastIdx].currentLyrics = self.currentLyrics
+            if !snapshotCurrentLyrics.isEmpty {
+                mediaSessionStack[idx].currentLyrics = snapshotCurrentLyrics
+            }
+            if let art = snapshotArtwork {
+                mediaSessionStack[idx].artworkData = art
+            }
+            if state.isPlaying {
+                // If it is playing, move it to the top (most recent)
+                let item = mediaSessionStack.remove(at: idx)
+                mediaSessionStack.append(item)
             }
             return
         }
 
-        // A new media has arrived while a previous session was playing/paused.
-        // Save the previous session's latest state and mark it not playing (suspended).
-        if let lastIdx = mediaSessionStack.indices.last {
-            mediaSessionStack[lastIdx].isPlaying = false
-        }
-
-        // If this session previously existed deeper in the stack, remove it so we can push to top
-        mediaSessionStack.removeAll { $0.id == sessionId }
-
-        // Only persist lyrics in snapshot if current global lyrics belong to this exact session
-        let matchesActiveTrack = (self.songTitle == cleanTitle && self.artistName == state.artist && (self.bundleIdentifier ?? "") == effectiveBundle)
-        let snapshotSyncedLyrics = matchesActiveTrack ? self.syncedLyrics : []
-        let snapshotCurrentLyrics = matchesActiveTrack ? self.currentLyrics : ""
-
+        // New session: append to registry
         let snapshot = MediaSessionSnapshot(
             id: sessionId,
             bundleIdentifier: effectiveBundle,
@@ -1161,10 +1145,10 @@ class MusicManager: ObservableObject {
             volume: state.volume,
             isFavorite: state.isFavorite,
             usingAppIconForArtwork: self.usingAppIconForArtwork,
-            lastUpdated: state.lastUpdated,
+            lastUpdated: Date(),
             syncedLyrics: snapshotSyncedLyrics,
             currentLyrics: snapshotCurrentLyrics,
-            artworkData: state.artwork ?? self.artworkData // Preserve optimized artwork across media sessions
+            artworkData: snapshotArtwork
         )
 
         mediaSessionStack.append(snapshot)
@@ -1176,6 +1160,65 @@ class MusicManager: ObservableObject {
     }
 
     @MainActor
+    private func handleActiveMediaStopped(closedSessionId: String? = nil) {
+        // Prune dead sessions whose apps are no longer running
+        mediaSessionStack.removeAll { snapshot in
+            guard let bid = snapshot.bundleIdentifier, !bid.isEmpty else { return false }
+            let isBrowserApp = [
+                "com.google.Chrome", "com.google.Chrome.canary", "company.thebrowser.Browser",
+                "app.zen-browser.zen", "com.apple.Safari", "com.brave.Browser",
+                "com.microsoft.edgemac", "org.mozilla.firefox"
+            ].contains(bid)
+            if !isBrowserApp && NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty {
+                return true
+            }
+            return false
+        }
+
+        // If a specific session was closed (e.g. browser tab closed), remove it
+        if let closedId = closedSessionId {
+            mediaSessionStack.removeAll { $0.id == closedId }
+        }
+
+        let currentId = closedSessionId ?? {
+            let curBid = self.bundleIdentifier ?? ""
+            return "\(curBid)---\(self.songTitle)---\(self.artistName)"
+        }()
+
+        // Mark current session as paused in stack
+        if let curIdx = mediaSessionStack.firstIndex(where: { $0.id == currentId }) {
+            mediaSessionStack[curIdx].isPlaying = false
+        }
+
+        // Available candidate sessions (excluding the one that just stopped/ended)
+        let candidates = mediaSessionStack.filter { $0.id != currentId }
+
+        // 1. Highest priority: Any candidate that is actively playing right now
+        if let playingCandidate = candidates.last(where: { $0.isPlaying }) {
+            restoreSession(playingCandidate)
+            return
+        }
+
+        // 2. Second priority: The most recently active candidate (e.g. 1 2 3 -> 3 stops goes to 2; 2 stops chooses newer 3 or 1)
+        if let mostRecentCandidate = candidates.sorted(by: { $0.lastUpdated > $1.lastUpdated }).first {
+            restoreSession(mostRecentCandidate)
+            return
+        }
+
+        // 3. If no other candidates exist, but current session is still valid: stay paused
+        if let currentSession = mediaSessionStack.first(where: { $0.id == currentId }) {
+            self.isPlaying = false
+            self.playbackRate = 0
+            self.isPlayerIdle = true
+            return
+        }
+
+        // 4. Nothing left
+        resetToIdle()
+        updateIdleState(state: false)
+    }
+
+    @MainActor
     private func handleApplicationTerminated(bundleIdentifier: String) {
         let wasCurrentApp = (self.bundleIdentifier == bundleIdentifier)
         mediaSessionStack.removeAll { $0.bundleIdentifier == bundleIdentifier }
@@ -1183,50 +1226,19 @@ class MusicManager: ObservableObject {
         if wasCurrentApp {
             self.isPlaying = false
             self.playbackRate = 0
-
-            // Prune dead sessions whose apps are no longer running
-            while let previous = mediaSessionStack.last {
-                if let bid = previous.bundleIdentifier, !bid.isEmpty {
-                    let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
-                    if !isRunning {
-                        mediaSessionStack.removeLast()
-                        continue
-                    }
-                }
-                restoreSession(previous)
-                return
-            }
-
-            resetToIdle()
-            updateIdleState(state: false)
+            handleActiveMediaStopped()
         }
     }
 
     @MainActor
     public func fallbackToPreviousMedia() {
-        if !mediaSessionStack.isEmpty {
-            mediaSessionStack.removeLast()
-        }
-
-        while let previous = mediaSessionStack.last {
-            if let bundleID = previous.bundleIdentifier, !bundleID.isEmpty {
-                let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
-                if !isRunning {
-                    mediaSessionStack.removeLast()
-                    continue
-                }
-            }
-            restoreSession(previous)
-            return
-        }
-
-        resetToIdle()
+        handleActiveMediaStopped()
     }
 
     @MainActor
     public func dismissCurrentMedia() {
         self.pause()
-        self.fallbackToPreviousMedia()
+        handleActiveMediaStopped()
     }
 
     @MainActor
@@ -1262,6 +1274,9 @@ class MusicManager: ObservableObject {
         self.timestampDate = Date()
         self.isPlaying = isActuallyPlaying
         self.isPlayerIdle = !isActuallyPlaying
+
+        // Sync NowPlayingController so it doesn't emit empty state on next tick
+        (self.activeController as? NowPlayingController)?.syncRestoredPlaybackState(snapshot)
 
         if let artData = snapshot.artworkData {
             self.artworkData = artData

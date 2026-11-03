@@ -231,10 +231,13 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             checkAndRepositionIfNeeded(animated: true)
         }
         
+        if let skyLight = FaceIDOverlaySkyLight.shared {
+            skyLight.delegate(self)
+        }
         SkyLightOperator.shared.delegateWindow(self)
         isSkyLightAttached = true
         
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
         self.alphaValue = 1.0
         orderFrontRegardless()
         isWindowVisible = true
@@ -253,6 +256,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             self.setFrame(self.targetCompactFrame(for: screen), display: false)
         }
         if self.isSkyLightAttached {
+            FaceIDOverlaySkyLight.shared?.undelegate(self)
             SkyLightOperator.shared.undelegateWindow(self)
             self.isSkyLightAttached = false
         }

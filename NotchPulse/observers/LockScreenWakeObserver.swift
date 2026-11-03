@@ -61,15 +61,21 @@ final class LockScreenWakeObserver: ObservableObject {
             }
             guard confirmedLocked else { return }
 
-            // Step 2: Now actively monitor for unlock
+            // Step 2: Now actively monitor for unlock with consecutive debounce to guard against transient WindowServer drops
+            var consecutiveUnlockedCount = 0
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(120))
+                try? await Task.sleep(for: .milliseconds(800))
                 guard let self = self, self.isScreenLocked else { break }
                 
                 let actuallyLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
-                if !actuallyLocked {
-                    self.handleUnlockTransition(animated: true)
-                    break
+                if actuallyLocked {
+                    consecutiveUnlockedCount = 0
+                } else {
+                    consecutiveUnlockedCount += 1
+                    if consecutiveUnlockedCount >= 3 {
+                        self.handleUnlockTransition(animated: true)
+                        break
+                    }
                 }
             }
         }
@@ -99,7 +105,7 @@ final class LockScreenWakeObserver: ObservableObject {
             self.updateLockScreenMediaWindowVisibility()
             
             // Progressively re-assert visibility as WindowServer transitions into lock screen space
-            for delayMs in [150, 350, 650, 1000] {
+            for delayMs in [150, 350, 650, 1000, 1500] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
                 guard !Task.isCancelled, self.isScreenLocked else { break }
                 MusicManager.shared.forceUpdate()

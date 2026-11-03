@@ -15,6 +15,25 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         bundleIdentifier: "com.apple.Music"
     )
 
+    @MainActor
+    func syncRestoredPlaybackState(_ snapshot: MediaSessionSnapshot) {
+        var restored = PlaybackState(bundleIdentifier: snapshot.bundleIdentifier ?? "")
+        restored.title = snapshot.title
+        restored.artist = snapshot.artist
+        restored.album = snapshot.album
+        restored.isPlaying = snapshot.isPlaying
+        restored.duration = snapshot.duration
+        restored.currentTime = snapshot.currentTime
+        restored.playbackRate = snapshot.playbackRate
+        restored.isShuffled = snapshot.isShuffled
+        restored.repeatMode = snapshot.repeatMode
+        restored.volume = snapshot.volume
+        restored.isFavorite = snapshot.isFavorite
+        restored.artwork = snapshot.artworkData
+        restored.lastUpdated = snapshot.lastUpdated
+        self.playbackState = restored
+    }
+
     var playbackStatePublisher: AnyPublisher<PlaybackState, Never> {
         $playbackState.eraseToAnyPublisher()
     }
@@ -150,11 +169,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Helper
     private func getEffectiveBundleID() -> String {
-        if !playbackState.bundleIdentifier.isEmpty {
-            return playbackState.bundleIdentifier
-        }
         if let mgrBid = MusicManager.shared.bundleIdentifier, !mgrBid.isEmpty {
             return mgrBid
+        }
+        if !playbackState.bundleIdentifier.isEmpty {
+            return playbackState.bundleIdentifier
         }
         let browserBundleIDs = [
             "app.zen-browser.zen",
@@ -532,7 +551,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             .replacingOccurrences(of: "\"", with: "\\\"")
             .replacingOccurrences(of: "\n", with: " ")
 
-        let targetTitle = (playbackState.title.isEmpty ? (MusicManager.shared.songTitle) : playbackState.title)
+        let targetTitle = (!MusicManager.shared.songTitle.isEmpty ? MusicManager.shared.songTitle : playbackState.title)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let escapedTargetTitle = targetTitle
             .replacingOccurrences(of: "\\", with: "\\\\")
@@ -694,14 +713,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         spotifyCommand: String,
         browserMediaAction: BrowserMediaAction
     ) async {
-        if await Self.sendUniversalCommand("send", arg: "\(commandId)") {
-            return
-        }
-        if (commandId == 4 || commandId == 5) && NotchPulseLockMonitor.isScreenActuallyLocked() {
-            Self.postMediaKeyEvent(for: commandId)
-            return
-        }
         let bundleID = getEffectiveBundleID()
+        
+        // 1. Direct native app targeting by bundle ID
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to \(appleMusicCommand)")
             return
@@ -709,9 +723,19 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to \(spotifyCommand)")
             return
         } else if isBrowser(bundleID) {
+            // 2. Direct browser tab targeting matching current track title
             if await executeBrowserScript(for: browserMediaAction) {
                 return
             }
+        }
+
+        // 3. System universal MediaRemote adapter fallback
+        if await Self.sendUniversalCommand("send", arg: "\(commandId)") {
+            return
+        }
+        if (commandId == 4 || commandId == 5) && NotchPulseLockMonitor.isScreenActuallyLocked() {
+            Self.postMediaKeyEvent(for: commandId)
+            return
         }
         Self.postMediaKeyEvent(for: commandId)
     }
