@@ -409,15 +409,26 @@ class MusicManager: ObservableObject {
                 return NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
             }
 
-            if let activePrevious = self.mediaSessionStack.dropLast().last(where: { $0.isPlaying }) {
-                self.restoreSession(activePrevious)
-                return
-            } else {
-                self.mediaSessionStack.removeAll()
-                self.resetToIdle()
-                self.updateIdleState(state: false)
+            // Drop current dead session and restore the most recent valid previous session
+            if !self.mediaSessionStack.isEmpty {
+                self.mediaSessionStack.removeLast()
+            }
+            while let previous = self.mediaSessionStack.last {
+                if let bid = previous.bundleIdentifier, !bid.isEmpty {
+                    let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
+                    if !isRunning {
+                        self.mediaSessionStack.removeLast()
+                        continue
+                    }
+                }
+                self.restoreSession(previous)
                 return
             }
+
+            self.mediaSessionStack.removeAll()
+            self.resetToIdle()
+            self.updateIdleState(state: false)
+            return
         }
 
         // Track playback state changes (playing/paused)

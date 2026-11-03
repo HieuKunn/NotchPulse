@@ -58,20 +58,6 @@ struct LockScreenMediaView: View {
             if windowController.isFullScreen {
                 fullScreenPlayerView
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                    .overlay(alignment: .top) {
-                        // Top edge hover/tap sensor to trigger Face ID seamlessly during Full Screen Media
-                        Color.clear
-                            .frame(height: 28)
-                            .contentShape(Rectangle())
-                            .onHover { hovering in
-                                if hovering {
-                                    FaceIDOverlayController.shared.activate()
-                                }
-                            }
-                            .onTapGesture {
-                                FaceIDOverlayController.shared.activate()
-                            }
-                    }
             } else {
                 compactPlayerView
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))

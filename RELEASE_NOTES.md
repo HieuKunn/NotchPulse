@@ -1,9 +1,15 @@
 ## NotchPulse v5.5
 
-### 🎵 Lock Screen Media & Face ID
+### 🎵 Media & Multi-Source Playback
 
-- **Seamless Track Transitions**: Resolved an issue where the lock screen media frame would flash or collapse back into compact mode when changing songs. Now, only album artwork, titles, and lyrics update smoothly while preserving your chosen view state.
-- **Full Screen Media & Face ID Unlock**: When expanding lock screen media to full screen, the compact notch now cleanly tucks away at the top edge. You can hover your mouse directly over the top bezel at any time to activate Face ID unlock without having to shrink media back down first.
+- **Multi-Source Playback Routing**: Media controls (play, pause, next, previous) now intelligently target whichever media source is currently playing or newest across your system (such as YouTube, Spotify Web, or desktop music apps) rather than mistakenly controlling paused background tabs.
+- **Smart Session Fallback**: Closing or stopping a media session automatically restores the previous active player session seamlessly.
+- **Seamless Lock Screen Transitions**: Changing tracks no longer resets or flashes the lock screen media player; full-screen and compact view states remain rock-solid while album artwork and lyrics transition smoothly.
+
+### 🔒 Face ID & Lock Screen Integration
+
+- **Unobstructed Media Controls**: Full screen lock screen media controls and artwork thumbnails now receive all mouse clicks freely without interference from Face ID.
+- **Edge-Only Hover Sensor**: In full screen media mode, Face ID hover activation is strictly tuned to the top edge bezel directly around the camera notch.
 
 ### 🍏 Native Settings Experience
 

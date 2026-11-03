@@ -130,24 +130,42 @@ final class FaceIDOverlayWindowController {
             window.ignoresMouseEvents = true
             return
         }
-        // When Lock Screen Media is fullscreen and Face ID is closed, allow clicks to pass through
-        // to LockScreenMediaWindow so media controls are not blocked by the closed overlay.
+
         let isMediaFullScreen = LockScreenMediaWindow.shared.isWindowVisible && LockScreenMediaWindow.shared.isFullScreen
+
+        // Top edge sensor for FullScreen Media: ONLY when the cursor is right against the top edge (within 4px)
+        // and horizontally aligned with the physical notch / camera (within 150px of midX)
+        if isMediaFullScreen {
+            let mouseLoc = NSEvent.mouseLocation
+            let screen = window.screen ?? NSScreen.main
+            if let screen = screen {
+                let isRightAtTopEdge = (mouseLoc.y >= screen.frame.maxY - 4) && (abs(mouseLoc.x - screen.frame.midX) <= 150)
+                if isRightAtTopEdge && FaceIDOverlayController.shared.phase == .closed {
+                    FaceIDOverlayController.shared.activate()
+                }
+            }
+        }
+
+        // When Face ID is closed during fullscreen media, it is tucked away offscreen,
+        // so window.ignoresMouseEvents MUST be true so media controls / thumbnail clicks pass through 100%.
         if isMediaFullScreen && FaceIDOverlayController.shared.phase == .closed {
+            if !window.ignoresMouseEvents {
+                window.ignoresMouseEvents = true
+            }
+            return
+        }
+
+        guard let rect = interactiveContentRect, let hostView = window.contentView else {
             window.ignoresMouseEvents = true
             return
         }
-        // Lock screen keeps the original whole-window behaviour: nothing there sits
-        // under the notch to click, and hover-to-retry must not regress.
-        guard !isSkyLightDelegated, let rect = interactiveContentRect, let hostView = window.contentView else {
-            window.ignoresMouseEvents = false
-            return
-        }
+
         let windowPoint = window.convertPoint(fromScreen: NSEvent.mouseLocation)
         let local = hostView.convert(windowPoint, from: nil)
         // `rect` is top-down (SwiftUI); normalise the AppKit point to match.
         let topDown = CGPoint(x: local.x, y: hostView.isFlipped ? local.y : hostView.bounds.height - local.y)
         let isOverPanel = rect.insetBy(dx: -Self.interactiveRectOutset, dy: -Self.interactiveRectOutset).contains(topDown)
+
         if window.ignoresMouseEvents == isOverPanel {
             window.ignoresMouseEvents = !isOverPanel
         }
