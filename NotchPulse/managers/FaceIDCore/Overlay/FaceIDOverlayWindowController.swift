@@ -133,25 +133,16 @@ final class FaceIDOverlayWindowController {
 
         let isMediaFullScreen = LockScreenMediaWindow.shared.isWindowVisible && LockScreenMediaWindow.shared.isFullScreen
 
-        // Top edge sensor for FullScreen Media: ONLY when the cursor is right against the top edge (within 4px)
-        // and horizontally aligned with the physical notch / camera (within 150px of midX)
-        if isMediaFullScreen {
+        // When Face ID is closed during fullscreen media, check top notch bezel hover, then ignore mouse events
+        if isMediaFullScreen && FaceIDOverlayController.shared.phase == .closed {
             let mouseLoc = NSEvent.mouseLocation
-            let screen = window.screen ?? NSScreen.main
-            if let screen = screen {
+            if let screen = window.screen ?? NSScreen.main {
                 let isRightAtTopEdge = (mouseLoc.y >= screen.frame.maxY - 4) && (abs(mouseLoc.x - screen.frame.midX) <= 150)
-                if isRightAtTopEdge && FaceIDOverlayController.shared.phase == .closed {
+                if isRightAtTopEdge {
                     FaceIDOverlayController.shared.activate()
                 }
             }
-        }
-
-        // When Face ID is closed during fullscreen media, it is tucked away offscreen,
-        // so window.ignoresMouseEvents MUST be true so media controls / thumbnail clicks pass through 100%.
-        if isMediaFullScreen && FaceIDOverlayController.shared.phase == .closed {
-            if !window.ignoresMouseEvents {
-                window.ignoresMouseEvents = true
-            }
+            window.ignoresMouseEvents = true
             return
         }
 

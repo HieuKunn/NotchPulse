@@ -1164,7 +1164,7 @@ class MusicManager: ObservableObject {
             lastUpdated: state.lastUpdated,
             syncedLyrics: snapshotSyncedLyrics,
             currentLyrics: snapshotCurrentLyrics,
-            artworkData: nil // Keep memory lean: do not hoard heavy raw artwork in historical stack
+            artworkData: state.artwork ?? self.artworkData // Preserve optimized artwork across media sessions
         )
 
         mediaSessionStack.append(snapshot)
@@ -1678,7 +1678,14 @@ public final class UniversalArtworkResolver {
 
         if let cacheBase = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
             let dir = cacheBase.appendingPathComponent("NotchPulseMediaArtwork", isDirectory: true)
-            try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+            let marker = dir.appendingPathComponent(".cache_purged_v551")
+            if !fileManager.fileExists(atPath: marker.path) {
+                try? fileManager.removeItem(at: dir)
+                try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+                try? "v5.5.1".write(to: marker, atomically: true, encoding: .utf8)
+            } else {
+                try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+            }
             self.diskCacheURL = dir
         } else {
             self.diskCacheURL = nil
@@ -1801,51 +1808,27 @@ public final class UniversalArtworkResolver {
         let task = Task<Data?, Never> { [weak self] () -> Data? in
             guard let self = self else { return nil }
 
-            let isBrowser = self.isBrowserSource(bundleIdentifier: bundleIdentifier, artist: cleanArtist, title: title)
+            // 1. First priority: Official high-resolution album cover from iTunes Store or Deezer
+            if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
+                self.cacheArtworkData(itunesData, title: title, artist: artist)
+                return itunesData
+            }
+            if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
+                self.cacheArtworkData(deezerData, title: title, artist: artist)
+                return deezerData
+            }
 
-            if isBrowser {
-                // 1. Direct browser tab extraction for supported Chromium / Safari browsers (instant, 100% fidelity)
-                if let bundle = bundleIdentifier,
-                   let directThumb = await self.fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: bundle, targetTitle: title) {
-                    self.cacheArtworkData(directThumb, title: title, artist: artist)
-                    return directThumb
-                }
+            // 2. Second priority: If playing in a browser, extract thumbnail from matching YouTube tab
+            if let bundle = bundleIdentifier,
+               let directThumb = await self.fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: bundle, targetTitle: cleanTitle) {
+                self.cacheArtworkData(directThumb, title: title, artist: artist)
+                return directThumb
+            }
 
-                // 2. High-precision YouTube search targeting real videoRenderer results only (skips all ads)
-                if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
-                    self.cacheArtworkData(ytData, title: title, artist: artist)
-                    return ytData
-                }
-
-                // 3. Fallback to iTunes (with strict match verification)
-                if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(itunesData, title: title, artist: artist)
-                    return itunesData
-                }
-
-                // 4. Fallback to Deezer (with strict match verification)
-                if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(deezerData, title: title, artist: artist)
-                    return deezerData
-                }
-            } else {
-                // 1. For dedicated music apps (Apple Music, Spotify, Tidal): iTunes official cover art is best
-                if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(itunesData, title: title, artist: artist)
-                    return itunesData
-                }
-
-                // 2. Try Deezer Public Music Search
-                if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
-                    self.cacheArtworkData(deezerData, title: title, artist: artist)
-                    return deezerData
-                }
-
-                // 3. Fallback to YouTube Video Thumbnail
-                if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
-                    self.cacheArtworkData(ytData, title: title, artist: artist)
-                    return ytData
-                }
+            // 3. Fallback: High-precision YouTube video search
+            if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
+                self.cacheArtworkData(ytData, title: title, artist: artist)
+                return ytData
             }
 
             return nil
@@ -1861,23 +1844,6 @@ public final class UniversalArtworkResolver {
             self.lock.unlock()
             completion(result)
         }
-    }
-
-    /// Determines whether the media originates from a web browser or video platform
-    private func isBrowserSource(bundleIdentifier: String?, artist: String, title: String) -> Bool {
-        if let id = bundleIdentifier?.lowercased() {
-            if id.contains("zen") || id.contains("browser") || id.contains("chrome") ||
-               id.contains("safari") || id.contains("firefox") || id.contains("edge") ||
-               id.contains("brave") || id.contains("opera") || id.contains("vivaldi") ||
-               id.contains("arc") || id.contains("orion") || id.contains("mozilla") {
-                return true
-            }
-        }
-        let lowerArtist = artist.lowercased()
-        if lowerArtist == "youtube" || lowerArtist.contains("topic") {
-            return true
-        }
-        return false
     }
 
     /// Purges in-flight tasks without dropping already cached artwork
@@ -1906,6 +1872,13 @@ public final class UniversalArtworkResolver {
             return nil
         }
 
+        let cleanTarget = targetTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTarget.isEmpty else { return nil }
+
+        let escapedTarget = cleanTarget
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+
         let lower = bundleIdentifier.lowercased()
         let isSafari = lower.contains("safari")
         let appName: String
@@ -1923,6 +1896,7 @@ public final class UniversalArtworkResolver {
             return nil
         }
 
+        let titleGetter = isSafari ? "set tabTitle to (name of t as text)" : "tell t to set tabTitle to (title of t as text)"
         let script = """
         tell application "\(appName)"
             try
@@ -1930,7 +1904,10 @@ public final class UniversalArtworkResolver {
                     repeat with t in tabs of w
                         set u to (URL of t as text)
                         if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            return u
+                            \(titleGetter)
+                            if tabTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains tabTitle then
+                                return u
+                            end if
                         end if
                     end repeat
                 end repeat

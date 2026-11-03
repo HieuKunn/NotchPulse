@@ -247,43 +247,43 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         MusicManager.shared.ensureArtworkLoaded()
     }
     
+    private func finalizeHide() {
+        self.orderOut(nil)
+        self.isFullScreen = false
+        self.isWindowVisible = false
+        MusicManager.shared.isUIActive = false
+        if let screen = NSScreen.main {
+            self.setFrame(self.targetCompactFrame(for: screen), display: false)
+        }
+        if self.isSkyLightAttached {
+            SkyLightOperator.shared.undelegateWindow(self)
+            self.isSkyLightAttached = false
+        }
+    }
+
     func hide(immediately: Bool = false) {
         guard isVisible || isWindowVisible else { return }
         hideGeneration += 1
         let currentGen = hideGeneration
-        
         assignedScreenUUID = nil
         
         if immediately {
             self.alphaValue = 0.0
-            self.orderOut(nil)
-            self.contentView = nil
-            self.isFullScreen = false
-            self.isWindowVisible = false
-            MusicManager.shared.isUIActive = false
-            if self.isSkyLightAttached {
-                SkyLightOperator.shared.undelegateWindow(self)
-                self.isSkyLightAttached = false
-            }
+            finalizeHide()
             return
         }
         
+        self.isWindowVisible = false
+        MusicManager.shared.isUIActive = false
+        
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.15
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            context.duration = 0.18
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             self.animator().alphaValue = 0.0
         }, completionHandler: { [weak self] in
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
                 guard let self = self, self.hideGeneration == currentGen else { return }
-                self.orderOut(nil)
-                self.contentView = nil
-                self.isFullScreen = false
-                self.isWindowVisible = false
-                MusicManager.shared.isUIActive = false
-                if self.isSkyLightAttached {
-                    SkyLightOperator.shared.undelegateWindow(self)
-                    self.isSkyLightAttached = false
-                }
+                self.finalizeHide()
             }
         })
     }

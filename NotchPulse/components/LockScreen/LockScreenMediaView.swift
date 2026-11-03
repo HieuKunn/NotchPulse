@@ -63,9 +63,6 @@ struct LockScreenMediaView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
-        .onReceive(DistributedNotificationCenter.default().publisher(for: NSNotification.Name("AppleInterfaceThemeChangedNotification"))) { _ in
-            windowController.syncTheme()
-        }
         .onChange(of: colorScheme) { _, _ in
             windowController.syncTheme()
         }

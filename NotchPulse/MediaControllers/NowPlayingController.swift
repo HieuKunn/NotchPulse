@@ -538,102 +538,70 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
 
-        let appleScript: String
-        if isSafari {
-            appleScript = """
-            tell application "\(appName)"
-                set targetTab to missing value
-                set playingTab to missing value
-                set fallbackTab to missing value
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set u to (URL of t as text)
-                        if u contains "youtube.com" or u contains "soundcloud.com" or u contains "spotify.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "music.youtube.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "tiktok.com" or u contains "facebook.com" then
-                            try
-                                set tabTitle to (name of t as text)
-                                set ms to (do JavaScript "(function(){ var v = document.querySelector('video, audio'); if (!v) return 'none'; return (!v.paused ? 'playing' : (v.currentTime > 0 ? 'paused_progress' : 'idle')); })()" in t)
-                                if "\(escapedTargetTitle)" is not "" and tabTitle contains "\(escapedTargetTitle)" then
-                                    set targetTab to t
-                                    exit repeat
-                                else if ms contains "playing" and playingTab is missing value then
-                                    set playingTab to t
-                                else if ms contains "paused_progress" and fallbackTab is missing value then
-                                    set fallbackTab to t
-                                else if fallbackTab is missing value then
-                                    set fallbackTab to t
-                                end if
-                            end try
-                        end if
-                    end repeat
-                    if targetTab is not missing value then exit repeat
-                end repeat
-                if targetTab is missing value then
-                    if playingTab is not missing value then
-                        set targetTab to playingTab
-                    else if fallbackTab is not missing value then
-                        set targetTab to fallbackTab
-                    else
+        let jsInspect = "(function(){ var v = document.querySelector('video, audio'); if (!v) return 'none'; return (!v.paused ? 'playing' : (v.currentTime > 0 ? 'paused_progress' : 'idle')); })()"
+        let readTabInfo = isSafari
+            ? """
+              set tabTitle to (name of t as text)
+              set ms to (do JavaScript "\(jsInspect)" in t)
+              """
+            : """
+              tell t
+                  set tabTitle to (title of t as text)
+                  set ms to execute javascript "\(jsInspect)"
+              end tell
+              """
+        let frontTab = isSafari ? "current tab of front window" : "active tab of front window"
+        let runCommand = isSafari
+            ? "return (do JavaScript \"\(escapedJS)\" in targetTab)"
+            : """
+              tell targetTab
+                  return execute javascript "\(escapedJS)"
+              end tell
+              """
+
+        let appleScript = """
+        tell application "\(appName)"
+            set targetTab to missing value
+            set playingTab to missing value
+            set fallbackTab to missing value
+            repeat with w in windows
+                repeat with t in tabs of w
+                    set u to (URL of t as text)
+                    if u contains "youtube.com" or u contains "soundcloud.com" or u contains "spotify.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "music.youtube.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "tiktok.com" or u contains "facebook.com" then
                         try
-                            set targetTab to current tab of front window
+                            \(readTabInfo)
+                            if "\(escapedTargetTitle)" is not "" and tabTitle contains "\(escapedTargetTitle)" then
+                                set targetTab to t
+                                exit repeat
+                            else if ms contains "playing" and playingTab is missing value then
+                                set playingTab to t
+                            else if ms contains "paused_progress" and fallbackTab is missing value then
+                                set fallbackTab to t
+                            else if fallbackTab is missing value then
+                                set fallbackTab to t
+                            end if
                         end try
                     end if
-                end if
-                if targetTab is not missing value then
-                    return (do JavaScript "\(escapedJS)" in targetTab)
-                end if
-                return "no_tab"
-            end tell
-            """
-        } else {
-            appleScript = """
-            tell application "\(appName)"
-                set targetTab to missing value
-                set playingTab to missing value
-                set fallbackTab to missing value
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set u to (URL of t as text)
-                        if u contains "youtube.com" or u contains "soundcloud.com" or u contains "spotify.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "music.youtube.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "tiktok.com" or u contains "facebook.com" then
-                            try
-                                tell t
-                                    set tabTitle to (title of t as text)
-                                    set ms to execute javascript "(function(){ var v = document.querySelector('video, audio'); if (!v) return 'none'; return (!v.paused ? 'playing' : (v.currentTime > 0 ? 'paused_progress' : 'idle')); })()"
-                                end tell
-                                if "\(escapedTargetTitle)" is not "" and tabTitle contains "\(escapedTargetTitle)" then
-                                    set targetTab to t
-                                    exit repeat
-                                else if ms contains "playing" and playingTab is missing value then
-                                    set playingTab to t
-                                else if ms contains "paused_progress" and fallbackTab is missing value then
-                                    set fallbackTab to t
-                                else if fallbackTab is missing value then
-                                    set fallbackTab to t
-                                end if
-                            end try
-                        end if
-                    end repeat
-                    if targetTab is not missing value then exit repeat
                 end repeat
-                if targetTab is missing value then
-                    if playingTab is not missing value then
-                        set targetTab to playingTab
-                    else if fallbackTab is not missing value then
-                        set targetTab to fallbackTab
-                    else
-                        try
-                            set targetTab to active tab of front window
-                        end try
-                    end if
+                if targetTab is not missing value then exit repeat
+            end repeat
+            if targetTab is missing value then
+                if playingTab is not missing value then
+                    set targetTab to playingTab
+                else if fallbackTab is not missing value then
+                    set targetTab to fallbackTab
+                else
+                    try
+                        set targetTab to \(frontTab)
+                    end try
                 end if
-                if targetTab is not missing value then
-                    tell targetTab
-                        return execute javascript "\(escapedJS)"
-                    end tell
-                end if
-                return "no_tab"
-            end tell
-            """
-        }
+            end if
+            if targetTab is not missing value then
+                \(runCommand)
+            end if
+            return "no_tab"
+        end tell
+        """
 
         do {
             let result = try await AppleScriptHelper.execute(appleScript)
@@ -720,119 +688,52 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     // MARK: - Protocol Implementation
-    func play() async {
-        if await Self.sendUniversalCommand("send", arg: "0") {
+    private func executeStandardMediaCommand(
+        commandId: Int,
+        appleMusicCommand: String,
+        spotifyCommand: String,
+        browserMediaAction: BrowserMediaAction
+    ) async {
+        if await Self.sendUniversalCommand("send", arg: "\(commandId)") {
+            return
+        }
+        if (commandId == 4 || commandId == 5) && NotchPulseLockMonitor.isScreenActuallyLocked() {
+            Self.postMediaKeyEvent(for: commandId)
             return
         }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to play")
+            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to \(appleMusicCommand)")
             return
         } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to play")
+            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to \(spotifyCommand)")
             return
         } else if isBrowser(bundleID) {
-            let success = await executeBrowserScript(for: .play)
-            if success {
+            if await executeBrowserScript(for: browserMediaAction) {
                 return
             }
         }
-        Self.postMediaKeyEvent(for: 0)
+        Self.postMediaKeyEvent(for: commandId)
+    }
+
+    func play() async {
+        await executeStandardMediaCommand(commandId: 0, appleMusicCommand: "play", spotifyCommand: "play", browserMediaAction: .play)
     }
 
     func pause() async {
-        if await Self.sendUniversalCommand("send", arg: "1") {
-            return
-        }
-        let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to pause")
-            return
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to pause")
-            return
-        } else if isBrowser(bundleID) {
-            let success = await executeBrowserScript(for: .pause)
-            if success {
-                return
-            }
-        }
-        Self.postMediaKeyEvent(for: 1)
+        await executeStandardMediaCommand(commandId: 1, appleMusicCommand: "pause", spotifyCommand: "pause", browserMediaAction: .pause)
     }
 
     func togglePlay() async {
-        // Universal MediaRemote toggle play/pause (command 2) via Mach adapter
-        if await Self.sendUniversalCommand("send", arg: "2") {
-            return
-        }
-        let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to playpause")
-            return
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to playpause")
-            return
-        } else if isBrowser(bundleID) {
-            let success = await executeBrowserScript(for: .togglePlay)
-            if success {
-                return
-            }
-        }
-        Self.postMediaKeyEvent(for: 2)
+        await executeStandardMediaCommand(commandId: 2, appleMusicCommand: "playpause", spotifyCommand: "playpause", browserMediaAction: .togglePlay)
     }
 
     func nextTrack() async {
-        if await Self.sendUniversalCommand("send", arg: "4") {
-            return
-        }
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-            Self.postMediaKeyEvent(for: 4)
-            return
-        }
-        let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to next track")
-            return
-        } else if bundleID == "com.spotify.client" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to next track")
-            return
-        } else if isBrowser(bundleID) {
-            let success = await executeBrowserScript(for: .next)
-            if success {
-                return
-            }
-        }
-        Self.postMediaKeyEvent(for: 4)
+        await executeStandardMediaCommand(commandId: 4, appleMusicCommand: "next track", spotifyCommand: "next track", browserMediaAction: .next)
     }
 
     func previousTrack() async {
-        if await Self.sendUniversalCommand("send", arg: "5") {
-            return
-        }
-        if NotchPulseLockMonitor.isScreenActuallyLocked() {
-            Self.postMediaKeyEvent(for: 5)
-            return
-        }
-        let bundleID = getEffectiveBundleID()
-        if bundleID == "com.apple.Music" {
-            try? await AppleScriptHelper.executeVoid("tell application \"Music\" to previous track")
-            return
-        } else if bundleID == "com.spotify.client" {
-            let script = """
-            tell application "Spotify"
-                set player position to 0
-                previous track
-            end tell
-            """
-            try? await AppleScriptHelper.executeVoid(script)
-            return
-        } else if isBrowser(bundleID) {
-            let success = await executeBrowserScript(for: .previous)
-            if success {
-                return
-            }
-        }
-        Self.postMediaKeyEvent(for: 5)
+        await executeStandardMediaCommand(commandId: 5, appleMusicCommand: "previous track", spotifyCommand: "set player position to 0\nprevious track", browserMediaAction: .previous)
     }
 
     func seek(to time: Double) async {

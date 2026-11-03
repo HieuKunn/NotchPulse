@@ -30,15 +30,15 @@ final class LockScreenWakeObserver: ObservableObject {
         setupObservers()
     }
     
+    private func cancelPendingTasks() {
+        hideDebounceTask?.cancel(); hideDebounceTask = nil
+        lockSessionTimer?.cancel(); lockSessionTimer = nil
+        lockTransitionTask?.cancel(); lockTransitionTask = nil
+        wakeTransitionTask?.cancel(); wakeTransitionTask = nil
+    }
+
     func cleanup() {
-        hideDebounceTask?.cancel()
-        hideDebounceTask = nil
-        lockSessionTimer?.cancel()
-        lockSessionTimer = nil
-        lockTransitionTask?.cancel()
-        lockTransitionTask = nil
-        wakeTransitionTask?.cancel()
-        wakeTransitionTask = nil
+        cancelPendingTasks()
         for token in distributedTokens {
             DistributedNotificationCenter.default().removeObserver(token)
         }
@@ -50,30 +50,28 @@ final class LockScreenWakeObserver: ObservableObject {
         lockSessionTimer?.cancel()
         lockSessionTimer = Task { @MainActor [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(800))
+                try? await Task.sleep(for: .milliseconds(100))
                 guard let self = self, self.isScreenLocked else { break }
                 
                 let actuallyLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
                 if !actuallyLocked {
-                    self.handleUnlockTransition()
+                    self.handleUnlockTransition(animated: true)
                     break
                 }
             }
         }
     }
 
-    func handleUnlockTransition() {
+    func handleUnlockTransition(animated: Bool = true) {
+        guard self.isScreenLocked || LockScreenMediaWindow.shared.isWindowVisible else { return }
         self.isScreenLocked = false
-        self.lockTransitionTask?.cancel()
-        self.lockTransitionTask = nil
-        self.wakeTransitionTask?.cancel()
-        self.wakeTransitionTask = nil
+        cancelPendingTasks()
         NotchPulseLockMonitor.invalidateLockCache()
-        self.lockSessionTimer?.cancel()
-        self.lockSessionTimer = nil
-        self.hideDebounceTask?.cancel()
-        self.hideDebounceTask = nil
-        LockScreenMediaWindow.shared.hideImmediately()
+        if animated {
+            LockScreenMediaWindow.shared.hide(immediately: false)
+        } else {
+            LockScreenMediaWindow.shared.hideImmediately()
+        }
     }
     
     private func handleLockTransition() {
@@ -133,7 +131,7 @@ final class LockScreenWakeObserver: ObservableObject {
                 MusicManager.shared.forceUpdate()
                 self.updateLockScreenMediaWindowVisibility()
             } else {
-                self.handleUnlockTransition()
+                self.handleUnlockTransition(animated: false)
                 return
             }
         }
@@ -171,7 +169,7 @@ final class LockScreenWakeObserver: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.handleUnlockTransition()
+                self?.handleUnlockTransition(animated: true)
             }
         }
         distributedTokens.append(unlockToken)
