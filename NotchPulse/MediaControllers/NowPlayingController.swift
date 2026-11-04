@@ -976,6 +976,15 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             payload.parentApplicationBundleIdentifier == nil &&
             payload.elapsedTime == nil
         if isEmptyPayload {
+            // During the lock transition MediaRemote can briefly publish an
+            // empty handshake while the real player keeps running. Do not turn
+            // that transient payload into a stopped/paused state; doing so
+            // makes the lock-screen card report false playback state.
+            if LockScreenWakeObserver.isSessionLocked, !self.playbackState.title.isEmpty {
+                NSLog("Ignoring transient empty Now Playing payload while screen is locked")
+                return
+            }
+
             // When all media applications close or stop, mediaremote-adapter emits an empty payload with diff == false.
             // If we previously had an active track or were playing, update to a clean stopped state so NotchPulse resets cleanly
             // instead of getting stuck in a ghost playback state.
@@ -1087,7 +1096,12 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.lastUpdated = self.playbackState.lastUpdated
         }
 
-        newPlaybackState.isPlaying = payload.playing ?? (diff ? self.playbackState.isPlaying : false)
+        let isLocked = LockScreenWakeObserver.isSessionLocked
+        // A lock-screen MediaRemote snapshot can omit `playing` even though
+        // the track is still running. Only an explicit false is allowed to
+        // pause the session while locked; a missing value preserves reality.
+        newPlaybackState.isPlaying = payload.playing
+            ?? (diff || isLocked ? self.playbackState.isPlaying : false)
         let defaultRate: Double = newPlaybackState.isPlaying ? 1.0 : 0.0
         newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : defaultRate)
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier

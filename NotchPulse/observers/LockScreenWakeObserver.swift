@@ -109,6 +109,10 @@ final class LockScreenWakeObserver: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(delayMs))
                 guard !Task.isCancelled, self.isScreenLocked else { break }
                 MusicManager.shared.forceUpdate()
+                // forceUpdate() is asynchronous; wait for the controller to
+                // publish the title/state before evaluating the show predicate.
+                try? await Task.sleep(for: .milliseconds(180))
+                guard !Task.isCancelled, self.isScreenLocked else { break }
                 self.updateLockScreenMediaWindowVisibility()
             }
         }
