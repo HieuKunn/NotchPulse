@@ -1079,12 +1079,13 @@ class MusicManager: ObservableObject {
                     return
                 }
 
-                // No other media is playing: do NOT fallback to old paused sessions via LIFO.
-                // Temporarily close inline / default media while keeping current track metadata intact.
+                // No other media is playing. Keep the current paused track as
+                // the active session instead of moving it into an invisible
+                // idle bucket. The lock-screen player must retain its title,
+                // artwork, lyrics and controls after a pause.
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                    self.isPlayerIdle = true
+                    self.isPlayerIdle = false
                 }
-                NotchPulseViewCoordinator.shared.dismissExpandingView(animated: true)
             }
         }
     }
@@ -1222,7 +1223,9 @@ class MusicManager: ObservableObject {
         if let currentSession = mediaSessionStack.first(where: { $0.id == currentId }) {
             self.isPlaying = false
             self.playbackRate = 0
-            self.isPlayerIdle = true
+            // A paused-but-valid single session remains the active media
+            // session. Do not hide it or replace it with a synthetic idle state.
+            self.isPlayerIdle = false
             return
         }
 
@@ -1310,7 +1313,10 @@ class MusicManager: ObservableObject {
         }
 
         // On-demand fetch lyrics if restored session has no cached lyrics
-        if self.isUIActive && Defaults[.enableLyrics] && self.currentLyrics.isEmpty && self.syncedLyrics.isEmpty {
+        if self.isUIActive
+            && (Defaults[.enableLyrics] || Defaults[.lockScreenPlayerShowLyrics])
+            && self.currentLyrics.isEmpty
+            && self.syncedLyrics.isEmpty {
             self.ensureLyricsLoaded()
         }
 
