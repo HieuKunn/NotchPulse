@@ -15,24 +15,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         bundleIdentifier: "com.apple.Music"
     )
 
-    @MainActor
-    func syncRestoredPlaybackState(_ snapshot: MediaSessionSnapshot) {
-        var restored = PlaybackState(bundleIdentifier: snapshot.bundleIdentifier ?? "")
-        restored.title = snapshot.title
-        restored.artist = snapshot.artist
-        restored.album = snapshot.album
-        restored.isPlaying = snapshot.isPlaying
-        restored.duration = snapshot.duration
-        restored.currentTime = snapshot.currentTime
-        restored.playbackRate = snapshot.playbackRate
-        restored.isShuffled = snapshot.isShuffled
-        restored.repeatMode = snapshot.repeatMode
-        restored.volume = snapshot.volume
-        restored.isFavorite = snapshot.isFavorite
-        restored.artwork = snapshot.artworkData
-        restored.lastUpdated = snapshot.lastUpdated
-        self.playbackState = restored
-    }
+
 
     var playbackStatePublisher: AnyPublisher<PlaybackState, Never> {
         $playbackState.eraseToAnyPublisher()
@@ -884,7 +867,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
 
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.script, paths.framework, "stream"]
+        process.arguments = [paths.script, paths.framework, "stream", "--no-diff", "--debounce=50"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
@@ -984,12 +967,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         // Guard against initial empty payload handshake from mediaremote-adapter stream:
         // {"type":"data","diff":false,"payload":{}}
         if Self.isEmpty(payload) {
-            // A one-shot `get` can return an empty snapshot while the stream
-            // still knows the current track. Never clear playback from a poll.
             guard !fromSnapshot, !diff, !playbackState.title.isEmpty else { return }
             emptyStreamVerificationTask?.cancel()
             emptyStreamVerificationTask = Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .milliseconds(800))
                 guard !Task.isCancelled, let self,
                       let paths = Self.getAdapterPaths() else { return }
                 guard let confirmation = await self.readNowPlayingInfo(paths: paths) else { return }
@@ -998,17 +979,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                     await self.handleAdapterUpdate(confirmation, fromSnapshot: true)
                     return
                 }
-                // Require a second empty poll before dropping a real track.
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled,
-                      let second = await self.readNowPlayingInfo(paths: paths),
-                      !Task.isCancelled else { return }
-                if !Self.isEmpty(second.payload) {
-                    await self.handleAdapterUpdate(second, fromSnapshot: true)
-                } else if !LockScreenWakeObserver.isSessionLocked {
+                if !LockScreenWakeObserver.isSessionLocked {
                     await MainActor.run {
                         var stopped = PlaybackState(bundleIdentifier: "")
                         stopped.playbackRate = 0
+                        stopped.isPlaying = false
                         self.playbackState = stopped
                     }
                 }
@@ -1021,28 +996,31 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
         
-        let titleCandidate = payload.title?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let titleCandidate = titleCandidate, !titleCandidate.isEmpty {
-            newPlaybackState.title = titleCandidate
-        } else if diff || (!self.playbackState.title.isEmpty && (payload.bundleIdentifier == nil || payload.bundleIdentifier == self.playbackState.bundleIdentifier)) {
+        let newTitle = payload.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isTitleGiven = (newTitle != nil && !newTitle!.isEmpty)
+        let titleHasChanged = isTitleGiven && (newTitle != self.playbackState.title)
+
+        if isTitleGiven {
+            newPlaybackState.title = newTitle!
+        } else if diff {
             newPlaybackState.title = self.playbackState.title
         } else {
             newPlaybackState.title = ""
         }
         
-        let artistCandidate = payload.artist?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let artistCandidate = artistCandidate, !artistCandidate.isEmpty {
-            newPlaybackState.artist = artistCandidate
-        } else if diff || (!self.playbackState.artist.isEmpty && (payload.bundleIdentifier == nil || payload.bundleIdentifier == self.playbackState.bundleIdentifier)) {
+        let newArtist = payload.artist?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let newArtist = newArtist, !newArtist.isEmpty {
+            newPlaybackState.artist = newArtist
+        } else if diff && !titleHasChanged {
             newPlaybackState.artist = self.playbackState.artist
         } else {
             newPlaybackState.artist = ""
         }
         
-        let albumCandidate = payload.album?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let albumCandidate = albumCandidate, !albumCandidate.isEmpty {
-            newPlaybackState.album = albumCandidate
-        } else if diff || (!self.playbackState.album.isEmpty && (payload.bundleIdentifier == nil || payload.bundleIdentifier == self.playbackState.bundleIdentifier)) {
+        let newAlbum = payload.album?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let newAlbum = newAlbum, !newAlbum.isEmpty {
+            newPlaybackState.album = newAlbum
+        } else if diff && !titleHasChanged {
             newPlaybackState.album = self.playbackState.album
         } else {
             newPlaybackState.album = ""
@@ -1050,7 +1028,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let dur = payload.duration, dur > 0 {
             newPlaybackState.duration = dur
-        } else if diff || self.playbackState.duration > 0 {
+        } else if diff && !titleHasChanged && self.playbackState.duration > 0 {
             newPlaybackState.duration = self.playbackState.duration
         } else {
             newPlaybackState.duration = 0
@@ -1068,43 +1046,33 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else {
             newPlaybackState.currentTime = 0
         }
-
         
         if let shuffleMode = payload.shuffleMode {
             newPlaybackState.isShuffled = shuffleMode != 1
-        } else {
+        } else if diff {
             newPlaybackState.isShuffled = self.playbackState.isShuffled
-        }
-        if let repeatModeValue = payload.repeatMode {
-            newPlaybackState.repeatMode = RepeatMode(rawValue: repeatModeValue) ?? .off
         } else {
-            newPlaybackState.repeatMode = self.playbackState.repeatMode
+            newPlaybackState.isShuffled = false
         }
 
-        let trackChanged = (newPlaybackState.title != self.playbackState.title) || (newPlaybackState.artist != self.playbackState.artist)
+        if let repeatModeValue = payload.repeatMode {
+            newPlaybackState.repeatMode = RepeatMode(rawValue: repeatModeValue) ?? .off
+        } else if diff {
+            newPlaybackState.repeatMode = self.playbackState.repeatMode
+        } else {
+            newPlaybackState.repeatMode = .off
+        }
+
         if let artworkDataString = payload.artworkData, !artworkDataString.isEmpty {
             artworkRetryTask?.cancel()
             artworkRetryTask = nil
-            if trackChanged || self.playbackState.artwork == nil {
-                newPlaybackState.artwork = Data(
-                    base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
-            } else {
-                newPlaybackState.artwork = self.playbackState.artwork
-            }
+            newPlaybackState.artwork = Data(
+                base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        } else if diff && !titleHasChanged {
+            newPlaybackState.artwork = self.playbackState.artwork
         } else {
-            // Do NOT wipe artwork if the track has not changed!
-            if trackChanged {
-                newPlaybackState.artwork = nil
-                if !newPlaybackState.title.isEmpty {
-                    scheduleArtworkRetry()
-                }
-            } else {
-                newPlaybackState.artwork = self.playbackState.artwork
-                if newPlaybackState.artwork == nil && !newPlaybackState.title.isEmpty && artworkRetryTask == nil {
-                    scheduleArtworkRetry()
-                }
-            }
+            newPlaybackState.artwork = nil
         }
 
         if let dateString = payload.timestamp,
@@ -1117,24 +1085,25 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
 
         let isLocked = LockScreenWakeObserver.isSessionLocked
-        // A poll snapshot (e.g. triggered on notch hover) on the same track
-        // must not override an active live playing state with a false pause.
-        if fromSnapshot && !trackChanged && payload.playing == false && self.playbackState.isPlaying {
+        if fromSnapshot && !titleHasChanged && payload.playing == false && self.playbackState.isPlaying {
             newPlaybackState.isPlaying = true
         } else {
             newPlaybackState.isPlaying = payload.playing
-                ?? (diff || isLocked || !trackChanged ? self.playbackState.isPlaying : false)
+                ?? (diff || isLocked || !titleHasChanged ? self.playbackState.isPlaying : false)
         }
         let defaultRate: Double = newPlaybackState.isPlaying ? 1.0 : 0.0
         newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : defaultRate)
+        
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
         if let newBundle = newBundle, !newBundle.isEmpty {
             newPlaybackState.bundleIdentifier = newBundle
-        } else {
+        } else if diff {
             newPlaybackState.bundleIdentifier = self.playbackState.bundleIdentifier
+        } else {
+            newPlaybackState.bundleIdentifier = ""
         }
         
-        newPlaybackState.volume = payload.volume ?? self.playbackState.volume
+        newPlaybackState.volume = payload.volume ?? (diff ? self.playbackState.volume : 0.5)
         
         await MainActor.run {
             self.playbackState = newPlaybackState

@@ -80,6 +80,7 @@ struct SettingsBadgeView: View {
 struct SettingsView: View {
     @State private var selectedTab = "General"
     @State private var searchText = ""
+    @State private var isSearchActive = false
     @State private var accentColorUpdateTrigger = UUID()
     @State private var scrollToItemId: String? = nil
     @State private var highlightedItemId: String? = nil
@@ -91,7 +92,7 @@ struct SettingsView: View {
     private let allTabs: [SettingsTabItem] = [
         SettingsTabItem(
             id: "General",
-            icon: "gearshape.fill",
+            icon: "gearshape",
             badgeColor: Color(nsColor: .systemGray),
             sections: [
                 SettingsSectionItem(
@@ -133,7 +134,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Appearance",
-            icon: "paintbrush.fill",
+            icon: "paintbrush",
             badgeColor: Color(nsColor: .systemIndigo),
             sections: [
                 SettingsSectionItem(
@@ -155,7 +156,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Media",
-            icon: "play.fill",
+            icon: "play",
             badgeColor: Color.pink,
             sections: [
                 SettingsSectionItem(
@@ -246,7 +247,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "SystemMonitor",
-            icon: "chart.bar.fill",
+            icon: "chart.bar",
             badgeColor: Color.green,
             sections: [
                 SettingsSectionItem(
@@ -295,7 +296,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Shelf",
-            icon: "tray.fill",
+            icon: "tray",
             badgeColor: Color.indigo,
             sections: [
                 SettingsSectionItem(
@@ -312,7 +313,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Clipboard",
-            icon: "doc.on.clipboard.fill",
+            icon: "doc.on.clipboard",
             badgeColor: Color.teal,
             sections: [
                 SettingsSectionItem(
@@ -329,7 +330,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Audio",
-            icon: "speaker.wave.2.fill",
+            icon: "speaker.wave.2",
             badgeColor: Color.red,
             sections: [
                 SettingsSectionItem(
@@ -346,7 +347,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Display",
-            icon: "sun.max.fill",
+            icon: "sun.max",
             badgeColor: Color.blue,
             sections: [
                 SettingsSectionItem(
@@ -554,43 +555,22 @@ struct SettingsView: View {
             .padding(.top, 18)
             .padding(.bottom, 9)
 
-            List(selection: selectedTabBinding) {
-                if filteredTabs.isEmpty {
-                    ContentUnavailableView {
-                        Label(loc("No settings found"), systemImage: "magnifyingglass")
-                    }
-                } else {
-                    ForEach(filteredTabs) { tab in
-                        let matches = matchingSections(for: tab)
-
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(tabTitle(for: tab.id))
-
-                                if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
-                                    Text(matches.map { loc($0.title) }.joined(separator: " • "))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                            }
-                        } icon: {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(selectedTab == tab.id ? Color.white : .secondary)
-                                .frame(width: 20, height: 20, alignment: .center)
-                        }
-                        .tag(tab.id)
-                    }
-                }
-            }
-            .listStyle(.sidebar)
-            .searchable(
-                text: $searchText,
-                placement: .sidebar,
-                prompt: loc("Search Settings...")
+            SettingsSidebarListView(
+                selectedTab: $selectedTab,
+                searchText: $searchText,
+                isPresented: $isSearchActive,
+                filteredTabs: filteredTabs,
+                matchingSections: matchingSections(for:),
+                tabTitle: tabTitle(for:),
+                selectTab: selectTab
             )
         }
+        .searchable(
+            text: $searchText,
+            isPresented: $isSearchActive,
+            placement: .sidebar,
+            prompt: loc("Search Settings...")
+        )
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -626,16 +606,6 @@ struct SettingsView: View {
                     }
                 }
         }
-    }
-
-    private var selectedTabBinding: Binding<String?> {
-        Binding(
-            get: { selectedTab },
-            set: { newValue in
-                guard let newValue, newValue != selectedTab else { return }
-                selectTab(newValue)
-            }
-        )
     }
 
     var body: some View {
@@ -3392,4 +3362,78 @@ struct LanguageSettingsView: View {
         }
     }
 }
+
+// MARK: - Sidebar List with Dynamic Search Selection
+private struct SettingsSidebarListView: View {
+    @Environment(\.isSearching) private var isSearching
+    @Binding var selectedTab: String
+    @Binding var searchText: String
+    @Binding var isPresented: Bool
+    let filteredTabs: [SettingsTabItem]
+    let matchingSections: (SettingsTabItem) -> [SettingsSectionItem]
+    let tabTitle: (String) -> String
+    let selectTab: (String) -> Void
+
+    @State private var searchSelection: String? = nil
+
+    private var activeSelection: Binding<String?> {
+        Binding(
+            get: {
+                if isSearching || isPresented || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return searchSelection
+                }
+                return selectedTab
+            },
+            set: { newValue in
+                guard let newValue else { return }
+                selectTab(newValue)
+                if isSearching || isPresented || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    searchSelection = newValue
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        List(selection: activeSelection) {
+            if filteredTabs.isEmpty {
+                ContentUnavailableView {
+                    Label(loc("No settings found"), systemImage: "magnifyingglass")
+                }
+            } else {
+                ForEach(filteredTabs) { tab in
+                    let matches = matchingSections(tab)
+                    let isRowSelected = (activeSelection.wrappedValue == tab.id)
+
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(tabTitle(tab.id))
+
+                            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
+                                Text(matches.map { loc($0.title) }.joined(separator: " • "))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    } icon: {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(isRowSelected ? Color.white : .secondary)
+                            .frame(width: 20, height: 20, alignment: .center)
+                    }
+                    .tag(tab.id)
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .onChange(of: isSearching) { _, newVal in
+            if !newVal { searchSelection = nil }
+        }
+        .onChange(of: isPresented) { _, newVal in
+            if !newVal { searchSelection = nil }
+        }
+    }
+}
+
 

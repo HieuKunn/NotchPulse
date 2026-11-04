@@ -10,71 +10,6 @@ let defaultImage: NSImage = .init(
     accessibilityDescription: "Album Art"
 )!
 
-struct MediaSessionSnapshot: Identifiable, Equatable {
-    let id: String
-    var bundleIdentifier: String?
-    var title: String
-    var artist: String
-    var album: String
-    var isPlaying: Bool
-    var currentTime: TimeInterval
-    var duration: TimeInterval
-    var playbackRate: Double
-    var isShuffled: Bool
-    var repeatMode: RepeatMode
-    var volume: Double
-    var isFavorite: Bool
-    var usingAppIconForArtwork: Bool
-    var lastUpdated: Date
-    var syncedLyrics: [(time: Double, text: String)]
-    var currentLyrics: String
-    var artworkData: Data?
-
-    init(
-        id: String,
-        bundleIdentifier: String?,
-        title: String,
-        artist: String,
-        album: String,
-        isPlaying: Bool = false,
-        currentTime: TimeInterval = 0,
-        duration: TimeInterval = 0,
-        playbackRate: Double = 1,
-        isShuffled: Bool = false,
-        repeatMode: RepeatMode = .off,
-        volume: Double = 0.5,
-        isFavorite: Bool = false,
-        usingAppIconForArtwork: Bool = false,
-        lastUpdated: Date = Date(),
-        syncedLyrics: [(time: Double, text: String)] = [],
-        currentLyrics: String = "",
-        artworkData: Data? = nil
-    ) {
-        self.id = id
-        self.bundleIdentifier = bundleIdentifier
-        self.title = title
-        self.artist = artist
-        self.album = album
-        self.isPlaying = isPlaying
-        self.currentTime = currentTime
-        self.duration = duration
-        self.playbackRate = playbackRate
-        self.isShuffled = isShuffled
-        self.repeatMode = repeatMode
-        self.volume = volume
-        self.isFavorite = isFavorite
-        self.usingAppIconForArtwork = usingAppIconForArtwork
-        self.lastUpdated = lastUpdated
-        self.syncedLyrics = syncedLyrics
-        self.currentLyrics = currentLyrics
-        self.artworkData = artworkData
-    }
-
-    static func == (lhs: MediaSessionSnapshot, rhs: MediaSessionSnapshot) -> Bool {
-        return lhs.id == rhs.id
-    }
-}
-
 class MusicManager: ObservableObject {
     // MARK: - Properties
     static let shared = MusicManager()
@@ -90,9 +25,6 @@ class MusicManager: ObservableObject {
 
     // Active controller
     private var activeController: (any MediaControllerProtocol)?
-
-    // Multi-media session stack (LIFO) for automatic fallback
-    @Published private(set) var mediaSessionStack: [MediaSessionSnapshot] = []
 
     // Published properties for UI
     @Published var songTitle: String = ""
@@ -454,13 +386,6 @@ class MusicManager: ObservableObject {
 
             if state.isPlaying && !state.title.isEmpty && !state.artist.isEmpty {
                 self.updateSneakPeek()
-            } else if !state.isPlaying {
-                // If current media just paused, check if another session is actively playing in the background
-                let currentId = "\(self.bundleIdentifier ?? "")---\(state.title)---\(state.artist)"
-                if let playingSession = mediaSessionStack.last(where: { $0.id != currentId && $0.isPlaying }) {
-                    restoreSession(playingSession)
-                    return
-                }
             }
         } else if self.isPlayerIdle && state.isPlaying {
             withAnimation(.smooth) {
@@ -481,6 +406,21 @@ class MusicManager: ObservableObject {
         let needsArtwork = (self.artworkData == nil || self.usingAppIconForArtwork) && !state.title.isEmpty
         let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || (titleChanged || artistChanged) || needsArtwork
         let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged
+
+        // Immediately synchronize track metadata with active playback state
+        if state.title != self.songTitle {
+            self.songTitle = state.title
+        }
+        if state.artist != self.artistName {
+            self.artistName = state.artist
+        }
+        if state.album != self.album {
+            self.album = state.album
+        }
+        if state.bundleIdentifier != self.bundleIdentifier {
+            self.bundleIdentifier = state.bundleIdentifier
+            self.volumeControlSupported = activeController?.supportsVolumeControl ?? false
+        }
 
         // Handle artwork and visual transitions for changed content
         if hasContentChange {
@@ -509,7 +449,7 @@ class MusicManager: ObservableObject {
                 self.artworkData = cached
                 self.updateArtwork(cached)
             } else if self.artworkData != nil && self.songTitle == state.title && !state.title.isEmpty {
-                // If we already resolved and loaded the artwork for this song, keep it!
+                // If we already resolved and loaded the artwork for this exact song, keep it!
                 self.usingAppIconForArtwork = false
             } else {
                 // If not yet cached, temporarily display host app icon so card is never blank
@@ -595,40 +535,6 @@ class MusicManager: ObservableObject {
         let shuffleChanged = state.isShuffled != self.isShuffled
         let repeatModeChanged = state.repeatMode != self.repeatMode
         let volumeChanged = state.volume != self.volume
-        
-        if state.title != self.songTitle {
-            self.songTitle = state.title
-        }
-
-        if state.artist != self.artistName {
-            self.artistName = state.artist
-        }
-
-        if state.album != self.album {
-            self.album = state.album
-        }
-
-        if timeChanged {
-            self.elapsedTime = state.currentTime
-        }
-
-        if durationChanged {
-            self.songDuration = state.duration
-        }
-
-        if playbackRateChanged {
-            self.playbackRate = state.playbackRate
-        }
-        
-        if shuffleChanged {
-            self.isShuffled = state.isShuffled
-        }
-
-        if state.bundleIdentifier != self.bundleIdentifier {
-            self.bundleIdentifier = state.bundleIdentifier
-            // Update volume control support from active controller
-            self.volumeControlSupported = activeController?.supportsVolumeControl ?? false
-        }
 
         if repeatModeChanged {
             self.repeatMode = state.repeatMode
@@ -657,8 +563,6 @@ class MusicManager: ObservableObject {
                 self.isFetchingLyrics = false
             }
         }
-
-        self.recordMediaSession(from: state)
     }
 
     func toggleFavoriteTrack() {
@@ -806,10 +710,6 @@ class MusicManager: ObservableObject {
                         self.currentLyrics = lyricsString.trimmingCharacters(in: .whitespacesAndNewlines)
                         self.isFetchingLyrics = false
                         self.syncedLyrics = []
-                        if let lastIdx = self.mediaSessionStack.indices.last, self.mediaSessionStack[lastIdx].title == self.songTitle {
-                            self.mediaSessionStack[lastIdx].currentLyrics = self.currentLyrics
-                            self.mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
-                        }
                         return
                     }
                 } catch {
@@ -896,10 +796,6 @@ class MusicManager: ObservableObject {
                                 self.syncedLyrics = self.parseLRC(synced)
                             } else {
                                 self.syncedLyrics = []
-                            }
-                            if let lastIdx = self.mediaSessionStack.indices.last, self.mediaSessionStack[lastIdx].title == self.songTitle {
-                                self.mediaSessionStack[lastIdx].currentLyrics = self.currentLyrics
-                                self.mediaSessionStack[lastIdx].syncedLyrics = self.syncedLyrics
                             }
                             return
                         }
@@ -1097,12 +993,6 @@ class MusicManager: ObservableObject {
                 guard !Task.isCancelled else { return }
                 guard !self.isPlaying else { return }
 
-                // Check if an older session in the stack is actually still playing
-                if let activePrevious = self.mediaSessionStack.dropLast().last(where: { $0.isPlaying }) {
-                    self.restoreSession(activePrevious)
-                    return
-                }
-
                 withAnimation {
                     self.isPlayerIdle = !self.isPlaying
                 }
@@ -1120,121 +1010,10 @@ class MusicManager: ObservableObject {
         }
     }
 
-    // MARK: - Multi-Media Session Stack & Fallback
-
-    @MainActor
-    private func recordMediaSession(from state: PlaybackState) {
-        let cleanTitle = state.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanTitle.isEmpty else { return }
-
-        let effectiveBundle = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "")
-        let sessionId = "\(effectiveBundle)---\(cleanTitle)---\(state.artist)"
-
-        let matchesActiveTrack = (self.songTitle == cleanTitle && self.artistName == state.artist && (self.bundleIdentifier ?? "") == effectiveBundle)
-        let snapshotSyncedLyrics = matchesActiveTrack ? self.syncedLyrics : []
-        let snapshotCurrentLyrics = matchesActiveTrack ? self.currentLyrics : ""
-        let snapshotArtwork = state.artwork ?? (matchesActiveTrack ? self.artworkData : nil)
-
-        // If this session is already in the stack, update its latest values
-        if let idx = mediaSessionStack.firstIndex(where: { $0.id == sessionId }) {
-            mediaSessionStack[idx].isPlaying = state.isPlaying
-            mediaSessionStack[idx].currentTime = state.currentTime
-            mediaSessionStack[idx].duration = state.duration
-            mediaSessionStack[idx].playbackRate = state.playbackRate
-            mediaSessionStack[idx].isShuffled = state.isShuffled
-            mediaSessionStack[idx].repeatMode = state.repeatMode
-            mediaSessionStack[idx].volume = state.volume
-            mediaSessionStack[idx].isFavorite = state.isFavorite
-            mediaSessionStack[idx].lastUpdated = Date()
-            if !snapshotSyncedLyrics.isEmpty {
-                mediaSessionStack[idx].syncedLyrics = snapshotSyncedLyrics
-            }
-            if !snapshotCurrentLyrics.isEmpty {
-                mediaSessionStack[idx].currentLyrics = snapshotCurrentLyrics
-            }
-            if let art = snapshotArtwork {
-                mediaSessionStack[idx].artworkData = art
-            }
-            if state.isPlaying {
-                // If it is playing, move it to the top (most recent)
-                let item = mediaSessionStack.remove(at: idx)
-                mediaSessionStack.append(item)
-            }
-            return
-        }
-
-        // New session: append to registry
-        let snapshot = MediaSessionSnapshot(
-            id: sessionId,
-            bundleIdentifier: effectiveBundle,
-            title: cleanTitle,
-            artist: state.artist,
-            album: state.album,
-            isPlaying: state.isPlaying,
-            currentTime: state.currentTime,
-            duration: state.duration,
-            playbackRate: state.playbackRate,
-            isShuffled: state.isShuffled,
-            repeatMode: state.repeatMode,
-            volume: state.volume,
-            isFavorite: state.isFavorite,
-            usingAppIconForArtwork: self.usingAppIconForArtwork,
-            lastUpdated: Date(),
-            syncedLyrics: snapshotSyncedLyrics,
-            currentLyrics: snapshotCurrentLyrics,
-            artworkData: snapshotArtwork
-        )
-
-        mediaSessionStack.append(snapshot)
-
-        // Keep stack bounded to 10 items
-        if mediaSessionStack.count > 10 {
-            mediaSessionStack.removeFirst()
-        }
-    }
+    // MARK: - Playback Stop & Idle
 
     @MainActor
     private func handleActiveMediaStopped(closedSessionId: String? = nil) {
-        // Prune dead sessions whose apps are no longer running
-        mediaSessionStack.removeAll { snapshot in
-            guard let bid = snapshot.bundleIdentifier, !bid.isEmpty else { return false }
-            let isBrowserApp = [
-                "com.google.Chrome", "com.google.Chrome.canary", "company.thebrowser.Browser",
-                "app.zen-browser.zen", "com.apple.Safari", "com.brave.Browser",
-                "com.microsoft.edgemac", "org.mozilla.firefox"
-            ].contains(bid)
-            if !isBrowserApp && NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty {
-                return true
-            }
-            return false
-        }
-
-        // If a specific session was closed (e.g. browser tab closed), remove it
-        if let closedId = closedSessionId {
-            mediaSessionStack.removeAll { $0.id == closedId }
-        }
-
-        let currentId = closedSessionId ?? {
-            let curBid = self.bundleIdentifier ?? ""
-            return "\(curBid)---\(self.songTitle)---\(self.artistName)"
-        }()
-
-        // Mark current session as paused in stack
-        if let curIdx = mediaSessionStack.firstIndex(where: { $0.id == currentId }) {
-            mediaSessionStack[curIdx].isPlaying = false
-        }
-
-        // Available candidate sessions (excluding the one that just stopped/ended)
-        let candidates = mediaSessionStack.filter { $0.id != currentId }
-
-        // 1. Highest priority: ONLY restore a candidate if another media is actively playing right now
-        if let playingCandidate = candidates.last(where: { $0.isPlaying }) {
-            restoreSession(playingCandidate)
-            return
-        }
-
-        // 2. If no candidate is playing, do NOT fallback to previous media or resurrect dead sessions.
-        // If current media is valid and just stopped/paused (not terminated/closed), remain stopped/paused on it.
         if closedSessionId == nil, !self.songTitle.isEmpty {
             self.isPlaying = false
             self.playbackRate = 0
@@ -1244,18 +1023,13 @@ class MusicManager: ObservableObject {
             return
         }
 
-        // 3. Media was explicitly closed or no valid session remains: clean up cleanly to idle.
-        mediaSessionStack.removeAll()
         resetToIdle()
         updateIdleState(state: false)
     }
 
     @MainActor
     private func handleApplicationTerminated(bundleIdentifier: String) {
-        let wasCurrentApp = (self.bundleIdentifier == bundleIdentifier)
-        mediaSessionStack.removeAll { $0.bundleIdentifier == bundleIdentifier }
-
-        if wasCurrentApp {
+        if self.bundleIdentifier == bundleIdentifier {
             self.isPlaying = false
             self.playbackRate = 0
             handleActiveMediaStopped()
@@ -1271,72 +1045,6 @@ class MusicManager: ObservableObject {
     public func dismissCurrentMedia() {
         self.pause()
         handleActiveMediaStopped()
-    }
-
-    @MainActor
-    private func restoreSession(_ snapshot: MediaSessionSnapshot) {
-        // Cancel in-flight lyrics requests and invalidate generation on session restore
-        self.lyricsRequestId &+= 1
-        self.lyricsFetchTask?.cancel()
-        self.lyricsFetchTask = nil
-        self.isFetchingLyrics = false
-
-        var isActuallyPlaying = snapshot.isPlaying
-        if let bid = snapshot.bundleIdentifier, !bid.isEmpty {
-            let isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
-            if !isRunning {
-                isActuallyPlaying = false
-            }
-        }
-
-        self.songTitle = snapshot.title
-        self.artistName = snapshot.artist
-        self.album = snapshot.album
-        self.bundleIdentifier = snapshot.bundleIdentifier
-        self.songDuration = snapshot.duration
-        self.elapsedTime = snapshot.currentTime
-        self.playbackRate = isActuallyPlaying ? snapshot.playbackRate : 0.0
-        self.isShuffled = snapshot.isShuffled
-        self.repeatMode = snapshot.repeatMode
-        self.volume = snapshot.volume
-        self.isFavoriteTrack = snapshot.isFavorite
-        self.usingAppIconForArtwork = snapshot.usingAppIconForArtwork
-        self.syncedLyrics = snapshot.syncedLyrics
-        self.currentLyrics = snapshot.currentLyrics
-        self.timestampDate = Date()
-        self.isPlaying = isActuallyPlaying
-        self.isPlayerIdle = !isActuallyPlaying
-
-        // Sync NowPlayingController so it doesn't emit empty state on next tick
-        (self.activeController as? NowPlayingController)?.syncRestoredPlaybackState(snapshot)
-
-        if let artData = snapshot.artworkData {
-            self.artworkData = artData
-            self.usingAppIconForArtwork = false
-            self.updateArtwork(artData)
-        } else if let bid = snapshot.bundleIdentifier, let appIcon = AppIconAsNSImage(for: bid) {
-            self.usingAppIconForArtwork = true
-            self.albumArt = appIcon
-            self.calculateAverageColor()
-        } else {
-            self.albumArt = defaultImage
-            self.calculateAverageColor()
-        }
-
-        // On-demand fetch artwork for restored historical session
-        if snapshot.artworkData == nil && !snapshot.title.isEmpty {
-            self.resolveMissingArtwork()
-        }
-
-        // On-demand fetch lyrics if restored session has no cached lyrics
-        if self.isUIActive
-            && (Defaults[.enableLyrics] || Defaults[.lockScreenPlayerShowLyrics])
-            && self.currentLyrics.isEmpty
-            && self.syncedLyrics.isEmpty {
-            self.ensureLyricsLoaded()
-        }
-
-        self.triggerFlipAnimation()
     }
 
     @MainActor
@@ -1728,11 +1436,11 @@ public final class UniversalArtworkResolver {
 
         if let cacheBase = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
             let dir = cacheBase.appendingPathComponent("NotchPulseMediaArtwork", isDirectory: true)
-            let marker = dir.appendingPathComponent(".cache_purged_v551")
+            let marker = dir.appendingPathComponent(".cache_purged_v553")
             if !fileManager.fileExists(atPath: marker.path) {
                 try? fileManager.removeItem(at: dir)
                 try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
-                try? "v5.5.1".write(to: marker, atomically: true, encoding: .utf8)
+                try? "v5.5.3".write(to: marker, atomically: true, encoding: .utf8)
             } else {
                 try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
             }
@@ -1947,8 +1655,20 @@ public final class UniversalArtworkResolver {
         }
 
         let titleGetter = isSafari ? "set tabTitle to (name of t as text)" : "tell t to set tabTitle to (title of t as text)"
+        let frontTabGetter = isSafari ? "current tab of front window" : "active tab of front window"
+        let frontTitleGetter = isSafari ? "set tabTitle to (name of curTab as text)" : "tell curTab to set tabTitle to (title of curTab as text)"
         let script = """
         tell application "\(appName)"
+            try
+                set curTab to \(frontTabGetter)
+                set u to (URL of curTab as text)
+                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                    \(frontTitleGetter)
+                    if tabTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains tabTitle then
+                        return u
+                    end if
+                end if
+            end try
             try
                 repeat with w in windows
                     repeat with t in tabs of w
