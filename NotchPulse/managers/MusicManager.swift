@@ -1227,14 +1227,24 @@ class MusicManager: ObservableObject {
         // Available candidate sessions (excluding the one that just stopped/ended)
         let candidates = mediaSessionStack.filter { $0.id != currentId }
 
-        // 1. Highest priority: ONLY restore a candidate that is actively playing right now
+        // 1. Highest priority: ONLY restore a candidate if another media is actively playing right now
         if let playingCandidate = candidates.last(where: { $0.isPlaying }) {
             restoreSession(playingCandidate)
             return
         }
 
-        // 2. If no candidate is playing, do NOT resurrect old paused/dead sessions.
-        // Clean up any stale sessions and reset cleanly to idle like Boring Notch.
+        // 2. If no candidate is playing, do NOT fallback to previous media or resurrect dead sessions.
+        // If current media is valid and just stopped/paused (not terminated/closed), remain stopped/paused on it.
+        if closedSessionId == nil, !self.songTitle.isEmpty {
+            self.isPlaying = false
+            self.playbackRate = 0
+            withAnimation {
+                self.isPlayerIdle = true
+            }
+            return
+        }
+
+        // 3. Media was explicitly closed or no valid session remains: clean up cleanly to idle.
         mediaSessionStack.removeAll()
         resetToIdle()
         updateIdleState(state: false)
