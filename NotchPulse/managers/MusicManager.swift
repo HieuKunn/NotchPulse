@@ -121,6 +121,7 @@ class MusicManager: ObservableObject {
     private var lyricsFetchTask: Task<Void, Never>? = nil
     private var lyricsRequestId: UInt64 = 0
     private var artworkRepollTask: Task<Void, Never>? = nil
+    private var emptyTitleVerificationTask: Task<Void, Never>? = nil
     @Published var canFavoriteTrack: Bool = false
     @Published var isFavoriteTrack: Bool = false
     @Published var isUIActive: Bool = false {
@@ -217,6 +218,8 @@ class MusicManager: ObservableObject {
         artworkRepollTask?.cancel()
         artworkRepollTask = nil
         debounceIdleTask?.cancel()
+        emptyTitleVerificationTask?.cancel()
+        emptyTitleVerificationTask = nil
         cancellables.removeAll()
         controllerCancellables.removeAll()
         flipWorkItem?.cancel()
@@ -409,6 +412,24 @@ class MusicManager: ObservableObject {
                 return
             }
 
+            // A transient empty payload can also occur when the notch opens on hover
+            // and the media controller is queried during window focus changes.
+            // If we are currently playing a song, debounce before tearing down the session.
+            if !self.songTitle.isEmpty && self.isPlaying {
+                if emptyTitleVerificationTask == nil {
+                    emptyTitleVerificationTask = Task { @MainActor [weak self] in
+                        try? await Task.sleep(for: .milliseconds(600))
+                        guard !Task.isCancelled, let self = self else { return }
+                        self.emptyTitleVerificationTask = nil
+                        self.isPlaying = false
+                        self.playbackRate = 0
+                        let closedId = "\(self.bundleIdentifier ?? "")---\(self.songTitle)---\(self.artistName)"
+                        self.handleActiveMediaStopped(closedSessionId: closedId)
+                    }
+                }
+                return
+            }
+
             // Immediately stop playback and reset rate to avoid ghost playback
             self.isPlaying = false
             self.playbackRate = 0
@@ -417,6 +438,9 @@ class MusicManager: ObservableObject {
             self.handleActiveMediaStopped(closedSessionId: closedId)
             return
         }
+
+        emptyTitleVerificationTask?.cancel()
+        emptyTitleVerificationTask = nil
 
         // Track playback state changes (playing/paused)
         self.lastIsPlaying = state.isPlaying
@@ -1079,12 +1103,8 @@ class MusicManager: ObservableObject {
                     return
                 }
 
-                // No other media is playing. Keep the current paused track as
-                // the active session instead of moving it into an invisible
-                // idle bucket. The lock-screen player must retain its title,
-                // artwork, lyrics and controls after a pause.
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                    self.isPlayerIdle = false
+                withAnimation {
+                    self.isPlayerIdle = !self.isPlaying
                 }
             }
         }
@@ -1207,29 +1227,15 @@ class MusicManager: ObservableObject {
         // Available candidate sessions (excluding the one that just stopped/ended)
         let candidates = mediaSessionStack.filter { $0.id != currentId }
 
-        // 1. Highest priority: Any candidate that is actively playing right now
+        // 1. Highest priority: ONLY restore a candidate that is actively playing right now
         if let playingCandidate = candidates.last(where: { $0.isPlaying }) {
             restoreSession(playingCandidate)
             return
         }
 
-        // 2. Second priority: The most recently active candidate (e.g. 1 2 3 -> 3 stops goes to 2; 2 stops chooses newer 3 or 1)
-        if let mostRecentCandidate = candidates.sorted(by: { $0.lastUpdated > $1.lastUpdated }).first {
-            restoreSession(mostRecentCandidate)
-            return
-        }
-
-        // 3. If no other candidates exist, but current session is still valid: stay paused
-        if let currentSession = mediaSessionStack.first(where: { $0.id == currentId }) {
-            self.isPlaying = false
-            self.playbackRate = 0
-            // A paused-but-valid single session remains the active media
-            // session. Do not hide it or replace it with a synthetic idle state.
-            self.isPlayerIdle = false
-            return
-        }
-
-        // 4. Nothing left
+        // 2. If no candidate is playing, do NOT resurrect old paused/dead sessions.
+        // Clean up any stale sessions and reset cleanly to idle like Boring Notch.
+        mediaSessionStack.removeAll()
         resetToIdle()
         updateIdleState(state: false)
     }

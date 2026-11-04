@@ -91,7 +91,7 @@ struct SettingsView: View {
     private let allTabs: [SettingsTabItem] = [
         SettingsTabItem(
             id: "General",
-            icon: "gear",
+            icon: "gearshape.fill",
             badgeColor: Color(nsColor: .systemGray),
             sections: [
                 SettingsSectionItem(
@@ -155,7 +155,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Media",
-            icon: "play.circle.fill",
+            icon: "play.fill",
             badgeColor: Color.pink,
             sections: [
                 SettingsSectionItem(
@@ -368,7 +368,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "Shortcuts",
-            icon: "command.square.fill",
+            icon: "command",
             badgeColor: Color.purple,
             sections: [
                 SettingsSectionItem(
@@ -424,7 +424,7 @@ struct SettingsView: View {
         ),
         SettingsTabItem(
             id: "About",
-            icon: "info.circle.fill",
+            icon: "info.circle",
             badgeColor: Color.gray,
             sections: [
                 SettingsSectionItem(

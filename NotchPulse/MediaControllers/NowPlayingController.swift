@@ -1117,11 +1117,14 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
 
         let isLocked = LockScreenWakeObserver.isSessionLocked
-        // A lock-screen MediaRemote snapshot can omit `playing` even though
-        // the track is still running. Only an explicit false is allowed to
-        // pause the session while locked; a missing value preserves reality.
-        newPlaybackState.isPlaying = payload.playing
-            ?? (diff || isLocked || !trackChanged ? self.playbackState.isPlaying : false)
+        // A poll snapshot (e.g. triggered on notch hover) on the same track
+        // must not override an active live playing state with a false pause.
+        if fromSnapshot && !trackChanged && payload.playing == false && self.playbackState.isPlaying {
+            newPlaybackState.isPlaying = true
+        } else {
+            newPlaybackState.isPlaying = payload.playing
+                ?? (diff || isLocked || !trackChanged ? self.playbackState.isPlaying : false)
+        }
         let defaultRate: Double = newPlaybackState.isPlaying ? 1.0 : 0.0
         newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : defaultRate)
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
