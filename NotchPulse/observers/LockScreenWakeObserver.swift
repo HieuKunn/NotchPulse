@@ -251,7 +251,12 @@ final class LockScreenWakeObserver: ObservableObject {
     }
     
     private func shouldShowLockScreenMedia() -> Bool {
-        guard isScreenLocked else { return false }
+        // The distributed lock notification and our local flag can arrive before
+        // WindowServer finishes moving the window into the lock-screen space.
+        // Treat the authoritative session state as locked too, otherwise the
+        // visibility debounce can hide the player during that transition.
+        let actuallyLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
+        guard isScreenLocked || actuallyLocked else { return false }
         guard Defaults[.enableLockScreenPlayer] else { return false }
         let title = MusicManager.shared.songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty && title != "I'm Handsome" else { return false }
@@ -267,14 +272,15 @@ final class LockScreenWakeObserver: ObservableObject {
         if shouldShow {
             LockScreenMediaWindow.shared.show()
         } else {
-            if immediately || !isScreenLocked {
+            if immediately || (!isScreenLocked && !NotchPulseLockMonitor.isScreenActuallyLocked()) {
                 LockScreenMediaWindow.shared.hideImmediately()
             } else {
                 // Debounce hide by 2.0s to prevent window tear-down / flashing during inter-track transitions
                 hideDebounceTask = Task { @MainActor [weak self] in
                     try? await Task.sleep(for: .milliseconds(2000))
                     guard !Task.isCancelled, let self = self else { return }
-                    if !self.shouldShowLockScreenMedia() {
+                    if !self.shouldShowLockScreenMedia()
+                        && !NotchPulseLockMonitor.isScreenActuallyLocked() {
                         LockScreenMediaWindow.shared.hide()
                     }
                 }

@@ -399,6 +399,16 @@ class MusicManager: ObservableObject {
     private func updateFromPlaybackState(_ state: PlaybackState) {
         let trimmedTitle = state.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
+            // MediaRemote can briefly return an empty payload while WindowServer
+            // transitions into the lock screen. Do not interpret that transient
+            // snapshot as the player having stopped; otherwise the active session
+            // is removed and the lock-screen player disappears after unlock.
+            if (NotchPulseLockMonitor.isScreenActuallyLocked()
+                || LockScreenWakeObserver.shared.isScreenLocked), !self.songTitle.isEmpty {
+                NSLog("Ignoring transient empty playback state while screen is locked")
+                return
+            }
+
             // Immediately stop playback and reset rate to avoid ghost playback
             self.isPlaying = false
             self.playbackRate = 0
@@ -612,7 +622,7 @@ class MusicManager: ObservableObject {
         // Fetch lyrics on content change only if UI is visible (Lazy loading)
         // Checked after songTitle, artistName and bundleIdentifier are synchronized
         if hasContentChange {
-            if self.isUIActive && Defaults[.enableLyrics] {
+            if self.isUIActive && (Defaults[.enableLyrics] || Defaults[.lockScreenPlayerShowLyrics]) {
                 self.fetchLyricsIfAvailable(bundleIdentifier: state.bundleIdentifier, title: state.title, artist: state.artist)
             } else {
                 self.lyricsRequestId &+= 1
@@ -698,7 +708,10 @@ class MusicManager: ObservableObject {
     }
 
     func fetchLyricsIfAvailable(bundleIdentifier: String?, title: String, artist: String) {
-        guard isUIActive && Defaults[.enableLyrics] else { return }
+        // The lock-screen player has its own lyrics toggle. It must be allowed
+        // to fetch while the card is visible even when lyrics are disabled for
+        // the regular notch UI.
+        guard isUIActive && (Defaults[.enableLyrics] || Defaults[.lockScreenPlayerShowLyrics]) else { return }
 
         self.lyricsRequestId &+= 1
         let currentRequestId = self.lyricsRequestId
@@ -1880,9 +1893,9 @@ public final class UniversalArtworkResolver {
 
     /// Queries the browser window via AppleScript to extract the active YouTube watch URL and its thumbnail
     private func fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: String, targetTitle: String) async -> Data? {
-        guard !NotchPulseLockMonitor.isScreenActuallyLocked() else {
-            return nil
-        }
+        // Browser scripting may be unavailable on the lock screen, but do not
+        // block this path here: cached artwork or the resolver's iTunes/Deezer/
+        // YouTube fallbacks can still provide the correct thumbnail.
         guard !NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty else {
             return nil
         }

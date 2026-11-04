@@ -510,6 +510,10 @@ struct SettingsView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
+        // Use the native macOS switch presentation consistently for every
+        // on/off preference, including Defaults.Toggle instances nested in
+        // individual settings sections.
+        .toggleStyle(.switch)
         .frame(minWidth: 720, minHeight: 560)
         .background(Color(nsColor: .windowBackgroundColor))
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
@@ -571,7 +575,10 @@ struct SettingsView: View {
                                 }
                             }
                         } icon: {
-                            SettingsBadgeView(icon: tab.icon, color: tab.badgeColor)
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(selectedTab == tab.id ? Color.white : .secondary)
+                                .frame(width: 20, height: 20, alignment: .center)
                         }
                         .tag(tab.id)
                     }
