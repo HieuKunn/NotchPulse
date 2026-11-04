@@ -122,6 +122,15 @@ final class NotchPulseLockMonitor {
         guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
             return false
         }
-        return (dict["CGSSessionScreenIsLocked"] as? Bool) ?? false
+        if let num = dict["CGSSessionScreenIsLocked"] as? NSNumber {
+            return num.boolValue
+        }
+        if let boolVal = dict["CGSSessionScreenIsLocked"] as? Bool {
+            return boolVal
+        }
+        if let intVal = dict["CGSSessionScreenIsLocked"] as? Int {
+            return intVal != 0
+        }
+        return false
     }
 }

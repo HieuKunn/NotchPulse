@@ -433,7 +433,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Use the future Shelf footprint as the activation target. Requiring
                 // the pointer to hit only the tiny closed notch made fast drags miss.
                 let closedWidth = max(compactWidth, CGFloat(Defaults[.notchOpenWidth]))
-                let closedHeight = isDynamicIsland ? 32.0 : (closedSize.height > 0 ? closedSize.height : 34.0)
+                let closedHeight = openNotchSize.height
                 return CGRect(
                     x: screenFrame.midX - (closedWidth / 2 + padding),
                     y: screenFrame.maxY - (closedHeight + padding + topOffset),

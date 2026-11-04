@@ -187,8 +187,6 @@ struct NotchPulseToggle: View {
         Toggle("", isOn: $isOn)
             .toggleStyle(.switch)
             .labelsHidden()
-            .controlSize(.small)
-            .tint(Color.effectiveAccent)
     }
 }
 

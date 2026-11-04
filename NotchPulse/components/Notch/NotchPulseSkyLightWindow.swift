@@ -132,11 +132,10 @@ class NotchPulseSkyLightWindow: NSPanel {
     }
 
     /// Keeps the drop destination above the source app and Desktop while an
-    /// external file drag is active. The normal level is restored as soon as
-    /// that drag ends, so regular notch interaction is unaffected.
+    /// external file drag is active without setting screenSaver level (which breaks AppKit drag & drop).
     func beginFileDragTargeting() {
         isFileDragElevated = true
-        level = .screenSaver
+        level = .mainMenu + 3
         orderFrontRegardless()
     }
 

@@ -77,57 +77,6 @@ struct SettingsBadgeView: View {
     }
 }
 
-/// 100% Native AppKit NSSearchField matching Apple System Settings.
-/// Provides native 3D rounded bezel, depth shadow, clear button, and system focus ring.
-struct NativeSearchField: NSViewRepresentable {
-    @Binding var text: String
-    var prompt: String = ""
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
-    }
-
-    func makeNSView(context: Context) -> NSSearchField {
-        let searchField = NSSearchField()
-        searchField.placeholderString = prompt
-        searchField.bezelStyle = .roundedBezel
-        searchField.focusRingType = .default
-        searchField.centersPlaceholder = false
-        searchField.sendsSearchStringImmediately = true
-        searchField.font = .systemFont(ofSize: 12)
-        searchField.delegate = context.coordinator
-        searchField.target = context.coordinator
-        searchField.action = #selector(Coordinator.textDidChange(_:))
-        return searchField
-    }
-
-    func updateNSView(_ nsView: NSSearchField, context: Context) {
-        if nsView.stringValue != text {
-            nsView.stringValue = text
-        }
-        if nsView.placeholderString != prompt {
-            nsView.placeholderString = prompt
-        }
-    }
-
-    class Coordinator: NSObject, NSSearchFieldDelegate {
-        @Binding var text: String
-
-        init(text: Binding<String>) {
-            self._text = text
-        }
-
-        func controlTextDidChange(_ obj: Notification) {
-            guard let field = obj.object as? NSSearchField else { return }
-            self.text = field.stringValue
-        }
-
-        @objc func textDidChange(_ sender: NSSearchField) {
-            self.text = sender.stringValue
-        }
-    }
-}
-
 struct SettingsView: View {
     @State private var selectedTab = "General"
     @State private var searchText = ""
@@ -563,7 +512,6 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(minWidth: 720, minHeight: 560)
         .background(Color(nsColor: .windowBackgroundColor))
-        .tint(.effectiveAccent)
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
@@ -573,54 +521,35 @@ struct SettingsView: View {
     @ViewBuilder
     private var settingsSidebar: some View {
         VStack(spacing: 0) {
-            // 1. Native Search Field (AppKit NSSearchField matching Apple System Settings)
-            NativeSearchField(text: $searchText, prompt: loc("Search"))
-                .frame(height: 22)
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-                .padding(.bottom, 8)
-
-            // 2. App Profile Card (Under Search, matching Apple Account card in System Settings)
-            HStack(spacing: 10) {
+            // Logo + App Name Header (Pushed down below traffic lights)
+            HStack(spacing: 9) {
                 if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
                     Image(nsImage: appIcon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 32, height: 32)
-                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        .shadow(color: Color.black.opacity(0.12), radius: 2, y: 1)
+                        .frame(width: 24, height: 24)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 } else {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 6) {
                     Text("NotchPulse")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .font(.headline)
 
                     Text("v\(Bundle.main.releaseVersionNumber ?? "5.5")")
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.45))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 0.5)
-            )
-            .padding(.horizontal, 14)
-            .padding(.bottom, 6)
+            .padding(.horizontal, 16)
+            .padding(.top, 18)
+            .padding(.bottom, 9)
 
-            // 3. Native List with simple tinted icons
             List(selection: selectedTabBinding) {
                 if filteredTabs.isEmpty {
                     ContentUnavailableView {
@@ -633,11 +562,10 @@ struct SettingsView: View {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(tabTitle(for: tab.id))
-                                    .font(.system(size: 13, weight: .regular))
 
                                 if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !matches.isEmpty {
                                     Text(matches.map { loc($0.title) }.joined(separator: " • "))
-                                        .font(.caption2)
+                                        .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 }
@@ -650,9 +578,12 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.sidebar)
+            .searchable(
+                text: $searchText,
+                placement: .sidebar,
+                prompt: loc("Search Settings...")
+            )
         }
-        .background(Color(nsColor: .windowBackgroundColor))
-        .tint(.effectiveAccent)
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -771,7 +702,7 @@ struct SettingsDetailHeaderBar: View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 Text(title)
-                    .font(.title3.weight(.bold))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
@@ -1540,7 +1471,6 @@ struct HUD: View {
                     Defaults.Toggle("", key: .hudReplacement)
                     .labelsHidden()
                     .toggleStyle(.switch)
-                    .controlSize(.large)
                     .disabled(!accessibilityAuthorized)
                 }
                 
@@ -1681,7 +1611,6 @@ struct SystemMonitorSettingsView: View {
                     Defaults.Toggle("", key: .enableSystemMonitor)
                         .labelsHidden()
                         .toggleStyle(.switch)
-                        .controlSize(.large)
                 }
 
                 HStack(spacing: 8) {
@@ -2023,7 +1952,6 @@ struct Media: View {
                     Defaults.Toggle("", key: .enableMediaFeature)
                         .labelsHidden()
                         .toggleStyle(.switch)
-                        .controlSize(.large)
                 }
             }
             .id("media_enable")
@@ -2199,7 +2127,6 @@ struct CalendarSettings: View {
                     Defaults.Toggle("", key: .showCalendar)
                         .labelsHidden()
                         .toggleStyle(.switch)
-                        .controlSize(.large)
                 }
             }
             .id("calendar_integration")
@@ -2486,7 +2413,6 @@ struct Shelf: View {
                     Defaults.Toggle("", key: .notchPulseShelf)
                         .labelsHidden()
                         .toggleStyle(.switch)
-                        .controlSize(.large)
                         .onChange(of: notchPulseShelf) {
                             NotificationCenter.default.post(
                                 name: Notification.Name.expandedDragDetectionChanged,
@@ -3177,7 +3103,6 @@ struct ClipboardSettingsView: View {
                     Defaults.Toggle("", key: .enableClipboardManager)
                         .labelsHidden()
                         .toggleStyle(.switch)
-                        .controlSize(.large)
                 }
             }
             .id("clipboard_general")
@@ -3227,7 +3152,6 @@ struct AudioSettingsView: View {
                     Defaults.Toggle("", key: .enableAudioHub)
                         .labelsHidden()
                         .toggleStyle(.switch)
-                        .controlSize(.large)
                 }
             }
             .id("audio_hub")
@@ -3295,7 +3219,6 @@ struct DisplaySettingsView: View {
                     Defaults.Toggle("", key: .enableDisplayHub)
                         .labelsHidden()
                         .toggleStyle(.switch)
-                        .controlSize(.large)
                 }
             }
             .id("display_hub")

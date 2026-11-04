@@ -19,7 +19,7 @@ struct ShelfView: View {
                 .environmentObject(vm)
             panel
                 .frame(maxHeight: .infinity)
-                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $isShelfTargeted) { providers in
+                .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image], isTargeted: $isShelfTargeted) { providers in
                     handleDrop(providers: providers)
                 }
         }

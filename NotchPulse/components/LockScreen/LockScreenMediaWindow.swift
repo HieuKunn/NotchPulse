@@ -76,7 +76,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         backgroundColor = .clear
         hasShadow = false
         isMovable = false
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 3)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
         acceptsMouseMovedEvents = true
         ignoresMouseEvents = false
         
@@ -103,6 +103,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
+                self?.assignedScreenUUID = nil
                 self?.syncTheme()
                 self?.checkAndRepositionIfNeeded(animated: false)
             }
@@ -116,34 +117,25 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         if let cursorScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) || $0.frame.contains(mouseLocation) }) {
             return cursorScreen
         }
-        if Defaults[.showOnAllDisplays] {
-            return NSScreen.screens.first ?? NSScreen.main
+        if let mainScreen = NSScreen.main {
+            return mainScreen
         }
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
             return screen
         }
-        return NSScreen.screen(withUUID: NotchPulseViewCoordinator.shared.selectedScreenUUID)
-            ?? NSScreen.screens.first
-            ?? NSScreen.main
+        return NSScreen.screens.first
     }
     
     private func getTargetScreen() -> NSScreen? {
-        // 1. If preferred screen is connected, prioritize it!
-        if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
-           let preferredScreen = NSScreen.screen(withUUID: prefUUID) {
-            assignedScreenUUID = prefUUID
-            return preferredScreen
-        }
-        
-        // 2. If assigned screen is still connected in NSScreen.screens, keep the player anchored to it!
+        // 1. If assigned screen is still connected in NSScreen.screens, keep the player anchored to it!
         if let assignedUUID = assignedScreenUUID,
            let existingScreen = NSScreen.screen(withUUID: assignedUUID) {
             return existingScreen
         }
         
-        // 3. Otherwise (initial display detection on show, or the previous screen was unplugged/disconnected),
-        // resolve a new target screen and anchor to it.
+        // 2. Otherwise (initial display detection on show, or the previous screen was unplugged/disconnected),
+        // resolve a new target screen (prioritizing the active screen under the mouse or main screen) and anchor to it.
         let resolved = resolveInitialScreen()
         assignedScreenUUID = resolved?.displayUUID
         return resolved
@@ -194,7 +186,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         if let skyLight = FaceIDOverlaySkyLight.shared {
             skyLight.delegate(self)
         }
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
         alphaValue = 1.0
         orderFrontRegardless()
     }
@@ -238,7 +230,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
             isSkyLightAttached = true
         }
         
-        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+        level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
         self.alphaValue = 1.0
         orderFrontRegardless()
         isWindowVisible = true
@@ -255,7 +247,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
                 if let skyLight = FaceIDOverlaySkyLight.shared {
                     skyLight.delegate(self)
                 }
-                self.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                self.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
                 self.orderFrontRegardless()
             }
         }
