@@ -16,6 +16,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var hideGeneration: Int = 0
     private var assignedScreenUUID: String?
     private var lockReassertionTask: Task<Void, Never>?
+    private var hasInstalledPlayerView = false
     
     static func detectIsDark() -> Bool {
         if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") {
@@ -212,11 +213,12 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         // Sync system appearance (Dark Mode vs Light Mode)
         syncTheme()
         
-        if contentView == nil {
+        if !hasInstalledPlayerView {
             let hostingView = FirstMouseHostingView(rootView: LockScreenMediaView(windowController: self))
             hostingView.wantsLayer = true
             hostingView.layer?.backgroundColor = NSColor.clear.cgColor
             contentView = hostingView
+            hasInstalledPlayerView = true
         }
         
         hideGeneration += 1

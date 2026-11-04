@@ -137,10 +137,14 @@ class AppleMusicController: MediaControllerProtocol {
     func updatePlaybackInfo() async {
         guard let descriptor = try? await fetchPlaybackInfoAsync() else { return }
         guard descriptor.numberOfItems >= 11 else { return }
+        // The script returns "Not Playing" on an AppleEvent failure. Hover
+        // requests must not replace a valid track with that synthetic result.
+        guard let title = descriptor.atIndex(2)?.stringValue,
+              !title.isEmpty, title != "Not Playing" else { return }
         var updatedState = self.playbackState
         
         updatedState.isPlaying = descriptor.atIndex(1)?.booleanValue ?? false
-        updatedState.title = descriptor.atIndex(2)?.stringValue ?? "Unknown"
+        updatedState.title = title
         updatedState.artist = descriptor.atIndex(3)?.stringValue ?? "Unknown"
         updatedState.album = descriptor.atIndex(4)?.stringValue ?? "Unknown"
         updatedState.currentTime = descriptor.atIndex(5)?.doubleValue ?? 0

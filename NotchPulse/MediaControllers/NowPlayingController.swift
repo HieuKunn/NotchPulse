@@ -89,6 +89,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private var streamTask: Task<Void, Never>?
     private var wakeTask: Task<Void, Never>?
     private var artworkRetryTask: Task<Void, Never>?
+    private var emptyStreamVerificationTask: Task<Void, Never>?
     private var wakeObserver: NSObjectProtocol?
 
     // MARK: - Initialization
@@ -142,6 +143,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         streamTask?.cancel()
         wakeTask?.cancel()
         artworkRetryTask?.cancel()
+        emptyStreamVerificationTask?.cancel()
         
         if let observer = wakeObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
@@ -903,8 +905,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
     }
 
-    private func fetchInitialNowPlayingInfo(paths: (script: String, framework: String)) async {
-        let update = await Task.detached(priority: .userInitiated) { () -> NowPlayingUpdate? in
+    private func readNowPlayingInfo(paths: (script: String, framework: String)) async -> NowPlayingUpdate? {
+        await Task.detached(priority: .userInitiated) { () -> NowPlayingUpdate? in
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
             proc.arguments = [paths.script, paths.framework, "get"]
@@ -923,10 +925,23 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 return nil
             }
         }.value
+    }
 
+    private func fetchInitialNowPlayingInfo(paths: (script: String, framework: String)) async {
+        let update = await readNowPlayingInfo(paths: paths)
         if let update = update {
-            await handleAdapterUpdate(update)
+            await handleAdapterUpdate(update, fromSnapshot: true)
         }
+    }
+
+    private static func isEmpty(_ payload: NowPlayingPayload) -> Bool {
+        (payload.title == nil || payload.title?.isEmpty == true) &&
+            (payload.artist == nil || payload.artist?.isEmpty == true) &&
+            (payload.album == nil || payload.album?.isEmpty == true) &&
+            payload.playing == nil &&
+            payload.bundleIdentifier == nil &&
+            payload.parentApplicationBundleIdentifier == nil &&
+            payload.elapsedTime == nil
     }
 
     private func scheduleArtworkRetry() {
@@ -962,42 +977,47 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     // MARK: - Update Methods
-    private func handleAdapterUpdate(_ update: NowPlayingUpdate) async {
+    private func handleAdapterUpdate(_ update: NowPlayingUpdate, fromSnapshot: Bool = false) async {
         let payload = update.payload
         let diff = update.diff ?? false
 
         // Guard against initial empty payload handshake from mediaremote-adapter stream:
         // {"type":"data","diff":false,"payload":{}}
-        let isEmptyPayload = (payload.title == nil || payload.title?.isEmpty == true) &&
-            (payload.artist == nil || payload.artist?.isEmpty == true) &&
-            (payload.album == nil || payload.album?.isEmpty == true) &&
-            payload.playing == nil &&
-            payload.bundleIdentifier == nil &&
-            payload.parentApplicationBundleIdentifier == nil &&
-            payload.elapsedTime == nil
-        if isEmptyPayload {
-            // During the lock transition MediaRemote can briefly publish an
-            // empty handshake while the real player keeps running. Do not turn
-            // that transient payload into a stopped/paused state; doing so
-            // makes the lock-screen card report false playback state.
-            if LockScreenWakeObserver.isSessionLocked, !self.playbackState.title.isEmpty {
-                NSLog("Ignoring transient empty Now Playing payload while screen is locked")
-                return
-            }
-
-            // When all media applications close or stop, mediaremote-adapter emits an empty payload with diff == false.
-            // If we previously had an active track or were playing, update to a clean stopped state so NotchPulse resets cleanly
-            // instead of getting stuck in a ghost playback state.
-            if !diff && (self.playbackState.isPlaying || !self.playbackState.title.isEmpty) {
-                await MainActor.run {
-                    var stopped = PlaybackState(bundleIdentifier: "")
-                    stopped.isPlaying = false
-                    stopped.playbackRate = 0
-                    self.playbackState = stopped
+        if Self.isEmpty(payload) {
+            // A one-shot `get` can return an empty snapshot while the stream
+            // still knows the current track. Never clear playback from a poll.
+            guard !fromSnapshot, !diff, !playbackState.title.isEmpty else { return }
+            emptyStreamVerificationTask?.cancel()
+            emptyStreamVerificationTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled, let self,
+                      let paths = Self.getAdapterPaths() else { return }
+                guard let confirmation = await self.readNowPlayingInfo(paths: paths) else { return }
+                guard !Task.isCancelled else { return }
+                if !Self.isEmpty(confirmation.payload) {
+                    await self.handleAdapterUpdate(confirmation, fromSnapshot: true)
+                    return
+                }
+                // Require a second empty poll before dropping a real track.
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled,
+                      let second = await self.readNowPlayingInfo(paths: paths),
+                      !Task.isCancelled else { return }
+                if !Self.isEmpty(second.payload) {
+                    await self.handleAdapterUpdate(second, fromSnapshot: true)
+                } else if !LockScreenWakeObserver.isSessionLocked {
+                    await MainActor.run {
+                        var stopped = PlaybackState(bundleIdentifier: "")
+                        stopped.playbackRate = 0
+                        self.playbackState = stopped
+                    }
                 }
             }
             return
         }
+
+        emptyStreamVerificationTask?.cancel()
+        emptyStreamVerificationTask = nil
 
         var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
         
@@ -1101,7 +1121,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         // the track is still running. Only an explicit false is allowed to
         // pause the session while locked; a missing value preserves reality.
         newPlaybackState.isPlaying = payload.playing
-            ?? (diff || isLocked ? self.playbackState.isPlaying : false)
+            ?? (diff || isLocked || !trackChanged ? self.playbackState.isPlaying : false)
         let defaultRate: Double = newPlaybackState.isPlaying ? 1.0 : 0.0
         newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : defaultRate)
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier

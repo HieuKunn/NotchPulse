@@ -111,9 +111,13 @@ class SpotifyController: MediaControllerProtocol {
     func updatePlaybackInfo() async {
         guard let descriptor = try? await fetchPlaybackInfoAsync() else { return }
         guard descriptor.numberOfItems >= 10 else { return }
+        // A failed AppleEvent yields a synthetic "Unknown" track. Keep the
+        // last real playback state instead of showing a false pause on hover.
+        guard let title = descriptor.atIndex(2)?.stringValue,
+              !title.isEmpty, title != "Unknown" else { return }
         
         let isPlaying = descriptor.atIndex(1)?.booleanValue ?? false
-        let currentTrack = descriptor.atIndex(2)?.stringValue ?? "Unknown"
+        let currentTrack = title
         let currentTrackArtist = descriptor.atIndex(3)?.stringValue ?? "Unknown"
         let currentTrackAlbum = descriptor.atIndex(4)?.stringValue ?? "Unknown"
         let currentTime = descriptor.atIndex(5)?.doubleValue ?? 0
