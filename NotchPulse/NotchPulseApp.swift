@@ -827,10 +827,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             playWelcomeSound()
         }
 
-        // Proactively request missing permissions upfront ONLY on initial fresh install onboarding
-        if isFirstInstall {
-            requestPermissionsUpfrontIfNeeded()
-        }
+        // Do NOT proactively request system permissions on launch.
+        // Permissions are granted strictly through individual user action on the Onboarding steps or Settings tabs.
 
         // NotchPulse 2.0: Initialize Face ID & Lock Screen Observer
         _ = LockScreenWakeObserver.shared
@@ -871,37 +869,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if let updater = SettingsWindowController.shared.updaterController?.updater,
                updater.automaticallyChecksForUpdates {
                 updater.checkForUpdatesInBackground()
-            }
-        }
-    }
-
-    @MainActor
-    private func requestPermissionsUpfrontIfNeeded() {
-        Task {
-            // 1. Camera / Face ID Permission
-            let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
-            if cameraStatus == .notDetermined {
-                _ = await AVCaptureDevice.requestAccess(for: .video)
-            }
-
-            // 2. Accessibility Permission (for system lock screen auto-fill, notch interaction & HUD)
-            if !AXIsProcessTrusted() {
-                try? await Task.sleep(for: .milliseconds(350))
-                XPCHelperClient.shared.requestAccessibilityAuthorization()
-            }
-
-            // 3. Calendar & Reminders Permissions (for Notch Schedule and Reminders)
-            try? await Task.sleep(for: .milliseconds(350))
-            if EKEventStore.authorizationStatus(for: .event) == .notDetermined {
-                await CalendarManager.shared.checkCalendarAuthorization()
-            }
-            if EKEventStore.authorizationStatus(for: .reminder) == .notDetermined {
-                await CalendarManager.shared.checkReminderAuthorization()
-            }
-
-            // 4. Pre-warm secure vault session & authorize Keychain on desktop
-            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled || NotchPulseVault.hasStoredPassword() {
-                NotchPulseVault.preflightKeychainAuthorization()
             }
         }
     }

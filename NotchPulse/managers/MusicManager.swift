@@ -276,10 +276,8 @@ class MusicManager: ObservableObject {
                 return nil
             }
         case .appleMusic:
-            MediaAutomationPermissionHelper.requestPermission(for: "com.apple.Music")
             newController = AppleMusicController()
         case .spotify:
-            MediaAutomationPermissionHelper.requestPermission(for: "com.spotify.client")
             newController = SpotifyController()
         case .youtubeMusic:
             newController = YouTubeMusicController()
