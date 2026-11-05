@@ -1043,8 +1043,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private func scheduleArtworkRetry() {
         artworkRetryTask?.cancel()
         artworkRetryTask = Task { [weak self] in
-            // Progressively retry fetching artwork at 350ms and 750ms if MediaRemote hasn't emitted it yet
-            for delay in [350, 400] {
+            // Fast retries at 150ms, 400ms, and 800ms to immediately grab decoded artwork from adapter
+            for delay in [150, 250, 400] {
                 try? await Task.sleep(for: .milliseconds(delay))
                 guard !Task.isCancelled, let self = self else { return }
                 if self.playbackState.artwork == nil, let paths = Self.getAdapterPaths() {
@@ -1224,6 +1224,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.artwork = self.playbackState.artwork
         } else {
             newPlaybackState.artwork = nil
+            if !Self.isEmpty(payload) && !newPlaybackState.title.isEmpty {
+                scheduleArtworkRetry()
+            }
         }
 
         if payload.elapsedTime != nil,

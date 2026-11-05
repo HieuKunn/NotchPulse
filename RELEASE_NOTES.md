@@ -1,11 +1,10 @@
-## NotchPulse v5.5 (Build 452)
+## NotchPulse v5.5 (Build 453)
 
-### 🎵 Real-Time Artwork & Universal Media Synchronization
-- **Background Artwork Synchronization**: Album covers and video thumbnails now resolve immediately in the background without needing to hover or open the notch first.
-- **Zero Artwork Cross-Bleed**: Solved artwork desynchronization when switching between multiple media apps or browser tabs in the background. Previous track thumbnails and in-flight resolution requests are immediately purged upon session change.
-- **Lightning-Fast Browser YouTube Thumbnails**: Upgraded browser media extraction (Arc, Safari, Chrome, Brave, Edge) to use high-speed non-blocking tab inspection with a 2-second safety timeout, preventing freezes.
-- **Universal Browser & Media Controls**: Overhauled playback controls (Play/Pause, Next, Previous, and seeking) across all web browsers and native players matching Apple's native Now Playing routing.
+### 🎵 Seamless Background Artwork Synchronization
+- **Proactive Background Artwork Fetching**: Fixed an issue where changing tracks or media in the background (such as Spotify Web or YouTube) kept showing the previous media's thumbnail on the closed notch until hovered. Artwork is now actively decoded and cached in the background immediately upon playback changes.
+- **Zero Cross-Session Leakage**: Prevented background YouTube tabs from overriding artwork for Spotify Web or other media players. Removed loose fallbacks that picked up unrelated open video tabs.
+- **Instant Adapter Retry**: Immediately retries fetching official system Now Playing artwork when a new track event is received without artwork data, eliminating empty thumbnail gaps.
 
-### 🔒 Face ID Unlock & Security
-- **Reliable Password Auto-Fill**: Resolved an unlock sequencing race condition so your stored password is typed immediately and reliably upon face recognition.
-- **Non-Intrusive Permissions**: Eliminated bulk startup permission dialogs on app updates; permissions are now requested only when onboarding or configuring features.
+### 🔒 Face ID Unlock & Permissions
+- **Reliable Password Auto-Fill**: Ensures stored passwords are typed seamlessly and reliably upon face recognition.
+- **On-Demand Permission Handling**: Completely eliminated bulk permission alerts on app launch.

@@ -1631,21 +1631,35 @@ public final class UniversalArtworkResolver {
             guard let self = self else { return nil }
 
             if isBrowserSource {
-                // 1. Direct browser extraction from active media tab (100% exact thumbnail)
+                // 1. If artist is clearly specified and not a generic video host, prefer official album art
+                // This covers Spotify Web, Apple Music Web, Soundcloud, Deezer Web, Tidal Web.
+                let isGenericHost = cleanArtist.isEmpty || cleanArtist.lowercased() == "youtube"
+                if !isGenericHost {
+                    if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
+                        self.cacheArtworkData(itunesData, title: title, artist: artist)
+                        return itunesData
+                    }
+                    if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
+                        self.cacheArtworkData(deezerData, title: title, artist: artist)
+                        return deezerData
+                    }
+                }
+
+                // 2. Direct browser extraction from active media tab (100% exact thumbnail for YouTube/video)
                 if let bundle = bundleIdentifier,
                    let directThumb = await self.fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: bundle, targetTitle: cleanTitle) {
                     self.cacheArtworkData(directThumb, title: title, artist: artist)
                     return directThumb
                 }
 
-                // 2. High-precision YouTube search by video title
+                // 3. High-precision YouTube search by video title
                 if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
                     self.cacheArtworkData(ytData, title: title, artist: artist)
                     return ytData
                 }
 
-                // 3. Fallback to iTunes Store ONLY if artist is known to avoid mismatch
-                if !cleanArtist.isEmpty, let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
+                // 4. Final fallback to iTunes Store if artist was generic
+                if isGenericHost, let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
                     self.cacheArtworkData(itunesData, title: title, artist: artist)
                     return itunesData
                 }
@@ -1758,22 +1772,11 @@ public final class UniversalArtworkResolver {
                                     set u to (get URL)
                                     if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
                                         set docTitle to (get title)
-                                        if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                        if docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
                                             return u
                                         end if
                                     end if
                                 end tell
-                            end repeat
-                        end repeat
-                    end try
-                    -- 3. Fallback: first tab with youtube url
-                    try
-                        repeat with winIdx from 1 to (count of windows)
-                            repeat with tabIdx from 1 to (count of tabs of window winIdx)
-                                set u to (get URL of tab tabIdx of window winIdx)
-                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                                    return u
-                                end if
                             end repeat
                         end repeat
                     end try
@@ -1802,20 +1805,9 @@ public final class UniversalArtworkResolver {
                                 set u to (URL of t as text)
                                 if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
                                     set docTitle to (name of t as text)
-                                    if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                    if docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
                                         return u
                                     end if
-                                end if
-                            end repeat
-                        end repeat
-                    end try
-                    -- 3. Fallback: first tab with youtube url
-                    try
-                        repeat with w in windows
-                            repeat with t in tabs of w
-                                set u to (URL of t as text)
-                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                                    return u
                                 end if
                             end repeat
                         end repeat
@@ -1845,20 +1837,9 @@ public final class UniversalArtworkResolver {
                                 set u to (URL of t as text)
                                 if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
                                     set docTitle to (title of t as text)
-                                    if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                    if docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
                                         return u
                                     end if
-                                end if
-                            end repeat
-                        end repeat
-                    end try
-                    -- 3. Fallback: first tab with youtube url
-                    try
-                        repeat with w in windows
-                            repeat with t in tabs of w
-                                set u to (URL of t as text)
-                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                                    return u
                                 end if
                             end repeat
                         end repeat
