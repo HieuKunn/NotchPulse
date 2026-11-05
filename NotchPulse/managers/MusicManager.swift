@@ -61,7 +61,7 @@ class MusicManager: ObservableObject {
             guard oldValue != isUIActive else { return }
             activeController?.setUIActive(isUIActive)
             if isUIActive {
-                if Defaults[.enableLyrics] {
+                if Defaults[.enableLyrics] || Defaults[.lockScreenPlayerShowLyrics] {
                     ensureLyricsLoaded()
                 }
                 ensureArtworkLoaded()
@@ -546,6 +546,22 @@ class MusicManager: ObservableObject {
         if volumeChanged && !(activeController is NowPlayingController) {
             self.volume = state.volume
         }
+
+        if timeChanged {
+            self.elapsedTime = state.currentTime
+        }
+
+        if durationChanged {
+            self.songDuration = state.duration
+        }
+
+        if playbackRateChanged {
+            self.playbackRate = state.playbackRate
+        }
+        
+        if shuffleChanged {
+            self.isShuffled = state.isShuffled
+        }
         
         self.timestampDate = state.lastUpdated
 
@@ -734,11 +750,11 @@ class MusicManager: ObservableObject {
     private func cleanSongTitle(_ title: String) -> String {
         var clean = title
         let patterns = [
-            #"\(feat\..*?\)"#, #"\(\s*ft\..*?\)"#, #"\(\s*with.*?\)"#,
-            #"\[feat\..*?\]"#, #"\[\s*ft\..*?\]"#,
-            #"\(.*?video.*?/i"#, #"\[.*?video.*?\]"#,
-            #"\(.*?remaster.*?/i"#, #"\[.*?remaster.*?\]"#,
-            #"\-.*?remaster.*"#
+            #"\((?i)(feat\.|ft\.|with).*?\)"#,
+            #"\[(?i)(feat\.|ft\.|with).*?\]"#,
+            #"\((?i).*?(video|mv|visualizer|audio|lyrics|lyric video|slowed|reverb|remix|remaster|live|acoustic|cover).*?\)"#,
+            #"\[(?i).*?(video|mv|visualizer|audio|lyrics|lyric video|slowed|reverb|remix|remaster|live|acoustic|cover).*?\]"#,
+            #"\-(?i).*?remaster.*"#
         ]
         for p in patterns {
             if let regex = try? NSRegularExpression(pattern: p, options: [.caseInsensitive]) {
@@ -764,12 +780,36 @@ class MusicManager: ObservableObject {
         let cleanTitle = normalizedQuery(cleanSongTitle(title))
         let cleanArtist = normalizedQuery(artist)
 
-        let searchUrls: [String] = [
-            // 1. Exact track_name & artist_name
-            "https://lrclib.net/api/search?track_name=\(cleanTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&artist_name=\(cleanArtist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
-            // 2. Loose query search
-            "https://lrclib.net/api/search?q=\("\(cleanTitle) \(cleanArtist)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
-        ]
+        var searchUrls: [String] = []
+
+        // If title contains " - " (common for YouTube: "Song - Artist" or "Artist - Song")
+        if cleanTitle.contains(" - ") {
+            let parts = cleanTitle.components(separatedBy: " - ")
+            if parts.count >= 2 {
+                let part1 = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                let part2 = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                if !part1.isEmpty && !part2.isEmpty {
+                    if let enc1 = part1.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                       let enc2 = part2.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                        searchUrls.append("https://lrclib.net/api/search?track_name=\(enc1)&artist_name=\(enc2)")
+                        searchUrls.append("https://lrclib.net/api/search?track_name=\(enc2)&artist_name=\(enc1)")
+                        if let encQ = "\(part1) \(part2)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                            searchUrls.append("https://lrclib.net/api/search?q=\(encQ)")
+                        }
+                    }
+                }
+            }
+        }
+
+        // Standard exact & loose query searches
+        if let encTitle = cleanTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+           let encArtist = cleanArtist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            searchUrls.append("https://lrclib.net/api/search?track_name=\(encTitle)&artist_name=\(encArtist)")
+            if let encQ = "\(cleanTitle) \(cleanArtist)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                searchUrls.append("https://lrclib.net/api/search?q=\(encQ)")
+            }
+            searchUrls.append("https://lrclib.net/api/search?q=\(encTitle)")
+        }
 
         var hadSuccessfulResponse = false
 
@@ -1073,11 +1113,13 @@ class MusicManager: ObservableObject {
 
     // MARK: - Playback Position Estimation
     public func estimatedPlaybackPosition(at date: Date = Date()) -> TimeInterval {
-        guard isPlaying, playbackRate > 0 else { return min(elapsedTime, songDuration) }
+        guard isPlaying, playbackRate > 0 else {
+            return songDuration > 0 ? min(elapsedTime, songDuration) : elapsedTime
+        }
 
         let timeDifference = date.timeIntervalSince(timestampDate)
         let estimated = elapsedTime + (timeDifference * playbackRate)
-        return min(max(0, estimated), songDuration)
+        return songDuration > 0 ? min(max(0, estimated), songDuration) : max(0, estimated)
     }
 
     public var currentEstimatedTime: TimeInterval {
@@ -1297,11 +1339,14 @@ class MusicManager: ObservableObject {
     }
 
     func seek(to position: TimeInterval) {
+        let clamped = songDuration > 0 ? min(max(0, position), songDuration) : max(0, position)
+        self.elapsedTime = clamped
+        self.timestampDate = Date()
         Task {
             if let activeController = activeController {
-                await activeController.seek(to: position)
+                await activeController.seek(to: clamped)
             } else {
-                await NowPlayingController.sendUniversalCommand("seek", arg: "\(Int64(position * 1_000_000))")
+                await NowPlayingController.sendUniversalCommand("seek", arg: "\(Int64(clamped * 1_000_000))")
             }
         }
     }

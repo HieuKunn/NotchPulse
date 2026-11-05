@@ -177,7 +177,7 @@ struct MusicControlsView: View {
                         .truncationMode(.tail)
                         .frame(maxWidth: width, alignment: .leading)
                         .id(activeIndex != nil ? "lyric-\(activeIndex!)" : "lyric-\(line)")
-                        .opacity(musicManager.isPlaying ? 1 : 0)
+                        .opacity(musicManager.songTitle.isEmpty || musicManager.isPlayerIdle ? 0 : (musicManager.isPlaying ? 1 : 0.85))
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .offset(y: 4)),
                             removal: .opacity.combined(with: .offset(y: -4))

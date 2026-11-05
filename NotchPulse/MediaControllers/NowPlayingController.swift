@@ -754,6 +754,8 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set player position to \(time)"
             try? await AppleScriptHelper.executeVoid(script)
+        } else if isBrowser(bundleID) {
+            await executeBrowserScript(for: .seek(time))
         }
     }
 
@@ -867,7 +869,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
 
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.script, paths.framework, "stream", "--no-diff", "--debounce=50"]
+        process.arguments = [paths.script, paths.framework, "stream", "--debounce=50"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
@@ -1028,7 +1030,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let dur = payload.duration, dur > 0 {
             newPlaybackState.duration = dur
-        } else if diff && !titleHasChanged && self.playbackState.duration > 0 {
+        } else if !titleHasChanged && self.playbackState.duration > 0 {
             newPlaybackState.duration = self.playbackState.duration
         } else {
             newPlaybackState.duration = 0
@@ -1036,12 +1038,17 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let elapsedTime = payload.elapsedTime {
             newPlaybackState.currentTime = elapsedTime
-        } else if diff {
-            if payload.playing == false {
-                let timeSinceLastUpdate = Date().timeIntervalSince(self.playbackState.lastUpdated)
-                newPlaybackState.currentTime = self.playbackState.currentTime + (self.playbackState.playbackRate * timeSinceLastUpdate)
-            } else {
+        } else if !titleHasChanged {
+            if payload.playing == false || self.playbackState.playbackRate == 0 {
                 newPlaybackState.currentTime = self.playbackState.currentTime
+            } else {
+                let timeSinceLastUpdate = Date().timeIntervalSince(self.playbackState.lastUpdated)
+                let advancedTime = self.playbackState.currentTime + (self.playbackState.playbackRate * timeSinceLastUpdate)
+                if newPlaybackState.duration > 0 {
+                    newPlaybackState.currentTime = min(advancedTime, newPlaybackState.duration)
+                } else {
+                    newPlaybackState.currentTime = max(0, advancedTime)
+                }
             }
         } else {
             newPlaybackState.currentTime = 0
@@ -1049,7 +1056,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let shuffleMode = payload.shuffleMode {
             newPlaybackState.isShuffled = shuffleMode != 1
-        } else if diff {
+        } else if diff || !titleHasChanged {
             newPlaybackState.isShuffled = self.playbackState.isShuffled
         } else {
             newPlaybackState.isShuffled = false
@@ -1057,7 +1064,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         if let repeatModeValue = payload.repeatMode {
             newPlaybackState.repeatMode = RepeatMode(rawValue: repeatModeValue) ?? .off
-        } else if diff {
+        } else if diff || !titleHasChanged {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         } else {
             newPlaybackState.repeatMode = .off
@@ -1069,7 +1076,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.artwork = Data(
                 base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
             )
-        } else if diff && !titleHasChanged {
+        } else if !titleHasChanged {
             newPlaybackState.artwork = self.playbackState.artwork
         } else {
             newPlaybackState.artwork = nil
@@ -1078,10 +1085,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         if let dateString = payload.timestamp,
            let date = ISO8601DateFormatter().date(from: dateString) {
             newPlaybackState.lastUpdated = date
-        } else if !diff {
-            newPlaybackState.lastUpdated = Date()
-        } else {
+        } else if !titleHasChanged {
             newPlaybackState.lastUpdated = self.playbackState.lastUpdated
+        } else {
+            newPlaybackState.lastUpdated = Date()
         }
 
         let isLocked = LockScreenWakeObserver.isSessionLocked
@@ -1092,18 +1099,18 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                 ?? (diff || isLocked || !titleHasChanged ? self.playbackState.isPlaying : false)
         }
         let defaultRate: Double = newPlaybackState.isPlaying ? 1.0 : 0.0
-        newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : defaultRate)
+        newPlaybackState.playbackRate = payload.playbackRate ?? (diff || !titleHasChanged ? self.playbackState.playbackRate : defaultRate)
         
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
         if let newBundle = newBundle, !newBundle.isEmpty {
             newPlaybackState.bundleIdentifier = newBundle
-        } else if diff {
+        } else if diff || !titleHasChanged {
             newPlaybackState.bundleIdentifier = self.playbackState.bundleIdentifier
         } else {
             newPlaybackState.bundleIdentifier = ""
         }
         
-        newPlaybackState.volume = payload.volume ?? (diff ? self.playbackState.volume : 0.5)
+        newPlaybackState.volume = payload.volume ?? (diff || !titleHasChanged ? self.playbackState.volume : 0.5)
         
         await MainActor.run {
             self.playbackState = newPlaybackState
