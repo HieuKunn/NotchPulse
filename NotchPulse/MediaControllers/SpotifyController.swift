@@ -30,7 +30,6 @@ class SpotifyController: MediaControllerProtocol {
     private var lastArtworkURL: String?
     private var artworkFetchTask: Task<Void, Never>?
     private var periodicSyncTask: Task<Void, Never>?
-    private var pauseVerificationTask: Task<Void, Never>?
     private var isUIActive: Bool = false
     
     init() {
@@ -58,7 +57,6 @@ class SpotifyController: MediaControllerProtocol {
         notificationTask?.cancel()
         artworkFetchTask?.cancel()
         periodicSyncTask?.cancel()
-        pauseVerificationTask?.cancel()
     }
     
     // MARK: - Protocol Implementation
@@ -120,37 +118,14 @@ class SpotifyController: MediaControllerProtocol {
         
         let isPlaying = descriptor.atIndex(1)?.booleanValue ?? false
 
-        // AppleScript can momentarily report "paused" during the brief window
-        // when macOS routes an AppleEvent while the app handles a UI transition
-        // (e.g. the notch opening). Require a second confirmation before we
-        // propagate an unexpected pause to avoid false mid-track pauses.
-        if !isPlaying && self.playbackState.isPlaying {
-            pauseVerificationTask?.cancel()
-            pauseVerificationTask = Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(400))
-                guard !Task.isCancelled, let self else { return }
-                guard let fresh = try? await self.fetchPlaybackInfoAsync(),
-                      fresh.numberOfItems >= 10 else { return }
-                await self.commitSpotifyDescriptor(fresh)
-            }
-            // Preserve playing state but update all other metadata.
-            await commitSpotifyDescriptor(descriptor, forceIsPlaying: true)
-            return
-        }
-
-        pauseVerificationTask?.cancel()
-        pauseVerificationTask = nil
         await commitSpotifyDescriptor(descriptor)
     }
 
-    private func commitSpotifyDescriptor(
-        _ descriptor: NSAppleEventDescriptor,
-        forceIsPlaying: Bool? = nil
-    ) async {
+    private func commitSpotifyDescriptor(_ descriptor: NSAppleEventDescriptor) async {
         guard let title = descriptor.atIndex(2)?.stringValue,
               !title.isEmpty, title != "Unknown" else { return }
 
-        let isPlaying = forceIsPlaying ?? (descriptor.atIndex(1)?.booleanValue ?? false)
+        let isPlaying = descriptor.atIndex(1)?.booleanValue ?? false
         let currentTrack = title
         let currentTrackArtist = descriptor.atIndex(3)?.stringValue ?? "Unknown"
         let currentTrackAlbum = descriptor.atIndex(4)?.stringValue ?? "Unknown"

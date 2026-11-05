@@ -890,7 +890,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
 
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [paths.script, paths.framework, "stream", "--debounce=50"]
+        // MediaRemote already coalesces its own notifications. Adding an adapter
+        // debounce makes play/pause and position changes visibly lag behind the
+        // source application, so consume every event as soon as it is emitted.
+        process.arguments = [paths.script, paths.framework, "stream"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
@@ -986,6 +989,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     private func handleAdapterUpdate(_ update: NowPlayingUpdate, fromSnapshot: Bool = false) async {
         let payload = update.payload
         let diff = update.diff ?? false
+        let receivedAt = Date()
 
         // Guard against initial empty payload handshake from mediaremote-adapter stream:
         // {"type":"data","diff":false,"payload":{}}
@@ -1057,20 +1061,43 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.duration = 0
         }
         
+        let isLocked = LockScreenWakeObserver.isSessionLocked
+        if fromSnapshot && !titleHasChanged && payload.playing == false && self.playbackState.isPlaying {
+            newPlaybackState.isPlaying = true
+        } else {
+            newPlaybackState.isPlaying = payload.playing
+                ?? (diff || isLocked || !titleHasChanged ? self.playbackState.isPlaying : false)
+        }
+
+        if newPlaybackState.isPlaying {
+            if let reportedRate = payload.playbackRate, reportedRate > 0 {
+                newPlaybackState.playbackRate = reportedRate
+            } else if self.playbackState.isPlaying, self.playbackState.playbackRate > 0 {
+                newPlaybackState.playbackRate = self.playbackState.playbackRate
+            } else {
+                // A resume notification commonly omits playbackRate. Never carry
+                // the paused rate (0) into a playing state or the timeline freezes.
+                newPlaybackState.playbackRate = 1
+            }
+        } else {
+            newPlaybackState.playbackRate = 0
+        }
+
         if let elapsedTime = payload.elapsedTime {
             newPlaybackState.currentTime = elapsedTime
         } else if !titleHasChanged {
-            if payload.playing == false || self.playbackState.playbackRate == 0 {
-                newPlaybackState.currentTime = self.playbackState.currentTime
-            } else {
-                let timeSinceLastUpdate = Date().timeIntervalSince(self.playbackState.lastUpdated)
-                let advancedTime = self.playbackState.currentTime + (self.playbackState.playbackRate * timeSinceLastUpdate)
-                if newPlaybackState.duration > 0 {
-                    newPlaybackState.currentTime = min(advancedTime, newPlaybackState.duration)
-                } else {
-                    newPlaybackState.currentTime = max(0, advancedTime)
-                }
-            }
+            let previousTimestamp = self.playbackState.lastUpdated
+            let canAdvance = self.playbackState.isPlaying
+                && self.playbackState.playbackRate > 0
+                && previousTimestamp != .distantPast
+            let elapsedSinceUpdate = canAdvance
+                ? max(0, receivedAt.timeIntervalSince(previousTimestamp))
+                : 0
+            let estimatedTime = self.playbackState.currentTime
+                + (self.playbackState.playbackRate * elapsedSinceUpdate)
+            newPlaybackState.currentTime = newPlaybackState.duration > 0
+                ? min(max(0, estimatedTime), newPlaybackState.duration)
+                : max(0, estimatedTime)
         } else {
             newPlaybackState.currentTime = 0
         }
@@ -1103,24 +1130,15 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.artwork = nil
         }
 
-        if let dateString = payload.timestamp,
+        if payload.elapsedTime != nil,
+           let dateString = payload.timestamp,
            let date = ISO8601DateFormatter().date(from: dateString) {
             newPlaybackState.lastUpdated = date
-        } else if !titleHasChanged {
-            newPlaybackState.lastUpdated = self.playbackState.lastUpdated
         } else {
-            newPlaybackState.lastUpdated = Date()
+            // currentTime was either synthesized for this event or has no source
+            // timestamp, so anchor it to receipt time as one atomic time base.
+            newPlaybackState.lastUpdated = receivedAt
         }
-
-        let isLocked = LockScreenWakeObserver.isSessionLocked
-        if fromSnapshot && !titleHasChanged && payload.playing == false && self.playbackState.isPlaying {
-            newPlaybackState.isPlaying = true
-        } else {
-            newPlaybackState.isPlaying = payload.playing
-                ?? (diff || isLocked || !titleHasChanged ? self.playbackState.isPlaying : false)
-        }
-        let defaultRate: Double = newPlaybackState.isPlaying ? 1.0 : 0.0
-        newPlaybackState.playbackRate = payload.playbackRate ?? (diff || !titleHasChanged ? self.playbackState.playbackRate : defaultRate)
         
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
         if let newBundle = newBundle, !newBundle.isEmpty {

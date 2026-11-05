@@ -138,7 +138,7 @@ struct MusicControlsView: View {
                 .truncationMode(.tail)
                 .frame(maxWidth: width, alignment: .leading)
             if Defaults[.enableLyrics] {
-                TimelineView(.animation(minimumInterval: 0.4, paused: vm.notchState == .closed || musicManager.playbackRate <= 0 || musicManager.syncedLyrics.isEmpty)) { timeline in
+                TimelineView(.animation(minimumInterval: 0.1, paused: vm.notchState == .closed || !musicManager.isPlaying || musicManager.syncedLyrics.isEmpty)) { timeline in
                     let currentElapsed: Double = musicManager.estimatedPlaybackPosition(at: timeline.date)
                     let activeIndex = musicManager.currentLyricIndex(at: currentElapsed)
                     let line: String = {
@@ -174,7 +174,7 @@ struct MusicControlsView: View {
     }
 
     private var musicSlider: some View {
-        TimelineView(.animation(minimumInterval: 0.5, paused: vm.notchState == .closed || musicManager.playbackRate <= 0)) { timeline in
+        TimelineView(.animation(minimumInterval: 0.1, paused: vm.notchState == .closed || !musicManager.isPlaying)) { timeline in
             MusicSliderView(
                 duration: musicManager.songDuration,
                 currentDate: timeline.date,

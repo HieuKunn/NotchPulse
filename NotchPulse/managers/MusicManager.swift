@@ -332,6 +332,7 @@ class MusicManager: ObservableObject {
     // MARK: - Update Methods
     @MainActor
     private func updateFromPlaybackState(_ state: PlaybackState) {
+        let wasPlaying = self.isPlaying
         let trimmedTitle = state.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
             // MediaRemote can briefly return an empty payload while WindowServer
@@ -524,14 +525,7 @@ class MusicManager: ObservableObject {
             }
         }
 
-        let timeChanged: Bool
-        if state.isPlaying {
-            timeChanged = abs(state.currentTime - self.elapsedTime) >= 1.0 || state.isPlaying != self.isPlaying
-        } else {
-            timeChanged = state.currentTime != self.elapsedTime
-        }
         let durationChanged = state.duration != self.songDuration
-        let playbackRateChanged = state.playbackRate != self.playbackRate
         let shuffleChanged = state.isShuffled != self.isShuffled
         let repeatModeChanged = state.repeatMode != self.repeatMode
         let volumeChanged = state.volume != self.volume
@@ -547,24 +541,25 @@ class MusicManager: ObservableObject {
             self.volume = state.volume
         }
 
-        if timeChanged {
-            self.elapsedTime = state.currentTime
-        }
-
         if durationChanged {
             self.songDuration = state.duration
         }
 
-        if playbackRateChanged {
-            self.playbackRate = state.playbackRate
-        }
+        // Position and timestamp are one time base and must be replaced together.
+        // Thresholding small corrections while still replacing the timestamp made
+        // the UI jump backwards on pause and drift after repeated notifications.
+        self.elapsedTime = state.duration > 0
+            ? min(max(0, state.currentTime), state.duration)
+            : max(0, state.currentTime)
+        self.timestampDate = state.lastUpdated == .distantPast ? Date() : state.lastUpdated
+        self.playbackRate = state.isPlaying
+            ? (state.playbackRate > 0 ? state.playbackRate : (wasPlaying && self.playbackRate > 0 ? self.playbackRate : 1))
+            : 0
         
         if shuffleChanged {
             self.isShuffled = state.isShuffled
         }
         
-        self.timestampDate = state.lastUpdated
-
         // Fetch lyrics on content change only if UI is visible (Lazy loading)
         // Checked after songTitle, artistName and bundleIdentifier are synchronized
         if hasContentChange {

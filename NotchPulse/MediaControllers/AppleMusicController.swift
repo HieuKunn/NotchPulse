@@ -23,7 +23,6 @@ class AppleMusicController: MediaControllerProtocol {
 
     private var notificationTask: Task<Void, Never>?
     private var periodicSyncTask: Task<Void, Never>?
-    private var pauseVerificationTask: Task<Void, Never>?
     private var isUIActive: Bool = false
     
     // MARK: - Initialization
@@ -51,7 +50,6 @@ class AppleMusicController: MediaControllerProtocol {
     deinit {
         notificationTask?.cancel()
         periodicSyncTask?.cancel()
-        pauseVerificationTask?.cancel()
     }
     
     // MARK: - Protocol Implementation
@@ -147,24 +145,7 @@ class AppleMusicController: MediaControllerProtocol {
         
         let reportedPlaying = descriptor.atIndex(1)?.booleanValue ?? false
 
-        // AppleScript can momentarily report "paused" during the brief window
-        // when macOS routes an AppleEvent while the app handles a UI transition
-        // (e.g. the notch opening). Require a second confirmation before we
-        // propagate an unexpected pause to avoid false mid-track pauses.
-        if !reportedPlaying && self.playbackState.isPlaying {
-            pauseVerificationTask?.cancel()
-            pauseVerificationTask = Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(400))
-                guard !Task.isCancelled, let self else { return }
-                await self.updatePlaybackInfoConfirmed()
-            }
-            // Keep all metadata up to date but preserve the playing flag for now.
-            updatedState.isPlaying = true
-        } else {
-            pauseVerificationTask?.cancel()
-            pauseVerificationTask = nil
-            updatedState.isPlaying = reportedPlaying
-        }
+        updatedState.isPlaying = reportedPlaying
 
         updatedState.title = title
         updatedState.artist = descriptor.atIndex(3)?.stringValue ?? "Unknown"
@@ -183,37 +164,6 @@ class AppleMusicController: MediaControllerProtocol {
         updatedState.lastUpdated = Date()
         self.playbackState = updatedState
 
-        if updatedState.isPlaying && isUIActive {
-            startPeriodicSyncIfNeeded()
-        } else if !updatedState.isPlaying {
-            stopPeriodicSync()
-        }
-    }
-
-    /// Second-pass confirmation: re-query Music to confirm an unexpected pause
-    /// before committing it to the published state.
-    private func updatePlaybackInfoConfirmed() async {
-        guard let descriptor = try? await fetchPlaybackInfoAsync() else { return }
-        guard descriptor.numberOfItems >= 11 else { return }
-        guard let title = descriptor.atIndex(2)?.stringValue,
-              !title.isEmpty, title != "Not Playing" else { return }
-        var updatedState = self.playbackState
-        updatedState.isPlaying = descriptor.atIndex(1)?.booleanValue ?? false
-        updatedState.title = title
-        updatedState.artist = descriptor.atIndex(3)?.stringValue ?? "Unknown"
-        updatedState.album = descriptor.atIndex(4)?.stringValue ?? "Unknown"
-        updatedState.currentTime = descriptor.atIndex(5)?.doubleValue ?? 0
-        updatedState.duration = descriptor.atIndex(6)?.doubleValue ?? 0
-        updatedState.isShuffled = descriptor.atIndex(7)?.booleanValue ?? false
-        let repeatModeValue = descriptor.atIndex(8)?.int32Value ?? 0
-        updatedState.repeatMode = RepeatMode(rawValue: Int(repeatModeValue)) ?? .off
-        let volumePercentage = descriptor.atIndex(9)?.int32Value ?? 50
-        updatedState.volume = Double(volumePercentage) / 100.0
-        updatedState.artwork = descriptor.atIndex(10)?.data as Data?
-        let lovedState = descriptor.atIndex(11)?.booleanValue ?? false
-        updatedState.isFavorite = lovedState
-        updatedState.lastUpdated = Date()
-        self.playbackState = updatedState
         if updatedState.isPlaying && isUIActive {
             startPeriodicSyncIfNeeded()
         } else if !updatedState.isPlaying {
