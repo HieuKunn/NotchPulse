@@ -52,10 +52,7 @@ struct AlbumArtView: View {
         Button {
             musicManager.openMusicApp()
         } label: {
-            ZStack(alignment: .bottomTrailing) {
-                albumArtImage
-                appIconOverlay
-            }
+            albumArtImage
         }
         .buttonStyle(PlainButtonStyle())
         .scaleEffect(musicManager.isPlaying ? 1 : 0.88)
@@ -96,19 +93,7 @@ struct AlbumArtView: View {
             )
     }
 
-    @ViewBuilder
-    private var appIconOverlay: some View {
-        if !musicManager.usingAppIconForArtwork && !musicManager.songTitle.isEmpty {
-            let iconSize: CGFloat = max(22, size * 0.27)
-            AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: iconSize, height: iconSize)
-                .offset(x: 6, y: 6)
-                .transition(.scale.combined(with: .opacity))
-                .zIndex(2)
-        }
-    }
+
 }
 
 struct MusicControlsView: View {

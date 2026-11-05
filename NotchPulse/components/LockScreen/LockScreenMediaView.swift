@@ -125,16 +125,6 @@ struct LockScreenMediaView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            
-            // Icon app phát nhạc (Apple Music, Spotify, ...)
-            if !musicManager.usingAppIconForArtwork && !musicManager.songTitle.isEmpty {
-                AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
-                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                    .offset(x: 3, y: 3)
-            }
         }
         .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
@@ -398,15 +388,6 @@ struct LockScreenMediaView: View {
                             }
                         }
                         .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
-                    
-                    if !musicManager.usingAppIconForArtwork && !musicManager.songTitle.isEmpty {
-                        AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: albumSize * 0.11, height: albumSize * 0.11)
-                            .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.025, style: .continuous))
-                            .offset(x: albumSize * 0.02, y: albumSize * 0.02)
-                    }
                 }
                 .scaleEffect(musicManager.isPlaying ? 1.0 : 0.94)
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)

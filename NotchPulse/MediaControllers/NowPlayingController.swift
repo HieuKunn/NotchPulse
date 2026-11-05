@@ -505,12 +505,16 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         case .seek(let time):
             js = """
             (function() {
+                var p = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+                if (p && typeof p.seekTo === 'function') {
+                    p.seekTo(\(time), true);
+                }
                 var v = document.querySelector('video, audio');
                 if (v) {
                     v.currentTime = \(time);
                     return 'seeked';
                 }
-                return 'not_found';
+                return (p ? 'yt_seeked' : 'not_found');
             })()
             """
         case .setVolume(let level):
@@ -560,8 +564,26 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
               end tell
               """
 
+        let runCommandOnTab = isSafari
+            ? "return (do JavaScript \"\(escapedJS)\" in curTab)"
+            : """
+              tell curTab
+                  return execute javascript "\(escapedJS)"
+              end tell
+              """
+
         let appleScript = """
         tell application "\(appName)"
+            -- 1. Fast path: check front/active tab first (<20ms response)
+            try
+                set curTab to \(frontTab)
+                set curU to (URL of curTab as text)
+                if curU contains "youtube.com" or curU contains "soundcloud.com" or curU contains "spotify.com" or curU contains "music.youtube.com" or curU contains "bilibili.com" then
+                    \(runCommandOnTab)
+                end if
+            end try
+
+            -- 2. Search windows and tabs for matching media tab
             set targetTab to missing value
             set playingTab to missing value
             set fallbackTab to missing value
@@ -571,12 +593,12 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                     if u contains "youtube.com" or u contains "soundcloud.com" or u contains "spotify.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "music.youtube.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "tiktok.com" or u contains "facebook.com" then
                         try
                             \(readTabInfo)
-                            if "\(escapedTargetTitle)" is not "" and tabTitle contains "\(escapedTargetTitle)" then
+                            if "\(escapedTargetTitle)" is not "" and (tabTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tabTitle) then
                                 set targetTab to t
                                 exit repeat
                             else if ms contains "playing" and playingTab is missing value then
                                 set playingTab to t
-                            else if ms contains "paused_progress" and fallbackTab is missing value then
+                            else if (u contains "youtube.com/watch" or u contains "music.youtube.com") and fallbackTab is missing value then
                                 set fallbackTab to t
                             else if fallbackTab is missing value then
                                 set fallbackTab to t
@@ -743,10 +765,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     }
 
     func seek(to time: Double) async {
-        let micros = Int64(time * 1_000_000)
-        if await Self.sendUniversalCommand("seek", arg: "\(micros)") {
-            return
-        }
         let bundleID = getEffectiveBundleID()
         if bundleID == "com.apple.Music" || bundleID.contains("Music") {
             let script = "tell application \"Music\" to set player position to \(time)"
@@ -756,6 +774,9 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             try? await AppleScriptHelper.executeVoid(script)
         } else if isBrowser(bundleID) {
             await executeBrowserScript(for: .seek(time))
+        } else {
+            let micros = Int64(time * 1_000_000)
+            await Self.sendUniversalCommand("seek", arg: "\(micros)")
         }
     }
 
