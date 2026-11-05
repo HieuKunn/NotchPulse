@@ -1,19 +1,10 @@
-## NotchPulse v5.5 (Build 439)
+## NotchPulse v5.5 (Build 451)
 
-### 🔒 Reliable Lock Screen & Multi-Display Support
-- **Lock Screen Player Visibility**: Fixed an issue where the Lock Screen media card failed to appear or was prematurely dismissed on screen wake.
-- **External Monitor Support**: The Lock Screen player now dynamically anchors to your active screen (including external displays) with full elevated window shielding.
-- **Smooth Unlock Transition**: Media controls and lyrics dissolve cleanly in tandem with native macOS unlock animations.
+### 🎵 Universal Media Controls & Session Switching
+- **Universal Browser & Media Controls**: Overhauled media playback controls (Play/Pause, Next, Previous, and ±15s seeking) across all web browsers (Arc, Google Chrome, Safari, Brave, Edge, Opera, etc.) and native media apps.
+- **Apple System Media Parity**: NotchPulse now mirrors Apple's native Now Playing behavior—media sessions switch seamlessly and automatically when switching between apps or web tabs without requiring manual controller selection.
+- **Zero Artwork Leakage**: Clean separation of album artwork and track metadata during media transitions prevents thumbnails from mixing between active sessions.
 
-### 📥 Enhanced Shelf Drag & Drop
-- **Proactive Drag Detection**: Shelf smoothly expands as soon as dragged files enter the footprint, eliminating the need to drag all the way to the top bezel.
-- **Seamless Drop Target**: Resolved an issue where window level elevation prevented files and images (`.image`, `.png`, `.jpg`, `.url`, etc.) from being received into the Shelf.
-
-### 🍏 Native macOS Settings Experience
-- **Apple HIG Toggle Switch Parity**: Standardized all on/off toggle switches to uniform, 100% native macOS control size (`NSSwitch` / `.regular`) across all sections.
-- **Enhanced Search Field Contrast**: Native sidebar search field with crisp rounded bezel and depth shadow cleanly separated from the translucent sidebar material.
-- **Prominent Section Headers**: Restored large, bold title typography matching macOS System Settings.
-
-### ⚡️ Proactive Updates & Stability
-- **Immediate In-App Update Prompt**: Directly alerts you with release details and one-click updating upon launch or wake.
-- **Startup Reliability**: Hardened audio and system service initialization to ensure smooth, zero-crash startup.
+### 🔒 Face ID Unlock & Permission Improvements
+- **Reliable Password Auto-Fill**: Resolved an unlock sequencing race condition so your stored password is typed immediately and reliably upon face recognition.
+- **Non-Intrusive Permissions**: Eliminated bulk startup permission dialogs on app updates; permissions are now only requested during initial onboarding or when explicitly enabling a feature.

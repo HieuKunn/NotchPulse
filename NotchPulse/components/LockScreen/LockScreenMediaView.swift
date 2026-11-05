@@ -113,19 +113,30 @@ struct LockScreenMediaView: View {
 
     private var compactAlbumArtView: some View {
         ZStack(alignment: .bottomTrailing) {
-            Image(nsImage: musicManager.albumArt)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 54, height: 54)
-                .overlay {
-                    if !musicManager.isPlaying {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.black.opacity(0.35))
-                            .allowsHitTesting(false)
-                    }
+            if musicManager.hasRealArtwork {
+                Image(nsImage: musicManager.albumArt)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 54, height: 54)
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(isLightMode ? Color.black.opacity(0.08) : Color.white.opacity(0.15))
+                    Image(systemName: "music.note")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(isLightMode ? Color.black.opacity(0.55) : Color.white.opacity(0.70))
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .frame(width: 54, height: 54)
+            }
         }
+        .overlay {
+            if !musicManager.isPlaying && musicManager.hasRealArtwork {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.black.opacity(0.35))
+                    .allowsHitTesting(false)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .scaleEffect(musicManager.isPlaying ? 1.0 : 0.92)
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
     }
@@ -349,17 +360,19 @@ struct LockScreenMediaView: View {
                 // Lớp nền đen sâu đề phòng khi ảnh đang load hoặc trong suốt
                 Color.black
                 
-                // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
-                Image(nsImage: musicManager.albumArt)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: geo.size.width, height: geo.size.height)
-                    .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
-                    .blur(radius: 65, opaque: true)
-                    .overlay(
-                        // Lớp phủ đen trong suốt nhẹ để chữ và điều khiển luôn tương phản rõ nét
-                        Color.black.opacity(0.35)
-                    )
+                if musicManager.hasRealArtwork {
+                    // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
+                    Image(nsImage: musicManager.albumArt)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
+                        .blur(radius: 65, opaque: true)
+                        .overlay(
+                            // Lớp phủ đen trong suốt nhẹ để chữ và điều khiển luôn tương phản rõ nét
+                            Color.black.opacity(0.35)
+                        )
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
@@ -376,19 +389,30 @@ struct LockScreenMediaView: View {
                 windowController.setFullScreen(false)
             } label: {
                 ZStack(alignment: .bottomTrailing) {
-                    Image(nsImage: musicManager.albumArt)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: albumSize, height: albumSize)
-                        .overlay {
-                            if !musicManager.isPlaying {
-                                RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
-                                    .fill(Color.black.opacity(0.35))
-                                    .allowsHitTesting(false)
-                            }
+                    if musicManager.hasRealArtwork {
+                        Image(nsImage: musicManager.albumArt)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: albumSize, height: albumSize)
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
+                                .fill(Color.white.opacity(0.12))
+                            Image(systemName: "music.note")
+                                .font(.system(size: albumSize * 0.38, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.70))
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
+                        .frame(width: albumSize, height: albumSize)
+                    }
                 }
+                .overlay {
+                    if !musicManager.isPlaying && musicManager.hasRealArtwork {
+                        RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous)
+                            .fill(Color.black.opacity(0.35))
+                            .allowsHitTesting(false)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: albumSize * 0.08, style: .continuous))
                 .scaleEffect(musicManager.isPlaying ? 1.0 : 0.94)
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: musicManager.isPlaying)
             }

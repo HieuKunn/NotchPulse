@@ -116,7 +116,7 @@ extension MediaControllerType {
     var description: String {
         switch self {
         case .nowPlaying:
-            return "Works with most media apps, including browsers, to detect what's playing. Note: This may be removed in a future macOS version."
+            return "Automatically detects and controls whichever audio or video is active across browsers (Arc, Chrome, Safari), Spotify, Apple Music, and other media players."
         case .spotify:
             return "Connects directly to the Spotify app."
         case .appleMusic:

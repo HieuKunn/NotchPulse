@@ -85,18 +85,27 @@ final class NotchPulsePOCController {
     /// auto-trigger path), refuses to inject unless the CGSession dictionary
     /// confirms the screen is actually locked.
     func injectStoredPassword(requireAuthoritativeLock: Bool = false) async {
-        guard KeystrokeInjector.isAccessibilityTrusted() else {
+        let isTrusted = KeystrokeInjector.isAccessibilityTrusted()
+        let isSessionUnlocked = NotchPulseVault.isSessionUnlocked
+        NSLog("[FaceID-Inject] injectStoredPassword called: isAccessibilityTrusted=\(isTrusted), isSessionUnlocked=\(isSessionUnlocked), requireAuthoritativeLock=\(requireAuthoritativeLock)")
+
+        guard isTrusted else {
             statusMessage = "Accessibility not granted — open System Settings and enable NotchPulse."
+            NSLog("[FaceID-Inject] FAILED: Accessibility permission missing (AXIsProcessTrusted == false). Please toggle NotchPulse in System Settings -> Privacy & Security -> Accessibility.")
             return
         }
-        guard NotchPulseVault.isSessionUnlocked else {
+        guard isSessionUnlocked else {
             statusMessage = "Session locked — authenticate with Touch ID first."
+            NSLog("[FaceID-Inject] FAILED: NotchPulseVault session locked. Stored password not loaded in memory.")
             return
         }
 
         if requireAuthoritativeLock {
-            guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
+            let actuallyLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
+            NSLog("[FaceID-Inject] Checking isScreenActuallyLocked: \(actuallyLocked)")
+            guard actuallyLocked else {
                 statusMessage = "Skipped: CGSession reports screen is not actually locked."
+                NSLog("[FaceID-Inject] SKIPPED: CGSession reports screen is not actually locked.")
                 return
             }
         }
@@ -106,11 +115,14 @@ final class NotchPulsePOCController {
             try await Task.detached(priority: .userInitiated) {
                 var bytes = try NotchPulseVault.readPassword()
                 defer { bytes.resetBytes(in: 0..<bytes.count) }
+                NSLog("[FaceID-Inject] readPassword retrieved \(bytes.count) bytes. Injecting keystrokes...")
                 try KeystrokeInjector.typeAndReturn(bytes)
             }.value
             statusMessage = "Injected stored password + Return at \(Date().formatted(date: .omitted, time: .standard))"
+            NSLog("[FaceID-Inject] SUCCESS: Injected stored password and pressed Return.")
         } catch {
             statusMessage = "Injection failed: \(error.localizedDescription)"
+            NSLog("[FaceID-Inject] FAILED with error: \(error)")
         }
     }
 }

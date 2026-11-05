@@ -154,30 +154,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
     // MARK: - Helper
     private func getEffectiveBundleID() -> String {
-        if !playbackState.bundleIdentifier.isEmpty {
-            return playbackState.bundleIdentifier
-        }
-        let browserBundleIDs = [
-            "app.zen-browser.zen",
-            "company.thebrowser.Browser",
-            "com.google.Chrome",
-            "com.brave.Browser",
-            "com.apple.Safari",
-            "com.microsoft.edgemac",
-            "org.mozilla.firefox"
-        ]
-        for id in browserBundleIDs {
-            if !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty {
-                return id
-            }
-        }
-        if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty {
-            return "com.apple.Music"
-        }
-        if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty {
-            return "com.spotify.client"
-        }
-        return ""
+        return playbackState.bundleIdentifier
     }
 
     // MARK: - Media Key Fallback
@@ -543,88 +520,194 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
 
-        let jsInspect = "(function(){ var v = document.querySelector('video, audio'); if (!v) return 'none'; return (!v.paused ? 'playing' : (v.currentTime > 0 ? 'paused_progress' : 'idle')); })()"
-        let readTabInfo = isSafari
-            ? """
-              set tabTitle to (name of t as text)
-              set ms to (do JavaScript "\(jsInspect)" in t)
-              """
-            : """
-              tell t
-                  set tabTitle to (title of t as text)
-                  set ms to execute javascript "\(jsInspect)"
-              end tell
-              """
-        let frontTab = isSafari ? "current tab of front window" : "active tab of front window"
-        let runCommand = isSafari
-            ? "return (do JavaScript \"\(escapedJS)\" in targetTab)"
-            : """
-              tell targetTab
-                  return execute javascript "\(escapedJS)"
-              end tell
-              """
-
-        let runCommandOnTab = isSafari
-            ? "return (do JavaScript \"\(escapedJS)\" in curTab)"
-            : """
-              tell curTab
-                  return execute javascript "\(escapedJS)"
-              end tell
-              """
-
-        let appleScript = """
-        tell application "\(appName)"
-            -- 1. Fast path: check front/active tab first (<20ms response)
-            try
-                set curTab to \(frontTab)
-                set curU to (URL of curTab as text)
-                if curU contains "youtube.com" or curU contains "soundcloud.com" or curU contains "spotify.com" or curU contains "music.youtube.com" or curU contains "bilibili.com" then
-                    \(runCommandOnTab)
-                end if
-            end try
-
-            -- 2. Search windows and tabs for matching media tab
-            set targetTab to missing value
-            set playingTab to missing value
-            set fallbackTab to missing value
-            repeat with w in windows
-                repeat with t in tabs of w
-                    set u to (URL of t as text)
-                    if u contains "youtube.com" or u contains "soundcloud.com" or u contains "spotify.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "music.youtube.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "tiktok.com" or u contains "facebook.com" then
-                        try
-                            \(readTabInfo)
-                            if "\(escapedTargetTitle)" is not "" and (tabTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tabTitle) then
-                                set targetTab to t
-                                exit repeat
-                            else if ms contains "playing" and playingTab is missing value then
-                                set playingTab to t
-                            else if (u contains "youtube.com/watch" or u contains "music.youtube.com") and fallbackTab is missing value then
-                                set fallbackTab to t
-                            else if fallbackTab is missing value then
-                                set fallbackTab to t
-                            end if
-                        end try
-                    end if
-                end repeat
-                if targetTab is not missing value then exit repeat
-            end repeat
-            if targetTab is missing value then
-                if playingTab is not missing value then
-                    set targetTab to playingTab
-                else if fallbackTab is not missing value then
-                    set targetTab to fallbackTab
-                else
+        let isArc = (appName == "Arc")
+        let appleScript: String
+        if isArc {
+            appleScript = """
+            tell application "Arc"
+                with timeout of 2 seconds
+                    -- 1. Fast path: active tab of front window
                     try
-                        set targetTab to \(frontTab)
+                        if (count of windows) > 0 then
+                            tell front window
+                                set curU to (get URL of active tab)
+                                if curU does not start with "arc://" and curU does not start with "chrome://" and curU does not start with "about:" then
+                                    tell active tab
+                                        set res to execute javascript "\(escapedJS)"
+                                        if res is not "not_found" and res is not "noop" and res is not missing value then
+                                            return res
+                                        end if
+                                    end tell
+                                end if
+                            end tell
+                        end if
                     end try
-                end if
-            end if
-            if targetTab is not missing value then
-                \(runCommand)
-            end if
-            return "no_tab"
-        end tell
-        """
+
+                    -- 2. Search windows and tabs matching targetTitle (instant native title query)
+                    if "\(escapedTargetTitle)" is not "" then
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    set u to (get URL of t)
+                                    if u does not start with "arc://" and u does not start with "chrome://" and u does not start with "about:" then
+                                        set tTitle to (get title of t)
+                                        if tTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tTitle then
+                                            tell t
+                                                set res to execute javascript "\(escapedJS)"
+                                                if res is not "not_found" and res is not "noop" and res is not missing value then
+                                                    return res
+                                                end if
+                                            end tell
+                                        end if
+                                    end if
+                                end try
+                            end repeat
+                        end repeat
+                    end if
+
+                    -- 3. Search windows and tabs for active media domains
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            try
+                                set u to (get URL of t)
+                                if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
+                                    tell t
+                                        set res to execute javascript "\(escapedJS)"
+                                        if res is not "not_found" and res is not "noop" and res is not missing value then
+                                            return res
+                                        end if
+                                    end tell
+                                end if
+                            end try
+                        end repeat
+                    end repeat
+
+                    return "not_found"
+                end timeout
+            end tell
+            """
+        } else if isSafari {
+            appleScript = """
+            tell application "\(appName)"
+                with timeout of 2 seconds
+                    -- 1. Fast path: current tab of front window
+                    try
+                        if (count of windows) > 0 then
+                            set curTab to current tab of front window
+                            set curU to (URL of curTab as text)
+                            if curU does not start with "safari://" and curU does not start with "about:" then
+                                set res to (do JavaScript "\(escapedJS)" in curTab)
+                                if res is not "not_found" and res is not "noop" and res is not missing value then
+                                    return res
+                                end if
+                            end if
+                        end if
+                    end try
+
+                    -- 2. Search windows and tabs matching targetTitle
+                    if "\(escapedTargetTitle)" is not "" then
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    set u to (URL of t as text)
+                                    if u does not start with "safari://" and u does not start with "about:" then
+                                        set tabTitle to (name of t as text)
+                                        if tabTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tabTitle then
+                                            set res to (do JavaScript "\(escapedJS)" in t)
+                                            if res is not "not_found" and res is not "noop" and res is not missing value then
+                                                return res
+                                            end if
+                                        end if
+                                    end if
+                                end try
+                            end repeat
+                        end repeat
+                    end if
+
+                    -- 3. Search windows and tabs for active media
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            try
+                                set u to (URL of t as text)
+                                if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
+                                    set res to (do JavaScript "\(escapedJS)" in t)
+                                    if res is not "not_found" and res is not "noop" and res is not missing value then
+                                        return res
+                                    end if
+                                end if
+                            end try
+                        end repeat
+                    end repeat
+
+                    return "not_found"
+                end timeout
+            end tell
+            """
+        } else {
+            // Chromium-based browsers: Google Chrome, Brave, Microsoft Edge, Opera, Vivaldi, Chromium
+            appleScript = """
+            tell application "\(appName)"
+                with timeout of 2 seconds
+                    -- 1. Fast path: active tab of front window
+                    try
+                        if (count of windows) > 0 then
+                            set curTab to active tab of front window
+                            set curU to (URL of curTab as text)
+                            if curU does not start with "chrome://" and curU does not start with "about:" and curU does not start with "edge://" and curU does not start with "brave://" and curU does not start with "opera://" and curU does not start with "vivaldi://" then
+                                tell curTab
+                                    set res to execute javascript "\(escapedJS)"
+                                    if res is not "not_found" and res is not "noop" and res is not missing value then
+                                        return res
+                                    end if
+                                end tell
+                            end if
+                        end if
+                    end try
+
+                    -- 2. Search windows and tabs matching targetTitle
+                    if "\(escapedTargetTitle)" is not "" then
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                try
+                                    set u to (URL of t as text)
+                                    if u does not start with "chrome://" and u does not start with "about:" and u does not start with "edge://" and u does not start with "brave://" and u does not start with "opera://" and u does not start with "vivaldi://" then
+                                        set tabTitle to (title of t as text)
+                                        if tabTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tabTitle then
+                                            tell t
+                                                set res to execute javascript "\(escapedJS)"
+                                                if res is not "not_found" and res is not "noop" and res is not missing value then
+                                                    return res
+                                                end if
+                                            end tell
+                                        end if
+                                    end if
+                                end try
+                            end repeat
+                        end repeat
+                    end if
+
+                    -- 3. Search windows and tabs for active media
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            try
+                                set u to (URL of t as text)
+                                if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
+                                    tell t
+                                        set res to execute javascript "\(escapedJS)"
+                                        if res is not "not_found" and res is not "noop" and res is not missing value then
+                                            return res
+                                        end if
+                                    end tell
+                                end if
+                            end try
+                        end repeat
+                    end repeat
+
+                    return "not_found"
+                end timeout
+            end tell
+            """
+        }
 
         do {
             let result = try await AppleScriptHelper.execute(appleScript)
@@ -719,28 +802,28 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
     ) async {
         let bundleID = getEffectiveBundleID()
         
-        // 1. Direct native app targeting by bundle ID
+        // 1. Direct native app targeting by bundle ID for zero-latency response
         if bundleID == "com.apple.Music" {
             try? await AppleScriptHelper.executeVoid("tell application \"Music\" to \(appleMusicCommand)")
             return
         } else if bundleID == "com.spotify.client" {
             try? await AppleScriptHelper.executeVoid("tell application \"Spotify\" to \(spotifyCommand)")
             return
-        } else if isBrowser(bundleID) {
-            // 2. Direct browser tab targeting matching current track title
+        }
+
+        // 2. Browser tab automation (direct DOM/player control for web YouTube, Spotify, SoundCloud, etc.)
+        if isBrowser(bundleID) {
             if await executeBrowserScript(for: browserMediaAction) {
                 return
             }
         }
 
-        // 3. System universal MediaRemote adapter fallback
+        // 3. System universal MediaRemote adapter (primary unified bridge for all media apps & fallback)
         if await Self.sendUniversalCommand("send", arg: "\(commandId)") {
             return
         }
-        if (commandId == 4 || commandId == 5) && NotchPulseLockMonitor.isScreenActuallyLocked() {
-            Self.postMediaKeyEvent(for: commandId)
-            return
-        }
+
+        // 4. System media key event fallback
         Self.postMediaKeyEvent(for: commandId)
     }
 
@@ -773,7 +856,11 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             let script = "tell application \"Spotify\" to set player position to \(time)"
             try? await AppleScriptHelper.executeVoid(script)
         } else if isBrowser(bundleID) {
-            await executeBrowserScript(for: .seek(time))
+            if await executeBrowserScript(for: .seek(time)) {
+                return
+            }
+            let micros = Int64(time * 1_000_000)
+            await Self.sendUniversalCommand("seek", arg: "\(micros)")
         } else {
             let micros = Int64(time * 1_000_000)
             await Self.sendUniversalCommand("seek", arg: "\(micros)")
@@ -893,7 +980,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         // MediaRemote already coalesces its own notifications. Adding an adapter
         // debounce makes play/pause and position changes visibly lag behind the
         // source application, so consume every event as soon as it is emitted.
-        process.arguments = [paths.script, paths.framework, "stream"]
+        process.arguments = [paths.script, paths.framework, "stream", "--no-diff"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
@@ -1021,15 +1108,24 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         emptyStreamVerificationTask?.cancel()
         emptyStreamVerificationTask = nil
 
-        var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
-        
         let newTitle = payload.title?.trimmingCharacters(in: .whitespacesAndNewlines)
         let isTitleGiven = (newTitle != nil && !newTitle!.isEmpty)
+        let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
+        let bundleChanged = (newBundle != nil && !newBundle!.isEmpty && newBundle != self.playbackState.bundleIdentifier)
         let titleHasChanged = isTitleGiven && (newTitle != self.playbackState.title)
+
+        var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
+        if let newBundle = newBundle, !newBundle.isEmpty {
+            newPlaybackState.bundleIdentifier = newBundle
+        } else if diff || !titleHasChanged {
+            newPlaybackState.bundleIdentifier = self.playbackState.bundleIdentifier
+        } else {
+            newPlaybackState.bundleIdentifier = ""
+        }
 
         if isTitleGiven {
             newPlaybackState.title = newTitle!
-        } else if diff {
+        } else if diff && !bundleChanged {
             newPlaybackState.title = self.playbackState.title
         } else {
             newPlaybackState.title = ""
@@ -1038,7 +1134,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         let newArtist = payload.artist?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let newArtist = newArtist, !newArtist.isEmpty {
             newPlaybackState.artist = newArtist
-        } else if diff && !titleHasChanged {
+        } else if diff && !titleHasChanged && !bundleChanged {
             newPlaybackState.artist = self.playbackState.artist
         } else {
             newPlaybackState.artist = ""
@@ -1047,7 +1143,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         let newAlbum = payload.album?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let newAlbum = newAlbum, !newAlbum.isEmpty {
             newPlaybackState.album = newAlbum
-        } else if diff && !titleHasChanged {
+        } else if diff && !titleHasChanged && !bundleChanged {
             newPlaybackState.album = self.playbackState.album
         } else {
             newPlaybackState.album = ""
@@ -1055,18 +1151,17 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let dur = payload.duration, dur > 0 {
             newPlaybackState.duration = dur
-        } else if !titleHasChanged && self.playbackState.duration > 0 {
+        } else if !titleHasChanged && !bundleChanged && self.playbackState.duration > 0 {
             newPlaybackState.duration = self.playbackState.duration
         } else {
             newPlaybackState.duration = 0
         }
         
         let isLocked = LockScreenWakeObserver.isSessionLocked
-        if fromSnapshot && !titleHasChanged && payload.playing == false && self.playbackState.isPlaying {
-            newPlaybackState.isPlaying = true
+        if let playing = payload.playing {
+            newPlaybackState.isPlaying = playing
         } else {
-            newPlaybackState.isPlaying = payload.playing
-                ?? (diff || isLocked || !titleHasChanged ? self.playbackState.isPlaying : false)
+            newPlaybackState.isPlaying = (diff || isLocked || !titleHasChanged) ? self.playbackState.isPlaying : false
         }
 
         if newPlaybackState.isPlaying {
@@ -1085,7 +1180,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         if let elapsedTime = payload.elapsedTime {
             newPlaybackState.currentTime = elapsedTime
-        } else if !titleHasChanged {
+        } else if !titleHasChanged && !bundleChanged {
             let previousTimestamp = self.playbackState.lastUpdated
             let canAdvance = self.playbackState.isPlaying
                 && self.playbackState.playbackRate > 0
@@ -1104,7 +1199,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         
         if let shuffleMode = payload.shuffleMode {
             newPlaybackState.isShuffled = shuffleMode != 1
-        } else if diff || !titleHasChanged {
+        } else if diff || (!titleHasChanged && !bundleChanged) {
             newPlaybackState.isShuffled = self.playbackState.isShuffled
         } else {
             newPlaybackState.isShuffled = false
@@ -1112,7 +1207,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
 
         if let repeatModeValue = payload.repeatMode {
             newPlaybackState.repeatMode = RepeatMode(rawValue: repeatModeValue) ?? .off
-        } else if diff || !titleHasChanged {
+        } else if diff || (!titleHasChanged && !bundleChanged) {
             newPlaybackState.repeatMode = self.playbackState.repeatMode
         } else {
             newPlaybackState.repeatMode = .off
@@ -1124,7 +1219,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.artwork = Data(
                 base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
             )
-        } else if !titleHasChanged {
+        } else if !titleHasChanged && !bundleChanged {
             newPlaybackState.artwork = self.playbackState.artwork
         } else {
             newPlaybackState.artwork = nil
@@ -1140,16 +1235,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.lastUpdated = receivedAt
         }
         
-        let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
-        if let newBundle = newBundle, !newBundle.isEmpty {
-            newPlaybackState.bundleIdentifier = newBundle
-        } else if diff || !titleHasChanged {
-            newPlaybackState.bundleIdentifier = self.playbackState.bundleIdentifier
-        } else {
-            newPlaybackState.bundleIdentifier = ""
-        }
-        
-        newPlaybackState.volume = payload.volume ?? (diff || !titleHasChanged ? self.playbackState.volume : 0.5)
+        newPlaybackState.volume = payload.volume ?? (diff || (!titleHasChanged && !bundleChanged) ? self.playbackState.volume : 0.5)
         
         await MainActor.run {
             self.playbackState = newPlaybackState

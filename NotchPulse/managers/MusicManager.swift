@@ -6,9 +6,9 @@ import ImageIO
 import SwiftUI
 
 let defaultImage: NSImage = .init(
-    systemSymbolName: "heart.fill",
+    systemSymbolName: "music.note",
     accessibilityDescription: "Album Art"
-)!
+) ?? NSImage()
 
 class MusicManager: ObservableObject {
     // MARK: - Properties
@@ -71,7 +71,10 @@ class MusicManager: ObservableObject {
 
     public private(set) var artworkData: Data? = nil
     public var hasArtwork: Bool {
-        return artworkData != nil && !usingAppIconForArtwork
+        return artworkData != nil
+    }
+    public var hasRealArtwork: Bool {
+        return artworkData != nil
     }
     /// Track last isPlaying to detect resume after a long idle period.
     private var lastIsPlaying: Bool = false
@@ -218,7 +221,7 @@ class MusicManager: ObservableObject {
         ) { [weak self] resolvedData in
             guard let self = self, let data = resolvedData else { return }
             DispatchQueue.main.async {
-                guard self.songTitle == currentTitle else { return }
+                guard self.songTitle == currentTitle, self.bundleIdentifier == currentBundle else { return }
                 self.usingAppIconForArtwork = false
                 self.artworkData = data
                 self.updateArtwork(data)
@@ -403,9 +406,9 @@ class MusicManager: ObservableObject {
         let albumChanged = state.album != self.lastArtworkAlbum
         let bundleChanged = state.bundleIdentifier != self.lastArtworkBundleIdentifier
 
-        // Check for artwork changes: only treat as artwork change if embedded artwork differs, or if title/artist switched, or if artwork is currently missing
+        // Check for artwork changes: only treat as artwork change if embedded artwork differs, or if title/artist/bundle switched, or if artwork is currently missing
         let needsArtwork = (self.artworkData == nil || self.usingAppIconForArtwork) && !state.title.isEmpty
-        let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || (titleChanged || artistChanged) || needsArtwork
+        let artworkChanged = (state.artwork != nil && state.artwork != self.artworkData) || (titleChanged || artistChanged || bundleChanged) || needsArtwork
         let hasContentChange = titleChanged || artistChanged || albumChanged || artworkChanged || bundleChanged
 
         // Immediately synchronize track metadata with active playback state
@@ -425,13 +428,20 @@ class MusicManager: ObservableObject {
 
         // Handle artwork and visual transitions for changed content
         if hasContentChange {
-            if titleChanged || artistChanged {
+            if titleChanged || artistChanged || bundleChanged {
                 self.lyricsRequestId &+= 1
                 self.lyricsFetchTask?.cancel()
                 self.lyricsFetchTask = nil
                 self.syncedLyrics = []
                 self.currentLyrics = ""
                 self.isFetchingLyrics = false
+
+                // Immediately clear previous track's artwork so it never leaks to the new track
+                self.artworkRepollTask?.cancel()
+                self.artworkRepollTask = nil
+                self.artworkData = nil
+                self.usingAppIconForArtwork = false
+                self.updateAlbumArt(newAlbumArt: defaultImage)
             }
             self.triggerFlipAnimation()
 
@@ -449,17 +459,14 @@ class MusicManager: ObservableObject {
                 self.usingAppIconForArtwork = false
                 self.artworkData = cached
                 self.updateArtwork(cached)
-            } else if self.artworkData != nil && self.songTitle == state.title && !state.title.isEmpty {
-                // If we already resolved and loaded the artwork for this exact song, keep it!
+            } else if !titleChanged && !artistChanged && self.artworkData != nil {
+                // If the track hasn't changed and artwork is already loaded, retain it
                 self.usingAppIconForArtwork = false
             } else {
-                // If not yet cached, temporarily display host app icon so card is never blank
-                let effectiveBundleID = !state.bundleIdentifier.isEmpty ? state.bundleIdentifier : (self.bundleIdentifier ?? "com.apple.Music")
-                if let appIconImage = AppIconAsNSImage(for: effectiveBundleID) {
-                    self.usingAppIconForArtwork = true
-                    self.updateAlbumArt(newAlbumArt: appIconImage)
-                }
+                // Never display host app or browser logo in the media card. Show clean placeholder.
+                self.usingAppIconForArtwork = false
                 self.artworkData = nil
+                self.updateAlbumArt(newAlbumArt: defaultImage)
 
                 // Asynchronously resolve true high-resolution media cover art (YouTube thumbnail / iTunes / Deezer)
                 let currentTitle = state.title
@@ -487,7 +494,7 @@ class MusicManager: ObservableObject {
                     } else {
                         // If resolution failed (e.g. Wi-Fi still reconnecting right on wake), retry once after 2.5s
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
-                            guard let self = self, self.songTitle == currentTitle, (self.artworkData == nil || self.usingAppIconForArtwork) else { return }
+                            guard let self = self, self.songTitle == currentTitle, self.artworkData == nil else { return }
                             UniversalArtworkResolver.shared.resolveArtwork(
                                 title: currentTitle,
                                 artist: currentArtist,
@@ -1068,12 +1075,20 @@ class MusicManager: ObservableObject {
             self.isPlaying = false
             self.playbackRate = 0
             handleActiveMediaStopped()
+            Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                await self.activeController?.updatePlaybackInfo()
+            }
         }
     }
 
     @MainActor
     public func fallbackToPreviousMedia() {
         handleActiveMediaStopped()
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            await self.activeController?.updatePlaybackInfo()
+        }
     }
 
     @MainActor
@@ -1603,30 +1618,52 @@ public final class UniversalArtworkResolver {
             return
         }
 
+        let lowerBundle = (bundleIdentifier ?? "").lowercased()
+        let isBrowserSource = lowerBundle.contains("browser") || lowerBundle.contains("chrome")
+            || lowerBundle.contains("safari") || lowerBundle.contains("arc") || lowerBundle.contains("edge")
+            || lowerBundle.contains("brave") || lowerBundle.contains("opera") || lowerBundle.contains("vivaldi")
+            || lowerBundle.contains("chromium") || lowerBundle.contains("zen") || lowerBundle.contains("firefox")
+            || lowerBundle.contains("orion")
+
         let task = Task<Data?, Never> { [weak self] () -> Data? in
             guard let self = self else { return nil }
 
-            // 1. First priority: Official high-resolution album cover from iTunes Store or Deezer
-            if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
-                self.cacheArtworkData(itunesData, title: title, artist: artist)
-                return itunesData
-            }
-            if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
-                self.cacheArtworkData(deezerData, title: title, artist: artist)
-                return deezerData
-            }
+            if isBrowserSource {
+                // 1. Direct browser extraction from active media tab (100% exact thumbnail)
+                if let bundle = bundleIdentifier,
+                   let directThumb = await self.fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: bundle, targetTitle: cleanTitle) {
+                    self.cacheArtworkData(directThumb, title: title, artist: artist)
+                    return directThumb
+                }
 
-            // 2. Second priority: If playing in a browser, extract thumbnail from matching YouTube tab
-            if let bundle = bundleIdentifier,
-               let directThumb = await self.fetchDirectBrowserYouTubeThumbnail(bundleIdentifier: bundle, targetTitle: cleanTitle) {
-                self.cacheArtworkData(directThumb, title: title, artist: artist)
-                return directThumb
-            }
+                // 2. High-precision YouTube search by video title
+                if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
+                    self.cacheArtworkData(ytData, title: title, artist: artist)
+                    return ytData
+                }
 
-            // 3. Fallback: High-precision YouTube video search
-            if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
-                self.cacheArtworkData(ytData, title: title, artist: artist)
-                return ytData
+                // 3. Fallback to iTunes Store ONLY if artist is known to avoid mismatch
+                if !cleanArtist.isEmpty, let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
+                    self.cacheArtworkData(itunesData, title: title, artist: artist)
+                    return itunesData
+                }
+            } else {
+                // Native media applications (Apple Music, Spotify, etc.)
+                // 1. Official high-resolution album cover from iTunes Store or Deezer
+                if let itunesData = await self.fetchFromiTunes(title: cleanTitle, artist: cleanArtist) {
+                    self.cacheArtworkData(itunesData, title: title, artist: artist)
+                    return itunesData
+                }
+                if let deezerData = await self.fetchFromDeezer(title: cleanTitle, artist: cleanArtist) {
+                    self.cacheArtworkData(deezerData, title: title, artist: artist)
+                    return deezerData
+                }
+
+                // 2. Fallback to YouTube video search
+                if let ytData = await self.fetchFromYouTube(title: title, artist: artist) {
+                    self.cacheArtworkData(ytData, title: title, artist: artist)
+                    return ytData
+                }
             }
 
             return nil
@@ -1694,37 +1731,125 @@ public final class UniversalArtworkResolver {
             return nil
         }
 
-        let titleGetter = isSafari ? "set tabTitle to (name of t as text)" : "tell t to set tabTitle to (title of t as text)"
-        let frontTabGetter = isSafari ? "current tab of front window" : "active tab of front window"
-        let frontTitleGetter = isSafari ? "set tabTitle to (name of curTab as text)" : "tell curTab to set tabTitle to (title of curTab as text)"
-        let script = """
-        tell application "\(appName)"
-            try
-                set curTab to \(frontTabGetter)
-                set u to (URL of curTab as text)
-                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                    \(frontTitleGetter)
-                    if tabTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains tabTitle then
-                        return u
+        let isArc = (appName == "Arc")
+        let script: String
+        if isArc {
+            script = """
+            tell application "Arc"
+                -- 1. Fast path: active tab of front window
+                try
+                    if (count of windows) > 0 then
+                        tell front window to tell active tab
+                            set u to (get URL)
+                            if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                                return u
+                            end if
+                        end tell
                     end if
-                end if
-            end try
-            try
+                end try
+                -- 2. Search windows and tabs by index
+                repeat with winIdx from 1 to (count of windows)
+                    repeat with tabIdx from 1 to (count of tabs of window winIdx)
+                        set u to (get URL of tab tabIdx of window winIdx)
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                            tell window winIdx to tell tab tabIdx
+                                set docTitle to execute javascript "document.title"
+                                if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                    return u
+                                end if
+                            end tell
+                        end if
+                    end repeat
+                end repeat
+                -- 3. Fallback: first tab with youtube url
+                repeat with winIdx from 1 to (count of windows)
+                    repeat with tabIdx from 1 to (count of tabs of window winIdx)
+                        set u to (get URL of tab tabIdx of window winIdx)
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                            return u
+                        end if
+                    end repeat
+                end repeat
+                return ""
+            end tell
+            """
+        } else if isSafari {
+            script = """
+            tell application "\(appName)"
+                -- 1. Fast path: current tab of front window
+                try
+                    if (count of windows) > 0 then
+                        set curTab to current tab of front window
+                        set u to (URL of curTab as text)
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                            return u
+                        end if
+                    end if
+                end try
+                -- 2. Search all tabs
                 repeat with w in windows
                     repeat with t in tabs of w
                         set u to (URL of t as text)
                         if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            \(titleGetter)
-                            if tabTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains tabTitle then
+                            set docTitle to (do JavaScript "document.title" in t)
+                            if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
                                 return u
                             end if
                         end if
                     end repeat
                 end repeat
-            end try
-            return ""
-        end tell
-        """
+                -- 3. Fallback: first tab with youtube url
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        set u to (URL of t as text)
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                            return u
+                        end if
+                    end repeat
+                end repeat
+                return ""
+            end tell
+            """
+        } else {
+            script = """
+            tell application "\(appName)"
+                -- 1. Fast path: active tab of front window
+                try
+                    if (count of windows) > 0 then
+                        set curTab to active tab of front window
+                        set u to (URL of curTab as text)
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                            return u
+                        end if
+                    end if
+                end try
+                -- 2. Search all tabs
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        set u to (URL of t as text)
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                            tell t
+                                set docTitle to execute javascript "document.title"
+                                if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                    return u
+                                end if
+                            end tell
+                        end if
+                    end repeat
+                end repeat
+                -- 3. Fallback: first tab with youtube url
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        set u to (URL of t as text)
+                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                            return u
+                        end if
+                    end repeat
+                end repeat
+                return ""
+            end tell
+            """
+        }
 
         do {
             guard let res = try await AppleScriptHelper.execute(script),

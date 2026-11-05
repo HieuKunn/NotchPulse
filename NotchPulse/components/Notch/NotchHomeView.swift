@@ -66,31 +66,44 @@ struct AlbumArtView: View {
     }
 
     private var albumArtImage: some View {
-        Image(nsImage: musicManager.albumArt)
-            .resizable()
-            // Fill the square frame instead of fitting: non-square artwork (e.g. YouTube
-            // Music thumbnails) previously letterboxed into black bars with a white
-            // border drawn around the empty frame. Filling crops the overflow instead —
-            // only the image is shown, no frame, no border.
-            .scaledToFill()
-            .frame(width: size, height: size)
-            .clipped()
-            .overlay {
-                if !musicManager.isPlaying {
-                    RoundedRectangle(
-                        cornerRadius: albumArtCornerRadius,
-                        style: .continuous
-                    )
-                    .fill(Color.black.opacity(0.40))
-                    .allowsHitTesting(false)
+        Group {
+            if musicManager.hasRealArtwork {
+                Image(nsImage: musicManager.albumArt)
+                    .resizable()
+                    // Fill the square frame instead of fitting: non-square artwork (e.g. YouTube
+                    // Music thumbnails) previously letterboxed into black bars with a white
+                    // border drawn around the empty frame. Filling crops the overflow instead —
+                    // only the image is shown, no frame, no border.
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipped()
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: albumArtCornerRadius, style: .continuous)
+                        .fill(Color.white.opacity(0.12))
+                    Image(systemName: "music.note")
+                        .font(.system(size: size * 0.42, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
+                .frame(width: size, height: size)
             }
-            .clipShape(
+        }
+        .overlay {
+            if !musicManager.isPlaying && musicManager.hasRealArtwork {
                 RoundedRectangle(
                     cornerRadius: albumArtCornerRadius,
                     style: .continuous
                 )
+                .fill(Color.black.opacity(0.40))
+                .allowsHitTesting(false)
+            }
+        }
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: albumArtCornerRadius,
+                style: .continuous
             )
+        )
     }
 
 

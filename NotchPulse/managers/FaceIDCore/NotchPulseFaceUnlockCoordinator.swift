@@ -441,10 +441,11 @@ final class NotchPulseFaceUnlockCoordinator {
                     ? (confirmingCue.map { "live via \($0.title)" } ?? "liveness clear")
                     : "liveness off"
                 lastOutcome = "Matched \(readyMatch.identity.name) at \(String(format: "%.3f", readyMatch.centroidSimilarity)), \(livenessNote)."
+                NSLog("[FaceID-Coordinator] Face matched! \(lastOutcome ?? ""). Injecting stored password...")
+                await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                 await MainActor.run {
                     LockScreenWakeObserver.shared.handleUnlockTransition(animated: true)
                 }
-                await pocController.injectStoredPassword(requireAuthoritativeLock: true)
                 return .matched
             }
 

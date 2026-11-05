@@ -298,7 +298,7 @@ enum NotchPulseVault {
 
     /// Proactively verifies and pre-warms Keychain access on the user's desktop immediately at app launch or after update.
     nonisolated static func preflightKeychainAuthorization() {
-        guard hasStoredPassword() else { return }
+        guard NotchPulseKeychainManager.exists(account: sessionKeyAccount) else { return }
         Task.detached(priority: .userInitiated) {
             // Single Keychain request loads both session key and stored password
             _ = ensureSessionKey()

@@ -1937,7 +1937,7 @@ struct Media: View {
             Section {
                 Picker(loc("Music Source"), selection: $mediaController) {
                     ForEach(availableMediaControllers) { controller in
-                        Text(controller.rawValue).tag(controller)
+                        Text(controller == .nowPlaying ? loc("Apple System Media (Automatic)") : controller.rawValue).tag(controller)
                     }
                 }
                 .onChange(of: mediaController) { _, _ in
@@ -1964,7 +1964,7 @@ struct Media: View {
                     }
                 } else {
                     Text(
-                        loc("'Now Playing' was the only option on previous versions and works with all media apps.")
+                        loc("Apple System Media automatically tracks and controls whichever app is active (browsers, Spotify, Apple Music, and other media players) without manual switching.")
                     )
                     .foregroundStyle(.secondary)
                     .font(.caption)

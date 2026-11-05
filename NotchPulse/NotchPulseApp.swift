@@ -827,8 +827,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             playWelcomeSound()
         }
 
-        // Proactively request missing permissions upfront on fresh install or app update
-        if isFirstInstall || isUpdated {
+        // Proactively request missing permissions upfront ONLY on initial fresh install onboarding
+        if isFirstInstall {
             requestPermissionsUpfrontIfNeeded()
         }
 
