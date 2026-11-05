@@ -1113,6 +1113,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         let newBundle = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
         let bundleChanged = (newBundle != nil && !newBundle!.isEmpty && newBundle != self.playbackState.bundleIdentifier)
         let titleHasChanged = isTitleGiven && (newTitle != self.playbackState.title)
+        let trackOrAppChanged = titleHasChanged || bundleChanged
 
         var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
         if let newBundle = newBundle, !newBundle.isEmpty {
@@ -1219,7 +1220,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.artwork = Data(
                 base64Encoded: artworkDataString.trimmingCharacters(in: .whitespacesAndNewlines)
             )
-        } else if !titleHasChanged && !bundleChanged {
+        } else if !trackOrAppChanged && diff {
             newPlaybackState.artwork = self.playbackState.artwork
         } else {
             newPlaybackState.artwork = nil

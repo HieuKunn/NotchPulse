@@ -436,7 +436,9 @@ class MusicManager: ObservableObject {
                 self.currentLyrics = ""
                 self.isFetchingLyrics = false
 
-                // Immediately clear previous track's artwork so it never leaks to the new track
+                // Immediately cancel previous artwork tasks and clear previous track's artwork
+                // so it never leaks or renders on the new track
+                UniversalArtworkResolver.shared.clearInFlight()
                 self.artworkRepollTask?.cancel()
                 self.artworkRepollTask = nil
                 self.artworkData = nil
@@ -1735,119 +1737,135 @@ public final class UniversalArtworkResolver {
         let script: String
         if isArc {
             script = """
-            tell application "Arc"
-                -- 1. Fast path: active tab of front window
-                try
-                    if (count of windows) > 0 then
-                        tell front window to tell active tab
-                            set u to (get URL)
-                            if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                                return u
-                            end if
-                        end tell
-                    end if
-                end try
-                -- 2. Search windows and tabs by index
-                repeat with winIdx from 1 to (count of windows)
-                    repeat with tabIdx from 1 to (count of tabs of window winIdx)
-                        set u to (get URL of tab tabIdx of window winIdx)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            tell window winIdx to tell tab tabIdx
-                                set docTitle to execute javascript "document.title"
-                                if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+            with timeout of 2 seconds
+                tell application "Arc"
+                    -- 1. Fast path: active tab of front window
+                    try
+                        if (count of windows) > 0 then
+                            tell front window to tell active tab
+                                set u to (get URL)
+                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
                                     return u
                                 end if
                             end tell
                         end if
-                    end repeat
-                end repeat
-                -- 3. Fallback: first tab with youtube url
-                repeat with winIdx from 1 to (count of windows)
-                    repeat with tabIdx from 1 to (count of tabs of window winIdx)
-                        set u to (get URL of tab tabIdx of window winIdx)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            return u
-                        end if
-                    end repeat
-                end repeat
-                return ""
-            end tell
+                    end try
+                    -- 2. Search windows and tabs by title without executing javascript
+                    try
+                        repeat with winIdx from 1 to (count of windows)
+                            repeat with tabIdx from 1 to (count of tabs of window winIdx)
+                                tell tab tabIdx of window winIdx
+                                    set u to (get URL)
+                                    if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                                        set docTitle to (get title)
+                                        if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                            return u
+                                        end if
+                                    end if
+                                end tell
+                            end repeat
+                        end repeat
+                    end try
+                    -- 3. Fallback: first tab with youtube url
+                    try
+                        repeat with winIdx from 1 to (count of windows)
+                            repeat with tabIdx from 1 to (count of tabs of window winIdx)
+                                set u to (get URL of tab tabIdx of window winIdx)
+                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                                    return u
+                                end if
+                            end repeat
+                        end repeat
+                    end try
+                    return ""
+                end tell
+            end timeout
             """
         } else if isSafari {
             script = """
-            tell application "\(appName)"
-                -- 1. Fast path: current tab of front window
-                try
-                    if (count of windows) > 0 then
-                        set curTab to current tab of front window
-                        set u to (URL of curTab as text)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            return u
-                        end if
-                    end if
-                end try
-                -- 2. Search all tabs
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set u to (URL of t as text)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            set docTitle to (do JavaScript "document.title" in t)
-                            if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+            with timeout of 2 seconds
+                tell application "\(appName)"
+                    -- 1. Fast path: current tab of front window
+                    try
+                        if (count of windows) > 0 then
+                            set curTab to current tab of front window
+                            set u to (URL of curTab as text)
+                            if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
                                 return u
                             end if
                         end if
-                    end repeat
-                end repeat
-                -- 3. Fallback: first tab with youtube url
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set u to (URL of t as text)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            return u
-                        end if
-                    end repeat
-                end repeat
-                return ""
-            end tell
+                    end try
+                    -- 2. Search all tabs
+                    try
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                set u to (URL of t as text)
+                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                                    set docTitle to (name of t as text)
+                                    if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                        return u
+                                    end if
+                                end if
+                            end repeat
+                        end repeat
+                    end try
+                    -- 3. Fallback: first tab with youtube url
+                    try
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                set u to (URL of t as text)
+                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                                    return u
+                                end if
+                            end repeat
+                        end repeat
+                    end try
+                    return ""
+                end tell
+            end timeout
             """
         } else {
             script = """
-            tell application "\(appName)"
-                -- 1. Fast path: active tab of front window
-                try
-                    if (count of windows) > 0 then
-                        set curTab to active tab of front window
-                        set u to (URL of curTab as text)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            return u
+            with timeout of 2 seconds
+                tell application "\(appName)"
+                    -- 1. Fast path: active tab of front window
+                    try
+                        if (count of windows) > 0 then
+                            set curTab to active tab of front window
+                            set u to (URL of curTab as text)
+                            if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                                return u
+                            end if
                         end if
-                    end if
-                end try
-                -- 2. Search all tabs
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set u to (URL of t as text)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            tell t
-                                set docTitle to execute javascript "document.title"
-                                if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                    end try
+                    -- 2. Search all tabs by native property (title)
+                    try
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                set u to (URL of t as text)
+                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
+                                    set docTitle to (title of t as text)
+                                    if "\(escapedTarget)" is "" or docTitle contains "\(escapedTarget)" or "\(escapedTarget)" contains docTitle then
+                                        return u
+                                    end if
+                                end if
+                            end repeat
+                        end repeat
+                    end try
+                    -- 3. Fallback: first tab with youtube url
+                    try
+                        repeat with w in windows
+                            repeat with t in tabs of w
+                                set u to (URL of t as text)
+                                if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
                                     return u
                                 end if
-                            end tell
-                        end if
-                    end repeat
-                end repeat
-                -- 3. Fallback: first tab with youtube url
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set u to (URL of t as text)
-                        if u contains "youtube.com/watch" or u contains "music.youtube.com" or u contains "youtu.be/" or u contains "youtube.com/shorts/" then
-                            return u
-                        end if
-                    end repeat
-                end repeat
-                return ""
-            end tell
+                            end repeat
+                        end repeat
+                    end try
+                    return ""
+                end tell
+            end timeout
             """
         }
 
