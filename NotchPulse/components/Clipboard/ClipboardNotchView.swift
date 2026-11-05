@@ -126,6 +126,7 @@ struct ClipboardRowView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 32, height: 32)
+                            .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     } else {
                         Image(systemName: "photo")

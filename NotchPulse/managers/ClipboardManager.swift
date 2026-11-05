@@ -326,14 +326,14 @@ final class ClipboardManager: ObservableObject {
                 processingQueue.async { [weak self] in
                     guard let self = self else { return }
                     autoreleasepool {
-                        // Generate thumbnail (max 96x96 px)
-                        guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 96) else { return }
+                        // Generate crisp high-DPI thumbnail (128px) for Retina UI display
+                        guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 128) else { return }
 
-                        // Save full image to disk temp file so RAM stays untouched
+                        // Save 100% ORIGINAL unmodified raw image data to disk temp file
+                        // NEVER downscale or compress rawData so pasteboard always recovers exact original pixels, resolution, and format.
                         let itemId = UUID()
                         let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).dat")
-                        let fullData = Self.generateOptimizedImageData(from: rawData, maxDimension: 1600) ?? rawData
-                        guard (try? fullData.write(to: tempFile, options: .atomic)) != nil else { return }
+                        guard (try? rawData.write(to: tempFile, options: .atomic)) != nil else { return }
 
                         let item = ClipboardItem(
                             id: itemId,
@@ -365,7 +365,7 @@ final class ClipboardManager: ObservableObject {
                 if imageExtensions.contains(ext),
                    FileManager.default.fileExists(atPath: path),
                    let fileData = try? Data(contentsOf: fileURL, options: .mappedIfSafe),
-                   let thumbData = Self.generateThumbnailData(from: fileData, maxDimension: 96) {
+                   let thumbData = Self.generateThumbnailData(from: fileData, maxDimension: 128) {
                     let item = ClipboardItem(
                         id: UUID(),
                         type: .image,
@@ -534,7 +534,7 @@ final class ClipboardManager: ObservableObject {
             // Images copied as files in Finder must paste back as files, not as decoded pixels.
             pasteboard.writeObjects([fileURL as NSURL])
         } else if item.isImage {
-            // Autoreleasepool ensures full image representation is purged from RAM as soon as written to pasteboard
+            // Write exact original image representation to pasteboard with all native image types
             autoreleasepool {
                 let fullData: Data? = {
                     if let path = item.diskFilePath, FileManager.default.fileExists(atPath: path) {
@@ -543,12 +543,19 @@ final class ClipboardManager: ObservableObject {
                     return item.thumbnailData
                 }()
 
-                if let data = fullData, let image = NSImage(data: data) {
-                    pasteboard.writeObjects([image])
-                    if let source = CGImageSourceCreateWithData(data as CFData, nil),
-                       let imageType = CGImageSourceGetType(source) {
-                        pasteboard.setData(data, forType: NSPasteboard.PasteboardType(imageType as String))
+                guard let data = fullData, !data.isEmpty else { return }
+
+                if let source = CGImageSourceCreateWithData(data as CFData, nil),
+                   let imageType = CGImageSourceGetType(source) {
+                    let pbType = NSPasteboard.PasteboardType(imageType as String)
+                    pasteboard.setData(data, forType: pbType)
+
+                    // Also provide standard NSImage representation for apps expecting TIFF or generic image
+                    if let image = NSImage(data: data) {
+                        pasteboard.writeObjects([image])
                     }
+                } else if let image = NSImage(data: data) {
+                    pasteboard.writeObjects([image])
                 }
             }
         } else if item.type == .file || (item.urlString?.hasPrefix("file://") == true),
