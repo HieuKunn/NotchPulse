@@ -862,7 +862,7 @@ struct LockScreenMediaView: View {
 }
 
 // =========================================================================
-// MARK: - LockScreenScrubberView (Thanh trượt tua nhạc tương tác cao cấp)
+// MARK: - LockScreenScrubberView (Thanh tiến trình hiển thị nhạc)
 // =========================================================================
 
 private struct LockScreenScrubberView: View {
@@ -878,10 +878,9 @@ private struct LockScreenScrubberView: View {
     
     @Default(.sliderColor) private var sliderColorPref
     @Default(.playerColorTinting) private var playerColorTinting
-    @State private var isHoveringTrack: Bool = false
     
     private var effectiveElapsed: Double {
-        dragging ? sliderValue : estimatedPlaybackTime
+        estimatedPlaybackTime
     }
     
     private var progress: Double {
@@ -903,10 +902,10 @@ private struct LockScreenScrubberView: View {
     
     var body: some View {
         VStack(spacing: 4) {
-            // Thanh tiến trình với thanh trượt kéo thả
+            // Thanh tiến trình hiển thị (chỉ đọc, không tương tác tua nhạc)
             GeometryReader { geo in
                 let width = max(1, geo.size.width)
-                let height: CGFloat = dragging ? (isCompact ? 8 : 10) : (isHoveringTrack ? (isCompact ? 7 : 8) : (isCompact ? 5 : 6))
+                let height: CGFloat = isCompact ? 5 : 6
                 let filledWidth = width * CGFloat(progress)
                 
                 ZStack(alignment: .leading) {
@@ -919,47 +918,9 @@ private struct LockScreenScrubberView: View {
                     Capsule()
                         .fill(trackColor)
                         .frame(width: max(height, filledWidth), height: height)
-                    
-                    // Nút đầu ngón tay / chấm tròn chỉ báo khi di chuột hoặc kéo
-                    if dragging || isHoveringTrack {
-                        Circle()
-                            .fill((isCompact && isLight) ? Color.black : Color.white)
-                            .frame(width: height + 6, height: height + 6)
-                            .offset(x: max(0, min(width - (height + 6), filledWidth - (height + 6) / 2)))
-                            .transition(.scale.combined(with: .opacity))
-                    }
                 }
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { gesture in
-                            if !dragging {
-                                withAnimation(.easeInOut(duration: 0.12)) {
-                                    dragging = true
-                                }
-                            }
-                            let fraction = min(max(gesture.location.x / width, 0.0), 1.0)
-                            let newPos = fraction * duration
-                            sliderValue = newPos
-                        }
-                        .onEnded { gesture in
-                            let fraction = min(max(gesture.location.x / width, 0.0), 1.0)
-                            let finalPos = fraction * duration
-                            sliderValue = finalPos
-                            onValueChange(finalPos)
-                            dragging = false
-                            lastDragged = Date()
-                        }
-                )
-                .onHover { hovering in
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        isHoveringTrack = hovering
-                    }
-                }
-                .animation(.spring(response: 0.28, dampingFraction: 0.75), value: dragging)
-                .animation(.easeInOut(duration: 0.15), value: isHoveringTrack)
             }
-            .frame(height: isCompact ? 10 : 12)
+            .frame(height: isCompact ? 8 : 10)
             
             // Nhãn thời gian: Đã phát (bên trái) và Còn lại (bên phải)
             HStack {

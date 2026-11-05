@@ -174,21 +174,15 @@ struct MusicControlsView: View {
     }
 
     private var musicSlider: some View {
-        TimelineView(.animation(minimumInterval: 0.5, paused: vm.notchState == .closed || musicManager.playbackRate <= 0 || dragging)) { timeline in
+        TimelineView(.animation(minimumInterval: 0.5, paused: vm.notchState == .closed || musicManager.playbackRate <= 0)) { timeline in
             MusicSliderView(
-                sliderValue: $sliderValue,
-                duration: $musicManager.songDuration,
-                lastDragged: $lastDragged,
-                color: musicManager.avgColor,
-                dragging: $dragging,
+                duration: musicManager.songDuration,
                 currentDate: timeline.date,
                 timestampDate: musicManager.timestampDate,
                 elapsedTime: musicManager.elapsedTime,
                 playbackRate: musicManager.playbackRate,
                 isPlaying: musicManager.isPlaying
-            ) { newValue in
-                MusicManager.shared.seek(to: newValue)
-            }
+            )
             .frame(height: 24)
         }
     }
@@ -513,52 +507,47 @@ struct NotchHomeView: View {
 }
 
 struct MusicSliderView: View {
-    @Binding var sliderValue: Double
-    @Binding var duration: Double
-    @Binding var lastDragged: Date
-    var color: NSColor
-    @Binding var dragging: Bool
+    let duration: Double
     let currentDate: Date
     let timestampDate: Date
     let elapsedTime: Double
     let playbackRate: Double
     let isPlaying: Bool
-    var onValueChange: (Double) -> Void
 
+    private var currentPosition: Double {
+        MusicManager.shared.estimatedPlaybackPosition(at: currentDate)
+    }
 
     var body: some View {
         VStack(spacing: 2) {
-            CustomSlider(
-                value: $sliderValue,
-                range: 0...max(0.001, duration),
-                color: .white,
-                dragging: $dragging,
-                lastDragged: $lastDragged,
-                onValueChange: onValueChange
-            )
+            GeometryReader { geometry in
+                let width = max(1, geometry.size.width)
+                let height: CGFloat = 5
+                let progress = duration > 0 ? min(max(currentPosition / duration, 0), 1) : 0
+                let filledTrackWidth = progress * width
+
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(height: height)
+
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(width: filledTrackWidth, height: height)
+                }
+                .cornerRadius(height / 2)
+                .frame(height: 10)
+            }
             .frame(height: 8, alignment: .center)
 
             HStack {
-                Text(timeString(from: sliderValue))
+                Text(timeString(from: currentPosition))
                 Spacer()
                 Text(timeString(from: duration))
             }
             .fontWeight(.medium)
             .foregroundStyle(.white.opacity(0.75))
             .font(.caption2)
-        }
-        .onChange(of: currentDate) {
-           guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
-            sliderValue = MusicManager.shared.estimatedPlaybackPosition(at: currentDate)
-        }
-        .onChange(of: elapsedTime) {
-            guard !dragging else { return }
-            sliderValue = MusicManager.shared.estimatedPlaybackPosition()
-        }
-        .onAppear {
-            if !dragging {
-                sliderValue = MusicManager.shared.estimatedPlaybackPosition()
-            }
         }
     }
 
