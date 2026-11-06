@@ -1,4 +1,4 @@
-## NotchPulse v5.5 (Build 455)
+## NotchPulse v5.5 (Build 456)
 
 ### 📋 Lossless Full-Quality Clipboard Images
 - **Original Quality Image Storage**: Clipboard images are now saved in their 100% original, uncompressed raw format and resolution (PNG, TIFF, WebP, HEIC, JPEG, etc.). Zero downscaling or lossy compression is applied when copied.

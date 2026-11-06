@@ -329,11 +329,11 @@ final class ClipboardManager: ObservableObject {
                         // Generate crisp high-DPI thumbnail (128px) for Retina UI display
                         guard let thumbData = Self.generateThumbnailData(from: rawData, maxDimension: 128) else { return }
 
-                        // Save 100% ORIGINAL unmodified raw image data to disk temp file
+                        // Save 100% ORIGINAL unmodified raw image data to persistent storage
                         // NEVER downscale or compress rawData so pasteboard always recovers exact original pixels, resolution, and format.
                         let itemId = UUID()
-                        let tempFile = Self.clipboardTempDir.appendingPathComponent("\(itemId.uuidString).dat")
-                        guard (try? rawData.write(to: tempFile, options: .atomic)) != nil else { return }
+                        let storageFile = Self.clipboardStorageDir.appendingPathComponent("\(itemId.uuidString).dat")
+                        guard (try? rawData.write(to: storageFile, options: .atomic)) != nil else { return }
 
                         let item = ClipboardItem(
                             id: itemId,
@@ -341,7 +341,7 @@ final class ClipboardManager: ObservableObject {
                             contentString: nil,
                             urlString: associatedURL,
                             thumbnailData: thumbData,
-                            diskFilePath: tempFile.path,
+                            diskFilePath: storageFile.path,
                             timestamp: Date()
                         )
                         self.insertItem(item)
@@ -534,7 +534,7 @@ final class ClipboardManager: ObservableObject {
             // Images copied as files in Finder must paste back as files, not as decoded pixels.
             pasteboard.writeObjects([fileURL as NSURL])
         } else if item.isImage {
-            // Write exact original image representation to pasteboard with all native image types
+            // Write exact original image representation to pasteboard with all native image types (PNG, TIFF, native format)
             autoreleasepool {
                 let fullData: Data? = {
                     if let path = item.diskFilePath, FileManager.default.fileExists(atPath: path) {
@@ -545,17 +545,34 @@ final class ClipboardManager: ObservableObject {
 
                 guard let data = fullData, !data.isEmpty else { return }
 
+                var declaredTypes: [NSPasteboard.PasteboardType] = []
+                var rawPbType: NSPasteboard.PasteboardType? = nil
+
                 if let source = CGImageSourceCreateWithData(data as CFData, nil),
                    let imageType = CGImageSourceGetType(source) {
-                    let pbType = NSPasteboard.PasteboardType(imageType as String)
-                    pasteboard.setData(data, forType: pbType)
+                    let type = NSPasteboard.PasteboardType(imageType as String)
+                    rawPbType = type
+                    declaredTypes.append(type)
+                }
+                declaredTypes.append(.png)
+                declaredTypes.append(NSPasteboard.PasteboardType("public.png"))
+                declaredTypes.append(.tiff)
 
-                    // Also provide standard NSImage representation for apps expecting TIFF or generic image
-                    if let image = NSImage(data: data) {
-                        pasteboard.writeObjects([image])
+                pasteboard.declareTypes(declaredTypes, owner: nil)
+
+                if let rawPbType = rawPbType {
+                    pasteboard.setData(data, forType: rawPbType)
+                }
+
+                if let image = NSImage(data: data) {
+                    if let tiff = image.tiffRepresentation {
+                        pasteboard.setData(tiff, forType: .tiff)
+                        if let rep = NSBitmapImageRep(data: tiff),
+                           let png = rep.representation(using: .png, properties: [:]) {
+                            pasteboard.setData(png, forType: .png)
+                            pasteboard.setData(png, forType: NSPasteboard.PasteboardType("public.png"))
+                        }
                     }
-                } else if let image = NSImage(data: data) {
-                    pasteboard.writeObjects([image])
                 }
             }
         } else if item.type == .file || (item.urlString?.hasPrefix("file://") == true),
@@ -585,26 +602,29 @@ final class ClipboardManager: ObservableObject {
         history.removeAll()
         UserDefaults.standard.removeObject(forKey: storageKey)
 
-        // Wipe all files in temporary cache directory to guarantee zero disk waste
-        if let files = try? FileManager.default.contentsOfDirectory(at: Self.clipboardTempDir, includingPropertiesForKeys: nil) {
+        // Wipe all files in persistent cache directory to guarantee zero disk waste
+        if let files = try? FileManager.default.contentsOfDirectory(at: Self.clipboardStorageDir, includingPropertiesForKeys: nil) {
             for file in files {
                 try? FileManager.default.removeItem(at: file)
             }
         }
     }
 
-    // MARK: - Temp Cache & Zero-RAM-Spike Image Downscaling Helpers
+    // MARK: - Persistent Storage & Zero-RAM-Spike Image Helpers
 
-    private static let clipboardTempDir: URL = {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("NotchPulseClipboard", isDirectory: true)
+    /// Persistent storage directory in Application Support so user copied images are NEVER wiped by macOS reboot or /tmp cleansers.
+    private static let clipboardStorageDir: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let dir = appSupport.appendingPathComponent("NotchPulse/ClipboardImages", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }()
 
-    /// Finder image entries point at the user's original file. Only files created in our cache are ours to delete.
+    /// Finder image entries point at the user's original file. Only files created in our persistent store are ours to delete.
     private static func removeCachedImageFile(at path: String) {
         let fileURL = URL(fileURLWithPath: path).standardizedFileURL
-        guard fileURL.deletingLastPathComponent() == clipboardTempDir.standardizedFileURL,
+        guard (fileURL.deletingLastPathComponent() == clipboardStorageDir.standardizedFileURL ||
+               fileURL.path.contains("NotchPulseClipboard")),
               fileURL.pathExtension == "dat",
               UUID(uuidString: fileURL.deletingPathExtension().lastPathComponent) != nil else { return }
         try? FileManager.default.removeItem(at: fileURL)
@@ -700,8 +720,18 @@ final class ClipboardManager: ObservableObject {
     private func cleanupOrphanedTempFiles() {
         let validPaths = Set(history.compactMap { $0.diskFilePath })
         DispatchQueue.global(qos: .background).async {
-            if let files = try? FileManager.default.contentsOfDirectory(at: Self.clipboardTempDir, includingPropertiesForKeys: nil) {
+            // Clean persistent storage
+            if let files = try? FileManager.default.contentsOfDirectory(at: Self.clipboardStorageDir, includingPropertiesForKeys: nil) {
                 for file in files {
+                    if !validPaths.contains(file.path) {
+                        try? FileManager.default.removeItem(at: file)
+                    }
+                }
+            }
+            // Clean legacy /tmp folder if present
+            let legacyTmp = FileManager.default.temporaryDirectory.appendingPathComponent("NotchPulseClipboard", isDirectory: true)
+            if let legacyFiles = try? FileManager.default.contentsOfDirectory(at: legacyTmp, includingPropertiesForKeys: nil) {
+                for file in legacyFiles {
                     if !validPaths.contains(file.path) {
                         try? FileManager.default.removeItem(at: file)
                     }
