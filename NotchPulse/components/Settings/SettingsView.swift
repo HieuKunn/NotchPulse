@@ -2412,11 +2412,11 @@ struct Shelf: View {
                     Text(loc("Remove from shelf after dragging"))
                 }
 
-                Slider(value: $shakeAutoCloseDelay, in: 2...20, step: 1) {
+                Slider(value: $shakeAutoCloseDelay, in: 1.0...10.0, step: 0.5) {
                     HStack {
                         Text(loc("Shelf auto-close delay"))
                         Spacer()
-                        Text("\(Int(shakeAutoCloseDelay))s")
+                        Text(String(format: "%.1fs", shakeAutoCloseDelay))
                             .foregroundStyle(.secondary)
                     }
                 }

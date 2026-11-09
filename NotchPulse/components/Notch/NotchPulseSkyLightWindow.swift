@@ -135,7 +135,7 @@ class NotchPulseSkyLightWindow: NSPanel {
     /// external file drag is active without setting screenSaver level (which breaks AppKit drag & drop).
     func beginFileDragTargeting() {
         isFileDragElevated = true
-        level = .mainMenu + 3
+        level = .popUpMenu
         orderFrontRegardless()
     }
 

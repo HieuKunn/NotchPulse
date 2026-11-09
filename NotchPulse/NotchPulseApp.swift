@@ -92,6 +92,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowScreenDidChangeObservers: [Any] = []
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
+    private var shelfDragAutoCloseTasks: [String: Task<Void, Never>] = [:]
     private(set) var faceIDCameraWindow: NSWindow?
     private(set) var faceIDCameraVM: NotchPulseViewModel?
 
@@ -366,6 +367,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func cleanupDragDetectors() {
         dragExitDebounceTasks.values.forEach { $0.cancel() }
         dragExitDebounceTasks.removeAll()
+        shelfDragAutoCloseTasks.values.forEach { $0.cancel() }
+        shelfDragAutoCloseTasks.removeAll()
         windows.values.forEach { ($0 as? NotchPulseSkyLightWindow)?.endFileDragTargeting() }
         (window as? NotchPulseSkyLightWindow)?.endFileDragTargeting()
         dragDetectors.values.forEach { detector in
@@ -465,6 +468,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         detector.startMonitoring()
     }
 
+    private func scheduleShelfDragAutoClose(for screen: NSScreen) {
+        guard let uuid = screen.displayUUID else { return }
+        shelfDragAutoCloseTasks[uuid]?.cancel()
+
+        let delay = Defaults[.shakeAutoCloseDelay]
+        guard delay > 0 else { return }
+
+        shelfDragAutoCloseTasks[uuid] = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(Int(delay * 1000)))
+            guard !Task.isCancelled, let self = self else { return }
+            guard let targetVM = self.viewModel(for: screen) else { return }
+
+            // If dropEvent was received, or shelf is pinned, leave it open
+            if targetVM.dropEvent || targetVM.isShelfPinned || targetVM.isCalendarPinned {
+                return
+            }
+
+            // While the user holds the file directly over the shelf drop area, don't close
+            if targetVM.shelfDropTargeting || targetVM.shareDropTargeting || targetVM.dropZoneTargeting {
+                return
+            }
+
+            targetVM.dragDetectorTargeting = false
+            targetVM.isCurrentlyDraggingGlobal = false
+            self.notchWindow(for: screen)?.endFileDragTargeting()
+            if targetVM.notchState == .open {
+                targetVM.close()
+            }
+        }
+    }
+
     private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
@@ -479,12 +513,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             targetVM.open(targetView: .shelf)
         }
+
+        scheduleShelfDragAutoClose(for: screen)
     }
 
     private func handleDragExitsNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
         
         dragExitDebounceTasks[uuid]?.cancel()
+        shelfDragAutoCloseTasks[uuid]?.cancel()
+        shelfDragAutoCloseTasks[uuid] = nil
         
         guard let targetVM = viewModel(for: screen) else { return }
         targetVM.dragDetectorTargeting = false
@@ -508,6 +546,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let uuid = screen.displayUUID else { return }
         
         dragExitDebounceTasks[uuid]?.cancel()
+        shelfDragAutoCloseTasks[uuid]?.cancel()
+        shelfDragAutoCloseTasks[uuid] = nil
         
         guard let targetVM = viewModel(for: screen) else { return }
         targetVM.dragDetectorTargeting = false

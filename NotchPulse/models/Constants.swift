@@ -306,7 +306,7 @@ extension Defaults.Keys {
     static let quickShareProvider = Key<String>("quickShareProvider", default: QuickShareProvider.defaultProvider.id)
     static let copyOnDrag = Key<Bool>("copyOnDrag", default: false)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: false)
-    static let shakeAutoCloseDelay = Key<Double>("shakeAutoCloseDelay", default: 5.0)
+    static let shakeAutoCloseDelay = Key<Double>("shakeAutoCloseDelay", default: 1.5)
     /// Extra horizontal padding (points) around the notch that opens the shelf when a
     /// REAL file drag enters it. 0 disables the drag-proximity open entirely.
     static let shelfDragOpenPadding = Key<Double>("shelfDragOpenPadding", default: 60.0)

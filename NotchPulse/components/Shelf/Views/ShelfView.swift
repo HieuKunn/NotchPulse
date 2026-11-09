@@ -8,6 +8,7 @@ struct ShelfView: View {
     @StateObject var selection = ShelfSelectionModel.shared
     @StateObject private var quickLookService = QuickLookService()
     @State private var isShelfTargeted = false
+    @State private var isShelfContainerTargeted = false
     @State private var dropEventResetTask: Task<Void, Never>?
     private let spacing: CGFloat = 8
 
@@ -27,8 +28,15 @@ struct ShelfView: View {
         .padding(.top, 2)
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image], isTargeted: $isShelfContainerTargeted) { providers in
+            handleDrop(providers: providers)
+        }
         .onChange(of: isShelfTargeted) { _, targeted in
-            vm.shelfDropTargeting = targeted
+            vm.shelfDropTargeting = targeted || isShelfContainerTargeted
+        }
+        .onChange(of: isShelfContainerTargeted) { _, targeted in
+            vm.shelfDropTargeting = targeted || isShelfTargeted
         }
         // Bind Quick Look to shelf selection
         .onChange(of: selection.selectedIDs) {

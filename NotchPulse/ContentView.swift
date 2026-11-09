@@ -382,6 +382,20 @@ struct ContentView: View {
             .compositingGroup()
             .padding(.top, isIsland ? effectiveTopOffset : 0)
             .contentShape(Rectangle())
+            .conditionalModifier(Defaults[.notchPulseShelf]) { view in
+                view.onDrop(
+                    of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image],
+                    isTargeted: $vm.dragDetectorTargeting
+                ) { providers in
+                    guard !ShelfSelectionModel.shared.isDragging else { return false }
+                    vm.dropEvent = true
+                    if vm.notchState == .closed {
+                        vm.open(targetView: .shelf)
+                    }
+                    ShelfStateViewModel.shared.load(providers)
+                    return true
+                }
+            }
             .offset(y: slideOffset)
             .opacity(isHiddenInFS ? 0 : 1)
     }
@@ -536,10 +550,12 @@ struct ContentView: View {
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
         .compositingGroup()
         // Keep a registered drop destination alive before the notch opens.
-        // Creating Shelf's onDrop only after an external drag has started can
-        // make AppKit continue routing the drop to the Desktop underneath.
-        .background(alignment: .top) {
-            dragDetector
+        // Elevated to overlay so incoming file drops hit the topmost layer.
+        .overlay(alignment: .top) {
+            if Defaults[.notchPulseShelf] && vm.notchState == .closed {
+                dragDetector
+                    .allowsHitTesting(vm.isCurrentlyDraggingGlobal)
+            }
         }
         .background {
             ScreenEdgeHoverTrackingBridge(
@@ -591,8 +607,9 @@ struct ContentView: View {
                 return
             }
 
+            let delay = Defaults[.shakeAutoCloseDelay]
             anyDropDebounceTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(1200))
+                try? await Task.sleep(for: .milliseconds(Int(delay * 1000)))
                 guard !Task.isCancelled else { return }
 
                 if vm.dropEvent {
