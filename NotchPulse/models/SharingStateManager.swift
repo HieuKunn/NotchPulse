@@ -62,6 +62,53 @@ final class SharingStateManager: ObservableObject {
 	}
 }
 
+@MainActor
+final class MenuTrackingManager: ObservableObject {
+	static let shared = MenuTrackingManager()
+
+	@Published private(set) var isMenuTracking: Bool = false
+	private var trackingDepth: Int = 0
+	private var observers: [NSObjectProtocol] = []
+
+	private init() {
+		setupObservers()
+	}
+
+	private func setupObservers() {
+		let beginObs = NotificationCenter.default.addObserver(
+			forName: NSMenu.didBeginTrackingNotification,
+			object: nil,
+			queue: .main
+		) { [weak self] _ in
+			guard let self = self else { return }
+			self.trackingDepth += 1
+			self.isMenuTracking = true
+			SharingStateManager.shared.beginInteraction()
+		}
+
+		let endObs = NotificationCenter.default.addObserver(
+			forName: NSMenu.didEndTrackingNotification,
+			object: nil,
+			queue: .main
+		) { [weak self] _ in
+			guard let self = self else { return }
+			if self.trackingDepth > 0 {
+				self.trackingDepth -= 1
+			}
+			self.isMenuTracking = self.trackingDepth > 0
+			SharingStateManager.shared.endInteraction()
+		}
+
+		observers = [beginObs, endObs]
+	}
+
+	deinit {
+		for obs in observers {
+			NotificationCenter.default.removeObserver(obs)
+		}
+	}
+}
+
 final class SharingLifecycleDelegate: NSObject, NSSharingServiceDelegate, NSSharingServicePickerDelegate {
 	let id: UUID
 	private let onEnd: () -> Void

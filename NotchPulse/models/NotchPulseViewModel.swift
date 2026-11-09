@@ -308,6 +308,12 @@ class NotchPulseViewModel: NSObject, ObservableObject {
         if !force && (isCurrentlyDraggingGlobal || anyDropZoneTargeting || dropEvent) {
             return
         }
+        if !force && MenuTrackingManager.shared.isMenuTracking {
+            return
+        }
+        if !force && currentView == .shelf && ShelfSelectionModel.shared.hasSelection {
+            return
+        }
         self.customOpenHeight = nil
         isCalendarPinned = false
         isCalendarFullMonthExpanded = false

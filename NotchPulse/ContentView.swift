@@ -16,6 +16,8 @@ struct ContentView: View {
 
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
+    @ObservedObject var menuTracker = MenuTrackingManager.shared
+    @ObservedObject var shelfSelection = ShelfSelectionModel.shared
     @State private var hoverOpenTask: Task<Void, Never>?
     @State private var hoverCloseTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
@@ -618,8 +620,22 @@ struct ContentView: View {
                 }
 
                 vm.dropEvent = false
-                if !SharingStateManager.shared.preventNotchClose && !vm.isShelfPinned && !vm.isCalendarPinned {
+                if !SharingStateManager.shared.preventNotchClose && !vm.isShelfPinned && !vm.isCalendarPinned && canCloseOnHoverExit {
                     self.doClose()
+                }
+            }
+        }
+        .onChange(of: menuTracker.isMenuTracking) { _, isTracking in
+            if !isTracking && vm.notchState == .open {
+                if !isTopEdgeHovered && canCloseOnHoverExit {
+                    handleHover(false)
+                }
+            }
+        }
+        .onChange(of: shelfSelection.selectedIDs) { _, newSelection in
+            if newSelection.isEmpty && vm.notchState == .open && vm.currentView == .shelf {
+                if !isTopEdgeHovered && canCloseOnHoverExit {
+                    handleHover(false)
                 }
             }
         }
@@ -987,7 +1003,11 @@ struct ContentView: View {
         !FeatureTourController.shared.isTourActive &&
         !vm.anyDropZoneTargeting &&
         !vm.dragDetectorTargeting &&
-        !vm.dropEvent
+        !vm.dropEvent &&
+        !menuTracker.isMenuTracking &&
+        !SharingStateManager.shared.preventNotchClose &&
+        !(vm.currentView == .shelf && shelfSelection.hasSelection) &&
+        (NSEvent.pressedMouseButtons == 0)
     }
 
     private var topEdgeTrackingEnabled: Bool {
@@ -1240,7 +1260,7 @@ struct ContentView: View {
                 if self.vm.notchState == .open && self.canCloseOnHoverExit {
                     // A drag hold may become stale after the pointer leaves, but an
                     // actual system share/AirDrop session must retain the notch.
-                    if !SharingStateManager.shared.isInteractionActive {
+                    if !SharingStateManager.shared.isInteractionActive && !MenuTrackingManager.shared.isMenuTracking {
                         SharingStateManager.shared.preventNotchClose = false
                         self.doClose()
                     } else {
@@ -1304,7 +1324,9 @@ private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
             .mouseMoved,
             .leftMouseDragged,
             .rightMouseDragged,
-            .otherMouseDragged
+            .otherMouseDragged,
+            .leftMouseUp,
+            .rightMouseUp
         ]
 
         override func hitTest(_ point: NSPoint) -> NSView? {

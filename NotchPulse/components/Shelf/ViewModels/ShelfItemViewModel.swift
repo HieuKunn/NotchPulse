@@ -545,6 +545,7 @@ final class ShelfItemViewModel: ObservableObject {
             case "Remove", loc("Remove"):
                 let selected = ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items)
                 for it in selected { ShelfActionService.remove(it) }
+                ShelfSelectionModel.shared.clear()
                 
             case "Remove Background", loc("Remove Background"):
                 handleRemoveBackground()
@@ -718,7 +719,9 @@ final class ShelfItemViewModel: ObservableObject {
             popup.target = binder
             popup.action = #selector(PopupBinder.changed(_:))
 
+            SharingStateManager.shared.beginInteraction()
             panel.begin { response in
+                defer { SharingStateManager.shared.endInteraction() }
                 if response == .OK, let appURL = panel.url {
                     Task {
                         do {
@@ -765,7 +768,9 @@ final class ShelfItemViewModel: ObservableObject {
                     savePanel.prompt = loc("Rename")
                     savePanel.nameFieldStringValue = fileURL.lastPathComponent
                     savePanel.directoryURL = fileURL.deletingLastPathComponent()
+                    SharingStateManager.shared.beginInteraction()
                     savePanel.begin { response in
+                        defer { SharingStateManager.shared.endInteraction() }
                         if response == .OK, let newURL = savePanel.url {
                             Task {
                                 do {
@@ -996,7 +1001,9 @@ final class ShelfItemViewModel: ObservableObject {
             NSApp.activate(ignoringOtherApps: true)
             alert.window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
             
+            SharingStateManager.shared.beginInteraction()
             let response = alert.runModal()
+            SharingStateManager.shared.endInteraction()
             if SettingsWindowController.shared.window?.isVisible != true {
                 NSApp.setActivationPolicy(.accessory)
             }
@@ -1075,7 +1082,9 @@ final class ShelfItemViewModel: ObservableObject {
             alert.alertStyle = .warning
             alert.addButton(withTitle: loc("OK"))
             alert.window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
+            SharingStateManager.shared.beginInteraction()
             alert.runModal()
+            SharingStateManager.shared.endInteraction()
             if SettingsWindowController.shared.window?.isVisible != true {
                 NSApp.setActivationPolicy(.accessory)
             }

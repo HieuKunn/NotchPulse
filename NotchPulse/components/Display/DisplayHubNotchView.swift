@@ -268,15 +268,27 @@ private struct CustomDisplaySlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        isDragging = true
+                        if !isDragging {
+                            isDragging = true
+                            SharingStateManager.shared.beginInteraction()
+                        }
                         let newProgress = max(0, min(1, gesture.location.x / width))
                         let newValue = range.lowerBound + newProgress * (range.upperBound - range.lowerBound)
                         self.value = newValue
                     }
                     .onEnded { _ in
-                        isDragging = false
+                        if isDragging {
+                            isDragging = false
+                            SharingStateManager.shared.endInteraction()
+                        }
                     }
             )
+            .onDisappear {
+                if isDragging {
+                    isDragging = false
+                    SharingStateManager.shared.endInteraction()
+                }
+            }
             .animation(isDragging ? nil : .easeOut(duration: 0.08), value: progress)
         }
     }

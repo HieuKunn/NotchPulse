@@ -93,6 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
     private var dragExitDebounceTasks: [String: Task<Void, Never>] = [:]
     private var shelfDragAutoCloseTasks: [String: Task<Void, Never>] = [:]
+    private var outsideClickMonitor: Any?
     private(set) var faceIDCameraWindow: NSWindow?
     private(set) var faceIDCameraVM: NotchPulseViewModel?
 
@@ -369,6 +370,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dragExitDebounceTasks.removeAll()
         shelfDragAutoCloseTasks.values.forEach { $0.cancel() }
         shelfDragAutoCloseTasks.removeAll()
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+            self.outsideClickMonitor = nil
+        }
         windows.values.forEach { ($0 as? NotchPulseSkyLightWindow)?.endFileDragTargeting() }
         (window as? NotchPulseSkyLightWindow)?.endFileDragTargeting()
         dragDetectors.values.forEach { detector in
@@ -380,6 +385,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func setupDetectors() {
         setupDragDetectors()
+        setupOutsideClickMonitor()
+    }
+
+    private func setupOutsideClickMonitor() {
+        guard outsideClickMonitor == nil else { return }
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleOutsideClick()
+            }
+        }
+    }
+
+    private func handleOutsideClick() {
+        // If a context menu or modal/sharing session is active, let them handle dismissal
+        guard !MenuTrackingManager.shared.isMenuTracking,
+              !SharingStateManager.shared.preventNotchClose else {
+            return
+        }
+
+        // If shelf selection is active, clear it when clicking outside
+        if ShelfSelectionModel.shared.hasSelection {
+            ShelfSelectionModel.shared.clear()
+        }
+
+        // Close any unpinned open notches
+        let allVMs = Array(viewModels.values) + [vm]
+        for targetVM in allVMs where targetVM.notchState == .open {
+            if !targetVM.isShelfPinned && !targetVM.isCalendarPinned && !FeatureTourController.shared.isTourActive {
+                targetVM.close()
+            }
+        }
     }
 
     private func setupDragDetectors() {

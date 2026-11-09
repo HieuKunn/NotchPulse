@@ -617,6 +617,7 @@ struct CustomSlider: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         if !dragging {
+                            SharingStateManager.shared.beginInteraction()
                             withAnimation(.easeInOut(duration: 0.1)) {
                                 dragging = true
                             }
@@ -635,10 +636,19 @@ struct CustomSlider: View {
                         localDragValue = nil
                         value = finalValue
                         onValueChange?(finalValue)
-                        dragging = false
+                        if dragging {
+                            dragging = false
+                            SharingStateManager.shared.endInteraction()
+                        }
                         lastDragged = Date()
                     }
             )
+            .onDisappear {
+                if dragging {
+                    dragging = false
+                    SharingStateManager.shared.endInteraction()
+                }
+            }
             .animation(.spring(response: 0.35, dampingFraction: 0.7), value: dragging)
         }
     }
