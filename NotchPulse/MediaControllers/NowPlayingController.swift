@@ -525,7 +525,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         if isArc {
             appleScript = """
             tell application "Arc"
-                with timeout of 2 seconds
+                with timeout of 1 second
                     -- 1. Fast path: active tab of front window
                     try
                         if (count of windows) > 0 then
@@ -543,44 +543,24 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                         end if
                     end try
 
-                    -- 2. Search windows and tabs matching targetTitle (instant native title query)
-                    if "\(escapedTargetTitle)" is not "" then
+                    -- 2. Fast search for active media tabs
+                    try
                         repeat with w in windows
                             repeat with t in tabs of w
                                 try
                                     set u to (get URL of t)
-                                    if u does not start with "arc://" and u does not start with "chrome://" and u does not start with "about:" then
-                                        set tTitle to (get title of t)
-                                        if tTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tTitle then
-                                            tell t
-                                                set res to execute javascript "\(escapedJS)"
-                                                if res is not "not_found" and res is not "noop" and res is not missing value then
-                                                    return res
-                                                end if
-                                            end tell
-                                        end if
+                                    if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
+                                        tell t
+                                            set res to execute javascript "\(escapedJS)"
+                                            if res is not "not_found" and res is not "noop" and res is not missing value then
+                                                return res
+                                            end if
+                                        end tell
                                     end if
                                 end try
                             end repeat
                         end repeat
-                    end if
-
-                    -- 3. Search windows and tabs for active media domains
-                    repeat with w in windows
-                        repeat with t in tabs of w
-                            try
-                                set u to (get URL of t)
-                                if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
-                                    tell t
-                                        set res to execute javascript "\(escapedJS)"
-                                        if res is not "not_found" and res is not "noop" and res is not missing value then
-                                            return res
-                                        end if
-                                    end tell
-                                end if
-                            end try
-                        end repeat
-                    end repeat
+                    end try
 
                     return "not_found"
                 end timeout
@@ -589,7 +569,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if isSafari {
             appleScript = """
             tell application "\(appName)"
-                with timeout of 2 seconds
+                with timeout of 1 second
                     -- 1. Fast path: current tab of front window
                     try
                         if (count of windows) > 0 then
@@ -604,40 +584,22 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                         end if
                     end try
 
-                    -- 2. Search windows and tabs matching targetTitle
-                    if "\(escapedTargetTitle)" is not "" then
+                    -- 2. Fast search for active media tabs
+                    try
                         repeat with w in windows
                             repeat with t in tabs of w
                                 try
                                     set u to (URL of t as text)
-                                    if u does not start with "safari://" and u does not start with "about:" then
-                                        set tabTitle to (name of t as text)
-                                        if tabTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tabTitle then
-                                            set res to (do JavaScript "\(escapedJS)" in t)
-                                            if res is not "not_found" and res is not "noop" and res is not missing value then
-                                                return res
-                                            end if
+                                    if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
+                                        set res to (do JavaScript "\(escapedJS)" in t)
+                                        if res is not "not_found" and res is not "noop" and res is not missing value then
+                                            return res
                                         end if
                                     end if
                                 end try
                             end repeat
                         end repeat
-                    end if
-
-                    -- 3. Search windows and tabs for active media
-                    repeat with w in windows
-                        repeat with t in tabs of w
-                            try
-                                set u to (URL of t as text)
-                                if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
-                                    set res to (do JavaScript "\(escapedJS)" in t)
-                                    if res is not "not_found" and res is not "noop" and res is not missing value then
-                                        return res
-                                    end if
-                                end if
-                            end try
-                        end repeat
-                    end repeat
+                    end try
 
                     return "not_found"
                 end timeout
@@ -647,7 +609,7 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             // Chromium-based browsers: Google Chrome, Brave, Microsoft Edge, Opera, Vivaldi, Chromium
             appleScript = """
             tell application "\(appName)"
-                with timeout of 2 seconds
+                with timeout of 1 second
                     -- 1. Fast path: active tab of front window
                     try
                         if (count of windows) > 0 then
@@ -664,44 +626,24 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
                         end if
                     end try
 
-                    -- 2. Search windows and tabs matching targetTitle
-                    if "\(escapedTargetTitle)" is not "" then
+                    -- 2. Fast search for active media tabs
+                    try
                         repeat with w in windows
                             repeat with t in tabs of w
                                 try
                                     set u to (URL of t as text)
-                                    if u does not start with "chrome://" and u does not start with "about:" and u does not start with "edge://" and u does not start with "brave://" and u does not start with "opera://" and u does not start with "vivaldi://" then
-                                        set tabTitle to (title of t as text)
-                                        if tabTitle contains "\(escapedTargetTitle)" or "\(escapedTargetTitle)" contains tabTitle then
-                                            tell t
-                                                set res to execute javascript "\(escapedJS)"
-                                                if res is not "not_found" and res is not "noop" and res is not missing value then
-                                                    return res
-                                                end if
-                                            end tell
-                                        end if
+                                    if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
+                                        tell t
+                                            set res to execute javascript "\(escapedJS)"
+                                            if res is not "not_found" and res is not "noop" and res is not missing value then
+                                                return res
+                                            end if
+                                        end tell
                                     end if
                                 end try
                             end repeat
                         end repeat
-                    end if
-
-                    -- 3. Search windows and tabs for active media
-                    repeat with w in windows
-                        repeat with t in tabs of w
-                            try
-                                set u to (URL of t as text)
-                                if u contains "youtube.com" or u contains "spotify.com" or u contains "soundcloud.com" or u contains "music.youtube.com" or u contains "bilibili.com" or u contains "netflix.com" or u contains "vimeo.com" or u contains "twitch.tv" or u contains "threads.net" or u contains "facebook.com" or u contains "instagram.com" or u contains "tiktok.com" then
-                                    tell t
-                                        set res to execute javascript "\(escapedJS)"
-                                        if res is not "not_found" and res is not "noop" and res is not missing value then
-                                            return res
-                                        end if
-                                    end tell
-                                end if
-                            end try
-                        end repeat
-                    end repeat
+                    end try
 
                     return "not_found"
                 end timeout
@@ -811,16 +753,18 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             return
         }
 
-        // 2. Browser tab automation (direct DOM/player control for web YouTube, Spotify, SoundCloud, etc.)
+        // 2. System universal MediaRemote adapter (primary unified bridge for all media apps & browsers)
+        // Dispatches directly to macOS MediaRemote session system-wide in <30ms,
+        // completely eliminating the requirement for the user to be focused on the media tab, window, or app.
+        if await Self.sendUniversalCommand("send", arg: "\(commandId)") {
+            return
+        }
+
+        // 3. Browser tab automation fallback (only when MediaRemote doesn't take effect, e.g. custom web players)
         if isBrowser(bundleID) {
             if await executeBrowserScript(for: browserMediaAction) {
                 return
             }
-        }
-
-        // 3. System universal MediaRemote adapter (primary unified bridge for all media apps & fallback)
-        if await Self.sendUniversalCommand("send", arg: "\(commandId)") {
-            return
         }
 
         // 4. System media key event fallback
@@ -855,15 +799,14 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         } else if bundleID == "com.spotify.client" || bundleID.contains("Spotify") {
             let script = "tell application \"Spotify\" to set player position to \(time)"
             try? await AppleScriptHelper.executeVoid(script)
-        } else if isBrowser(bundleID) {
-            if await executeBrowserScript(for: .seek(time)) {
-                return
-            }
-            let micros = Int64(time * 1_000_000)
-            await Self.sendUniversalCommand("seek", arg: "\(micros)")
         } else {
             let micros = Int64(time * 1_000_000)
-            await Self.sendUniversalCommand("seek", arg: "\(micros)")
+            if await Self.sendUniversalCommand("seek", arg: "\(micros)") {
+                return
+            }
+            if isBrowser(bundleID) {
+                _ = await executeBrowserScript(for: .seek(time))
+            }
         }
     }
 

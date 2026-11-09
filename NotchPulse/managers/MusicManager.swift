@@ -352,7 +352,7 @@ class MusicManager: ObservableObject {
             if !self.songTitle.isEmpty && self.isPlaying {
                 if emptyTitleVerificationTask == nil {
                     emptyTitleVerificationTask = Task { @MainActor [weak self] in
-                        try? await Task.sleep(for: .milliseconds(600))
+                        try? await Task.sleep(for: .milliseconds(1200))
                         guard !Task.isCancelled, let self = self else { return }
                         self.emptyTitleVerificationTask = nil
                         self.isPlaying = false

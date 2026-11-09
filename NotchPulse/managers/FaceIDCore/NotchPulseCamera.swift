@@ -93,9 +93,123 @@ final class NotchPulseCamera: NSObject {
 
     /// Handed to the delegate outside the actor; only ever touched via `Task { @MainActor ... }`.
     private let framePublisher = FramePublisher()
+    private var currentInput: AVCaptureDeviceInput?
+    private nonisolated(unsafe) var notificationTokens: [NSObjectProtocol] = []
+
     override init() {
         super.init()
         framePublisher.owner = self
+        setupNotifications()
+    }
+
+    deinit {
+        for token in notificationTokens {
+            NotificationCenter.default.removeObserver(token)
+        }
+    }
+
+    private func setupNotifications() {
+        let nc = NotificationCenter.default
+        let sessionToken = nc.addObserver(
+            forName: .AVCaptureSessionRuntimeError,
+            object: session,
+            queue: nil
+        ) { [weak self] note in
+            let error = note.userInfo?[AVCaptureSessionErrorKey] as? AVError
+            NSLog("[NotchPulseCamera] AVCaptureSession runtime error: \(String(describing: error))")
+            Task { @MainActor [weak self] in
+                self?.handleSessionRuntimeError(error)
+            }
+        }
+        notificationTokens.append(sessionToken)
+
+        let interruptedToken = nc.addObserver(
+            forName: .AVCaptureSessionWasInterrupted,
+            object: session,
+            queue: nil
+        ) { _ in
+            NSLog("[NotchPulseCamera] AVCaptureSession was interrupted")
+        }
+        notificationTokens.append(interruptedToken)
+
+        let interruptionEndedToken = nc.addObserver(
+            forName: .AVCaptureSessionInterruptionEnded,
+            object: session,
+            queue: nil
+        ) { [weak self] _ in
+            NSLog("[NotchPulseCamera] AVCaptureSession interruption ended")
+            Task { @MainActor [weak self] in
+                guard let self, self.isRunning else { return }
+                self.sessionQueue.async { [session = self.session] in
+                    if !session.isRunning {
+                        session.startRunning()
+                    }
+                }
+            }
+        }
+        notificationTokens.append(interruptionEndedToken)
+
+        let connectedToken = nc.addObserver(
+            forName: .AVCaptureDeviceWasConnected,
+            object: nil,
+            queue: nil
+        ) { [weak self] note in
+            let device = note.object as? AVCaptureDevice
+            NSLog("[NotchPulseCamera] AVCaptureDevice connected: \(device?.localizedName ?? "unknown")")
+            Task { @MainActor [weak self] in
+                self?.handleDeviceConnected(device)
+            }
+        }
+        notificationTokens.append(connectedToken)
+
+        let disconnectedToken = nc.addObserver(
+            forName: .AVCaptureDeviceWasDisconnected,
+            object: nil,
+            queue: nil
+        ) { [weak self] note in
+            let device = note.object as? AVCaptureDevice
+            NSLog("[NotchPulseCamera] AVCaptureDevice disconnected: \(device?.localizedName ?? "unknown")")
+            Task { @MainActor [weak self] in
+                self?.handleDeviceDisconnected(device)
+            }
+        }
+        notificationTokens.append(disconnectedToken)
+    }
+
+    private func handleSessionRuntimeError(_ error: AVError?) {
+        guard isRunning else { return }
+        // On runtime error, invalidate current input so the next start/restart freshly recreates it
+        currentInput = nil
+        sessionQueue.async { [weak self, session] in
+            guard let self else { return }
+            if !session.isRunning {
+                session.startRunning()
+            }
+            Task { @MainActor in
+                self.isRunning = session.isRunning
+            }
+        }
+    }
+
+    private func handleDeviceConnected(_ device: AVCaptureDevice?) {
+        NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
+        if errorMessage != nil || currentInput == nil {
+            errorMessage = nil
+            if isRunning {
+                Task {
+                    if let resolved = await self.waitForDevice(timeout: .milliseconds(800)) {
+                        _ = await self.configureAndStartSession(with: resolved)
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleDeviceDisconnected(_ device: AVCaptureDevice?) {
+        NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
+        if let device, device.uniqueID == currentInput?.device.uniqueID {
+            currentInput = nil
+        }
     }
 
     func start(processingFrames: Bool = true) async {
@@ -119,16 +233,22 @@ final class NotchPulseCamera: NSObject {
         }
 
         errorMessage = nil
-        configureSessionIfNeeded()
-        reconcileDeviceIfNeeded()
+
+        // Resilient resolution: on wake or boot, hardware daemon can take 300-1500ms to enumerate
+        guard let device = await waitForDevice(timeout: .milliseconds(2000)) else {
+            errorMessage = "No camera device found."
+            return
+        }
 
         framePublisher.isProcessingFrames = processingFrames
 
-        sessionQueue.async { [session] in
-            if !session.isRunning {
-                session.startRunning()
-            }
+        let success = await configureAndStartSession(with: device)
+        if !success {
+            errorMessage = "Failed to start camera session."
+            isRunning = false
+            return
         }
+
         isRunning = true
     }
 
@@ -147,6 +267,105 @@ final class NotchPulseCamera: NSObject {
         currentFrame = nil
     }
 
+    /// Attempts to recover a running session that has stopped producing frames.
+    func recoverStalledSession() async {
+        guard isRunning else { return }
+        NSLog("[NotchPulseCamera] Stalled camera pipeline detected; attempting recovery...")
+        guard let device = await waitForDevice(timeout: .milliseconds(1000)) else { return }
+        _ = await configureAndStartSession(with: device)
+    }
+
+    private func waitForDevice(timeout: Duration) async -> AVCaptureDevice? {
+        if let device = NotchPulseCameraDeviceCatalog.resolvedDevice() {
+            return device
+        }
+        let clock = ContinuousClock()
+        let start = clock.now
+        while clock.now - start < timeout {
+            try? await Task.sleep(for: .milliseconds(100))
+            if let device = NotchPulseCameraDeviceCatalog.resolvedDevice() {
+                return device
+            }
+        }
+        return nil
+    }
+
+    private func configureAndStartSession(with device: AVCaptureDevice) async -> Bool {
+        return await withCheckedContinuation { continuation in
+            sessionQueue.async { [weak self, session, videoOutput, framePublisher] in
+                guard let self else {
+                    continuation.resume(returning: false)
+                    return
+                }
+
+                session.beginConfiguration()
+                session.sessionPreset = .high
+
+                // 1. Output setup
+                if !session.outputs.contains(videoOutput) {
+                    videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+                    videoOutput.alwaysDiscardsLateVideoFrames = true
+                    videoOutput.setSampleBufferDelegate(framePublisher, queue: self.sessionQueue)
+                    if session.canAddOutput(videoOutput) {
+                        session.addOutput(videoOutput)
+                    }
+                }
+
+                // 2. Validate existing input health (not just matching uniqueID!)
+                var isInputHealthy = false
+                let activeInput = session.inputs.first as? AVCaptureDeviceInput
+                if let activeInput,
+                   activeInput.device.uniqueID == device.uniqueID,
+                   NotchPulseCameraDeviceCatalog.isDeviceHealthy(activeInput.device) {
+                    isInputHealthy = true
+                }
+
+                if !isInputHealthy {
+                    for input in session.inputs {
+                        session.removeInput(input)
+                    }
+
+                    // Retry up to 3 times (100ms apart) in case CoreMediaIO bus handshake is still in progress
+                    var createdInput: AVCaptureDeviceInput?
+                    for attempt in 1...3 {
+                        if let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) {
+                            createdInput = input
+                            break
+                        }
+                        if attempt < 3 {
+                            Thread.sleep(forTimeInterval: 0.1)
+                        }
+                    }
+
+                    guard let input = createdInput else {
+                        session.commitConfiguration()
+                        Task { @MainActor in
+                            self.currentInput = nil
+                            self.errorMessage = "Failed to connect to camera device."
+                        }
+                        continuation.resume(returning: false)
+                        return
+                    }
+
+                    session.addInput(input)
+                    Self.selectHighestResolutionFormat(for: device)
+                    Task { @MainActor in
+                        self.currentInput = input
+                    }
+                }
+
+                session.commitConfiguration()
+
+                if !session.isRunning {
+                    session.startRunning()
+                }
+
+                let running = session.isRunning
+                continuation.resume(returning: running)
+            }
+        }
+    }
+
     private func describe(_ status: AVAuthorizationStatus) -> String {
         switch status {
         case .notDetermined: return "notDetermined"
@@ -157,54 +376,9 @@ final class NotchPulseCamera: NSObject {
         }
     }
 
-    private var isConfigured = false
-    private var currentInput: AVCaptureDeviceInput?
-
-    private func configureSessionIfNeeded() {
-        guard !isConfigured else { return }
-        isConfigured = true
-
-        session.beginConfiguration()
-        // `.high` doesn't guarantee the sensor's max resolution; macOS (unlike iOS) doesn't fight an explicitly-set
-        // `activeFormat`, so leaving this at `.high` and locking the format separately below is sufficient.
-        session.sessionPreset = .high
-
-        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-        videoOutput.alwaysDiscardsLateVideoFrames = true
-        videoOutput.setSampleBufferDelegate(framePublisher, queue: sessionQueue)
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-        }
-
-        session.commitConfiguration()
-    }
-
-    /// Called on every `start()` so a camera preference change in Settings takes effect without an app restart.
-    private func reconcileDeviceIfNeeded() {
-        guard let device = NotchPulseCameraDeviceCatalog.resolvedDevice() else {
-            errorMessage = "No camera device found."
-            return
-        }
-        guard device.uniqueID != currentInput?.device.uniqueID else { return }
-
-        session.beginConfiguration()
-        if let currentInput {
-            session.removeInput(currentInput)
-        }
-        if let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) {
-            session.addInput(input)
-            currentInput = input
-            selectHighestResolutionFormat(for: device)
-        } else {
-            currentInput = nil
-            errorMessage = "No camera device found."
-        }
-        session.commitConfiguration()
-    }
-
     /// Highest resolution regardless of fps — Vision still works from the downscaled frame; this only affects
     /// what `CameraFrame.source` (and therefore `renderCrop`) has to work with.
-    private func selectHighestResolutionFormat(for device: AVCaptureDevice) {
+    private nonisolated static func selectHighestResolutionFormat(for device: AVCaptureDevice) {
         let best = device.formats.max { lhs, rhs in
             let l = CMVideoFormatDescriptionGetDimensions(lhs.formatDescription)
             let r = CMVideoFormatDescriptionGetDimensions(rhs.formatDescription)
@@ -216,7 +390,7 @@ final class NotchPulseCamera: NSObject {
             device.activeFormat = best
             device.unlockForConfiguration()
         } catch {
-            errorMessage = "Couldn't select the camera's highest-resolution format: \(error.localizedDescription)"
+            NSLog("[NotchPulseCamera] Couldn't select highest-resolution format: \(error.localizedDescription)")
         }
     }
 
@@ -225,7 +399,7 @@ final class NotchPulseCamera: NSObject {
     }
 
     private nonisolated static let workingImageCIContext = CIContext(options: [.useSoftwareRenderer: false])
-    static let maxWorkingEdge: CGFloat = 640
+    nonisolated static let maxWorkingEdge: CGFloat = 640
 
     nonisolated static func createWorkingCGImage(from sourceImage: CIImage) -> CGImage? {
         var ciImage = sourceImage

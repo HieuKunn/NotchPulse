@@ -241,6 +241,8 @@ struct MusicControlsView: View {
             }
         case .playPause:
             HoverButton(icon: musicManager.isPlaying ? "pause.fill" : "play.fill", scale: .large) {
+                // Prevent accidental tap-through when opening notch on hover/click
+                guard Date().timeIntervalSince(vm.lastOpenedAt) > 0.35 else { return }
                 MusicManager.shared.togglePlay()
             }
         case .next:

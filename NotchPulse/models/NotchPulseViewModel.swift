@@ -46,6 +46,7 @@ class NotchPulseViewModel: NSObject, ObservableObject {
     @Published var featureTourTarget: String? = nil
 
     @Published var screenUUID: String?
+    @Published public private(set) var lastOpenedAt: Date = .distantPast
 
     @Published var notchSize: CGSize = getClosedNotchSize()
     @Published var closedNotchSize: CGSize = getClosedNotchSize()
@@ -282,8 +283,13 @@ class NotchPulseViewModel: NSObject, ObservableObject {
             self.customOpenHeight = nil
         }
         
+        lastOpenedAt = Date()
         MusicManager.shared.isUIActive = true
-        MusicManager.shared.forceUpdate()
+        // If a track is already actively playing, the continuous stream keeps it accurate;
+        // avoid firing a redundant snapshot query that could temporarily flash empty playback state.
+        if !MusicManager.shared.isPlaying || MusicManager.shared.songTitle.isEmpty {
+            MusicManager.shared.forceUpdate()
+        }
 
     }
 

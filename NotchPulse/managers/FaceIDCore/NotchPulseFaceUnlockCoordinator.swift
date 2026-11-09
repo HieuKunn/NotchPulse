@@ -69,7 +69,7 @@ final class NotchPulseFaceUnlockCoordinator {
         
         Task { @MainActor [weak self] in
             if NotchPulseLockMonitor.isScreenActuallyLocked() {
-                self?.evaluateTrigger()
+                await self?.evaluateTrigger()
             }
         }
     }
@@ -88,13 +88,25 @@ final class NotchPulseFaceUnlockCoordinator {
                 self.observeLockAndWakeEvents()
                 // Glance baseline: 300ms settle delay allows WindowServer and CGSession to stabilize
                 try? await Task.sleep(nanoseconds: 300_000_000)
-                self.evaluateTrigger()
+                await self.evaluateTrigger()
             }
         }
     }
 
-    private func evaluateTrigger() {
-        guard NotchPulseLockMonitor.isScreenActuallyLocked() else {
+    private func evaluateTrigger() async {
+        var isLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
+        if !isLocked && lockMonitor.lastEvent == .wake {
+            // Progressive verification on wake: WindowServer can take 300-800ms after deep sleep
+            // to update CGSSessionScreenIsLocked in CGSessionCopyCurrentDictionary.
+            for delayMs in [150, 300, 450] {
+                try? await Task.sleep(for: .milliseconds(delayMs))
+                if NotchPulseLockMonitor.isScreenActuallyLocked() {
+                    isLocked = true
+                    break
+                }
+            }
+        }
+        guard isLocked else {
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
             disarmOverlay()
@@ -226,8 +238,11 @@ final class NotchPulseFaceUnlockCoordinator {
             return
         }
 
-        // Camera stays completely OFF while idle in closed mode on lock screen (0% CPU, no green dot)
-        camera.stop()
+        // Camera stays completely OFF while idle in closed mode on lock screen (0% CPU, no green dot).
+        // If autoScan is true, do NOT stop-then-start immediately as rapid sensor cycling wedges hardware drivers.
+        if !autoScan {
+            camera.stop()
+        }
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
         FaceIDOverlayController.shared.arm { [weak self] in
@@ -263,9 +278,10 @@ final class NotchPulseFaceUnlockCoordinator {
             statusMessage = error
             camera.stop()
             if showsUI {
-                Task {
-                    await FaceIDOverlayController.shared.collapse()
-                }
+                FaceIDOverlayController.shared.finish(success: false)
+                scheduleAutoRetryIfEnabled(after: FaceIDOverlayController.shared.failureHoldDuration)
+            } else {
+                scheduleAutoRetryIfEnabled(after: headlessRetryDelay)
             }
             return
         }
@@ -366,6 +382,7 @@ final class NotchPulseFaceUnlockCoordinator {
         var lastFaceBoundingBox: CGRect?
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
+        var hasAttemptedStallRecovery = false
         let scanStartedAt = ContinuousClock.now
 
         while Date() < deadline, !Task.isCancelled,
@@ -373,6 +390,11 @@ final class NotchPulseFaceUnlockCoordinator {
             guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
 
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
+                let elapsed = ContinuousClock.now - scanStartedAt
+                if !hasAttemptedStallRecovery && elapsed > .milliseconds(1200) && lastProcessedFrameID == nil {
+                    hasAttemptedStallRecovery = true
+                    await camera.recoverStalledSession()
+                }
                 // 20ms keeps the liveness window's sample count high while staying close to the camera's native ~33ms cadence.
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
