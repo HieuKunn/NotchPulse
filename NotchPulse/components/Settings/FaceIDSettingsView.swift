@@ -32,17 +32,12 @@ struct FaceIDSettingsView: View {
                 .id("faceid_security")
                 .searchHighlight(highlightedId == "faceid_security")
 
-            // 4. Camera
-            CameraSettingsPage()
-                .id("faceid_camera")
-                .searchHighlight(highlightedId == "faceid_camera")
-
-            // 5. Recognition & Liveness
+            // 4. Recognition & Liveness
             RecognitionSettingsPage()
                 .id("faceid_tolerance")
                 .searchHighlight(highlightedId == "faceid_tolerance")
 
-            // 6. Lock Screen Media Player
+            // 5. Lock Screen Media Player
             lockScreenMediaPlayerSection
                 .id("faceid_media_player")
                 .searchHighlight(highlightedId == "faceid_media_player")

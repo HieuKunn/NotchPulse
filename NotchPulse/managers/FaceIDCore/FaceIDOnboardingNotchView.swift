@@ -14,8 +14,6 @@ struct FaceIDOnboardingNotchView: View {
                 SecurityNoticeStepView(controller: controller)
             case .preSetup:
                 PreSetupStepView(controller: controller)
-            case .selectCamera:
-                SelectCameraStepView(controller: controller)
             case .enroll:
                 EnrollStepView(controller: controller)
             case .name:

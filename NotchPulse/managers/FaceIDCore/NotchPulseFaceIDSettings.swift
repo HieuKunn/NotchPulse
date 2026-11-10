@@ -98,11 +98,6 @@ final class NotchPulseFaceIDSettings {
         static let autoRetryOnce = "NotchPulseFaceIDSettings.autoRetryOnce"
         static let hapticFeedbackEnabled = "NotchPulseFaceIDSettings.hapticFeedbackEnabled"
         static let autoLockIntervalDays = "NotchPulseFaceIDSettings.autoLockIntervalDays"
-        static let defaultCameraID = "NotchPulseFaceIDSettings.defaultCameraID"
-        static let preferredDisplayID = "NotchPulseFaceIDSettings.preferredDisplayID"
-        static let preferredDisplayName = "NotchPulseFaceIDSettings.preferredDisplayName"
-        static let builtInDisplayCameraID = "NotchPulseFaceIDSettings.builtInDisplayCameraID"
-        static let externalDisplayCameraID = "NotchPulseFaceIDSettings.externalDisplayCameraID"
         static let hasCompletedOnboarding = "NotchPulseFaceIDSettings.hasCompletedOnboarding"
         static let onboardingResumeStep = "NotchPulseFaceIDSettings.onboardingResumeStep"
         static let hasAcknowledgedSecurityNotice = "NotchPulseFaceIDSettings.hasAcknowledgedSecurityNotice"
@@ -206,32 +201,6 @@ final class NotchPulseFaceIDSettings {
     var autoLockInterval: AutoLockInterval {
         didSet { defaults.set(autoLockInterval.rawValue, forKey: Key.autoLockIntervalDays) }
     }
-    /// Device `uniqueID`s, not device objects — devices can disconnect/
-    /// reconnect between launches, but their unique ID is stable.
-    var defaultCameraID: String? {
-        didSet {
-            defaults.set(defaultCameraID, forKey: Key.defaultCameraID)
-            NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
-        }
-    }
-    var preferredDisplayID: String? {
-        didSet { defaults.set(preferredDisplayID, forKey: Key.preferredDisplayID) }
-    }
-    var preferredDisplayName: String? {
-        didSet { defaults.set(preferredDisplayName, forKey: Key.preferredDisplayName) }
-    }
-    var builtInDisplayCameraID: String? {
-        didSet {
-            defaults.set(builtInDisplayCameraID, forKey: Key.builtInDisplayCameraID)
-            NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
-        }
-    }
-    var externalDisplayCameraID: String? {
-        didSet {
-            defaults.set(externalDisplayCameraID, forKey: Key.externalDisplayCameraID)
-            NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
-        }
-    }
 
     /// Gates first-run onboarding — `AppDelegate` shows it instead of the
     /// Settings window until this is `true`. Set once, by `FaceIDEnrollmentController`
@@ -317,11 +286,6 @@ final class NotchPulseFaceIDSettings {
         // enough not to leave an abandoned session live indefinitely.
         autoLockInterval = (defaults.object(forKey: Key.autoLockIntervalDays) as? Int)
             .flatMap(AutoLockInterval.init(rawValue:)) ?? .sevenDays
-        defaultCameraID = defaults.string(forKey: Key.defaultCameraID)
-        preferredDisplayID = defaults.string(forKey: Key.preferredDisplayID)
-        preferredDisplayName = defaults.string(forKey: Key.preferredDisplayName)
-        builtInDisplayCameraID = defaults.string(forKey: Key.builtInDisplayCameraID)
-        externalDisplayCameraID = defaults.string(forKey: Key.externalDisplayCameraID)
 
         hasCompletedOnboarding = defaults.object(forKey: Key.hasCompletedOnboarding) as? Bool ?? false
         onboardingResumeStep = defaults.string(forKey: Key.onboardingResumeStep)

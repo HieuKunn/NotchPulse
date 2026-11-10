@@ -196,56 +196,7 @@ private struct UnlockGlyphView: View {
     }
 }
 
-// MARK: - 5. Select camera
-
-struct SelectCameraStepView: View {
-    let controller: FaceIDEnrollmentController
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(loc("Select camera"))
-                .font(FaceIDTheme.Font.title)
-                .foregroundStyle(FaceIDTheme.textPrimary)
-                .padding(.leading, 4)
-                .padding(.top, 14)
-
-            Text(loc("Used for Face enrollment and for unlocking your Mac"))
-                .font(FaceIDTheme.Font.passwordCaption)
-                .foregroundStyle(FaceIDTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.leading, 4)
-
-            Spacer(minLength: 2)
-
-            CameraSelectionPill(
-                label: controller.cameraSelectionLabel,
-                devices: controller.cameraDevices
-            ) { id in
-                controller.selectCamera(id: id)
-            }
-
-            Spacer(minLength: 4)
-
-            HStack(spacing: 10) {
-                PillButton(title: "Back", style: .secondary) {
-                    controller.back()
-                }
-                PillButton(title: "Next") {
-                    controller.advance()
-                }
-            }
-        }
-        .onboardingContentPadding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(FaceIDTheme.panel)
-        .onAppear {
-            controller.refreshCameraDevices()
-            controller.applyDisplayPinForCameraSelection()
-        }
-    }
-}
-
-// MARK: - 6-8. Guided enrollment (camera + tick ring + camera-complete)
+// MARK: - 5-7. Guided enrollment (camera + tick ring + camera-complete)
 
 struct EnrollStepView: View {
     let controller: FaceIDEnrollmentController
@@ -298,7 +249,21 @@ struct EnrollStepView: View {
                     value: controller.cameraPreviewVisible
                 )
                 .overlay {
-                    if controller.isTooFar && controller.cameraPreviewVisible && !controller.showCheckmark {
+                    if controller.camera.errorMessage != nil && controller.cameraPreviewVisible && !controller.showCheckmark {
+                        VStack(spacing: 8) {
+                            Image(systemName: "video.slash.fill")
+                                .font(.system(size: 26, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            if controller.camera.permission == .denied {
+                                Button(loc("Open Settings")) {
+                                    controller.openCameraSettings()
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        }
+                        .transition(.opacity)
+                    } else if controller.isTooFar && controller.cameraPreviewVisible && !controller.showCheckmark {
                         EnrollmentTooFarChevron()
                             .transition(.opacity)
                     }

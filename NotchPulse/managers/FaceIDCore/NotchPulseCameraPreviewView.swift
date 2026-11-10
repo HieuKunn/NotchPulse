@@ -22,8 +22,9 @@ final class PreviewHostView: NSView {
     init(session: AVCaptureSession) {
         previewLayer = AVCaptureVideoPreviewLayer(session: session)
         super.init(frame: .zero)
-        wantsLayer = true
+        // AppKit layer-hosting views require assigning `layer` before setting `wantsLayer = true`.
         layer = CALayer()
+        wantsLayer = true
         // .resizeAspectFill crops to fill the view — without it, the sensor's aspect ratio leaves gaps inside a circular mask.
         previewLayer.videoGravity = .resizeAspectFill
         layer?.addSublayer(previewLayer)

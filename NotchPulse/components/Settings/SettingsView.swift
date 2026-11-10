@@ -327,11 +327,6 @@ struct SettingsView: View {
                     keywords: ["Face ID", "Allow NotchPulse to recognize your face", "Allow NotchPulse to unlock your Mac", "Mở khóa khuôn mặt"]
                 ),
                 SettingsSectionItem(
-                    id: "faceid_camera",
-                    title: "Face ID camera",
-                    keywords: ["Camera access", "Face ID camera", "Built-in FaceTime HD Camera", "Continuity Camera"]
-                ),
-                SettingsSectionItem(
                     id: "faceid_security",
                     title: "Security & Fallback",
                     keywords: ["Apple biometrics fallback", "Allow Touch ID, Apple Watch, or system password", "Authorize system prompts", "Keychain encryption"]

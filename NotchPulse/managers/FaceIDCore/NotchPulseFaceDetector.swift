@@ -28,41 +28,18 @@ enum NotchPulseFaceDetector {
     /// Runs face-rectangle, capture-quality, and landmarks detection directly on a hardware CVPixelBuffer without any intermediate CGImage conversion.
     static func detectFaces(in pixelBuffer: CVPixelBuffer, workingSize: CGSize? = nil) throws -> [DetectedFace] {
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
-
-        let rectanglesRequest = VNDetectFaceRectanglesRequest()
-        try handler.perform([rectanglesRequest])
-        let faceObservations = rectanglesRequest.results ?? []
-        guard !faceObservations.isEmpty else { return [] }
-
-        let qualityRequest = VNDetectFaceCaptureQualityRequest()
-        let landmarksRequest = VNDetectFaceLandmarksRequest()
-        qualityRequest.inputFaceObservations = faceObservations
-        landmarksRequest.inputFaceObservations = faceObservations
-        try handler.perform([qualityRequest, landmarksRequest])
-
-        let qualityResults = qualityRequest.results ?? []
-        let landmarkResults = landmarksRequest.results ?? []
         let imageSize = workingSize ?? CGSize(width: CVPixelBufferGetWidth(pixelBuffer), height: CVPixelBufferGetHeight(pixelBuffer))
-
-        return faceObservations.enumerated().map { index, observation in
-            let pixelRect = convertToImageSpace(observation.boundingBox, imageSize: imageSize)
-            return DetectedFace(
-                boundingBox: pixelRect,
-                normalizedBoundingBox: observation.boundingBox,
-                quality: qualityResults.indices.contains(index) ? qualityResults[index].faceCaptureQuality : nil,
-                yaw: observation.yaw?.floatValue,
-                roll: observation.roll?.floatValue,
-                pitch: observation.pitch?.floatValue,
-                landmarks: landmarkResults.indices.contains(index) ? landmarkResults[index].landmarks : nil,
-                imageSize: imageSize
-            )
-        }
+        return try detectFaces(using: handler, imageSize: imageSize)
     }
 
     /// Runs face-rectangle, capture-quality, and landmarks detection on a single frame.
     static func detectFaces(in image: CGImage) throws -> [DetectedFace] {
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        let imageSize = CGSize(width: image.width, height: image.height)
+        return try detectFaces(using: handler, imageSize: imageSize)
+    }
 
+    private static func detectFaces(using handler: VNImageRequestHandler, imageSize: CGSize) throws -> [DetectedFace] {
         let rectanglesRequest = VNDetectFaceRectanglesRequest()
         try handler.perform([rectanglesRequest])
         let faceObservations = rectanglesRequest.results ?? []
@@ -78,7 +55,6 @@ enum NotchPulseFaceDetector {
 
         let qualityResults = qualityRequest.results ?? []
         let landmarkResults = landmarksRequest.results ?? []
-        let imageSize = CGSize(width: image.width, height: image.height)
 
         return faceObservations.enumerated().map { index, observation in
             let pixelRect = convertToImageSpace(observation.boundingBox, imageSize: imageSize)

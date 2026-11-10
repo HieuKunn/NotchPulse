@@ -46,7 +46,7 @@ struct FaceIDOverlayGeometry {
     /// Pinned to NotchPulse's active dynamic island top offset, adjusted to clear any physical notch.
     @MainActor
     static var pillTopGap: CGFloat {
-        let screen = preferredScreen() ?? NSScreen.main
+        let screen = preferredScreen(forEnrollment: FaceIDOverlayController.shared.isOnboardingActive) ?? NSScreen.main
         return effectiveDynamicIslandTopOffset(for: screen)
     }
 
@@ -265,6 +265,12 @@ struct FaceIDOverlayGeometry {
             if let builtInScreen = NSScreen.screens.first(where: { screenHasPhysicalNotch($0) || $0.isBuiltIn }) {
                 return builtInScreen
             }
+        }
+        if let device,
+           let matchedExternal = NSScreen.screens.first(where: {
+               !$0.isBuiltIn && !$0.localizedName.isEmpty && device.localizedName.localizedCaseInsensitiveContains($0.localizedName)
+           }) {
+            return matchedExternal
         }
         return standardScreen()
     }

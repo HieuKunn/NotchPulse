@@ -58,6 +58,11 @@ final class FaceIDOverlayController {
     /// to the phase state machine itself.
     private(set) var isArmed = false
 
+    var isOnboardingActive: Bool {
+        if case .onboarding = content { return true }
+        return phase == .onboarding
+    }
+
     var isSessionActive: Bool {
         (isArmed && NotchPulseLockMonitor.isScreenActuallyLocked()) || phase != .closed
     }
@@ -141,6 +146,9 @@ final class FaceIDOverlayController {
     /// naturally: setting `isArmed = false` is enough, since the already-scheduled
     /// `collapse()` checks `isArmed` once its hold expires and hides for real then.
     func disarm() {
+        if case .onboarding(let controller) = content {
+            controller.teardown()
+        }
         isArmed = false
         onActivate = nil
         isPillDocked = false
@@ -205,11 +213,10 @@ final class FaceIDOverlayController {
             return
         }
         hasPrimedWindow = true
-        content = .scan(.idle)
-        phase = forOnboarding ? .onboarding : .closed
-        if forOnboarding {
-            windowController.reposition()
+        if !forOnboarding {
+            content = .scan(.idle)
         }
+        phase = .closed
         windowController.show()
         windowController.displaySynchronously()
         DispatchQueue.main.async {

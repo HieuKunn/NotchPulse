@@ -102,52 +102,6 @@ struct PermissionRow: View {
     }
 }
 
-/// Dropdown pill for selecting the camera used for enrollment & unlocking.
-struct CameraSelectionPill: View {
-    let label: String
-    let devices: [CameraDevice]
-    let onSelect: (String?) -> Void
-
-    var body: some View {
-        HStack {
-            Menu {
-                Button(loc("System default")) { onSelect(nil) }
-                ForEach(devices) { device in
-                    Button(device.name) { onSelect(device.id) }
-                }
-            } label: {
-                Text(label)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .foregroundStyle(.primary)
-                    .font(.system(size: 12))
-                    .padding(.horizontal, 0)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .buttonStyle(.plain)
-            .tint(.primary)
-            .frame(width: 220, height: 30)
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity)
-        .frame(height: FaceIDMetrics.permissionRowHeight)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(Capsule())
-        .overlay(
-            Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
-        )
-    }
-}
-
 /// The password entry field — a pill-shaped `SecureField`.
 struct PillSecureField: View {
     let placeholder: String

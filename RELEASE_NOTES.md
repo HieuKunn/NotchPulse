@@ -1,5 +1,6 @@
-## NotchPulse v5.6 (Build 465)
+## NotchPulse v5.6 (Build 466)
 
-### 🧼 Seamless Invisible Scrollbars (Clipboard & Shelf Parity)
-- **Zero Scrollbar Indicator Visibility**: Eliminated the vertical scrollbars from both the sidebar list and detail settings form while fully preserving smooth trackpad and mouse wheel scrolling.
-- **Underlying ScrollView Scroller Suppression**: Applied underlying AppKit overlay scroller suppression to guarantee scrollbars never flash or render as grey bars, exactly like the Shelf and Clipboard views.
+### 🔒 Face ID Camera Detection & Display Routing
+- **Smart Camera Display Routing**: Face ID setup and recapture automatically identify the screen hosting the active camera, smoothly dropping down the enrollment overlay on the correct display.
+- **Reliable Camera Activation**: Resolved camera capture initialization and session stalls, preventing lock screen wake deadlocks and ensuring instantaneous Face ID activation.
+- **Streamlined Setup Flow**: Eliminated redundant manual camera selection steps and settings clutter, seamlessly handling camera detection automatically in the background.

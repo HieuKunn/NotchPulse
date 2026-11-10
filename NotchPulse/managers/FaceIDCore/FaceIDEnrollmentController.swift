@@ -10,7 +10,6 @@ enum FaceIDOnboardingStep: String, CaseIterable {
     case permissions
     case securityNotice
     case preSetup
-    case selectCamera
     case enroll
     case name
     case password
@@ -26,7 +25,7 @@ enum FaceIDOnboardingStep: String, CaseIterable {
     /// only, and complete/intro have just one side.
     var showsBackButton: Bool {
         switch self {
-        case .securityNotice, .permissions, .preSetup, .selectCamera, .name, .password: return true
+        case .securityNotice, .permissions, .preSetup, .name, .password: return true
         case .intro, .enroll, .complete: return false
         }
     }
@@ -38,7 +37,7 @@ enum FaceIDOnboardingStep: String, CaseIterable {
     var resumeTarget: FaceIDOnboardingStep {
         switch self {
         case .enroll, .name, .password: return .preSetup
-        case .intro, .securityNotice, .permissions, .preSetup, .selectCamera, .complete: return self
+        case .intro, .securityNotice, .permissions, .preSetup, .complete: return self
         }
     }
 }
@@ -322,6 +321,8 @@ final class FaceIDEnrollmentController {
     var bothPermissionsGranted: Bool { accessibilityGranted && cameraPermission == .granted }
 
     private var permissionsPollTask: Task<Void, Never>?
+    private var cameraStartTask: Task<Void, Never>?
+    private var isTornDown = false
 
     // MARK: - Enrollment
 
@@ -420,6 +421,9 @@ final class FaceIDEnrollmentController {
     /// completion line.
     var enrollmentInstruction: String {
         if enrollmentComplete { return "Face captured" }
+        if camera.errorMessage != nil {
+            return camera.permission == .denied ? "Camera access denied" : "Camera unavailable"
+        }
         if isTooFar { return "Bring your face closer" }
         return currentPose?.instruction ?? ""
     }
@@ -523,8 +527,7 @@ final class FaceIDEnrollmentController {
                 case .intro: step = .permissions
                 case .permissions: step = .securityNotice
                 case .securityNotice: step = .preSetup
-                case .preSetup: step = .selectCamera
-                case .selectCamera: step = .enroll
+                case .preSetup: step = .enroll
                 case .enroll: break // advances automatically on completion
                 case .name: break // handled by confirmName()
                 case .password: break // handled by finish(password:)
@@ -588,10 +591,12 @@ final class FaceIDEnrollmentController {
             }
         case .enroll:
             // Camera has to stop here; `.enroll` is the only step that owns it.
+            cameraStartTask?.cancel()
+            cameraStartTask = nil
             resetEnrollmentState()
             camera.stop()
             sweepWindow.dismiss()
-            withAnimation(FaceIDMetrics.stepAnimation) { step = .selectCamera }
+            withAnimation(FaceIDMetrics.stepAnimation) { step = .preSetup }
         case .password:
             // Deliberately *without* resetting: samples and typed name survive so a typo
             // fix doesn't mean re-doing nine poses.
@@ -608,7 +613,7 @@ final class FaceIDEnrollmentController {
         case .name:
             // `.enroll` can't be resumed halfway, so backing past it discards the capture.
             resetEnrollmentState()
-            withAnimation(FaceIDMetrics.stepAnimation) { step = .selectCamera }
+            withAnimation(FaceIDMetrics.stepAnimation) { step = .preSetup }
         default:
             guard let previous = step.previous else { return }
             withAnimation(FaceIDMetrics.stepAnimation) { step = previous }
@@ -636,7 +641,7 @@ final class FaceIDEnrollmentController {
     }
 
     private func beginEnrollment() {
-        guard step == .enroll else { return }
+        guard !isTornDown, step == .enroll else { return }
         guideVisible = true
         cameraPreviewVisible = true
         showCheckmark = false
@@ -645,13 +650,19 @@ final class FaceIDEnrollmentController {
         poseHoldStartedAt = nil
         sweepWindow.present(for: self)
         ArcFaceEmbedder.warmUp()
-        Task { await camera.start() }
+        cameraStartTask?.cancel()
+        cameraStartTask = Task { [weak self] in
+            await self?.camera.start()
+        }
     }
 
     /// Tears down everything onboarding spun up: camera, sweep overlay,
     /// and permissions polling. Idempotent.
     func teardown() {
+        isTornDown = true
         stopPermissionsPolling()
+        cameraStartTask?.cancel()
+        cameraStartTask = nil
         camera.stop()
         sweepWindow.dismiss()
     }
@@ -707,68 +718,13 @@ final class FaceIDEnrollmentController {
         }
     }
 
+    func openCameraSettings() {
+        openSystemSettings(pane: "Privacy_Camera")
+    }
+
     private func openSystemSettings(pane: String) {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") else { return }
         NSWorkspace.shared.open(url)
-    }
-
-    // MARK: - Camera selection
-
-    /// Devices offered by the picker — refreshed when the step appears, since a camera
-    /// can be plugged in after the app launched.
-    private(set) var cameraDevices: [CameraDevice] = []
-
-    func refreshCameraDevices() {
-        cameraDevices = NotchPulseCameraDeviceCatalog.availableDevices()
-    }
-
-    /// Text shown inside the pill: the explicitly chosen device's name, or the resolved
-    /// system default's name suffixed "(Default)" when nothing's been picked yet.
-    var cameraSelectionLabel: String {
-        if let id = NotchPulseFaceIDSettings.shared.defaultCameraID,
-           let device = cameraDevices.first(where: { $0.id == id }) {
-            return device.name
-        }
-        guard let name = resolveDefaultCameraDevice()?.localizedName else { return loc("System default") }
-        return "\(name) (\(loc("Default")))"
-    }
-
-    /// Writes the pick straight into Settings — the same `defaultCameraID` the Camera
-    /// settings page and `NotchPulseCameraDeviceCatalog.resolvedDevice()` read — then re-checks
-    /// whether the panel should follow the built-in display.
-    func selectCamera(id: String?) {
-        NotchPulseFaceIDSettings.shared.defaultCameraID = id
-        applyDisplayPinForCameraSelection()
-        FaceIDOverlayController.shared.reposition()
-    }
-
-    /// Pins the Face Unlock panel to the MacBook's own screen while the built-in camera
-    /// is selected (auto-resolved or explicitly chosen), and releases that pin otherwise
-    /// so the panel returns to the user's normal (often external-monitor) screen.
-    func applyDisplayPinForCameraSelection() {
-        guard NSScreen.screens.count > 1 else { return }
-        let isBuiltIn = resolveSelectedCameraDevice()?.deviceType == .builtInWideAngleCamera
-        if isBuiltIn {
-            guard let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn }) else { return }
-            NotchPulseFaceIDSettings.shared.preferredDisplayID = builtInScreen.stableDisplayID
-            NotchPulseFaceIDSettings.shared.preferredDisplayName = builtInScreen.localizedName
-        } else {
-            NotchPulseFaceIDSettings.shared.preferredDisplayID = nil
-            NotchPulseFaceIDSettings.shared.preferredDisplayName = nil
-        }
-    }
-
-    private func resolveSelectedCameraDevice() -> AVCaptureDevice? {
-        if let id = NotchPulseFaceIDSettings.shared.defaultCameraID {
-            return AVCaptureDevice(uniqueID: id)
-        }
-        return resolveDefaultCameraDevice()
-    }
-
-    /// Same fallback `NotchPulseCameraDeviceCatalog.resolvedDevice()` uses once no override applies.
-    private func resolveDefaultCameraDevice() -> AVCaptureDevice? {
-        AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-            ?? AVCaptureDevice.default(for: .video)
     }
 
     // MARK: - Guided enrollment

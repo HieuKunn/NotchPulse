@@ -126,7 +126,6 @@
 		3E7E6AA58351E696B44D4F0D /* NotchPulsePOCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4543B173B40F16A7D04EBC21 /* NotchPulsePOCController.swift */; };
 		468E0EBFAA211E5F5C17920C /* FaceIDSettingsControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */; };
 		46C5D3D0635DEF5BE92F4EE0 /* NotchPulseSessionAutoLocker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76D526E1B8B086A3BAD57FD /* NotchPulseSessionAutoLocker.swift */; };
-		48B2E819BBA27128BC802182 /* FaceIDCameraSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88E3E2AA578BB909CA78E62 /* FaceIDCameraSettingsPage.swift */; };
 		507266DB2C908E2E00A2D00D /* HoverButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 507266DA2C908E2E00A2D00D /* HoverButton.swift */; };
 		51E4B7F83753A545F4E787DB /* NotchPulseLivenessAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9989B26181AD9E955C883822 /* NotchPulseLivenessAnalyzer.swift */; };
 		5917FD112E57891600E87F1C /* MediaKeyInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5917FD102E57891600E87F1C /* MediaKeyInterceptor.swift */; };
@@ -482,7 +481,6 @@
 		D1427EE773FE4158AC14BEC3 /* ShelfDropZoneWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfDropZoneWindow.swift; sourceTree = "<group>"; };
 		D20128484C8C50A15D5D7AD7 /* FaceIDEnrollmentController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDEnrollmentController.swift; sourceTree = "<group>"; };
 		D76D526E1B8B086A3BAD57FD /* NotchPulseSessionAutoLocker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseSessionAutoLocker.swift; sourceTree = "<group>"; };
-		D88E3E2AA578BB909CA78E62 /* FaceIDCameraSettingsPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDCameraSettingsPage.swift; sourceTree = "<group>"; };
 		D99745487558266047D32839 /* FaceIDOverlayGeometry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceIDOverlayGeometry.swift; sourceTree = "<group>"; };
 		DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppUpdaterDelegate.swift; sourceTree = "<group>"; };
 		E01D3A636300D547621DBC6C /* NotchPulseDeviceBezelDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotchPulseDeviceBezelDetector.swift; sourceTree = "<group>"; };
@@ -1000,7 +998,6 @@
 				B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */,
 				B1B112902C6A572100093D8F /* EditPanelView.swift */,
 				B1C448972C972CC4001F0858 /* ListItemPopover.swift */,
-				D88E3E2AA578BB909CA78E62 /* FaceIDCameraSettingsPage.swift */,
 				6878C58DE81FD426B23DD0C3 /* FaceIDGeneralSettingsPage.swift */,
 				703319DE8277F2A8924CD076 /* FaceIDPasswordSettingsPage.swift */,
 				CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */,
@@ -1436,7 +1433,6 @@
 				8CC6CC915020769F43473897 /* FaceIDDirectionSweep.swift in Sources */,
 				A070C3E4CF18C704D5401B96 /* FaceIDEnrollmentRingView.swift in Sources */,
 				104AA9195A9EB6F7C414B790 /* FaceIDEnrollmentController.swift in Sources */,
-				48B2E819BBA27128BC802182 /* FaceIDCameraSettingsPage.swift in Sources */,
 				0E4AA52CC3D94BB3B61F60A6 /* FaceIDGeneralSettingsPage.swift in Sources */,
 				9945DE801CC1F3E5E633CE31 /* FaceIDPasswordSettingsPage.swift in Sources */,
 				F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */,
@@ -1506,7 +1502,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 465;
+				CURRENT_PROJECT_VERSION = 466;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1532,7 +1528,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 465;
+				CURRENT_PROJECT_VERSION = 466;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1689,7 +1685,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 465;
+				CURRENT_PROJECT_VERSION = 466;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1743,7 +1739,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 465;
+				CURRENT_PROJECT_VERSION = 466;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";

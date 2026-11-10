@@ -43,10 +43,12 @@ final class NotchPulseFaceUnlockCoordinator {
     /// One-shot per lock session — an auto-retry that could itself auto-retry would loop the camera for the whole lock session.
     private var hasAutoRetriedForCurrentLock = false
     private var scanTask: Task<Void, Never>?
+    private var evaluateTask: Task<Void, Never>?
+    private var pendingWakeSignal = false
     /// Bumped by every `startScanCycle()`; a cycle bails once superseded (see `runScanCycle(generation:)`).
     private var scanGeneration = 0
-    /// When the last scan cycle was armed — collapses a single wake into a single arm (see `.wake` branch of `evaluateTrigger`).
-    private var lastArmedAt: ContinuousClock.Instant?
+    /// When the last wake scan was armed — collapses a single wake burst into a single arm.
+    private var lastWakeArmedAt: ContinuousClock.Instant?
     /// One lid-open fires several wake signals within a couple of seconds of each other; anything in this window counts as the same wake.
     private let rearmDebounce: Duration = .seconds(2)
     /// Held separately from `scanTask` since it's scheduled from inside the scan task it follows — reusing `scanTask` would self-cancel it.
@@ -86,20 +88,29 @@ final class NotchPulseFaceUnlockCoordinator {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.observeLockAndWakeEvents()
-                // Glance baseline: 300ms settle delay allows WindowServer and CGSession to stabilize
-                try? await Task.sleep(nanoseconds: 300_000_000)
-                await self.evaluateTrigger()
+                if self.lockMonitor.lastEvent == .wake {
+                    self.pendingWakeSignal = true
+                }
+                self.evaluateTask?.cancel()
+                self.evaluateTask = Task { @MainActor [weak self] in
+                    // Glance baseline: 300ms settle delay allows WindowServer and CGSession to stabilize
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    guard !Task.isCancelled else { return }
+                    await self?.evaluateTrigger()
+                }
             }
         }
     }
 
     private func evaluateTrigger() async {
         var isLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
-        if !isLocked && lockMonitor.lastEvent == .wake {
+        let isWake = pendingWakeSignal || lockMonitor.lastEvent == .wake
+        if !isLocked && isWake {
             // Progressive verification on wake: WindowServer can take 300-800ms after deep sleep
             // to update CGSSessionScreenIsLocked in CGSessionCopyCurrentDictionary.
             for delayMs in [150, 300, 450] {
                 try? await Task.sleep(for: .milliseconds(delayMs))
+                guard !Task.isCancelled else { return }
                 if NotchPulseLockMonitor.isScreenActuallyLocked() {
                     isLocked = true
                     break
@@ -109,22 +120,25 @@ final class NotchPulseFaceUnlockCoordinator {
         guard isLocked else {
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
+            pendingWakeSignal = false
             disarmOverlay()
             return
         }
         guard !lockMonitor.isSleeping else { return }
 
         // `.wake` (sleep, display sleep, or screensaver stopping) is an explicit "let me back in," so clear the one-shot guard.
-        // `isWithinRecentArmBurst` keeps the several wake signals from one lid-open from each re-arming and fighting over the camera.
-        if lockMonitor.lastEvent == .wake, !isWithinRecentArmBurst {
+        // `isWithinRecentWakeBurst` keeps the several wake signals from one lid-open from each re-arming and fighting over the camera.
+        if isWake, !isWithinRecentWakeBurst {
             hasArmedForCurrentLock = false
         }
+        pendingWakeSignal = false
 
         // Runs before the hasArmedForCurrentLock guard — the space monitor's lifetime is tied to "locked + opted in," not to whether a scan already ran.
         updateSpaceMonitor()
 
         guard isEnabled, !hasArmedForCurrentLock else { return }
-        guard let signal = requiredTrigger(for: lockMonitor.lastEvent) else { return }
+        let effectiveEvent: LockEventKind? = isWake ? .wake : lockMonitor.lastEvent
+        guard let signal = requiredTrigger(for: effectiveEvent) else { return }
 
         // A pinned display that isn't connected bails entirely rather than showing up elsewhere; "Main display" (nil) always resolves.
         guard NotchGeometry.preferredScreen() != nil else { return }
@@ -151,7 +165,9 @@ final class NotchPulseFaceUnlockCoordinator {
         guard showsUI || shouldAutoScan else { return }
 
         hasArmedForCurrentLock = true
-        lastArmedAt = .now
+        if shouldAutoScan {
+            lastWakeArmedAt = .now
+        }
         ArcFaceEmbedder.warmUp()
         NotchPulseVault.preflightKeychainAuthorization()
         if NotchPulseFaceEnrollmentStore.shared.activeIdentities.isEmpty {
@@ -162,10 +178,10 @@ final class NotchPulseFaceUnlockCoordinator {
         }
     }
 
-    /// Whether the last arm was recent enough to be part of the same wake burst rather than a new one.
-    private var isWithinRecentArmBurst: Bool {
-        guard let lastArmedAt else { return false }
-        return ContinuousClock.now - lastArmedAt < rearmDebounce
+    /// Whether the last wake arm was recent enough to be part of the same wake burst rather than a new one.
+    private var isWithinRecentWakeBurst: Bool {
+        guard let lastWakeArmedAt else { return false }
+        return ContinuousClock.now - lastWakeArmedAt < rearmDebounce
     }
 
     /// nil for signals that shouldn't arm anything — including a nil `lastEvent`, or the first observation would fire regardless of user selection.
@@ -178,6 +194,9 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func disarmOverlay() {
+        evaluateTask?.cancel()
+        evaluateTask = nil
+        pendingWakeSignal = false
         scanTask?.cancel()
         scanTask = nil
         // Bumping makes any cycle still suspended at `await camera.start()` inert, rather than resuming and re-showing the overlay.
@@ -259,7 +278,9 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func startScanCycle() {
-        scanTask?.cancel()
+        guard scanTask == nil else { return }
+        autoRetryTask?.cancel()
+        autoRetryTask = nil
         scanGeneration &+= 1
         let generation = scanGeneration
         scanTask = Task { [weak self] in
@@ -268,11 +289,19 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     private func runScanCycle(generation: Int) async {
+        defer {
+            if generation == scanGeneration {
+                scanTask = nil
+            }
+        }
         guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
-        await camera.start(processingFrames: true)
+        await camera.start(processingFrames: true, allowAccessPrompt: false)
+        guard generation == scanGeneration else {
+            camera.stop()
+            return
+        }
         camera.resumeProcessing()
-        guard generation == scanGeneration else { return }
 
         if let error = camera.errorMessage {
             statusMessage = error
@@ -412,7 +441,7 @@ final class NotchPulseFaceUnlockCoordinator {
             let pipeline = self.pipeline
             let previousBoundingBox = lastFaceBoundingBox
             let outcome = await Task.detached(priority: .userInitiated) { () -> (FaceRecognitionResult, LivenessFrame)? in
-                guard let result = try? pipeline.recognize(in: frame.image, preferNear: previousBoundingBox) else { return nil }
+                guard let result = try? pipeline.recognize(in: frame, preferNear: previousBoundingBox) else { return nil }
                 let faceCrop = NotchPulseCamera.renderCrop(from: frame, imageRect: result.face.boundingBox)
                 return (result, NotchPulseLivenessFeatures.extract(from: result, frame: frame.image, faceCrop: faceCrop))
             }.value

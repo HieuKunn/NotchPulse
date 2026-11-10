@@ -112,7 +112,7 @@ final class FaceIDOverlayWindowController {
     }
 
     var currentGeometry: FaceIDOverlayGeometry {
-        let isEnrollment = FaceIDOverlayController.shared.phase == .onboarding
+        let isEnrollment = FaceIDOverlayController.shared.isOnboardingActive
         return FaceIDOverlayGeometry.preferredScreen(forEnrollment: isEnrollment).map(FaceIDOverlayGeometry.forScreen) ?? FaceIDOverlayGeometry.forMainScreen()
     }
 
@@ -194,7 +194,7 @@ final class FaceIDOverlayWindowController {
 
     func reposition(_ windowToReposition: FaceIDOverlayWindow? = nil) {
         guard let win = windowToReposition ?? self.window else { return }
-        let isEnrollment = FaceIDOverlayController.shared.phase == .onboarding
+        let isEnrollment = FaceIDOverlayController.shared.isOnboardingActive
         guard let screen = FaceIDOverlayGeometry.preferredScreen(forEnrollment: isEnrollment) else { return }
         let targetSize = FaceIDOverlayGeometry.windowSize(for: currentGeometry.style)
         let screenFrame = screen.frame
