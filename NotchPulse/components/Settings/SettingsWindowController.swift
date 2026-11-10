@@ -10,21 +10,45 @@ final class SettingsWindow: NSWindow {
     override func layoutIfNeeded() {
         super.layoutIfNeeded()
         adjustTrafficLights()
+        suppressScrollBars()
     }
 
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         super.setFrame(frameRect, display: flag)
         adjustTrafficLights()
+        suppressScrollBars()
     }
 
     override func setFrame(_ frameRect: NSRect, display flag: Bool, animate animateFlag: Bool) {
         super.setFrame(frameRect, display: flag, animate: animateFlag)
         adjustTrafficLights()
+        suppressScrollBars()
     }
 
     override func makeKeyAndOrderFront(_ sender: Any?) {
         super.makeKeyAndOrderFront(sender)
         adjustTrafficLights()
+        suppressScrollBars()
+    }
+
+    func suppressScrollBars() {
+        guard let contentView = self.contentView else { return }
+        Self.hideScrollers(in: contentView)
+    }
+
+    private static func hideScrollers(in view: NSView) {
+        if let scrollView = view as? NSScrollView {
+            scrollView.hasVerticalScroller = true
+            scrollView.autohidesScrollers = true
+            scrollView.scrollerStyle = .overlay
+            if let scroller = scrollView.verticalScroller {
+                scroller.alphaValue = 0
+                scroller.isHidden = true
+            }
+        }
+        for subview in view.subviews {
+            hideScrollers(in: subview)
+        }
     }
 
     func adjustTrafficLights() {

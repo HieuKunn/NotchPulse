@@ -598,7 +598,8 @@ struct SettingsView: View {
             detailContent
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
-                .scrollIndicators(.hidden)
+                .scrollIndicators(.never)
+                .background(EnclosingScrollViewSuppressor())
                 .safeAreaInset(edge: .top, spacing: 0) {
                     SettingsDetailHeaderBar(
                         title: tabTitle(for: selectedTab)
@@ -672,6 +673,50 @@ struct SettingsView: View {
 
     private func tabTitle(for destination: SettingsDestination) -> String {
         L10n.tr(destination.rawValue, lang: appLanguage)
+    }
+}
+
+// MARK: - AppKit Invisible Scroller Support
+
+private struct EnclosingScrollViewSuppressor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { [weak view] in
+            guard let view = view else { return }
+            var current: NSView? = view
+            while let c = current {
+                if let sv = c as? NSScrollView {
+                    sv.hasVerticalScroller = true
+                    sv.autohidesScrollers = true
+                    sv.scrollerStyle = .overlay
+                    if let scroller = sv.verticalScroller {
+                        scroller.alphaValue = 0
+                        scroller.isHidden = true
+                    }
+                }
+                current = c.superview
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { [weak nsView] in
+            guard let nsView = nsView else { return }
+            var current: NSView? = nsView
+            while let c = current {
+                if let sv = c as? NSScrollView {
+                    sv.hasVerticalScroller = true
+                    sv.autohidesScrollers = true
+                    sv.scrollerStyle = .overlay
+                    if let scroller = sv.verticalScroller {
+                        scroller.alphaValue = 0
+                        scroller.isHidden = true
+                    }
+                }
+                current = c.superview
+            }
+        }
     }
 }
 
@@ -783,7 +828,8 @@ private struct SettingsSidebarListView: View {
             }
         }
         .listStyle(.sidebar)
-        .scrollIndicators(.hidden)
+        .scrollIndicators(.never)
+        .background(EnclosingScrollViewSuppressor())
         .onChange(of: isSearching) { _, newVal in
             if !newVal { searchSelection = nil }
         }
