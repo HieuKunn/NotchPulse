@@ -51,7 +51,7 @@ struct DisplaySettingsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "sun.max.fill")
-                                .font(.system(size: 14))
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
@@ -65,7 +65,7 @@ struct DisplaySettingsView: View {
 
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "slider.horizontal.below.rectangle")
-                                .font(.system(size: 14))
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {

@@ -60,25 +60,6 @@ struct SettingsTabItem: Identifiable {
 
 // MARK: - Reusable Visual Elements
 
-struct SettingsBadgeView: View {
-    let icon: String
-    let color: Color
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 5.5, style: .continuous)
-                .fill(color.gradient)
-                .frame(width: 20, height: 20)
-
-            Image(systemName: icon)
-                .symbolRenderingMode(.monochrome)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white)
-        }
-        .frame(width: 20, height: 20)
-    }
-}
-
 /// Dedicated macOS-style top header bar matching System Settings (Sonoma/Sequoia).
 /// Pinned at top with frosted material backdrop (.bar) without harsh divider lines,
 /// letting form content glide cleanly underneath with native material blur.
@@ -128,7 +109,7 @@ func warningBadge(_ text: String, _ description: String) -> some View {
     Section {
         HStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 22))
+                .font(.title2)
                 .foregroundStyle(.yellow)
             VStack(alignment: .leading) {
                 Text(text)

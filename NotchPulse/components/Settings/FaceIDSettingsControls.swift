@@ -53,7 +53,7 @@ struct SettingsInfoButton: View {
             isPresented.toggle()
         } label: {
             Image(systemName: "info.circle")
-                .font(.system(size: 12))
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
         .buttonStyle(.plain)

@@ -53,8 +53,8 @@ struct AboutSettingsView: View {
 
                         HStack {
                             Text("hieukunngauz298@gmail.com")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundColor(.primary)
+                                .font(.callout.monospaced())
+                                .foregroundStyle(.primary)
                                 .textSelection(.enabled)
 
                             Spacer()
@@ -71,7 +71,6 @@ struct AboutSettingsView: View {
                                     copiedEmail ? loc("Copied") : loc("Copy Email"),
                                     systemImage: copiedEmail ? "checkmark.circle.fill" : "doc.on.clipboard"
                                 )
-                                .font(.system(size: 11, weight: .medium))
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)

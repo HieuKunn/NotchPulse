@@ -533,6 +533,25 @@ struct SettingsView: View {
         .toggleStyle(.switch)
         .frame(minWidth: 720, minHeight: 560)
         .background(Color(nsColor: .windowBackgroundColor))
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    let next: NavigationSplitViewVisibility = (columnVisibility == .detailOnly) ? .all : .detailOnly
+                    if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                        columnVisibility = next
+                    } else {
+                        withAnimation { columnVisibility = next }
+                    }
+                } label: {
+                    Label(
+                        columnVisibility == .detailOnly ? loc("Show Sidebar") : loc("Hide Sidebar"),
+                        systemImage: "sidebar.left"
+                    )
+                }
+                .keyboardShortcut("s", modifiers: [.control, .command])
+                .help(columnVisibility == .detailOnly ? loc("Show Sidebar") : loc("Hide Sidebar"))
+            }
+        }
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
@@ -551,7 +570,7 @@ struct SettingsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 } else {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.headline.weight(.bold))
                         .foregroundStyle(.secondary)
                 }
 
@@ -758,8 +777,8 @@ private struct SettingsSidebarListView: View {
             }
         } icon: {
             Image(systemName: tab.icon)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(isRowSelected ? Color.white : .secondary)
+                .font(.body.weight(.medium))
+                .foregroundStyle(isRowSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.tint))
                 .frame(width: 20, height: 20, alignment: .center)
         }
         .tag(tab.id)

@@ -32,7 +32,7 @@ struct SystemMonitorSettingsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.shield.fill")
                         .foregroundStyle(.green)
-                        .font(.system(size: 14))
+                        .font(.subheadline)
                     Text(loc("System Monitoring Access: Active (Darwin Mach & IOKit native APIs)"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -195,7 +195,7 @@ private struct HardwareFanDiagnosticsView: View {
 
             HStack(alignment: .top, spacing: 6) {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 11))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 1)
 

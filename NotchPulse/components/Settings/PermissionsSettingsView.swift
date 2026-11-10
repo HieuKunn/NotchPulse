@@ -69,7 +69,7 @@ struct PermissionsSettingsView: View {
 
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: kind.systemIcon)
-                .font(.system(size: 16))
+                .font(.headline)
                 .foregroundStyle(statusColor(for: status))
                 .frame(width: 24)
 

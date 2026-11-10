@@ -33,7 +33,7 @@ struct AudioSettingsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "speaker.wave.2.fill")
-                                .font(.system(size: 14))
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
@@ -47,7 +47,7 @@ struct AudioSettingsView: View {
 
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 14))
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 22)
                             VStack(alignment: .leading, spacing: 2) {
