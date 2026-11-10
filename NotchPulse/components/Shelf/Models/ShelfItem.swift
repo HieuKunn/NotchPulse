@@ -148,12 +148,12 @@ struct ShelfItem: Identifiable, Codable, Equatable, Sendable {
 }
 
 private extension ShelfItem {
-   static func thumbnailSymbolImage(
+    static func thumbnailSymbolImage(
         systemName: String,
-    size: CGSize = CGSize(width: 64, height: 80), 
-    symbolPointSize: CGFloat = 38,
-    backgroundColor: NSColor = NSColor.white,
-    symbolColor: NSColor = NSColor.labelColor
+        size: CGSize = CGSize(width: 64, height: 80), 
+        symbolPointSize: CGFloat = 38,
+        backgroundColor: NSColor = NSColor.controlBackgroundColor,
+        symbolColor: NSColor = NSColor.secondaryLabelColor
     ) -> NSImage? {
         let image = NSImage(size: size)
         image.lockFocus()
@@ -165,7 +165,10 @@ private extension ShelfItem {
         backgroundColor.setFill()
         path.fill()
 
-        if let symbol = NSImage(systemSymbolName: systemName, accessibilityDescription: nil) {
+        let config = NSImage.SymbolConfiguration(pointSize: symbolPointSize, weight: .regular)
+            .applying(.init(paletteColors: [symbolColor]))
+        if let baseSymbol = NSImage(systemSymbolName: systemName, accessibilityDescription: nil),
+           let symbol = baseSymbol.withSymbolConfiguration(config) {
             let symbolSize = CGSize(width: symbolPointSize, height: symbolPointSize)
             let symbolOrigin = CGPoint(
                 x: (size.width - symbolSize.width) / 2,

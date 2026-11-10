@@ -213,6 +213,23 @@
 		F1D200352ED0000100000001 /* MissionControlObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200362ED0000100000001 /* MissionControlObserver.swift */; };
 		F1D200502ED0000100000001 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200512ED0000100000001 /* AppLocalization.swift */; };
 		F1D200542ED0000100000001 /* FeatureTourController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200552ED0000100000001 /* FeatureTourController.swift */; };
+		F1D200602ED0000100000001 /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200612ED0000100000001 /* PermissionsManager.swift */; };
+		F1D200622ED0000100000001 /* PermissionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200632ED0000100000001 /* PermissionsSettingsView.swift */; };
+		F1D200702ED0000100000001 /* SettingsSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200712ED0000100000001 /* SettingsSharedComponents.swift */; };
+		F1D200722ED0000100000001 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200732ED0000100000001 /* GeneralSettingsView.swift */; };
+		F1D200742ED0000100000001 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200752ED0000100000001 /* AppearanceSettingsView.swift */; };
+		F1D200762ED0000100000001 /* MediaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200772ED0000100000001 /* MediaSettingsView.swift */; };
+		F1D200782ED0000100000001 /* CalendarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200792ED0000100000001 /* CalendarSettingsView.swift */; };
+		F1D2007A2ED0000100000001 /* HUDSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2007B2ED0000100000001 /* HUDSettingsView.swift */; };
+		F1D2007C2ED0000100000001 /* SystemMonitorSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2007D2ED0000100000001 /* SystemMonitorSettingsView.swift */; };
+		F1D2007E2ED0000100000001 /* ShelfSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2007F2ED0000100000001 /* ShelfSettingsView.swift */; };
+		F1D200802ED0000100000001 /* ClipboardSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200812ED0000100000001 /* ClipboardSettingsView.swift */; };
+		F1D200822ED0000100000001 /* AudioSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200832ED0000100000001 /* AudioSettingsView.swift */; };
+		F1D200842ED0000100000001 /* DisplaySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200852ED0000100000001 /* DisplaySettingsView.swift */; };
+		F1D200862ED0000100000001 /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200872ED0000100000001 /* ShortcutsSettingsView.swift */; };
+		F1D200882ED0000100000001 /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200892ED0000100000001 /* AdvancedSettingsView.swift */; };
+		F1D2008A2ED0000100000001 /* LanguageSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2008B2ED0000100000001 /* LanguageSettingsView.swift */; };
+		F1D2008C2ED0000100000001 /* AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2008D2ED0000100000001 /* AboutSettingsView.swift */; };
 		F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */; };
 		F336F53951E9E06D48E20329 /* FaceIDOverlayGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99745487558266047D32839 /* FaceIDOverlayGeometry.swift */; };
 		F8B6F341EE966B181E3F127C /* NotchPulseLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9438603647C24A08005A7C /* NotchPulseLockMonitor.swift */; };
@@ -483,6 +500,23 @@
 		F1D200362ED0000100000001 /* MissionControlObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissionControlObserver.swift; sourceTree = "<group>"; };
 		F1D200512ED0000100000001 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 		F1D200552ED0000100000001 /* FeatureTourController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeatureTourController.swift; sourceTree = "<group>"; };
+		F1D200612ED0000100000001 /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
+		F1D200632ED0000100000001 /* PermissionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsSettingsView.swift; sourceTree = "<group>"; };
+		F1D200712ED0000100000001 /* SettingsSharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSharedComponents.swift; sourceTree = "<group>"; };
+		F1D200732ED0000100000001 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		F1D200752ED0000100000001 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettingsView.swift; sourceTree = "<group>"; };
+		F1D200772ED0000100000001 /* MediaSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSettingsView.swift; sourceTree = "<group>"; };
+		F1D200792ED0000100000001 /* CalendarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSettingsView.swift; sourceTree = "<group>"; };
+		F1D2007B2ED0000100000001 /* HUDSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDSettingsView.swift; sourceTree = "<group>"; };
+		F1D2007D2ED0000100000001 /* SystemMonitorSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorSettingsView.swift; sourceTree = "<group>"; };
+		F1D2007F2ED0000100000001 /* ShelfSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfSettingsView.swift; sourceTree = "<group>"; };
+		F1D200812ED0000100000001 /* ClipboardSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSettingsView.swift; sourceTree = "<group>"; };
+		F1D200832ED0000100000001 /* AudioSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSettingsView.swift; sourceTree = "<group>"; };
+		F1D200852ED0000100000001 /* DisplaySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplaySettingsView.swift; sourceTree = "<group>"; };
+		F1D200872ED0000100000001 /* ShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsSettingsView.swift; sourceTree = "<group>"; };
+		F1D200892ED0000100000001 /* AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsView.swift; sourceTree = "<group>"; };
+		F1D2008B2ED0000100000001 /* LanguageSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSettingsView.swift; sourceTree = "<group>"; };
+		F1D2008D2ED0000100000001 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -716,6 +750,7 @@
 				DDAA7BBED81104293103584C /* AppUpdaterDelegate.swift */,
 				78728B0E6CE22080DF969DBF /* MediaAutomationPermissionHelper.swift */,
 				F1D200512ED0000100000001 /* AppLocalization.swift */,
+				F1D200612ED0000100000001 /* PermissionsManager.swift */,
 			);
 			path = managers;
 			sourceTree = "<group>";
@@ -972,6 +1007,22 @@
 				0C6585E1C8DF0DC0CC1D18A4 /* FaceIDSettingsControls.swift */,
 				3BDED7E8A637E89DD68E5BD7 /* FaceIDSettingsMetrics.swift */,
 				C85C12921DFB812E651BDC87 /* FaceIDYourFaceSettingsPage.swift */,
+				F1D200632ED0000100000001 /* PermissionsSettingsView.swift */,
+				F1D200712ED0000100000001 /* SettingsSharedComponents.swift */,
+				F1D200732ED0000100000001 /* GeneralSettingsView.swift */,
+				F1D200752ED0000100000001 /* AppearanceSettingsView.swift */,
+				F1D200772ED0000100000001 /* MediaSettingsView.swift */,
+				F1D200792ED0000100000001 /* CalendarSettingsView.swift */,
+				F1D2007B2ED0000100000001 /* HUDSettingsView.swift */,
+				F1D2007D2ED0000100000001 /* SystemMonitorSettingsView.swift */,
+				F1D2007F2ED0000100000001 /* ShelfSettingsView.swift */,
+				F1D200812ED0000100000001 /* ClipboardSettingsView.swift */,
+				F1D200832ED0000100000001 /* AudioSettingsView.swift */,
+				F1D200852ED0000100000001 /* DisplaySettingsView.swift */,
+				F1D200872ED0000100000001 /* ShortcutsSettingsView.swift */,
+				F1D200892ED0000100000001 /* AdvancedSettingsView.swift */,
+				F1D2008B2ED0000100000001 /* LanguageSettingsView.swift */,
+				F1D2008D2ED0000100000001 /* AboutSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -1416,6 +1467,23 @@
 				A354AB15C4DF819FB5AE62CB /* FaceIDOverlayView.swift in Sources */,
 				0152AAE85AAC764E2898AF1C /* FeatureTourView.swift in Sources */,
 				F1D200542ED0000100000001 /* FeatureTourController.swift in Sources */,
+				F1D200602ED0000100000001 /* PermissionsManager.swift in Sources */,
+				F1D200622ED0000100000001 /* PermissionsSettingsView.swift in Sources */,
+				F1D200702ED0000100000001 /* SettingsSharedComponents.swift in Sources */,
+				F1D200722ED0000100000001 /* GeneralSettingsView.swift in Sources */,
+				F1D200742ED0000100000001 /* AppearanceSettingsView.swift in Sources */,
+				F1D200762ED0000100000001 /* MediaSettingsView.swift in Sources */,
+				F1D200782ED0000100000001 /* CalendarSettingsView.swift in Sources */,
+				F1D2007A2ED0000100000001 /* HUDSettingsView.swift in Sources */,
+				F1D2007C2ED0000100000001 /* SystemMonitorSettingsView.swift in Sources */,
+				F1D2007E2ED0000100000001 /* ShelfSettingsView.swift in Sources */,
+				F1D200802ED0000100000001 /* ClipboardSettingsView.swift in Sources */,
+				F1D200822ED0000100000001 /* AudioSettingsView.swift in Sources */,
+				F1D200842ED0000100000001 /* DisplaySettingsView.swift in Sources */,
+				F1D200862ED0000100000001 /* ShortcutsSettingsView.swift in Sources */,
+				F1D200882ED0000100000001 /* AdvancedSettingsView.swift in Sources */,
+				F1D2008A2ED0000100000001 /* LanguageSettingsView.swift in Sources */,
+				F1D2008C2ED0000100000001 /* AboutSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1438,7 +1506,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 460;
+				CURRENT_PROJECT_VERSION = 461;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1446,7 +1514,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.5;
+				MARKETING_VERSION = 5.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1464,7 +1532,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 460;
+				CURRENT_PROJECT_VERSION = 461;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1472,7 +1540,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.5;
+				MARKETING_VERSION = 5.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1621,7 +1689,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 460;
+				CURRENT_PROJECT_VERSION = 461;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1648,7 +1716,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.5;
+				MARKETING_VERSION = 5.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1675,7 +1743,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 460;
+				CURRENT_PROJECT_VERSION = 461;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1701,7 +1769,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.5;
+				MARKETING_VERSION = 5.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

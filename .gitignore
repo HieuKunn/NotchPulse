@@ -66,3 +66,7 @@ glance-main/
 *.pth
 .firebase/
 .agents/antigravity/
+.antigravity/agy-bridge/chat.md
+.antigravity/agy-bridge/.bridge.lock
+vorssaint-utils-main/
+.antigravity/

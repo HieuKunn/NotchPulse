@@ -6,54 +6,48 @@ struct RecognitionSettingsPage: View {
     @Bindable private var settings = NotchPulseFaceIDSettings.shared
 
     var body: some View {
-        unlockedState
-    }
-
-    // MARK: - Content
-
-    private var unlockedState: some View {
-        VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
-            SettingsGroup {
-                SettingsSteppedSliderRowContent(
-                    title: loc("Match confidence"),
-                    valueLabel: matchConfidenceLevel.title,
-                    index: matchConfidenceIndex,
-                    stopCount: MatchConfidenceLevel.allCases.count
-                )
-
-                SettingsGroupDivider()
-
-                SettingsSteppedSliderRowContent(
-                    title: loc("Detection distance"),
-                    valueLabel: detectionDistanceLevel.title,
-                    index: detectionDistanceIndex,
-                    stopCount: DetectionDistanceLevel.allCases.count
-                )
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                SettingsSectionTitle(text: loc("Liveness"))
-                SettingsGroup {
-                    SettingsRowContent(
-                        title: loc("Liveness detection"),
-                        info: loc("Checks that you're a live person, not a photo. May increase unlock time.")
-                    ) {
-                        NotchPulseToggle(isOn: $settings.livenessChecksEnabled)
-                    }
-                    SettingsGroupDivider()
-                    LivenessModePicker(
-                        selection: $settings.livenessMode,
-                        isEnabled: settings.livenessChecksEnabled
-                    )
+        Section {
+            Picker(loc("Match confidence"), selection: matchConfidenceIndex) {
+                ForEach(MatchConfidenceLevel.allCases, id: \.self) { level in
+                    Text(level.title).tag(level.sliderIndex)
                 }
             }
+
+            Picker(loc("Detection distance"), selection: detectionDistanceIndex) {
+                ForEach(DetectionDistanceLevel.allCases, id: \.self) { level in
+                    Text(level.title).tag(level.sliderIndex)
+                }
+            }
+        } header: {
+            Text(loc("Recognition"))
+        } footer: {
+            Text(loc("Higher match confidence requires closer similarity to your enrolled face. Closer detection distance ignores faces standing far away in the background."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+
+        Section {
+            Toggle(loc("Liveness detection"), isOn: $settings.livenessChecksEnabled)
+
+            if settings.livenessChecksEnabled {
+                Picker(loc("Liveness Mode"), selection: $settings.livenessMode) {
+                    ForEach(LivenessMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+        } header: {
+            Text(loc("Liveness Checks"))
+        } footer: {
+            Text(loc("Checks that you are a live person rather than a printed photo or screen. May slightly increase recognition time."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
     // MARK: - Match confidence
 
-    /// Nearest of the three snap points to whatever's stored, in case the
-    /// value doesn't land exactly on one of the stops.
     private var matchConfidenceLevel: MatchConfidenceLevel {
         .nearest(to: coordinator.matchThreshold)
     }
@@ -81,7 +75,7 @@ struct RecognitionSettingsPage: View {
 
 /// The three selectable points on the "Match confidence" slider — named
 /// rather than exposing the raw cosine-similarity threshold directly.
-private enum MatchConfidenceLevel: Int, CaseIterable {
+enum MatchConfidenceLevel: Int, CaseIterable, Hashable {
     case lessStrict, standard, moreStrict
 
     var title: String {
@@ -100,7 +94,6 @@ private enum MatchConfidenceLevel: Int, CaseIterable {
         }
     }
 
-    /// Position in `allCases` — same role as `AutoLockInterval.sliderIndex`.
     var sliderIndex: Double {
         Double(Self.allCases.firstIndex(of: self) ?? 0)
     }
@@ -116,7 +109,7 @@ private enum MatchConfidenceLevel: Int, CaseIterable {
 }
 
 /// The three selectable points on the "Detection distance" slider.
-private enum DetectionDistanceLevel: Int, CaseIterable {
+enum DetectionDistanceLevel: Int, CaseIterable, Hashable {
     case close, standard, far
 
     var title: String {

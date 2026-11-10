@@ -3,22 +3,45 @@ import SwiftUI
 struct ClipboardNotchView: View {
     @ObservedObject var clipboardManager = ClipboardManager.shared
     @EnvironmentObject var vm: NotchPulseViewModel
+    @State private var searchText: String = ""
+    @State private var isSearchVisible: Bool = false
 
-    /// Open height that fits exactly 3 full clipboard rows comfortably before scrolling.
+    /// Open height that fits clipboard rows comfortably before scrolling.
     static let preferredHeight: CGFloat = 232
+
+    private var filteredHistory: [ClipboardItem] {
+        ClipboardManager.filterHistory(items: clipboardManager.history, query: searchText)
+    }
 
     var body: some View {
         VStack(spacing: 6) {
             // Header
-            HStack {
+            HStack(spacing: 8) {
                 Text(loc("Clipboard History"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
+
                 Spacer()
+
+                if !clipboardManager.history.isEmpty {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            isSearchVisible.toggle()
+                            if !isSearchVisible { searchText = "" }
+                        }
+                    }) {
+                        Image(systemName: isSearchVisible ? "xmark.circle.fill" : "magnifyingglass")
+                            .font(.system(size: 11))
+                            .foregroundStyle(isSearchVisible ? Color.accentColor : Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(loc("Search clips"))
+                }
+
                 Text("\(clipboardManager.history.count) \(loc("items"))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 Button(action: {
                     clipboardManager.clearHistory()
                 }) {
@@ -28,9 +51,38 @@ struct ClipboardNotchView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(clipboardManager.history.isEmpty)
+                .help(loc("Clear all clips"))
             }
             .padding(.horizontal, 2)
             .padding(.top, 4)
+
+            if isSearchVisible {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+
+                    TextField(loc("Filter clips..."), text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white)
+
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
 
             if clipboardManager.history.isEmpty {
                 VStack(spacing: 12) {
@@ -42,13 +94,32 @@ struct ClipboardNotchView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredHistory.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                    Text(loc("No matching clips."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 8) {
-                        ForEach(clipboardManager.history, id: \.id) { item in
-                            ClipboardRowView(item: item) {
-                                clipboardManager.copyToPasteboard(item)
-                            }
+                    VStack(spacing: 6) {
+                        ForEach(filteredHistory, id: \.id) { item in
+                            ClipboardRowView(
+                                item: item,
+                                onCopy: {
+                                    clipboardManager.copyToPasteboard(item)
+                                },
+                                onTogglePin: {
+                                    clipboardManager.togglePin(for: item)
+                                },
+                                onDelete: {
+                                    clipboardManager.deleteItem(item)
+                                }
+                            )
                         }
                     }
                     .padding(.horizontal, 4)
@@ -89,6 +160,9 @@ private let clipboardThumbnailCache: NSCache<NSUUID, NSImage> = {
 struct ClipboardRowView: View {
     let item: ClipboardItem
     var onCopy: (() -> Void)? = nil
+    var onTogglePin: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+
     @State private var isHovered = false
     @State private var isCopied = false
     @State private var cachedImage: NSImage? = nil
@@ -114,12 +188,12 @@ struct ClipboardRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             ZStack {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(itemColor.opacity(0.2))
                     .frame(width: 32, height: 32)
-                
+
                 if item.isImage {
                     if let img = cachedImage {
                         Image(nsImage: img)
@@ -141,19 +215,27 @@ struct ClipboardRowView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.displayString)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                
+                HStack(spacing: 4) {
+                    if item.isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.orange)
+                    }
+
+                    Text(item.displayString)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
                 Text(formatTimestamp(item.timestamp))
                     .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.5))
             }
-            
+
             Spacer()
-            
+
             if isCopied {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark")
@@ -164,16 +246,43 @@ struct ClipboardRowView: View {
                 .foregroundStyle(Color.green)
                 .transition(.opacity)
             } else if isHovered {
-                Image(systemName: "doc.on.clipboard")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .transition(.opacity)
+                HStack(spacing: 8) {
+                    Button {
+                        onTogglePin?()
+                    } label: {
+                        Image(systemName: item.isPinned ? "pin.slash.fill" : "pin.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(item.isPinned ? .orange : .white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help(item.isPinned ? loc("Unpin clip") : loc("Pin clip to top"))
+
+                    Button {
+                        onDelete?()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                    .help(loc("Delete clip"))
+
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                .transition(.opacity)
             }
         }
-        .padding(8)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(isHovered ? 0.08 : 0.04))
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.white.opacity(isHovered ? 0.08 : (item.isPinned ? 0.05 : 0.03)))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(item.isPinned ? Color.orange.opacity(0.3) : Color.clear, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onHover { hovering in
@@ -186,7 +295,7 @@ struct ClipboardRowView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isCopied = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isCopied = false
                 }
@@ -207,11 +316,10 @@ struct ClipboardRowView: View {
             }
         }
         .onDisappear {
-            // Immediately purge preview image from RAM when view disappears
             cachedImage = nil
         }
     }
-    
+
     private func formatTimestamp(_ date: Date) -> String {
         relativeDateFormatter.localizedString(for: date, relativeTo: Date())
     }

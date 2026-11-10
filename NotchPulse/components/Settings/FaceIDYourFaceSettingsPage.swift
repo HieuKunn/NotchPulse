@@ -4,43 +4,132 @@ struct YourFaceSettingsPage: View {
     @Bindable private var store = NotchPulseFaceEnrollmentStore.shared
 
     @State private var identityPendingDeletion: FaceIdentity?
-    /// Surfaced when an encrypted write fails (realistically: the session
-    /// lapsed between rendering and tapping). The store rolls back on
-    /// failure, so the control snaps back on its own — this explains why.
     @State private var writeError: String?
 
-    private enum PageStateKind: Equatable {
-        case unreadable
-        case notEnrolled
-        case enrolled
-    }
-
-    private var stateKind: PageStateKind {
-        if store.loadFailure != nil { return .unreadable }
-        return store.identities.isEmpty ? .notEnrolled : .enrolled
-    }
-
-    /// The notch hosts one flow at a time, so a second Add/Recapture would
-    /// swap the content out from under a capture already in progress.
     private var enrollmentFlowIsRunning: Bool {
         FaceIDOverlayController.shared.phase == .onboarding
     }
 
+    private var availability: FaceEnrollmentActionAvailability {
+        NotchPulseFaceEnrollmentStore.determineActionAvailability(
+            loadFailure: store.loadFailure,
+            identitiesCount: store.identities.count,
+            isFlowRunning: enrollmentFlowIsRunning
+        )
+    }
+
     var body: some View {
         Group {
-            switch stateKind {
-            case .unreadable:
-                unreadableState
-            case .notEnrolled:
-                notEnrolledState
-            case .enrolled:
-                enrolledState
+            if let failure = store.loadFailure {
+                Section {
+                    VStack(alignment: .center, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.orange)
+
+                        Text(loc("Enrolled faces couldn't be read"))
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        Text(failure.isEmpty ? loc("The stored enrollment data couldn't be decrypted.") : failure)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Button(loc("Retry Decryption")) {
+                            store.reloadIfUnlocked()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                } header: {
+                    Text(loc("Enrolled Faces"))
+                } footer: {
+                    Text(loc("To protect existing data from being overwritten, enrollment changes and face deletion are disabled while stored faces cannot be decrypted."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Section {
+                    if store.identities.isEmpty {
+                        HStack(alignment: .center, spacing: 12) {
+                            Image(systemName: "person.crop.circle.badge.plus")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc("No Enrolled Faces"))
+                                    .font(.headline)
+                                Text(loc("Enroll your face to unlock your Mac with on-device face recognition."))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Button(loc("Set up Face Unlock")) {
+                                if NotchPulsePOCController.shared.hasStoredPassword {
+                                    FaceIDEnrollmentController.startEnrollmentOnly()
+                                } else {
+                                    FaceIDEnrollmentController.startFlow()
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(!availability.canSetup)
+                        }
+                        .padding(.vertical, 4)
+                    } else {
+                        let activeModelIdentifier = NotchPulseFaceRecognitionPipeline.activeModelIdentifier
+                        ForEach(store.identities) { identity in
+                            IdentityRowView(
+                                identity: identity,
+                                isStale: identity.isStale(comparedToModelIdentifier: activeModelIdentifier),
+                                canStartFlow: availability.canRecapture,
+                                canDelete: availability.canDelete,
+                                isEnabled: enabledBinding(for: identity),
+                                canToggle: availability.canToggleIdentity,
+                                recapture: { FaceIDEnrollmentController.startRecapture(of: identity) },
+                                delete: { identityPendingDeletion = identity }
+                            )
+                        }
+
+                        if !store.identities.isEmpty && store.activeIdentities.isEmpty {
+                            Text(loc("No identities are enabled — face unlock won't recognize anyone until you switch one back on."))
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+
+                        if let writeError {
+                            Text(writeError)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                } header: {
+                    HStack {
+                        Text(loc("Enrolled Faces"))
+                        Spacer()
+                        if !store.identities.isEmpty {
+                            Button {
+                                FaceIDEnrollmentController.startAddIdentity()
+                            } label: {
+                                Label(loc("Add Face"), systemImage: "plus")
+                            }
+                            .buttonStyle(.borderless)
+                            .disabled(!availability.canAddFace)
+                        }
+                    }
+                } footer: {
+                    Text(loc("Face embeddings are encrypted using AES-GCM and stored strictly locally in your Keychain. NotchPulse never transmits biometric data."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
-        .animation(SettingsMetrics.stateTransitionAnimation, value: stateKind)
         .onAppear { store.reloadIfUnlocked() }
-        // The enrollment flow runs in the notch, outside this view's
-        // hierarchy, so nothing else prompts a re-check once it closes.
         .onChange(of: FaceIDOverlayController.shared.phase) { _, newPhase in
             guard newPhase == .closed else { return }
             store.reloadIfUnlocked()
@@ -61,135 +150,6 @@ struct YourFaceSettingsPage: View {
         }
     }
 
-    // MARK: - Unreadable
-
-    /// Session open but the encrypted store didn't decrypt. Deliberately
-    /// offers no enroll or delete action, since a write here would replace
-    /// faces still on disk.
-    private var unreadableState: some View {
-        VStack(spacing: SettingsMetrics.emptyStateSpacing) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: SettingsMetrics.emptyStateIconSize, weight: .regular))
-                .foregroundStyle(SettingsMetrics.qualityFairColor)
-
-            Text(loc("Enrolled faces couldn't be read"))
-                .font(SettingsMetrics.rowFont)
-                .foregroundStyle(SettingsMetrics.textSecondary)
-
-            SettingsCaption(text: store.loadFailure ?? loc("The stored data couldn't be decrypted."))
-                .multilineTextAlignment(.center)
-        }
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius)
-                .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: SettingsMetrics.rowRadius))
-    }
-
-    // MARK: - Not enrolled
-
-    private var notEnrolledState: some View {
-        SettingsEmptyStateView(
-            icon: "faceid",
-            message: loc("Face enrollment"),
-            buttonTitle: loc("Set up Face Unlock"),
-            isButtonEnabled: !enrollmentFlowIsRunning,
-            action: {
-                if NotchPulsePOCController.shared.hasStoredPassword {
-                    FaceIDEnrollmentController.startEnrollmentOnly()
-                } else {
-                    FaceIDEnrollmentController.startFlow()
-                }
-            }
-        )
-    }
-
-    // MARK: - Enrolled
-
-    private var enrolledState: some View {
-        VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
-            faceEncryptedCard
-            identitiesHeader
-            .padding(.bottom, -8)
-
-            let activeModelIdentifier = NotchPulseFaceRecognitionPipeline.activeModelIdentifier
-            ForEach(store.identities) { identity in
-                IdentityCard(
-                    identity: identity,
-                    isStale: identity.isStale(comparedToModelIdentifier: activeModelIdentifier),
-                    canStartFlow: !enrollmentFlowIsRunning,
-                    isEnabled: enabledBinding(for: identity),
-                    recapture: { FaceIDEnrollmentController.startRecapture(of: identity) },
-                    delete: { identityPendingDeletion = identity }
-                )
-            }
-
-            // Worth saying out loud that face unlock now matches nobody.
-            if !store.identities.isEmpty && store.activeIdentities.isEmpty {
-                SettingsCaption(text: loc("No identities are enabled — face unlock won't recognize anyone until you switch one back on."))
-            }
-
-            if let writeError {
-                SettingsCaption(text: writeError)
-            }
-        }
-    }
-
-    /// Mirrors the Password page's "Password encrypted" row — both refer to
-    /// the same session key.
-    private var faceEncryptedCard: some View {
-        SettingsGroup {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Text(loc("Face encrypted"))
-                        .font(SettingsMetrics.rowFont)
-                        .foregroundStyle(SettingsMetrics.textPrimary)
-                    Spacer(minLength: 8)
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(SettingsMetrics.textSecondary)
-                }
-
-                Text(loc("Enroll separate identities to use NotchPulse with multiple people, accessories (ex. glasses), facial expressions, or new lighting environments. This improves recognition quality."))
-                    .font(.system(size: 12))
-                    .foregroundStyle(SettingsMetrics.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
-            .padding(.vertical, 12)
-        }
-    }
-
-    private var identitiesHeader: some View {
-        HStack(spacing: 0) {
-            SettingsSectionTitle(text: loc("Identities"))
-
-            Button {
-                FaceIDEnrollmentController.startAddIdentity()
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(SettingsMetrics.textTertiary)
-                    .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(enrollmentFlowIsRunning)
-            .opacity(enrollmentFlowIsRunning ? 0.4 : 1)
-            .help(loc("Enroll another face"))
-            .padding(.trailing, SettingsMetrics.sectionTitleHorizontalInset)
-            .padding(.top, SettingsMetrics.sectionTitleVerticalPadding)
-        }
-    }
-
-    // MARK: - Actions
-
-    /// Reads through to the store so the switch reflects a rolled-back
-    /// write instead of the value the user just tapped.
     private func enabledBinding(for identity: FaceIdentity) -> Binding<Bool> {
         Binding(
             get: { store.identities.first { $0.id == identity.id }?.isEnabled ?? true },
@@ -215,16 +175,13 @@ struct YourFaceSettingsPage: View {
     }
 }
 
-// MARK: - Identity card
-
-/// One enrolled person: name pill and switch on the first line, quality
-/// read-out and actions on the second. Built from `SettingsGroup` and the
-/// shared row tokens so it matches every other settings page.
-private struct IdentityCard: View {
+private struct IdentityRowView: View {
     let identity: FaceIdentity
     let isStale: Bool
     let canStartFlow: Bool
+    let canDelete: Bool
     @Binding var isEnabled: Bool
+    let canToggle: Bool
     let recapture: () -> Void
     let delete: () -> Void
 
@@ -236,9 +193,6 @@ private struct IdentityCard: View {
         identity.samples.filter { $0.qualityTier != .unrated }.count
     }
 
-    /// "3/18 low" counts only the red band. An enrollment saved before
-    /// per-sample quality existed reports "not recorded" rather than a
-    /// misleading "0/18 low".
     private var qualityCaption: String {
         if identity.samples.isEmpty { return loc("No samples captured") }
         if ratedCount == 0 { return loc("Capture quality • not recorded") }
@@ -246,146 +200,80 @@ private struct IdentityCard: View {
     }
 
     var body: some View {
-        SettingsGroup {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 8) {
-                    namePill
-                    .padding(.leading, -2)
-                    Spacer(minLength: 8)
-                    NotchPulseToggle(isOn: $isEnabled)
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Label(identity.name, systemImage: "person.crop.circle")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(qualityCaption)
-                        .font(.system(size: 12))
-                        .foregroundStyle(SettingsMetrics.textTertiary)
+                Spacer()
 
-                    HStack(alignment: .center, spacing: 8) {
-                        QualityTickStrip(samples: identity.samples)
-                        .padding(.leading, 2)
-                        Spacer(minLength: 12)
-                        PillActionButton(title: loc("Recapture"), action: recapture)
-                            .disabled(!canStartFlow)
-                            .opacity(canStartFlow ? 1 : 0.4)
-                        PillIconButton(systemImage: "trash", action: delete)
-                            .help(loc("Delete %@ ", identity.name))
-                    }
-                }
-                // Dimmed rather than hidden while switched off: the person
-                // is still enrolled, just not being matched against.
-                .opacity(isEnabled ? 1 : 0.45)
-
-                if isStale {
-                    Text(loc("Captured with a different recognition model — recapture before this face can unlock your Mac."))
-                        .font(.system(size: 11))
-                        .foregroundStyle(SettingsMetrics.qualityFairColor)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Toggle("", isOn: $isEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!canToggle)
             }
-            .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
-            .padding(.vertical, 12)
-        }
-    }
 
-    private var namePill: some View {
-        Text(identity.name)
-            .font(SettingsMetrics.rowFont)
-            .foregroundStyle(SettingsMetrics.textPrimary)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(SettingsMetrics.neutralButtonFill)
-            .overlay(
-                Capsule().strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
-            )
-            .clipShape(Capsule())
-            .opacity(isEnabled ? 1 : 0.45)
+            HStack(alignment: .center, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(qualityCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    QualityTickStrip(samples: identity.samples)
+                }
+
+                Spacer()
+
+                Button(loc("Recapture")) {
+                    recapture()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!canStartFlow)
+
+                Button(role: .destructive) {
+                    delete()
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!canDelete)
+            }
+
+            if isStale {
+                Text(loc("Captured with a different recognition model — recapture before this face can unlock your Mac."))
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding(.vertical, 4)
+        .opacity(isEnabled ? 1 : 0.5)
     }
 }
 
-/// One tick per stored sample, colored by its band. Reads left-to-right in
-/// capture order (not sorted by score) so a run of red points at the pose
-/// that actually went badly.
 private struct QualityTickStrip: View {
     let samples: [FaceSample]
 
     var body: some View {
-        HStack(spacing: SettingsMetrics.qualityTickSpacing) {
+        HStack(spacing: 3) {
             ForEach(Array(samples.enumerated()), id: \.offset) { _, sample in
                 Capsule()
                     .fill(color(for: sample.qualityTier))
-                    // maxWidth, not fixed, so more samples than a guided
-                    // enrollment's 18 compress instead of overflowing.
-                    .frame(maxWidth: SettingsMetrics.qualityTickWidth)
+                    .frame(width: 4, height: 8)
             }
         }
-        .frame(width: stripWidth, height: SettingsMetrics.qualityTickHeight, alignment: .leading)
         .accessibilityElement()
         .accessibilityLabel("Capture quality for \(samples.count) samples")
     }
 
-    /// Fixed rather than flexible: this strip shares a row with a `Spacer`
-    /// and two buttons, and a `maxWidth` frame would negotiate against them
-    /// for the slack instead of just sizing to its ticks.
-    private var stripWidth: CGFloat {
-        let tick = SettingsMetrics.qualityTickWidth
-        let gap = SettingsMetrics.qualityTickSpacing
-        let natural = CGFloat(samples.count) * (tick + gap) - gap
-        return min(max(natural, 0), SettingsMetrics.qualityStripMaxWidth)
-    }
-
     private func color(for tier: FaceSample.QualityTier) -> Color {
         switch tier {
-        case .poor: return SettingsMetrics.qualityPoorColor
-        case .fair: return SettingsMetrics.qualityFairColor
-        case .good: return SettingsMetrics.qualityGoodColor
-        case .unrated: return SettingsMetrics.qualityUnratedColor
+        case .poor: return .red
+        case .fair: return .orange
+        case .good: return .green
+        case .unrated: return .secondary.opacity(0.3)
         }
-    }
-}
-
-/// Neutral capsule button matching the card's inner pills. Deliberately not
-/// `SettingsPrimaryButton`: this sits next to a destructive action and
-/// shouldn't read as the accent CTA.
-private struct PillActionButton: View {
-    let title: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(SettingsMetrics.textPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(SettingsMetrics.neutralButtonFill)
-                .overlay(
-                    Capsule().strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
-                )
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-/// The circular icon twin of `PillActionButton`, for the delete control.
-private struct PillIconButton: View {
-    let systemImage: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 12))
-                .foregroundStyle(SettingsMetrics.textPrimary)
-                .frame(width: 28, height: 28)
-                .background(SettingsMetrics.neutralButtonFill)
-                .overlay(
-                    Circle().strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
-                )
-                .clipShape(Circle())
-        }
-        .buttonStyle(.plain)
     }
 }

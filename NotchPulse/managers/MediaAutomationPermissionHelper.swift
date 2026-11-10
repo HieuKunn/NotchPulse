@@ -29,6 +29,52 @@ enum MediaAutomationPermissionHelper {
         return false
     }
 
+    /// Checks the exact automation permission status for a bundle ID without displaying a prompt.
+    static func checkAutomationStatus(for bundleIdentifier: String) -> PermissionStatus {
+        var targetDesc = AEDesc()
+        guard let bundleIDData = bundleIdentifier.data(using: .utf8) else { return .notDetermined }
+        
+        let createStatus = bundleIDData.withUnsafeBytes { ptr in
+            AECreateDesc(typeApplicationBundleID, ptr.baseAddress, bundleIDData.count, &targetDesc)
+        }
+        
+        guard createStatus == noErr else { return .notDetermined }
+        defer { AEDisposeDesc(&targetDesc) }
+
+        // Query status without prompting
+        let permStatus = AEDeterminePermissionToAutomateTarget(&targetDesc, typeWildCard, typeWildCard, false)
+        
+        if permStatus == -1743 { // errAEEventNotPermitted (user denied)
+            return .denied
+        } else if permStatus == noErr {
+            return .granted
+        } else if permStatus == -1744 { // errAEEventWouldRequireUserConsent (not yet prompted)
+            return .notDetermined
+        }
+        return isSyncConfirmed() ? .granted : .notDetermined
+    }
+
+    /// Evaluates overall automation status for Spotify and Apple Music, distinguishing .denied from .notDetermined.
+    static func overallMusicAutomationStatus() -> PermissionStatus {
+        let music = checkAutomationStatus(for: "com.apple.Music")
+        let spotify = checkAutomationStatus(for: "com.spotify.client")
+        return determineCombinedStatus(spotify: spotify, appleMusic: music)
+    }
+
+    /// Pure helper for evaluating overall status given Spotify and Apple Music statuses.
+    static func determineCombinedStatus(spotify: PermissionStatus, appleMusic: PermissionStatus) -> PermissionStatus {
+        if spotify == .granted && appleMusic == .granted {
+            return .granted
+        }
+        if spotify == .granted || appleMusic == .granted {
+            return .partiallyAuthorized
+        }
+        if spotify == .denied || appleMusic == .denied {
+            return .denied
+        }
+        return .notDetermined
+    }
+
     @discardableResult
     static func requestPermission(for bundleIdentifier: String) -> Bool {
         var targetDesc = AEDesc()

@@ -28,6 +28,37 @@ extension FaceSample {
     }
 }
 
+enum FaceEnrollmentActionAvailability: Equatable, Sendable {
+    case unreadable(reason: String)
+    case readyToSetup
+    case readyWithIdentities(count: Int)
+    case flowInProgress
+
+    var canSetup: Bool {
+        self == .readyToSetup
+    }
+
+    var canAddFace: Bool {
+        if case .readyWithIdentities = self { return true }
+        return false
+    }
+
+    var canRecapture: Bool {
+        if case .readyWithIdentities = self { return true }
+        return false
+    }
+
+    var canDelete: Bool {
+        if case .readyWithIdentities = self { return true }
+        return false
+    }
+
+    var canToggleIdentity: Bool {
+        if case .readyWithIdentities = self { return true }
+        return false
+    }
+}
+
 struct FaceIdentity: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     var name: String
@@ -141,6 +172,24 @@ final class NotchPulseFaceEnrollmentStore {
     /// True if there is at least one active enrolled face identity.
     var hasEnrolledFace: Bool {
         !activeIdentities.isEmpty
+    }
+
+    /// Pure helper to determine what enrollment/management actions are permitted given store and flow state.
+    nonisolated static func determineActionAvailability(
+        loadFailure: String?,
+        identitiesCount: Int,
+        isFlowRunning: Bool
+    ) -> FaceEnrollmentActionAvailability {
+        if let loadFailure {
+            return .unreadable(reason: loadFailure)
+        }
+        if isFlowRunning {
+            return .flowInProgress
+        }
+        if identitiesCount == 0 {
+            return .readyToSetup
+        }
+        return .readyWithIdentities(count: identitiesCount)
     }
 
     private var lastReloadAttempt: Date = .distantPast

@@ -1,6 +1,14 @@
 import Foundation
 import Combine
+import Defaults
 import SwiftUI
+
+struct ArtworkRequestIdentity: Equatable, Sendable {
+    let requestId: UInt64
+    let targetURLString: String
+    let trackTitle: String
+    let trackArtist: String
+}
 
 final class YouTubeMusicController: MediaControllerProtocol {
     // MARK: - Published Properties
@@ -9,6 +17,8 @@ final class YouTubeMusicController: MediaControllerProtocol {
     )
 
     private var artworkFetchTask: Task<Void, Never>?
+    private(set) var artworkRequestId: UInt64 = 0
+    private(set) var currentArtworkURLString: String?
     
     var playbackStatePublisher: AnyPublisher<PlaybackState, Never> {
         $playbackState.eraseToAnyPublisher()
@@ -42,6 +52,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
     private var webSocketClient: YouTubeMusicWebSocketClient?
     
     private var updateTimer: Timer?
+    private var isUIActive: Bool = false
     private var appStateObserver: Task<Void, Never>?
     private var reconnectDelay: TimeInterval = 1.0
     
@@ -310,13 +321,31 @@ final class YouTubeMusicController: MediaControllerProtocol {
     }
     
     private func startPeriodicUpdates() async {
-        guard isActive() && webSocketClient == nil else { return }
+        let shouldRun = MediaGatingPolicy.shouldRunPlaybackTimers(
+            isAppActive: isUIActive,
+            isFeatureEnabled: Defaults[.enableMediaFeature],
+            hasActivePlayer: isActive()
+        )
+        guard shouldRun && webSocketClient == nil else {
+            stopPeriodicUpdates()
+            return
+        }
         
         stopPeriodicUpdates()
         
         updateTimer = Timer.scheduledTimer(withTimeInterval: configuration.updateInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.updatePlaybackInfo()
+                guard let self = self else { return }
+                let currentlyShouldRun = MediaGatingPolicy.shouldRunPlaybackTimers(
+                    isAppActive: self.isUIActive,
+                    isFeatureEnabled: Defaults[.enableMediaFeature],
+                    hasActivePlayer: self.isActive()
+                )
+                if currentlyShouldRun {
+                    await self.updatePlaybackInfo()
+                } else {
+                    self.stopPeriodicUpdates()
+                }
             }
         }
     }
@@ -426,32 +455,104 @@ final class YouTubeMusicController: MediaControllerProtocol {
             newState.volume = volume / 100.0
         }
 
-        if newState != playbackState {
-            playbackState = newState
+        let rawArtworkURL = response.imageSrc?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let artworkURLString = (rawArtworkURL?.isEmpty == false) ? rawArtworkURL : nil
 
+        let trackTitle = newState.title
+        let trackArtist = newState.artist
+        let artworkURLChanged = (artworkURLString != currentArtworkURLString)
+        let trackChanged = (trackTitle != playbackState.title || trackArtist != playbackState.artist)
+
+        if artworkURLChanged || trackChanged {
             artworkFetchTask?.cancel()
             artworkFetchTask = nil
+            artworkRequestId &+= 1
+            currentArtworkURLString = artworkURLString
+            newState.artwork = nil
 
-            if let artworkURL = response.imageSrc,
-               let url = URL(string: artworkURL) {
-                artworkFetchTask = Task {
+            if let targetURLString = artworkURLString,
+               let url = URL(string: targetURLString) {
+                let expectedIdentity = ArtworkRequestIdentity(
+                    requestId: artworkRequestId,
+                    targetURLString: targetURLString,
+                    trackTitle: trackTitle,
+                    trackArtist: trackArtist
+                )
+                artworkFetchTask = Task { [weak self] in
                     do {
                         let data = try await ImageService.shared.fetchImageData(from: url)
+                        guard !Task.isCancelled else { return }
                         let optimized = UniversalArtworkResolver.shared.optimizeArtwork(data, maxDimension: 640)
-                        await MainActor.run { [weak self] in
-                            self?.playbackState.artwork = optimized
+                        guard let self = self else { return }
+                        guard Self.isArtworkResponseValid(
+                            expectedIdentity: expectedIdentity,
+                            currentRequestId: self.artworkRequestId,
+                            currentURLString: self.currentArtworkURLString,
+                            currentTrackTitle: self.playbackState.title,
+                            currentTrackArtist: self.playbackState.artist,
+                            isTaskCancelled: Task.isCancelled
+                        ) else {
+                            return
                         }
+                        self.playbackState.artwork = optimized
                     } catch { /* ignore */ }
                 }
             }
+        } else {
+            newState.artwork = playbackState.artwork
+        }
+
+        if newState != playbackState {
+            playbackState = newState
         }
     }
+
+    /// Pure helper validating whether an asynchronous artwork fetch response still matches the active track and request identity.
+    static func isArtworkResponseValid(
+        expectedIdentity: ArtworkRequestIdentity,
+        currentRequestId: UInt64,
+        currentURLString: String?,
+        currentTrackTitle: String,
+        currentTrackArtist: String,
+        isTaskCancelled: Bool = false
+    ) -> Bool {
+        guard !isTaskCancelled else { return false }
+        guard expectedIdentity.requestId == currentRequestId else { return false }
+        guard let currentURL = currentURLString, expectedIdentity.targetURLString == currentURL else { return false }
+        guard expectedIdentity.trackTitle == currentTrackTitle else { return false }
+        guard expectedIdentity.trackArtist == currentTrackArtist else { return false }
+        return true
+    }
     
+    func setUIActive(_ active: Bool) {
+        self.isUIActive = active
+        if active {
+            Task { @MainActor in await self.startPeriodicUpdates() }
+        } else {
+            stopPeriodicUpdates()
+            artworkRequestId &+= 1
+            artworkFetchTask?.cancel()
+            artworkFetchTask = nil
+        }
+    }
+
     private func resetPlaybackState() {
+        artworkRequestId &+= 1
+        artworkFetchTask?.cancel()
+        artworkFetchTask = nil
+        currentArtworkURLString = nil
         playbackState = PlaybackState(
             bundleIdentifier: configuration.bundleIdentifier,
             isPlaying: false
         )
+    }
+
+    deinit {
+        artworkRequestId &+= 1
+        artworkFetchTask?.cancel()
+        artworkFetchTask = nil
+        stopPeriodicUpdates()
+        appStateObserver?.cancel()
     }
     
     private func launchApp() {

@@ -134,7 +134,7 @@ final class BrightnessManager: ObservableObject {
 		}
 	}
 
-	private func handleSystemWake() {
+	private nonisolated func handleSystemWake() {
 		Task { @MainActor [weak self] in
 			guard let self = self else { return }
 			// 1. Huỷ con trỏ DDC cũ đã chết trong helper
@@ -142,17 +142,46 @@ final class BrightnessManager: ObservableObject {
 			// 2. Chờ 1.5s để chip scaler của màn hình ngoài thức dậy và ổn định vi điều khiển I2C
 			try? await Task.sleep(nanoseconds: 1_500_000_000)
 			self.updateDisplayInfo()
+			let displays = self.availableDisplays()
+			if let target = Self.determineActiveDisplay(currentID: self.activeDisplayID, availableDisplays: displays) {
+				if self.activeDisplayID != target.id {
+					self.activeDisplayID = target.id
+					self.currentDisplayName = target.shortName
+					self.isCurrentBuiltin = target.isBuiltin
+					self.refresh()
+				}
+			}
 			self.refreshAllDisplays()
 		}
 	}
 
-	private func handleScreenChange() {
+	private nonisolated func handleScreenChange() {
 		Task { @MainActor [weak self] in
 			guard let self = self else { return }
 			_ = await self.client.resetDDCCache()
 			self.updateDisplayInfo()
+			let displays = self.availableDisplays()
+			if let target = Self.determineActiveDisplay(currentID: self.activeDisplayID, availableDisplays: displays) {
+				if self.activeDisplayID != target.id {
+					self.activeDisplayID = target.id
+					self.currentDisplayName = target.shortName
+					self.isCurrentBuiltin = target.isBuiltin
+					self.refresh()
+				}
+			}
 			self.refreshAllDisplays()
 		}
+	}
+
+	nonisolated static func determineActiveDisplay(
+		currentID: CGDirectDisplayID?,
+		availableDisplays: [DisplayTarget]
+	) -> DisplayTarget? {
+		guard !availableDisplays.isEmpty else { return nil }
+		if let currentID = currentID, let match = availableDisplays.first(where: { $0.id == currentID }) {
+			return match
+		}
+		return availableDisplays.first(where: { $0.isBuiltin }) ?? availableDisplays.first
 	}
 
 	var shouldShowOverlay: Bool { Date().timeIntervalSince(lastChangeAt) < visibleDuration }

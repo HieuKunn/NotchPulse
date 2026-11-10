@@ -59,6 +59,12 @@ public enum NotchPulseFanProfile: String, CaseIterable, Identifiable {
 
 public typealias FanSpeedOption = NotchPulseFanProfile
 
+public enum FanState: Equatable {
+    case fanless
+    case idle(rpm: Int)
+    case active(rpm: Int)
+}
+
 public struct MonitorProcessItem: Identifiable, Hashable {
     public let id: String
     public let name: String
@@ -866,6 +872,22 @@ public class SystemMonitorManager: ObservableObject {
         let minRpm: Double = Double(fans.first?.minRPM ?? 2000)
         let isAvailable = SMCService.shared.isHardwareFanAvailable || (fans.count > 0 && maxRpm > 0)
 
+        // On fanless Macs (e.g. MacBook Air), bypass fan control and report 0 RPM cleanly
+        let fanState = Self.categorizeFanState(rpm: realRPM, isFanlessMachine: !isAvailable)
+        if fanState == .fanless {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.temperature = calculatedTemp
+                self.temperatureLevel = level
+                self.hardwareBaselineFanPercent = 0
+                self.currentFanSpeedPercent = 0
+                self.currentFanRPM = 0
+                self.currentFanMaxRPM = 0
+                self.isHardwareFanAvailable = false
+            }
+            return
+        }
+
         // Temperature history for rate-of-change (Smart profile)
         temperatureHistory.append(calculatedTemp)
         if temperatureHistory.count > 8 {
@@ -1057,5 +1079,20 @@ public class SystemMonitorManager: ObservableObject {
             self.currentFanMaxRPM = Int(maxRpm)
             self.isHardwareFanAvailable = isAvailable
         }
+    }
+
+    /// Pure helper for categorizing fan state and gracefully handling fanless machines
+    /// (e.g. MacBook Air M-series) without false-positive hardware failure alerts.
+    public static func categorizeFanState(rpm: Int, isFanlessMachine: Bool) -> FanState {
+        if isFanlessMachine {
+            return .fanless
+        }
+        if rpm <= 0 {
+            return .idle(rpm: 0)
+        }
+        if rpm < 1200 {
+            return .idle(rpm: rpm)
+        }
+        return .active(rpm: rpm)
     }
 }

@@ -6,78 +6,40 @@ struct CameraSettingsPage: View {
     @Bindable private var settings = NotchPulseFaceIDSettings.shared
 
     var body: some View {
-        unlockedState
-            .onAppear {
-                refreshDevices()
-            }
-    }
-
-    // MARK: - Content
-
-    private var unlockedState: some View {
-        VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
-            SettingsGroup {
-                cameraPicker(title: loc("Default"), selection: $settings.defaultCameraID)
-                SettingsGroupDivider()
-                cameraPicker(title: loc("Built-in display"), selection: $settings.builtInDisplayCameraID)
-                SettingsGroupDivider()
-                cameraPicker(title: loc("External display"), selection: $settings.externalDisplayCameraID)
-            }
-        }
-    }
-
-    private func cameraPicker(title: String, selection: Binding<String?>) -> some View {
-        SettingsRowContent(title: title) {
-            // Capsule chrome sits *behind* the Menu — macOS Menu labels
-            // discard backgrounds applied inside the label hierarchy.
-            ZStack {
-                Capsule()
-                    .fill(SettingsMetrics.pickerPillFill)
-
-                Menu {
-                    Button(loc("System default")) { selection.wrappedValue = nil }
-                    ForEach(devices) { device in
-                        Button(device.name) { selection.wrappedValue = device.id }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(cameraLabel(for: selection.wrappedValue))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .foregroundStyle(SettingsMetrics.textPrimary)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 7, weight: .semibold))
-                            .foregroundStyle(SettingsMetrics.textSecondary)
-                    }
-                    .font(.system(size: 11))
-                    .padding(.horizontal, 8)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                    .contentShape(Capsule())
+        Section {
+            Picker(loc("Default camera"), selection: $settings.defaultCameraID) {
+                Text(loc("System default")).tag(nil as String?)
+                ForEach(devices) { device in
+                    Text(device.name).tag(device.id as String?)
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .buttonStyle(.plain)
-                // Window-level accent tint otherwise paints the menu label blue.
-                .tint(SettingsMetrics.textPrimary)
             }
-            .frame(width: 160, height: 28)
-            .overlay {
-                Capsule()
-                    .strokeBorder(SettingsMetrics.rowBorder, lineWidth: SettingsMetrics.rowBorderWidth)
+
+            Picker(loc("Built-in display camera"), selection: $settings.builtInDisplayCameraID) {
+                Text(loc("System default")).tag(nil as String?)
+                ForEach(devices) { device in
+                    Text(device.name).tag(device.id as String?)
+                }
             }
+
+            Picker(loc("External display camera"), selection: $settings.externalDisplayCameraID) {
+                Text(loc("System default")).tag(nil as String?)
+                ForEach(devices) { device in
+                    Text(device.name).tag(device.id as String?)
+                }
+            }
+        } header: {
+            Text(loc("Camera"))
+        } footer: {
+            Text(loc("NotchPulse automatically selects the active display's camera for facial detection."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .onAppear {
+            refreshDevices()
         }
     }
 
-    /// Refreshes the list of available camera devices.
     private func refreshDevices() {
         devices = NotchPulseCameraDeviceCatalog.availableDevices()
-    }
-
-    private func cameraLabel(for id: String?) -> String {
-        guard let id, let device = devices.first(where: { $0.id == id }) else {
-            return loc("System default")
-        }
-        return device.name
     }
 }

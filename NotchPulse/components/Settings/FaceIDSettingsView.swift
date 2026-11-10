@@ -6,96 +6,122 @@ import ApplicationServices
 struct FaceIDSettingsView: View {
     @Environment(\.settingsHighlightedId) private var highlightedId
     @Bindable private var pocController = NotchPulsePOCController.shared
-    
-    @State private var isAccessibilityGranted: Bool = AXIsProcessTrusted()
-    @State private var isCameraGranted: Bool = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+    @ObservedObject private var permissions = PermissionsManager.shared
+
     @State private var isMusicSyncConfirmed: Bool = MediaAutomationPermissionHelper.isSyncConfirmed()
     @State private var isSyncing: Bool = false
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
-                    if !isAccessibilityGranted || !isCameraGranted {
-                        permissionsWarning
-                    }
-
-                    // 1. Face Unlock
-                    SettingsSectionTitle(text: loc("Face Unlock"))
-                    FaceIDUnlockOptionsPage()
-                        .id("faceid_general")
-                        .searchHighlight(highlightedId == "faceid_general")
-
-                    // 2. Enrolled Faces
-                    SettingsSectionTitle(text: loc("Enrolled Faces"))
-                    YourFaceSettingsPage()
-
-                    // 3. Password & Security
-                    SettingsSectionTitle(text: loc("Password & Security"))
-                    PasswordSettingsPage()
-                        .id("faceid_security")
-                        .searchHighlight(highlightedId == "faceid_security")
-
-                    // 4. Camera
-                    SettingsSectionTitle(text: loc("Camera"))
-                    CameraSettingsPage()
-                        .id("faceid_camera")
-                        .searchHighlight(highlightedId == "faceid_camera")
-
-                    // 5. Recognition & Liveness
-                    SettingsSectionTitle(text: loc("Recognition"))
-                    RecognitionSettingsPage()
-                        .id("faceid_tolerance")
-                        .searchHighlight(highlightedId == "faceid_tolerance")
-
-                    // 6. Lock Screen Media Player
-                    SettingsSectionTitle(text: loc("Lock Screen Media Player"))
-                    lockScreenMediaPlayerSection
-                }
-                .padding(.horizontal, SettingsMetrics.contentHorizontalPadding)
-                .padding(.top, 16)
-                .padding(.bottom, 32)
+        Form {
+            if !permissions.cameraStatus.isSatisfied || !permissions.accessibilityStatus.isSatisfied {
+                permissionsWarningSection
             }
-            .onChange(of: highlightedId) { _, target in
-                if let target = target {
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(70))
-                        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                            proxy.scrollTo(target, anchor: .center)
-                        }
-                    }
-                }
-            }
+
+            // 1. Face Unlock Options (General & Behaviour & Animation)
+            FaceIDUnlockOptionsPage()
+                .id("faceid_general")
+                .searchHighlight(highlightedId == "faceid_general")
+
+            // 2. Enrolled Faces
+            YourFaceSettingsPage()
+                .id("faceid_enrolled")
+                .searchHighlight(highlightedId == "faceid_enrolled")
+
+            // 3. Password & Security
+            PasswordSettingsPage()
+                .id("faceid_security")
+                .searchHighlight(highlightedId == "faceid_security")
+
+            // 4. Camera
+            CameraSettingsPage()
+                .id("faceid_camera")
+                .searchHighlight(highlightedId == "faceid_camera")
+
+            // 5. Recognition & Liveness
+            RecognitionSettingsPage()
+                .id("faceid_tolerance")
+                .searchHighlight(highlightedId == "faceid_tolerance")
+
+            // 6. Lock Screen Media Player
+            lockScreenMediaPlayerSection
+                .id("faceid_media_player")
+                .searchHighlight(highlightedId == "faceid_media_player")
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .formStyle(.grouped)
+        .accentColor(.effectiveAccent)
         .onAppear {
-            checkPermissions()
+            permissions.refreshAll()
             isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
             pocController.refreshCredentialStatus()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            checkPermissions()
+            permissions.refreshAll()
             isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
             pocController.refreshCredentialStatus()
             NotchPulseFaceEnrollmentStore.shared.reloadIfUnlocked()
         }
     }
 
+    private var permissionsWarningSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .font(.headline)
+                        .foregroundStyle(.orange)
+                    Text(loc("Permissions Required for Face ID"))
+                        .font(.headline)
+                        .foregroundStyle(.orange)
+                }
+
+                Text(loc("Face ID requires Camera permission for face detection and Accessibility permission to automatically enter your password on unlock."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 2)
+
+            if !permissions.cameraStatus.isSatisfied {
+                HStack {
+                    Label(loc("Camera Permission Missing"), systemImage: "camera.fill")
+                        .foregroundStyle(.red)
+                    Spacer()
+                    Button(loc("Grant Camera")) {
+                        permissions.request(permission: .camera)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+
+            if !permissions.accessibilityStatus.isSatisfied {
+                HStack {
+                    Label(loc("Accessibility Permission Missing"), systemImage: "hand.raised.fill")
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button(loc("Open Settings")) {
+                        permissions.openSystemSettings(for: .accessibility)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                    .controlSize(.small)
+                }
+            }
+        } header: {
+            Text(loc("System Permissions"))
+        }
+    }
+
     private var lockScreenMediaPlayerSection: some View {
-        SettingsGroup {
-            SettingsRowContent(title: loc("Show Media Player on Lock Screen")) {
-                Defaults.Toggle(key: .enableLockScreenPlayer) {
-                    Text("")
-                }
+        Section {
+            Defaults.Toggle(key: .enableLockScreenPlayer) {
+                Text(loc("Show Media Player on Lock Screen"))
             }
-            SettingsGroupDivider()
-            SettingsRowContent(title: loc("Show Real-time Synced Lyrics")) {
-                Defaults.Toggle(key: .lockScreenPlayerShowLyrics) {
-                    Text("")
-                }
+
+            Defaults.Toggle(key: .lockScreenPlayerShowLyrics) {
+                Text(loc("Show Real-time Synced Lyrics"))
             }
-            SettingsGroupDivider()
+
             HStack {
                 Button {
                     Task {
@@ -121,75 +147,14 @@ struct FaceIDSettingsView: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(isMusicSyncConfirmed ? .green : nil)
-                Spacer()
             }
-            .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
-            .padding(.vertical, 12)
+            .padding(.vertical, 2)
+        } header: {
+            Text(loc("Lock Screen Media Player"))
+        } footer: {
+            Text(loc("Displays current track details, album art, and synchronized lyrics directly on your lock screen when media is active."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
-    }
-    
-    private var permissionsWarning: some View {
-        SettingsGroup {
-            VStack(alignment: .leading, spacing: 10) {
-                Label(loc("System Permissions Required"), systemImage: "exclamationmark.shield.fill")
-                    .font(.headline)
-                    .foregroundStyle(.orange)
-                
-                Text(loc("Face ID requires Camera permission for face detection and Accessibility permission to automatically enter your password on unlock."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                
-                if !isCameraGranted {
-                    HStack {
-                        Image(systemName: "camera.fill")
-                        .foregroundStyle(.red)
-                        Text(loc("Camera Permission Missing"))
-                            .font(.subheadline)
-                        Spacer()
-                        Button(loc("Grant")) {
-                            let status = AVCaptureDevice.authorizationStatus(for: .video)
-                            if status == .notDetermined {
-                                AVCaptureDevice.requestAccess(for: .video) { _ in
-                                    DispatchQueue.main.async { checkPermissions() }
-                                }
-                            } else {
-                                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
-                                    NSWorkspace.shared.open(url)
-                                }
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                }
-                
-                if !isAccessibilityGranted {
-                    HStack {
-                        Image(systemName: "hand.raised.fill")
-                            .foregroundStyle(.orange)
-                        Text(loc("Accessibility Permission Missing"))
-                            .font(.subheadline)
-                        Spacer()
-                        Button(loc("Open Settings")) {
-                            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-                            _ = AXIsProcessTrustedWithOptions(options)
-                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.orange)
-                        .controlSize(.small)
-                    }
-                }
-            }
-            .padding(.horizontal, SettingsMetrics.rowHorizontalInset)
-            .padding(.vertical, 12)
-        }
-    }
-
-    private func checkPermissions() {
-        isAccessibilityGranted = AXIsProcessTrusted()
-        isCameraGranted = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     }
 }

@@ -21,22 +21,45 @@ struct Bookmark: Sendable, Equatable, Codable {
             NSLog("✅ Successfully created bookmark for \(url.path)")
             self.data = bookmark
         } catch {
-            NSLog("❌ Failed to create bookmark for \(url.path): \(error.localizedDescription)")
-            throw error
+            do {
+                let bookmark = try url.bookmarkData(
+                    options: [],
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+                NSLog("✅ Successfully created non-security-scoped bookmark fallback for \(url.path)")
+                self.data = bookmark
+            } catch {
+                NSLog("❌ Failed to create bookmark for \(url.path): \(error.localizedDescription)")
+                throw error
+            }
         }
     }
 
     func resolve() -> (url: URL?, refreshedData: Data?) {
         guard !data.isEmpty else { return (nil, nil) }
         var isStale = false
+        if let url = try? URL(
+            resolvingBookmarkData: data,
+            options: [.withSecurityScope],
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ) {
+            if isStale, let newData = (try? url.bookmarkData(options: [.withSecurityScope])) ?? (try? url.bookmarkData(options: [])) {
+                NSLog("⚠️ Bookmark was stale for \(url.path), refreshed")
+                return (url, newData)
+            }
+            return (url, nil)
+        }
+
         do {
             let url = try URL(
                 resolvingBookmarkData: data,
-                options: [.withSecurityScope],
+                options: [],
                 relativeTo: nil,
                 bookmarkDataIsStale: &isStale
             )
-            if isStale, let newData = try? url.bookmarkData(options: [.withSecurityScope]) {
+            if isStale, let newData = try? url.bookmarkData(options: []) {
                 NSLog("⚠️ Bookmark was stale for \(url.path), refreshed")
                 return (url, newData)
             }

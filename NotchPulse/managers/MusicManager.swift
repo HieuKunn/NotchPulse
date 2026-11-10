@@ -10,6 +10,22 @@ let defaultImage: NSImage = .init(
     accessibilityDescription: "Album Art"
 ) ?? NSImage()
 
+public struct MediaGatingPolicy {
+    /// Pure helper determining whether playback progress/polling timers should run.
+    /// Prevents background battery drain when the media feature is disabled, the app is hidden/inactive,
+    /// or when no active media player is playing.
+    public static func shouldRunPlaybackTimers(
+        isAppActive: Bool,
+        isFeatureEnabled: Bool,
+        hasActivePlayer: Bool
+    ) -> Bool {
+        guard isFeatureEnabled else { return false }
+        guard isAppActive else { return false }
+        guard hasActivePlayer else { return false }
+        return true
+    }
+}
+
 class MusicManager: ObservableObject {
     // MARK: - Properties
     static let shared = MusicManager()
@@ -65,6 +81,17 @@ class MusicManager: ObservableObject {
                     ensureLyricsLoaded()
                 }
                 ensureArtworkLoaded()
+            } else {
+                // When UI becomes inactive and gating policy disallows background polling, cancel in-flight repoll tasks
+                let shouldRun = MediaGatingPolicy.shouldRunPlaybackTimers(
+                    isAppActive: false,
+                    isFeatureEnabled: Defaults[.enableMediaFeature],
+                    hasActivePlayer: activeController?.isActive() == true
+                )
+                if !shouldRun {
+                    artworkRepollTask?.cancel()
+                    artworkRepollTask = nil
+                }
             }
         }
     }
@@ -232,7 +259,16 @@ class MusicManager: ObservableObject {
 
     private func scheduleArtworkRepoll(for title: String, artist: String) {
         artworkRepollTask?.cancel()
+        artworkRepollTask = nil
         guard !title.isEmpty else { return }
+
+        let shouldRun = MediaGatingPolicy.shouldRunPlaybackTimers(
+            isAppActive: isUIActive,
+            isFeatureEnabled: Defaults[.enableMediaFeature],
+            hasActivePlayer: activeController?.isActive() == true
+        )
+        guard shouldRun else { return }
+
         let targetTitle = title
         let targetArtist = artist
 
@@ -260,7 +296,8 @@ class MusicManager: ObservableObject {
     // MARK: - Setup Methods
     private func createController(for type: MediaControllerType) -> (any MediaControllerProtocol)? {
         // Cleanup previous controller
-        if activeController != nil {
+        if let oldController = activeController {
+            oldController.setUIActive(false)
             controllerCancellables.removeAll()
             activeController = nil
         }
@@ -325,6 +362,9 @@ class MusicManager: ObservableObject {
                 self.updateFromPlaybackState(state)
             }
             .store(in: &controllerCancellables)
+
+        // Immediately synchronize current UI active state so the new controller starts polling/timers if UI is open
+        controller.setUIActive(isUIActive)
 
         // Get current state from active controller
         forceUpdate()
@@ -835,7 +875,7 @@ class MusicManager: ObservableObject {
                             self.currentLyrics = resolved
                             self.isFetchingLyrics = false
                             if !synced.isEmpty {
-                                self.syncedLyrics = self.parseLRC(synced)
+                                self.syncedLyrics = Self.parseLRC(synced)
                             } else {
                                 self.syncedLyrics = []
                             }
@@ -871,7 +911,7 @@ class MusicManager: ObservableObject {
         return clean.trimmingCharacters(in: .whitespaces)
     }
 
-    private func parseLRC(_ lrc: String) -> [(time: Double, text: String)] {
+    static func parseLRC(_ lrc: String) -> [(time: Double, text: String)] {
         var result: [(Double, String)] = []
         // Regex matches [mm:ss.xx] or [mm:ss.xxx] or [m:ss]
         let pattern = #"\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]"#

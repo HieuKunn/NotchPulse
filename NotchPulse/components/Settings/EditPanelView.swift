@@ -6,42 +6,41 @@ struct EditPanelView: View {
         VStack {
             HStack {
                 Text(loc("Edit layout"))
-                    .font(.system(.largeTitle, design: .rounded))
-                    .foregroundColor(.white.opacity(0.5))
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.primary)
                 Spacer()
                 Button {
                     NSApp.keyWindow?.orderOut(nil)
                 } label: {
                     Label(loc("Close"), systemImage: "xmark")
                 }
-                .controlSize(.extraLarge)
-                .buttonStyle(AccessoryBarButtonStyle())
+                .buttonStyle(.bordered)
             }
             .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
-}
-
-#Preview {
-    EditPanelView()
 }
 
 struct VisualEffectView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
-    
+
     func makeNSView(context _: Context) -> NSVisualEffectView {
         let visualEffectView = NSVisualEffectView()
         visualEffectView.material = material
         visualEffectView.blendingMode = blendingMode
-        visualEffectView.state = NSVisualEffectView.State.active
-        visualEffectView.isEmphasized = true
+        visualEffectView.state = .active
         return visualEffectView
     }
-    
+
     func updateNSView(_ visualEffectView: NSVisualEffectView, context _: Context) {
         visualEffectView.material = material
         visualEffectView.blendingMode = blendingMode
     }
+}
+
+#Preview {
+    EditPanelView()
 }

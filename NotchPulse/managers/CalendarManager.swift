@@ -80,7 +80,7 @@ class CalendarManager: ObservableObject {
                 await reloadCalendarAndReminderLists()
                 events = await calendarService.events(
                     from: currentWeekStartDate,
-                    to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
+                    to: Self.endOfDay(for: currentWeekStartDate),
                     calendars: selectedCalendars.map { $0.id })
             }
         case .restricted, .denied:
@@ -90,7 +90,7 @@ class CalendarManager: ObservableObject {
             await reloadCalendarAndReminderLists()
             events = await calendarService.events(
                 from: currentWeekStartDate,
-                to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
+                to: Self.endOfDay(for: currentWeekStartDate),
                 calendars: selectedCalendars.map { $0.id })
         case .writeOnly:
             NSLog("Write only")
@@ -174,8 +174,20 @@ class CalendarManager: ObservableObject {
         await updateEvents()
     }
 
-    static func startOfDay(_ date: Date) -> Date {
+    nonisolated static func startOfDay(_ date: Date) -> Date {
         return Calendar.current.startOfDay(for: date)
+    }
+
+    nonisolated static func exclusiveEndOfDay(for date: Date, calendar: Calendar = .current) -> Date {
+        let start = calendar.startOfDay(for: date)
+        if let nextDay = calendar.date(byAdding: .day, value: 1, to: start) {
+            return nextDay
+        }
+        return start.addingTimeInterval(86400)
+    }
+
+    nonisolated static func endOfDay(for date: Date) -> Date {
+        return exclusiveEndOfDay(for: date, calendar: .current)
     }
 
     func updateCurrentDate(_ date: Date, force: Bool = false) async {
@@ -200,7 +212,7 @@ class CalendarManager: ObservableObject {
         let targetStartOfDay = currentWeekStartDate
         let eventsResult = await calendarService.events(
             from: targetStartOfDay,
-            to: Calendar.current.date(byAdding: .day, value: 1, to: targetStartOfDay)!,
+            to: Self.endOfDay(for: targetStartOfDay),
             calendars: calendarIDs
         )
         self.events = eventsResult

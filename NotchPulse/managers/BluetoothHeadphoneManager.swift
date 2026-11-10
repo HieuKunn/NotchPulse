@@ -16,6 +16,9 @@ final class BluetoothHeadphoneManager: NSObject {
     private var connectNotification: IOBluetoothUserNotification?
     private var lastTriggerTime: Date = .distantPast
     private var lastConnectedDeviceAddress: String = ""
+    private var lastAnnouncedDeviceName: String = ""
+    private var lastAnnouncedBatteryPercent: Int = -1
+    private var lastAnnouncedTime: Date = .distantPast
     private var isAudioListenerSetup = false
 
     override init() {
@@ -185,6 +188,20 @@ final class BluetoothHeadphoneManager: NSObject {
 
         // CRITICAL FIX: If battery telemetry is unavailable, NEVER display fake 100%!
         guard let batteryVal = batteryPercent else { return }
+
+        // Debounce repeated identical announcements or jittery battery fluctuations
+        let isSameDevice = (targetName == lastAnnouncedDeviceName)
+        let prevLevel = isSameDevice ? lastAnnouncedBatteryPercent : nil
+        let shouldAnnounce = Self.shouldAnnounceBattery(
+            previousLevel: prevLevel,
+            newLevel: batteryVal,
+            lastAnnouncedAt: lastAnnouncedTime
+        )
+        guard shouldAnnounce else { return }
+
+        lastAnnouncedDeviceName = targetName
+        lastAnnouncedBatteryPercent = batteryVal
+        lastAnnouncedTime = Date()
 
         let normalizedValue = max(0.01, min(1.0, CGFloat(batteryVal) / 100.0))
         NotchPulseViewCoordinator.shared.toggleSneakPeek(
@@ -373,5 +390,34 @@ final class BluetoothHeadphoneManager: NSObject {
                 continuation.resume(returning: (nil, icon))
             }
         }
+    }
+
+    /// Pure helper determining whether headphone battery should trigger a HUD announcement.
+    /// Significant battery changes (>= threshold) announce immediately; minor changes (< threshold)
+    /// within minInterval are debounced to avoid fluttering HUD notifications.
+    static func shouldAnnounceBattery(
+        previousLevel: Int?,
+        newLevel: Int,
+        lastAnnouncedAt: Date,
+        now: Date = Date(),
+        minInterval: TimeInterval = 10.0,
+        significantChangeThreshold: Int = 5
+    ) -> Bool {
+        guard let prev = previousLevel, prev >= 0 else {
+            return true
+        }
+
+        let delta = abs(newLevel - prev)
+        let elapsed = now.timeIntervalSince(lastAnnouncedAt)
+
+        if delta >= significantChangeThreshold {
+            return true
+        }
+
+        if elapsed < minInterval {
+            return false
+        }
+
+        return delta > 0
     }
 }

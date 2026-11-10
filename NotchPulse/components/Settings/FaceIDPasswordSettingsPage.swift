@@ -6,28 +6,67 @@ struct PasswordSettingsPage: View {
 
     @State private var statusMessage: String?
 
-    private enum PageState: Equatable {
-        case noPassword
-        case unlocked
-    }
-
-    private var pageState: PageState {
-        pocController.hasStoredPassword ? .unlocked : .noPassword
-    }
-
     var body: some View {
-        Group {
-            switch pageState {
-            case .noPassword:
-                noPasswordState
-            case .unlocked:
-                unlockedState
+        Section {
+            if !pocController.hasStoredPassword {
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: "lock.slash.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("No Password Stored"))
+                            .font(.headline)
+                        Text(loc("Set a password so Face ID can automatically unlock your Mac upon recognition."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button(loc("Set password")) {
+                        FaceIDEnrollmentController.startPasswordOnly()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+                .padding(.vertical, 4)
+            } else {
+                HStack {
+                    Label(loc("Password encrypted in Keychain"), systemImage: "lock.fill")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+
+                HStack {
+                    Button(loc("Change password")) {
+                        FaceIDEnrollmentController.startPasswordOnly()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Spacer()
+
+                    HoldToConfirmButton(title: loc("Remove password"), action: removePassword)
+                        .controlSize(.small)
+                }
             }
+
+            if let statusMessage {
+                Text(statusMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text(loc("Password & Security"))
+        } footer: {
+            Text(loc("Your password is stored securely in macOS Keychain using hardware-backed keys. It is decrypted strictly in memory upon face match to type your unlock credentials."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
-        .animation(SettingsMetrics.stateTransitionAnimation, value: pageState)
         .onAppear { pocController.refreshCredentialStatus() }
-        // The onboarding password step runs in the notch, outside this
-        // view's hierarchy, so nothing else prompts a re-check once it closes.
         .onChange(of: FaceIDOverlayController.shared.phase) { _, newPhase in
             guard newPhase == .closed else { return }
             pocController.refreshCredentialStatus()
@@ -35,55 +74,6 @@ struct PasswordSettingsPage: View {
         }
     }
 
-    // MARK: - No password stored
-
-    private var noPasswordState: some View {
-        SettingsEmptyStateView(
-            icon: "lock.fill",
-            message: loc("Set up a password"),
-            buttonTitle: loc("Set password"),
-            caption: statusMessage,
-            action: { FaceIDEnrollmentController.startPasswordOnly() }
-        )
-    }
-
-
-
-    // MARK: - Unlocked
-
-    private var unlockedState: some View {
-        VStack(alignment: .leading, spacing: SettingsMetrics.rowSpacing) {
-            SettingsGroup {
-                SettingsRowContent(title: loc("Password encrypted")) {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(SettingsMetrics.textSecondary)
-                }
-
-                SettingsGroupDivider()
-
-                SettingsRowContent(title: loc("Change password")) {
-                    SettingsPrimaryButton(title: loc("Change"), compact: true) {
-                        FaceIDEnrollmentController.startPasswordOnly()
-                    }
-                }
-
-                SettingsGroupDivider()
-
-                SettingsRowContent(title: loc("Remove password")) {
-                    HoldToConfirmButton(title: loc("Remove"), action: removePassword)
-                }
-            }
-
-            if let statusMessage {
-                SettingsCaption(text: statusMessage)
-            }
-        }
-    }
-
-    // MARK: - Actions
-
-    /// Update the Keychain first so a failed write leaves the face enrollment intact.
     private func removePassword() {
         do {
             try NotchPulseVault.deletePassword()
