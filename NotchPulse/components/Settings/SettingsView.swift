@@ -560,46 +560,16 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var settingsSidebar: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 9) {
-                if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
-                    Image(nsImage: appIcon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                } else {
-                    Image(systemName: "sparkles")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 6) {
-                    Text("NotchPulse")
-                        .font(.headline)
-
-                    Text("v\(Bundle.main.releaseVersionNumber ?? "5.5")")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 18)
-            .padding(.bottom, 9)
-
-            SettingsSidebarListView(
-                selectedTab: $selectedTab,
-                searchText: $searchText,
-                isPresented: $isSearchActive,
-                filteredTabs: filteredTabs,
-                categories: categorizedSections,
-                matchingSections: matchingSections(for:),
-                tabTitle: tabTitle(for:),
-                selectTab: selectTab
-            )
-        }
+        SettingsSidebarListView(
+            selectedTab: $selectedTab,
+            searchText: $searchText,
+            isPresented: $isSearchActive,
+            filteredTabs: filteredTabs,
+            categories: categorizedSections,
+            matchingSections: matchingSections(for:),
+            tabTitle: tabTitle(for:),
+            selectTab: selectTab
+        )
         .searchable(
             text: $searchText,
             isPresented: $isSearchActive,
@@ -615,6 +585,7 @@ struct SettingsView: View {
             detailContent
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
+                .scrollIndicators(.hidden)
                 .safeAreaInset(edge: .top, spacing: 0) {
                     SettingsDetailHeaderBar(
                         title: tabTitle(for: selectedTab)
@@ -751,6 +722,7 @@ private struct SettingsSidebarListView: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollIndicators(.hidden)
         .onChange(of: isSearching) { _, newVal in
             if !newVal { searchSelection = nil }
         }

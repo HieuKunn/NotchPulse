@@ -47,7 +47,8 @@ class NotchPulseSkyLightWindow: NSPanel {
     private var observers: Set<AnyCancellable> = []
 
     private var restingLevel: NSWindow.Level {
-        isSkyLightEnabled ? .mainMenu + 2 : .mainMenu + 3
+        // Notch sits below pop-up menus and system context menus (NSWindow.Level.statusBar + 1 = 26)
+        NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
     }
     
     override init(
@@ -101,6 +102,18 @@ class NotchPulseSkyLightWindow: NSPanel {
                 self?.updateSharingType()
             }
             .store(in: &observers)
+
+        // Lower window level below context menu during tracking to prevent obscuring popups
+        MenuTrackingManager.shared.$isMenuTracking
+            .sink { [weak self] isTracking in
+                guard let self = self, !self.isFileDragElevated else { return }
+                if isTracking {
+                    self.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue + 1)
+                } else {
+                    self.level = self.restingLevel
+                }
+            }
+            .store(in: &observers)
     }
     
     private func updateSharingType() {
@@ -132,10 +145,10 @@ class NotchPulseSkyLightWindow: NSPanel {
     }
 
     /// Keeps the drop destination above the source app and Desktop while an
-    /// external file drag is active without setting screenSaver level (which breaks AppKit drag & drop).
+    /// external file drag is active, elevated above popUpMenu so drag overlays and drop targets are topmost.
     func beginFileDragTargeting() {
         isFileDragElevated = true
-        level = .popUpMenu
+        level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
         orderFrontRegardless()
     }
 

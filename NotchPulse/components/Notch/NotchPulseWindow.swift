@@ -30,7 +30,7 @@ class NotchPulseWindow: NSPanel {
         ]
         
         isReleasedWhenClosed = false
-        level = .mainMenu + 3
+        level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         hasShadow = false
     }
     
