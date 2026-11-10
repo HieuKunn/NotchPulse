@@ -533,25 +533,6 @@ struct SettingsView: View {
         .toggleStyle(.switch)
         .frame(minWidth: 720, minHeight: 560)
         .background(Color(nsColor: .windowBackgroundColor))
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    let next: NavigationSplitViewVisibility = (columnVisibility == .detailOnly) ? .all : .detailOnly
-                    if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-                        columnVisibility = next
-                    } else {
-                        withAnimation { columnVisibility = next }
-                    }
-                } label: {
-                    Label(
-                        columnVisibility == .detailOnly ? loc("Show Sidebar") : loc("Hide Sidebar"),
-                        systemImage: "sidebar.left"
-                    )
-                }
-                .keyboardShortcut("s", modifiers: [.control, .command])
-                .help(columnVisibility == .detailOnly ? loc("Show Sidebar") : loc("Hide Sidebar"))
-            }
-        }
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
@@ -560,22 +541,54 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var settingsSidebar: some View {
-        SettingsSidebarListView(
-            selectedTab: $selectedTab,
-            searchText: $searchText,
-            isPresented: $isSearchActive,
-            filteredTabs: filteredTabs,
-            categories: categorizedSections,
-            matchingSections: matchingSections(for:),
-            tabTitle: tabTitle(for:),
-            selectTab: selectTab
-        )
-        .searchable(
-            text: $searchText,
-            isPresented: $isSearchActive,
-            placement: .sidebar,
-            prompt: loc("Search Settings...")
-        )
+        VStack(spacing: 0) {
+            // Fixed top app identity header
+            HStack(spacing: 9) {
+                if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
+                    Image(nsImage: appIcon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                } else {
+                    Image(systemName: "sparkles")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 6) {
+                    Text("NotchPulse")
+                        .font(.headline)
+
+                    Text("v\(Bundle.main.releaseVersionNumber ?? "5.6")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 18)
+            .padding(.bottom, 9)
+
+            // Fixed search field so it stays permanently pinned at the top and never scrolls with the list
+            SidebarSearchField(
+                query: $searchText,
+                isPresented: $isSearchActive
+            )
+
+            SettingsSidebarListView(
+                selectedTab: $selectedTab,
+                searchText: $searchText,
+                isPresented: $isSearchActive,
+                filteredTabs: filteredTabs,
+                categories: categorizedSections,
+                matchingSections: matchingSections(for:),
+                tabTitle: tabTitle(for:),
+                selectTab: selectTab
+            )
+        }
+        .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
 
@@ -659,6 +672,54 @@ struct SettingsView: View {
 
     private func tabTitle(for destination: SettingsDestination) -> String {
         L10n.tr(destination.rawValue, lang: appLanguage)
+    }
+}
+
+// MARK: - Sidebar Search Field (Fixed Outside List so Scrolling Never Moves It)
+private struct SidebarSearchField: View {
+    @Binding var query: String
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            TextField(loc("Search Settings..."), text: $query)
+                .textFieldStyle(.plain)
+                .font(.body)
+                .onExitCommand {
+                    query = ""
+                    isPresented = false
+                }
+                .onChange(of: query) { _, newValue in
+                    isPresented = !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                }
+
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                    isPresented = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(loc("Clear"))
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.8), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 2)
+        .padding(.bottom, 8)
     }
 }
 

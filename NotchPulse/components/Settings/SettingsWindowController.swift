@@ -56,7 +56,7 @@ class SettingsWindowController: NSWindowController {
     private init() {
         let window = SettingsWindow(
             contentRect: NSRect(x: 0, y: 0, width: 740, height: 600),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -96,9 +96,7 @@ class SettingsWindowController: NSWindowController {
         window.isMovableByWindowBackground = false
         
         // Make it behave like a regular app window with proper Spaces support
-        window.collectionBehavior = [.managed, .participatesInCycle]
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
+        window.collectionBehavior = [.managed, .participatesInCycle, .fullScreenAuxiliary]
         
         // Ensure proper window behavior
         window.hidesOnDeactivate = false
@@ -194,8 +192,7 @@ extension SettingsWindowController: NSWindowDelegate {
         (window as? SettingsWindow)?.adjustTrafficLights()
     }
 
-    func windowShouldEnterFullScreen(_ sender: NSWindow) -> Bool {
-        false
+    func windowDidExitFullScreen(_ notification: Notification) {
+        (window as? SettingsWindow)?.adjustTrafficLights()
     }
-
 }

@@ -1,6 +1,7 @@
-## NotchPulse v5.6 (Build 463)
+## NotchPulse v5.6 (Build 464)
 
-### 🪟 Correct Window Layering Hierarchy
-- **Context Menu Floating Layer**: Context menu options opened by right-clicking the notch now float properly above the notch curve and surface without clipping or occlusion.
-- **Topmost Drag Overlay**: When dragging files, the Notch drop zone elevates to the topmost layer to seamlessly catch external drops above all windows.
-- **Native macOS Settings Parity**: Refined Settings view navigation, grouped card presentation, and toolbar behaviors following Apple Human Interface Guidelines.
+### 🪟 Restored Window Controls & Fixed Search Header
+- **Restored Traffic Light Buttons**: Standard Close, Minimize, and Zoom controls are fully restored on the Settings window.
+- **Fixed Search Bar**: Search field is now permanently pinned to the top of the sidebar header, preventing it from scrolling with the settings categories.
+- **Clean Sidebar Layout**: Removed duplicated sidebar toggle button so the native traffic lights and top title display cleanly.
+- **Window Layering Order**: Context menus float properly above the notch curve, and drag drop targets stay topmost.
