@@ -1,6 +1,7 @@
-## NotchPulse v5.6 (Build 466)
+## NotchPulse v5.6 (Build 467)
 
-### 🔒 Face ID Camera Detection & Display Routing
-- **Smart Camera Display Routing**: Face ID setup and recapture automatically identify the screen hosting the active camera, smoothly dropping down the enrollment overlay on the correct display.
-- **Reliable Camera Activation**: Resolved camera capture initialization and session stalls, preventing lock screen wake deadlocks and ensuring instantaneous Face ID activation.
-- **Streamlined Setup Flow**: Eliminated redundant manual camera selection steps and settings clutter, seamlessly handling camera detection automatically in the background.
+### 🔒 Face ID Enrollment & Camera Routing
+- **Natural Gaze Calibration**: Relaxed "Look straight at the camera" pitch and yaw tolerances to comfortably fit natural MacBook screen tilt angles and ergonomic viewing distances.
+- **Snappy Pose Captures**: Reduced pose hold durations and introduced smooth inter-sample cadences, making enrollment feel fluid and responsive without artificial delays.
+- **Adaptive Lighting & Alignment Fallback**: Added adaptive landmark alignment fallbacks during extended holds, preventing enrollment stalls when wearing glasses or in challenging lighting conditions.
+- **Smart Camera Display Routing**: Automatically detects the active camera screen and drops down the Face ID overlay directly beneath the camera.
