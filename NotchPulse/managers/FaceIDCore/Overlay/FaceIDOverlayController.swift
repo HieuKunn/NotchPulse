@@ -308,6 +308,12 @@ final class FaceIDOverlayController {
         }
     }
 
+    /// Repositions the overlay window to follow preferred display/screen changes.
+    func reposition() {
+        self.geometry = self.windowController.currentGeometry
+        self.windowController.reposition()
+    }
+
     // MARK: - Resolving (shared by both modes)
 
     /// Resolves the current attempt. Success plays its animation and then

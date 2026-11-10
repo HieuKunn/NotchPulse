@@ -99,6 +99,8 @@ final class NotchPulseFaceIDSettings {
         static let hapticFeedbackEnabled = "NotchPulseFaceIDSettings.hapticFeedbackEnabled"
         static let autoLockIntervalDays = "NotchPulseFaceIDSettings.autoLockIntervalDays"
         static let defaultCameraID = "NotchPulseFaceIDSettings.defaultCameraID"
+        static let preferredDisplayID = "NotchPulseFaceIDSettings.preferredDisplayID"
+        static let preferredDisplayName = "NotchPulseFaceIDSettings.preferredDisplayName"
         static let builtInDisplayCameraID = "NotchPulseFaceIDSettings.builtInDisplayCameraID"
         static let externalDisplayCameraID = "NotchPulseFaceIDSettings.externalDisplayCameraID"
         static let hasCompletedOnboarding = "NotchPulseFaceIDSettings.hasCompletedOnboarding"
@@ -212,6 +214,12 @@ final class NotchPulseFaceIDSettings {
             NotchPulseCameraDeviceCatalog.invalidateTargetScreenCache()
         }
     }
+    var preferredDisplayID: String? {
+        didSet { defaults.set(preferredDisplayID, forKey: Key.preferredDisplayID) }
+    }
+    var preferredDisplayName: String? {
+        didSet { defaults.set(preferredDisplayName, forKey: Key.preferredDisplayName) }
+    }
     var builtInDisplayCameraID: String? {
         didSet {
             defaults.set(builtInDisplayCameraID, forKey: Key.builtInDisplayCameraID)
@@ -310,6 +318,8 @@ final class NotchPulseFaceIDSettings {
         autoLockInterval = (defaults.object(forKey: Key.autoLockIntervalDays) as? Int)
             .flatMap(AutoLockInterval.init(rawValue:)) ?? .sevenDays
         defaultCameraID = defaults.string(forKey: Key.defaultCameraID)
+        preferredDisplayID = defaults.string(forKey: Key.preferredDisplayID)
+        preferredDisplayName = defaults.string(forKey: Key.preferredDisplayName)
         builtInDisplayCameraID = defaults.string(forKey: Key.builtInDisplayCameraID)
         externalDisplayCameraID = defaults.string(forKey: Key.externalDisplayCameraID)
 

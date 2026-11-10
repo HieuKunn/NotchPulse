@@ -27,6 +27,8 @@ enum FaceIDMetrics {
     static let pillSecurityNoticeHeight: CGFloat = 320
     static let notchPreSetupHeight: CGFloat = 220
     static let pillPreSetupHeight: CGFloat = 220
+    static let notchSelectCameraHeight: CGFloat = 228
+    static let pillSelectCameraHeight: CGFloat = 228
     static let notchEnrollHeight: CGFloat = 380
     static let pillEnrollHeight: CGFloat = 365
     static let notchNameHeight: CGFloat = 230
@@ -46,6 +48,8 @@ enum FaceIDMetrics {
         case (.securityNotice, .pill): return pillSecurityNoticeHeight
         case (.preSetup, .notch): return notchPreSetupHeight
         case (.preSetup, .pill): return pillPreSetupHeight
+        case (.selectCamera, .notch): return notchSelectCameraHeight
+        case (.selectCamera, .pill): return pillSelectCameraHeight
         case (.enroll, .notch): return notchEnrollHeight
         case (.enroll, .pill): return pillEnrollHeight
         case (.name, .notch): return notchNameHeight
@@ -78,12 +82,12 @@ enum FaceIDMetrics {
         case .notch:
             return [
                 notchIntroHeight, notchPermissionsHeight, notchSecurityNoticeHeight, notchPreSetupHeight,
-                notchEnrollHeight, notchNameHeight, notchPasswordHeight, notchCompleteHeight,
+                notchSelectCameraHeight, notchEnrollHeight, notchNameHeight, notchPasswordHeight, notchCompleteHeight,
             ].max() ?? notchEnrollHeight
         case .pill:
             return [
                 pillIntroHeight, pillPermissionsHeight, pillSecurityNoticeHeight, pillPreSetupHeight,
-                pillEnrollHeight, pillNameHeight, pillPasswordHeight, pillCompleteHeight,
+                pillSelectCameraHeight, pillEnrollHeight, pillNameHeight, pillPasswordHeight, pillCompleteHeight,
             ].max() ?? pillEnrollHeight
         }
     }

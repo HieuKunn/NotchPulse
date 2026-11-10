@@ -10,6 +10,7 @@ enum FaceIDOnboardingStep: String, CaseIterable {
     case permissions
     case securityNotice
     case preSetup
+    case selectCamera
     case enroll
     case name
     case password
@@ -25,7 +26,7 @@ enum FaceIDOnboardingStep: String, CaseIterable {
     /// only, and complete/intro have just one side.
     var showsBackButton: Bool {
         switch self {
-        case .securityNotice, .permissions, .preSetup, .name, .password: return true
+        case .securityNotice, .permissions, .preSetup, .selectCamera, .name, .password: return true
         case .intro, .enroll, .complete: return false
         }
     }
@@ -37,7 +38,7 @@ enum FaceIDOnboardingStep: String, CaseIterable {
     var resumeTarget: FaceIDOnboardingStep {
         switch self {
         case .enroll, .name, .password: return .preSetup
-        case .intro, .securityNotice, .permissions, .preSetup, .complete: return self
+        case .intro, .securityNotice, .permissions, .preSetup, .selectCamera, .complete: return self
         }
     }
 }
@@ -324,37 +325,43 @@ final class FaceIDEnrollmentController {
 
     // MARK: - Enrollment
 
-    /// 9 poses x 2 samples = 18 total, enough for a stable template without overlong holds.
+    /// 9 poses x 2 samples = 18 total (center captures 3 samples for rock-solid frontal unlock).
     private let samplesPerPose = 2
+
+    func samplesNeeded(for pose: FaceIDEnrollmentPose) -> Int {
+        pose == .center ? 3 : samplesPerPose
+    }
+
     /// Consecutive matching frames required before a capture fires — debounces a lucky
     /// frame near a pose boundary.
-    private let requiredMatchStreak = 1
+    private let requiredMatchStreak = 3
     /// Wait this long after yaw/pitch matches before samples count, so the user has
     /// settled into the turn rather than being captured mid-motion.
-    private let poseHoldDuration: Duration = .milliseconds(200)
+    private let poseHoldDuration: Duration = .milliseconds(500)
     /// Permissive floor for Vision's capture-quality score (no fixed universal cutoff) —
     /// better to accept a mediocre sample than stall the whole flow.
-    private let qualityFloor: Float = 0.10
-    /// Brief hold to let camera auto-exposure settle without feeling unresponsive.
-    private let initialCaptureDelay: Duration = .milliseconds(200)
+    private let qualityFloor: Float = 0.2
+    /// Hold off accepting captures this long once the camera comes up, so the first
+    /// samples aren't taken mid-blink and the user has time to look straight at the camera.
+    private let initialCaptureDelay: Duration = .seconds(1.5)
     /// Enrollment wants a closer face than unlock's bystander cutoff — sitting back in a
     /// chair is still enough to unlock, but too far for a reliable template.
     private var enrollmentMinimumFaceWidth: Float {
-        0.11
+        max(NotchPulseFaceRecognitionPipeline.minimumProminentFaceWidth, 0.2)
     }
 
     // Pose-matching bands, in radians. Yaw: left turn is positive, matching the mirrored
     // preview. Pitch's sign is the opposite of the initial guess — see `pitchMatches` below.
-    private let yawInnerThreshold: Float = 0.20
-    private let yawCenterTolerance: Float = 0.35
-    private let yawOuterCap: Float = 1.3
-    private let pitchInnerThreshold: Float = 0.16
-    private let pitchCenterTolerance: Float = 0.32
-    private let pitchOuterCap: Float = 1.0
+    private let yawInnerThreshold: Float = 0.25
+    private let yawCenterTolerance: Float = 0.18
+    private let yawOuterCap: Float = 1.2
+    private let pitchInnerThreshold: Float = 0.20
+    private let pitchCenterTolerance: Float = 0.15
+    private let pitchOuterCap: Float = 0.9
     /// If a pose takes longer than this, matching bands widen by `stallWidenFactor` so an
     /// unusual camera angle can't permanently strand the user.
-    private let stallTimeout: Duration = .seconds(5)
-    private let stallWidenFactor: Float = 1.45
+    private let stallTimeout: Duration = .seconds(12)
+    private let stallWidenFactor: Float = 1.25
 
     private(set) var currentPoseIndex = 0
     private(set) var capturedForCurrentPose = 0
@@ -453,9 +460,15 @@ final class FaceIDEnrollmentController {
     }
 
     var overallEnrollmentProgress: Double {
-        let total = Double(FaceIDEnrollmentPose.allCases.count * samplesPerPose)
-        let done = Double(currentPoseIndex * samplesPerPose + capturedForCurrentPose)
-        return min(done / total, 1.0)
+        let total = Double(FaceIDEnrollmentPose.allCases.reduce(0) { $0 + samplesNeeded(for: $1) })
+        var done = 0
+        for i in 0..<currentPoseIndex {
+            if let p = FaceIDEnrollmentPose(rawValue: i) {
+                done += samplesNeeded(for: p)
+            }
+        }
+        done += capturedForCurrentPose
+        return min(Double(done) / max(total, 1), 1.0)
     }
 
     // MARK: - Naming
@@ -510,7 +523,8 @@ final class FaceIDEnrollmentController {
                 case .intro: step = .permissions
                 case .permissions: step = .securityNotice
                 case .securityNotice: step = .preSetup
-                case .preSetup: step = .enroll
+                case .preSetup: step = .selectCamera
+                case .selectCamera: step = .enroll
                 case .enroll: break // advances automatically on completion
                 case .name: break // handled by confirmName()
                 case .password: break // handled by finish(password:)
@@ -577,7 +591,7 @@ final class FaceIDEnrollmentController {
             resetEnrollmentState()
             camera.stop()
             sweepWindow.dismiss()
-            withAnimation(FaceIDMetrics.stepAnimation) { step = .preSetup }
+            withAnimation(FaceIDMetrics.stepAnimation) { step = .selectCamera }
         case .password:
             // Deliberately *without* resetting: samples and typed name survive so a typo
             // fix doesn't mean re-doing nine poses.
@@ -594,7 +608,7 @@ final class FaceIDEnrollmentController {
         case .name:
             // `.enroll` can't be resumed halfway, so backing past it discards the capture.
             resetEnrollmentState()
-            withAnimation(FaceIDMetrics.stepAnimation) { step = .preSetup }
+            withAnimation(FaceIDMetrics.stepAnimation) { step = .selectCamera }
         default:
             guard let previous = step.previous else { return }
             withAnimation(FaceIDMetrics.stepAnimation) { step = previous }
@@ -698,6 +712,65 @@ final class FaceIDEnrollmentController {
         NSWorkspace.shared.open(url)
     }
 
+    // MARK: - Camera selection
+
+    /// Devices offered by the picker — refreshed when the step appears, since a camera
+    /// can be plugged in after the app launched.
+    private(set) var cameraDevices: [CameraDevice] = []
+
+    func refreshCameraDevices() {
+        cameraDevices = NotchPulseCameraDeviceCatalog.availableDevices()
+    }
+
+    /// Text shown inside the pill: the explicitly chosen device's name, or the resolved
+    /// system default's name suffixed "(Default)" when nothing's been picked yet.
+    var cameraSelectionLabel: String {
+        if let id = NotchPulseFaceIDSettings.shared.defaultCameraID,
+           let device = cameraDevices.first(where: { $0.id == id }) {
+            return device.name
+        }
+        guard let name = resolveDefaultCameraDevice()?.localizedName else { return loc("System default") }
+        return "\(name) (\(loc("Default")))"
+    }
+
+    /// Writes the pick straight into Settings — the same `defaultCameraID` the Camera
+    /// settings page and `NotchPulseCameraDeviceCatalog.resolvedDevice()` read — then re-checks
+    /// whether the panel should follow the built-in display.
+    func selectCamera(id: String?) {
+        NotchPulseFaceIDSettings.shared.defaultCameraID = id
+        applyDisplayPinForCameraSelection()
+        FaceIDOverlayController.shared.reposition()
+    }
+
+    /// Pins the Face Unlock panel to the MacBook's own screen while the built-in camera
+    /// is selected (auto-resolved or explicitly chosen), and releases that pin otherwise
+    /// so the panel returns to the user's normal (often external-monitor) screen.
+    func applyDisplayPinForCameraSelection() {
+        guard NSScreen.screens.count > 1 else { return }
+        let isBuiltIn = resolveSelectedCameraDevice()?.deviceType == .builtInWideAngleCamera
+        if isBuiltIn {
+            guard let builtInScreen = NSScreen.screens.first(where: { $0.isBuiltIn }) else { return }
+            NotchPulseFaceIDSettings.shared.preferredDisplayID = builtInScreen.stableDisplayID
+            NotchPulseFaceIDSettings.shared.preferredDisplayName = builtInScreen.localizedName
+        } else {
+            NotchPulseFaceIDSettings.shared.preferredDisplayID = nil
+            NotchPulseFaceIDSettings.shared.preferredDisplayName = nil
+        }
+    }
+
+    private func resolveSelectedCameraDevice() -> AVCaptureDevice? {
+        if let id = NotchPulseFaceIDSettings.shared.defaultCameraID {
+            return AVCaptureDevice(uniqueID: id)
+        }
+        return resolveDefaultCameraDevice()
+    }
+
+    /// Same fallback `NotchPulseCameraDeviceCatalog.resolvedDevice()` uses once no override applies.
+    private func resolveDefaultCameraDevice() -> AVCaptureDevice? {
+        AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+            ?? AVCaptureDevice.default(for: .video)
+    }
+
     // MARK: - Guided enrollment
 
     private func observeFrames() {
@@ -785,9 +858,10 @@ final class FaceIDEnrollmentController {
         }
 
         let qualityOK = result.quality.map { $0 >= qualityFloor } ?? true
-        // Allow canonical 5-point alignment or robust 2-point alignment
-        let alignmentOK = result.alignmentTier == .fivePoint || result.alignmentTier == .twoPoint
         let widened = ContinuousClock.now - poseStartedAt > stallTimeout
+        // Only a 5-point alignment is reliably canonical. Never accept 2-point alignment for .center.
+        // For directional poses, only accept 2-point if stalled (>12s) to avoid blocking unusual angles.
+        let alignmentOK = result.alignmentTier == .fivePoint || (widened && pose != .center && result.alignmentTier == .twoPoint)
         let poseOK = poseMatches(yaw: yaw, pitch: pitch, pose: pose, widened: widened)
         guard qualityOK, alignmentOK, !isTooFar, poseOK else {
             matchStreak = 0
@@ -812,7 +886,10 @@ final class FaceIDEnrollmentController {
         ))
         capturedForCurrentPose += 1
 
-        if capturedForCurrentPose >= samplesPerPose {
+        // Reset hold start so subsequent samples require another steady hold
+        poseHoldStartedAt = nil
+
+        if capturedForCurrentPose >= samplesNeeded(for: pose) {
             if pose == .center {
                 centerPulseTick += 1
             } else {
