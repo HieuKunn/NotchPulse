@@ -27,6 +27,10 @@ final class FaceIDOverlayWindow: NSPanel {
         // Decorative by default — clicks pass through until a failed attempt is
         // waiting to be tapped for retry (see FaceIDOverlayWindowController.setInteractive).
         ignoresMouseEvents = true
+
+        // Force dark appearance regardless of system setting so semantic colors
+        // inside the black notch overlay never resolve to Light Mode black-on-black.
+        appearance = NSAppearance(named: .darkAqua)
     }
 
     // MARK: - Position Safety

@@ -35,6 +35,7 @@ struct FaceIDOnboardingNotchView: View {
                 .padding(FaceIDMetrics.enrollCloseButtonEdgePadding)
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     private var stepTransition: AnyTransition {

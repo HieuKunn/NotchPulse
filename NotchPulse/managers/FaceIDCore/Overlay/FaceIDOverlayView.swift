@@ -357,6 +357,7 @@ struct FaceIDOverlayView: View {
                 controller.updateInteractiveContentRect(rect)
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     private static let interactiveCoordinateSpace = "NotchOverlayRoot"

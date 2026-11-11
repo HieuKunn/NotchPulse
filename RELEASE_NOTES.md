@@ -1,7 +1,5 @@
-## NotchPulse v5.6 (Build 467)
+## NotchPulse v5.6 (Build 468)
 
-### 🔒 Face ID Enrollment & Camera Routing
-- **Natural Gaze Calibration**: Relaxed "Look straight at the camera" pitch and yaw tolerances to comfortably fit natural MacBook screen tilt angles and ergonomic viewing distances.
-- **Snappy Pose Captures**: Reduced pose hold durations and introduced smooth inter-sample cadences, making enrollment feel fluid and responsive without artificial delays.
-- **Adaptive Lighting & Alignment Fallback**: Added adaptive landmark alignment fallbacks during extended holds, preventing enrollment stalls when wearing glasses or in challenging lighting conditions.
-- **Smart Camera Display Routing**: Automatically detects the active camera screen and drops down the Face ID overlay directly beneath the camera.
+### 🐛 Bug Fixes
+- **Face ID Setup Text Visibility in Light Mode**: Fixed an issue where step titles, descriptions, and controls during Face ID setup (including naming your face, entering your password, and the completion screen) blended into the dark notch background when macOS was set to Light Mode.
+- **Consistent Dark Notch Appearance**: Ensured the Face ID notch overlay always uses a dark appearance so prompts, buttons, and input fields remain crisp and legible regardless of your system theme.
