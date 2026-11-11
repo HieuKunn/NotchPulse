@@ -86,6 +86,42 @@ private struct LaunchpadVisualEffectBackdrop: NSViewRepresentable {
     }
 }
 
+/// Subclassed NSSearchField that refuses automatic AppKit focus when the panel opens,
+/// only becoming first responder on explicit pointer click or type-to-search.
+private final class LaunchpadSearchField: NSSearchField {
+    var allowFirstResponder: Bool = false
+
+    override var canBecomeKeyView: Bool {
+        allowFirstResponder
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        guard allowFirstResponder else { return false }
+        return super.becomeFirstResponder()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        allowFirstResponder = true
+        super.mouseDown(with: event)
+    }
+}
+
+/// Container that forwards clicks in the pill padding directly to the embedded search field.
+private final class LaunchpadSearchContainerView: NSView {
+    weak var searchField: LaunchpadSearchField?
+
+    override func mouseDown(with event: NSEvent) {
+        if let field = searchField {
+            field.allowFirstResponder = true
+            if window?.firstResponder != field.currentEditor() {
+                window?.makeFirstResponder(field)
+            }
+        } else {
+            super.mouseDown(with: event)
+        }
+    }
+}
+
 /// Pure AppKit NSSearchField embedded inside native Liquid Glass (NSGlassEffectView on macOS 26+).
 private struct LaunchpadNativeSearchField: NSViewRepresentable {
     @Binding var text: String
@@ -95,8 +131,9 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSSearchFieldDelegate {
         var parent: LaunchpadNativeSearchField
-        weak var searchField: NSSearchField?
+        weak var searchField: LaunchpadSearchField?
         var lastFocusToken: Int = 0
+        var lastPlaceholder: String = ""
 
         init(_ parent: LaunchpadNativeSearchField) {
             self.parent = parent
@@ -105,6 +142,10 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
         func controlTextDidChange(_ notification: Notification) {
             guard let field = notification.object as? NSSearchField else { return }
             parent.text = field.stringValue
+        }
+
+        func controlTextDidEndEditing(_ obj: Notification) {
+            (obj.object as? LaunchpadSearchField)?.allowFirstResponder = false
         }
 
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
@@ -116,6 +157,8 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
                 if !parent.text.isEmpty {
                     parent.text = ""
                     searchField?.stringValue = ""
+                    searchField?.allowFirstResponder = false
+                    searchField?.window?.makeFirstResponder(nil)
                     return true
                 }
             }
@@ -128,9 +171,10 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSView {
-        let field = NSSearchField()
+        let field = LaunchpadSearchField()
         field.translatesAutoresizingMaskIntoConstraints = false
         field.isBordered = false
+        field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
         field.usesSingleLineMode = true
@@ -141,11 +185,13 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
         field.sendsWholeSearchString = false
         field.delegate = context.coordinator
         context.coordinator.searchField = field
+        context.coordinator.lastPlaceholder = placeholder
 
         applyPlaceholder(to: field)
 
-        let innerContainer = NSView()
+        let innerContainer = LaunchpadSearchContainerView()
         innerContainer.translatesAutoresizingMaskIntoConstraints = false
+        innerContainer.searchField = field
         innerContainer.addSubview(field)
         NSLayoutConstraint.activate([
             field.leadingAnchor.constraint(equalTo: innerContainer.leadingAnchor, constant: 10),
@@ -159,7 +205,7 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
             glass.setValue(0, forKey: "style")
             glass.setValue(CGFloat(16), forKey: "cornerRadius")
             if glass.responds(to: NSSelectorFromString("setEffectIsInteractive:")) {
-                glass.setValue(true, forKey: "effectIsInteractive")
+                glass.setValue(false, forKey: "effectIsInteractive")
             }
             glass.setValue(innerContainer, forKey: "contentView")
             return glass
@@ -188,11 +234,15 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
         if field.stringValue != text {
             field.stringValue = text
         }
-        applyPlaceholder(to: field)
+        if context.coordinator.lastPlaceholder != placeholder {
+            context.coordinator.lastPlaceholder = placeholder
+            applyPlaceholder(to: field)
+        }
 
         if context.coordinator.lastFocusToken != focusToken && focusToken > 0 {
             context.coordinator.lastFocusToken = focusToken
             DispatchQueue.main.async {
+                field.allowFirstResponder = true
                 if let window = field.window, window.firstResponder != field.currentEditor() {
                     window.makeFirstResponder(field)
                     if let editor = field.currentEditor() as? NSTextView {
@@ -431,6 +481,9 @@ struct LaunchpadRootView: View {
 
     private func handleBackgroundTap() {
         guard !isMouseSwipingPage else { return }
+        if windowController.resignSearchFocusIfActive() {
+            return
+        }
         if manager.isEditingMode {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                 manager.isEditingMode = false
@@ -786,21 +839,36 @@ private struct LaunchpadPageGridView: View {
         "LaunchpadPage_\(page.id.uuidString)"
     }
 
-    var body: some View {
-        let showReorderIndicators = dragCoordinator.isDragging
-            && isCurrentPage
-            && dragCoordinator.mergeTargetNodeId == nil
-            && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction)
+    private var displayNodes: [LaunchpadNode] {
+        guard dragCoordinator.isDragging,
+              isCurrentPage,
+              dragCoordinator.mergeTargetNodeId == nil,
+              (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction),
+              let activeNode = dragCoordinator.activeNode
+        else {
+            return page.nodes
+        }
 
+        let remaining = page.nodes.filter { $0.id != activeNode.id }
+        if let targetIndex = dragCoordinator.reorderTargetIndex {
+            let clamped = max(0, min(targetIndex, remaining.count))
+            var result = remaining
+            result.insert(activeNode, at: clamped)
+            return result
+        }
+        return page.nodes
+    }
+
+    var body: some View {
         LazyVGrid(columns: gridColumns, spacing: verticalSpacing) {
-            ForEach(Array(page.nodes.enumerated()), id: \.element.id) { index, node in
-                let insertBefore = showReorderIndicators
-                    && dragCoordinator.reorderTargetIndex == index
-                    && dragCoordinator.activeNode?.id != node.id
-                let insertAfter = showReorderIndicators
-                    && index == page.nodes.count - 1
-                    && dragCoordinator.reorderTargetIndex == page.nodes.count
-                    && dragCoordinator.activeNode?.id != node.id
+            ForEach(displayNodes, id: \.id) { node in
+                let excludedFolderAppId: String? = {
+                    if case .folder(let folder) = node,
+                       dragCoordinator.sourceFolderId == folder.id {
+                        return dragCoordinator.activeNode?.asApp?.id
+                    }
+                    return nil
+                }()
 
                 LaunchpadTileView(
                     node: node,
@@ -810,8 +878,7 @@ private struct LaunchpadPageGridView: View {
                     isMergeTarget: dragCoordinator.mergeTargetNodeId == node.id,
                     isBeingDragged: dragCoordinator.activeNode?.id == node.id,
                     isKeyboardHighlighted: false,
-                    showInsertBefore: insertBefore,
-                    showInsertAfter: insertAfter,
+                    excludedFolderAppId: excludedFolderAppId,
                     onOpenApp: onOpenApp,
                     onOpenFolder: onOpenFolder,
                     onRequestTrash: onRequestTrash,
@@ -832,6 +899,7 @@ private struct LaunchpadPageGridView: View {
                 )
             }
         }
+        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: displayNodes.map(\.id))
         .padding(.horizontal, horizontalInset)
         .padding(.top, 8)
         .background(

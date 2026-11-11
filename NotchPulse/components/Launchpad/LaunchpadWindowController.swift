@@ -157,6 +157,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         NSApp.activate()
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
+        panel.makeFirstResponder(nil)
         LaunchpadSystemInterceptor.shared.dismissResidualSpotlightAppsIfVisible(keepLaunchpadOpen: true)
 
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
@@ -204,6 +205,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
                 completion?()
                 return
             }
+            panel.makeFirstResponder(nil)
             panel.orderOut(nil)
             panel.alphaValue = 1
             LaunchpadManager.shared.searchQuery = ""
@@ -369,6 +371,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         newPanel.isFloatingPanel = true
         newPanel.becomesKeyOnlyIfNeeded = false
         newPanel.hidesOnDeactivate = false
+        newPanel.autorecalculatesKeyViewLoop = false
         newPanel.isOpaque = false
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = false
@@ -484,6 +487,9 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
                 }
             } else if !manager.searchQuery.isEmpty {
                 manager.searchQuery = ""
+                panel?.makeFirstResponder(nil)
+            } else if panel?.firstResponder is NSTextView && manager.activeFolderId == nil {
+                panel?.makeFirstResponder(nil)
             } else {
                 dismiss(restorePreviousApp: true)
             }
@@ -623,6 +629,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     }
 
     func commitHorizontalSwipe(deltaX: CGFloat, predictedDeltaX: CGFloat, pageWidth: CGFloat) {
+        panel?.makeFirstResponder(nil)
         let manager = LaunchpadManager.shared
         let effectiveWidth = max(1, pageWidth)
         let threshold = min(140, effectiveWidth * 0.12)
@@ -647,7 +654,18 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         }
     }
 
+    func resignSearchFocusIfActive() -> Bool {
+        guard let panel,
+              panel.firstResponder is NSTextView,
+              LaunchpadManager.shared.activeFolderId == nil else {
+            return false
+        }
+        panel.makeFirstResponder(nil)
+        return true
+    }
+
     func stepPage(by delta: Int) {
+        panel?.makeFirstResponder(nil)
         let manager = LaunchpadManager.shared
         guard !manager.pages.isEmpty else { return }
         let target = max(0, min(manager.currentPageIndex + delta, manager.pages.count - 1))

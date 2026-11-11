@@ -26,6 +26,26 @@ struct LaunchpadFolderOverlayView: View {
         return min(660, max(500, idealGrid))
     }
 
+    private var displayApps: [LaunchpadAppItem] {
+        guard dragCoordinator.isDragging,
+              !dragCoordinator.isFolderHiddenForExtraction,
+              let activeNode = dragCoordinator.activeNode,
+              let activeApp = activeNode.asApp,
+              dragCoordinator.sourceFolderId == folder.id
+        else {
+            return folder.items
+        }
+
+        let remaining = folder.items.filter { $0.id != activeApp.id }
+        if let targetIndex = dragCoordinator.reorderTargetIndex {
+            let clamped = max(0, min(targetIndex, remaining.count))
+            var result = remaining
+            result.insert(activeApp, at: clamped)
+            return result
+        }
+        return folder.items
+    }
+
     var body: some View {
         let isEditingTitle = isTitleFocused || manager.isEditingMode
 
@@ -88,11 +108,8 @@ struct LaunchpadFolderOverlayView: View {
                         alignment: .leading,
                         spacing: 22
                     ) {
-                        ForEach(Array(folder.items.enumerated()), id: \.element.id) { index, app in
+                        ForEach(displayApps, id: \.id) { app in
                             let node = LaunchpadNode.app(app)
-                            let isDragging = dragCoordinator.isDragging
-                            let insertBefore = isDragging && dragCoordinator.reorderTargetIndex == index && dragCoordinator.activeNode?.id != node.id
-                            let insertAfter = isDragging && index == folder.items.count - 1 && dragCoordinator.reorderTargetIndex == folder.items.count && dragCoordinator.activeNode?.id != node.id
 
                             LaunchpadTileView(
                                 node: node,
@@ -103,8 +120,6 @@ struct LaunchpadFolderOverlayView: View {
                                 isBeingDragged: dragCoordinator.activeNode?.id == node.id,
                                 isKeyboardHighlighted: false,
                                 sourceFolderId: folder.id,
-                                showInsertBefore: insertBefore,
-                                showInsertAfter: insertAfter,
                                 onOpenApp: onOpenApp,
                                 onOpenFolder: { _ in },
                                 onRequestTrash: onRequestTrash,
@@ -119,6 +134,7 @@ struct LaunchpadFolderOverlayView: View {
                                             syncDragFrames()
                                         }
                                         .onChange(of: geo.frame(in: .named("LaunchpadCanvas"))) { _, newFrame in
+                                            guard !dragCoordinator.isDragging else { return }
                                             tileFrames[node.id] = newFrame
                                             syncDragFrames()
                                         }
@@ -126,6 +142,7 @@ struct LaunchpadFolderOverlayView: View {
                             )
                         }
                     }
+                    .animation(.spring(response: 0.32, dampingFraction: 0.82), value: displayApps.map(\.id))
                     .padding(.horizontal, 34)
                     .padding(.vertical, 26)
                     .frame(maxWidth: .infinity, alignment: .topLeading)

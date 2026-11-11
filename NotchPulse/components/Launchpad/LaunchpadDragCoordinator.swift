@@ -93,9 +93,22 @@ final class LaunchpadDragCoordinator: ObservableObject {
 
         let isOverlayFolderActive = manager.activeFolderId != nil && !isFolderHiddenForExtraction
 
-        // Check left/right edge auto-page flip only when dragged right up to the outer screen edge
-        if !isOverlayFolderActive && manager.searchQuery.isEmpty && canvasSize.width > 0 {
-            let edgeMargin: CGFloat = 20
+        // Hit-test target tiles FIRST so trying to merge near left/right edge columns never flips pages
+        var foundCenterTarget: String? = nil
+        if !isOverlayFolderActive && !activeNode.isFolder {
+            for id in orderedTileIds where id != activeNode.id {
+                guard let rect = tileFrames[id] else { continue }
+                let centerZone = rect.insetBy(dx: rect.width * 0.18, dy: rect.height * 0.18)
+                if centerZone.contains(location) {
+                    foundCenterTarget = id
+                    break
+                }
+            }
+        }
+
+        // Check left/right edge auto-page flip only when NOT targeting any app/folder and pushed flush against bezel
+        if foundCenterTarget == nil && !isOverlayFolderActive && manager.searchQuery.isEmpty && canvasSize.width > 0 {
+            let edgeMargin: CGFloat = 14
             let desiredDirection: Int?
             if location.x <= edgeMargin && manager.currentPageIndex > 0 {
                 desiredDirection = -1
@@ -117,7 +130,7 @@ final class LaunchpadDragCoordinator: ObservableObject {
                 edgeTurnTask = nil
                 if let dir = desiredDirection {
                     edgeTurnTask = Task { @MainActor [weak self] in
-                        try? await Task.sleep(for: .milliseconds(750))
+                        try? await Task.sleep(for: .milliseconds(850))
                         guard let self, !Task.isCancelled, self.activeNode != nil else { return }
                         let targetPage = manager.currentPageIndex + dir
                         if targetPage >= manager.pages.count {
@@ -138,26 +151,13 @@ final class LaunchpadDragCoordinator: ObservableObject {
             cancelEdgeTimer()
         }
 
-        // Hit-test target tiles
-        var foundCenterTarget: String? = nil
-        if !isOverlayFolderActive && !activeNode.isFolder {
-            for id in orderedTileIds where id != activeNode.id {
-                guard let rect = tileFrames[id] else { continue }
-                let centerZone = rect.insetBy(dx: rect.width * 0.22, dy: rect.height * 0.22)
-                if centerZone.contains(location) {
-                    foundCenterTarget = id
-                    break
-                }
-            }
-        }
-
         if let candidate = foundCenterTarget {
             if pendingMergeCandidateId != candidate {
                 pendingMergeCandidateId = candidate
                 mergeTargetNodeId = nil
                 folderHoverTask?.cancel()
                 folderHoverTask = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(160))
+                    try? await Task.sleep(for: .milliseconds(110))
                     guard let self, !Task.isCancelled, self.pendingMergeCandidateId == candidate else { return }
                     withAnimation(.spring(response: 0.22, dampingFraction: 0.85)) {
                         self.mergeTargetNodeId = candidate
@@ -174,7 +174,12 @@ final class LaunchpadDragCoordinator: ObservableObject {
                     mergeTargetNodeId = nil
                 }
             }
-            reorderTargetIndex = computeNearestInsertIndex(at: location, excluding: activeNode.id)
+            let newIndex = computeNearestInsertIndex(at: location, excluding: activeNode.id)
+            if reorderTargetIndex != newIndex {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                    reorderTargetIndex = newIndex
+                }
+            }
         }
     }
 
@@ -234,26 +239,32 @@ final class LaunchpadDragCoordinator: ObservableObject {
     }
 
     private func computeNearestInsertIndex(at point: CGPoint, excluding excludedId: String) -> Int? {
+        guard !orderedTileIds.isEmpty else { return 0 }
+
+        // Filter out the excluded id so candidate slots map directly to positions in the remaining list
+        let validIds = orderedTileIds.filter { $0 != excludedId }
+        guard !validIds.isEmpty else { return 0 }
+
         var bestIdx: Int?
         var bestDist: CGFloat = .greatestFiniteMagnitude
 
-        for (index, id) in orderedTileIds.enumerated() {
+        for (index, id) in validIds.enumerated() {
             guard let rect = tileFrames[id] else { continue }
             let center = CGPoint(x: rect.midX, y: rect.midY)
             let dist = hypot(point.x - center.x, point.y - center.y)
             if dist < bestDist {
                 bestDist = dist
-                bestIdx = point.x > center.x && id != excludedId ? index + 1 : index
+                bestIdx = point.x > center.x ? index + 1 : index
             }
         }
 
         // Allow dropping into trailing space after the last tile on the page without hijacking last-row labels
-        if let lastId = orderedTileIds.last,
+        if let lastId = validIds.last,
            let lastRect = tileFrames[lastId],
            point.y > lastRect.maxY + 8 || (point.x > lastRect.maxX + 4 && point.y > lastRect.minY) {
-            return orderedTileIds.count
+            return validIds.count
         }
-        return bestIdx
+        return bestIdx.map { max(0, min($0, validIds.count)) }
     }
 
     private func cancelEdgeTimer() {

@@ -50,9 +50,8 @@ struct LaunchpadTileView: View {
     let isBeingDragged: Bool
     let isKeyboardHighlighted: Bool
     var sourceFolderId: UUID? = nil
+    var excludedFolderAppId: String? = nil
     var allowsEditing: Bool = true
-    var showInsertBefore: Bool = false
-    var showInsertAfter: Bool = false
     var onOpenApp: (LaunchpadAppItem) -> Void
     var onOpenFolder: (LaunchpadFolderItem) -> Void
     var onRequestTrash: ((LaunchpadAppItem) -> Void)? = nil
@@ -231,25 +230,7 @@ struct LaunchpadTileView: View {
                 .accessibilityLabel(loc("Move to Trash"))
             }
         }
-        .overlay(alignment: .leading) {
-            if showInsertBefore {
-                Capsule()
-                    .fill(Color.effectiveAccent)
-                    .frame(width: 3, height: iconSize * 0.78)
-                    .offset(x: -4, y: showLabel ? -10 : 0)
-                    .allowsHitTesting(false)
-            }
-        }
-        .overlay(alignment: .trailing) {
-            if showInsertAfter {
-                Capsule()
-                    .fill(Color.effectiveAccent)
-                    .frame(width: 3, height: iconSize * 0.78)
-                    .offset(x: 4, y: showLabel ? -10 : 0)
-                    .allowsHitTesting(false)
-            }
-        }
-        .opacity(isBeingDragged ? 0.22 : 1.0)
+        .opacity(isBeingDragged ? 0.0 : 1.0)
         .rotationEffect(.degrees(isEditingMode && !isBeingDragged ? jiggleAngle : 0))
         .onAppear {
             updateJiggleAnimation()
@@ -271,7 +252,7 @@ struct LaunchpadTileView: View {
             LaunchpadAppIconImage(bundlePath: app.bundlePath, size: iconSize)
 
         case .folder(let folder):
-            LaunchpadFolderThumbnailView(folder: folder, size: iconSize)
+            LaunchpadFolderThumbnailView(folder: folder, size: iconSize, excludedAppId: excludedFolderAppId)
         }
     }
 
@@ -374,9 +355,14 @@ struct LaunchpadTileView: View {
 struct LaunchpadFolderThumbnailView: View {
     let folder: LaunchpadFolderItem
     let size: CGFloat
+    var excludedAppId: String? = nil
 
     var body: some View {
-        let previewApps = Array(folder.items.prefix(9))
+        let previewApps = Array(
+            folder.items
+                .filter { $0.id != excludedAppId }
+                .prefix(9)
+        )
         let boxSize = size * 0.86
         let gridPadding = size * 0.095
         let cellSize = size * 0.19
