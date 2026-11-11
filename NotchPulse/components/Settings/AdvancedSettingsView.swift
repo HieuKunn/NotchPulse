@@ -220,7 +220,7 @@ struct AdvancedSettingsView: View {
             .searchHighlight(highlightedId == "advanced_behavior")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
         .onAppear {
             loadCustomColor()
         }

@@ -134,7 +134,7 @@ struct SystemMonitorSettingsView: View {
             .searchHighlight(highlightedId == "sysmon_cooling")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
         .onAppear {
             monitor.shouldFetchProcesses = (expandedMetric != nil)
             monitor.startMonitoring()

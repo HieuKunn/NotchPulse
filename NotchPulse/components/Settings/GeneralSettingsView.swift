@@ -70,8 +70,8 @@ struct GeneralSettingsView: View {
         guard let uuid = screen.displayUUID else { return nil }
         return (uuid, screen.localizedName)
     }
-    @EnvironmentObject var vm: NotchPulseViewModel
     @ObservedObject var coordinator = NotchPulseViewCoordinator.shared
+    @State private var hasCameraInput: Bool = true
 
     @Default(.mirrorShape) var mirrorShape
     @Default(.showEmojis) var showEmojis
@@ -114,7 +114,11 @@ struct GeneralSettingsView: View {
             Defaults.Toggle(key: .showMirror) {
                 Text(loc("Enable NotchPulse mirror"))
             }
-            .disabled(!checkVideoInput())
+            .disabled(!hasCameraInput)
+            .task {
+                let available = await Task.detached(priority: .utility) { checkVideoInput() }.value
+                hasCameraInput = available
+            }
 
             Picker(loc("Mirror shape"), selection: $mirrorShape) {
                 Text(loc("Circle"))
@@ -522,7 +526,7 @@ struct GeneralSettingsView: View {
                 .searchHighlight(highlightedId == "notch_behavior")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 
     @ViewBuilder

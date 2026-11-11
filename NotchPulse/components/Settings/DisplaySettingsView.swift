@@ -84,7 +84,7 @@ struct DisplaySettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 }
 

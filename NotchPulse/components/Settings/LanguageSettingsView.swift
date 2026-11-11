@@ -24,7 +24,7 @@ struct LanguageSettingsView: View {
             .searchHighlight(highlightedId == "language_display")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 }
 

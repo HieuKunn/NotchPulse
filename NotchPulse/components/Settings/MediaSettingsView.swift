@@ -167,7 +167,7 @@ struct MediaSettingsView: View {
         .onAppear {
             isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()
         }
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 
     private var availableMediaControllers: [MediaControllerType] {

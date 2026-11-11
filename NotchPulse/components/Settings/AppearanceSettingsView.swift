@@ -232,7 +232,7 @@ struct AppearanceSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 }
 

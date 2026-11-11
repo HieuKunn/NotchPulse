@@ -212,7 +212,12 @@ public final class PermissionsManager: ObservableObject {
     }
 
     public func refreshMusicAutomation() {
-        musicAutomationStatus = MediaAutomationPermissionHelper.overallMusicAutomationStatus()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let status = MediaAutomationPermissionHelper.overallMusicAutomationStatus()
+            DispatchQueue.main.async {
+                self?.musicAutomationStatus = status
+            }
+        }
     }
 
     // MARK: - Request Actions

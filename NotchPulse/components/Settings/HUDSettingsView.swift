@@ -4,7 +4,6 @@ import SwiftUI
 
 struct HUDSettingsView: View {
     @Environment(\.settingsHighlightedId) private var highlightedId
-    @EnvironmentObject var vm: NotchPulseViewModel
     @Default(.inlineHUD) var inlineHUD
     @Default(.enableGradient) var enableGradient
     @Default(.optionKeyAction) var optionKeyAction
@@ -121,7 +120,7 @@ struct HUDSettingsView: View {
             .disabled(!Defaults[.hudReplacement])
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
         }

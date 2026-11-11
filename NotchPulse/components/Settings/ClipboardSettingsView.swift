@@ -49,7 +49,7 @@ struct ClipboardSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 }
 

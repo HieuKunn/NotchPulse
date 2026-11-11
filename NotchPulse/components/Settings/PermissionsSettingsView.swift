@@ -57,7 +57,7 @@ struct PermissionsSettingsView: View {
             .searchHighlight(highlightedId == "permissions_unneeded")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
         .onAppear {
             permissions.refreshAll()
         }

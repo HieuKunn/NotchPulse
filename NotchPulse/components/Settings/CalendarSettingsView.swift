@@ -145,7 +145,7 @@ struct CalendarSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
         .onAppear {
             Task {
                 await calendarManager.checkCalendarAuthorization()

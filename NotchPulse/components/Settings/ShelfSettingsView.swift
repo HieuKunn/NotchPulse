@@ -15,10 +15,6 @@ struct ShelfSettingsView: View {
         quickShareService.availableProviders.first(where: { $0.id == quickShareProvider })
     }
 
-    init() {
-        Task { await QuickShareService.shared.discoverAvailableProviders() }
-    }
-
     var body: some View {
         Form {
             Section {
@@ -149,7 +145,12 @@ struct ShelfSettingsView: View {
             .searchHighlight(highlightedId == "shelf_storage")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
+        .task {
+            if quickShareService.availableProviders.isEmpty {
+                await quickShareService.discoverAvailableProviders()
+            }
+        }
     }
 }
 

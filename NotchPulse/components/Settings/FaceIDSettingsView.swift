@@ -43,7 +43,7 @@ struct FaceIDSettingsView: View {
                 .searchHighlight(highlightedId == "faceid_media_player")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
         .onAppear {
             permissions.refreshAll()
             isMusicSyncConfirmed = MediaAutomationPermissionHelper.isSyncConfirmed()

@@ -46,6 +46,8 @@ struct SettingsView: View {
     @State private var scrollTrigger = UUID()
     @Default(.appLanguage) private var appLanguage
 
+    private static let cachedAppIcon: NSImage? = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
+
     let updaterController: SPUStandardUpdaterController?
 
     private let allTabs: [SettingsTabItem] = [
@@ -526,6 +528,13 @@ struct SettingsView: View {
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
         .toggleStyle(.switch)
+        .searchable(
+            text: $searchText,
+            isPresented: $isSearchActive,
+            placement: .sidebar,
+            prompt: loc("Search Settings...")
+        )
+        .tint(.effectiveAccent)
         .frame(minWidth: 720, minHeight: 560)
         .background(Color(nsColor: .windowBackgroundColor))
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
@@ -539,7 +548,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             // Fixed top app identity header
             HStack(spacing: 9) {
-                if let appIcon = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
+                if let appIcon = Self.cachedAppIcon {
                     Image(nsImage: appIcon)
                         .resizable()
                         .scaledToFit()
@@ -555,22 +564,24 @@ struct SettingsView: View {
                     Text("NotchPulse")
                         .font(.headline)
 
-                    Text("v\(Bundle.main.releaseVersionNumber ?? "5.6")")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text("v\(Bundle.main.releaseVersionNumber ?? "5.6")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if let build = Bundle.main.buildVersionNumber, !build.isEmpty {
+                            Text("(\(build))")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
                 }
 
                 Spacer()
             }
             .padding(.horizontal, 16)
-            .padding(.top, 18)
-            .padding(.bottom, 9)
-
-            // Fixed search field so it stays permanently pinned at the top and never scrolls with the list
-            SidebarSearchField(
-                query: $searchText,
-                isPresented: $isSearchActive
-            )
+            .padding(.top, 6)
+            .padding(.bottom, 6)
 
             SettingsSidebarListView(
                 selectedTab: $selectedTab,
@@ -583,6 +594,7 @@ struct SettingsView: View {
                 selectTab: selectTab
             )
         }
+        .background(Color(nsColor: .windowBackgroundColor), ignoresSafeAreaEdges: .all)
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -678,88 +690,27 @@ private struct EnclosingScrollViewSuppressor: NSViewRepresentable {
         let view = NSView()
         DispatchQueue.main.async { [weak view] in
             guard let view = view else { return }
-            var current: NSView? = view
-            while let c = current {
-                if let sv = c as? NSScrollView {
-                    sv.hasVerticalScroller = true
-                    sv.autohidesScrollers = true
-                    sv.scrollerStyle = .overlay
-                    if let scroller = sv.verticalScroller {
-                        scroller.alphaValue = 0
-                        scroller.isHidden = true
-                    }
-                }
-                current = c.superview
-            }
+            Self.suppressEnclosingScrollViews(from: view)
         }
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { [weak nsView] in
-            guard let nsView = nsView else { return }
-            var current: NSView? = nsView
-            while let c = current {
-                if let sv = c as? NSScrollView {
-                    sv.hasVerticalScroller = true
-                    sv.autohidesScrollers = true
-                    sv.scrollerStyle = .overlay
-                    if let scroller = sv.verticalScroller {
-                        scroller.alphaValue = 0
-                        scroller.isHidden = true
-                    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private static func suppressEnclosingScrollViews(from view: NSView) {
+        var current: NSView? = view
+        while let c = current {
+            if let sv = c as? NSScrollView {
+                if !sv.hasVerticalScroller { sv.hasVerticalScroller = true }
+                if !sv.autohidesScrollers { sv.autohidesScrollers = true }
+                if sv.scrollerStyle != .overlay { sv.scrollerStyle = .overlay }
+                if let scroller = sv.verticalScroller, (!scroller.isHidden || scroller.alphaValue != 0) {
+                    scroller.alphaValue = 0
+                    scroller.isHidden = true
                 }
-                current = c.superview
             }
+            current = c.superview
         }
-    }
-}
-
-// MARK: - Sidebar Search Field (Fixed Outside List so Scrolling Never Moves It)
-private struct SidebarSearchField: View {
-    @Binding var query: String
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            TextField(loc("Search Settings..."), text: $query)
-                .textFieldStyle(.plain)
-                .font(.body)
-                .onExitCommand {
-                    query = ""
-                    isPresented = false
-                }
-                .onChange(of: query) { _, newValue in
-                    isPresented = !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                }
-
-            if !query.isEmpty {
-                Button {
-                    query = ""
-                    isPresented = false
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(loc("Clear"))
-            }
-        }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.8), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
-        )
-        .padding(.horizontal, 16)
-        .padding(.top, 2)
-        .padding(.bottom, 8)
     }
 }
 
@@ -823,6 +774,7 @@ private struct SettingsSidebarListView: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
         .scrollIndicators(.never)
         .background(EnclosingScrollViewSuppressor())
         .onChange(of: isSearching) { _, newVal in

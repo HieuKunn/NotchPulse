@@ -10,19 +10,16 @@ final class SettingsWindow: NSWindow {
     override func layoutIfNeeded() {
         super.layoutIfNeeded()
         adjustTrafficLights()
-        suppressScrollBars()
     }
 
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         super.setFrame(frameRect, display: flag)
         adjustTrafficLights()
-        suppressScrollBars()
     }
 
     override func setFrame(_ frameRect: NSRect, display flag: Bool, animate animateFlag: Bool) {
         super.setFrame(frameRect, display: flag, animate: animateFlag)
         adjustTrafficLights()
-        suppressScrollBars()
     }
 
     override func makeKeyAndOrderFront(_ sender: Any?) {
@@ -38,10 +35,10 @@ final class SettingsWindow: NSWindow {
 
     private static func hideScrollers(in view: NSView) {
         if let scrollView = view as? NSScrollView {
-            scrollView.hasVerticalScroller = true
-            scrollView.autohidesScrollers = true
-            scrollView.scrollerStyle = .overlay
-            if let scroller = scrollView.verticalScroller {
+            if !scrollView.hasVerticalScroller { scrollView.hasVerticalScroller = true }
+            if !scrollView.autohidesScrollers { scrollView.autohidesScrollers = true }
+            if scrollView.scrollerStyle != .overlay { scrollView.scrollerStyle = .overlay }
+            if let scroller = scrollView.verticalScroller, (!scroller.isHidden || scroller.alphaValue != 0) {
                 scroller.alphaValue = 0
                 scroller.isHidden = true
             }
@@ -62,10 +59,13 @@ final class SettingsWindow: NSWindow {
             guard let button = standardWindowButton(type),
                   let superview = button.superview else { continue }
             var f = button.frame
-            f.origin.x = trafficLightLeftInset + offset
+            let newX = trafficLightLeftInset + offset
             let newY = superview.isFlipped ? trafficLightTopInset : (superview.bounds.height - f.height - trafficLightTopInset)
-            f.origin.y = newY
-            button.setFrameOrigin(f.origin)
+            if abs(f.origin.x - newX) > 0.5 || abs(f.origin.y - newY) > 0.5 {
+                f.origin.x = newX
+                f.origin.y = newY
+                button.setFrameOrigin(f.origin)
+            }
         }
     }
 }
@@ -113,8 +113,8 @@ class SettingsWindowController: NSWindowController {
         
         window.title = "NotchPulse Settings"
         window.titlebarAppearsTransparent = true
-        window.isOpaque = false
-        window.backgroundColor = .clear
+        window.isOpaque = true
+        window.backgroundColor = .windowBackgroundColor
         window.titleVisibility = .hidden
         window.toolbarStyle = .unified
         window.isMovableByWindowBackground = false

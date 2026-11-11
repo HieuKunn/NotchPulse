@@ -32,7 +32,7 @@ struct ShortcutsSettingsView: View {
             .searchHighlight(highlightedId == "shortcuts_notch")
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 }
 

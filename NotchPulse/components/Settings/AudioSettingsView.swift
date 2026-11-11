@@ -66,7 +66,7 @@ struct AudioSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .accentColor(.effectiveAccent)
+        .tint(.effectiveAccent)
     }
 }
 
