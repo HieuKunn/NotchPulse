@@ -354,6 +354,16 @@ extension Defaults.Keys {
     // MARK: Display Hub & Hardware DDC
     static let enableDisplayHub = Key<Bool>("enableDisplayHub", default: true)
 
+    // MARK: Launchpad Home
+    static let enableLaunchpad = Key<Bool>("enableLaunchpad", default: true)
+    static let launchpadShowInNotch = Key<Bool>("launchpadShowInNotch", default: true)
+    static let launchpadColumns = Key<Int>("launchpadColumns", default: 7)
+    static let launchpadRows = Key<Int>("launchpadRows", default: 5)
+    static let launchpadIconSize = Key<Double>("launchpadIconSize", default: 76.0)
+    static let launchpadShowLabels = Key<Bool>("launchpadShowLabels", default: true)
+    static let launchpadBackgroundStyle = Key<LaunchpadBackgroundStyle>("launchpadBackgroundStyle", default: .systemGlass)
+    static let launchpadHotCorner = Key<LaunchpadHotCorner>("launchpadHotCorner", default: .none)
+
     // MARK: Master Feature Toggles
     static let enableCalendarFeature = Key<Bool>("enableCalendarFeature", default: true)
     static let enableMediaFeature = Key<Bool>("enableMediaFeature", default: true)

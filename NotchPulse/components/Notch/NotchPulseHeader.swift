@@ -9,6 +9,8 @@ struct NotchPulseHeader: View {
     @Default(.enableAudioHub) var enableAudioHub
     @Default(.showAudioHubInNotch) var showAudioHubInNotch
     @Default(.enableDisplayHub) var enableDisplayHub
+    @Default(.enableLaunchpad) var enableLaunchpad
+    @Default(.launchpadShowInNotch) var launchpadShowInNotch
     @Default(.showMirror) var showMirror
     @Default(.settingsIconInNotch) var settingsIconInNotch
 
@@ -56,6 +58,30 @@ struct NotchPulseHeader: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 } else {
                     HStack(spacing: 6) {
+                        if enableLaunchpad && launchpadShowInNotch {
+                            Button(action: {
+                                withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.82)) {
+                                    vm.isShelfPinned = false
+                                    vm.isCalendarPinned = false
+                                    vm.close()
+                                }
+                                DispatchQueue.main.async {
+                                    LaunchpadWindowController.shared.toggle()
+                                }
+                            }) {
+                                Capsule()
+                                    .fill(.black)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        Image(systemName: "square.grid.3x3.fill")
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .imageScale(.medium)
+                                    }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help(loc("Open Launchpad"))
+                        }
                         if enableAudioHub && showAudioHubInNotch {
                             Button(action: {
                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {

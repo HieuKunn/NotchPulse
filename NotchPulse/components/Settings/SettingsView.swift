@@ -12,6 +12,7 @@ enum SettingsDestination: String, CaseIterable, Identifiable {
     case media = "Media"
     case shelf = "Shelf"
     case clipboard = "Clipboard"
+    case launchpad = "Launchpad"
     case calendar = "Calendar"
     case shortcuts = "Shortcuts"
     case hud = "HUD"
@@ -183,6 +184,28 @@ struct SettingsView: View {
                     id: "clipboard_options",
                     title: "Clipboard Options",
                     keywords: ["Clear clipboard history", "History capacity limit", "Image preview thumbnail", "One-click copy", "Relative timestamp"]
+                )
+            ]
+        ),
+        SettingsTabItem(
+            id: .launchpad,
+            icon: "square.grid.3x3.fill",
+            badgeColor: Color.blue,
+            sections: [
+                SettingsSectionItem(
+                    id: "launchpad_general",
+                    title: "Launchpad Home",
+                    keywords: ["Launchpad", "Home", "Enable Launchpad Home", "Open Launchpad", "Hot corner trigger", "Show Launchpad button in Notch", "Ứng dụng"]
+                ),
+                SettingsSectionItem(
+                    id: "launchpad_layout",
+                    title: "Grid & Appearance",
+                    keywords: ["Columns per page", "Rows per page", "Icon size", "Show application names", "Background style", "System Glass", "Dimmed Wallpaper", "Folder"]
+                ),
+                SettingsSectionItem(
+                    id: "launchpad_management",
+                    title: "Applications & Layout",
+                    keywords: ["Refresh Applications", "Reset Layout & Folders", "Indexed applications", "Pages"]
                 )
             ]
         ),
@@ -441,7 +464,7 @@ struct SettingsView: View {
             SettingsSidebarCategory(
                 id: "productivity_category",
                 title: loc("Productivity"),
-                tabs: getTabs([.calendar, .shortcuts])
+                tabs: getTabs([.launchpad, .calendar, .shortcuts])
             ),
             SettingsSidebarCategory(
                 id: "hardware_system_category",
@@ -540,6 +563,9 @@ struct SettingsView: View {
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenLaunchpadSettings"))) { _ in
+            selectedTab = .launchpad
         }
     }
 
@@ -654,6 +680,8 @@ struct SettingsView: View {
             ShelfSettingsView()
         case .clipboard:
             ClipboardSettingsView()
+        case .launchpad:
+            LaunchpadSettingsView()
         case .audio:
             AudioSettingsView()
         case .display:

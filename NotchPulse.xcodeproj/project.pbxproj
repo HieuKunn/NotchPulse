@@ -229,6 +229,14 @@
 		F1D200882ED0000100000001 /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200892ED0000100000001 /* AdvancedSettingsView.swift */; };
 		F1D2008A2ED0000100000001 /* LanguageSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2008B2ED0000100000001 /* LanguageSettingsView.swift */; };
 		F1D2008C2ED0000100000001 /* AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2008D2ED0000100000001 /* AboutSettingsView.swift */; };
+		F1D200922ED0000100000001 /* LaunchpadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200912ED0000100000001 /* LaunchpadModels.swift */; };
+		F1D200942ED0000100000001 /* LaunchpadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200932ED0000100000001 /* LaunchpadManager.swift */; };
+		F1D200962ED0000100000001 /* LaunchpadWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200952ED0000100000001 /* LaunchpadWindowController.swift */; };
+		F1D200982ED0000100000001 /* LaunchpadDragCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200972ED0000100000001 /* LaunchpadDragCoordinator.swift */; };
+		F1D2009A2ED0000100000001 /* LaunchpadTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200992ED0000100000001 /* LaunchpadTileView.swift */; };
+		F1D2009C2ED0000100000001 /* LaunchpadFolderOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009B2ED0000100000001 /* LaunchpadFolderOverlayView.swift */; };
+		F1D2009E2ED0000100000001 /* LaunchpadRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */; };
+		F1D200A02ED0000100000001 /* LaunchpadSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009F2ED0000100000001 /* LaunchpadSettingsView.swift */; };
 		F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */; };
 		F336F53951E9E06D48E20329 /* FaceIDOverlayGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99745487558266047D32839 /* FaceIDOverlayGeometry.swift */; };
 		F8B6F341EE966B181E3F127C /* NotchPulseLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9438603647C24A08005A7C /* NotchPulseLockMonitor.swift */; };
@@ -515,6 +523,14 @@
 		F1D200892ED0000100000001 /* AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsView.swift; sourceTree = "<group>"; };
 		F1D2008B2ED0000100000001 /* LanguageSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSettingsView.swift; sourceTree = "<group>"; };
 		F1D2008D2ED0000100000001 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsView.swift; sourceTree = "<group>"; };
+		F1D200912ED0000100000001 /* LaunchpadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadModels.swift; sourceTree = "<group>"; };
+		F1D200932ED0000100000001 /* LaunchpadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadManager.swift; sourceTree = "<group>"; };
+		F1D200952ED0000100000001 /* LaunchpadWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadWindowController.swift; sourceTree = "<group>"; };
+		F1D200972ED0000100000001 /* LaunchpadDragCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadDragCoordinator.swift; sourceTree = "<group>"; };
+		F1D200992ED0000100000001 /* LaunchpadTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadTileView.swift; sourceTree = "<group>"; };
+		F1D2009B2ED0000100000001 /* LaunchpadFolderOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadFolderOverlayView.swift; sourceTree = "<group>"; };
+		F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadRootView.swift; sourceTree = "<group>"; };
+		F1D2009F2ED0000100000001 /* LaunchpadSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -710,6 +726,7 @@
 				B1AD00012ED0000100000001 /* Audio */,
 				B1DD00012ED0000100000001 /* Display */,
 				B1CB00012ED0000100000001 /* Clipboard */,
+				F1D200902ED0000100000001 /* Launchpad */,
 				F1D2000D2ED0000100000001 /* LockScreen */,
 				B141C23B2CA5F50900AC8CC8 /* Onboarding */,
 				14C08BB72C8DE49E000F8AA0 /* Calendar */,
@@ -1018,6 +1035,7 @@
 				F1D200852ED0000100000001 /* DisplaySettingsView.swift */,
 				F1D200872ED0000100000001 /* ShortcutsSettingsView.swift */,
 				F1D200892ED0000100000001 /* AdvancedSettingsView.swift */,
+				F1D2009F2ED0000100000001 /* LaunchpadSettingsView.swift */,
 				F1D2008B2ED0000100000001 /* LanguageSettingsView.swift */,
 				F1D2008D2ED0000100000001 /* AboutSettingsView.swift */,
 			);
@@ -1125,6 +1143,20 @@
 				F1D2000C2ED0000100000001 /* LockScreenMediaWindow.swift */,
 			);
 			path = LockScreen;
+			sourceTree = "<group>";
+		};
+		F1D200902ED0000100000001 /* Launchpad */ = {
+			isa = PBXGroup;
+			children = (
+				F1D200912ED0000100000001 /* LaunchpadModels.swift */,
+				F1D200932ED0000100000001 /* LaunchpadManager.swift */,
+				F1D200952ED0000100000001 /* LaunchpadWindowController.swift */,
+				F1D200972ED0000100000001 /* LaunchpadDragCoordinator.swift */,
+				F1D200992ED0000100000001 /* LaunchpadTileView.swift */,
+				F1D2009B2ED0000100000001 /* LaunchpadFolderOverlayView.swift */,
+				F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */,
+			);
+			path = Launchpad;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1480,6 +1512,14 @@
 				F1D200882ED0000100000001 /* AdvancedSettingsView.swift in Sources */,
 				F1D2008A2ED0000100000001 /* LanguageSettingsView.swift in Sources */,
 				F1D2008C2ED0000100000001 /* AboutSettingsView.swift in Sources */,
+				F1D200922ED0000100000001 /* LaunchpadModels.swift in Sources */,
+				F1D200942ED0000100000001 /* LaunchpadManager.swift in Sources */,
+				F1D200962ED0000100000001 /* LaunchpadWindowController.swift in Sources */,
+				F1D200982ED0000100000001 /* LaunchpadDragCoordinator.swift in Sources */,
+				F1D2009A2ED0000100000001 /* LaunchpadTileView.swift in Sources */,
+				F1D2009C2ED0000100000001 /* LaunchpadFolderOverlayView.swift in Sources */,
+				F1D2009E2ED0000100000001 /* LaunchpadRootView.swift in Sources */,
+				F1D200A02ED0000100000001 /* LaunchpadSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1502,7 +1542,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 469;
+				CURRENT_PROJECT_VERSION = 470;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1510,7 +1550,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1528,7 +1568,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 469;
+				CURRENT_PROJECT_VERSION = 470;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1536,7 +1576,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = NotchPulseXPCHelper;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulseXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1685,7 +1725,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 469;
+				CURRENT_PROJECT_VERSION = 470;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1712,7 +1752,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1739,7 +1779,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 469;
+				CURRENT_PROJECT_VERSION = 470;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1765,7 +1805,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 5.6;
+				MARKETING_VERSION = 5.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notchpulse.NotchPulse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

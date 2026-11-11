@@ -1,11 +1,18 @@
-## NotchPulse v5.6 (Build 469)
+## NotchPulse v5.7 (Build 470) - Important Release
 
-### ✨ Improvements
-- **Native Settings Search**: Replaced the custom search bar in Settings with macOS's native sidebar search experience.
-- **Unified Settings Appearance**: Matched the Settings sidebar and detail pane backgrounds cleanly with your macOS Light or Dark appearance.
-- **Version & Build Display**: Added the build number in parentheses next to the app version in the Settings sidebar header.
-- **Faster Settings Navigation**: Eliminated background delays and unnecessary refreshes when switching between tabs in Settings.
+This is an important major release introducing the brand-new Launchpad Home, native Settings enhancements, significant speed optimizations, and Face ID setup fixes.
+
+### 🚀 What's New: Launchpad Home
+- **Full-Screen Paged App Grid**: Brings back the classic multi-page application grid on macOS with smooth two-finger trackpad swipe paging, folders, drag-and-drop organization, and instant keyboard search.
+- **Customizable Grid & Layout**: Choose your grid columns and rows, icon size, wallpaper background style, and optional Hot Corner trigger in Settings > Productivity > Launchpad.
+- **Quick Access Everywhere**: Open Launchpad anytime via the new Notch quick button, the menu bar icon, or the global keyboard shortcut (Shift+Command+L).
+
+### ✨ Settings Enhancements & Performance
+- **Native Sidebar Search**: Switched to macOS's native sidebar search bar with smooth live filtering.
+- **Unified Window Appearance**: Synchronized the Settings background with your system Light/Dark appearance.
+- **Instant Tab Switching**: Eliminated lag when navigating between Settings tabs by moving heavy background tasks off the main thread.
+- **Version & Build Display**: Added the build number next to the version in the Settings header.
 
 ### 🐛 Bug Fixes
-- **Face ID Setup Text Visibility in Light Mode**: Fixed an issue where step titles, descriptions, and controls during Face ID setup (including naming your face, entering your password, and the completion screen) blended into the dark notch background when macOS was set to Light Mode.
-- **Consistent Dark Notch Appearance**: Ensured the Face ID notch overlay always uses a dark appearance so prompts, buttons, and input fields remain crisp and legible regardless of your system theme.
+- **Face ID Setup in Light Mode**: Fixed an issue where step titles and password prompts blended into the dark notch background in Light Mode.
+- **Consistent Notch Contrast**: Guaranteed the Face ID overlay uses a dark theme so all text and buttons remain clearly visible.

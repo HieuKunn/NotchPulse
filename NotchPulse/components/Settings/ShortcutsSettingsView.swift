@@ -24,6 +24,7 @@ struct ShortcutsSettingsView: View {
 
             Section {
                 KeyboardShortcuts.Recorder(loc("Toggle Notch Open:"), name: .toggleNotchOpen)
+                KeyboardShortcuts.Recorder(loc("Open Launchpad:"), name: .toggleLaunchpad)
             } header: {
                 Text(loc("Notch"))
                     .id("shortcuts_notch")

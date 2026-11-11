@@ -14,6 +14,7 @@ struct DynamicNotchApp: App {
     @Default(.menubarIcon) var showMenuBarIcon
     @Default(.appLanguage) var appLanguage
     @Default(.notchOpenWidth) var notchOpenWidth
+    @Default(.enableLaunchpad) var enableLaunchpad
     @Environment(\.openWindow) var openWindow
 
     let updaterController: SPUStandardUpdaterController
@@ -47,6 +48,14 @@ struct DynamicNotchApp: App {
                 Button(loc("Custom Dimensions...")) {
                     DispatchQueue.main.async {
                         SettingsWindowController.shared.showWindow()
+                    }
+                }
+            }
+
+            if enableLaunchpad {
+                Button(loc("Open Launchpad")) {
+                    DispatchQueue.main.async {
+                        LaunchpadWindowController.shared.toggle()
                     }
                 }
             }
@@ -207,6 +216,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func onScreenLocked(_ notification: Notification) {
         isScreenLocked = true
+        LaunchpadWindowController.shared.dismiss(restorePreviousApp: false)
 
         self.vm.hideOnClosed = false
         for (_, subVm) in self.viewModels {
@@ -873,6 +883,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        KeyboardShortcuts.onKeyDown(for: .toggleLaunchpad) {
+            LaunchpadWindowController.shared.toggle()
+        }
+
+        LaunchpadWindowController.shared.configureHotCornerMonitor()
 
         if !Defaults[.showOnAllDisplays] {
             let preferredUUID = coordinator.preferredScreenUUID
