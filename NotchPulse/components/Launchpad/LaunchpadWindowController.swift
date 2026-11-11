@@ -44,6 +44,14 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     private var mouseResignObserver: Any?
 
     // Trackpad swipe / scroll wheel paging state
+    var isLaunchpadDragActive: Bool = false {
+        didSet {
+            if oldValue && !isLaunchpadDragActive {
+                lastLaunchpadDragEndedAt = Date()
+            }
+        }
+    }
+    private var lastLaunchpadDragEndedAt: Date = .distantPast
     private var isTrackingHorizontalSwipe = false
     private var accumulatedSwipeX: CGFloat = 0
     private var lastWheelStepTime: Date = .distantPast
@@ -544,6 +552,12 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     }
 
     private func handleScrollWheel(_ event: NSEvent) -> Bool {
+        if isLaunchpadDragActive || Date().timeIntervalSince(lastLaunchpadDragEndedAt) <= 0.35 {
+            isTrackingHorizontalSwipe = false
+            accumulatedSwipeX = 0
+            swipeState.offset = 0
+            return true
+        }
         let manager = LaunchpadManager.shared
         guard manager.activeFolderId == nil, manager.searchQuery.isEmpty else {
             return false
@@ -622,6 +636,10 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     }
 
     func applyHorizontalSwipe(rawDeltaX: CGFloat) {
+        guard !isLaunchpadDragActive, Date().timeIntervalSince(lastLaunchpadDragEndedAt) > 0.35 else {
+            swipeState.offset = 0
+            return
+        }
         let manager = LaunchpadManager.shared
         let atLeadingEdge = manager.currentPageIndex == 0 && rawDeltaX > 0
         let atTrailingEdge = manager.currentPageIndex >= manager.pages.count - 1 && rawDeltaX < 0
@@ -629,6 +647,10 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     }
 
     func commitHorizontalSwipe(deltaX: CGFloat, predictedDeltaX: CGFloat, pageWidth: CGFloat) {
+        guard !isLaunchpadDragActive, Date().timeIntervalSince(lastLaunchpadDragEndedAt) > 0.35 else {
+            swipeState.offset = 0
+            return
+        }
         panel?.makeFirstResponder(nil)
         let manager = LaunchpadManager.shared
         let effectiveWidth = max(1, pageWidth)

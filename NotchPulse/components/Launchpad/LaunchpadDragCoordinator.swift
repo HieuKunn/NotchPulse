@@ -98,7 +98,7 @@ final class LaunchpadDragCoordinator: ObservableObject {
         if !isOverlayFolderActive && !activeNode.isFolder {
             for id in orderedTileIds where id != activeNode.id {
                 guard let rect = tileFrames[id] else { continue }
-                let centerZone = rect.insetBy(dx: rect.width * 0.18, dy: rect.height * 0.18)
+                let centerZone = rect.insetBy(dx: rect.width * 0.22, dy: rect.height * 0.22)
                 if centerZone.contains(location) {
                     foundCenterTarget = id
                     break
@@ -106,9 +106,13 @@ final class LaunchpadDragCoordinator: ObservableObject {
             }
         }
 
-        // Check left/right edge auto-page flip only when NOT targeting any app/folder and pushed flush against bezel
-        if foundCenterTarget == nil && !isOverlayFolderActive && manager.searchQuery.isEmpty && canvasSize.width > 0 {
-            let edgeMargin: CGFloat = 14
+        let isNearAnyTile = !isOverlayFolderActive && tileFrames.values.contains {
+            $0.insetBy(dx: -18, dy: -18).contains(location)
+        }
+
+        // Check left/right edge auto-page flip only when strictly flush against outer screen bezel and away from any tile
+        if foundCenterTarget == nil && !isNearAnyTile && mergeTargetNodeId == nil && !isOverlayFolderActive && manager.searchQuery.isEmpty && canvasSize.width > 0 {
+            let edgeMargin: CGFloat = 8
             let desiredDirection: Int?
             if location.x <= edgeMargin && manager.currentPageIndex > 0 {
                 desiredDirection = -1
@@ -131,7 +135,7 @@ final class LaunchpadDragCoordinator: ObservableObject {
                 if let dir = desiredDirection {
                     edgeTurnTask = Task { @MainActor [weak self] in
                         try? await Task.sleep(for: .milliseconds(850))
-                        guard let self, !Task.isCancelled, self.activeNode != nil else { return }
+                        guard let self, !Task.isCancelled, self.activeNode != nil, self.mergeTargetNodeId == nil else { return }
                         let targetPage = manager.currentPageIndex + dir
                         if targetPage >= manager.pages.count {
                             _ = manager.ensurePage(at: targetPage)
@@ -157,11 +161,19 @@ final class LaunchpadDragCoordinator: ObservableObject {
                 mergeTargetNodeId = nil
                 folderHoverTask?.cancel()
                 folderHoverTask = Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(110))
+                    try? await Task.sleep(for: .milliseconds(160))
                     guard let self, !Task.isCancelled, self.pendingMergeCandidateId == candidate else { return }
                     withAnimation(.spring(response: 0.22, dampingFraction: 0.85)) {
                         self.mergeTargetNodeId = candidate
                         self.reorderTargetIndex = nil
+                    }
+                }
+            }
+            if mergeTargetNodeId == nil {
+                let newIndex = computeNearestInsertIndex(at: location, excluding: activeNode.id)
+                if reorderTargetIndex != newIndex {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        reorderTargetIndex = newIndex
                     }
                 }
             }
@@ -189,6 +201,9 @@ final class LaunchpadDragCoordinator: ObservableObject {
             return
         }
 
+        let resolvedMergeId = mergeTargetNodeId
+        let resolvedReorderIdx = reorderTargetIndex
+        cancelEdgeTimer()
         defer { resetState() }
 
         let currentPage = max(0, min(manager.currentPageIndex, max(0, manager.pages.count - 1)))
@@ -196,27 +211,33 @@ final class LaunchpadDragCoordinator: ObservableObject {
         // Case 1: Dragging an app that started inside a folder
         if let originFolderId = sourceFolderId {
             if !isFolderHiddenForExtraction, manager.activeFolderId == originFolderId, let app = draggedNode.asApp {
-                if let targetIdx = reorderTargetIndex {
-                    manager.reorderApp(app.id, insideFolder: originFolderId, toIndex: targetIdx)
+                if let targetIdx = resolvedReorderIdx {
+                    withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
+                        manager.reorderApp(app.id, insideFolder: originFolderId, toIndex: targetIdx)
+                    }
                 }
             } else if let app = draggedNode.asApp {
-                if let mergeId = mergeTargetNodeId, !mergeId.hasPrefix("folder:") {
-                    manager.moveAppOutOfFolder(appId: app.id, fromFolder: originFolderId, toPage: currentPage, index: nil)
-                    manager.dropNode(draggedNode.id, onto: mergeId)
-                } else if let mergeId = mergeTargetNodeId, mergeId.hasPrefix("folder:"),
-                          let targetFolderUUID = UUID(uuidString: String(mergeId.dropFirst("folder:".count))) {
-                    manager.moveAppOutOfFolder(appId: app.id, fromFolder: originFolderId, toPage: currentPage, index: nil)
-                    manager.addApp(app.id, toFolder: targetFolderUUID)
-                } else {
-                    manager.moveAppOutOfFolder(appId: app.id, fromFolder: originFolderId, toPage: currentPage, index: reorderTargetIndex)
+                withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
+                    if let mergeId = resolvedMergeId, !mergeId.hasPrefix("folder:") {
+                        manager.moveAppOutOfFolder(appId: app.id, fromFolder: originFolderId, toPage: currentPage, index: nil)
+                        manager.dropNode(draggedNode.id, onto: mergeId)
+                    } else if let mergeId = resolvedMergeId, mergeId.hasPrefix("folder:"),
+                              let targetFolderUUID = UUID(uuidString: String(mergeId.dropFirst("folder:".count))) {
+                        if targetFolderUUID != originFolderId {
+                            manager.moveAppOutOfFolder(appId: app.id, fromFolder: originFolderId, toPage: currentPage, index: nil)
+                            manager.addApp(app.id, toFolder: targetFolderUUID)
+                        }
+                    } else {
+                        manager.moveAppOutOfFolder(appId: app.id, fromFolder: originFolderId, toPage: currentPage, index: resolvedReorderIdx)
+                    }
+                    manager.activeFolderId = nil
                 }
-                manager.activeFolderId = nil
             }
             return
         }
 
         // Case 2: Main grid drop onto another node -> merge into folder / add to folder
-        if let mergeId = mergeTargetNodeId {
+        if let mergeId = resolvedMergeId {
             withAnimation(.spring(response: 0.30, dampingFraction: 0.84)) {
                 manager.dropNode(draggedNode.id, onto: mergeId)
             }
@@ -224,7 +245,7 @@ final class LaunchpadDragCoordinator: ObservableObject {
         }
 
         // Case 3: Reorder or cross-page move
-        if let insertIdx = reorderTargetIndex {
+        if let insertIdx = resolvedReorderIdx {
             withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
                 manager.moveNode(nodeId: draggedNode.id, toPage: currentPage, index: insertIdx)
             }

@@ -130,6 +130,7 @@ struct LaunchpadFolderOverlayView: View {
                                 GeometryReader { geo in
                                     Color.clear
                                         .onAppear {
+                                            guard !dragCoordinator.isDragging else { return }
                                             tileFrames[node.id] = geo.frame(in: .named("LaunchpadCanvas"))
                                             syncDragFrames()
                                         }
@@ -199,6 +200,7 @@ struct LaunchpadFolderOverlayView: View {
     }
 
     private func syncDragFrames() {
+        guard !dragCoordinator.isFolderHiddenForExtraction else { return }
         dragCoordinator.updateTileFrames(
             orderedIds: folder.items.map { "app:\($0.id)" },
             frames: tileFrames

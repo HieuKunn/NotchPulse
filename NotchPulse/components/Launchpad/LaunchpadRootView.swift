@@ -86,9 +86,9 @@ private struct LaunchpadVisualEffectBackdrop: NSViewRepresentable {
     }
 }
 
-/// Subclassed NSSearchField that refuses automatic AppKit focus when the panel opens,
-/// only becoming first responder on explicit pointer click or type-to-search.
-private final class LaunchpadSearchField: NSSearchField {
+/// Subclassed NSTextField (instead of NSSearchField) so the magnifying glass icon and text input
+/// live in isolated layout frames, preventing icon/text overlap while refusing auto-focus on panel open.
+private final class LaunchpadSearchTextField: NSTextField {
     var allowFirstResponder: Bool = false
 
     override var canBecomeKeyView: Bool {
@@ -106,15 +106,18 @@ private final class LaunchpadSearchField: NSSearchField {
     }
 }
 
-/// Container that forwards clicks in the pill padding directly to the embedded search field.
+/// Container that forwards clicks anywhere on the pill (including over the icon/padding) to the text field.
 private final class LaunchpadSearchContainerView: NSView {
-    weak var searchField: LaunchpadSearchField?
+    weak var textField: LaunchpadSearchTextField?
 
     override func mouseDown(with event: NSEvent) {
-        if let field = searchField {
+        if let field = textField {
             field.allowFirstResponder = true
             if window?.firstResponder != field.currentEditor() {
                 window?.makeFirstResponder(field)
+                if let editor = field.currentEditor() as? NSTextView {
+                    editor.setSelectedRange(NSRange(location: field.stringValue.count, length: 0))
+                }
             }
         } else {
             super.mouseDown(with: event)
@@ -122,16 +125,17 @@ private final class LaunchpadSearchContainerView: NSView {
     }
 }
 
-/// Pure AppKit NSSearchField embedded inside native Liquid Glass (NSGlassEffectView on macOS 26+).
+/// Settings-matched capsule Search field embedded inside native Liquid Glass (NSGlassEffectView on macOS 26+).
 private struct LaunchpadNativeSearchField: NSViewRepresentable {
     @Binding var text: String
     var placeholder: String
     var onSubmit: () -> Void
     var focusToken: Int
 
-    final class Coordinator: NSObject, NSSearchFieldDelegate {
+    final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: LaunchpadNativeSearchField
-        weak var searchField: LaunchpadSearchField?
+        weak var textField: LaunchpadSearchTextField?
+        weak var clearButton: NSButton?
         var lastFocusToken: Int = 0
         var lastPlaceholder: String = ""
 
@@ -140,12 +144,13 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
         }
 
         func controlTextDidChange(_ notification: Notification) {
-            guard let field = notification.object as? NSSearchField else { return }
+            guard let field = notification.object as? NSTextField else { return }
             parent.text = field.stringValue
+            clearButton?.isHidden = field.stringValue.isEmpty
         }
 
         func controlTextDidEndEditing(_ obj: Notification) {
-            (obj.object as? LaunchpadSearchField)?.allowFirstResponder = false
+            (obj.object as? LaunchpadSearchTextField)?.allowFirstResponder = false
         }
 
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
@@ -156,13 +161,20 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
             if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
                 if !parent.text.isEmpty {
                     parent.text = ""
-                    searchField?.stringValue = ""
-                    searchField?.allowFirstResponder = false
-                    searchField?.window?.makeFirstResponder(nil)
+                    textField?.stringValue = ""
+                    clearButton?.isHidden = true
+                    textField?.allowFirstResponder = false
+                    textField?.window?.makeFirstResponder(nil)
                     return true
                 }
             }
             return false
+        }
+
+        @objc func clearTapped() {
+            parent.text = ""
+            textField?.stringValue = ""
+            clearButton?.isHidden = true
         }
     }
 
@@ -171,32 +183,67 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSView {
-        let field = LaunchpadSearchField()
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
+        let iconView = NSImageView()
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: nil)?
+            .withSymbolConfiguration(iconConfig)
+        iconView.contentTintColor = .secondaryLabelColor
+        iconView.setContentHuggingPriority(.required, for: .horizontal)
+        iconView.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let field = LaunchpadSearchTextField()
         field.translatesAutoresizingMaskIntoConstraints = false
         field.isBordered = false
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
         field.usesSingleLineMode = true
-        field.controlSize = .regular
+        field.lineBreakMode = .byClipping
+        field.cell?.isScrollable = true
+        field.cell?.wraps = false
         field.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
         field.textColor = .labelColor
-        field.sendsSearchStringImmediately = true
-        field.sendsWholeSearchString = false
         field.delegate = context.coordinator
-        context.coordinator.searchField = field
+        context.coordinator.textField = field
         context.coordinator.lastPlaceholder = placeholder
-
         applyPlaceholder(to: field)
+
+        let clearButton = NSButton()
+        clearButton.translatesAutoresizingMaskIntoConstraints = false
+        clearButton.isBordered = false
+        clearButton.bezelStyle = .regularSquare
+        clearButton.title = ""
+        clearButton.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 13, weight: .regular))
+        clearButton.contentTintColor = .secondaryLabelColor
+        clearButton.target = context.coordinator
+        clearButton.action = #selector(Coordinator.clearTapped)
+        clearButton.isHidden = text.isEmpty
+        clearButton.setContentHuggingPriority(.required, for: .horizontal)
+        context.coordinator.clearButton = clearButton
 
         let innerContainer = LaunchpadSearchContainerView()
         innerContainer.translatesAutoresizingMaskIntoConstraints = false
-        innerContainer.searchField = field
+        innerContainer.textField = field
+        innerContainer.addSubview(iconView)
         innerContainer.addSubview(field)
+        innerContainer.addSubview(clearButton)
+
         NSLayoutConstraint.activate([
-            field.leadingAnchor.constraint(equalTo: innerContainer.leadingAnchor, constant: 10),
-            field.trailingAnchor.constraint(equalTo: innerContainer.trailingAnchor, constant: -10),
-            field.centerYAnchor.constraint(equalTo: innerContainer.centerYAnchor)
+            iconView.leadingAnchor.constraint(equalTo: innerContainer.leadingAnchor, constant: 12),
+            iconView.centerYAnchor.constraint(equalTo: innerContainer.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 15),
+            iconView.heightAnchor.constraint(equalToConstant: 15),
+
+            field.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 7),
+            field.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -4),
+            field.centerYAnchor.constraint(equalTo: innerContainer.centerYAnchor),
+
+            clearButton.trailingAnchor.constraint(equalTo: innerContainer.trailingAnchor, constant: -10),
+            clearButton.centerYAnchor.constraint(equalTo: innerContainer.centerYAnchor),
+            clearButton.widthAnchor.constraint(equalToConstant: 16),
+            clearButton.heightAnchor.constraint(equalToConstant: 16)
         ])
 
         if #available(macOS 26.0, *),
@@ -229,11 +276,13 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        guard let field = context.coordinator.searchField else { return }
+        guard let field = context.coordinator.textField else { return }
 
         if field.stringValue != text {
             field.stringValue = text
         }
+        context.coordinator.clearButton?.isHidden = text.isEmpty
+
         if context.coordinator.lastPlaceholder != placeholder {
             context.coordinator.lastPlaceholder = placeholder
             applyPlaceholder(to: field)
@@ -253,9 +302,8 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
         }
     }
 
-    private func applyPlaceholder(to field: NSSearchField) {
-        guard let cell = field.cell as? NSSearchFieldCell else { return }
-        cell.placeholderAttributedString = NSAttributedString(
+    private func applyPlaceholder(to field: NSTextField) {
+        field.placeholderAttributedString = NSAttributedString(
             string: placeholder,
             attributes: [
                 .foregroundColor: NSColor.secondaryLabelColor,
@@ -328,9 +376,8 @@ struct LaunchpadRootView: View {
                 .frame(width: size.width, height: size.height)
                 .scaleEffect(zoomScale)
                 .scaleEffect(isFolderVisuallyOpen ? 0.94 : 1.0)
-                .conditionalModifier(isFolderVisuallyOpen) { view in
-                    view.blur(radius: 10).opacity(0.42)
-                }
+                .blur(radius: isFolderVisuallyOpen ? 10 : 0)
+                .opacity(isFolderVisuallyOpen ? 0.42 : 1.0)
 
                 if let activeFolder = manager.activeFolder {
                     LaunchpadFolderOverlayView(
@@ -350,11 +397,6 @@ struct LaunchpadRootView: View {
                     .opacity(dragCoordinator.isFolderHiddenForExtraction ? 0 : 1)
                     .allowsHitTesting(!dragCoordinator.isFolderHiddenForExtraction)
                     .zIndex(20)
-                }
-
-                if let edgeDir = dragCoordinator.edgeTurnDirection, dragCoordinator.isDragging {
-                    edgeTurnIndicator(direction: edgeDir)
-                        .zIndex(25)
                 }
 
                 if let draggedNode = dragCoordinator.activeNode {
@@ -378,6 +420,13 @@ struct LaunchpadRootView: View {
             }
             .onChange(of: size) { _, newSize in
                 dragCoordinator.updateCanvasSize(newSize)
+            }
+            .onChange(of: dragCoordinator.isDragging) { _, dragging in
+                windowController.isLaunchpadDragActive = dragging
+                if dragging {
+                    isMouseSwipingPage = false
+                    windowController.swipeState.offset = 0
+                }
             }
             .onChange(of: windowController.currentScreenWallpaperURL) { _, _ in
                 loadWallpaperIfNeeded()
@@ -523,12 +572,49 @@ struct LaunchpadRootView: View {
         let pageTopOffset = windowController.topNotchSafeInset + 44
 
         ZStack {
-            // Keep background-dismiss hit target strictly behind interactive app/folder tiles
+            // Keep background-dismiss and empty-space swipe strictly behind interactive app/folder tiles
+            // so dragging or grouping icons NEVER triggers an accidental tab switch on release.
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture {
                     handleBackgroundTap()
                 }
+                .gesture(
+                    DragGesture(minimumDistance: 14, coordinateSpace: .local)
+                        .onChanged { value in
+                            guard !dragCoordinator.isDragging,
+                                  !windowController.isLaunchpadDragActive,
+                                  manager.activeFolderId == nil,
+                                  manager.searchQuery.isEmpty,
+                                  manager.pages.count > 1 else {
+                                return
+                            }
+                            if !isMouseSwipingPage {
+                                guard abs(value.translation.width) >= abs(value.translation.height) * 1.15 else {
+                                    return
+                                }
+                                isMouseSwipingPage = true
+                            }
+                            windowController.applyHorizontalSwipe(rawDeltaX: value.translation.width)
+                        }
+                        .onEnded { value in
+                            guard isMouseSwipingPage,
+                                  !dragCoordinator.isDragging,
+                                  !windowController.isLaunchpadDragActive else {
+                                isMouseSwipingPage = false
+                                windowController.swipeState.offset = 0
+                                return
+                            }
+                            windowController.commitHorizontalSwipe(
+                                deltaX: value.translation.width,
+                                predictedDeltaX: value.predictedEndTranslation.width,
+                                pageWidth: pageWidth
+                            )
+                            DispatchQueue.main.async {
+                                isMouseSwipingPage = false
+                            }
+                        }
+                )
 
             LaunchpadCarouselOffsetContainer(
                 swipeState: windowController.swipeState,
@@ -571,35 +657,6 @@ struct LaunchpadRootView: View {
         .frame(width: pageWidth, alignment: .leading)
         .frame(maxHeight: .infinity)
         .clipped()
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 12, coordinateSpace: .local)
-                .onChanged { value in
-                    guard !dragCoordinator.isDragging,
-                          manager.activeFolderId == nil,
-                          manager.searchQuery.isEmpty,
-                          manager.pages.count > 1 else {
-                        return
-                    }
-                    if !isMouseSwipingPage {
-                        guard abs(value.translation.width) >= abs(value.translation.height) * 1.15 else {
-                            return
-                        }
-                        isMouseSwipingPage = true
-                    }
-                    windowController.applyHorizontalSwipe(rawDeltaX: value.translation.width)
-                }
-                .onEnded { value in
-                    guard isMouseSwipingPage else { return }
-                    windowController.commitHorizontalSwipe(
-                        deltaX: value.translation.width,
-                        predictedDeltaX: value.predictedEndTranslation.width,
-                        pageWidth: pageWidth
-                    )
-                    DispatchQueue.main.async {
-                        isMouseSwipingPage = false
-                    }
-                }
-        )
     }
 
     // MARK: - Search Results Grid
@@ -662,34 +719,6 @@ struct LaunchpadRootView: View {
             }
         }
     }
-
-    // MARK: - Drag Helpers
-
-    @ViewBuilder
-    private func edgeTurnIndicator(direction: Int) -> some View {
-        HStack {
-            if direction < 0 {
-                Image(systemName: "chevron.compact.left")
-                    .font(.system(size: 38, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .padding(18)
-                    .background(.regularMaterial, in: Circle())
-                    .padding(.leading, 24)
-                Spacer()
-            } else {
-                Spacer()
-                Image(systemName: "chevron.compact.right")
-                    .font(.system(size: 38, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .padding(18)
-                    .background(.regularMaterial, in: Circle())
-                    .padding(.trailing, 24)
-            }
-        }
-        .allowsHitTesting(false)
-        .transition(.opacity)
-    }
-
 }
 
 /// Dedicated 120Hz drag preview view so pointer motion only updates this single overlay.
@@ -839,6 +868,10 @@ private struct LaunchpadPageGridView: View {
         "LaunchpadPage_\(page.id.uuidString)"
     }
 
+    private var isLayoutFrozen: Bool {
+        dragCoordinator.isDragging || (manager.activeFolderId != nil && !dragCoordinator.isFolderHiddenForExtraction)
+    }
+
     private var displayNodes: [LaunchpadNode] {
         guard dragCoordinator.isDragging,
               isCurrentPage,
@@ -889,10 +922,11 @@ private struct LaunchpadPageGridView: View {
                     GeometryReader { geo in
                         Color.clear
                             .onAppear {
+                                guard !isLayoutFrozen else { return }
                                 frameStore.frames[node.id] = geo.frame(in: .named(pageCoordSpaceName))
                             }
                             .onChange(of: geo.frame(in: .named(pageCoordSpaceName))) { _, newRect in
-                                guard !dragCoordinator.isDragging else { return }
+                                guard !isLayoutFrozen else { return }
                                 frameStore.frames[node.id] = newRect
                             }
                     }
@@ -906,9 +940,11 @@ private struct LaunchpadPageGridView: View {
             GeometryReader { geo in
                 Color.clear
                     .onAppear {
+                        guard !isLayoutFrozen else { return }
                         frameStore.originY = geo.frame(in: .named("LaunchpadCanvas")).minY
                     }
                     .onChange(of: geo.frame(in: .named("LaunchpadCanvas")).minY) { _, newY in
+                        guard !isLayoutFrozen else { return }
                         frameStore.originY = newY
                     }
             }

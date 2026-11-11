@@ -350,6 +350,7 @@ final class LaunchpadManager: ObservableObject {
         let normalizedTargetPage = ensurePage(at: targetPageIndex)
 
         var workingPages = pages
+        let stayingPageId = workingPages[normalizedTargetPage].id
         let node = workingPages[source.pageIndex].nodes.remove(at: source.nodeIndex)
 
         var destinationIndex: Int
@@ -363,6 +364,9 @@ final class LaunchpadManager: ObservableObject {
         pages = workingPages
         reflowOverflowIfNeeded(saveAfter: false)
         pruneEmptyPages()
+        if let preservedIdx = pages.firstIndex(where: { $0.id == stayingPageId }) {
+            currentPageIndex = preservedIdx
+        }
     }
 
     func dropNode(_ draggedNodeId: String, onto targetNodeId: String) {
@@ -377,6 +381,7 @@ final class LaunchpadManager: ObservableObject {
         switch (draggedNode, targetNode) {
         case (.app(let draggedApp), .app(let targetApp)):
             var workingPages = pages
+            let stayingPageId = workingPages[target.pageIndex].id
             let folder = LaunchpadFolderItem(
                 id: UUID(),
                 name: Self.suggestedFolderName(for: targetApp, and: draggedApp),
@@ -393,9 +398,13 @@ final class LaunchpadManager: ObservableObject {
             workingPages[source.pageIndex].nodes.remove(at: removeIdx)
             pages = workingPages
             pruneEmptyPages()
+            if let preservedIdx = pages.firstIndex(where: { $0.id == stayingPageId }) {
+                currentPageIndex = preservedIdx
+            }
 
         case (.app(let draggedApp), .folder(var targetFolder)):
             var workingPages = pages
+            let stayingPageId = workingPages[target.pageIndex].id
             if !targetFolder.items.contains(where: { $0.id == draggedApp.id }) {
                 targetFolder.items.append(draggedApp)
             }
@@ -403,6 +412,9 @@ final class LaunchpadManager: ObservableObject {
             workingPages[source.pageIndex].nodes.remove(at: source.nodeIndex)
             pages = workingPages
             pruneEmptyPages()
+            if let preservedIdx = pages.firstIndex(where: { $0.id == stayingPageId }) {
+                currentPageIndex = preservedIdx
+            }
 
         case (.folder, _):
             moveNode(nodeId: draggedNodeId, toPage: target.pageIndex, index: target.nodeIndex)
@@ -433,8 +445,11 @@ final class LaunchpadManager: ObservableObject {
         let normalizedTargetPage = ensurePage(at: targetPageIndex)
 
         var workingPages = pages
+        let stayingPageId = workingPages[normalizedTargetPage].id
+        var removedEmptyFolderFromPage = false
         if folder.items.isEmpty {
             workingPages[folderLoc.pageIndex].nodes.remove(at: folderLoc.nodeIndex)
+            removedEmptyFolderFromPage = true
         } else if folder.items.count == 1 {
             // Classic Launchpad behavior: unwrap 1-item folder back to standalone app
             workingPages[folderLoc.pageIndex].nodes[folderLoc.nodeIndex] = .app(folder.items[0])
@@ -443,7 +458,11 @@ final class LaunchpadManager: ObservableObject {
         }
 
         let safeTargetPage = min(normalizedTargetPage, workingPages.count - 1)
-        let insertIdx = max(0, min(targetIndex ?? workingPages[safeTargetPage].nodes.count, workingPages[safeTargetPage].nodes.count))
+        var rawInsert = targetIndex ?? workingPages[safeTargetPage].nodes.count
+        if removedEmptyFolderFromPage && folderLoc.pageIndex == safeTargetPage && folderLoc.nodeIndex < rawInsert {
+            rawInsert -= 1
+        }
+        let insertIdx = max(0, min(rawInsert, workingPages[safeTargetPage].nodes.count))
         workingPages[safeTargetPage].nodes.insert(.app(extractedApp), at: insertIdx)
 
         pages = workingPages
@@ -452,6 +471,9 @@ final class LaunchpadManager: ObservableObject {
         }
         reflowOverflowIfNeeded(saveAfter: false)
         pruneEmptyPages()
+        if let preservedIdx = pages.firstIndex(where: { $0.id == stayingPageId }) {
+            currentPageIndex = preservedIdx
+        }
     }
 
     func reorderApp(_ appId: String, insideFolder folderId: UUID, toIndex targetIndex: Int) {
