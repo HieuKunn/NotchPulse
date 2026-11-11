@@ -550,11 +550,6 @@ struct SettingsView: View {
         .navigationSplitViewStyle(.balanced)
         .formStyle(.grouped)
         .toggleStyle(.switch)
-        .searchable(
-            text: $searchText,
-            placement: .sidebar,
-            prompt: loc("Search")
-        )
         .tint(.effectiveAccent)
         .frame(minWidth: 720, minHeight: 560)
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
@@ -568,54 +563,21 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var settingsSidebar: some View {
-        VStack(spacing: 0) {
-            // Fixed top app identity header
-            HStack(spacing: 9) {
-                if let appIcon = Self.cachedAppIcon {
-                    Image(nsImage: appIcon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                } else {
-                    Image(systemName: "sparkles")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 6) {
-                    Text("NotchPulse")
-                        .font(.headline)
-
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text("v\(Bundle.main.releaseVersionNumber ?? "5.6")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        if let build = Bundle.main.buildVersionNumber, !build.isEmpty {
-                            Text("(\(build))")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 6)
-            .padding(.bottom, 6)
-
-            SettingsSidebarListView(
-                selectedTab: $selectedTab,
-                searchText: $searchText,
-                filteredTabs: filteredTabs,
-                categories: categorizedSections,
-                matchingSections: matchingSections(for:),
-                tabTitle: tabTitle(for:),
-                selectTab: selectTab
-            )
-        }
+        SettingsSidebarListView(
+            appIcon: Self.cachedAppIcon,
+            selectedTab: $selectedTab,
+            searchText: $searchText,
+            filteredTabs: filteredTabs,
+            categories: categorizedSections,
+            matchingSections: matchingSections(for:),
+            tabTitle: tabTitle(for:),
+            selectTab: selectTab
+        )
+        .searchable(
+            text: $searchText,
+            placement: .sidebar,
+            prompt: loc("Search")
+        )
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -741,6 +703,7 @@ private struct EnclosingScrollViewSuppressor: NSViewRepresentable {
 
 private struct SettingsSidebarListView: View {
     @Environment(\.isSearching) private var isSearching
+    let appIcon: NSImage?
     @Binding var selectedTab: SettingsDestination
     @Binding var searchText: String
     let filteredTabs: [SettingsTabItem]
@@ -786,6 +749,40 @@ private struct SettingsSidebarListView: View {
                     }
                 }
             } else {
+                Section {
+                    HStack(spacing: 10) {
+                        if let appIcon {
+                            Image(nsImage: appIcon)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 28, height: 28)
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        } else {
+                            Image(systemName: "sparkles")
+                                .font(.title2)
+                                .foregroundStyle(.tint)
+                        }
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("NotchPulse")
+                                .font(.headline)
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text("v\(Bundle.main.releaseVersionNumber ?? "5.7")")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                if let build = Bundle.main.buildVersionNumber, !build.isEmpty {
+                                    Text("(\(build))")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.vertical, 2)
+                }
+
                 ForEach(categories) { category in
                     Section(header: Text(category.title)) {
                         ForEach(category.tabs) { tab in

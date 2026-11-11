@@ -15,6 +15,7 @@ final class BluetoothHeadphoneManager: NSObject {
     private static var lastProfilerQuery: Date = .distantPast
 
     private var connectNotification: IOBluetoothUserNotification?
+    private var permissionCentralManager: CBCentralManager?
     private var lastTriggerTime: Date = .distantPast
     private var lastConnectedDeviceAddress: String = ""
     private var lastAnnouncedDeviceName: String = ""
@@ -405,6 +406,27 @@ final class BluetoothHeadphoneManager: NSObject {
         }
     }
 
+    @MainActor
+    func requestBluetoothAuthorizationIfNeeded() {
+        let auth = CBManager.authorization
+        if auth == .allowedAlways {
+            ensureBluetoothNotificationsRegistered()
+            PermissionsManager.shared.refreshBluetooth()
+            return
+        }
+        guard auth == .notDetermined else {
+            PermissionsManager.shared.openSystemSettings(for: .bluetooth)
+            return
+        }
+        if permissionCentralManager == nil {
+            permissionCentralManager = CBCentralManager(
+                delegate: self,
+                queue: .main,
+                options: [CBCentralManagerOptionShowPowerAlertKey: false]
+            )
+        }
+    }
+
     /// Pure helper determining whether headphone battery should trigger a HUD announcement.
     /// Significant battery changes (>= threshold) announce immediately; minor changes (< threshold)
     /// within minInterval are debounced to avoid fluttering HUD notifications.
@@ -432,5 +454,17 @@ final class BluetoothHeadphoneManager: NSObject {
         }
 
         return delta > 0
+    }
+}
+
+extension BluetoothHeadphoneManager: CBCentralManagerDelegate {
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        permissionCentralManager = nil
+        Task { @MainActor in
+            if CBManager.authorization == .allowedAlways {
+                self.ensureBluetoothNotificationsRegistered()
+            }
+            PermissionsManager.shared.refreshBluetooth()
+        }
     }
 }

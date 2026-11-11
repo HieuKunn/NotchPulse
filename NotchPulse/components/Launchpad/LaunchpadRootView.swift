@@ -56,6 +56,7 @@ final class LaunchpadBlurredWallpaperCache: @unchecked Sendable {
 /// Non-reactive reference store for tile frames so 120Hz animations/swipes never trigger SwiftUI body invalidations.
 private final class LaunchpadTileFrameStore {
     var frames: [String: CGRect] = [:]
+    var originY: CGFloat? = nil
 }
 
 /// Native NSVisualEffectView fallback when desktop wallpaper file cannot be read directly.
@@ -128,6 +129,7 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let field = NSSearchField()
+        field.appearance = NSAppearance(named: .darkAqua)
         field.translatesAutoresizingMaskIntoConstraints = false
         field.isBordered = false
         field.drawsBackground = false
@@ -147,8 +149,8 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
         innerContainer.translatesAutoresizingMaskIntoConstraints = false
         innerContainer.addSubview(field)
         NSLayoutConstraint.activate([
-            field.leadingAnchor.constraint(equalTo: innerContainer.leadingAnchor, constant: 8),
-            field.trailingAnchor.constraint(equalTo: innerContainer.trailingAnchor, constant: -8),
+            field.leadingAnchor.constraint(equalTo: innerContainer.leadingAnchor, constant: 10),
+            field.trailingAnchor.constraint(equalTo: innerContainer.trailingAnchor, constant: -10),
             field.centerYAnchor.constraint(equalTo: innerContainer.centerYAnchor)
         ])
 
@@ -157,7 +159,7 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
             let glass = glassClass.init()
             glass.appearance = NSAppearance(named: .darkAqua)
             glass.setValue(0, forKey: "style")
-            glass.setValue(CGFloat(15), forKey: "cornerRadius")
+            glass.setValue(CGFloat(16), forKey: "cornerRadius")
             if glass.responds(to: NSSelectorFromString("setEffectIsInteractive:")) {
                 glass.setValue(true, forKey: "effectIsInteractive")
             }
@@ -170,7 +172,7 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
             effect.blendingMode = .withinWindow
             effect.state = .active
             effect.wantsLayer = true
-            effect.layer?.cornerRadius = 15
+            effect.layer?.cornerRadius = 16
             effect.layer?.masksToBounds = true
             effect.addSubview(innerContainer)
             NSLayoutConstraint.activate([
@@ -454,7 +456,7 @@ struct LaunchpadRootView: View {
             },
             focusToken: windowController.focusSearchToken
         )
-        .frame(width: 256, height: 30)
+        .frame(width: 268, height: 32)
         .frame(maxWidth: .infinity)
     }
 
@@ -463,52 +465,57 @@ struct LaunchpadRootView: View {
     @ViewBuilder
     private func pagedCarouselView(canvasSize: CGSize, metrics: LaunchpadGridLayoutMetrics) -> some View {
         let pageWidth = max(1, canvasSize.width)
-        let pageTopOffset = windowController.topNotchSafeInset + 42
+        let pageTopOffset = windowController.topNotchSafeInset + 44
 
-        LaunchpadCarouselOffsetContainer(
-            swipeState: windowController.swipeState,
-            baseOffset: -CGFloat(manager.currentPageIndex) * pageWidth
-        ) {
-            HStack(spacing: 0) {
-                ForEach(Array(manager.pages.enumerated()), id: \.element.id) { pageIndex, page in
-                    if abs(pageIndex - manager.currentPageIndex) <= 1 {
-                        LaunchpadPageGridView(
-                            page: page,
-                            isCurrentPage: pageIndex == manager.currentPageIndex,
-                            pageTopOffset: pageTopOffset,
-                            gridColumns: metrics.gridColumns,
-                            verticalSpacing: metrics.verticalSpacing,
-                            iconSize: metrics.fittedIconSize,
-                            showLabels: showLabels,
-                            horizontalInset: metrics.horizontalInset,
-                            manager: manager,
-                            dragCoordinator: dragCoordinator,
-                            onOpenApp: { manager.launchApp($0) },
-                            onOpenFolder: { folder in
-                                withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
-                                    manager.activeFolderId = folder.id
-                                }
-                            },
-                            onRequestTrash: { appPendingTrash = $0 }
-                        )
-                        .frame(width: pageWidth)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                    } else {
-                        Color.clear
+        ZStack {
+            // Keep background-dismiss hit target strictly behind interactive app/folder tiles
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    handleBackgroundTap()
+                }
+
+            LaunchpadCarouselOffsetContainer(
+                swipeState: windowController.swipeState,
+                baseOffset: -CGFloat(manager.currentPageIndex) * pageWidth
+            ) {
+                HStack(spacing: 0) {
+                    ForEach(Array(manager.pages.enumerated()), id: \.element.id) { pageIndex, page in
+                        if abs(pageIndex - manager.currentPageIndex) <= 1 {
+                            LaunchpadPageGridView(
+                                page: page,
+                                isCurrentPage: pageIndex == manager.currentPageIndex,
+                                pageTopOffset: pageTopOffset,
+                                gridColumns: metrics.gridColumns,
+                                verticalSpacing: metrics.verticalSpacing,
+                                iconSize: metrics.fittedIconSize,
+                                showLabels: showLabels,
+                                horizontalInset: metrics.horizontalInset,
+                                manager: manager,
+                                dragCoordinator: dragCoordinator,
+                                onOpenApp: { manager.launchApp($0) },
+                                onOpenFolder: { folder in
+                                    withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
+                                        manager.activeFolderId = folder.id
+                                    }
+                                },
+                                onRequestTrash: { appPendingTrash = $0 }
+                            )
                             .frame(width: pageWidth)
-                            .frame(maxHeight: .infinity)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                        } else {
+                            Color.clear
+                                .frame(width: pageWidth)
+                                .frame(maxHeight: .infinity)
+                        }
                     }
                 }
+                .frame(width: pageWidth * CGFloat(max(1, manager.pages.count)), alignment: .leading)
             }
-            .frame(width: pageWidth * CGFloat(max(1, manager.pages.count)), alignment: .leading)
         }
         .frame(width: pageWidth, alignment: .leading)
         .frame(maxHeight: .infinity)
-        .contentShape(Rectangle())
         .clipped()
-        .onTapGesture {
-            handleBackgroundTap()
-        }
         .simultaneousGesture(
             DragGesture(minimumDistance: 12, coordinateSpace: .local)
                 .onChanged { value in
@@ -563,6 +570,7 @@ struct LaunchpadRootView: View {
                             isMergeTarget: false,
                             isBeingDragged: false,
                             isKeyboardHighlighted: index == 0,
+                            allowsEditing: false,
                             onOpenApp: { manager.launchApp($0) },
                             onOpenFolder: { _ in },
                             onRequestTrash: { appPendingTrash = $0 },
@@ -703,7 +711,7 @@ private struct LaunchpadGridLayoutMetrics {
         let inset = max(56, canvasSize.width * 0.078)
         let bottomMargin = max(28, canvasSize.height * 0.032)
         let bottomReserved = 22 + bottomMargin // dots bar height + bottom edge margin
-        let topBarHeight = topNotchSafeInset + 42 // search field (30) + bottom spacing (12)
+        let topBarHeight = topNotchSafeInset + 44 // search field (32) + bottom spacing (12)
         let topGridPadding: CGFloat = 8
 
         let availableGridWidth = max(320, canvasSize.width - inset * 2)
@@ -776,8 +784,21 @@ private struct LaunchpadPageGridView: View {
     }
 
     var body: some View {
+        let showReorderIndicators = dragCoordinator.isDragging
+            && isCurrentPage
+            && dragCoordinator.mergeTargetNodeId == nil
+            && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction)
+
         LazyVGrid(columns: gridColumns, spacing: verticalSpacing) {
-            ForEach(page.nodes) { node in
+            ForEach(Array(page.nodes.enumerated()), id: \.element.id) { index, node in
+                let insertBefore = showReorderIndicators
+                    && dragCoordinator.reorderTargetIndex == index
+                    && dragCoordinator.activeNode?.id != node.id
+                let insertAfter = showReorderIndicators
+                    && index == page.nodes.count - 1
+                    && dragCoordinator.reorderTargetIndex == page.nodes.count
+                    && dragCoordinator.activeNode?.id != node.id
+
                 LaunchpadTileView(
                     node: node,
                     iconSize: iconSize,
@@ -786,6 +807,8 @@ private struct LaunchpadPageGridView: View {
                     isMergeTarget: dragCoordinator.mergeTargetNodeId == node.id,
                     isBeingDragged: dragCoordinator.activeNode?.id == node.id,
                     isKeyboardHighlighted: false,
+                    showInsertBefore: insertBefore,
+                    showInsertAfter: insertAfter,
                     onOpenApp: onOpenApp,
                     onOpenFolder: onOpenFolder,
                     onRequestTrash: onRequestTrash,
@@ -808,6 +831,17 @@ private struct LaunchpadPageGridView: View {
         }
         .padding(.horizontal, horizontalInset)
         .padding(.top, 8)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear {
+                        frameStore.originY = geo.frame(in: .named("LaunchpadCanvas")).minY
+                    }
+                    .onChange(of: geo.frame(in: .named("LaunchpadCanvas")).minY) { _, newY in
+                        frameStore.originY = newY
+                    }
+            }
+        )
         .coordinateSpace(name: pageCoordSpaceName)
         .onAppear {
             if isCurrentPage && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
@@ -815,7 +849,17 @@ private struct LaunchpadPageGridView: View {
             }
         }
         .onChange(of: dragCoordinator.isDragging) { _, dragging in
-            if dragging && isCurrentPage {
+            if dragging && isCurrentPage && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
+                syncTileFrames()
+            }
+        }
+        .onChange(of: dragCoordinator.isFolderHiddenForExtraction) { _, hidden in
+            if hidden && isCurrentPage {
+                syncTileFrames()
+            }
+        }
+        .onChange(of: manager.activeFolderId) { _, activeFolder in
+            if activeFolder == nil && isCurrentPage {
                 syncTileFrames()
             }
         }
@@ -833,11 +877,12 @@ private struct LaunchpadPageGridView: View {
 
     private func syncTileFrames() {
         let ids = page.nodes.map(\.id)
+        let offsetY = frameStore.originY ?? pageTopOffset
         var canvasFrames: [String: CGRect] = [:]
         canvasFrames.reserveCapacity(ids.count)
         for id in ids {
             if let localRect = frameStore.frames[id] {
-                canvasFrames[id] = localRect.offsetBy(dx: 0, dy: pageTopOffset)
+                canvasFrames[id] = localRect.offsetBy(dx: 0, dy: offsetY)
             }
         }
         dragCoordinator.updateTileFrames(orderedIds: ids, frames: canvasFrames)

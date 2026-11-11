@@ -891,16 +891,31 @@ final class LaunchpadSystemInterceptor {
 
     nonisolated private func handleCGEvent(type: CGEventType, cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            MainActor.assumeIsolated {
-                if let tap = self.eventTap {
-                    CGEvent.tapEnable(tap: tap, enable: true)
+            if Thread.isMainThread {
+                MainActor.assumeIsolated {
+                    if let tap = self.eventTap {
+                        CGEvent.tapEnable(tap: tap, enable: true)
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    LaunchpadSystemInterceptor.shared.reenableEventTap()
                 }
             }
             return Unmanaged.passRetained(cgEvent)
         }
 
+        guard Thread.isMainThread else {
+            return Unmanaged.passRetained(cgEvent)
+        }
         return MainActor.assumeIsolated {
             self.handleCGEventOnMain(type: type, cgEvent: cgEvent)
+        }
+    }
+
+    private func reenableEventTap() {
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: true)
         }
     }
 
@@ -1224,12 +1239,22 @@ final class LaunchpadSystemInterceptor {
         timer.resume()
     }
 
+    nonisolated private static func safeAXUIElement(_ ref: AnyObject?) -> AXUIElement? {
+        guard let ref, CFGetTypeID(ref) == AXUIElementGetTypeID() else { return nil }
+        return unsafeDowncast(ref, to: AXUIElement.self)
+    }
+
+    nonisolated private static func safeAXValue(_ ref: AnyObject?) -> AXValue? {
+        guard let ref, CFGetTypeID(ref) == AXValueGetTypeID() else { return nil }
+        return unsafeDowncast(ref, to: AXValue.self)
+    }
+
     nonisolated private static func candidateAXWindows(for axApp: AXUIElement) -> [AXUIElement] {
         var result: [AXUIElement] = []
         var focusedRef: AnyObject?
         if AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &focusedRef) == .success,
-           let focusedWin = focusedRef {
-            result.append(focusedWin as! AXUIElement)
+           let focusedWin = safeAXUIElement(focusedRef) {
+            result.append(focusedWin)
         }
         var windowsRef: AnyObject?
         if AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
@@ -1344,19 +1369,19 @@ final class LaunchpadSystemInterceptor {
             }
             var winRef: AnyObject?
             guard AXUIElementCopyAttributeValue(element, kAXWindowAttribute as CFString, &winRef) == .success,
-                  let resolvedWin = winRef else {
+                  let resolvedWin = safeAXUIElement(winRef) else {
                 return false
             }
-            windowElement = resolvedWin as! AXUIElement
+            windowElement = resolvedWin
         } else {
             return false
         }
 
         var sizeRef: AnyObject?
         if AXUIElementCopyAttributeValue(windowElement, kAXSizeAttribute as CFString, &sizeRef) == .success,
-           let axVal = sizeRef {
+           let axVal = safeAXValue(sizeRef) {
             var size = CGSize.zero
-            if AXValueGetValue(axVal as! AXValue, .cgSize, &size) {
+            if AXValueGetValue(axVal, .cgSize, &size) {
                 if size.width < 500 || size.height < 350 {
                     return false
                 }

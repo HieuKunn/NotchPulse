@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import AVFoundation
 import Combine
+import CoreBluetooth
 import EventKit
 import Foundation
 
@@ -43,6 +44,7 @@ public enum PermissionStatus: Equatable, Sendable {
 public enum AppPermissionKind: String, CaseIterable, Identifiable, Sendable {
     case camera
     case accessibility
+    case bluetooth
     case calendar
     case reminders
     case musicAutomation
@@ -55,6 +57,7 @@ public enum AppPermissionKind: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .camera: return "Camera"
         case .accessibility: return "Accessibility"
+        case .bluetooth: return "Bluetooth"
         case .calendar: return "Calendar"
         case .reminders: return "Reminders"
         case .musicAutomation: return "Automation (Music)"
@@ -67,6 +70,7 @@ public enum AppPermissionKind: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .camera: return "camera.fill"
         case .accessibility: return "hand.raised.fill"
+        case .bluetooth: return "headphones"
         case .calendar: return "calendar"
         case .reminders: return "checklist"
         case .musicAutomation: return "music.note"
@@ -81,6 +85,8 @@ public enum AppPermissionKind: String, CaseIterable, Identifiable, Sendable {
             return "Powers Face Unlock and the live Camera Mirror inside the Notch or Dynamic Island."
         case .accessibility:
             return "Allows Face Unlock to automatically enter your password on the macOS lock screen via keystroke simulation."
+        case .bluetooth:
+            return "Detects wireless headphones and displays battery HUD status."
         case .calendar:
             return "Displays your upcoming agenda and schedule directly in the Notch Calendar tab."
         case .reminders:
@@ -96,7 +102,7 @@ public enum AppPermissionKind: String, CaseIterable, Identifiable, Sendable {
 
     public var isRequiredForCoreFeatures: Bool {
         switch self {
-        case .camera, .accessibility, .calendar, .reminders, .musicAutomation:
+        case .camera, .accessibility, .bluetooth, .calendar, .reminders, .musicAutomation:
             return true
         case .screenRecording, .fullDiskAccess:
             return false
@@ -110,6 +116,7 @@ public final class PermissionsManager: ObservableObject {
 
     @Published public private(set) var cameraStatus: PermissionStatus = .notDetermined
     @Published public private(set) var accessibilityStatus: PermissionStatus = .notDetermined
+    @Published public private(set) var bluetoothStatus: PermissionStatus = .notDetermined
     @Published public private(set) var calendarStatus: PermissionStatus = .notDetermined
     @Published public private(set) var remindersStatus: PermissionStatus = .notDetermined
     @Published public private(set) var musicAutomationStatus: PermissionStatus = .notDetermined
@@ -140,6 +147,7 @@ public final class PermissionsManager: ObservableObject {
         switch permission {
         case .camera: return cameraStatus
         case .accessibility: return accessibilityStatus
+        case .bluetooth: return bluetoothStatus
         case .calendar: return calendarStatus
         case .reminders: return remindersStatus
         case .musicAutomation: return musicAutomationStatus
@@ -150,6 +158,7 @@ public final class PermissionsManager: ObservableObject {
     public func refreshAll() {
         refreshCamera()
         refreshAccessibility()
+        refreshBluetooth()
         refreshCalendar()
         refreshReminders()
         refreshMusicAutomation()
@@ -173,6 +182,21 @@ public final class PermissionsManager: ObservableObject {
 
     public func refreshAccessibility() {
         accessibilityStatus = AXIsProcessTrusted() ? .granted : .denied
+    }
+
+    public func refreshBluetooth() {
+        switch CBManager.authorization {
+        case .allowedAlways:
+            bluetoothStatus = .granted
+        case .notDetermined:
+            bluetoothStatus = .notDetermined
+        case .denied:
+            bluetoothStatus = .denied
+        case .restricted:
+            bluetoothStatus = .restricted
+        @unknown default:
+            bluetoothStatus = .notDetermined
+        }
     }
 
     public func refreshCalendar() {
@@ -237,23 +261,38 @@ public final class PermissionsManager: ObservableObject {
             }
 
         case .accessibility:
-            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            let trusted = AXIsProcessTrustedWithOptions(options)
-            if !trusted {
-                openSystemSettings(for: .accessibility)
-            }
+            XPCHelperClient.shared.requestAccessibilityAuthorization()
             refreshAccessibility()
 
+        case .bluetooth:
+            let current = CBManager.authorization
+            if current == .notDetermined {
+                BluetoothHeadphoneManager.shared.requestBluetoothAuthorizationIfNeeded()
+                refreshBluetooth()
+            } else {
+                openSystemSettings(for: .bluetooth)
+            }
+
         case .calendar:
-            Task {
-                await CalendarManager.shared.checkCalendarAuthorization()
-                refreshCalendar()
+            let current = EKEventStore.authorizationStatus(for: .event)
+            if current == .notDetermined {
+                Task {
+                    await CalendarManager.shared.checkCalendarAuthorization()
+                    refreshCalendar()
+                }
+            } else {
+                openSystemSettings(for: .calendar)
             }
 
         case .reminders:
-            Task {
-                await CalendarManager.shared.checkReminderAuthorization()
-                refreshReminders()
+            let current = EKEventStore.authorizationStatus(for: .reminder)
+            if current == .notDetermined {
+                Task {
+                    await CalendarManager.shared.checkReminderAuthorization()
+                    refreshReminders()
+                }
+            } else {
+                openSystemSettings(for: .reminders)
             }
 
         case .musicAutomation:
@@ -280,6 +319,9 @@ public final class PermissionsManager: ObservableObject {
         case .accessibility:
             primaryUrlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility"
             fallbackUrlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        case .bluetooth:
+            primaryUrlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Bluetooth"
+            fallbackUrlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Bluetooth"
         case .calendar:
             primaryUrlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Calendars"
             fallbackUrlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"

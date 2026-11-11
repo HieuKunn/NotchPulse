@@ -11,6 +11,7 @@ final class XPCHelperClient: NSObject {
     private var connection: NSXPCConnection?
     private var lastKnownAuthorization: Bool?
     private var monitoringTask: Task<Void, Never>?
+    @MainActor private var hasPromptedAccessibility = false
     
     deinit {
         connection?.invalidate()
@@ -76,14 +77,11 @@ final class XPCHelperClient: NSObject {
         monitoringTask = Task.detached { [weak self] in
             guard let self = self else { return }
             while !Task.isCancelled {
-                // Call the helper method periodically which will notify on change
+                // Keep monitoring so revoked or invalidated TCC grants are detected and recovered automatically
                 let authorized = await self.isAccessibilityAuthorized()
-                if authorized {
-                    // Once authorization is confirmed, we don't need to keep polling in the background!
-                    break
-                }
+                let sleepDuration = authorized ? max(interval, 8.0) : interval
                 do {
-                    try await Task.sleep(for: .seconds(interval))
+                    try await Task.sleep(for: .seconds(sleepDuration))
                 } catch { break }
             }
         }
@@ -102,13 +100,32 @@ final class XPCHelperClient: NSObject {
     // MARK: - Accessibility
     
     nonisolated func requestAccessibilityAuthorization() {
-        // Prompt once for the main app bundle (where CGEventTap, AX observers, and KeystrokeInjector execute)
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        let isTrusted = AXIsProcessTrustedWithOptions(options)
+        let perform: @MainActor () -> Void = { [weak self] in
+            guard let self else { return }
+            if AXIsProcessTrusted() {
+                self.hasPromptedAccessibility = false
+                self.notifyAuthorizationChange(true)
+                return
+            }
 
-        if !isTrusted {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                NSWorkspace.shared.open(url)
+            // Prompt once cleanly via macOS native dialog; on repeat clicks (when macOS suppresses repeat modals), open System Settings directly
+            if !self.hasPromptedAccessibility {
+                self.hasPromptedAccessibility = true
+                let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+                let isTrusted = AXIsProcessTrustedWithOptions(options)
+                self.notifyAuthorizationChange(isTrusted)
+            } else {
+                PermissionsManager.shared.openSystemSettings(for: .accessibility)
+            }
+        }
+
+        if Thread.isMainThread {
+            MainActor.assumeIsolated {
+                perform()
+            }
+        } else {
+            DispatchQueue.main.async {
+                perform()
             }
         }
     }
@@ -131,7 +148,9 @@ final class XPCHelperClient: NSObject {
         }
         
         if promptIfNeeded {
-            requestAccessibilityAuthorization()
+            await MainActor.run {
+                requestAccessibilityAuthorization()
+            }
         }
         
         try? await Task.sleep(for: .milliseconds(500))

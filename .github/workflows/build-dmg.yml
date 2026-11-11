@@ -18,7 +18,7 @@ on:
 jobs:
   build:
     name: Build macOS App & DMG
-    runs-on: macos-15
+    runs-on: macos-26
     permissions:
       contents: write
 
@@ -33,14 +33,9 @@ jobs:
         run: |
           echo "Danh sách Xcode có sẵn trên máy ảo:"
           ls -d /Applications/Xcode*.app || true
-          if [ -d "/Applications/Xcode_16.2.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.2.app
-          elif [ -d "/Applications/Xcode_16.1.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.1.app
-          elif [ -d "/Applications/Xcode_16.0.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.0.app
-          elif [ -d "/Applications/Xcode.app" ]; then
-            sudo xcode-select -s /Applications/Xcode.app
+          LATEST_XCODE=$(ls -d /Applications/Xcode_27*.app /Applications/Xcode_26*.app /Applications/Xcode.app 2>/dev/null | sort -Vr | head -n 1)
+          if [ -n "$LATEST_XCODE" ]; then
+            sudo xcode-select -s "$LATEST_XCODE"
           fi
           xcodebuild -version
 
@@ -153,12 +148,16 @@ jobs:
             KEYCHAIN_ARG="--keychain $KEYCHAIN_PATH"
           fi
 
-          # 1. Ký các helper XPC và daemon riêng của NotchPulse
+          # 0. Giải biến Xcode trong entitlements trước khi truyền thẳng cho codesign
+          RESOLVED_ENTITLEMENTS="/tmp/NotchPulse.resolved.entitlements"
+          sed 's/\$(PRODUCT_BUNDLE_IDENTIFIER)/com.notchpulse.NotchPulse/g' NotchPulse/NotchPulse.entitlements > "$RESOLVED_ENTITLEMENTS"
+
+          # 1. Ký các helper XPC và daemon riêng của NotchPulse (bắt buộc --options runtime đồng bộ với Xcode Hardened Runtime)
           if [ -d "dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc" ]; then
-            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
+            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime --entitlements NotchPulseXPCHelper/NotchPulseXPCHelper.entitlements dmg_staging/NotchPulse.app/Contents/XPCServices/NotchPulseXPCHelper.xpc
           fi
           if [ -f "dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon" ]; then
-            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulseBatteryDaemon/NotchPulseBatteryDaemon.entitlements dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon
+            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime --entitlements NotchPulseBatteryDaemon/NotchPulseBatteryDaemon.entitlements dmg_staging/NotchPulse.app/Contents/Library/LaunchServices/com.notchpulse.NotchPulseBatteryDaemon
           fi
 
           # 2. Ký Sparkle.framework chuẩn inside-out (XPC services, Autoupdate, Updater.app trước khi ký framework)
@@ -172,22 +171,24 @@ jobs:
             if [ -d "$SPARKLE_FW/Versions/B/Updater.app" ]; then
               codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime "$SPARKLE_FW/Versions/B/Updater.app"
             fi
-            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG "$SPARKLE_FW"
+            codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime "$SPARKLE_FW"
           fi
 
           # 3. Ký các framework khác còn lại (MediaRemoteAdapter, v.v.)
           if [ -d "dmg_staging/NotchPulse.app/Contents/Frameworks" ]; then
-            find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 ! -name "Sparkle.framework" -exec codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG {} \;
+            find dmg_staging/NotchPulse.app/Contents/Frameworks -mindepth 1 -maxdepth 1 ! -name "Sparkle.framework" -exec codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime {} \;
           fi
 
           # 4. Ký toàn bộ bundle ứng dụng chính
-          codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --entitlements NotchPulse/NotchPulse.entitlements dmg_staging/NotchPulse.app
+          codesign --force --sign "$SIGN_IDENTITY" $KEYCHAIN_ARG --options runtime --entitlements "$RESOLVED_ENTITLEMENTS" dmg_staging/NotchPulse.app
+          rm -f "$RESOLVED_ENTITLEMENTS"
 
           # Xóa lại lần cuối phòng ngừa codesign tạo lại file ẩn
           find dmg_staging/NotchPulse.app -name "._*" -delete
 
-          # Xác minh cấu trúc chữ ký hợp lệ
+          # Xác minh cấu trúc chữ ký hợp lệ và entitlements đã resolve
           codesign --verify --deep --strict --verbose=4 dmg_staging/NotchPulse.app
+          codesign -d --entitlements :- dmg_staging/NotchPulse.app
           
           # Nén file .app dạng zip với ditto (không đính kèm tag thuộc tính ẩn)
           ditto --noextattr --norsrc -c -k --keepParent dmg_staging/NotchPulse.app release_out/NotchPulse.app.zip

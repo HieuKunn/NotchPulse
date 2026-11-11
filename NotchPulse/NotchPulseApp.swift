@@ -934,8 +934,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ArcFaceEmbedder.warmUp()
         _ = BluetoothHeadphoneManager.shared
 
-        // Proactively verify & pre-warm Keychain authorization on desktop
-        if NotchPulseVault.hasStoredPassword() {
+        // Proactively verify & pre-warm Keychain authorization off the main thread
+        if NotchPulseVault.hasSessionKey() {
             NotchPulseVault.preflightKeychainAuthorization()
         }
 

@@ -50,6 +50,9 @@ struct LaunchpadTileView: View {
     let isBeingDragged: Bool
     let isKeyboardHighlighted: Bool
     var sourceFolderId: UUID? = nil
+    var allowsEditing: Bool = true
+    var showInsertBefore: Bool = false
+    var showInsertAfter: Bool = false
     var onOpenApp: (LaunchpadAppItem) -> Void
     var onOpenFolder: (LaunchpadFolderItem) -> Void
     var onRequestTrash: ((LaunchpadAppItem) -> Void)? = nil
@@ -59,84 +62,192 @@ struct LaunchpadTileView: View {
 
     @State private var isHovering = false
     @State private var jiggleAngle: Double = 0
+    @State private var pressOrigin: CGPoint? = nil
+    @State private var holdTask: Task<Void, Never>? = nil
+    @State private var didHoldTriggerEdit = false
+    @State private var didCancelTapByMove = false
+    @State private var isPressingScale = false
 
     private var labelFontSize: CGFloat {
         max(12.5, min(16.5, (iconSize * 0.145).rounded()))
     }
 
+    private var jiggleSeedOffset: Double {
+        var hash = 0
+        for byte in node.id.utf8 {
+            hash = (hash &* 31) &+ Int(byte)
+        }
+        return abs(hash) % 2 == 0 ? 1.0 : -1.0
+    }
+
     var body: some View {
-        let tileDragGesture = DragGesture(minimumDistance: 8, coordinateSpace: .named("LaunchpadCanvas"))
+        let unifiedTileGesture = DragGesture(minimumDistance: 0, coordinateSpace: .named("LaunchpadCanvas"))
             .onChanged { value in
-                if !dragCoordinator.isDragging {
-                    dragCoordinator.beginDrag(
-                        node: node,
-                        fromFolderId: sourceFolderId,
-                        at: value.location
-                    )
-                } else {
+                if pressOrigin == nil {
+                    pressOrigin = value.location
+                    didHoldTriggerEdit = false
+                    didCancelTapByMove = false
+                    withAnimation(.easeOut(duration: 0.1)) {
+                        isPressingScale = true
+                    }
+
+                    if allowsEditing && !isEditingMode {
+                        holdTask?.cancel()
+                        holdTask = Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(360))
+                            guard !Task.isCancelled, pressOrigin != nil, !didCancelTapByMove else { return }
+                            didHoldTriggerEdit = true
+                            isPressingScale = false
+                            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.78)) {
+                                manager.isEditingMode = true
+                            }
+                        }
+                    }
+                }
+
+                guard let origin = pressOrigin else { return }
+                let moveDistance = hypot(value.location.x - origin.x, value.location.y - origin.y)
+
+                if dragCoordinator.isDragging {
                     dragCoordinator.updateDrag(at: value.location, manager: manager)
+                    return
+                }
+
+                if moveDistance >= 7 {
+                    didCancelTapByMove = true
+                    holdTask?.cancel()
+                    holdTask = nil
+                    isPressingScale = false
+
+                    if allowsEditing && (isEditingMode || didHoldTriggerEdit) {
+                        dragCoordinator.beginDrag(
+                            node: node,
+                            fromFolderId: sourceFolderId,
+                            at: value.location
+                        )
+                    }
                 }
             }
             .onEnded { _ in
-                dragCoordinator.endDrag(manager: manager)
-            }
-
-        VStack(spacing: max(6, iconSize * 0.08)) {
-            ZStack(alignment: .topLeading) {
-                if isMergeTarget {
-                    RoundedRectangle(cornerRadius: iconSize * 0.24, style: .continuous)
-                        .fill(.regularMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: iconSize * 0.24, style: .continuous)
-                                .stroke(Color.effectiveAccent, lineWidth: 2)
-                        )
-                        .frame(width: iconSize * 1.18, height: iconSize * 1.18)
-                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                holdTask?.cancel()
+                holdTask = nil
+                withAnimation(.easeOut(duration: 0.12)) {
+                    isPressingScale = false
                 }
 
-                tileArtwork
-                    .scaleEffect(isHovering && !isBeingDragged ? 1.06 : 1.0)
-                    .scaleEffect(isMergeTarget ? 0.9 : 1.0)
-                    .animation(.spring(response: 0.22, dampingFraction: 0.78), value: isHovering)
-                    .animation(.spring(response: 0.22, dampingFraction: 0.8), value: isMergeTarget)
+                let wasDragging = dragCoordinator.isDragging
+                let movedBeforeRelease = didCancelTapByMove
+                let enteredEditOnThisPress = didHoldTriggerEdit
 
-                if isEditingMode, case .app(let app) = node, manager.canMoveToTrash(app) {
-                    Button {
-                        onRequestTrash?(app)
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: max(18, iconSize * 0.21), weight: .semibold))
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.primary, .regularMaterial)
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: -6, y: -6)
-                    .accessibilityLabel(loc("Move to Trash"))
+                pressOrigin = nil
+                didHoldTriggerEdit = false
+                didCancelTapByMove = false
+
+                if wasDragging {
+                    dragCoordinator.endDrag(manager: manager)
+                    return
                 }
-            }
-            .frame(width: iconSize * 1.18, height: iconSize * 1.18)
 
-            if showLabel {
-                Text(node.displayName)
-                    .font(.system(size: labelFontSize, weight: .regular))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(
-                        Group {
-                            if isKeyboardHighlighted {
-                                Capsule()
-                                    .fill(Color.effectiveAccent.opacity(0.32))
-                            }
+                if !movedBeforeRelease && !enteredEditOnThisPress {
+                    switch node {
+                    case .app(let app):
+                        if !isEditingMode {
+                            onOpenApp(app)
                         }
-                    )
+                    case .folder(let folder):
+                        onOpenFolder(folder)
+                    }
+                }
+            }
+
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: max(6, iconSize * 0.08)) {
+                ZStack {
+                    if isMergeTarget {
+                        RoundedRectangle(cornerRadius: iconSize * 0.24, style: .continuous)
+                            .fill(.regularMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: iconSize * 0.24, style: .continuous)
+                                    .stroke(Color.effectiveAccent, lineWidth: 2)
+                            )
+                            .frame(width: iconSize * 1.18, height: iconSize * 1.18)
+                            .transition(.scale(scale: 0.92).combined(with: .opacity))
+                    }
+
+                    tileArtwork
+                        .scaleEffect(isPressingScale ? 0.94 : (isHovering && !isBeingDragged ? 1.05 : 1.0))
+                        .scaleEffect(isMergeTarget ? 0.9 : 1.0)
+                        .animation(.spring(response: 0.22, dampingFraction: 0.78), value: isHovering)
+                        .animation(.spring(response: 0.22, dampingFraction: 0.8), value: isMergeTarget)
+                        .animation(.easeOut(duration: 0.1), value: isPressingScale)
+                }
+                .frame(width: iconSize * 1.18, height: iconSize * 1.18)
+
+                if showLabel {
+                    Text(node.displayName)
+                        .font(.system(size: labelFontSize, weight: .regular))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(
+                            Group {
+                                if isKeyboardHighlighted {
+                                    Capsule()
+                                        .fill(Color.effectiveAccent.opacity(0.32))
+                                }
+                            }
+                        )
+                }
+            }
+            .frame(width: max(iconSize * 1.24, 96))
+            .padding(.vertical, 4)
+            .padding(.horizontal, 4)
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovering = hovering
+            }
+            .gesture(unifiedTileGesture)
+            .contextMenu {
+                contextMenuItems
+            }
+
+            if isEditingMode, case .app(let app) = node, manager.canMoveToTrash(app) {
+                Button {
+                    onRequestTrash?(app)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: max(18, iconSize * 0.21), weight: .semibold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.primary, .regularMaterial)
+                        .padding(4)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .offset(x: max(4, (max(iconSize * 1.24, 96) - iconSize * 0.86) / 2 - 10), y: -2)
+                .accessibilityLabel(loc("Move to Trash"))
             }
         }
-        .frame(width: max(iconSize * 1.24, 96))
-        .padding(.vertical, 4)
-        .padding(.horizontal, 4)
+        .overlay(alignment: .leading) {
+            if showInsertBefore {
+                Capsule()
+                    .fill(Color.effectiveAccent)
+                    .frame(width: 3, height: iconSize * 0.78)
+                    .offset(x: -4, y: showLabel ? -10 : 0)
+                    .allowsHitTesting(false)
+            }
+        }
+        .overlay(alignment: .trailing) {
+            if showInsertAfter {
+                Capsule()
+                    .fill(Color.effectiveAccent)
+                    .frame(width: 3, height: iconSize * 0.78)
+                    .offset(x: 4, y: showLabel ? -10 : 0)
+                    .allowsHitTesting(false)
+            }
+        }
         .opacity(isBeingDragged ? 0.22 : 1.0)
         .rotationEffect(.degrees(isEditingMode && !isBeingDragged ? jiggleAngle : 0))
         .onAppear {
@@ -145,40 +256,9 @@ struct LaunchpadTileView: View {
         .onChange(of: isEditingMode) { _, _ in
             updateJiggleAnimation()
         }
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .onTapGesture {
-            guard !dragCoordinator.isDragging else { return }
-            switch node {
-            case .app(let app):
-                if isEditingMode {
-                    manager.isEditingMode = false
-                } else {
-                    onOpenApp(app)
-                }
-            case .folder(let folder):
-                onOpenFolder(folder)
-            }
-        }
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.45)
-                .onEnded { _ in
-                    guard !dragCoordinator.isDragging else { return }
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                        manager.isEditingMode = true
-                    }
-                }
-        )
-        .gesture(tileDragGesture, including: isEditingMode ? .all : .none)
-        .gesture(
-            LongPressGesture(minimumDuration: 0.24)
-                .sequenced(before: tileDragGesture),
-            including: isEditingMode ? .none : .all
-        )
-        .contextMenu {
-            contextMenuItems
+        .onDisappear {
+            holdTask?.cancel()
+            holdTask = nil
         }
         .frame(maxWidth: .infinity)
     }
@@ -277,9 +357,9 @@ struct LaunchpadTileView: View {
 
     private func updateJiggleAnimation() {
         if isEditingMode && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            jiggleAngle = -1.6
+            jiggleAngle = -1.5 * jiggleSeedOffset
             withAnimation(.easeInOut(duration: 0.13).repeatForever(autoreverses: true)) {
-                jiggleAngle = 1.6
+                jiggleAngle = 1.5 * jiggleSeedOffset
             }
         } else {
             withAnimation(.easeOut(duration: 0.12)) {
@@ -296,10 +376,12 @@ struct LaunchpadFolderThumbnailView: View {
 
     var body: some View {
         let previewApps = Array(folder.items.prefix(9))
-        let cellSize = size * 0.21
-        let spacing = size * 0.048
+        let boxSize = size * 0.86
+        let gridPadding = size * 0.095
+        let cellSize = size * 0.19
+        let spacing = size * 0.05
 
-        ZStack {
+        ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: size * 0.215, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay(
@@ -309,15 +391,18 @@ struct LaunchpadFolderThumbnailView: View {
 
             LazyVGrid(
                 columns: Array(repeating: GridItem(.fixed(cellSize), spacing: spacing), count: 3),
+                alignment: .leading,
                 spacing: spacing
             ) {
                 ForEach(previewApps) { app in
                     LaunchpadAppIconImage(bundlePath: app.bundlePath, size: cellSize)
                 }
             }
-            .padding(size * 0.11)
+            .padding(gridPadding)
+            .frame(width: boxSize, height: boxSize, alignment: .topLeading)
         }
-        .frame(width: size * 0.86, height: size * 0.86)
+        .frame(width: boxSize, height: boxSize, alignment: .topLeading)
+        .contentShape(RoundedRectangle(cornerRadius: size * 0.215, style: .continuous))
     }
 }
 

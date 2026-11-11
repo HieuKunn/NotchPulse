@@ -30,6 +30,7 @@ struct PermissionsSettingsView: View {
             Section {
                 permissionRow(for: .camera)
                 permissionRow(for: .accessibility)
+                permissionRow(for: .bluetooth)
                 permissionRow(for: .calendar)
                 permissionRow(for: .reminders)
                 permissionRow(for: .musicAutomation)

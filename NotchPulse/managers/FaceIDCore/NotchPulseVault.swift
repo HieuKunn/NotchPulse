@@ -296,6 +296,27 @@ enum NotchPulseVault {
         _ = ensureSessionKey()
     }
 
+    /// Used only during explicit user setup / password re-entry: unlocks normally if possible,
+    /// or resets an unreadable legacy/mismatched Keychain item (e.g. after signature change)
+    /// so Face ID setup does not remain permanently locked out.
+    nonisolated static func unlockOrResetForFreshSetup(reason: String = "") async throws {
+        do {
+            try await unlockSession(reason: reason)
+        } catch let laError as LAError where laError.code == .userCancel || laError.code == .appCancel || laError.code == .systemCancel {
+            throw laError
+        } catch {
+            NSLog("[NotchPulseVault] Unlock failed during fresh setup (\(error.localizedDescription)); resetting unreadable Keychain items.")
+        }
+
+        if cachedKey() == nil {
+            try? NotchPulseKeychainManager.delete(account: sessionKeyAccount)
+            try? NotchPulseKeychainManager.delete(account: passwordBlobAccount)
+            guard ensureSessionKey() != nil else {
+                throw NotchPulseVaultError.sessionLocked
+            }
+        }
+    }
+
     /// Proactively verifies and pre-warms Keychain access on the user's desktop immediately at app launch or after update.
     nonisolated static func preflightKeychainAuthorization() {
         guard NotchPulseKeychainManager.exists(account: sessionKeyAccount) else { return }

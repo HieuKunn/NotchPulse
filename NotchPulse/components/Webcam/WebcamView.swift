@@ -72,9 +72,7 @@ struct CameraPreviewView: View {
                 alert.window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 10)
 
                 if alert.runModal() == .alertFirstButtonReturn {
-                    if let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
-                        NSWorkspace.shared.open(settingsURL)
-                    }
+                    PermissionsManager.shared.openSystemSettings(for: .camera)
                 }
 
                 if SettingsWindowController.shared.window?.isVisible != true {

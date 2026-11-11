@@ -240,8 +240,10 @@ final class LaunchpadDragCoordinator: ObservableObject {
             }
         }
 
-        // Allow dropping into trailing space after the last tile on the page
-        if let lastId = orderedTileIds.last, let lastRect = tileFrames[lastId], point.y > lastRect.maxY - 24 || (point.x > lastRect.maxX && point.y > lastRect.minY) {
+        // Allow dropping into trailing space after the last tile on the page without hijacking last-row labels
+        if let lastId = orderedTileIds.last,
+           let lastRect = tileFrames[lastId],
+           point.y > lastRect.maxY + 8 || (point.x > lastRect.maxX + 4 && point.y > lastRect.minY) {
             return orderedTileIds.count
         }
         return bestIdx

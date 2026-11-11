@@ -4,27 +4,8 @@ import Defaults
 import Sparkle
 
 final class SettingsWindow: NSWindow {
-    var trafficLightTopInset: CGFloat = 15.0
-    var trafficLightLeftInset: CGFloat = 13.0
-
-    override func layoutIfNeeded() {
-        super.layoutIfNeeded()
-        adjustTrafficLights()
-    }
-
-    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
-        super.setFrame(frameRect, display: flag)
-        adjustTrafficLights()
-    }
-
-    override func setFrame(_ frameRect: NSRect, display flag: Bool, animate animateFlag: Bool) {
-        super.setFrame(frameRect, display: flag, animate: animateFlag)
-        adjustTrafficLights()
-    }
-
     override func makeKeyAndOrderFront(_ sender: Any?) {
         super.makeKeyAndOrderFront(sender)
-        adjustTrafficLights()
         suppressScrollBars()
     }
 
@@ -45,27 +26,6 @@ final class SettingsWindow: NSWindow {
         }
         for subview in view.subviews {
             hideScrollers(in: subview)
-        }
-    }
-
-    func adjustTrafficLights() {
-        let buttons: [(NSWindow.ButtonType, CGFloat)] = [
-            (.closeButton, 0),
-            (.miniaturizeButton, 23),
-            (.zoomButton, 46)
-        ]
-
-        for (type, offset) in buttons {
-            guard let button = standardWindowButton(type),
-                  let superview = button.superview else { continue }
-            var f = button.frame
-            let newX = trafficLightLeftInset + offset
-            let newY = superview.isFlipped ? trafficLightTopInset : (superview.bounds.height - f.height - trafficLightTopInset)
-            if abs(f.origin.x - newX) > 0.5 || abs(f.origin.y - newY) > 0.5 {
-                f.origin.x = newX
-                f.origin.y = newY
-                button.setFrameOrigin(f.origin)
-            }
         }
     }
 }
@@ -94,16 +54,26 @@ class SettingsWindowController: NSWindowController {
         fatalError("init(coder:) has not been implemented")
     }
     
+    private func makeHostingController() -> NSHostingController<AnyView> {
+        let settingsView = SettingsView(updaterController: updaterController)
+            .environmentObject(vm ?? NotchPulseViewModel())
+        return NSHostingController(rootView: AnyView(settingsView))
+    }
+
     func setUpdaterController(_ controller: SPUStandardUpdaterController, viewModel: NotchPulseViewModel? = nil) {
         self.updaterController = controller
         if let viewModel = viewModel {
             self.vm = viewModel
         }
-        // If window is currently open, recreate the content view with the updated controller
+        // If window is currently open, update the hosting controller's rootView cleanly
         if window?.isVisible == true {
             let settingsView = SettingsView(updaterController: updaterController)
                 .environmentObject(self.vm ?? NotchPulseViewModel())
-            window?.contentView = NSHostingView(rootView: settingsView)
+            if let hosting = window?.contentViewController as? NSHostingController<AnyView> {
+                hosting.rootView = AnyView(settingsView)
+            } else {
+                window?.contentViewController = NSHostingController(rootView: AnyView(settingsView))
+            }
             hasInstalledSettingsContent = true
         }
     }
@@ -143,9 +113,7 @@ class SettingsWindowController: NSWindowController {
         // only for nil can therefore leave a visible window with traffic
         // lights but no SettingsView mounted inside it.
         if !hasInstalledSettingsContent {
-            let settingsView = SettingsView(updaterController: updaterController)
-                .environmentObject(vm ?? NotchPulseViewModel())
-            window.contentView = NSHostingView(rootView: settingsView)
+            window.contentViewController = makeHostingController()
             hasInstalledSettingsContent = true
         }
 
@@ -179,7 +147,6 @@ class SettingsWindowController: NSWindowController {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         isPresented = true
-        (window as? SettingsWindow)?.adjustTrafficLights()
     }
     
     private func relinquishFocus() {
@@ -213,10 +180,8 @@ extension SettingsWindowController: NSWindowDelegate {
     }
     
     func windowDidResize(_ notification: Notification) {
-        (window as? SettingsWindow)?.adjustTrafficLights()
     }
 
     func windowDidExitFullScreen(_ notification: Notification) {
-        (window as? SettingsWindow)?.adjustTrafficLights()
     }
 }

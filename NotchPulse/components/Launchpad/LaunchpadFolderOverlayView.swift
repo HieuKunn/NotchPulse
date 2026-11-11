@@ -33,31 +33,61 @@ struct LaunchpadFolderOverlayView: View {
                 }
 
             VStack(spacing: 22) {
-                TextField(loc("Folder Name"), text: $folderTitle)
-                    .textFieldStyle(.plain)
-                    .focusEffectDisabled()
-                    .font(.largeTitle.weight(.light))
-                    .foregroundStyle(.primary)
-                    .shadow(color: Color.black.opacity(0.45), radius: 3, y: 1)
-                    .multilineTextAlignment(.center)
-                    .focused($isTitleFocused)
-                    .onSubmit {
-                        commitTitle()
-                        isTitleFocused = false
+                HStack(spacing: 8) {
+                    TextField(loc("Folder Name"), text: $folderTitle)
+                        .textFieldStyle(.plain)
+                        .focusEffectDisabled()
+                        .font(.largeTitle.weight(.light))
+                        .foregroundStyle(.primary)
+                        .shadow(color: Color.black.opacity(0.45), radius: 3, y: 1)
+                        .multilineTextAlignment(.center)
+                        .focused($isTitleFocused)
+                        .onSubmit {
+                            commitTitle()
+                            isTitleFocused = false
+                        }
+                        .onChange(of: isTitleFocused) { _, focused in
+                            if !focused { commitTitle() }
+                        }
+
+                    if (isTitleFocused || manager.isEditingMode) && !folderTitle.isEmpty {
+                        Button {
+                            folderTitle = ""
+                            isTitleFocused = true
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .onChange(of: isTitleFocused) { _, focused in
-                        if !focused { commitTitle() }
+                }
+                .padding(.horizontal, (isTitleFocused || manager.isEditingMode) ? 18 : 24)
+                .padding(.vertical, 6)
+                .background {
+                    if isTitleFocused || manager.isEditingMode {
+                        Capsule(style: .continuous)
+                            .fill(.regularMaterial)
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.75)
+                            )
                     }
-                    .padding(.horizontal, 24)
-                    .frame(maxWidth: 420)
+                }
+                .frame(maxWidth: 420)
 
                 ScrollView {
                     LazyVGrid(
                         columns: Array(repeating: GridItem(.flexible(minimum: iconSize + 24), spacing: 18), count: folderColumns),
+                        alignment: .leading,
                         spacing: 22
                     ) {
-                        ForEach(folder.items) { app in
+                        ForEach(Array(folder.items.enumerated()), id: \.element.id) { index, app in
                             let node = LaunchpadNode.app(app)
+                            let isDragging = dragCoordinator.isDragging
+                            let insertBefore = isDragging && dragCoordinator.reorderTargetIndex == index && dragCoordinator.activeNode?.id != node.id
+                            let insertAfter = isDragging && index == folder.items.count - 1 && dragCoordinator.reorderTargetIndex == folder.items.count && dragCoordinator.activeNode?.id != node.id
+
                             LaunchpadTileView(
                                 node: node,
                                 iconSize: iconSize,
@@ -67,6 +97,8 @@ struct LaunchpadFolderOverlayView: View {
                                 isBeingDragged: dragCoordinator.activeNode?.id == node.id,
                                 isKeyboardHighlighted: false,
                                 sourceFolderId: folder.id,
+                                showInsertBefore: insertBefore,
+                                showInsertAfter: insertAfter,
                                 onOpenApp: onOpenApp,
                                 onOpenFolder: { _ in },
                                 onRequestTrash: onRequestTrash,
@@ -99,6 +131,13 @@ struct LaunchpadFolderOverlayView: View {
                     RoundedRectangle(cornerRadius: 34, style: .continuous)
                         .stroke(Color(nsColor: .separatorColor), lineWidth: 0.75)
                 )
+                .contentShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                .onTapGesture {
+                    if isTitleFocused {
+                        commitTitle()
+                        isTitleFocused = false
+                    }
+                }
                 .shadow(color: Color.black.opacity(0.32), radius: 32, y: 14)
                 .background(
                     GeometryReader { geo in

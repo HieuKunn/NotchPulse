@@ -22,7 +22,10 @@ final class MediaKeyInterceptor {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private let step: Float = 1.0 / 16.0
-    private var audioPlayer: AVAudioPlayer?
+    private let feedbackQueue = DispatchQueue(label: "com.notchpulse.feedbackAudio", qos: .userInteractive)
+    private var audioPlayers: [AVAudioPlayer] = []
+    private var nextAudioPlayerIndex: Int = 0
+    private var didAttemptAudioPreload: Bool = false
 
     private struct HoldState {
         let keyType: NXKeyType
@@ -114,6 +117,7 @@ final class MediaKeyInterceptor {
                 CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
             }
             CGEvent.tapEnable(tap: eventTap, enable: true)
+            warmAudioFeedbackAsync()
         }
     }
     
@@ -199,32 +203,48 @@ final class MediaKeyInterceptor {
         }
     }
     
-    private func prepareAudioPlayerIfNeeded() {
-        guard audioPlayer == nil else { return }
+    private func warmAudioFeedbackAsync() {
+        feedbackQueue.async { [weak self] in
+            guard let self else { return }
+            if self.isFeedbackSoundEnabledOnQueue() {
+                self.prepareAudioPlayersIfNeededOnQueue()
+            }
+        }
+    }
+
+    // Must only be called on `feedbackQueue` so AVAudioPlayer init & CoreAudio graph setup never block Main/CGEventTap.
+    private func prepareAudioPlayersIfNeededOnQueue() {
+        guard !didAttemptAudioPreload else { return }
+        didAttemptAudioPreload = true
 
         let defaultPath = "/System/Library/LoginPlugins/BezelServices.loginPlugin/Contents/Resources/volume.aiff"
-        if FileManager.default.fileExists(atPath: defaultPath) {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: defaultPath))
-                print("🔊 [MediaKeyInterceptor] Loaded default Bezel audio from: \(defaultPath)")
-            } catch {
-                print("⚠️ [MediaKeyInterceptor] Failed to init AVAudioPlayer with default path \(defaultPath): \(error.localizedDescription)")
-            }
-        } else {
+        guard FileManager.default.fileExists(atPath: defaultPath) else {
             print("⚠️ [MediaKeyInterceptor] Default bezel audio not found at: \(defaultPath)")
+            return
         }
 
-        if let player = audioPlayer {
-            player.volume = 1.0
-            player.numberOfLoops = 0
-            player.prepareToPlay()
+        let url = URL(fileURLWithPath: defaultPath)
+        var loaded: [AVAudioPlayer] = []
+        // Small 2-player pool lets overlapping 75ms ticks play without calling player.stop() on active samples.
+        for _ in 0..<2 {
+            do {
+                let player = try AVAudioPlayer(contentsOf: url)
+                player.volume = 1.0
+                player.numberOfLoops = 0
+                player.prepareToPlay()
+                loaded.append(player)
+            } catch {
+                print("⚠️ [MediaKeyInterceptor] Failed to init AVAudioPlayer with default path \(defaultPath): \(error.localizedDescription)")
+                break
+            }
         }
+        audioPlayers = loaded
     }
 
     private var cachedFeedbackCheckTime: ContinuousClock.Instant?
     private var cachedFeedbackEnabled: Bool = false
 
-    private func isFeedbackSoundEnabled() -> Bool {
+    private func isFeedbackSoundEnabledOnQueue() -> Bool {
         let now = ContinuousClock.now
         if let last = cachedFeedbackCheckTime, now - last < .seconds(5) {
             return cachedFeedbackEnabled
@@ -236,15 +256,18 @@ final class MediaKeyInterceptor {
     }
 
     private func playFeedbackSound() {
-        guard isFeedbackSoundEnabled() else { return }
+        feedbackQueue.async { [weak self] in
+            guard let self, self.isFeedbackSoundEnabledOnQueue() else { return }
+            self.prepareAudioPlayersIfNeededOnQueue()
+            guard !self.audioPlayers.isEmpty else { return }
 
-        prepareAudioPlayerIfNeeded()
-        guard let player = audioPlayer else { return }
-        if player.isPlaying {
-            player.stop()
-            player.currentTime = 0
+            let player = self.audioPlayers[self.nextAudioPlayerIndex % self.audioPlayers.count]
+            self.nextAudioPlayerIndex = (self.nextAudioPlayerIndex + 1) % self.audioPlayers.count
+            if player.isPlaying {
+                player.currentTime = 0
+            }
+            player.play()
         }
-        player.play()
     }
 
     private func handleKeyPress(

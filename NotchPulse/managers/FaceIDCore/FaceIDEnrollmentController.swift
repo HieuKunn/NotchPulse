@@ -705,7 +705,7 @@ final class FaceIDEnrollmentController {
     }
 
     func grantAccessibility() {
-        KeystrokeInjector.promptForAccessibility()
+        XPCHelperClient.shared.requestAccessibilityAuthorization()
     }
 
     func grantCamera() {
@@ -714,16 +714,20 @@ final class FaceIDEnrollmentController {
                 _ = await AVCaptureDevice.requestAccess(for: .video)
                 refreshPermissions()
             } else {
-                openSystemSettings(pane: "Privacy_Camera")
+                openCameraSettings()
             }
         }
     }
 
     func openCameraSettings() {
-        openSystemSettings(pane: "Privacy_Camera")
+        PermissionsManager.shared.openSystemSettings(for: .camera)
     }
 
     private func openSystemSettings(pane: String) {
+        if let primary = URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?\(pane)"),
+           NSWorkspace.shared.open(primary) {
+            return
+        }
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") else { return }
         NSWorkspace.shared.open(url)
     }
@@ -984,7 +988,7 @@ final class FaceIDEnrollmentController {
         defer { isSavingPassword = false }
 
         do {
-            try await NotchPulseVault.unlockSession(reason: "Set up NotchPulse Face ID")
+            try await NotchPulseVault.unlockOrResetForFreshSetup(reason: "Set up NotchPulse Face ID")
 
             // Only now that the session key exists can samples be encrypted and saved.
             // Empty in the password-only flow, which shares this method.

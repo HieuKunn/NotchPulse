@@ -461,7 +461,11 @@ final class LaunchpadManager: ObservableObject {
         else { return }
 
         let item = folder.items.remove(at: sourceIdx)
-        let clampedIndex = max(0, min(targetIndex, folder.items.count))
+        var destinationIndex = targetIndex
+        if sourceIdx < targetIndex {
+            destinationIndex -= 1
+        }
+        let clampedIndex = max(0, min(destinationIndex, folder.items.count))
         folder.items.insert(item, at: clampedIndex)
 
         var workingPages = pages
