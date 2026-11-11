@@ -1,6 +1,6 @@
 @preconcurrency import AppKit
 import ApplicationServices
-import CoreFoundation
+@preconcurrency import CoreFoundation
 import Defaults
 import Foundation
 import IOKit.hid
@@ -411,10 +411,10 @@ private final class LaunchpadMultitouchPinchDetector: @unchecked Sendable {
 final class LaunchpadSystemInterceptor {
     static let shared = LaunchpadSystemInterceptor()
 
-    private static let kVKLaunchpadKeyCode: Int64 = 131
-    private static let kVKLaunchpadAlternateKeyCode: Int64 = 160
-    private static let nxSystemDefinedEventTypeRaw: UInt32 = 14 // NX_SYSDEFINED
-    private static let nxKeyTypeLaunchPanel = 13 // NX_KEYTYPE_LAUNCH_PANEL
+    nonisolated private static let kVKLaunchpadKeyCode: Int64 = 131
+    nonisolated private static let kVKLaunchpadAlternateKeyCode: Int64 = 160
+    nonisolated private static let nxSystemDefinedEventTypeRaw: UInt32 = 14 // NX_SYSDEFINED
+    nonisolated private static let nxKeyTypeLaunchPanel = 13 // NX_KEYTYPE_LAUNCH_PANEL
 
     // System preference backup keys for clean restore on disable / quit
     private static let savedOverrideActiveKey = "LaunchpadSystemGestureOverrideActive"
@@ -465,8 +465,15 @@ final class LaunchpadSystemInterceptor {
     private var isConfigured = false
     private var eventTap: CFMachPort?
     private var eventTapRunLoopSource: CFRunLoopSource?
-    private var swallowNextMouseUp = false
-    private var swallowNextKeyUp = false
+    private final class TapSharedState: @unchecked Sendable {
+        let lock = NSLock()
+        var isEnabled = false
+        var replaceSystemGesture = false
+        var symbolicHotKey: (keyCode: Int64, modifiers: CGEventFlags)?
+        var swallowNextKeyUp = false
+        var eventTap: CFMachPort?
+    }
+    private let tapState = TapSharedState()
     private var symbolicLaunchpadHotKey: (keyCode: Int64, modifiers: CGEventFlags)?
     private var hidManager: IOHIDManager?
 
@@ -498,12 +505,24 @@ final class LaunchpadSystemInterceptor {
         }
 
         refreshSymbolicLaunchpadHotKey()
+        syncTapConfiguration()
         syncSystemTrackpadGestureSuppression()
         installMultitouchDetectorIfNeeded()
         installHIDConsumerObserverIfAuthorized()
         installEventTapIfNeeded()
         attachSystemAXObservers()
         updateFallbackMonitorState()
+    }
+
+    private func syncTapConfiguration() {
+        let enabled = Defaults[.enableLaunchpad]
+        let replaceGesture = Defaults[.launchpadReplaceSystemGesture]
+        let hotKey = symbolicLaunchpadHotKey
+        tapState.lock.lock()
+        tapState.isEnabled = enabled
+        tapState.replaceSystemGesture = replaceGesture
+        tapState.symbolicHotKey = hotKey
+        tapState.lock.unlock()
     }
 
     func noteInterceptedSystemTrigger() {
@@ -513,6 +532,11 @@ final class LaunchpadSystemInterceptor {
     }
 
     func teardown() {
+        tapState.lock.lock()
+        tapState.isEnabled = false
+        tapState.swallowNextKeyUp = false
+        tapState.lock.unlock()
+
         deferredAXCheckTask?.cancel()
         deferredAXCheckTask = nil
 
@@ -680,6 +704,7 @@ final class LaunchpadSystemInterceptor {
     /// Reads macOS System Settings -> Keyboard Shortcuts -> Launchpad (`160`) so custom
     /// or system-configured Launchpad keyboard shortcuts are intercepted alongside F4 / HID Launchpad.
     private func refreshSymbolicLaunchpadHotKey() {
+        defer { syncTapConfiguration() }
         guard let hotKeys = CFPreferencesCopyValue(
             "AppleSymbolicHotKeys" as CFString,
             "com.apple.symbolichotkeys" as CFString,
@@ -833,12 +858,53 @@ final class LaunchpadSystemInterceptor {
 
     // MARK: - CGEventTap (Dock Click + Launchpad Key Swallower)
 
+    /// Dedicated lightweight run loop serving Launchpad key taps off MainThread
+    /// (mirrors vorssaint-utils PointerTapRunLoop: zero UI, zero timers, zero Accessibility calls).
+    private enum LaunchpadTapRunLoop {
+        private final class RunLoopHolder: @unchecked Sendable {
+            var loop: CFRunLoop?
+        }
+
+        static let runLoop: CFRunLoop = {
+            let holder = RunLoopHolder()
+            let ready = DispatchSemaphore(value: 0)
+            let thread = Thread {
+                holder.loop = CFRunLoopGetCurrent()
+                RunLoop.current.add(NSMachPort(), forMode: .common)
+                ready.signal()
+                while true {
+                    CFRunLoopRunInMode(.defaultMode, .greatestFiniteMagnitude, false)
+                }
+            }
+            thread.name = "NotchPulse Launchpad Key Tap"
+            thread.qualityOfService = .userInteractive
+            thread.start()
+            ready.wait()
+            return holder.loop!
+        }()
+
+        static func add(_ source: CFRunLoopSource) {
+            CFRunLoopAddSource(runLoop, source, .commonModes)
+            CFRunLoopWakeUp(runLoop)
+        }
+
+        static func remove(_ source: CFRunLoopSource, invalidating port: CFMachPort?) {
+            CFRunLoopPerformBlock(runLoop, CFRunLoopMode.commonModes.rawValue) {
+                CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, .commonModes)
+                if let port {
+                    CFMachPortInvalidate(port)
+                }
+            }
+            CFRunLoopWakeUp(runLoop)
+        }
+    }
+
     private func installEventTapIfNeeded() {
         guard eventTap == nil, AXIsProcessTrusted() else { return }
 
+        // Only intercept Launchpad keyboard/media keys off-main-thread; NEVER tap leftMouseDown/Up globally
+        // or run synchronous AXUIElementCopyElementAtPosition inside a CGEventTap callback (prevents WindowServer deadlocks).
         let mask =
-            (CGEventMask(1) << CGEventType.leftMouseDown.rawValue) |
-            (CGEventMask(1) << CGEventType.leftMouseUp.rawValue) |
             (CGEventMask(1) << CGEventType.keyDown.rawValue) |
             (CGEventMask(1) << CGEventType.keyUp.rawValue) |
             (CGEventMask(1) << Self.nxSystemDefinedEventTypeRaw)
@@ -869,58 +935,56 @@ final class LaunchpadSystemInterceptor {
 
         guard let tap else { return }
         eventTap = tap
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        eventTapRunLoopSource = source
-        if let source {
-            CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        tapState.lock.lock()
+        tapState.eventTap = tap
+        tapState.lock.unlock()
+
+        if let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) {
+            eventTapRunLoopSource = source
+            LaunchpadTapRunLoop.add(source)
         }
         CGEvent.tapEnable(tap: tap, enable: true)
     }
 
     private func removeEventTap() {
-        if let source = eventTapRunLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
-        }
-        if let tap = eventTap {
+        let tap = eventTap
+        let source = eventTapRunLoopSource
+        eventTap = nil
+        eventTapRunLoopSource = nil
+
+        tapState.lock.lock()
+        tapState.eventTap = nil
+        tapState.swallowNextKeyUp = false
+        tapState.lock.unlock()
+
+        if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
+        }
+        if let source {
+            LaunchpadTapRunLoop.remove(source, invalidating: tap)
+        } else if let tap {
             CFMachPortInvalidate(tap)
         }
-        eventTapRunLoopSource = nil
-        eventTap = nil
     }
 
     nonisolated private func handleCGEvent(type: CGEventType, cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if Thread.isMainThread {
-                MainActor.assumeIsolated {
-                    if let tap = self.eventTap {
-                        CGEvent.tapEnable(tap: tap, enable: true)
-                    }
-                }
-            } else {
-                DispatchQueue.main.async {
-                    LaunchpadSystemInterceptor.shared.reenableEventTap()
-                }
+            tapState.lock.lock()
+            let tap = tapState.eventTap
+            tapState.lock.unlock()
+            if let tap {
+                CGEvent.tapEnable(tap: tap, enable: true)
             }
             return Unmanaged.passRetained(cgEvent)
         }
 
-        guard Thread.isMainThread else {
-            return Unmanaged.passRetained(cgEvent)
-        }
-        return MainActor.assumeIsolated {
-            self.handleCGEventOnMain(type: type, cgEvent: cgEvent)
-        }
-    }
+        tapState.lock.lock()
+        let enabled = tapState.isEnabled
+        let replaceGesture = tapState.replaceSystemGesture
+        let hotKey = tapState.symbolicHotKey
+        tapState.lock.unlock()
 
-    private func reenableEventTap() {
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: true)
-        }
-    }
-
-    private func handleCGEventOnMain(type: CGEventType, cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
-        guard Defaults[.enableLaunchpad] else {
+        guard enabled else {
             return Unmanaged.passRetained(cgEvent)
         }
 
@@ -932,9 +996,9 @@ final class LaunchpadSystemInterceptor {
             let stateByte = (nsEvent.data1 & 0xFF00) >> 8
             if keyCode == Self.nxKeyTypeLaunchPanel {
                 if stateByte == 0xA {
-                    lastTriggerAt = Date()
-                    suppressNativeDismissUntil = lastTriggerAt.addingTimeInterval(0.60)
-                    LaunchpadWindowController.shared.toggle()
+                    DispatchQueue.main.async {
+                        LaunchpadSystemInterceptor.shared.triggerLaunchpadFromTap(dismissWindowSeconds: 0.60)
+                    }
                 }
                 return nil
             }
@@ -942,33 +1006,12 @@ final class LaunchpadSystemInterceptor {
         }
 
         switch type {
-        case .leftMouseUp:
-            if swallowNextMouseUp {
-                swallowNextMouseUp = false
-                return nil
-            }
-            return Unmanaged.passRetained(cgEvent)
-
-        case .leftMouseDown:
-            let point = cgEvent.location
-            guard Self.isPointNearScreenEdge(point) else {
-                return Unmanaged.passRetained(cgEvent)
-            }
-            if Self.isDockAppsLauncherTile(at: point) {
-                swallowNextMouseUp = true
-                lastTriggerAt = Date()
-                suppressNativeDismissUntil = lastTriggerAt.addingTimeInterval(0.60)
-                LaunchpadWindowController.shared.toggle()
-                return nil
-            }
-            return Unmanaged.passRetained(cgEvent)
-
         case .keyUp:
-            if swallowNextKeyUp {
-                swallowNextKeyUp = false
-                return nil
-            }
-            return Unmanaged.passRetained(cgEvent)
+            tapState.lock.lock()
+            let shouldSwallow = tapState.swallowNextKeyUp
+            if shouldSwallow { tapState.swallowNextKeyUp = false }
+            tapState.lock.unlock()
+            return shouldSwallow ? nil : Unmanaged.passRetained(cgEvent)
 
         case .keyDown:
             let keyCode = cgEvent.getIntegerValueField(.keyboardEventKeycode)
@@ -976,16 +1019,17 @@ final class LaunchpadSystemInterceptor {
             let relevantFlags = flags.intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift])
             let hasModifiers = !relevantFlags.isEmpty
             let matchesSymbolicHotKey: Bool = {
-                guard Defaults[.launchpadReplaceSystemGesture],
-                      let hotKey = symbolicLaunchpadHotKey else { return false }
+                guard replaceGesture, let hotKey else { return false }
                 return keyCode == hotKey.keyCode && relevantFlags == hotKey.modifiers
             }()
             let matchesRawLaunchpadKey = (keyCode == Self.kVKLaunchpadKeyCode || keyCode == Self.kVKLaunchpadAlternateKeyCode) && !hasModifiers
             if matchesRawLaunchpadKey || matchesSymbolicHotKey {
-                swallowNextKeyUp = true
-                lastTriggerAt = Date()
-                suppressNativeDismissUntil = lastTriggerAt.addingTimeInterval(0.75)
-                LaunchpadWindowController.shared.toggle()
+                tapState.lock.lock()
+                tapState.swallowNextKeyUp = true
+                tapState.lock.unlock()
+                DispatchQueue.main.async {
+                    LaunchpadSystemInterceptor.shared.triggerLaunchpadFromTap(dismissWindowSeconds: 0.75)
+                }
                 return nil
             }
             return Unmanaged.passRetained(cgEvent)
@@ -995,59 +1039,12 @@ final class LaunchpadSystemInterceptor {
         }
     }
 
-    private static func isPointNearScreenEdge(_ cgPoint: CGPoint) -> Bool {
-        // CGEvent location has origin at top-left of primary screen.
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? 1000
-        let nsPoint = CGPoint(x: cgPoint.x, y: primaryHeight - cgPoint.y)
-        for screen in NSScreen.screens {
-            let f = screen.frame
-            if f.insetBy(dx: -4, dy: -4).contains(nsPoint) {
-                let nearEdge = nsPoint.x <= f.minX + 140 ||
-                    nsPoint.x >= f.maxX - 140 ||
-                    nsPoint.y <= f.minY + 140 ||
-                    nsPoint.y >= f.maxY - 140
-                if nearEdge {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    private static func isDockAppsLauncherTile(at cgPoint: CGPoint) -> Bool {
-        let systemWide = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(systemWide, 0.05)
-        var elementRef: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(systemWide, Float(cgPoint.x), Float(cgPoint.y), &elementRef) == .success,
-              let el = elementRef else {
-            return false
-        }
-        AXUIElementSetMessagingTimeout(el, 0.05)
-
-        var subroleRef: AnyObject?
-        AXUIElementCopyAttributeValue(el, kAXSubroleAttribute as CFString, &subroleRef)
-        let subrole = subroleRef as? String ?? ""
-        guard subrole == "AXApplicationDockItem" || subrole == "AXFolderDockItem" else {
-            return false
-        }
-
-        var urlRef: AnyObject?
-        AXUIElementCopyAttributeValue(el, kAXURLAttribute as CFString, &urlRef)
-        if let url = urlRef as? URL {
-            let path = url.standardizedFileURL.path
-            if path == "/System/Applications/Apps.app" || path == "/Applications" {
-                return true
-            }
-        }
-
-        var titleRef: AnyObject?
-        AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &titleRef)
-        if let title = titleRef as? String {
-            if localizedAppsPlaceholders.contains(title) || title == "Launchpad" {
-                return true
-            }
-        }
-        return false
+    private func triggerLaunchpadFromTap(dismissWindowSeconds: TimeInterval) {
+        guard Defaults[.enableLaunchpad] else { return }
+        let now = Date()
+        lastTriggerAt = now
+        suppressNativeDismissUntil = now.addingTimeInterval(dismissWindowSeconds)
+        LaunchpadWindowController.shared.toggle()
     }
 
     // MARK: - Darwin, Workspace & AXObserver Interception
@@ -1161,7 +1158,6 @@ final class LaunchpadSystemInterceptor {
             AXObserverAddNotification(observer, axApp, kAXFocusedWindowChangedNotification as CFString, nil)
             AXObserverAddNotification(observer, axApp, kAXMainWindowChangedNotification as CFString, nil)
             AXObserverAddNotification(observer, axApp, kAXWindowCreatedNotification as CFString, nil)
-            AXObserverAddNotification(observer, axApp, kAXFocusedUIElementChangedNotification as CFString, nil)
             AXObserverAddNotification(observer, axApp, kAXApplicationActivatedNotification as CFString, nil)
             CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
             axObservers[pid] = observer

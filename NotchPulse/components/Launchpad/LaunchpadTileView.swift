@@ -187,7 +187,8 @@ struct LaunchpadTileView: View {
                 if showLabel {
                     Text(node.displayName)
                         .font(.system(size: labelFontSize, weight: .regular))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(sourceFolderId != nil ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.white))
+                        .shadow(color: sourceFolderId != nil ? .clear : Color.black.opacity(0.55), radius: 2.5, y: 1)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.horizontal, 8)

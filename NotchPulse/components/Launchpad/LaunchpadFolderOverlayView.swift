@@ -18,11 +18,17 @@ struct LaunchpadFolderOverlayView: View {
     @State private var tileFrames: [String: CGRect] = [:]
     @FocusState private var isTitleFocused: Bool
 
-    private var folderColumns: Int {
-        min(5, max(3, Int(ceil(sqrt(Double(max(1, folder.items.count)))))))
+    private let folderColumns: Int = 3
+
+    private var squareCardSize: CGFloat {
+        let cellSlotWidth = max(iconSize * 1.24, 96)
+        let idealGrid = CGFloat(folderColumns) * cellSlotWidth + CGFloat(folderColumns - 1) * 18 + 68
+        return min(660, max(500, idealGrid))
     }
 
     var body: some View {
+        let isEditingTitle = isTitleFocused || manager.isEditingMode
+
         ZStack {
             Color.black.opacity(0.24)
                 .ignoresSafeArea()
@@ -38,8 +44,8 @@ struct LaunchpadFolderOverlayView: View {
                         .textFieldStyle(.plain)
                         .focusEffectDisabled()
                         .font(.largeTitle.weight(.light))
-                        .foregroundStyle(.primary)
-                        .shadow(color: Color.black.opacity(0.45), radius: 3, y: 1)
+                        .foregroundStyle(isEditingTitle ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.white))
+                        .shadow(color: isEditingTitle ? .clear : Color.black.opacity(0.45), radius: 3, y: 1)
                         .multilineTextAlignment(.center)
                         .focused($isTitleFocused)
                         .onSubmit {
@@ -50,7 +56,7 @@ struct LaunchpadFolderOverlayView: View {
                             if !focused { commitTitle() }
                         }
 
-                    if (isTitleFocused || manager.isEditingMode) && !folderTitle.isEmpty {
+                    if isEditingTitle && !folderTitle.isEmpty {
                         Button {
                             folderTitle = ""
                             isTitleFocused = true
@@ -62,10 +68,10 @@ struct LaunchpadFolderOverlayView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, (isTitleFocused || manager.isEditingMode) ? 18 : 24)
+                .padding(.horizontal, isEditingTitle ? 18 : 24)
                 .padding(.vertical, 6)
                 .background {
-                    if isTitleFocused || manager.isEditingMode {
+                    if isEditingTitle {
                         Capsule(style: .continuous)
                             .fill(.regularMaterial)
                             .overlay(
@@ -78,7 +84,7 @@ struct LaunchpadFolderOverlayView: View {
 
                 ScrollView {
                     LazyVGrid(
-                        columns: Array(repeating: GridItem(.flexible(minimum: iconSize + 24), spacing: 18), count: folderColumns),
+                        columns: Array(repeating: GridItem(.flexible(minimum: iconSize + 16), spacing: 18), count: folderColumns),
                         alignment: .leading,
                         spacing: 22
                     ) {
@@ -122,10 +128,10 @@ struct LaunchpadFolderOverlayView: View {
                     }
                     .padding(.horizontal, 34)
                     .padding(.vertical, 26)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 .scrollIndicators(.never)
-                .frame(maxHeight: 490)
-                .frame(minWidth: 460, maxWidth: min(780, max(540, CGFloat(folderColumns) * (iconSize + 52) + 68)))
+                .frame(width: squareCardSize, height: squareCardSize)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 34, style: .continuous)

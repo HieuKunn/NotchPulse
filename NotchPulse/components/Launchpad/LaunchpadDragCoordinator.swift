@@ -63,15 +63,22 @@ final class LaunchpadDragCoordinator: ObservableObject {
         guard let activeNode else { return }
         cursor.location = location
 
-        // If dragging an app inside an open folder, check if dragged outside the folder card to extract it
+        // If dragging an app inside an open folder, detect dragging outside the folder card to close the folder and keep dragging on the grid
         if let sourceFolderId, manager.activeFolderId == sourceFolderId, !isFolderHiddenForExtraction {
-            let expandedRect = folderCardRect.insetBy(dx: -16, dy: -16)
-            if !folderCardRect.isEmpty && !expandedRect.contains(location) {
+            let exitRect = folderCardRect.insetBy(dx: -8, dy: -8)
+            let immediateExitRect = folderCardRect.insetBy(dx: -36, dy: -36)
+            if !folderCardRect.isEmpty && !immediateExitRect.contains(location) {
+                folderExitTask?.cancel()
+                folderExitTask = nil
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.88)) {
+                    self.isFolderHiddenForExtraction = true
+                }
+            } else if !folderCardRect.isEmpty && !exitRect.contains(location) {
                 if folderExitTask == nil {
                     folderExitTask = Task { @MainActor [weak self] in
-                        try? await Task.sleep(for: .milliseconds(220))
+                        try? await Task.sleep(for: .milliseconds(95))
                         guard let self, !Task.isCancelled, self.activeNode != nil else { return }
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+                        withAnimation(.spring(response: 0.22, dampingFraction: 0.88)) {
                             self.isFolderHiddenForExtraction = true
                         }
                     }
@@ -86,9 +93,9 @@ final class LaunchpadDragCoordinator: ObservableObject {
 
         let isOverlayFolderActive = manager.activeFolderId != nil && !isFolderHiddenForExtraction
 
-        // Check left/right edge auto-page flip when on main grid
+        // Check left/right edge auto-page flip only when dragged right up to the outer screen edge
         if !isOverlayFolderActive && manager.searchQuery.isEmpty && canvasSize.width > 0 {
-            let edgeMargin: CGFloat = 72
+            let edgeMargin: CGFloat = 20
             let desiredDirection: Int?
             if location.x <= edgeMargin && manager.currentPageIndex > 0 {
                 desiredDirection = -1
@@ -110,7 +117,7 @@ final class LaunchpadDragCoordinator: ObservableObject {
                 edgeTurnTask = nil
                 if let dir = desiredDirection {
                     edgeTurnTask = Task { @MainActor [weak self] in
-                        try? await Task.sleep(for: .milliseconds(450))
+                        try? await Task.sleep(for: .milliseconds(750))
                         guard let self, !Task.isCancelled, self.activeNode != nil else { return }
                         let targetPage = manager.currentPageIndex + dir
                         if targetPage >= manager.pages.count {

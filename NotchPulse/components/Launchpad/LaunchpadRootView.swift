@@ -74,7 +74,7 @@ private struct LaunchpadVisualEffectBackdrop: NSViewRepresentable {
     }
 
     private func configure(_ view: NSVisualEffectView) {
-        view.appearance = NSAppearance(named: .darkAqua)
+        view.appearance = nil
         view.blendingMode = .behindWindow
         view.state = .active
         switch style {
@@ -129,7 +129,6 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let field = NSSearchField()
-        field.appearance = NSAppearance(named: .darkAqua)
         field.translatesAutoresizingMaskIntoConstraints = false
         field.isBordered = false
         field.drawsBackground = false
@@ -157,7 +156,6 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
         if #available(macOS 26.0, *),
            let glassClass = NSClassFromString("NSGlassEffectView") as? NSView.Type {
             let glass = glassClass.init()
-            glass.appearance = NSAppearance(named: .darkAqua)
             glass.setValue(0, forKey: "style")
             glass.setValue(CGFloat(16), forKey: "cornerRadius")
             if glass.responds(to: NSSelectorFromString("setEffectIsInteractive:")) {
@@ -167,7 +165,6 @@ private struct LaunchpadNativeSearchField: NSViewRepresentable {
             return glass
         } else {
             let effect = NSVisualEffectView()
-            effect.appearance = NSAppearance(named: .darkAqua)
             effect.material = .hudWindow
             effect.blendingMode = .withinWindow
             effect.state = .active
@@ -234,6 +231,7 @@ struct LaunchpadRootView: View {
     @State private var blurredWallpaper: NSImage? = nil
     @State private var zoomScale: CGFloat = 1.0
     @State private var isMouseSwipingPage = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         GeometryReader { canvasGeo in
@@ -248,6 +246,8 @@ struct LaunchpadRootView: View {
             )
             ZStack {
                 backdropLayer(size: size)
+
+                let isFolderVisuallyOpen = manager.activeFolderId != nil && !dragCoordinator.isFolderHiddenForExtraction
 
                 VStack(spacing: 0) {
                     topSearchAndControlsBar
@@ -277,8 +277,8 @@ struct LaunchpadRootView: View {
                 }
                 .frame(width: size.width, height: size.height)
                 .scaleEffect(zoomScale)
-                .scaleEffect(manager.activeFolderId != nil ? 0.94 : 1.0)
-                .conditionalModifier(manager.activeFolderId != nil) { view in
+                .scaleEffect(isFolderVisuallyOpen ? 0.94 : 1.0)
+                .conditionalModifier(isFolderVisuallyOpen) { view in
                     view.blur(radius: 10).opacity(0.42)
                 }
 
@@ -320,7 +320,6 @@ struct LaunchpadRootView: View {
             }
             .frame(width: size.width, height: size.height)
             .clipped()
-            .environment(\.colorScheme, .dark)
             .coordinateSpace(name: "LaunchpadCanvas")
             .onAppear {
                 dragCoordinator.updateCanvasSize(size)
@@ -412,11 +411,14 @@ struct LaunchpadRootView: View {
                     .scaleEffect(1.03)
                     .frame(width: size.width, height: size.height)
                     .clipped()
-                Color.black.opacity(backgroundStyle == .dimmed ? 0.36 : 0.14)
+                let overlayOpacity: Double = colorScheme == .dark
+                    ? (backgroundStyle == .dimmed ? 0.36 : 0.14)
+                    : (backgroundStyle == .dimmed ? 0.20 : 0.04)
+                Color.black.opacity(overlayOpacity)
             } else {
                 LaunchpadVisualEffectBackdrop(style: backgroundStyle)
                 if backgroundStyle == .dimmed {
-                    Color.black.opacity(0.36)
+                    Color.black.opacity(colorScheme == .dark ? 0.36 : 0.18)
                 }
             }
         }
@@ -657,7 +659,8 @@ private struct LaunchpadFloatingDragOverlay: View {
             if showLabel {
                 Text(node.displayName)
                     .font(.system(size: max(12.5, min(16.5, (iconSize * 0.145).rounded())), weight: .medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.white)
+                    .shadow(color: Color.black.opacity(0.55), radius: 2.5, y: 1)
                     .lineLimit(1)
             }
         }
@@ -856,6 +859,7 @@ private struct LaunchpadPageGridView: View {
         .onChange(of: dragCoordinator.isFolderHiddenForExtraction) { _, hidden in
             if hidden && isCurrentPage {
                 syncTileFrames()
+                dragCoordinator.updateDrag(at: dragCoordinator.cursor.location, manager: manager)
             }
         }
         .onChange(of: manager.activeFolderId) { _, activeFolder in

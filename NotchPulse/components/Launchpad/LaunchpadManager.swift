@@ -281,8 +281,12 @@ final class LaunchpadManager: ObservableObject {
 
     func canMoveToTrash(_ app: LaunchpadAppItem) -> Bool {
         guard !app.isSystemProtected else { return false }
+        let resolvedPath = app.bundleURL.resolvingSymlinksInPath().path
+        guard !resolvedPath.hasPrefix("/System/"), !resolvedPath.hasPrefix("/usr/") else {
+            return false
+        }
         return app.bundlePath != Bundle.main.bundlePath
-            && FileManager.default.isDeletableFile(atPath: app.bundlePath)
+            && FileManager.default.fileExists(atPath: app.bundlePath)
     }
 
     func moveAppToTrash(_ app: LaunchpadAppItem) {
