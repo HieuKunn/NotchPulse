@@ -476,8 +476,8 @@ final class LaunchpadSystemInterceptor {
     private var workspaceActivateObserver: Any?
     private var workspaceWakeObserver: Any?
     private var deferredAXCheckTask: Task<Void, Never>?
-    private var fallbackMonitorTimer: Timer?
-    private var fallbackPollCount: Int = 0
+    private var fallbackMonitorSource: DispatchSourceTimer?
+    private let fallbackMonitorQueue = DispatchQueue(label: "com.notchpulse.launchpad.windowwatcher", qos: .utility)
     private var wasSystemAppsWindowOnScreen = false
     private var nativeDismissGeneration: Int = 0
 
@@ -516,8 +516,8 @@ final class LaunchpadSystemInterceptor {
         deferredAXCheckTask?.cancel()
         deferredAXCheckTask = nil
 
-        fallbackMonitorTimer?.invalidate()
-        fallbackMonitorTimer = nil
+        fallbackMonitorSource?.cancel()
+        fallbackMonitorSource = nil
         wasSystemAppsWindowOnScreen = false
 
         multitouchDetector?.stop()
@@ -1174,44 +1174,54 @@ final class LaunchpadSystemInterceptor {
 
     private func updateFallbackMonitorState() {
         guard Defaults[.enableLaunchpad] else {
-            fallbackMonitorTimer?.invalidate()
-            fallbackMonitorTimer = nil
+            fallbackMonitorSource?.cancel()
+            fallbackMonitorSource = nil
             return
         }
 
-        // Always keep a lightweight CGWindow watcher running even when AX observers are attached:
-        // macOS 26/27 Siri AI reuses a pre-warmed FluidWindow on `.launchAppsBrowsing` (Hot Corners,
-        // trackpad gesture, symbolic hotkeys) without always emitting AXWindowCreated or taking focus.
-        guard fallbackMonitorTimer == nil else { return }
-        fallbackPollCount = 0
-        fallbackMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.055, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.evaluateFallbackSystemAppsWindow()
+        // Keep a lightweight off-main-thread CGWindow watcher so macOS 26/27 Siri AI's
+        // pre-warmed FluidWindow on `.launchAppsBrowsing` is caught without blocking MainActor.
+        guard fallbackMonitorSource == nil else { return }
+
+        final class WatcherState: @unchecked Sendable {
+            var pollCount: Int = 0
+            var wasOnScreen: Bool = false
+        }
+        let state = WatcherState()
+        let timer = DispatchSource.makeTimerSource(queue: fallbackMonitorQueue)
+        timer.schedule(deadline: .now() + .milliseconds(100), repeating: .milliseconds(100), leeway: .milliseconds(25))
+        timer.setEventHandler { [weak self] in
+            state.pollCount += 1
+            let shouldRefreshObservers = state.pollCount >= 25
+            if shouldRefreshObservers {
+                state.pollCount = 0
+            }
+
+            let isCurrentlyOnScreen = Self.isSpotlightAppsCGWindowVisible()
+            let stateChanged = (isCurrentlyOnScreen != state.wasOnScreen)
+            state.wasOnScreen = isCurrentlyOnScreen
+
+            guard stateChanged || shouldRefreshObservers else { return }
+            Task { @MainActor [weak self] in
+                guard let self, Defaults[.enableLaunchpad] else { return }
+                if shouldRefreshObservers {
+                    self.refreshSymbolicLaunchpadHotKey()
+                    self.installHIDConsumerObserverIfAuthorized()
+                    if AXIsProcessTrusted() && (self.axObservers.isEmpty || self.eventTap == nil) {
+                        self.installEventTapIfNeeded()
+                        self.attachSystemAXObservers()
+                    }
+                }
+                if stateChanged {
+                    self.wasSystemAppsWindowOnScreen = isCurrentlyOnScreen
+                    if isCurrentlyOnScreen {
+                        self.handleSystemAppsPopupDetected(fromNativeTrigger: false)
+                    }
+                }
             }
         }
-    }
-
-    private func evaluateFallbackSystemAppsWindow() {
-        guard Defaults[.enableLaunchpad] else { return }
-
-        fallbackPollCount += 1
-        if fallbackPollCount >= 36 {
-            fallbackPollCount = 0
-            refreshSymbolicLaunchpadHotKey()
-            installHIDConsumerObserverIfAuthorized()
-            if AXIsProcessTrusted() && (axObservers.isEmpty || eventTap == nil) {
-                installEventTapIfNeeded()
-                attachSystemAXObservers()
-            }
-        }
-
-        let isCurrentlyOnScreen = Self.isSpotlightAppsCGWindowVisible()
-        if isCurrentlyOnScreen && !wasSystemAppsWindowOnScreen {
-            wasSystemAppsWindowOnScreen = true
-            handleSystemAppsPopupDetected(fromNativeTrigger: false)
-        } else if !isCurrentlyOnScreen {
-            wasSystemAppsWindowOnScreen = false
-        }
+        fallbackMonitorSource = timer
+        timer.resume()
     }
 
     nonisolated private static func candidateAXWindows(for axApp: AXUIElement) -> [AXUIElement] {

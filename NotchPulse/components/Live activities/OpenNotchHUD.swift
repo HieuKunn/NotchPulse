@@ -76,7 +76,6 @@ struct OpenNotchHUD: View {
                 .fill(Color.black)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
-        .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.85), value: value)
     }
     
     func SpeakerSymbol(_ value: CGFloat) -> String {

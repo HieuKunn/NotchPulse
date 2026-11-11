@@ -3,13 +3,20 @@ import Combine
 import Foundation
 import SwiftUI
 
+/// Isolated observable pointer position so 120Hz drag motion only invalidates the single floating drag preview.
+@MainActor
+final class LaunchpadDragCursor: ObservableObject {
+    @Published var location: CGPoint = .zero
+}
+
 /// Coordinates smooth, 120Hz pointer drag-and-drop across Launchpad pages,
 /// edge page-flipping, folder creation/addition, and extracting apps from folders.
 @MainActor
 final class LaunchpadDragCoordinator: ObservableObject {
+    let cursor = LaunchpadDragCursor()
+
     @Published private(set) var activeNode: LaunchpadNode? = nil
     @Published private(set) var sourceFolderId: UUID? = nil
-    @Published var dragLocation: CGPoint = .zero
     @Published private(set) var mergeTargetNodeId: String? = nil
     @Published private(set) var reorderTargetIndex: Int? = nil
     @Published private(set) var edgeTurnDirection: Int? = nil
@@ -44,9 +51,9 @@ final class LaunchpadDragCoordinator: ObservableObject {
 
     func beginDrag(node: LaunchpadNode, fromFolderId: UUID? = nil, at location: CGPoint) {
         guard activeNode == nil else { return }
+        cursor.location = location
         activeNode = node
         sourceFolderId = fromFolderId
-        dragLocation = location
         mergeTargetNodeId = nil
         reorderTargetIndex = nil
         edgeTurnDirection = nil
@@ -54,7 +61,7 @@ final class LaunchpadDragCoordinator: ObservableObject {
 
     func updateDrag(at location: CGPoint, manager: LaunchpadManager) {
         guard let activeNode else { return }
-        dragLocation = location
+        cursor.location = location
 
         // If dragging an app inside an open folder, check if dragged outside the folder card to extract it
         if let sourceFolderId, manager.activeFolderId == sourceFolderId, !isFolderHiddenForExtraction {
@@ -262,6 +269,7 @@ final class LaunchpadDragCoordinator: ObservableObject {
         sourceFolderId = nil
         reorderTargetIndex = nil
         isFolderHiddenForExtraction = false
+        cursor.location = .zero
     }
 }
 

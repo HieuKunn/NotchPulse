@@ -4,14 +4,7 @@ import Defaults
 struct SystemEventIndicatorModifier: View {
     @EnvironmentObject var vm: NotchPulseViewModel
     @Binding var eventType: SneakContentType
-    @Binding var value: CGFloat {
-        didSet {
-            DispatchQueue.main.async {
-                self.sendEventBack(value)
-                self.vm.objectWillChange.send()
-            }
-        }
-    }
+    @Binding var value: CGFloat
     @Binding var icon: String
     let showSlider: Bool = false
     var sendEventBack: (CGFloat) -> Void
@@ -52,7 +45,7 @@ struct SystemEventIndicatorModifier: View {
                     EmptyView()
             }
             if (eventType != .mic) {
-                DraggableProgressBar(value: $value)
+                DraggableProgressBar(value: $value, onChange: sendEventBack)
                 if Defaults[.showClosedNotchHUDPercentage] {
                     Text("\(Int(value * 100))%")
                         .font(.system(size: 12, weight: .medium))
@@ -123,7 +116,7 @@ struct DraggableProgressBar: View {
                             Color.clear,
                             radius: 8, x: 3)
                         .opacity(value.isZero ? 0 : 1)
-                        .animation(isDragging ? nil : .interactiveSpring(response: 0.18, dampingFraction: 0.85), value: value)
+                        .animation(isDragging ? nil : .easeOut(duration: 0.065), value: value)
                 }
                 .gesture(
                     DragGesture(minimumDistance: 0)

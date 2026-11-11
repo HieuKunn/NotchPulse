@@ -90,6 +90,7 @@ class NotchPulseViewCoordinator: ObservableObject {
 
     @Published var optionKeyPressed: Bool = true
     private var accessibilityObserver: Any?
+    private var appBecomeActiveObserver: Any?
     private var hudReplacementCancellable: AnyCancellable?
 
     private init() {
@@ -126,10 +127,10 @@ class NotchPulseViewCoordinator: ObservableObject {
             }
         }
 
-        // Observe changes to hudReplacement or inlineHUD
+        // Observe user-initiated changes to hudReplacement or inlineHUD (skip initial launch emission)
         hudReplacementCancellable = Publishers.Merge(
-            Defaults.publisher(.hudReplacement).map { _ in () },
-            Defaults.publisher(.inlineHUD).map { _ in () }
+            Defaults.publisher(.hudReplacement, options: []).map { _ in () },
+            Defaults.publisher(.inlineHUD, options: []).map { _ in () }
         )
         .sink { [weak self] _ in
             Task { @MainActor in
@@ -139,6 +140,7 @@ class NotchPulseViewCoordinator: ObservableObject {
                 self.hudEnableTask = nil
 
                 if Defaults[.hudReplacement] || Defaults[.inlineHUD] {
+                    BluetoothHeadphoneManager.shared.ensureBluetoothNotificationsRegistered()
                     self.hudEnableTask = Task { @MainActor in
                         let granted = await XPCHelperClient.shared.ensureAccessibilityAuthorization(promptIfNeeded: true)
                         if Task.isCancelled { return }
@@ -149,6 +151,20 @@ class NotchPulseViewCoordinator: ObservableObject {
                     }
                 } else {
                     MediaKeyInterceptor.shared.stop()
+                }
+            }
+        }
+
+        // Re-check Accessibility & connect HUD interceptor whenever user returns from System Settings
+        appBecomeActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
+                if authorized && (Defaults[.hudReplacement] || Defaults[.inlineHUD]) && !MediaKeyInterceptor.shared.isIntercepting {
+                    await MediaKeyInterceptor.shared.start(promptIfNeeded: false)
                 }
             }
         }
@@ -221,13 +237,16 @@ class NotchPulseViewCoordinator: ObservableObject {
                 return
             }
         }
-        Task { @MainActor in
-            withAnimation(.interactiveSpring(response: 0.18, dampingFraction: 0.85)) {
-                self.sneakPeek.show = status
-                self.sneakPeek.type = type
-                self.sneakPeek.value = value
-                self.sneakPeek.icon = icon
-            }
+        let isValueOnlyUpdate = status && self.sneakPeek.show && self.sneakPeek.type == type && self.sneakPeek.icon == icon
+        let anim: Animation = isValueOnlyUpdate
+            ? .easeOut(duration: 0.065)
+            : .interactiveSpring(response: 0.18, dampingFraction: 0.85)
+
+        withAnimation(anim) {
+            self.sneakPeek.show = status
+            self.sneakPeek.type = type
+            self.sneakPeek.value = value
+            self.sneakPeek.icon = icon
         }
 
         if type == .mic {

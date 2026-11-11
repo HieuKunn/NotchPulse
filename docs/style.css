@@ -176,6 +176,38 @@ a {
   text-decoration: none;
 }
 
+/* Visually hidden utility (accessible skip link reveals on keyboard focus) */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.skip-link:focus-visible {
+  position: fixed;
+  top: 14px;
+  left: 16px;
+  z-index: 2000;
+  padding: 10px 18px;
+  border-radius: 980px;
+  background: #F7EEE6;
+  color: #120A07;
+  font-weight: 700;
+  font-size: 0.86rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+:where(a:any-link, button, [role="tab"]):focus-visible {
+  outline: 2px solid #E2A76F;
+  outline-offset: 2px;
+}
+
 /* Container */
 .container {
   width: 100%;
@@ -191,6 +223,14 @@ a {
   opacity: 0;
   transform: translateY(24px);
   transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-section {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 .fade-in-section.is-visible {
@@ -615,7 +655,7 @@ a {
   position: relative;
   width: 100%;
   max-width: 1080px;
-  min-height: 520px;
+  min-height: 600px;
   margin: 36px auto 10px auto;
   border-radius: 32px;
   background: radial-gradient(ellipse at 50% 20%, rgba(255, 252, 248, 0.65) 0%, rgba(234, 219, 206, 0.2) 70%, transparent 100%);
@@ -767,6 +807,9 @@ a {
 }
 
 .node-faceid .node-icon { color: #E8DFD8; }
+.node-launchpad .node-icon { color: #60A5FA; }
+.node-hud .node-icon { color: #F59E0B; }
+.node-settings .node-icon { color: #94A3B8; }
 .node-stats .node-icon { color: #38BDF8; }
 .node-battery .node-icon { color: #34D399; }
 .node-clipboard .node-icon { color: #A78BFA; }
@@ -799,68 +842,86 @@ a {
   font-weight: 400;
 }
 
-/* Individual Node Placements (Evenly Distributed & Random-Feel Staggered Constellation) */
+/* Individual Node Placements (Evenly Distributed & Balanced 14-Node Constellation) */
 
-/* Left Wing (Evenly Spaced 6 Nodes) */
+/* Left Wing (Evenly Spaced 7 Nodes) */
 .node-faceid {
-  top: 6%;
+  top: 4%;
   left: 2%;
 }
 
+.node-launchpad {
+  top: 19%;
+  left: 21%;
+}
+
 .node-display {
-  top: 20%;
-  left: 22%;
-}
-
-.node-lunar {
-  top: 38%;
-  left: 4%;
-}
-
-.node-stats {
-  top: 56%;
-  left: 20%;
-}
-
-.node-battery {
-  top: 72%;
+  top: 34%;
   left: 3%;
 }
 
-.node-lockscreen {
-  top: 86%;
-  left: 22%;
+.node-lunar {
+  top: 49%;
+  left: 20%;
 }
 
-/* Right Wing (Evenly Spaced 6 Nodes) */
+.node-stats {
+  top: 64%;
+  left: 3%;
+}
+
+.node-battery {
+  top: 78%;
+  left: 21%;
+}
+
+.node-lockscreen {
+  top: 90%;
+  left: 4%;
+}
+
+/* Right Wing (Evenly Spaced 7 Nodes) */
 .node-island {
-  top: 6%;
+  top: 4%;
   right: 2%;
 }
 
+.node-hud {
+  top: 19%;
+  right: 21%;
+}
+
 .node-ddc {
-  top: 20%;
-  right: 22%;
-}
-
-.node-shelf {
-  top: 38%;
-  right: 4%;
-}
-
-.node-lyrics {
-  top: 56%;
-  right: 20%;
-}
-
-.node-fps {
-  top: 72%;
+  top: 34%;
   right: 3%;
 }
 
+.node-shelf {
+  top: 49%;
+  right: 20%;
+}
+
+.node-lyrics {
+  top: 64%;
+  right: 3%;
+}
+
+.node-settings {
+  top: 78%;
+  right: 21%;
+}
+
 .node-clipboard {
-  top: 86%;
-  right: 22%;
+  top: 90%;
+  right: 4%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-node,
+  .pulse-dot,
+  .mini-eq span {
+    animation: none !important;
+  }
 }
 
 @keyframes floatDrift {
@@ -1156,6 +1217,7 @@ a {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  scroll-margin-top: 84px;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
@@ -3034,5 +3096,439 @@ a {
   background: rgba(27, 16, 11, 0.96);
   color: #FFFFFF;
   border-color: rgba(255, 235, 220, 0.16);
+}
+
+/* ==========================================================================
+   v5.7 Feature Preview Widgets (Launchpad, 60Hz HUDs, Lock Screen, HIG)
+   ========================================================================== */
+
+.launchpad-preview-widget,
+.hud-preview-widget,
+.lockscreen-preview-widget,
+.hig-settings-widget {
+  inline-size: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Launchpad Home Interactive Tabs Preview */
+.launchpad-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.launchpad-search-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 980px;
+  background: rgba(255, 235, 220, 0.08);
+  border: 1px solid rgba(255, 235, 220, 0.12);
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  min-inline-size: 0;
+  flex: 1 1 180px;
+}
+
+.launchpad-search-pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.launchpad-tablist {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 235, 220, 0.1);
+  border-radius: 10px;
+  padding: 2px 4px;
+}
+
+.launchpad-tablist::-webkit-scrollbar {
+  display: none;
+}
+
+.launchpad-tab-btn {
+  position: relative;
+  flex: none;
+  min-block-size: 26px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.launchpad-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.launchpad-tab-btn[aria-selected="true"] {
+  color: #FFFFFF;
+  background: rgba(226, 167, 111, 0.16);
+}
+
+.launchpad-tab-btn[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 8px 1px;
+  border-block-end: 2px solid #E2A76F;
+}
+
+.launchpad-panels-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.launchpad-panel {
+  grid-area: 1 / 1;
+}
+
+.launchpad-panel[hidden] {
+  display: none;
+}
+
+.launchpad-apps-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(18, 10, 7, 0.58);
+  border: 1px solid rgba(255, 235, 220, 0.08);
+}
+
+.lp-app-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-inline-size: 0;
+}
+
+.lp-app-sq {
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: #FFFFFF;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.lp-app-tile span:last-child {
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-inline-size: 100%;
+}
+
+.lp-folder-mini {
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 8px;
+  padding: 4px;
+  background: rgba(255, 235, 220, 0.12);
+  border: 1px solid rgba(255, 235, 220, 0.2);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+}
+
+.lp-folder-mini i {
+  display: block;
+  border-radius: 2px;
+  background: rgba(226, 167, 111, 0.85);
+}
+
+.launchpad-folder-card {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(18, 10, 7, 0.72);
+  border: 1px solid rgba(226, 167, 111, 0.24);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-folder-header {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #E2A76F;
+}
+
+.lp-folder-inner {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 6px;
+}
+
+.launchpad-footer-badges,
+.hud-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lp-badge-pill,
+.hud-chip-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #E2A76F;
+  background: rgba(226, 167, 111, 0.1);
+  border: 1px solid rgba(226, 167, 111, 0.22);
+  border-radius: 980px;
+  padding: 3px 9px;
+}
+
+/* 60Hz Smooth Hardware HUDs Preview */
+.hud-notch-pill {
+  padding: 8px 11px;
+  border-radius: 11px;
+  background: rgba(12, 8, 6, 0.75);
+  border: 1px solid rgba(255, 235, 220, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hud-pill-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--text-primary);
+}
+
+.hud-pill-val {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #E2A76F;
+  font-weight: 600;
+}
+
+.hud-pill-track {
+  block-size: 6px;
+  border-radius: 980px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: clip;
+}
+
+.hud-pill-fill {
+  block-size: 100%;
+  border-radius: 980px;
+}
+
+.hud-fill-vol {
+  inline-size: 74%;
+  background: linear-gradient(90deg, #E2A76F, #38BDF8);
+}
+
+.hud-fill-bright {
+  inline-size: 82%;
+  background: linear-gradient(90deg, #F59E0B, #FDE68A);
+}
+
+/* Lock Screen Live Player Preview */
+.ls-clock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ls-lock-badge {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ls-source-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #38BDF8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 980px;
+  padding: 2px 8px;
+}
+
+.ls-player-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(12, 8, 6, 0.75);
+  border: 1px solid rgba(255, 235, 220, 0.12);
+}
+
+.ls-art-box {
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.ls-track-meta {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.ls-track-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ls-track-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ls-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.ls-play-btn {
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: 50%;
+  background: rgba(255, 235, 220, 0.14);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Native macOS HIG Settings Preview */
+.hig-settings-widget {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 10px;
+}
+
+.hig-sidebar,
+.hig-detail {
+  padding: 9px;
+  border-radius: 12px;
+  background: rgba(12, 8, 6, 0.68);
+  border: 1px solid rgba(255, 235, 220, 0.09);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-inline-size: 0;
+}
+
+.hig-search-bar {
+  font-size: 0.68rem;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: rgba(255, 235, 220, 0.08);
+  border: 1px solid rgba(255, 235, 220, 0.12);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hig-side-item {
+  font-size: 0.7rem;
+  padding: 4px 7px;
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+
+.hig-side-item.active {
+  background: rgba(226, 167, 111, 0.2);
+  color: #F7EEE6;
+  font-weight: 600;
+}
+
+.hig-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 235, 220, 0.04);
+  font-size: 0.72rem;
+  color: var(--text-primary);
+}
+
+.hig-toggle {
+  inline-size: 26px;
+  block-size: 15px;
+  border-radius: 980px;
+  background: #30D158;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hig-toggle::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+  inline-size: 11px;
+  block-size: 11px;
+  border-radius: 50%;
+  background: #FFFFFF;
+}
+
+.hig-badge {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .launchpad-apps-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .hig-settings-widget {
+    grid-template-columns: 1fr;
+  }
 }
 

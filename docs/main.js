@@ -17,6 +17,7 @@
 const i18nData = {
   en: {
     // Navigation
+    "nav.skip": "Skip to main content",
     "nav.features": "Features",
     "nav.demo": "Live Demo",
     "nav.reviews": "Reviews",
@@ -29,23 +30,29 @@ const i18nData = {
     "hero.title": "MacBook Notch, Reimagined.",
     "hero.titleMain": "MacBook Notch,",
     "hero.titleAccent": "Reimagined.",
-    "hero.subtitle": "Transform your MacBook camera notch into a fluid, 120Hz ProMotion interactive Dynamic Island. Native Apple Silicon performance with Biometric Face ID, real-time lyrics, and smart hardware HUDs.",
+    "hero.subtitle": "Transform your MacBook camera notch into a fluid, 120Hz ProMotion Dynamic Island. Includes classic Launchpad Home for modern macOS, ultra-smooth 60Hz HUDs, Biometric Face ID, Lock Screen Live Player, and universal browser media controls.",
     "hero.downloadBtn": "Download NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
     "chip.faceidTitle": "Face ID Verified",
     "chip.faceidSub": "On-Device Neural Engine",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "Classic Grid • F4 & Pinch",
+    "chip.hudTitle": "Smooth 60Hz HUDs",
+    "chip.hudSub": "Volume, Brightness & Keylight",
+    "chip.settingsTitle": "Native HIG Settings",
+    "chip.settingsSub": "Live Search & Feature Tour",
     "chip.ddcTitle": "DDC Display Control",
     "chip.ddcSub": "Dell UltraSharp 4K • 82%",
     "chip.batteryTitle": "98W MagSafe Active",
     "chip.batterySub": "Smart 80% Limit Protected",
     "chip.shelfTitle": "Notch Shelf Ready",
-    "chip.shelfSub": "Drag & Drop to Hold Files",
+    "chip.shelfSub": "Drag & Drop + AirDrop Share",
     "chip.fpsTitle": "120Hz ProMotion",
     "chip.fpsSub": "0% CPU Idle Overhead",
-    "chip.lyricsTitle": "Live Synced Lyrics",
-    "chip.lyricsSub": "Spotify & Apple Music",
+    "chip.lyricsTitle": "Browser & Music Sync",
+    "chip.lyricsSub": "Spotify, Music, YouTube & Web",
     "chip.statsTitle": "System Monitor",
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Clipboard History",
@@ -54,8 +61,8 @@ const i18nData = {
     "chip.lunarSub": "Âm Lịch • Hijri • Hebrew",
     "chip.islandTitle": "Dynamic Island Mode",
     "chip.islandSub": "Pixel-Perfect Bezier Curve",
-    "chip.lockscreenTitle": "Lock Screen HUD",
-    "chip.lockscreenSub": "Instant Live Activity",
+    "chip.lockscreenTitle": "Lock Screen Player",
+    "chip.lockscreenSub": "Live Controls & Lyrics",
     "chip.displayTitle": "Multi-Display Hub",
     "chip.displaySub": "Dual Screen Seamless Sync",
 
@@ -77,7 +84,7 @@ const i18nData = {
     // Bento Features Section
     "features.tag": "Engineered for macOS",
     "features.title": "Supercharge Your MacBook Notch",
-    "features.subtitle": "Built natively in Swift with 0% CPU overhead at idle. Experience smooth 120Hz ProMotion animations, biometric conveniences, and smart desktop tools.",
+    "features.subtitle": "Built natively in Swift with 0% CPU overhead at idle. Experience Launchpad Home, smooth 120Hz ProMotion & 60Hz HUDs, biometric Face ID, Lock Screen Live Player, and smart desktop tools.",
     
     "feat1.title": "Biometric Face ID Recognition",
     "feat1.desc": "Brings iOS-grade facial recognition to your Mac. Continuously senses your presence, previews camera status smoothly, and unlocks protected apps with privacy-first on-device Apple Vision processing.",
@@ -89,16 +96,16 @@ const i18nData = {
     "feat2.desc": "Fluidly morphs between native MacBook Notch profile and a centered floating Dynamic Island on external Studio Displays.",
     "bento.springPhysics": "Spring Physics (response: 0.38s)",
 
-    "feat3.title": "Live Synced Lyrics",
-    "feat3.desc": "Live word-by-word streaming lyrics for Spotify and Apple Music directly over the notch. Scrub tracks, seek timestamps, or expand into fullscreen lyric mode with vibrant album artwork.",
+    "feat3.title": "Live Synced Lyrics & Universal Media",
+    "feat3.desc": "Live word-by-word streaming lyrics and playback controls for Spotify, Apple Music, YouTube Music, and web browsers (YouTube, Netflix on Safari, Chrome & Arc) with direct timeline seek and vibrant artwork.",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "Notch Shelf & Quick Drop",
     "feat4.desc": "Drag files, links, or screenshots directly into the notch bezel to hold them temporarily across workspaces and apps.",
     "shelf.dropText": "Drop files here",
 
-    "feat5.title": "Hardware DDC External Display HUD",
-    "feat5.desc": "Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with cursor-aware F1/F2 keys and 2.2ms write coalescing.",
+    "feat5.title": "Multi-Display Hub & DDC Hardware HUD",
+    "feat5.desc": "Control built-in and external monitor hardware brightness and audio volume from a unified Display Hub or via DDC/CI with cursor-aware F1/F2 keys and 2.2ms write coalescing.",
     "bento.ddcBrightness": "Dell UltraSharp 4K Brightness",
     "bento.ddcVolume": "Built-in Audio Volume",
 
@@ -145,6 +152,35 @@ const i18nData = {
     "bento.fanCpuTemp": "CPU 42°C • Cool & Quiet",
     "bento.fanRootAuth": "Auto Root Daemon Active",
 
+    "feat14.title": "Launchpad Home for Modern macOS",
+    "feat14.desc": "Restores the classic full-screen paged app grid on every macOS version. Features mouse drag & two-finger swipe paging, folders, instant notch search, edge-to-edge 4K/5K display scaling, and deep interception of F4 keys, Hot Corners, Dock & pinch gestures.",
+    "bento.lpSearch": "Search apps & folders (⇧⌘L)",
+    "bento.lpTabPage1": "Page 1",
+    "bento.lpTabPage2": "Page 2",
+    "bento.lpTabFolder": "Folder",
+    "bento.lpFolderUtilities": "Dev Tools",
+    "bento.lpBadgeScaling": "4K/5K Edge-to-Edge Scaling",
+    "bento.lpBadgeIntercept": "F4 • Hot Corner • 4-Finger Pinch",
+
+    "feat15.title": "Ultra-Smooth 60Hz Hardware HUDs",
+    "feat15.desc": "Replaces macOS Volume, Brightness, Keyboard Backlight, and MagSafe Power HUDs without duplicate overlays. Features 60Hz continuous key-hold interpolation, interactive notch bar scrubbing, plus Inline & Open Notch styles.",
+    "bento.hudVolumeLabel": "Volume",
+    "bento.hudBrightLabel": "Brightness",
+    "bento.hudRampBadge": "60Hz Key-Hold Ramp",
+    "bento.hudInlineBadge": "Inline & Scrubbing",
+
+    "feat16.title": "Lock Screen Live Player & Browser Control",
+    "feat16.desc": "Displays full interactive album art, playback controls, and on-demand synced lyrics directly on the macOS Lock Screen. Seamlessly controls YouTube, Netflix, Safari, Chrome, Arc, Spotify & Apple Music with automatic Lock-to-Desktop session sync.",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "Lock Screen HUD & On-Demand Lyrics",
+
+    "feat17.title": "Native macOS HIG Settings & Deep Search",
+    "feat17.desc": "Crafted with Apple Human Interface Guidelines: translucent NavigationSplitView sidebar vibrancy, automatic Light/Dark appearance, grouped inset cards, real-time NSSearchField spotlight highlighting, and an interactive Feature Tour.",
+    "bento.higSearch": "⌘ Search 582 settings...",
+    "bento.higRow1": "F4 & Pinch Intercept",
+    "bento.higRow2": "Feature Tour Spotlight",
+    "bento.higBadge": "Zero-Lag HIG",
+
     // Reviews Section
     "reviews.tag": "Global Community",
     "reviews.title": "Loved by People Worldwide",
@@ -180,6 +216,7 @@ const i18nData = {
 
   vi: {
     // Navigation
+    "nav.skip": "Chuyển đến nội dung chính",
     "nav.features": "Tính Năng",
     "nav.demo": "Demo Trực Tiếp",
     "nav.reviews": "Đánh Giá Quốc Tế",
@@ -192,23 +229,29 @@ const i18nData = {
     "hero.title": "Tai Thỏ MacBook, Tái Định Nghĩa.",
     "hero.titleMain": "Tai Thỏ MacBook,",
     "hero.titleAccent": "Tái Định Nghĩa.",
-    "hero.subtitle": "Biến phần khuyết camera trên MacBook thành Dynamic Island tương tác mượt mà 120Hz ProMotion. Tối ưu hoàn hảo cho chip Apple Silicon với nhận diện Face ID, lời bài hát đồng bộ thời gian thực và bảng điều khiển HUD thông minh.",
+    "hero.subtitle": "Biến phần khuyết camera trên MacBook thành Dynamic Island 120Hz ProMotion mượt mà. Tích hợp Launchpad Home cho macOS mới, HUD phần cứng 60Hz siêu mượt, Face ID, Trình phát Màn hình khóa & Điều khiển nhạc trình duyệt.",
     "hero.downloadBtn": "Tải Trực Tiếp NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
     "chip.faceidTitle": "Face ID Sẵn Sàng",
     "chip.faceidSub": "Nhận diện khuôn mặt Neural Engine",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "Lưới Cổ Điển • Phím F4 & Chụm Tay",
+    "chip.hudTitle": "HUD Phần Cứng 60Hz",
+    "chip.hudSub": "Âm Lượng, Độ Sáng & Đèn Phím",
+    "chip.settingsTitle": "Cài Đặt Chuẩn HIG",
+    "chip.settingsSub": "Tìm Kiếm Nhanh & Hướng Dẫn",
     "chip.ddcTitle": "Điều Khiển Màn Hình DDC",
     "chip.ddcSub": "Dell UltraSharp 4K • 82%",
     "chip.batteryTitle": "Sạc MagSafe 98W",
     "chip.batterySub": "Bảo vệ pin thông minh 80%",
     "chip.shelfTitle": "Notch Shelf Sẵn Sàng",
-    "chip.shelfSub": "Kéo thả để lưu trữ tệp",
+    "chip.shelfSub": "Kéo thả + Chia sẻ AirDrop",
     "chip.fpsTitle": "120Hz ProMotion",
     "chip.fpsSub": "0% CPU khi chạy nền",
-    "chip.lyricsTitle": "Lời Nhạc Trực Tiếp",
-    "chip.lyricsSub": "Spotify & Apple Music",
+    "chip.lyricsTitle": "Nhạc & Trình Duyệt",
+    "chip.lyricsSub": "Spotify, Apple Music & Web",
     "chip.statsTitle": "Giám Sát Hệ Thống",
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Bộ Nhớ Tạm",
@@ -217,8 +260,8 @@ const i18nData = {
     "chip.lunarSub": "Âm Lịch VN • Hồi Giáo • Do Thái",
     "chip.islandTitle": "Chế Độ Dynamic Island",
     "chip.islandSub": "Đường Cong Bezier Hoàn Hảo",
-    "chip.lockscreenTitle": "HUD Màn Hình Khóa",
-    "chip.lockscreenSub": "Live Activity Không Độ Trễ",
+    "chip.lockscreenTitle": "Trình Phát Màn Hình Khóa",
+    "chip.lockscreenSub": "Lời Nhạc & Điều Khiển Trực Tiếp",
     "chip.displayTitle": "Đồng Bộ Đa Màn Hình",
     "chip.displaySub": "Hoạt Động 1 Notch Chuẩn Xác",
 
@@ -240,7 +283,7 @@ const i18nData = {
     // Bento Features Section
     "features.tag": "Tối Ưu Riêng Cho macOS",
     "features.title": "Đánh Thức Sức Mạnh Tai Thỏ",
-    "features.subtitle": "Viết bằng Swift thuần túy, 0% CPU khi chạy nền. Tận hưởng hoạt ảnh 120Hz ProMotion, bảo mật sinh trắc học và công cụ làm việc thông minh.",
+    "features.subtitle": "Viết bằng Swift thuần túy, 0% CPU khi chạy nền. Đầy đủ Launchpad Home, HUD 60Hz siêu mượt, Face ID sinh trắc học, Trình phát Màn hình khóa & bộ công cụ thông minh.",
     
     "feat1.title": "Mở Khoá Face ID Sinh Trắc Học",
     "feat1.desc": "Mang trải nghiệm nhận diện khuôn mặt chuẩn iPhone lên máy Mac. Tự động cảm biến hiện diện, xem trước camera mượt mà và mở khóa ứng dụng an toàn với Apple Vision ngay trên thiết bị.",
@@ -252,16 +295,16 @@ const i18nData = {
     "feat2.desc": "Tự động chuyển đổi linh hoạt giữa màn hình tai thỏ MacBook Pro và màn hình ngoài Studio Display ở tần số 120Hz ProMotion.",
     "bento.springPhysics": "Vật lý lò xo Apple (độ trễ: 0.38s)",
 
-    "feat3.title": "Lời Bài Hát Đồng Bộ Trực Tiếp",
-    "feat3.desc": "Hiển thị lời bài hát đồng bộ chạy từng chữ theo thời gian thực trên tai thỏ cho Spotify và Apple Music. Rê chuột để tua nhạc, tạm dừng hoặc xem ảnh bìa album siêu nét.",
+    "feat3.title": "Lời Bài Hát Đồng Bộ & Nhạc Trình Duyệt",
+    "feat3.desc": "Hiển thị lời bài hát chạy từng chữ thời gian thực và điều khiển phát cho Spotify, Apple Music, YouTube Music lẫn trình duyệt web (YouTube, Netflix trên Safari, Chrome, Arc) với tua nhanh trực tiếp.",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "Ngăn Kéo Notch Shelf & Thả Nhanh",
     "feat4.desc": "Biến phần khuyết tai thỏ thành nơi lưu tạm tài liệu thông minh. Kéo thả file, ảnh, đường link hoặc đoạn mã lên đỉnh màn hình để chuyển đổi nhanh giữa các app.",
     "shelf.dropText": "Thả tệp vào đây",
 
-    "feat5.title": "Điều Khiển Màn Hình Ngoài DDC HUD",
-    "feat5.desc": "Điều khiển độ sáng và âm lượng phần cứng màn hình ngoài thực thụ qua DDC/CI với phím F1/F2 nhận diện chuột thông minh và gộp lệnh I2C siêu tốc 2.2ms.",
+    "feat5.title": "Trung Tâm Màn Hình & DDC Phần Cứng",
+    "feat5.desc": "Điều chỉnh độ sáng và âm lượng từng màn hình từ Display Hub hoặc phần cứng màn hình ngoài qua DDC/CI với phím F1/F2 nhận diện chuột và gộp lệnh I2C 2.2ms.",
     "bento.ddcBrightness": "Độ sáng màn hình Dell UltraSharp 4K",
     "bento.ddcVolume": "Âm lượng loa tích hợp",
 
@@ -308,6 +351,35 @@ const i18nData = {
     "bento.fanCpuTemp": "CPU 42°C • Tản Nhiệt Siêu Mát",
     "bento.fanRootAuth": "Quyền Root Tự Động An Toàn",
 
+    "feat14.title": "Launchpad Home Cho macOS Đời Mới",
+    "feat14.desc": "Mang trở lại lưới ứng dụng toàn màn hình phân trang cổ điển trên mọi phiên bản macOS. Hỗ trợ kéo chuột & vuốt 2 ngón chuyển trang, thư mục, tìm kiếm nhanh dưới tai thỏ, tự căn tỉ lệ màn hình lớn 4K/5K và chặn toàn bộ phím F4, Góc Nóng, Dock & chụm 4 ngón.",
+    "bento.lpSearch": "Tìm kiếm ứng dụng & thư mục (⇧⌘L)",
+    "bento.lpTabPage1": "Trang 1",
+    "bento.lpTabPage2": "Trang 2",
+    "bento.lpTabFolder": "Thư mục",
+    "bento.lpFolderUtilities": "Công cụ Dev",
+    "bento.lpBadgeScaling": "Tỉ Lệ Full Màn Hình 4K/5K",
+    "bento.lpBadgeIntercept": "Chặn F4 • Hot Corner • Chụm 4 Ngón",
+
+    "feat15.title": "HUD Phần Cứng 60Hz Siêu Mượt",
+    "feat15.desc": "Thay thế hoàn toàn HUD Âm lượng, Độ sáng, Đèn nền bàn phím & Sạc MagSafe mà không bị chồng chéo hệ thống. Giữ phím tăng giảm trượt liên tục 60Hz mượt như thanh kéo, hỗ trợ vuốt trực tiếp trên tai thỏ và chế độ Inline gọn gàng.",
+    "bento.hudVolumeLabel": "Âm lượng",
+    "bento.hudBrightLabel": "Độ sáng",
+    "bento.hudRampBadge": "Nội Suy Giữ Phím 60Hz",
+    "bento.hudInlineBadge": "Inline & Kéo Thanh Trực Tiếp",
+
+    "feat16.title": "Trình Phát Màn Hình Khóa & Trình Duyệt",
+    "feat16.desc": "Hiển thị ảnh bìa, điều khiển nhạc và xem lời bài hát trực tiếp ngay trên Màn hình khóa macOS. Điều khiển đồng bộ YouTube, Netflix, Safari, Chrome, Arc, Spotify & Apple Music xuyên suốt khi mở khóa.",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "HUD Màn Hình Khóa & Lời Nhạc",
+
+    "feat17.title": "Cài Đặt Chuẩn Apple HIG & Tìm Kiếm Sâu",
+    "feat17.desc": "Thiết kế theo chuẩn Apple Human Interface Guidelines: thanh bên NavigationSplitView xuyên thấu, đồng bộ Sáng/Tối tự động, thẻ bo góc hệ thống, tìm kiếm NSSearchField tô sáng tức thì và Feature Tour hướng dẫn từng bước.",
+    "bento.higSearch": "⌘ Tìm 582 mục cài đặt...",
+    "bento.higRow1": "Chặn F4 & Cử Chỉ Launchpad",
+    "bento.higRow2": "Feature Tour Hướng Dẫn",
+    "bento.higBadge": "Chuẩn HIG Siêu Nhanh",
+
     // Reviews Section
     "reviews.tag": "Cộng Đồng Toàn Cầu",
     "reviews.title": "Được Yêu Thích Trên Toàn Thế Giới",
@@ -343,6 +415,7 @@ const i18nData = {
 
   de: {
     // Navigation
+    "nav.skip": "Zum Hauptinhalt springen",
     "nav.features": "Funktionen",
     "nav.demo": "Live-Demo",
     "nav.reviews": "Bewertungen",
@@ -355,23 +428,29 @@ const i18nData = {
     "hero.title": "MacBook Notch, neu definiert.",
     "hero.titleMain": "MacBook Notch,",
     "hero.titleAccent": "neu definiert.",
-    "hero.subtitle": "Verwandle die MacBook-Kamerakerbe in eine flüssige 120Hz ProMotion Dynamic Island. Native Apple Silicon Performance mit Face ID, synchronisierten Songtexten und Hardware-HUDs.",
+    "hero.subtitle": "Verwandle die MacBook-Kamerakerbe in eine flüssige 120Hz ProMotion Dynamic Island – jetzt mit klassischem Launchpad Home, flüssigen 60Hz HUDs, Face ID, Sperrbildschirm-Player und Browser-Mediensteuerung.",
     "hero.downloadBtn": "NotchPulse.dmg herunterladen ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
     "chip.faceidTitle": "Face ID Bestätigt",
     "chip.faceidSub": "On-Device Neural Engine",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "Klassisches Raster • F4 & Pinch",
+    "chip.hudTitle": "Flüssige 60Hz HUDs",
+    "chip.hudSub": "Lautstärke, Helligkeit & Tastenlicht",
+    "chip.settingsTitle": "Native HIG-Einstellungen",
+    "chip.settingsSub": "Live-Suche & Feature-Tour",
     "chip.ddcTitle": "DDC Display-Steuerung",
     "chip.ddcSub": "Dell UltraSharp 4K • 82%",
     "chip.batteryTitle": "98W MagSafe Aktiv",
     "chip.batterySub": "Intelligenter 80% Ladeschutz",
     "chip.shelfTitle": "Notch-Ablage Bereit",
-    "chip.shelfSub": "Dateien schnell ablegen",
+    "chip.shelfSub": "Drag & Drop + AirDrop",
     "chip.fpsTitle": "120Hz ProMotion",
     "chip.fpsSub": "0% CPU-Last im Leerlauf",
-    "chip.lyricsTitle": "Live-Songtexte",
-    "chip.lyricsSub": "Spotify & Apple Music",
+    "chip.lyricsTitle": "Browser & Musik-Sync",
+    "chip.lyricsSub": "Spotify, Musik, YouTube & Web",
     "chip.statsTitle": "Systemmonitor",
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Zwischenablage",
@@ -380,8 +459,8 @@ const i18nData = {
     "chip.lunarSub": "Mondkalender • Hijri • Hebräisch",
     "chip.islandTitle": "Dynamic Island Modus",
     "chip.islandSub": "Pixelgenaue Bezier-Kurve",
-    "chip.lockscreenTitle": "Sperrbildschirm-HUD",
-    "chip.lockscreenSub": "Verzögerungsfreie Live-Aktivität",
+    "chip.lockscreenTitle": "Sperrbildschirm-Player",
+    "chip.lockscreenSub": "Live-Steuerung & Songtexte",
     "chip.displayTitle": "Multi-Display-Hub",
     "chip.displaySub": "Nahtlose Bildschirm-Sync",
 
@@ -403,7 +482,7 @@ const i18nData = {
     // Bento Features Section
     "features.tag": "Entwickelt für macOS",
     "features.title": "Volle Kontrolle über Ihre MacBook Notch",
-    "features.subtitle": "Nativ in Swift entwickelt mit 0% CPU-Last im Leerlauf. Erlebe butterweiche 120Hz ProMotion Animationen und smarte Desktop-Werkzeuge.",
+    "features.subtitle": "Nativ in Swift entwickelt mit 0% CPU-Last im Leerlauf. Erlebe Launchpad Home, flüssige 120Hz ProMotion & 60Hz HUDs, Face ID, Sperrbildschirm-Player und smarte Werkzeuge.",
     
     "feat1.title": "Biometrische Face ID Erkennung",
     "feat1.desc": "Bringt iOS-Gesichtserkennung auf deinen Mac. Kontinuierliche Anwesenheitserkennung und sicheres Entsperren mit Apple Vision direkt auf dem Gerät.",
@@ -415,16 +494,16 @@ const i18nData = {
     "feat2.desc": "Wechselt flüssig zwischen nativer MacBook Notch und zentrierter Dynamic Island auf externen Bildschirmen.",
     "bento.springPhysics": "Apple Federphysik (Reaktion: 0.38s)",
 
-    "feat3.title": "Synchronisierte Live-Songtexte",
-    "feat3.desc": "Wortgenaue Songtexte für Spotify und Apple Music direkt an der Notch. Musik steuern und Cover-Artworks in Vollbild genießen.",
+    "feat3.title": "Live-Songtexte & Browser-Medien",
+    "feat3.desc": "Wortgenaue Songtexte und Mediensteuerung für Spotify, Apple Music, YouTube Music und Browser (YouTube, Netflix in Safari, Chrome & Arc) direkt in der Notch.",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "Notch Shelf & Schnelles Ablegen",
     "feat4.desc": "Dateien, Links oder Bildschirmfotos direkt in die Notch ziehen, um sie zwischen Schreibtischen und Apps bereitzuhalten.",
     "shelf.dropText": "Dateien hier ablegen",
 
-    "feat5.title": "Hardware DDC Display-Steuerung",
-    "feat5.desc": "Echte Hardware-Helligkeit und Audio externer Monitore über DDC/CI steuern – mit cursor-gesteuerten F1/F2-Tasten und schnellem 2,2ms Write-Coalescing.",
+    "feat5.title": "Multi-Display-Hub & DDC-Steuerung",
+    "feat5.desc": "Steuere Helligkeit und Lautstärke interner und externer Monitore über den Display-Hub oder DDC/CI mit cursor-gesteuerten F1/F2-Tasten und 2,2ms Write-Coalescing.",
     "bento.ddcBrightness": "Dell UltraSharp 4K Helligkeit",
     "bento.ddcVolume": "Integrierte Lautstärke",
 
@@ -471,6 +550,35 @@ const i18nData = {
     "bento.fanCpuTemp": "CPU 42°C • Kühl & Leise",
     "bento.fanRootAuth": "Root-Daemon Aktiv",
 
+    "feat14.title": "Launchpad Home für modernes macOS",
+    "feat14.desc": "Bringt das klassische Vollbild-App-Raster auf jedes macOS zurück. Mit Mausziehen & Trackpad-Wischen, Ordnern, Sofortsuche unter der Notch, proportionaler 4K/5K-Skalierung und kompletter Blockierung von F4-Taste, Aktiven Ecken, Dock & Pinch-Geste.",
+    "bento.lpSearch": "Apps & Ordner suchen (⇧⌘L)",
+    "bento.lpTabPage1": "Seite 1",
+    "bento.lpTabPage2": "Seite 2",
+    "bento.lpTabFolder": "Ordner",
+    "bento.lpFolderUtilities": "Entwicklertools",
+    "bento.lpBadgeScaling": "4K/5K Vollbild-Skalierung",
+    "bento.lpBadgeIntercept": "F4 • Aktive Ecke • 4-Finger-Pinch",
+
+    "feat15.title": "Butterweiche 60Hz Hardware-HUDs",
+    "feat15.desc": "Ersetzt System-HUDs für Lautstärke, Helligkeit, Tastaturbeleuchtung und MagSafe ohne Überlappung. Kontinuierliche 60Hz-Tastenrampe beim Halten, direktes Ziehen in der Notch sowie Inline- & Open-Modus.",
+    "bento.hudVolumeLabel": "Lautstärke",
+    "bento.hudBrightLabel": "Helligkeit",
+    "bento.hudRampBadge": "60Hz Halte-Interpolation",
+    "bento.hudInlineBadge": "Inline & Direktes Ziehen",
+
+    "feat16.title": "Sperrbildschirm-Player & Browser-Steuerung",
+    "feat16.desc": "Zeigt Albumcover, Wiedergabesteuerung und Live-Songtexte direkt auf dem macOS-Sperrbildschirm. Steuert YouTube, Netflix, Safari, Chrome, Arc, Spotify & Apple Music mit nahtlosem Übergang zum Desktop.",
+    "bento.lsSourceBadge": "Safari • YouTube • Musik",
+    "bento.lsLyricsStatus": "Sperrbildschirm-HUD & Live-Texte",
+
+    "feat17.title": "Native macOS HIG-Einstellungen & Suche",
+    "feat17.desc": "Gestaltet nach Apple HIG: transluzente NavigationSplitView-Seitenleiste, automatisches Hell/Dunkel-Design, gruppierte Karten, Live-Suche mit Spotlight-Fokus und interaktive Feature-Tour.",
+    "bento.higSearch": "⌘ 582 Einstellungen durchsuchen...",
+    "bento.higRow1": "F4 & Gesten abfangen",
+    "bento.higRow2": "Feature-Tour Spotlight",
+    "bento.higBadge": "Natives macOS HIG",
+
     // Reviews Section
     "reviews.tag": "Globale Community",
     "reviews.title": "Geschätzt von Entwicklern weltweit",
@@ -488,7 +596,7 @@ const i18nData = {
     // Installation Section
     "install.tag": "Bereit für das nächste Level?",
     "install.title": "Hol dir NotchPulse noch heute",
-    "install.subtitle": "Kompatibel mit macOS 14.0+ Sonoma und macOS 15 Sequoia. Optimiert für alle Mac-Geräte (Apple Silicon & Intel).",
+    "install.subtitle": "Kompatibel mit allen macOS-Versionen (Monterey, Ventura, Sonoma, Sequoia & neuer). Optimiert für alle Mac-Geräte (Apple Silicon & Intel).",
     "install.btnDmg": "NotchPulse.dmg herunterladen (Direkt)",
 
     // Footer
@@ -507,6 +615,7 @@ const i18nData = {
 
   ja: {
     // Navigation
+    "nav.skip": "メインコンテンツへスキップ",
     "nav.features": "機能紹介",
     "nav.demo": "ライブデモ",
     "nav.reviews": "レビュー",
@@ -519,23 +628,29 @@ const i18nData = {
     "hero.title": "MacBookのノッチを、再定義。",
     "hero.titleMain": "MacBookのノッチを、",
     "hero.titleAccent": "再定義。",
-    "hero.subtitle": "MacBookのカメラノッチを滑らかな120Hz ProMotionのDynamic Islandへ進化。Face ID生体認証、リアルタイム同期歌詞、スマートハードウェアHUDを搭載。",
+    "hero.subtitle": "MacBookのノッチを滑らかな120Hz ProMotion Dynamic Islandへ進化。最新のmacOS向けLaunchpad Home、60HzスムーズHUD、Face ID、ロック画面プレイヤー、ブラウザメディア操作まで完全統合。",
     "hero.downloadBtn": "NotchPulse.dmg をダウンロード ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
     "chip.faceidTitle": "Face ID 認証完了",
     "chip.faceidSub": "デバイス内 Neural Engine",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "ページグリッド • F4 & ピンチ対応",
+    "chip.hudTitle": "滑らか 60Hz HUD",
+    "chip.hudSub": "音量・輝度・キーボードライト",
+    "chip.settingsTitle": "ネイティブ HIG 設定",
+    "chip.settingsSub": "リアルタイム検索 & ツアー",
     "chip.ddcTitle": "DDC ディスプレイ制御",
     "chip.ddcSub": "Dell UltraSharp 4K • 82%",
     "chip.batteryTitle": "98W MagSafe 稼働中",
     "chip.batterySub": "スマート80%充電保護",
     "chip.shelfTitle": "ノッチシェルフ対応",
-    "chip.shelfSub": "ドラッグ＆ドロップで一時保存",
+    "chip.shelfSub": "ドラッグ＆ドロップ + AirDrop",
     "chip.fpsTitle": "120Hz ProMotion",
     "chip.fpsSub": "アイドル時CPU負荷 0%",
-    "chip.lyricsTitle": "リアルタイム同期歌詞",
-    "chip.lyricsSub": "Spotify & Apple Music 対応",
+    "chip.lyricsTitle": "音楽 & ブラウザ同期",
+    "chip.lyricsSub": "Spotify・Music・YouTube・Web",
     "chip.statsTitle": "システムモニター",
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "クリップボード履歴",
@@ -544,8 +659,8 @@ const i18nData = {
     "chip.lunarSub": "旧暦 • ヒジュラ暦 • ユダヤ暦",
     "chip.islandTitle": "ダイナミックアイランド",
     "chip.islandSub": "高精度ベジェ曲線",
-    "chip.lockscreenTitle": "ロック画面 HUD",
-    "chip.lockscreenSub": "遅延ゼロのライブアクティビティ",
+    "chip.lockscreenTitle": "ロック画面プレイヤー",
+    "chip.lockscreenSub": "操作パネル & 同期歌詞",
     "chip.displayTitle": "マルチディスプレイ同期",
     "chip.displaySub": "スマート単一ノッチ制御",
 
@@ -567,7 +682,7 @@ const i18nData = {
     // Bento Features Section
     "features.tag": "macOS 専用設計",
     "features.title": "MacBook ノッチを究極に進化",
-    "features.subtitle": "Swiftネイティブ開発、アイドル時CPU消費0%。120Hzの超滑らかなProMotionアニメーションと洗練された機能群。",
+    "features.subtitle": "Swiftネイティブ開発、アイドル時CPU消費0%。Launchpad Home、60Hz滑らかHUD、Face ID生体認証、ロック画面ライブプレイヤーなど先進機能を搭載。",
     
     "feat1.title": "生体認証 Face ID 顔認識",
     "feat1.desc": "iPhone品質の顔認識をMacへ。Apple Visionによるデバイス内処理で、プライバシーを守りながら安全にロック解除。",
@@ -579,16 +694,16 @@ const i18nData = {
     "feat2.desc": "MacBookの内蔵ノッチと外部ディスプレイ上のDynamic Islandをシームレスに切り替え。",
     "bento.springPhysics": "Apple スプリング物理演算 (応答: 0.38s)",
 
-    "feat3.title": "リアルタイム同期歌詞表示",
-    "feat3.desc": "SpotifyやApple Musicとリアルタイムに同期し、ノッチ上に歌詞を一語ずつ表示。トラック操作も手軽に。",
+    "feat3.title": "同期歌詞 & ユニバーサルメディア対応",
+    "feat3.desc": "Spotify、Apple Music、YouTube Musicに加えSafari・Chrome・Arc上のYouTubeやNetflixをノッチで直接シーク操作＆リアルタイム歌詞表示。",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "ノッチシェルフ & クイックドロップ",
     "feat4.desc": "ファイル、リンク、スクリーンショットをノッチに直接ドラッグして、アプリやワークスペース間で一時保存。",
     "shelf.dropText": "ここにファイルをドロップ",
 
-    "feat5.title": "外部モニター DDC ハードウェア制御",
-    "feat5.desc": "DDC/CIによりサードパーティ製モニターのハードウェア輝度と音量を直接制御。カーソル追従のF1/F2キーと2.2msの高速書き込み統合に対応。",
+    "feat5.title": "マルチディスプレイハブ & DDC制御",
+    "feat5.desc": "内蔵・外部モニターの輝度や音量を統合ハブまたはDDC/CIで直接制御。カーソル追従F1/F2キーと2.2ms高速統合書き込みに対応。",
     "bento.ddcBrightness": "Dell UltraSharp 4K 輝度",
     "bento.ddcVolume": "内蔵オーディオ音量",
 
@@ -635,6 +750,35 @@ const i18nData = {
     "bento.fanCpuTemp": "CPU 42°C • 低温静音",
     "bento.fanRootAuth": "Root認証自動管理",
 
+    "feat14.title": "最新macOS向け Launchpad Home",
+    "feat14.desc": "クラシックな全画面ページ型アプリグリッドをあらゆるmacOSで復活。マウスドラッグ＆2本指スワイプ、フォルダ管理、ノッチ下検索、4K/5K外部画面の比率スケーリング、F4キー・ホットコーナー・ピンチ操作の完全インターセプトに対応。",
+    "bento.lpSearch": "アプリ・フォルダを検索 (⇧⌘L)",
+    "bento.lpTabPage1": "ページ 1",
+    "bento.lpTabPage2": "ページ 2",
+    "bento.lpTabFolder": "フォルダ",
+    "bento.lpFolderUtilities": "開発ツール",
+    "bento.lpBadgeScaling": "4K/5K フルスクリーン最適化",
+    "bento.lpBadgeIntercept": "F4・ホットコーナー・4本指ピンチ",
+
+    "feat15.title": "超滑らか 60Hz ハードウェア HUD",
+    "feat15.desc": "音量・画面輝度・キーボードライト・MagSafe充電HUDをシステム重複なしで置換。長押し時の60Hz連続補間、ノッチバーの直接ドラッグ調整、インライン/オープン切替を実現。",
+    "bento.hudVolumeLabel": "音量",
+    "bento.hudBrightLabel": "輝度",
+    "bento.hudRampBadge": "60Hz 連続長押し補間",
+    "bento.hudInlineBadge": "インライン＆ドラッグ調整",
+
+    "feat16.title": "ロック画面プレイヤー & ブラウザ同期",
+    "feat16.desc": "macOSロック画面上にアートワーク・再生コントロール・オンデマンド歌詞を表示。YouTube、Netflix、Safari、Chrome、Arc、Spotify、Apple Musicをシームレスに連携操作。",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "ロック画面 HUD & 歌詞表示",
+
+    "feat17.title": "macOS HIG 準拠設定 & インスタント検索",
+    "feat17.desc": "Apple HIG準拠の半透明NavigationSplitView、ライト/ダーク自動追従、グループ化カード、NSSearchFieldによるスポットライト検索、対話型Feature Tourを搭載。",
+    "bento.higSearch": "⌘ 582項目を検索...",
+    "bento.higRow1": "F4 & ジェスチャー制御",
+    "bento.higRow2": "Feature Tour スポットライト",
+    "bento.higBadge": "ネイティブ HIG",
+
     // Reviews Section
     "reviews.tag": "グローバルコミュニティ",
     "reviews.title": "世界中の開発者から高評価",
@@ -652,7 +796,7 @@ const i18nData = {
     // Installation Section
     "install.tag": "あなたのMacを進化させる",
     "install.title": "NotchPulse を今すぐ体験",
-    "install.subtitle": "macOS 14.0+ Sonoma および macOS 15 Sequoia 対応。すべてのMac（Apple Silicon & Intel）に最適化。",
+    "install.subtitle": "すべてのmacOSバージョン（Monterey、Ventura、Sonoma、Sequoia 以降）に対応。Apple Silicon および Intel 搭載の全Macに最適化。",
     "install.btnDmg": "NotchPulse.dmg を直接ダウンロード",
 
     // Footer
@@ -671,6 +815,7 @@ const i18nData = {
 
   "zh-TW": {
     // Navigation
+    "nav.skip": "跳至主要內容",
     "nav.features": "特色功能",
     "nav.demo": "即時演示",
     "nav.reviews": "用戶評價",
@@ -683,23 +828,29 @@ const i18nData = {
     "hero.title": "MacBook 瀏海，重塑想像。",
     "hero.titleMain": "MacBook 瀏海，",
     "hero.titleAccent": "重塑想像。",
-    "hero.subtitle": "將 MacBook 鏡頭瀏海蛻變為流暢的 120Hz ProMotion 靈動島。原生 Apple Silicon 極致效能，具備 Face ID 辨識、即時同步歌詞與硬體監控儀表板。",
+    "hero.subtitle": "將 MacBook 鏡頭瀏海蛻變為流暢的 120Hz ProMotion 靈動島。整合新版 macOS Launchpad Home、60Hz 絲滑硬體 HUD、Face ID 辨識、鎖定畫面播放器與跨瀏覽器音樂控制。",
     "hero.downloadBtn": "下載 NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
     "chip.faceidTitle": "Face ID 認證成功",
     "chip.faceidSub": "本機端 Neural Engine",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "經典分頁網格 • F4 與雙指手勢",
+    "chip.hudTitle": "絲滑 60Hz HUD",
+    "chip.hudSub": "音量、亮度與鍵盤背光",
+    "chip.settingsTitle": "原生 HIG 設定介面",
+    "chip.settingsSub": "即時搜尋與功能導覽",
     "chip.ddcTitle": "DDC 螢幕硬體控制",
     "chip.ddcSub": "Dell UltraSharp 4K • 82%",
     "chip.batteryTitle": "98W MagSafe 充能中",
     "chip.batterySub": "智慧 80% 充電保護",
     "chip.shelfTitle": "瀏海暫存區已就緒",
-    "chip.shelfSub": "拖放即可暫存檔案",
+    "chip.shelfSub": "拖放暫存 + AirDrop 分享",
     "chip.fpsTitle": "120Hz ProMotion",
     "chip.fpsSub": "待機時 0% CPU 佔用",
-    "chip.lyricsTitle": "即時同步歌詞",
-    "chip.lyricsSub": "支援 Spotify 與 Apple Music",
+    "chip.lyricsTitle": "音樂與瀏覽器同步",
+    "chip.lyricsSub": "Spotify、Music、YouTube 與網頁",
     "chip.statsTitle": "系統監控 (Stats)",
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "剪貼簿紀錄",
@@ -708,8 +859,8 @@ const i18nData = {
     "chip.lunarSub": "農曆 • 回曆 • 希伯來曆",
     "chip.islandTitle": "動態島靈動模式",
     "chip.islandSub": "像素級貝茲曲線",
-    "chip.lockscreenTitle": "鎖定畫面 HUD",
-    "chip.lockscreenSub": "零延遲即時動態",
+    "chip.lockscreenTitle": "鎖定畫面播放器",
+    "chip.lockscreenSub": "即時播放控制與動態歌詞",
     "chip.displayTitle": "多螢幕協同中樞",
     "chip.displaySub": "智慧單一瀏海切換",
 
@@ -731,7 +882,7 @@ const i18nData = {
     // Bento Features Section
     "features.tag": "為 macOS 精密打造",
     "features.title": "全面釋放 MacBook 瀏海潛能",
-    "features.subtitle": "以 Swift 原生開發，待機 0% CPU 負荷。享受流暢 120Hz ProMotion 動效、生物特徵辨識與智慧桌面工具。",
+    "features.subtitle": "以 Swift 原生開發，待機 0% CPU 負荷。集結 Launchpad Home、60Hz 絲滑硬體 HUD、Face ID、鎖定畫面播放器與智慧桌面工具。",
     
     "feat1.title": "生物特徵 Face ID 臉部辨識",
     "feat1.desc": "將 iOS 等級的臉部辨識帶入 Mac。持續感應使用者在位狀態，並透過 Apple Vision 於本機端安全完成辨識與解鎖。",
@@ -743,16 +894,16 @@ const i18nData = {
     "feat2.desc": "在 MacBook 內建瀏海與外接螢幕置中靈動島之間自然變換形態。",
     "bento.springPhysics": "Apple 彈簧物理引擎 (響應: 0.38s)",
 
-    "feat3.title": "即時滾動同步歌詞",
-    "feat3.desc": "精準逐字顯示 Spotify 與 Apple Music 歌詞於瀏海上方，支援快速拖動進度與全螢幕專輯封面展示。",
+    "feat3.title": "同步歌詞與跨瀏覽器媒體控制",
+    "feat3.desc": "逐字同步顯示 Spotify、Apple Music、YouTube Music 及 Safari / Chrome / Arc 上的 YouTube、Netflix 播放控制，支援直接拖曳進度條與高解析封面。",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "瀏海暫存區 Notch Shelf",
     "feat4.desc": "將檔案、截圖或連結拖曳至螢幕邊緣暫存，輕鬆穿梭跨桌面與各項工作流程。",
     "shelf.dropText": "將檔案拖曳至此",
 
-    "feat5.title": "硬體級 DDC 外接螢幕控制",
-    "feat5.desc": "透過 DDC/CI 直接控制第三方外接螢幕之硬體亮度與音量，支援游標感應 F1/F2 鍵位與 2.2ms 極速 I2C 合併寫入。",
+    "feat5.title": "多螢幕中樞與 DDC 硬體控制",
+    "feat5.desc": "透過 Display Hub 或 DDC/CI 統一調整內建與外接螢幕硬體亮度與音量，支援游標感應 F1/F2 鍵位與 2.2ms 極速寫入。",
     "bento.ddcBrightness": "Dell UltraSharp 4K 亮度",
     "bento.ddcVolume": "內建喇叭音量",
 
@@ -799,6 +950,35 @@ const i18nData = {
     "bento.fanCpuTemp": "CPU 42°C • 涼爽靜音",
     "bento.fanRootAuth": "Root 守護程序自動啟用",
 
+    "feat14.title": "新版 macOS 專用 Launchpad Home",
+    "feat14.desc": "在所有 macOS 版本重現經典全螢幕分頁啟動台。支援滑鼠拖曳與雙指滑動翻頁、資料夾歸納、瀏海下方即時搜尋、4K/5K 外接螢幕滿版比例縮放，並全面攔截 F4 鍵、熱點角落、Dock 與四指捏合。",
+    "bento.lpSearch": "搜尋 App 與資料夾 (⇧⌘L)",
+    "bento.lpTabPage1": "第 1 頁",
+    "bento.lpTabPage2": "第 2 頁",
+    "bento.lpTabFolder": "資料夾",
+    "bento.lpFolderUtilities": "開發工具",
+    "bento.lpBadgeScaling": "4K/5K 滿版比例縮放",
+    "bento.lpBadgeIntercept": "F4 • 熱點角落 • 四指捏合",
+
+    "feat15.title": "超絲滑 60Hz 硬體 HUD 指示條",
+    "feat15.desc": "無重疊取代系統音量、螢幕亮度、鍵盤背光與 MagSafe 充電 HUD。長按按鍵時具備 60Hz 連續線性補間，支援在瀏海內直接拖曳調整以及精簡 Inline / 展開樣式。",
+    "bento.hudVolumeLabel": "音量",
+    "bento.hudBrightLabel": "亮度",
+    "bento.hudRampBadge": "60Hz 長按連續補間",
+    "bento.hudInlineBadge": "Inline 與直接拖曳",
+
+    "feat16.title": "鎖定畫面播放器與跨瀏覽器同步",
+    "feat16.desc": "直接在 macOS 鎖定畫面顯示專輯封面、播放控制與隨選同步歌詞。流暢操控 YouTube、Netflix、Safari、Chrome、Arc、Spotify 與 Apple Music，解鎖無縫銜接。",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "鎖定畫面 HUD 與動態歌詞",
+
+    "feat17.title": "原生 macOS HIG 設定與深度搜尋",
+    "feat17.desc": "遵循 Apple Human Interface Guidelines：透明 NavigationSplitView 側邊欄毛玻璃、自動跟隨深淺色模式、群組圓角卡片、NSSearchField 即時焦點搜尋與互動式功能導覽。",
+    "bento.higSearch": "⌘ 搜尋 582 項設定...",
+    "bento.higRow1": "攔截 F4 與觸控板手勢",
+    "bento.higRow2": "功能導覽聚焦模式",
+    "bento.higBadge": "零延遲 HIG",
+
     // Reviews Section
     "reviews.tag": "全球開發者社群",
     "reviews.title": "備受全球工程師與設計師喜愛",
@@ -816,7 +996,7 @@ const i18nData = {
     // Installation Section
     "install.tag": "準備好升級您的 Mac 體驗了嗎？",
     "install.title": "立即獲取 NotchPulse",
-    "install.subtitle": "相容於 macOS 14.0+ Sonoma 與 macOS 15 Sequoia。專為所有 Mac 機型（Apple Silicon 與 Intel）深度優化。",
+    "install.subtitle": "相容所有 macOS 版本（Monterey、Ventura、Sonoma、Sequoia 及更新系統）。針對 Apple Silicon 與 Intel 全系列 Mac 深度優化。",
     "install.btnDmg": "直接下載 NotchPulse.dmg",
 
     // Footer
@@ -835,6 +1015,7 @@ const i18nData = {
 
   "zh-CN": {
     // Navigation
+    "nav.skip": "跳转到主要内容",
     "nav.features": "核心功能",
     "nav.demo": "在线演示",
     "nav.reviews": "用户评价",
@@ -847,23 +1028,29 @@ const i18nData = {
     "hero.title": "MacBook 刘海，重塑想象。",
     "hero.titleMain": "MacBook 刘海，",
     "hero.titleAccent": "重塑想象。",
-    "hero.subtitle": "将 MacBook 摄像头刘海变为丝滑流畅的 120Hz ProMotion 灵动岛。基于 Apple Silicon 原生性能，支持 Face ID 识别、实时同步歌词与硬件监控 HUD。",
+    "hero.subtitle": "将 MacBook 摄像头刘海变为丝滑流畅的 120Hz ProMotion 灵动岛。集成现代 macOS Launchpad Home、超顺滑 60Hz 硬件 HUD、Face ID 识别、锁屏播放器与全浏览器媒体控制。",
     "hero.downloadBtn": "下载 NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
     "chip.faceidTitle": "Face ID 验证成功",
     "chip.faceidSub": "端侧 Neural Engine",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "经典分页网格 • F4 与手势",
+    "chip.hudTitle": "丝滑 60Hz HUD",
+    "chip.hudSub": "音量、亮度与键盘背光",
+    "chip.settingsTitle": "原生 HIG 设置",
+    "chip.settingsSub": "实时搜索与功能导览",
     "chip.ddcTitle": "DDC 硬件显示控制",
     "chip.ddcSub": "Dell UltraSharp 4K • 82%",
     "chip.batteryTitle": "98W MagSafe 快充中",
     "chip.batterySub": "智能 80% 充电保护",
     "chip.shelfTitle": "刘海暂存架已就绪",
-    "chip.shelfSub": "拖拽即时暂存文件",
+    "chip.shelfSub": "拖拽暂存 + AirDrop 隔空投送",
     "chip.fpsTitle": "120Hz ProMotion",
     "chip.fpsSub": "待机 0% CPU 占用",
-    "chip.lyricsTitle": "实时同步歌词",
-    "chip.lyricsSub": "支持 Spotify 与 Apple Music",
+    "chip.lyricsTitle": "音乐与浏览器同步",
+    "chip.lyricsSub": "Spotify、Music、YouTube 与网页",
     "chip.statsTitle": "系统监控 (Stats)",
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "剪贴板记录",
@@ -872,8 +1059,8 @@ const i18nData = {
     "chip.lunarSub": "农历 • 回历 • 希伯来历",
     "chip.islandTitle": "灵动岛模式",
     "chip.islandSub": "像素级贝塞尔曲线",
-    "chip.lockscreenTitle": "锁定屏幕 HUD",
-    "chip.lockscreenSub": "零延迟实时活动",
+    "chip.lockscreenTitle": "锁屏播放器",
+    "chip.lockscreenSub": "实时播放控制与滚动歌词",
     "chip.displayTitle": "多显示器中枢",
     "chip.displaySub": "智能单刘海切换",
 
@@ -895,7 +1082,7 @@ const i18nData = {
     // Bento Features Section
     "features.tag": "专为 macOS 原生打造",
     "features.title": "全面释放 MacBook 刘海潜能",
-    "features.subtitle": "采用 Swift 纯原生编写，待机状态 0% CPU 占用。尽享 120Hz ProMotion 动画、生物识别与高能桌面工具。",
+    "features.subtitle": "采用 Swift 纯原生编写，待机状态 0% CPU 占用。集成 Launchpad Home、超顺滑 60Hz 硬件 HUD、Face ID 生物识别与锁屏播放器。",
     
     "feat1.title": "生物识别 Face ID 人脸解锁",
     "feat1.desc": "将 iOS 级人脸识别带入 Mac。持续感应在位状态，依靠端侧 Apple Vision 算法保障隐私，安全快速解锁应用。",
@@ -907,16 +1094,16 @@ const i18nData = {
     "feat2.desc": "在 MacBook 自带刘海与外接 Studio Display 显示器的居中灵动岛之间顺畅自如地切换。",
     "bento.springPhysics": "Apple 弹簧物理引擎 (响应: 0.38s)",
 
-    "feat3.title": "实时滚动同步歌词",
-    "feat3.desc": "逐词同步播放 Spotify 与 Apple Music 歌词。随时在刘海处拖拽进度、暂停播放或展开专辑封面。",
+    "feat3.title": "同步歌词与全浏览器媒体控制",
+    "feat3.desc": "为 Spotify、Apple Music、YouTube Music 及 Safari / Chrome / Arc 上的 YouTube、Netflix 提供逐词歌词与直接进度拖拽控制。",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "刘海暂存架 Notch Shelf",
     "feat4.desc": "将文件、链接或截图直接拖拽至刘海边缘暂存，在各工作区与多任务间便捷流转。",
     "shelf.dropText": "拖拽文件到这里",
 
-    "feat5.title": "DDC 协议外接显示器硬件控制",
-    "feat5.desc": "通过 DDC/CI 直接控制第三方外接显示器硬件亮度与音量，支持光标感应 F1/F2 键位与 2.2ms 极速 I2C 合并写入。",
+    "feat5.title": "多显示器中枢与 DDC 硬件控制",
+    "feat5.desc": "通过 Display Hub 或 DDC/CI 直接控制内置与外接显示器硬件亮度及音量，支持光标感应 F1/F2 键位与 2.2ms 快速合并写入。",
     "bento.ddcBrightness": "Dell UltraSharp 4K 亮度",
     "bento.ddcVolume": "内置扬声器音量",
 
@@ -963,6 +1150,35 @@ const i18nData = {
     "bento.fanCpuTemp": "CPU 42°C • 酷冷低噪",
     "bento.fanRootAuth": "Root 守护进程安全激活",
 
+    "feat14.title": "现代 macOS 专属 Launchpad Home",
+    "feat14.desc": "在所有 macOS 版本重现经典全屏分页启动台。支持鼠标拖拽与双指滑动翻页、文件夹管理、刘海下方实时搜索、4K/5K 外接显示器满屏比例缩放，并全面拦截 F4 按键、触发角、程序坞与四指捏合手势。",
+    "bento.lpSearch": "搜索应用与文件夹 (⇧⌘L)",
+    "bento.lpTabPage1": "第 1 页",
+    "bento.lpTabPage2": "第 2 页",
+    "bento.lpTabFolder": "文件夹",
+    "bento.lpFolderUtilities": "开发工具",
+    "bento.lpBadgeScaling": "4K/5K 满屏等比缩放",
+    "bento.lpBadgeIntercept": "F4 • 触发角 • 四指捏合",
+
+    "feat15.title": "超顺滑 60Hz 硬件 HUD 指示条",
+    "feat15.desc": "无重叠取代系统音量、屏幕亮度、键盘背光与 MagSafe 充电 HUD。长按按键具备 60Hz 连续线性插值，支持刘海内直接拖拽调节以及精简 Inline / 展开样式。",
+    "bento.hudVolumeLabel": "音量",
+    "bento.hudBrightLabel": "亮度",
+    "bento.hudRampBadge": "60Hz 长按连续插值",
+    "bento.hudInlineBadge": "Inline 与直接拖拽",
+
+    "feat16.title": "锁屏实时播放器与全浏览器同步",
+    "feat16.desc": "直接在 macOS 锁定屏幕展示专辑封面、播放控制与按需同步歌词。流畅操控 YouTube、Netflix、Safari、Chrome、Arc、Spotify 与 Apple Music，解锁无缝衔接。",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "锁屏 HUD 与按需歌词",
+
+    "feat17.title": "原生 macOS HIG 设置与深度搜索",
+    "feat17.desc": "遵循 Apple Human Interface Guidelines：半透明 NavigationSplitView 侧边栏、自动跟随深浅外观、分组圆角卡片、NSSearchField 实时高亮搜索与交互式功能导览。",
+    "bento.higSearch": "⌘ 搜索 582 项设置...",
+    "bento.higRow1": "拦截 F4 与触控板手势",
+    "bento.higRow2": "功能导览高亮指引",
+    "bento.higBadge": "原生 HIG 零卡顿",
+
     // Reviews Section
     "reviews.tag": "全球社区",
     "reviews.title": "备受全球开发者好评",
@@ -980,7 +1196,7 @@ const i18nData = {
     // Installation Section
     "install.tag": "准备好提升您的 Mac 体验了吗？",
     "install.title": "立即体验 NotchPulse",
-    "install.subtitle": "兼容 macOS 14.0+ Sonoma 与 macOS 15 Sequoia。针对所有 Mac 设备（Apple Silicon 与 Intel）深度优化。",
+    "install.subtitle": "兼容所有 macOS 版本（Monterey、Ventura、Sonoma、Sequoia 及更新系统）。针对 Apple Silicon 与 Intel 全系列 Mac 深度优化。",
     "install.btnDmg": "直接下载 NotchPulse.dmg",
 
     // Footer
@@ -999,6 +1215,7 @@ const i18nData = {
 
   es: {
     // Navigation
+    "nav.skip": "Ir al contenido principal",
     "nav.features": "Características",
     "nav.demo": "Demo en Vivo",
     "nav.reviews": "Opiniones",
@@ -1011,23 +1228,29 @@ const i18nData = {
     "hero.title": "El Notch de tu MacBook, reinventado.",
     "hero.titleMain": "El Notch de tu MacBook,",
     "hero.titleAccent": "reinventado.",
-    "hero.subtitle": "Transforma el notch de tu MacBook en una Dynamic Island interactiva y fluida a 120Hz ProMotion. Rendimiento nativo en Apple Silicon con Face ID, letras en tiempo real y paneles HUD inteligentes.",
+    "hero.subtitle": "Transforma el notch de tu MacBook en una Dynamic Island fluida a 120Hz ProMotion. Ahora con Launchpad Home para macOS moderno, HUDs continuos a 60Hz, Face ID, Reproductor en Pantalla Bloqueada y control multimedia universal.",
     "hero.downloadBtn": "Descargar NotchPulse.dmg ({version})",
     "hero.notchSong": "Midnight Pulse — Lofi Waves",
 
     // Chips
     "chip.faceidTitle": "Face ID Verificado",
     "chip.faceidSub": "Neural Engine en el Dispositivo",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "Cuadrícula Clásica • F4 y Pellizco",
+    "chip.hudTitle": "HUDs Suaves 60Hz",
+    "chip.hudSub": "Volumen, Brillo y Retroiluminación",
+    "chip.settingsTitle": "Ajustes Nativos HIG",
+    "chip.settingsSub": "Búsqueda en Vivo y Tour Guiado",
     "chip.ddcTitle": "Control DDC de Pantallas",
     "chip.ddcSub": "Dell UltraSharp 4K • 82%",
     "chip.batteryTitle": "98W MagSafe Activo",
     "chip.batterySub": "Protección inteligente al 80%",
     "chip.shelfTitle": "Notch Shelf Listo",
-    "chip.shelfSub": "Arrastra y suelta archivos",
+    "chip.shelfSub": "Arrastrar y Soltar + AirDrop",
     "chip.fpsTitle": "120Hz ProMotion",
     "chip.fpsSub": "0% de CPU en reposo",
-    "chip.lyricsTitle": "Letras Sincronizadas",
-    "chip.lyricsSub": "Spotify y Apple Music",
+    "chip.lyricsTitle": "Música y Navegadores",
+    "chip.lyricsSub": "Spotify, Music, YouTube y Web",
     "chip.statsTitle": "Monitor del Sistema",
     "chip.statsSub": "4.2% CPU • 18GB RAM",
     "chip.clipboardTitle": "Portapapeles",
@@ -1036,8 +1259,8 @@ const i18nData = {
     "chip.lunarSub": "Lunar • Hijri • Hebreo",
     "chip.islandTitle": "Modo Dynamic Island",
     "chip.islandSub": "Curva Bézier Perfecta",
-    "chip.lockscreenTitle": "HUD Pantalla Bloqueada",
-    "chip.lockscreenSub": "Actividad en Vivo al Instante",
+    "chip.lockscreenTitle": "Pantalla Bloqueada",
+    "chip.lockscreenSub": "Controles y Letras en Vivo",
     "chip.displayTitle": "Hub Multipantalla",
     "chip.displaySub": "Sincronización Inteligente",
 
@@ -1059,7 +1282,7 @@ const i18nData = {
     // Bento Features Section
     "features.tag": "Diseñado para macOS",
     "features.title": "Maximiza el Potencial del Notch en tu Mac",
-    "features.subtitle": "Creado nativamente en Swift con 0% de uso de CPU en reposo. Animaciones fluidas ProMotion a 120Hz, seguridad biométrica y herramientas inteligentes.",
+    "features.subtitle": "Creado nativamente en Swift con 0% de uso de CPU en reposo. Incluye Launchpad Home, HUDs fluidos de 60Hz, Face ID biométrico, reproductor en pantalla bloqueada y herramientas inteligentes.",
     
     "feat1.title": "Reconocimiento Facial Face ID",
     "feat1.desc": "Lleva el desbloqueo facial estilo iOS a tu Mac. Detección continua de presencia y desbloqueo seguro con Apple Vision en el propio dispositivo.",
@@ -1071,16 +1294,16 @@ const i18nData = {
     "feat2.desc": "Cambia con total fluidez entre el notch integrado de la MacBook y una Dynamic Island centrada en monitores externos.",
     "bento.springPhysics": "Física de resortes de Apple (respuesta: 0.38s)",
 
-    "feat3.title": "Letras Sincronizadas en Vivo",
-    "feat3.desc": "Letras palabra por palabra en tiempo real para Spotify y Apple Music sobre el notch. Controla canciones y disfruta del arte del álbum.",
+    "feat3.title": "Letras en Vivo y Multimedia Universal",
+    "feat3.desc": "Letras palabra por palabra y control directo para Spotify, Apple Music, YouTube Music y navegadores web (YouTube y Netflix en Safari, Chrome y Arc) con búsqueda directa en línea de tiempo.",
     "bento.songLyrics": "\"Drifting through the calm, soundscapes in the night...\"",
 
     "feat4.title": "Notch Shelf y Arrastre Rápido",
     "feat4.desc": "Arrastra archivos, enlaces o capturas directamente a la muesca del notch para guardarlos temporalmente entre espacios.",
     "shelf.dropText": "Suelta los archivos aquí",
 
-    "feat5.title": "Control de Monitores Externos DDC",
-    "feat5.desc": "Controla brillo y volumen de hardware en monitores externos vía DDC/CI con teclas F1/F2 inteligentes según el cursor y coalescencia de 2,2ms.",
+    "feat5.title": "Hub Multipantalla y Control DDC",
+    "feat5.desc": "Ajusta brillo y volumen de pantallas integradas y externas desde el Display Hub o vía DDC/CI con teclas F1/F2 conscientes del cursor y coalescencia de 2,2ms.",
     "bento.ddcBrightness": "Brillo Dell UltraSharp 4K",
     "bento.ddcVolume": "Volumen de Audio Integrado",
 
@@ -1127,6 +1350,35 @@ const i18nData = {
     "bento.fanCpuTemp": "CPU 42°C • Fresco y Silencioso",
     "bento.fanRootAuth": "Daemon Root Seguro Activo",
 
+    "feat14.title": "Launchpad Home para macOS Moderno",
+    "feat14.desc": "Devuelve la clásica cuadrícula de apps a pantalla completa en cualquier macOS. Paginación al arrastrar con el ratón o deslizar con dos dedos, carpetas, búsqueda bajo el notch, escalado proporcional en 4K/5K e intercepción total de F4, Esquinas Activas, Dock y pellizco.",
+    "bento.lpSearch": "Buscar apps y carpetas (⇧⌘L)",
+    "bento.lpTabPage1": "Página 1",
+    "bento.lpTabPage2": "Página 2",
+    "bento.lpTabFolder": "Carpeta",
+    "bento.lpFolderUtilities": "Herramientas",
+    "bento.lpBadgeScaling": "Escalado Pantalla Completa 4K/5K",
+    "bento.lpBadgeIntercept": "F4 • Esquina • Pellizco 4 Dedos",
+
+    "feat15.title": "HUDs de Hardware Ultrafluidos a 60Hz",
+    "feat15.desc": "Reemplaza los HUDs de Volumen, Brillo, Teclado y MagSafe sin superposiciones del sistema. Interpolación continua a 60Hz al mantener pulsadas las teclas, ajuste táctil en el notch y estilos Inline o Abierto.",
+    "bento.hudVolumeLabel": "Volumen",
+    "bento.hudBrightLabel": "Brillo",
+    "bento.hudRampBadge": "Rampa Continua 60Hz",
+    "bento.hudInlineBadge": "Inline y Deslizamiento",
+
+    "feat16.title": "Pantalla Bloqueada y Control de Navegador",
+    "feat16.desc": "Muestra carátulas, controles de reproducción y letras bajo demanda directamente en la Pantalla Bloqueada de macOS. Controla YouTube, Netflix, Safari, Chrome, Arc, Spotify y Apple Music sin cortes al desbloquear.",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "HUD Bloqueo y Letras Bajo Demanda",
+
+    "feat17.title": "Ajustes Nativos HIG y Búsqueda Profunda",
+    "feat17.desc": "Diseñado según las Apple HIG: barra lateral translúcida con NavigationSplitView, modo Claro/Oscuro automático, tarjetas agrupadas, búsqueda en vivo con resaltado NSSearchField y Tour interactivo.",
+    "bento.higSearch": "⌘ Buscar 582 ajustes...",
+    "bento.higRow1": "Interceptar F4 y Gestos",
+    "bento.higRow2": "Foco del Tour de Funciones",
+    "bento.higBadge": "HIG Nativo Fluido",
+
     // Reviews Section
     "reviews.tag": "Comunidad Global",
     "reviews.title": "Elogiado por Desarrolladores del Mundo",
@@ -1144,7 +1396,7 @@ const i18nData = {
     // Installation Section
     "install.tag": "¿Listo para elevar tu Mac?",
     "install.title": "Obtén NotchPulse Hoy",
-    "install.subtitle": "Compatible con macOS 14.0+ Sonoma y macOS 15 Sequoia. Optimizado para todos los modelos de Mac (Apple Silicon e Intel).",
+    "install.subtitle": "Compatible con todas las versiones de macOS (Monterey, Ventura, Sonoma, Sequoia y posteriores). Optimizado para todos los Mac (Apple Silicon e Intel).",
     "install.btnDmg": "Descargar NotchPulse.dmg (Directo)",
 
     // Footer
@@ -1203,6 +1455,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initScrollFadeIn();
   initParallaxAndTilt();
   initNotchSimulator();
+  initLaunchpadTabs();
   initReviewsFilter();
   initCopyActions();
 });
@@ -1212,28 +1465,79 @@ document.addEventListener("DOMContentLoaded", () => {
 // =============================================================================
 
 function initSmoothScroll() {
+  const prefersReduced = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   document.querySelectorAll('a[href^="#"], .nav-brand').forEach((anchor) => {
     anchor.addEventListener("click", function (e) {
       const href = this.getAttribute("href");
-      const targetId = href || "#";
-      
+      const behavior = prefersReduced() ? "auto" : "smooth";
+
       if (!href || href === "#" || this.classList.contains("nav-brand")) {
         e.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior });
         return;
       }
-      
-      const targetElement = document.querySelector(targetId);
+
+      const targetElement = document.querySelector(href);
       if (targetElement) {
         e.preventDefault();
-        const headerOffset = 65;
+        const headerOffset = href === "#main-content" ? 0 : 74;
         const elementPosition = targetElement.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
         window.scrollTo({
           top: offsetPosition,
-          behavior: "smooth"
+          behavior
         });
+        if (href === "#main-content") {
+          targetElement.focus({ preventScroll: true });
+        }
+      }
+    });
+  });
+}
+
+// =============================================================================
+// Launchpad Preview Accessible Tabs (Selection Follows Focus)
+// =============================================================================
+
+function initLaunchpadTabs() {
+  const container = document.querySelector("[data-launchpad-tabs]");
+  if (!container) return;
+
+  const tabs = Array.from(container.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(container.querySelectorAll('[role="tabpanel"]'));
+  if (!tabs.length || !panels.length) return;
+
+  function selectTab(nextTab, moveFocus = false) {
+    const targetPanelId = nextTab.getAttribute("data-lp-panel");
+    tabs.forEach((tab) => {
+      const isSelected = tab === nextTab;
+      tab.setAttribute("aria-selected", isSelected ? "true" : "false");
+      tab.setAttribute("tabindex", isSelected ? "0" : "-1");
+    });
+
+    panels.forEach((panel) => {
+      panel.hidden = panel.id !== targetPanelId;
+    });
+
+    nextTab.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (moveFocus) nextTab.focus();
+  }
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => selectTab(tab, false));
+
+    tab.addEventListener("keydown", (e) => {
+      let nextIndex = -1;
+      if (e.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+      else if (e.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+      else if (e.key === "Home") nextIndex = 0;
+      else if (e.key === "End") nextIndex = tabs.length - 1;
+
+      if (nextIndex !== -1) {
+        e.preventDefault();
+        selectTab(tabs[nextIndex], true);
       }
     });
   });
@@ -1244,9 +1548,9 @@ function initSmoothScroll() {
 // =============================================================
 
 let appReleaseInfo = {
-  version: "v5.5",
-  versionShort: "v5.5",
-  name: "NotchPulse v5.5",
+  version: "v5.7",
+  versionShort: "v5.7",
+  name: "NotchPulse v5.7",
   downloadUrl: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg"
 };
 

@@ -54,8 +54,8 @@ struct LaunchpadTileView: View {
     var onOpenFolder: (LaunchpadFolderItem) -> Void
     var onRequestTrash: ((LaunchpadAppItem) -> Void)? = nil
 
-    @ObservedObject var manager: LaunchpadManager
-    @ObservedObject var dragCoordinator: LaunchpadDragCoordinator
+    let manager: LaunchpadManager
+    let dragCoordinator: LaunchpadDragCoordinator
 
     @State private var isHovering = false
     @State private var jiggleAngle: Double = 0
@@ -120,7 +120,6 @@ struct LaunchpadTileView: View {
                 Text(node.displayName)
                     .font(.system(size: labelFontSize, weight: .regular))
                     .foregroundStyle(.primary)
-                    .shadow(color: Color.black.opacity(0.60), radius: 2, y: 1)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.horizontal, 8)
@@ -189,7 +188,6 @@ struct LaunchpadTileView: View {
         switch node {
         case .app(let app):
             LaunchpadAppIconImage(bundlePath: app.bundlePath, size: iconSize)
-                .shadow(color: Color.black.opacity(0.24), radius: 4, y: 2)
 
         case .folder(let folder):
             LaunchpadFolderThumbnailView(folder: folder, size: iconSize)
@@ -320,7 +318,6 @@ struct LaunchpadFolderThumbnailView: View {
             .padding(size * 0.11)
         }
         .frame(width: size * 0.86, height: size * 0.86)
-        .shadow(color: Color.black.opacity(0.24), radius: 7, y: 3)
     }
 }
 

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google" content="notranslate">
   <title>NotchPulse — The Ultimate Dynamic Island &amp; Notch Companion for macOS</title>
-  <meta name="description" content="NotchPulse transforms your MacBook notch into a fluid, 120Hz ProMotion interactive Dynamic Island with Face ID, live lyrics, hardware HUD, and system telemetry.">
-  <meta name="keywords" content="NotchPulse, notchpulse hieukunn, macos dynamic island, macbook notch app, HieuKunn">
+  <meta name="description" content="NotchPulse transforms your MacBook notch into a fluid, 120Hz ProMotion interactive Dynamic Island with Launchpad Home, smooth 60Hz HUDs, Biometric Face ID, Lock Screen Live Player, and universal browser media controls.">
+  <meta name="keywords" content="NotchPulse, notchpulse hieukunn, macos dynamic island, macbook notch app, macos launchpad replacement, HieuKunn">
   <meta name="author" content="HieuKunn (Kun Nguyen)">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -21,9 +21,10 @@
   <link rel="preload" as="image" href="assets/cozy_bg.webp" type="image/webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/logo_clean.png">
   
-  <link rel="stylesheet" href="style.css?v=40">
+  <link rel="stylesheet" href="style.css?v=41">
 </head>
 <body>
+  <a href="#main-content" class="skip-link visually-hidden" data-i18n="nav.skip">Skip to main content</a>
 
   <!-- High-Performance Fixed Background Layer (Zero-Latency Local Rendering, GPU Isolated) -->
   <div class="site-bg" style="background-image: url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABQODxIPDRQSEBIXFRQYHjIhHhwcHj0sLiQySUBMS0dARkVQWnNiUFVtVkVGZIhlbXd7gYKBTmCNl4x9lnN+gXz/2wBDARUXFx4aHjshITt8U0ZTfHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHz/wAARCAASACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCSHXTKojeJFyed/KgYzWha6jbt8oVQ2eiOOfwNcfHt4yxHHYkitWziVmXbH5keST8oGD7E1zyN0dU88SJuYlR74H86zZtVtIslmUgcKdxIpklptXcY5XXrgOD/ADrIvEtlk3TxXIHrgDH4YqVqOyRSsVDTKGAIweo/2a6vTo4xCCEUHc3OPeiirkJGgCSDk1VkRdrjaMfSiioBH//Z'); background-size: cover; background-position: center;" aria-hidden="true">
@@ -111,7 +112,7 @@
     <div class="container">
       <div class="hero-tag-badge">
         <span>✨</span>
-        <span data-i18n="hero.badge">NotchPulse v5.5 Released</span>
+        <span data-i18n="hero.badge">NotchPulse v5.7 Released</span>
       </div>
 
       <h1 class="hero-title">
@@ -120,21 +121,21 @@
       </h1>
 
       <p class="hero-subtitle" data-i18n="hero.subtitle">
-        Transform your MacBook camera notch into a fluid, 120Hz ProMotion interactive Dynamic Island. Native Apple Silicon performance with Biometric Face ID, real-time lyrics, and smart hardware HUDs.
+        Transform your MacBook camera notch into a fluid, 120Hz ProMotion Dynamic Island. Includes classic Launchpad Home for modern macOS, ultra-smooth 60Hz HUDs, Biometric Face ID, Lock Screen Live Player, and universal browser media controls.
       </p>
 
       <!-- Action Buttons Centered -->
       <div class="hero-cta-group">
         <a href="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/latest/download/NotchPulse.dmg" class="btn-primary" target="_blank" rel="noopener">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span data-i18n="hero.downloadBtn">Download NotchPulse.dmg (v5.5) &rarr;</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="hero.downloadBtn">Download NotchPulse.dmg (v5.7)</span>
         </a>
 
         <!-- Copyable Homebrew command -->
-        <div class="brew-copy-box" id="copyBrewCmd" title="Click to copy Homebrew install command">
+        <button type="button" class="brew-copy-box" id="copyBrewCmd" aria-label="Copy Homebrew install command">
           <code>brew install --cask notchpulse</code>
-          <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        </div>
+          <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
       </div>
 
       <!-- Organic Floating Nodes & Dynamic Notch Stage -->
@@ -152,17 +153,18 @@
               <div class="lens-cutout"></div>
             </div>
             <div class="stage-notch-right">
-              <div class="mini-eq">
+              <div class="mini-eq" aria-hidden="true">
                 <span></span><span></span><span></span><span></span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Scattered Floating Interactive Nodes (Evenly Distributed & Balanced Constellation) -->
-        <!-- 1. Top Left: Face ID -->
-        <div class="float-node node-faceid" style="--delay: 0s;">
-          <span class="node-icon">
+        <!-- Scattered Floating Interactive Nodes (Balanced 14-Node Constellation) -->
+        <!-- Left Wing (7 Nodes) -->
+        <!-- 1. Biometric Face ID -->
+        <a href="#feat-faceid" class="float-node node-faceid" style="--delay: 0s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 8V6a2 2 0 0 1 2-2h2"/>
               <path d="M4 16v2a2 2 0 0 0 2 2h2"/>
@@ -178,11 +180,27 @@
             <strong data-i18n="chip.faceidTitle">Face ID Verified</strong>
             <span data-i18n="chip.faceidSub">On-Device Neural Engine</span>
           </div>
-        </div>
+        </a>
 
-        <!-- 2. Top-Mid-Left: Multi-Display Hub -->
-        <div class="float-node node-display" style="--delay: 3.2s;">
-          <span class="node-icon">
+        <!-- 2. Launchpad Home (NEW) -->
+        <a href="#feat-launchpad" class="float-node node-launchpad" style="--delay: 1.4s;">
+          <span class="node-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.launchpadTitle">Launchpad Home</strong>
+            <span data-i18n="chip.launchpadSub">Classic Grid • F4 &amp; Pinch</span>
+          </div>
+        </a>
+
+        <!-- 3. Multi-Display Hub -->
+        <a href="#feat-ddc" class="float-node node-display" style="--delay: 3.2s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2"/>
               <line x1="8" y1="21" x2="16" y2="21"/>
@@ -193,11 +211,11 @@
             <strong data-i18n="chip.displayTitle">Multi-Display Hub</strong>
             <span data-i18n="chip.displaySub">Dual Screen Seamless Sync</span>
           </div>
-        </div>
+        </a>
 
-        <!-- 3. Upper Mid-Left: Regional Lunar & Multi-Calendar -->
-        <div class="float-node node-lunar" style="--delay: 1.1s;">
-          <span class="node-icon">
+        <!-- 4. Regional Lunar & Multi-Calendar -->
+        <a href="#feat-lunar" class="float-node node-lunar" style="--delay: 1.1s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
@@ -206,11 +224,11 @@
             <strong data-i18n="chip.lunarTitle">Lunar &amp; Multi-Cal</strong>
             <span data-i18n="chip.lunarSub">Âm Lịch • Hijri • Hebrew</span>
           </div>
-        </div>
+        </a>
 
-        <!-- 4. Mid Left: System Monitor (Stats) -->
-        <div class="float-node node-stats" style="--delay: 2.2s;">
-          <span class="node-icon">
+        <!-- 5. System Monitor (Stats) -->
+        <a href="#feat-stats" class="float-node node-stats" style="--delay: 2.2s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="4" y="4" width="16" height="16" rx="2"/>
               <rect x="9" y="9" width="6" height="6"/>
@@ -228,11 +246,11 @@
             <strong data-i18n="chip.statsTitle">System Monitor</strong>
             <span data-i18n="chip.statsSub">4.2% CPU • 18GB RAM</span>
           </div>
-        </div>
+        </a>
 
-        <!-- 5. Lower Left: MagSafe Battery -->
-        <div class="float-node node-battery" style="--delay: 2.8s;">
-          <span class="node-icon">
+        <!-- 6. MagSafe Battery -->
+        <a href="#feat-battery" class="float-node node-battery" style="--delay: 2.8s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
@@ -241,82 +259,26 @@
             <strong data-i18n="chip.batteryTitle">98W MagSafe Active</strong>
             <span data-i18n="chip.batterySub">Smart 80% Limit Protected</span>
           </div>
-        </div>
+        </a>
 
-        <!-- 6. Bottom Left-Center: Lock Screen HUD -->
-        <div class="float-node node-lockscreen" style="--delay: 1.7s;">
-          <span class="node-icon">
+        <!-- 7. Lock Screen Player -->
+        <a href="#feat-lockscreen" class="float-node node-lockscreen" style="--delay: 1.7s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
           </span>
           <div class="node-text">
-            <strong data-i18n="chip.lockscreenTitle">Lock Screen HUD</strong>
-            <span data-i18n="chip.lockscreenSub">Instant Live Activity</span>
+            <strong data-i18n="chip.lockscreenTitle">Lock Screen Player</strong>
+            <span data-i18n="chip.lockscreenSub">Live Controls &amp; Lyrics</span>
           </div>
-        </div>
+        </a>
 
-        <!-- 7. Bottom Center: 120Hz ProMotion -->
-        <div class="float-node node-fps" style="--delay: 0.5s;">
-          <span class="node-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3l1.912 5.885a2 2 0 0 0 1.203 1.203L21 12l-5.885 1.912a2 2 0 0 0-1.203 1.203L12 21l-1.912-5.885a2 2 0 0 0-1.203-1.203L3 12l5.885-1.912a2 2 0 0 0 1.203-1.203L12 3z"/>
-            </svg>
-          </span>
-          <div class="node-text">
-            <strong data-i18n="chip.fpsTitle">120Hz ProMotion</strong>
-            <span data-i18n="chip.fpsSub">0% CPU Idle Overhead</span>
-          </div>
-        </div>
-
-        <!-- 8. Bottom Right-Center: Clipboard History -->
-        <div class="float-node node-clipboard" style="--delay: 0.9s;">
-          <span class="node-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-            </svg>
-          </span>
-          <div class="node-text">
-            <strong data-i18n="chip.clipboardTitle">Clipboard History</strong>
-            <span data-i18n="chip.clipboardSub">50 Items • Quick ⌘⌥V</span>
-          </div>
-        </div>
-
-        <!-- 9. Lower Right: Notch Shelf -->
-        <div class="float-node node-shelf" style="--delay: 3.5s;">
-          <span class="node-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            </svg>
-          </span>
-          <div class="node-text">
-            <strong data-i18n="chip.shelfTitle">Notch Shelf Ready</strong>
-            <span data-i18n="chip.shelfSub">Drag &amp; Drop to Hold Files</span>
-          </div>
-        </div>
-
-        <!-- 10. Mid Right: Synced Lyrics -->
-        <div class="float-node node-lyrics" style="--delay: 1.6s;">
-          <span class="node-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 18V5l12-2v13"/>
-              <circle cx="6" cy="18" r="3"/>
-              <circle cx="18" cy="16" r="3"/>
-            </svg>
-          </span>
-          <div class="node-text">
-            <strong data-i18n="chip.lyricsTitle">Live Synced Lyrics</strong>
-            <span data-i18n="chip.lyricsSub">Spotify &amp; Apple Music</span>
-          </div>
-        </div>
-
-        <!-- 11. Upper Mid-Right: Dynamic Island Mode -->
-        <div class="float-node node-island" style="--delay: 2.4s;">
-          <span class="node-icon">
+        <!-- Right Wing (7 Nodes) -->
+        <!-- 8. Dynamic Island Mode -->
+        <a href="#feat-island" class="float-node node-island" style="--delay: 2.4s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="7" width="20" height="10" rx="5"/>
               <circle cx="7" cy="12" r="1.5" fill="currentColor"/>
@@ -326,11 +288,26 @@
             <strong data-i18n="chip.islandTitle">Dynamic Island Mode</strong>
             <span data-i18n="chip.islandSub">Pixel-Perfect Bezier Curve</span>
           </div>
-        </div>
+        </a>
 
-        <!-- 12. Top Right: DDC Display Control -->
-        <div class="float-node node-ddc" style="--delay: 0.7s;">
-          <span class="node-icon">
+        <!-- 9. Smooth 60Hz Hardware HUDs (NEW) -->
+        <a href="#feat-hud" class="float-node node-hud" style="--delay: 0.4s;">
+          <span class="node-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.hudTitle">Smooth 60Hz HUDs</strong>
+            <span data-i18n="chip.hudSub">Volume, Brightness &amp; Keylight</span>
+          </div>
+        </a>
+
+        <!-- 10. DDC Display Control -->
+        <a href="#feat-ddc" class="float-node node-ddc" style="--delay: 0.7s;">
+          <span class="node-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="4"/>
               <path d="M12 2v2"/>
@@ -347,11 +324,71 @@
             <strong data-i18n="chip.ddcTitle">DDC Display Control</strong>
             <span data-i18n="chip.ddcSub">Dell UltraSharp 4K • 82%</span>
           </div>
-        </div>
+        </a>
+
+        <!-- 11. Notch Shelf -->
+        <a href="#feat-shelf" class="float-node node-shelf" style="--delay: 3.5s;">
+          <span class="node-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.shelfTitle">Notch Shelf Ready</strong>
+            <span data-i18n="chip.shelfSub">Drag &amp; Drop + AirDrop Share</span>
+          </div>
+        </a>
+
+        <!-- 12. Synced Lyrics & Browser Media -->
+        <a href="#feat-lyrics" class="float-node node-lyrics" style="--delay: 1.6s;">
+          <span class="node-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"/>
+              <circle cx="6" cy="18" r="3"/>
+              <circle cx="18" cy="16" r="3"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.lyricsTitle">Browser &amp; Music Sync</strong>
+            <span data-i18n="chip.lyricsSub">Spotify, Music, YouTube &amp; Web</span>
+          </div>
+        </a>
+
+        <!-- 13. Native macOS Settings -->
+        <a href="#feat-settings" class="float-node node-settings" style="--delay: 0.5s;">
+          <span class="node-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.settingsTitle">Native HIG Settings</strong>
+            <span data-i18n="chip.settingsSub">Live Search &amp; Feature Tour</span>
+          </div>
+        </a>
+
+        <!-- 14. Clipboard History -->
+        <a href="#feat-clipboard" class="float-node node-clipboard" style="--delay: 0.9s;">
+          <span class="node-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+            </svg>
+          </span>
+          <div class="node-text">
+            <strong data-i18n="chip.clipboardTitle">Clipboard History</strong>
+            <span data-i18n="chip.clipboardSub">50 Items • Quick ⌘⌥V</span>
+          </div>
+        </a>
 
       </div>
     </div>
   </header>
+
+  <main id="main-content" tabindex="-1">
 
   <!-- Bento Grid Feature Showcase Section -->
   <section class="section" id="features">
@@ -360,7 +397,7 @@
         <span class="section-tag" data-i18n="features.tag">Engineered for macOS</span>
         <h2 class="section-title" data-i18n="features.title">Supercharge Your MacBook Notch</h2>
         <p class="section-subtitle" data-i18n="features.subtitle">
-          Built natively in Swift with 0% CPU overhead at idle. Experience smooth 120Hz ProMotion animations, biometric conveniences, and smart desktop tools.
+          Built natively in Swift with 0% CPU overhead at idle. Experience Launchpad Home, smooth 120Hz ProMotion &amp; 60Hz HUDs, biometric Face ID, Lock Screen Live Player, and smart desktop tools.
         </p>
       </div>
 
@@ -368,7 +405,7 @@
       <div class="bento-grid">
         
         <!-- Bento 1 (Large 8-col): Biometric Face ID -->
-        <div class="bento-card bento-col-8 fade-in-section">
+        <div class="bento-card bento-col-8 fade-in-section" id="feat-faceid">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m0 6v4a2 2 0 0 0 2 2h4m6 0h4a2 2 0 0 0 2-2v-4m0-6V5a2 2 0 0 0-2-2h-4"/><circle cx="12" cy="12" r="3"/><path d="M12 9v1"/><path d="M12 14v1"/></svg>
@@ -400,7 +437,7 @@
         </div>
 
         <!-- Bento 2 (4-col): 120Hz ProMotion Dual Mode -->
-        <div class="bento-card bento-col-4 fade-in-section delay-1">
+        <div class="bento-card bento-col-4 fade-in-section delay-1" id="feat-island">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -420,7 +457,7 @@
         </div>
 
         <!-- Bento 3 (4-col): Notch Shelf & Staging Dock -->
-        <div class="bento-card bento-col-4 fade-in-section">
+        <div class="bento-card bento-col-4 fade-in-section" id="feat-shelf">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
@@ -494,15 +531,15 @@
           </div>
         </div>
 
-        <!-- Bento 4 (Large 8-col): Real-Time Synced Lyrics -->
-        <div class="bento-card bento-col-8 fade-in-section delay-1">
+        <!-- Bento 4 (Large 8-col): Real-Time Synced Lyrics & Universal Media -->
+        <div class="bento-card bento-col-8 fade-in-section delay-1" id="feat-lyrics">
           <div class="bento-header">
-            <div class="bento-icon-badge">
+            <div class="bento-icon-badge" aria-hidden="true">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             </div>
-            <h3 class="bento-title" data-i18n="feat3.title">Live Synced Lyrics</h3>
+            <h3 class="bento-title" data-i18n="feat3.title">Live Synced Lyrics &amp; Universal Media</h3>
             <p class="bento-desc" data-i18n="feat3.desc">
-              Live word-by-word streaming lyrics for Spotify and Apple Music directly over the notch. Scrub tracks, seek timestamps, or expand into fullscreen lyric mode with vibrant album artwork.
+              Live word-by-word streaming lyrics and playback controls for Spotify, Apple Music, YouTube Music, and web browsers (YouTube, Netflix on Safari, Chrome &amp; Arc) with direct timeline seek and vibrant artwork.
             </p>
           </div>
 
@@ -608,14 +645,14 @@
         </div>
 
         <!-- Bento 6 (4-col): Hardware DDC External Display HUD -->
-        <div class="bento-card bento-col-4 fade-in-section delay-1">
+        <div class="bento-card bento-col-4 fade-in-section delay-1" id="feat-ddc">
           <div class="bento-header">
-            <div class="bento-icon-badge">
+            <div class="bento-icon-badge" aria-hidden="true">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
             </div>
-            <h3 class="bento-title" data-i18n="feat5.title">Hardware DDC External Display HUD</h3>
+            <h3 class="bento-title" data-i18n="feat5.title">Multi-Display Hub &amp; DDC Hardware HUD</h3>
             <p class="bento-desc" data-i18n="feat5.desc">
-              Control genuine third-party monitor hardware brightness and audio volume via DDC/CI with cursor-aware F1/F2 keys and 2.2ms write coalescing.
+              Control built-in and external monitor hardware brightness and audio volume from a unified Display Hub or via DDC/CI with cursor-aware F1/F2 keys and 2.2ms write coalescing.
             </p>
           </div>
 
@@ -683,7 +720,7 @@
         </div>
 
         <!-- Bento 8 (Large 8-col): Live CPU, RAM & GPU System Monitor -->
-        <div class="bento-card bento-col-8 fade-in-section delay-1">
+        <div class="bento-card bento-col-8 fade-in-section delay-1" id="feat-stats">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
@@ -745,7 +782,7 @@
         </div>
 
         <!-- Bento 9 (Large 8-col): Regional Lunar & Multi-Country Calendar -->
-        <div class="bento-card bento-col-8 fade-in-section">
+        <div class="bento-card bento-col-8 fade-in-section" id="feat-lunar">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -792,7 +829,7 @@
         </div>
 
         <!-- Bento 10 (4-col): Smart Battery Health & 80% Limit -->
-        <div class="bento-card bento-col-4 fade-in-section delay-1">
+        <div class="bento-card bento-col-4 fade-in-section delay-1" id="feat-battery">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/><polyline points="7 12 10 15 15 9"/></svg>
@@ -827,7 +864,7 @@
         <!-- Trio Row: Bento 11 (4-col), Bento 12 (4-col), Bento 13 (4-col) -->
 
         <!-- Bento 11 (4-col): Smart Clipboard History & Quick Stash -->
-        <div class="bento-card bento-col-4 fade-in-section">
+        <div class="bento-card bento-col-4 fade-in-section" id="feat-clipboard">
           <div class="bento-header">
             <div class="bento-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
@@ -941,6 +978,198 @@
               <div class="lang-pill-item">🇫🇷 Français</div>
               <div class="lang-pill-item">🇪🇸 Español</div>
               <div class="lang-pill-item">🇸🇦 العربية</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 14 (Large 8-col): Launchpad Home for Modern macOS -->
+        <div class="bento-card bento-col-8 fade-in-section" id="feat-launchpad">
+          <div class="bento-header">
+            <div class="bento-icon-badge" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              </svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat14.title">Launchpad Home for Modern macOS</h3>
+            <p class="bento-desc" data-i18n="feat14.desc">
+              Restores the classic full-screen paged app grid on every macOS version. Features mouse drag &amp; two-finger swipe paging, folders, instant notch search, edge-to-edge 4K/5K display scaling, and deep interception of F4 keys, Hot Corners, Dock &amp; pinch gestures.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="launchpad-preview-widget" data-launchpad-tabs>
+              <div class="launchpad-top-bar">
+                <div class="launchpad-search-pill">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <span data-i18n="bento.lpSearch">Search apps &amp; folders (⇧⌘L)</span>
+                </div>
+                <div class="launchpad-tablist" role="tablist" aria-label="Launchpad pages preview">
+                  <button type="button" class="launchpad-tab-btn" id="lp-tab-1" role="tab" aria-selected="true" tabindex="0" data-lp-panel="lp-panel-1" data-i18n="bento.lpTabPage1">Page 1</button>
+                  <button type="button" class="launchpad-tab-btn" id="lp-tab-2" role="tab" aria-selected="false" tabindex="-1" data-lp-panel="lp-panel-2" data-i18n="bento.lpTabPage2">Page 2</button>
+                  <button type="button" class="launchpad-tab-btn" id="lp-tab-3" role="tab" aria-selected="false" tabindex="-1" data-lp-panel="lp-panel-3" data-i18n="bento.lpTabFolder">Folder</button>
+                </div>
+              </div>
+
+              <div class="launchpad-panels-stack">
+                <div role="tabpanel" id="lp-panel-1" aria-labelledby="lp-tab-1" class="launchpad-panel">
+                  <div class="launchpad-apps-grid">
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #0ea5e9, #2563eb);">🧭</span><span>Safari</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">🔨</span><span>Xcode</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #f43f5e, #e11d48);">🎵</span><span>Music</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #1e293b, #0f172a);">⌘_</span><span>Terminal</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📝</span><span>Notes</span></div>
+                    <div class="lp-app-tile lp-folder-tile">
+                      <span class="lp-folder-mini"><i></i><i></i><i></i><i></i></span>
+                      <span data-i18n="bento.lpFolderUtilities">Dev Tools</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div role="tabpanel" id="lp-panel-2" aria-labelledby="lp-tab-2" class="launchpad-panel" hidden>
+                  <div class="launchpad-apps-grid">
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #10b981, #059669);">💬</span><span>Messages</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #ec4899, #a855f7);">🌸</span><span>Photos</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">✉️</span><span>Mail</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #14b8a6, #0d9488);">🗺️</span><span>Maps</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #f97316, #ea580c);">📅</span><span>Calendar</span></div>
+                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #64748b, #475569);">⚙️</span><span>Settings</span></div>
+                  </div>
+                </div>
+
+                <div role="tabpanel" id="lp-panel-3" aria-labelledby="lp-tab-3" class="launchpad-panel" hidden>
+                  <div class="launchpad-folder-card">
+                    <div class="lp-folder-header" data-i18n="bento.lpFolderUtilities">Dev Tools Folder • Drag &amp; Drop</div>
+                    <div class="launchpad-apps-grid lp-folder-inner">
+                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">🔨</span><span>Xcode</span></div>
+                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #1e293b, #0f172a);">⌘_</span><span>Terminal</span></div>
+                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">🐳</span><span>Docker</span></div>
+                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #22c55e, #16a34a);">🧪</span><span>Activity</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="launchpad-footer-badges">
+                <span class="lp-badge-pill" data-i18n="bento.lpBadgeScaling">4K/5K Edge-to-Edge Scaling</span>
+                <span class="lp-badge-pill" data-i18n="bento.lpBadgeIntercept">F4 • Hot Corner • 4-Finger Pinch</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 15 (4-col): Ultra-Smooth 60Hz Hardware HUDs -->
+        <div class="bento-card bento-col-4 fade-in-section delay-1" id="feat-hud">
+          <div class="bento-header">
+            <div class="bento-icon-badge" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat15.title">Ultra-Smooth 60Hz Hardware HUDs</h3>
+            <p class="bento-desc" data-i18n="feat15.desc">
+              Replaces macOS Volume, Brightness, Keyboard Backlight, and MagSafe Power HUDs without duplicate overlays. Features 60Hz continuous key-hold interpolation, interactive notch bar scrubbing, plus Inline &amp; Open Notch styles.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="hud-preview-widget">
+              <div class="hud-notch-pill">
+                <div class="hud-pill-head">
+                  <span class="hud-pill-icon">🔊 <span data-i18n="bento.hudVolumeLabel">Volume</span></span>
+                  <span class="hud-pill-val">74%</span>
+                </div>
+                <div class="hud-pill-track"><div class="hud-pill-fill hud-fill-vol"></div></div>
+              </div>
+              <div class="hud-notch-pill">
+                <div class="hud-pill-head">
+                  <span class="hud-pill-icon">☀️ <span data-i18n="bento.hudBrightLabel">Brightness</span></span>
+                  <span class="hud-pill-val">82%</span>
+                </div>
+                <div class="hud-pill-track"><div class="hud-pill-fill hud-fill-bright"></div></div>
+              </div>
+              <div class="hud-meta-row">
+                <span class="hud-chip-tag" data-i18n="bento.hudRampBadge">60Hz Key-Hold Ramp</span>
+                <span class="hud-chip-tag" data-i18n="bento.hudInlineBadge">Inline &amp; Scrubbing</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 16 (6-col): Lock Screen Live Player & Universal Browser Sync -->
+        <div class="bento-card bento-col-6 fade-in-section" id="feat-lockscreen">
+          <div class="bento-header">
+            <div class="bento-icon-badge" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat16.title">Lock Screen Live Player &amp; Browser Control</h3>
+            <p class="bento-desc" data-i18n="feat16.desc">
+              Displays full interactive album art, playback controls, and on-demand synced lyrics directly on the macOS Lock Screen. Seamlessly controls YouTube, Netflix, Safari, Chrome, Arc, Spotify &amp; Apple Music with automatic Lock-to-Desktop session sync.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="lockscreen-preview-widget">
+              <div class="ls-clock-row">
+                <span class="ls-lock-badge">🔒 09:41</span>
+                <span class="ls-source-pill" data-i18n="bento.lsSourceBadge">Safari • YouTube • Music</span>
+              </div>
+              <div class="ls-player-card">
+                <div class="ls-art-box">🎵</div>
+                <div class="ls-track-meta">
+                  <div class="ls-track-title">Midnight Pulse (Live Synced)</div>
+                  <div class="ls-track-sub" data-i18n="bento.lsLyricsStatus">Lock Screen HUD &amp; On-Demand Lyrics</div>
+                </div>
+                <div class="ls-controls" aria-hidden="true">
+                  <span>⏮</span>
+                  <span class="ls-play-btn">⏸</span>
+                  <span>⏭</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento 17 (6-col): Native macOS HIG Settings & Instant Search -->
+        <div class="bento-card bento-col-6 fade-in-section delay-1" id="feat-settings">
+          <div class="bento-header">
+            <div class="bento-icon-badge" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </div>
+            <h3 class="bento-title" data-i18n="feat17.title">Native macOS HIG Settings &amp; Deep Search</h3>
+            <p class="bento-desc" data-i18n="feat17.desc">
+              Crafted with Apple Human Interface Guidelines: translucent NavigationSplitView sidebar vibrancy, automatic Light/Dark appearance, grouped inset cards, real-time NSSearchField spotlight highlighting, and an interactive Feature Tour.
+            </p>
+          </div>
+
+          <div class="bento-preview-box">
+            <div class="hig-settings-widget">
+              <div class="hig-sidebar">
+                <div class="hig-search-bar" data-i18n="bento.higSearch">⌘ Search 582 settings...</div>
+                <div class="hig-side-item">General</div>
+                <div class="hig-side-item">Media &amp; HUD</div>
+                <div class="hig-side-item active">Launchpad</div>
+              </div>
+              <div class="hig-detail">
+                <div class="hig-card-row">
+                  <span data-i18n="bento.higRow1">F4 &amp; Pinch Intercept</span>
+                  <span class="hig-toggle on" aria-hidden="true"></span>
+                </div>
+                <div class="hig-card-row">
+                  <span data-i18n="bento.higRow2">Feature Tour Spotlight</span>
+                  <span class="hig-badge" data-i18n="bento.higBadge">Zero-Lag HIG</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1318,13 +1547,14 @@
           <span data-i18n="install.btnDmg">Download NotchPulse.dmg</span>
         </a>
 
-        <div class="brew-copy-box" id="copyBrewCmdFooter" title="Click to copy Homebrew install command">
+        <button type="button" class="brew-copy-box" id="copyBrewCmdFooter" aria-label="Copy Homebrew install command">
           <code>brew install --cask notchpulse</code>
-          <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        </div>
+          <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
       </div>
     </div>
   </section>
+  </main>
 
   <!-- Footer -->
   <footer class="footer">
@@ -1343,13 +1573,13 @@
   </footer>
 
   <!-- Toast for Copy notification -->
-  <div class="toast-container" id="copyToast">
+  <div class="toast-container" id="copyToast" role="status" aria-live="polite">
     <span>✓</span>
     <span id="toastMsg" data-i18n="toast.copied">Command copied to clipboard!</span>
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="main.js?v=40"></script>
+  <script src="main.js?v=41"></script>
 
   <!-- Service Worker Cleanup: Ensures standard Cmd+R always loads latest release without stale cache -->
   <script>

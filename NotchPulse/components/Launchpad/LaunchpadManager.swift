@@ -53,10 +53,26 @@ final class LaunchpadIconCache: @unchecked Sendable {
         if let ctx = NSGraphicsContext(bitmapImageRep: rep) {
             NSGraphicsContext.current = ctx
             ctx.imageInterpolation = .high
+
+            // Bake a subtle macOS drop shadow directly into the cached bitmap so grids
+            // composite as flat GPU textures without per-tile runtime CoreAnimation shadow passes.
+            let shadow = NSShadow()
+            shadow.shadowColor = NSColor.black.withAlphaComponent(0.26)
+            shadow.shadowBlurRadius = 5.0
+            shadow.shadowOffset = NSSize(width: 0, height: -3.0)
+            shadow.set()
+
+            let drawInset: CGFloat = 6.0
+            let drawRect = NSRect(
+                x: drawInset,
+                y: drawInset,
+                width: pointSize.width - drawInset * 2,
+                height: pointSize.height - drawInset * 2
+            )
             image.draw(
-                in: NSRect(origin: .zero, size: pointSize),
+                in: drawRect,
                 from: .zero,
-                operation: .copy,
+                operation: .sourceOver,
                 fraction: 1.0
             )
         }

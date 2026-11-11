@@ -10,14 +10,21 @@ final class LaunchpadPanel: NSPanel {
     override var canBecomeMain: Bool { true }
 }
 
+/// Isolated observable horizontal swipe offset so 120Hz paging gestures never re-evaluate LaunchpadRootView.
+@MainActor
+final class LaunchpadSwipeState: ObservableObject {
+    @Published var offset: CGFloat = 0
+}
+
 /// Manages the fullscreen Launchpad Home window lifecycle, screen placement,
 /// optional Hot Corner monitoring, and AppKit swipe/keyboard event monitors.
 @MainActor
 final class LaunchpadWindowController: NSObject, ObservableObject {
     static let shared = LaunchpadWindowController()
 
+    let swipeState = LaunchpadSwipeState()
+
     @Published private(set) var isPresented: Bool = false
-    @Published var liveSwipeOffset: CGFloat = 0
     @Published private(set) var currentScreenWallpaperURL: URL?
     @Published private(set) var focusSearchToken: Int = 0
     @Published private(set) var topNotchSafeInset: CGFloat = 58
@@ -144,7 +151,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         presentationGeneration += 1
         lastShownAt = Date()
         isPresented = true
-        liveSwipeOffset = 0
+        swipeState.offset = 0
         installLocalMonitors()
 
         NSApp.activate()
@@ -179,7 +186,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         let dismissGen = presentationGeneration
         isPresented = false
         removeLocalMonitors()
-        liveSwipeOffset = 0
+        swipeState.offset = 0
         isTrackingHorizontalSwipe = false
         accumulatedSwipeX = 0
         accumulatedMagnification = 0
@@ -554,7 +561,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
                 isTrackingHorizontalSwipe = abs(dx) >= abs(dy)
                 accumulatedSwipeX = 0
                 if isTrackingHorizontalSwipe {
-                    liveSwipeOffset = 0
+                    swipeState.offset = 0
                 }
             case .changed:
                 if !isTrackingHorizontalSwipe && abs(dx) > abs(dy) && abs(dx) > 1.5 {
@@ -612,7 +619,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         let manager = LaunchpadManager.shared
         let atLeadingEdge = manager.currentPageIndex == 0 && rawDeltaX > 0
         let atTrailingEdge = manager.currentPageIndex >= manager.pages.count - 1 && rawDeltaX < 0
-        liveSwipeOffset = (atLeadingEdge || atTrailingEdge) ? rawDeltaX * 0.28 : rawDeltaX
+        swipeState.offset = (atLeadingEdge || atTrailingEdge) ? rawDeltaX * 0.28 : rawDeltaX
     }
 
     func commitHorizontalSwipe(deltaX: CGFloat, predictedDeltaX: CGFloat, pageWidth: CGFloat) {
@@ -631,11 +638,11 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
 
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             manager.currentPageIndex = clamped
-            liveSwipeOffset = 0
+            swipeState.offset = 0
         } else {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
                 manager.currentPageIndex = clamped
-                liveSwipeOffset = 0
+                swipeState.offset = 0
             }
         }
     }

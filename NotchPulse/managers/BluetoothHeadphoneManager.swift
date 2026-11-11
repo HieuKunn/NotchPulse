@@ -1,5 +1,6 @@
 import AppKit
 import CoreAudio
+import CoreBluetooth
 import Defaults
 import Foundation
 import IOBluetooth
@@ -23,20 +24,30 @@ final class BluetoothHeadphoneManager: NSObject {
 
     override init() {
         super.init()
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             self?.setupListeners()
         }
     }
 
+    @MainActor
     func setupListeners() {
-        // 1. Listen for IOBluetooth device connection events (safely guarded)
+        // 1. CoreAudio output listener needs no Bluetooth TCC prompt
+        setupCoreAudioOutputListener()
+
+        // 2. Register IOBluetooth connect events silently when already authorized (or if HUD is enabled post-onboarding)
+        if CBManager.authorization == .allowedAlways {
+            ensureBluetoothNotificationsRegistered()
+        }
+    }
+
+    @MainActor
+    func ensureBluetoothNotificationsRegistered() {
+        guard connectNotification == nil else { return }
+        guard CBManager.authorization != .denied && CBManager.authorization != .restricted else { return }
         connectNotification = IOBluetoothDevice.register(
             forConnectNotifications: self,
             selector: #selector(deviceConnectedNotification(_:device:))
         )
-
-        // 2. Listen for CoreAudio default output device changes
-        setupCoreAudioOutputListener()
     }
 
     @objc private func deviceConnectedNotification(_ notification: IOBluetoothUserNotification, device: IOBluetoothDevice) {
@@ -237,19 +248,21 @@ final class BluetoothHeadphoneManager: NSObject {
             icon = "headphones"
         }
 
-        // 1. Direct IOBluetoothDevice selectors (0ms latency, true hardware reading)
+        // 1. Direct IOBluetoothDevice selectors (only query when authorized so passive reads never ambush TCC)
         var matchedDevice: IOBluetoothDevice? = nil
-        if !targetAddress.isEmpty, let dev = IOBluetoothDevice(addressString: targetAddress) {
-            matchedDevice = dev
-        }
-        if matchedDevice == nil, let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] {
-            matchedDevice = paired.first { dev in
-                let devName = (dev.nameOrAddress ?? "").lowercased()
-                let devAddr = (dev.addressString ?? "").lowercased()
-                if !targetAddress.isEmpty && devAddr == targetAddress.lowercased() {
-                    return true
+        if CBManager.authorization == .allowedAlways {
+            if !targetAddress.isEmpty, let dev = IOBluetoothDevice(addressString: targetAddress) {
+                matchedDevice = dev
+            }
+            if matchedDevice == nil, let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] {
+                matchedDevice = paired.first { dev in
+                    let devName = (dev.nameOrAddress ?? "").lowercased()
+                    let devAddr = (dev.addressString ?? "").lowercased()
+                    if !targetAddress.isEmpty && devAddr == targetAddress.lowercased() {
+                        return true
+                    }
+                    return !lowerName.isEmpty && (devName.contains(lowerName) || lowerName.contains(devName))
                 }
-                return !lowerName.isEmpty && (devName.contains(lowerName) || lowerName.contains(devName))
             }
         }
 

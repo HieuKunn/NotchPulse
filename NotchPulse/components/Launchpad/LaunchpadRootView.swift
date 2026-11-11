@@ -306,10 +306,14 @@ struct LaunchpadRootView: View {
                 }
 
                 if let draggedNode = dragCoordinator.activeNode {
-                    floatingDragPreview(for: draggedNode, iconSize: metrics.fittedIconSize)
-                        .position(dragCoordinator.dragLocation)
-                        .allowsHitTesting(false)
-                        .zIndex(40)
+                    LaunchpadFloatingDragOverlay(
+                        cursor: dragCoordinator.cursor,
+                        node: draggedNode,
+                        iconSize: metrics.fittedIconSize,
+                        showLabel: showLabels
+                    )
+                    .allowsHitTesting(false)
+                    .zIndex(40)
                 }
             }
             .frame(width: size.width, height: size.height)
@@ -406,9 +410,7 @@ struct LaunchpadRootView: View {
                     .scaleEffect(1.03)
                     .frame(width: size.width, height: size.height)
                     .clipped()
-                if backgroundStyle == .dimmed {
-                    Color.black.opacity(0.36)
-                }
+                Color.black.opacity(backgroundStyle == .dimmed ? 0.36 : 0.14)
             } else {
                 LaunchpadVisualEffectBackdrop(style: backgroundStyle)
                 if backgroundStyle == .dimmed {
@@ -442,39 +444,17 @@ struct LaunchpadRootView: View {
 
     @ViewBuilder
     private var topSearchAndControlsBar: some View {
-        ZStack {
-            LaunchpadNativeSearchField(
-                text: $manager.searchQuery,
-                placeholder: loc("Search"),
-                onSubmit: {
-                    if let first = manager.searchResults.first {
-                        manager.launchApp(first)
-                    }
-                },
-                focusToken: windowController.focusSearchToken
-            )
-            .frame(width: 256, height: 30)
-
-            if manager.isEditingMode {
-                HStack {
-                    Spacer()
-                    Button {
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                            manager.isEditingMode = false
-                        }
-                    } label: {
-                        Label(loc("Done"), systemImage: "checkmark")
-                            .font(.subheadline.weight(.medium))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.effectiveAccent)
-                    .controlSize(.small)
+        LaunchpadNativeSearchField(
+            text: $manager.searchQuery,
+            placeholder: loc("Search"),
+            onSubmit: {
+                if let first = manager.searchResults.first {
+                    manager.launchApp(first)
                 }
-                .padding(.trailing, 32)
-            }
-        }
+            },
+            focusToken: windowController.focusSearchToken
+        )
+        .frame(width: 256, height: 30)
         .frame(maxWidth: .infinity)
     }
 
@@ -483,34 +463,45 @@ struct LaunchpadRootView: View {
     @ViewBuilder
     private func pagedCarouselView(canvasSize: CGSize, metrics: LaunchpadGridLayoutMetrics) -> some View {
         let pageWidth = max(1, canvasSize.width)
+        let pageTopOffset = windowController.topNotchSafeInset + 42
 
-        HStack(spacing: 0) {
-            ForEach(Array(manager.pages.enumerated()), id: \.element.id) { pageIndex, page in
-                LaunchpadPageGridView(
-                    page: page,
-                    isCurrentPage: pageIndex == manager.currentPageIndex,
-                    isSwiping: windowController.liveSwipeOffset != 0,
-                    gridColumns: metrics.gridColumns,
-                    verticalSpacing: metrics.verticalSpacing,
-                    iconSize: metrics.fittedIconSize,
-                    showLabels: showLabels,
-                    horizontalInset: metrics.horizontalInset,
-                    manager: manager,
-                    dragCoordinator: dragCoordinator,
-                    onOpenApp: { manager.launchApp($0) },
-                    onOpenFolder: { folder in
-                        withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
-                            manager.activeFolderId = folder.id
-                        }
-                    },
-                    onRequestTrash: { appPendingTrash = $0 }
-                )
-                .frame(width: pageWidth)
-                .frame(maxHeight: .infinity, alignment: .top)
+        LaunchpadCarouselOffsetContainer(
+            swipeState: windowController.swipeState,
+            baseOffset: -CGFloat(manager.currentPageIndex) * pageWidth
+        ) {
+            HStack(spacing: 0) {
+                ForEach(Array(manager.pages.enumerated()), id: \.element.id) { pageIndex, page in
+                    if abs(pageIndex - manager.currentPageIndex) <= 1 {
+                        LaunchpadPageGridView(
+                            page: page,
+                            isCurrentPage: pageIndex == manager.currentPageIndex,
+                            pageTopOffset: pageTopOffset,
+                            gridColumns: metrics.gridColumns,
+                            verticalSpacing: metrics.verticalSpacing,
+                            iconSize: metrics.fittedIconSize,
+                            showLabels: showLabels,
+                            horizontalInset: metrics.horizontalInset,
+                            manager: manager,
+                            dragCoordinator: dragCoordinator,
+                            onOpenApp: { manager.launchApp($0) },
+                            onOpenFolder: { folder in
+                                withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
+                                    manager.activeFolderId = folder.id
+                                }
+                            },
+                            onRequestTrash: { appPendingTrash = $0 }
+                        )
+                        .frame(width: pageWidth)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                    } else {
+                        Color.clear
+                            .frame(width: pageWidth)
+                            .frame(maxHeight: .infinity)
+                    }
+                }
             }
+            .frame(width: pageWidth * CGFloat(max(1, manager.pages.count)), alignment: .leading)
         }
-        .frame(width: pageWidth * CGFloat(max(1, manager.pages.count)), alignment: .leading)
-        .offset(x: -CGFloat(manager.currentPageIndex) * pageWidth + windowController.liveSwipeOffset)
         .frame(width: pageWidth, alignment: .leading)
         .frame(maxHeight: .infinity)
         .contentShape(Rectangle())
@@ -636,8 +627,16 @@ struct LaunchpadRootView: View {
         .transition(.opacity)
     }
 
-    @ViewBuilder
-    private func floatingDragPreview(for node: LaunchpadNode, iconSize: CGFloat) -> some View {
+}
+
+/// Dedicated 120Hz drag preview view so pointer motion only updates this single overlay.
+private struct LaunchpadFloatingDragOverlay: View {
+    @ObservedObject var cursor: LaunchpadDragCursor
+    let node: LaunchpadNode
+    let iconSize: CGFloat
+    let showLabel: Bool
+
+    var body: some View {
         VStack(spacing: 6) {
             switch node {
             case .app(let app):
@@ -647,13 +646,36 @@ struct LaunchpadRootView: View {
                 LaunchpadFolderThumbnailView(folder: folder, size: iconSize * 1.12)
                     .shadow(color: Color.black.opacity(0.35), radius: 14, y: 7)
             }
-            if showLabels {
+            if showLabel {
                 Text(node.displayName)
                     .font(.system(size: max(12.5, min(16.5, (iconSize * 0.145).rounded())), weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
         }
+        .position(cursor.location)
+    }
+}
+
+/// Isolates 120Hz swipe offset updates so page grids and tiles never re-evaluate during trackpad/mouse swipes.
+private struct LaunchpadCarouselOffsetContainer<Content: View>: View {
+    @ObservedObject var swipeState: LaunchpadSwipeState
+    let baseOffset: CGFloat
+    let content: Content
+
+    init(
+        swipeState: LaunchpadSwipeState,
+        baseOffset: CGFloat,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.swipeState = swipeState
+        self.baseOffset = baseOffset
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .offset(x: baseOffset + swipeState.offset)
     }
 }
 
@@ -733,7 +755,7 @@ private struct LaunchpadGridLayoutMetrics {
 private struct LaunchpadPageGridView: View {
     let page: LaunchpadPage
     let isCurrentPage: Bool
-    let isSwiping: Bool
+    let pageTopOffset: CGFloat
     let gridColumns: [GridItem]
     let verticalSpacing: CGFloat
     let iconSize: CGFloat
@@ -749,6 +771,10 @@ private struct LaunchpadPageGridView: View {
 
     @State private var frameStore = LaunchpadTileFrameStore()
 
+    private var pageCoordSpaceName: String {
+        "LaunchpadPage_\(page.id.uuidString)"
+    }
+
     var body: some View {
         LazyVGrid(columns: gridColumns, spacing: verticalSpacing) {
             ForEach(page.nodes) { node in
@@ -756,7 +782,7 @@ private struct LaunchpadPageGridView: View {
                     node: node,
                     iconSize: iconSize,
                     showLabel: showLabels,
-                    isEditingMode: manager.isEditingMode,
+                    isEditingMode: manager.isEditingMode && isCurrentPage,
                     isMergeTarget: dragCoordinator.mergeTargetNodeId == node.id,
                     isBeingDragged: dragCoordinator.activeNode?.id == node.id,
                     isKeyboardHighlighted: false,
@@ -770,11 +796,10 @@ private struct LaunchpadPageGridView: View {
                     GeometryReader { geo in
                         Color.clear
                             .onAppear {
-                                guard !isSwiping else { return }
-                                frameStore.frames[node.id] = geo.frame(in: .named("LaunchpadCanvas"))
+                                frameStore.frames[node.id] = geo.frame(in: .named(pageCoordSpaceName))
                             }
-                            .onChange(of: geo.frame(in: .named("LaunchpadCanvas"))) { _, newRect in
-                                guard !isSwiping, !dragCoordinator.isDragging else { return }
+                            .onChange(of: geo.frame(in: .named(pageCoordSpaceName))) { _, newRect in
+                                guard !dragCoordinator.isDragging else { return }
                                 frameStore.frames[node.id] = newRect
                             }
                     }
@@ -783,6 +808,7 @@ private struct LaunchpadPageGridView: View {
         }
         .padding(.horizontal, horizontalInset)
         .padding(.top, 8)
+        .coordinateSpace(name: pageCoordSpaceName)
         .onAppear {
             if isCurrentPage && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
                 syncTileFrames()
@@ -807,7 +833,13 @@ private struct LaunchpadPageGridView: View {
 
     private func syncTileFrames() {
         let ids = page.nodes.map(\.id)
-        let filtered = frameStore.frames.filter { ids.contains($0.key) }
-        dragCoordinator.updateTileFrames(orderedIds: ids, frames: filtered)
+        var canvasFrames: [String: CGRect] = [:]
+        canvasFrames.reserveCapacity(ids.count)
+        for id in ids {
+            if let localRect = frameStore.frames[id] {
+                canvasFrames[id] = localRect.offsetBy(dx: 0, dy: pageTopOffset)
+            }
+        }
+        dragCoordinator.updateTileFrames(orderedIds: ids, frames: canvasFrames)
     }
 }

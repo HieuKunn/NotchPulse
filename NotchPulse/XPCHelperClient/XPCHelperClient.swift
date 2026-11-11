@@ -102,57 +102,24 @@ final class XPCHelperClient: NSObject {
     // MARK: - Accessibility
     
     nonisolated func requestAccessibilityAuthorization() {
-        // 1. Direct macOS system check and permission prompt dialog
+        // Prompt once for the main app bundle (where CGEventTap, AX observers, and KeystrokeInjector execute)
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         let isTrusted = AXIsProcessTrustedWithOptions(options)
-        
+
         if !isTrusted {
-            // Open System Settings > Privacy & Security > Accessibility directly
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
                 NSWorkspace.shared.open(url)
-            }
-        }
-        
-        // 2. Also prompt via XPC service if available
-        Task {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            try? await service.withService { service in
-                service.requestAccessibilityAuthorization()
             }
         }
     }
     
     nonisolated func isAccessibilityAuthorized() async -> Bool {
-        // Direct macOS Accessibility check first (native, instantaneous, reliable)
-        if AXIsProcessTrusted() {
-            await MainActor.run {
-                notifyAuthorizationChange(true)
-            }
-            return true
+        // Authoritative check for the main process that owns the HID/AX event taps.
+        let authorized = AXIsProcessTrusted()
+        await MainActor.run {
+            notifyAuthorizationChange(authorized)
         }
-        
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            let result: Bool = try await service.withContinuation { service, continuation in
-                service.isAccessibilityAuthorized { authorized in
-                    continuation.resume(returning: authorized)
-                }
-            }
-            await MainActor.run {
-                notifyAuthorizationChange(result)
-            }
-            return result
-        } catch {
-            let directCheck = AXIsProcessTrusted()
-            await MainActor.run {
-                notifyAuthorizationChange(directCheck)
-            }
-            return directCheck
-        }
+        return authorized
     }
     
     nonisolated func ensureAccessibilityAuthorization(promptIfNeeded: Bool) async -> Bool {

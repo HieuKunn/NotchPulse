@@ -77,18 +77,22 @@ final class VolumeManager: NSObject, ObservableObject {
 
     @MainActor func setAbsolute(_ value: Float32) {
         let clamped = max(0, min(1, value))
-        let currentlyMuted = isMutedInternal()
-        if currentlyMuted && clamped > 0 {
-            toggleMuteInternal()
+        if self.isMuted && clamped > 0 {
+            if isMutedInternal() {
+                toggleMuteInternal()
+            }
         }
 
         writeVolumeInternal(clamped)
 
-        if clamped == 0 && !currentlyMuted {
-            toggleMuteInternal()
+        let shouldBeMuted = (clamped == 0)
+        if shouldBeMuted && !self.isMuted {
+            if !isMutedInternal() {
+                toggleMuteInternal()
+            }
         }
 
-        publish(volume: clamped, muted: isMutedInternal(), touchDate: true)
+        publish(volume: clamped, muted: shouldBeMuted, touchDate: true)
     }
 
     // MARK: - CoreAudio Helpers
