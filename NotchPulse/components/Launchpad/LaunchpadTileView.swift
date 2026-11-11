@@ -60,8 +60,28 @@ struct LaunchpadTileView: View {
     @State private var isHovering = false
     @State private var jiggleAngle: Double = 0
 
+    private var labelFontSize: CGFloat {
+        max(12.5, min(16.5, (iconSize * 0.145).rounded()))
+    }
+
     var body: some View {
-        VStack(spacing: 8) {
+        let tileDragGesture = DragGesture(minimumDistance: 8, coordinateSpace: .named("LaunchpadCanvas"))
+            .onChanged { value in
+                if !dragCoordinator.isDragging {
+                    dragCoordinator.beginDrag(
+                        node: node,
+                        fromFolderId: sourceFolderId,
+                        at: value.location
+                    )
+                } else {
+                    dragCoordinator.updateDrag(at: value.location, manager: manager)
+                }
+            }
+            .onEnded { _ in
+                dragCoordinator.endDrag(manager: manager)
+            }
+
+        VStack(spacing: max(6, iconSize * 0.08)) {
             ZStack(alignment: .topLeading) {
                 if isMergeTarget {
                     RoundedRectangle(cornerRadius: iconSize * 0.24, style: .continuous)
@@ -85,7 +105,7 @@ struct LaunchpadTileView: View {
                         onRequestTrash?(app)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: max(18, iconSize * 0.21), weight: .semibold))
                             .symbolRenderingMode(.palette)
                             .foregroundStyle(.primary, .regularMaterial)
                     }
@@ -98,29 +118,26 @@ struct LaunchpadTileView: View {
 
             if showLabel {
                 Text(node.displayName)
-                    .font(.callout.weight(.medium))
+                    .font(.system(size: labelFontSize, weight: .regular))
                     .foregroundStyle(.primary)
+                    .shadow(color: Color.black.opacity(0.60), radius: 2, y: 1)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 2)
                     .background(
                         Group {
                             if isKeyboardHighlighted {
                                 Capsule()
-                                    .fill(Color.effectiveAccent.opacity(0.28))
+                                    .fill(Color.effectiveAccent.opacity(0.32))
                             }
                         }
                     )
             }
         }
-        .padding(.vertical, 6)
+        .frame(width: max(iconSize * 1.24, 96))
+        .padding(.vertical, 4)
         .padding(.horizontal, 4)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(isKeyboardHighlighted ? Color.effectiveAccent.opacity(0.14) : (isHovering && !isBeingDragged ? Color.primary.opacity(0.06) : Color.clear))
-        )
         .opacity(isBeingDragged ? 0.22 : 1.0)
         .rotationEffect(.degrees(isEditingMode && !isBeingDragged ? jiggleAngle : 0))
         .onAppear {
@@ -155,26 +172,16 @@ struct LaunchpadTileView: View {
                     }
                 }
         )
+        .gesture(tileDragGesture, including: isEditingMode ? .all : .none)
         .gesture(
-            DragGesture(minimumDistance: 8, coordinateSpace: .named("LaunchpadCanvas"))
-                .onChanged { value in
-                    if !dragCoordinator.isDragging {
-                        dragCoordinator.beginDrag(
-                            node: node,
-                            fromFolderId: sourceFolderId,
-                            at: value.location
-                        )
-                    } else {
-                        dragCoordinator.updateDrag(at: value.location, manager: manager)
-                    }
-                }
-                .onEnded { _ in
-                    dragCoordinator.endDrag(manager: manager)
-                }
+            LongPressGesture(minimumDuration: 0.24)
+                .sequenced(before: tileDragGesture),
+            including: isEditingMode ? .none : .all
         )
         .contextMenu {
             contextMenuItems
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -182,7 +189,7 @@ struct LaunchpadTileView: View {
         switch node {
         case .app(let app):
             LaunchpadAppIconImage(bundlePath: app.bundlePath, size: iconSize)
-                .shadow(color: Color.black.opacity(0.18), radius: 6, y: 3)
+                .shadow(color: Color.black.opacity(0.24), radius: 4, y: 2)
 
         case .folder(let folder):
             LaunchpadFolderThumbnailView(folder: folder, size: iconSize)
@@ -291,14 +298,14 @@ struct LaunchpadFolderThumbnailView: View {
 
     var body: some View {
         let previewApps = Array(folder.items.prefix(9))
-        let cellSize = size * 0.22
-        let spacing = size * 0.055
+        let cellSize = size * 0.21
+        let spacing = size * 0.048
 
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                .fill(.regularMaterial)
+            RoundedRectangle(cornerRadius: size * 0.215, style: .continuous)
+                .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
+                    RoundedRectangle(cornerRadius: size * 0.215, style: .continuous)
                         .stroke(Color(nsColor: .separatorColor), lineWidth: 0.75)
                 )
 
@@ -310,10 +317,10 @@ struct LaunchpadFolderThumbnailView: View {
                     LaunchpadAppIconImage(bundlePath: app.bundlePath, size: cellSize)
                 }
             }
-            .padding(size * 0.12)
+            .padding(size * 0.11)
         }
-        .frame(width: size * 0.94, height: size * 0.94)
-        .shadow(color: Color.black.opacity(0.14), radius: 5, y: 2)
+        .frame(width: size * 0.86, height: size * 0.86)
+        .shadow(color: Color.black.opacity(0.24), radius: 7, y: 3)
     }
 }
 

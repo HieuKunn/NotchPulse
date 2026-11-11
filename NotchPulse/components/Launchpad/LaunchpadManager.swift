@@ -22,10 +22,49 @@ final class LaunchpadIconCache: @unchecked Sendable {
         if let existing = cache.object(forKey: bundlePath as NSString) {
             return existing
         }
-        let icon = NSWorkspace.shared.icon(forFile: bundlePath)
-        icon.size = NSSize(width: 128, height: 128)
-        cache.setObject(icon, forKey: bundlePath as NSString)
-        return icon
+        let rawIcon = NSWorkspace.shared.icon(forFile: bundlePath)
+        // Downsample multi-rep .icns to a crisp 2x Retina 320x320px bitmap so large external monitors stay sharp without decoding 1024px reps
+        let pixelDim = 320
+        let pointDim: CGFloat = 160
+        let rasterized = Self.rasterizeIcon(rawIcon, pixelDimension: pixelDim, pointSize: NSSize(width: pointDim, height: pointDim))
+        cache.setObject(rasterized, forKey: bundlePath as NSString)
+        return rasterized
+    }
+
+    private static func rasterizeIcon(_ image: NSImage, pixelDimension: Int, pointSize: NSSize) -> NSImage {
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pixelDimension,
+            pixelsHigh: pixelDimension,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            image.size = pointSize
+            return image
+        }
+        rep.size = pointSize
+
+        NSGraphicsContext.saveGraphicsState()
+        if let ctx = NSGraphicsContext(bitmapImageRep: rep) {
+            NSGraphicsContext.current = ctx
+            ctx.imageInterpolation = .high
+            image.draw(
+                in: NSRect(origin: .zero, size: pointSize),
+                from: .zero,
+                operation: .copy,
+                fraction: 1.0
+            )
+        }
+        NSGraphicsContext.restoreGraphicsState()
+
+        let result = NSImage(size: pointSize)
+        result.addRepresentation(rep)
+        return result
     }
 
     func prewarm(paths: [String]) {
@@ -139,19 +178,27 @@ final class LaunchpadManager: ObservableObject {
     }
 
     func refreshApps(force: Bool = false) {
-        let currentStamp = Self.computeDirectoryStamp()
-        if !force, !pages.isEmpty, currentStamp == lastDirectorySnapshotStamp {
-            return
-        }
-
         scanTask?.cancel()
-        isScanning = pages.isEmpty
+        let hadPages = !pages.isEmpty
+        let previousStamp = lastDirectorySnapshotStamp
+        isScanning = !hadPages
+
         scanTask = Task { [weak self] in
+            let currentStamp = await Task.detached(priority: .utility) {
+                Self.computeDirectoryStamp()
+            }.value
+            guard let self, !Task.isCancelled else { return }
+
+            if !force, hadPages, currentStamp == previousStamp {
+                self.isScanning = false
+                return
+            }
+
             let discovered = await Task.detached(priority: .userInitiated) {
                 Self.scanInstalledApplications()
             }.value
-            guard let self, !Task.isCancelled else { return }
-            self.lastDirectorySnapshotStamp = Self.computeDirectoryStamp()
+            guard !Task.isCancelled else { return }
+            self.lastDirectorySnapshotStamp = currentStamp
             self.applyDiscoveredApps(discovered)
             self.isScanning = false
             LaunchpadIconCache.shared.prewarm(paths: discovered.map(\.bundlePath))
@@ -665,7 +712,7 @@ final class LaunchpadManager: ObservableObject {
                     if let bgString = info?["LSBackgroundOnly"] as? String, bgString == "1" { continue }
 
                     let bundleId = bundle?.bundleIdentifier
-                    if bundleId == "com.apple.finder" { continue }
+                    if bundleId == "com.apple.finder" || bundleId == "com.apple.apps.launcher" { continue }
 
                     let displayName = resolveDisplayName(at: next, bundle: bundle)
                     let category = info?["LSApplicationCategoryType"] as? String

@@ -24,7 +24,7 @@ struct LaunchpadFolderOverlayView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.28)
+            Color.black.opacity(0.24)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -32,11 +32,13 @@ struct LaunchpadFolderOverlayView: View {
                     onDismiss()
                 }
 
-            VStack(spacing: 18) {
+            VStack(spacing: 22) {
                 TextField(loc("Folder Name"), text: $folderTitle)
                     .textFieldStyle(.plain)
-                    .font(.title2.weight(.semibold))
+                    .focusEffectDisabled()
+                    .font(.largeTitle.weight(.light))
                     .foregroundStyle(.primary)
+                    .shadow(color: Color.black.opacity(0.45), radius: 3, y: 1)
                     .multilineTextAlignment(.center)
                     .focused($isTitleFocused)
                     .onSubmit {
@@ -47,11 +49,12 @@ struct LaunchpadFolderOverlayView: View {
                         if !focused { commitTitle() }
                     }
                     .padding(.horizontal, 24)
+                    .frame(maxWidth: 420)
 
                 ScrollView {
                     LazyVGrid(
                         columns: Array(repeating: GridItem(.flexible(minimum: iconSize + 24), spacing: 18), count: folderColumns),
-                        spacing: 20
+                        spacing: 22
                     ) {
                         ForEach(folder.items) { app in
                             let node = LaunchpadNode.app(app)
@@ -85,31 +88,30 @@ struct LaunchpadFolderOverlayView: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 34)
+                    .padding(.vertical, 26)
                 }
                 .scrollIndicators(.never)
-                .frame(maxHeight: 480)
+                .frame(maxHeight: 490)
+                .frame(minWidth: 460, maxWidth: min(780, max(540, CGFloat(folderColumns) * (iconSize + 52) + 68)))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 34, style: .continuous)
+                        .stroke(Color(nsColor: .separatorColor), lineWidth: 0.75)
+                )
+                .shadow(color: Color.black.opacity(0.32), radius: 32, y: 14)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear {
+                                dragCoordinator.updateFolderCardFrame(geo.frame(in: .named("LaunchpadCanvas")))
+                            }
+                            .onChange(of: geo.frame(in: .named("LaunchpadCanvas"))) { _, rect in
+                                dragCoordinator.updateFolderCardFrame(rect)
+                            }
+                    }
+                )
             }
-            .padding(.vertical, 26)
-            .frame(minWidth: 460, maxWidth: min(760, max(520, CGFloat(folderColumns) * (iconSize + 52) + 56)))
-            .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.75)
-            )
-            .shadow(color: Color.black.opacity(0.26), radius: 28, y: 12)
-            .background(
-                GeometryReader { geo in
-                    Color.clear
-                        .onAppear {
-                            dragCoordinator.updateFolderCardFrame(geo.frame(in: .named("LaunchpadCanvas")))
-                        }
-                        .onChange(of: geo.frame(in: .named("LaunchpadCanvas"))) { _, rect in
-                            dragCoordinator.updateFolderCardFrame(rect)
-                        }
-                }
-            )
             .padding(40)
             .transition(.scale(scale: 0.92).combined(with: .opacity))
         }

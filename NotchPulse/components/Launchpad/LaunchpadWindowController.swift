@@ -18,6 +18,9 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
 
     @Published private(set) var isPresented: Bool = false
     @Published var liveSwipeOffset: CGFloat = 0
+    @Published private(set) var currentScreenWallpaperURL: URL?
+    @Published private(set) var focusSearchToken: Int = 0
+    @Published private(set) var topNotchSafeInset: CGFloat = 58
 
     private var panel: LaunchpadPanel?
     private var hasInstalledContent = false
@@ -25,6 +28,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     private var defaultsCancellable: AnyCancellable?
     private var presentationGeneration: Int = 0
     private var lastShownAt: Date = .distantPast
+    private var suppressEscapeUntil: Date = .distantPast
 
     // Local event monitors while Launchpad is open
     private var keyMonitor: Any?
@@ -43,6 +47,14 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     private var hotCornerLocalMonitor: Any?
     private var hotCornerDwellTask: Task<Void, Never>?
     private var isPointerInHotCorner = false
+    private var enableCancellable: AnyCancellable?
+    private var replaceGestureCancellable: AnyCancellable?
+
+    private static let systemLauncherBundleIds: Set<String> = [
+        "com.apple.campo",
+        "com.apple.Spotlight",
+        "com.apple.apps.launcher"
+    ]
 
     private override init() {
         super.init()
@@ -51,9 +63,52 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
             .sink { [weak self] _ in
                 self?.configureHotCornerMonitor()
             }
+        enableCancellable = Defaults.publisher(.enableLaunchpad)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.configureHotCornerMonitor()
+                self?.configureSystemLaunchpadInterceptor()
+            }
+        replaceGestureCancellable = Defaults.publisher(.launchpadReplaceSystemGesture)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.configureHotCornerMonitor()
+                self?.configureSystemLaunchpadInterceptor()
+            }
     }
 
     // MARK: - Public Presentation API
+
+    func prewarmIfNeeded() {
+        guard Defaults[.enableLaunchpad] else { return }
+        LaunchpadManager.shared.prepareForPresentation()
+        if let screen = Self.screenUnderPointer() ?? NSScreen.main {
+            updateInsets(for: screen)
+            let wallpaperURL = NSWorkspace.shared.desktopImageURL(for: screen)
+            currentScreenWallpaperURL = wallpaperURL
+            if let wallpaperURL {
+                Task.detached(priority: .utility) {
+                    _ = LaunchpadBlurredWallpaperCache.shared.loadBlurredWallpaper(from: wallpaperURL)
+                }
+            }
+            if panel == nil {
+                _ = ensurePanel(for: screen)
+            }
+        }
+    }
+
+    func suppressEscape(for duration: TimeInterval) {
+        let target = Date().addingTimeInterval(duration)
+        if target > suppressEscapeUntil {
+            suppressEscapeUntil = target
+        }
+    }
+
+    private func updateInsets(for screen: NSScreen) {
+        let menuBarInset = max(0, screen.frame.maxY - screen.visibleFrame.maxY)
+        let notchTop = max(screen.safeAreaInsets.top, menuBarInset)
+        topNotchSafeInset = notchTop > 26 ? max(58, notchTop + 22) : 44
+    }
 
     func toggle() {
         guard Defaults[.enableLaunchpad] else { return }
@@ -69,13 +124,17 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         guard !NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
 
         if let active = NSWorkspace.shared.frontmostApplication,
-           active.bundleIdentifier != Bundle.main.bundleIdentifier {
+           let bundleId = active.bundleIdentifier,
+           bundleId != Bundle.main.bundleIdentifier,
+           !Self.systemLauncherBundleIds.contains(bundleId) {
             previousFrontmostApp = active
         }
 
         let targetScreen = Self.screenUnderPointer() ?? NSScreen.main
         guard let screen = targetScreen else { return }
 
+        updateInsets(for: screen)
+        currentScreenWallpaperURL = NSWorkspace.shared.desktopImageURL(for: screen)
         LaunchpadManager.shared.prepareForPresentation()
 
         let panel = ensurePanel(for: screen)
@@ -88,19 +147,26 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         liveSwipeOffset = 0
         installLocalMonitors()
 
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
+        LaunchpadSystemInterceptor.shared.dismissResidualSpotlightAppsIfVisible(keepLaunchpadOpen: true)
 
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             panel.alphaValue = 1
         } else {
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.20
+                context.duration = 0.14
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 panel.animator().alphaValue = 1
             }
         }
+    }
+
+    func bringPanelToFrontIfPresented() {
+        guard isPresented, let panel else { return }
+        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
     }
 
     func dismiss(restorePreviousApp: Bool = true, completion: (@MainActor @Sendable () -> Void)? = nil) {
@@ -118,6 +184,14 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         accumulatedSwipeX = 0
         accumulatedMagnification = 0
 
+        let appToRestore = restorePreviousApp ? self.previousFrontmostApp : nil
+        // Dismiss any hidden/lingering macOS native Applications window BEFORE Launchpad fades out
+        // so it never flashes into view underneath as our panel disappears.
+        LaunchpadSystemInterceptor.shared.dismissResidualSpotlightAppsIfVisible(
+            keepLaunchpadOpen: false,
+            restoreApp: appToRestore
+        )
+
         let finishDismiss: @MainActor @Sendable () -> Void = { [weak self] in
             guard let self, self.presentationGeneration == dismissGen else {
                 completion?()
@@ -129,12 +203,18 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
             LaunchpadManager.shared.activeFolderId = nil
             LaunchpadManager.shared.isEditingMode = false
 
-            if restorePreviousApp,
-               let prev = self.previousFrontmostApp,
-               !prev.isTerminated {
-                prev.activate()
-            }
+            let finalAppToRestore = restorePreviousApp ? self.previousFrontmostApp : nil
             self.previousFrontmostApp = nil
+
+            let dismissedNative = LaunchpadSystemInterceptor.shared.dismissResidualSpotlightAppsIfVisible(
+                keepLaunchpadOpen: false,
+                restoreApp: finalAppToRestore
+            )
+            if !dismissedNative,
+               let finalAppToRestore,
+               !finalAppToRestore.isTerminated {
+                finalAppToRestore.activate()
+            }
             completion?()
         }
 
@@ -142,7 +222,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
             finishDismiss()
         } else {
             NSAnimationContext.runAnimationGroup({ context in
-                context.duration = 0.16
+                context.duration = 0.13
                 context.timingFunction = CAMediaTimingFunction(name: .easeIn)
                 panel.animator().alphaValue = 0
             }, completionHandler: {
@@ -168,7 +248,10 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         hotCornerDwellTask = nil
         isPointerInHotCorner = false
 
-        guard Defaults[.enableLaunchpad], Defaults[.launchpadHotCorner] != .none else { return }
+        guard Defaults[.enableLaunchpad] else { return }
+        let hasActiveCorner = Defaults[.launchpadHotCorner] != .none
+            || (Defaults[.launchpadReplaceSystemGesture] && !Self.dockLaunchpadHotCorners().isEmpty)
+        guard hasActiveCorner else { return }
 
         hotCornerGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] _ in
             Task { @MainActor in
@@ -184,37 +267,53 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
     }
 
     private func evaluateHotCorner() {
-        let corner = Defaults[.launchpadHotCorner]
-        guard Defaults[.enableLaunchpad], corner != .none else { return }
+        guard Defaults[.enableLaunchpad] else { return }
         guard !NotchPulseLockMonitor.isScreenActuallyLocked() else { return }
         guard NSEvent.pressedMouseButtons == 0 else { return }
+
+        var activeCorners: Set<LaunchpadHotCorner> = []
+        let configured = Defaults[.launchpadHotCorner]
+        if configured != .none {
+            activeCorners.insert(configured)
+        }
+        let dockCorners = Defaults[.launchpadReplaceSystemGesture] ? Self.dockLaunchpadHotCorners() : []
+        activeCorners.formUnion(dockCorners)
+        guard !activeCorners.isEmpty else { return }
 
         let mouse = NSEvent.mouseLocation
         guard let screen = Self.screenUnderPointer() else { return }
         let frame = screen.frame
-        let threshold: CGFloat = 6.0
+        let threshold: CGFloat = 7.0
 
-        let inCorner: Bool
-        switch corner {
-        case .none:
-            inCorner = false
-        case .topLeft:
-            inCorner = mouse.x <= frame.minX + threshold && mouse.y >= frame.maxY - threshold
-        case .topRight:
-            inCorner = mouse.x >= frame.maxX - threshold && mouse.y >= frame.maxY - threshold
-        case .bottomLeft:
-            inCorner = mouse.x <= frame.minX + threshold && mouse.y <= frame.minY + threshold
-        case .bottomRight:
-            inCorner = mouse.x >= frame.maxX - threshold && mouse.y <= frame.minY + threshold
+        var inCorner = false
+        for corner in activeCorners {
+            switch corner {
+            case .none:
+                break
+            case .topLeft:
+                if mouse.x <= frame.minX + threshold && mouse.y >= frame.maxY - threshold { inCorner = true }
+            case .topRight:
+                if mouse.x >= frame.maxX - threshold && mouse.y >= frame.maxY - threshold { inCorner = true }
+            case .bottomLeft:
+                if mouse.x <= frame.minX + threshold && mouse.y <= frame.minY + threshold { inCorner = true }
+            case .bottomRight:
+                if mouse.x >= frame.maxX - threshold && mouse.y <= frame.minY + threshold { inCorner = true }
+            }
         }
 
         if inCorner {
             guard !isPointerInHotCorner else { return }
             isPointerInHotCorner = true
             hotCornerDwellTask?.cancel()
+            // Respond faster when intercepting a macOS Dock Launchpad Hot Corner so NotchPulse
+            // presents cleanly before Dock dispatches `.launchAppsBrowsing`.
+            let dwellMs = dockCorners.isEmpty ? 140 : 85
             hotCornerDwellTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .milliseconds(160))
+                try? await Task.sleep(for: .milliseconds(dwellMs))
                 guard let self, !Task.isCancelled, self.isPointerInHotCorner else { return }
+                if !dockCorners.isEmpty {
+                    LaunchpadSystemInterceptor.shared.noteInterceptedSystemTrigger()
+                }
                 self.toggle()
             }
         } else {
@@ -222,6 +321,26 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
             hotCornerDwellTask?.cancel()
             hotCornerDwellTask = nil
         }
+    }
+
+    private static func dockLaunchpadHotCorners() -> Set<LaunchpadHotCorner> {
+        let domain = "com.apple.dock" as CFString
+        let mapping: [(String, LaunchpadHotCorner)] = [
+            ("wvous-tl-corner", .topLeft),
+            ("wvous-tr-corner", .topRight),
+            ("wvous-bl-corner", .bottomLeft),
+            ("wvous-br-corner", .bottomRight)
+        ]
+        var result: Set<LaunchpadHotCorner> = []
+        for (key, corner) in mapping {
+            if let num = CFPreferencesCopyValue(key as CFString, domain, kCFPreferencesCurrentUser, kCFPreferencesAnyHost) as? NSNumber {
+                // Dock hot corner code 11 = Launchpad / Applications (15 = Quick Note, 11 = Launchpad)
+                if num.intValue == 11 {
+                    result.insert(corner)
+                }
+            }
+        }
+        return result
     }
 
     // MARK: - Panel Construction
@@ -247,7 +366,7 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = false
         newPanel.isMovable = false
-        newPanel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)) + 5)
+        newPanel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)) + 20)
         newPanel.collectionBehavior = [
             .transient,
             .moveToActiveSpace,
@@ -306,8 +425,10 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
             let activatedBundleId = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier
             Task { @MainActor in
                 guard let self, self.isPresented else { return }
-                guard Date().timeIntervalSince(self.lastShownAt) > 0.15 else { return }
-                if activatedBundleId != Bundle.main.bundleIdentifier {
+                guard Date().timeIntervalSince(self.lastShownAt) > 0.25 else { return }
+                if let activatedBundleId,
+                   activatedBundleId != Bundle.main.bundleIdentifier,
+                   !Self.systemLauncherBundleIds.contains(activatedBundleId) {
                     self.dismiss(restorePreviousApp: false)
                 }
             }
@@ -345,6 +466,9 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
 
         // Escape key
         if event.keyCode == 53 {
+            if Date() < suppressEscapeUntil {
+                return true
+            }
             if manager.isEditingMode {
                 manager.isEditingMode = false
             } else if manager.activeFolderId != nil {
@@ -359,10 +483,10 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
             return true
         }
 
-        // Ignore page arrows while an NSTextView (search/folder rename) has text or is editing folder name
+        // Ignore page arrows while an NSTextView (search/folder rename) is focused
         let isTextEditing: Bool
         if let firstResponder = panel?.firstResponder as? NSTextView {
-            isTextEditing = firstResponder.string.isEmpty == false || manager.activeFolderId != nil
+            isTextEditing = panel?.windowNumber != nil && (firstResponder.string.isEmpty == false || manager.activeFolderId != nil || manager.searchQuery.isEmpty == false)
         } else {
             isTextEditing = false
         }
@@ -384,6 +508,22 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
         // Right / PageDown -> next page
         if (event.keyCode == 124 || event.keyCode == 121) && manager.activeFolderId == nil && manager.searchQuery.isEmpty && !isTextEditing {
             stepPage(by: 1)
+            return true
+        }
+
+        // Type-to-search: start filtering immediately when user types any printable key anywhere
+        if !(panel?.firstResponder is NSTextView),
+           manager.activeFolderId == nil,
+           !flags.contains(.command),
+           !flags.contains(.control),
+           !flags.contains(.option),
+           let chars = event.characters,
+           !chars.isEmpty,
+           let scalar = chars.unicodeScalars.first,
+           !CharacterSet.controlCharacters.contains(scalar),
+           !CharacterSet.newlines.contains(scalar) {
+            manager.searchQuery.append(chars)
+            focusSearchToken += 1
             return true
         }
 
@@ -422,26 +562,16 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
                 }
                 guard isTrackingHorizontalSwipe else { return false }
                 accumulatedSwipeX += dx * 1.15
-                // Apply rubber-band resistance at first and last page edges
-                let atLeadingEdge = manager.currentPageIndex == 0 && accumulatedSwipeX > 0
-                let atTrailingEdge = manager.currentPageIndex >= manager.pages.count - 1 && accumulatedSwipeX < 0
-                liveSwipeOffset = (atLeadingEdge || atTrailingEdge) ? accumulatedSwipeX * 0.25 : accumulatedSwipeX
+                applyHorizontalSwipe(rawDeltaX: accumulatedSwipeX)
                 return true
             case .ended, .cancelled:
                 guard isTrackingHorizontalSwipe else { return false }
                 let pageWidth = panel?.frame.width ?? 1200
-                let threshold = min(140, pageWidth * 0.12)
-                var targetPage = manager.currentPageIndex
-                if accumulatedSwipeX < -threshold {
-                    targetPage += 1
-                } else if accumulatedSwipeX > threshold {
-                    targetPage -= 1
-                }
-                let clamped = max(0, min(targetPage, manager.pages.count - 1))
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
-                    manager.currentPageIndex = clamped
-                    liveSwipeOffset = 0
-                }
+                commitHorizontalSwipe(
+                    deltaX: accumulatedSwipeX,
+                    predictedDeltaX: accumulatedSwipeX,
+                    pageWidth: pageWidth
+                )
                 isTrackingHorizontalSwipe = false
                 accumulatedSwipeX = 0
                 return true
@@ -471,9 +601,42 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
             accumulatedMagnification = 0
         }
         accumulatedMagnification += event.magnification
-        if accumulatedMagnification <= -0.18 {
+        // Both pinch-in and spread-out trackpad gestures cleanly dismiss Launchpad Home
+        if accumulatedMagnification <= -0.16 || accumulatedMagnification >= 0.14 {
             accumulatedMagnification = 0
             dismiss(restorePreviousApp: true)
+        }
+    }
+
+    func applyHorizontalSwipe(rawDeltaX: CGFloat) {
+        let manager = LaunchpadManager.shared
+        let atLeadingEdge = manager.currentPageIndex == 0 && rawDeltaX > 0
+        let atTrailingEdge = manager.currentPageIndex >= manager.pages.count - 1 && rawDeltaX < 0
+        liveSwipeOffset = (atLeadingEdge || atTrailingEdge) ? rawDeltaX * 0.28 : rawDeltaX
+    }
+
+    func commitHorizontalSwipe(deltaX: CGFloat, predictedDeltaX: CGFloat, pageWidth: CGFloat) {
+        let manager = LaunchpadManager.shared
+        let effectiveWidth = max(1, pageWidth)
+        let threshold = min(140, effectiveWidth * 0.12)
+        let velocityThreshold = effectiveWidth * 0.30
+
+        var targetPage = manager.currentPageIndex
+        if deltaX < -threshold || predictedDeltaX < -velocityThreshold {
+            targetPage += 1
+        } else if deltaX > threshold || predictedDeltaX > velocityThreshold {
+            targetPage -= 1
+        }
+        let clamped = max(0, min(targetPage, max(0, manager.pages.count - 1)))
+
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            manager.currentPageIndex = clamped
+            liveSwipeOffset = 0
+        } else {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                manager.currentPageIndex = clamped
+                liveSwipeOffset = 0
+            }
         }
     }
 
@@ -489,6 +652,12 @@ final class LaunchpadWindowController: NSObject, ObservableObject {
                 manager.currentPageIndex = target
             }
         }
+    }
+
+    // MARK: - System Launchpad & Trackpad Pinch Interceptor
+
+    func configureSystemLaunchpadInterceptor() {
+        LaunchpadSystemInterceptor.shared.configure()
     }
 }
 

@@ -23,6 +23,8 @@ final class MediaKeyInterceptor {
     private var runLoopSource: CFRunLoopSource?
     private let step: Float = 1.0 / 16.0
     private var audioPlayer: AVAudioPlayer?
+
+    var isIntercepting: Bool { eventTap != nil }
     
     private init() {}
     

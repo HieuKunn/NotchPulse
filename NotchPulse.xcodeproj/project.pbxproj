@@ -236,6 +236,7 @@
 		F1D2009A2ED0000100000001 /* LaunchpadTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200992ED0000100000001 /* LaunchpadTileView.swift */; };
 		F1D2009C2ED0000100000001 /* LaunchpadFolderOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009B2ED0000100000001 /* LaunchpadFolderOverlayView.swift */; };
 		F1D2009E2ED0000100000001 /* LaunchpadRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */; };
+		F1D200A22ED0000100000001 /* LaunchpadSystemInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200A12ED0000100000001 /* LaunchpadSystemInterceptor.swift */; };
 		F1D200A02ED0000100000001 /* LaunchpadSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009F2ED0000100000001 /* LaunchpadSettingsView.swift */; };
 		F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */; };
 		F336F53951E9E06D48E20329 /* FaceIDOverlayGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99745487558266047D32839 /* FaceIDOverlayGeometry.swift */; };
@@ -530,6 +531,7 @@
 		F1D200992ED0000100000001 /* LaunchpadTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadTileView.swift; sourceTree = "<group>"; };
 		F1D2009B2ED0000100000001 /* LaunchpadFolderOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadFolderOverlayView.swift; sourceTree = "<group>"; };
 		F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadRootView.swift; sourceTree = "<group>"; };
+		F1D200A12ED0000100000001 /* LaunchpadSystemInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadSystemInterceptor.swift; sourceTree = "<group>"; };
 		F1D2009F2ED0000100000001 /* LaunchpadSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1155,6 +1157,7 @@
 				F1D200992ED0000100000001 /* LaunchpadTileView.swift */,
 				F1D2009B2ED0000100000001 /* LaunchpadFolderOverlayView.swift */,
 				F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */,
+				F1D200A12ED0000100000001 /* LaunchpadSystemInterceptor.swift */,
 			);
 			path = Launchpad;
 			sourceTree = "<group>";
@@ -1519,6 +1522,7 @@
 				F1D2009A2ED0000100000001 /* LaunchpadTileView.swift in Sources */,
 				F1D2009C2ED0000100000001 /* LaunchpadFolderOverlayView.swift in Sources */,
 				F1D2009E2ED0000100000001 /* LaunchpadRootView.swift in Sources */,
+				F1D200A22ED0000100000001 /* LaunchpadSystemInterceptor.swift in Sources */,
 				F1D200A02ED0000100000001 /* LaunchpadSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1542,7 +1546,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 470;
+				CURRENT_PROJECT_VERSION = 471;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1568,7 +1572,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 470;
+				CURRENT_PROJECT_VERSION = 471;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1725,7 +1729,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 470;
+				CURRENT_PROJECT_VERSION = 471;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1779,7 +1783,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 470;
+				CURRENT_PROJECT_VERSION = 471;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";

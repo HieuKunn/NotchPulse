@@ -356,10 +356,11 @@ extension Defaults.Keys {
 
     // MARK: Launchpad Home
     static let enableLaunchpad = Key<Bool>("enableLaunchpad", default: true)
-    static let launchpadShowInNotch = Key<Bool>("launchpadShowInNotch", default: true)
+    static let launchpadShowInNotch = Key<Bool>("launchpadShowInNotch", default: false)
+    static let launchpadReplaceSystemGesture = Key<Bool>("launchpadReplaceSystemGesture", default: true)
     static let launchpadColumns = Key<Int>("launchpadColumns", default: 7)
     static let launchpadRows = Key<Int>("launchpadRows", default: 5)
-    static let launchpadIconSize = Key<Double>("launchpadIconSize", default: 76.0)
+    static let launchpadIconSize = Key<Double>("launchpadIconSize", default: 88.0)
     static let launchpadShowLabels = Key<Bool>("launchpadShowLabels", default: true)
     static let launchpadBackgroundStyle = Key<LaunchpadBackgroundStyle>("launchpadBackgroundStyle", default: .systemGlass)
     static let launchpadHotCorner = Key<LaunchpadHotCorner>("launchpadHotCorner", default: .none)

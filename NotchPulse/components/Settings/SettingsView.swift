@@ -40,7 +40,6 @@ struct SettingsView: View {
     @State private var selectedTab: SettingsDestination = .general
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var searchText = ""
-    @State private var isSearchActive = false
     @State private var accentColorUpdateTrigger = UUID()
     @State private var scrollToItemId: String? = nil
     @State private var highlightedItemId: String? = nil
@@ -553,13 +552,11 @@ struct SettingsView: View {
         .toggleStyle(.switch)
         .searchable(
             text: $searchText,
-            isPresented: $isSearchActive,
             placement: .sidebar,
-            prompt: loc("Search Settings...")
+            prompt: loc("Search")
         )
         .tint(.effectiveAccent)
         .frame(minWidth: 720, minHeight: 560)
-        .background(Color(nsColor: .windowBackgroundColor))
         .id("\(accentColorUpdateTrigger)-\(appLanguage.rawValue)")
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccentColorChanged"))) { _ in
             accentColorUpdateTrigger = UUID()
@@ -612,7 +609,6 @@ struct SettingsView: View {
             SettingsSidebarListView(
                 selectedTab: $selectedTab,
                 searchText: $searchText,
-                isPresented: $isSearchActive,
                 filteredTabs: filteredTabs,
                 categories: categorizedSections,
                 matchingSections: matchingSections(for:),
@@ -620,7 +616,6 @@ struct SettingsView: View {
                 selectTab: selectTab
             )
         }
-        .background(Color(nsColor: .windowBackgroundColor), ignoresSafeAreaEdges: .all)
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -748,7 +743,6 @@ private struct SettingsSidebarListView: View {
     @Environment(\.isSearching) private var isSearching
     @Binding var selectedTab: SettingsDestination
     @Binding var searchText: String
-    @Binding var isPresented: Bool
     let filteredTabs: [SettingsTabItem]
     let categories: [SettingsSidebarCategory]
     let matchingSections: (SettingsTabItem) -> [SettingsSectionItem]
@@ -760,7 +754,7 @@ private struct SettingsSidebarListView: View {
     private var activeSelection: Binding<SettingsDestination?> {
         Binding(
             get: {
-                if isSearching || isPresented || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if isSearching || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     return searchSelection
                 }
                 return selectedTab
@@ -768,7 +762,7 @@ private struct SettingsSidebarListView: View {
             set: { newValue in
                 guard let newValue else { return }
                 selectTab(newValue)
-                if isSearching || isPresented || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if isSearching || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     searchSelection = newValue
                 }
             }
@@ -776,7 +770,7 @@ private struct SettingsSidebarListView: View {
     }
 
     private var isSearchFilterActive: Bool {
-        isSearching || isPresented || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        isSearching || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -806,9 +800,6 @@ private struct SettingsSidebarListView: View {
         .scrollIndicators(.never)
         .background(EnclosingScrollViewSuppressor())
         .onChange(of: isSearching) { _, newVal in
-            if !newVal { searchSelection = nil }
-        }
-        .onChange(of: isPresented) { _, newVal in
             if !newVal { searchSelection = nil }
         }
     }

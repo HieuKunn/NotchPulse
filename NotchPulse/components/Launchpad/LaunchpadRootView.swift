@@ -1,8 +1,64 @@
-import AppKit
+@preconcurrency import AppKit
+import CoreImage
 import Defaults
 import SwiftUI
 
-/// Native NSVisualEffectView wrapper providing macOS fullscreen frosted wallpaper blur.
+/// Caches downsampled, Gaussian-blurred desktop wallpaper images per screen URL
+/// so classic Launchpad backdrop opens instantaneously without main-thread hitches.
+final class LaunchpadBlurredWallpaperCache: @unchecked Sendable {
+    static let shared = LaunchpadBlurredWallpaperCache()
+
+    private let cache = NSCache<NSURL, NSImage>()
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+
+    private init() {
+        cache.countLimit = 4
+    }
+
+    func cachedImage(for url: URL) -> NSImage? {
+        cache.object(forKey: url as NSURL)
+    }
+
+    func loadBlurredWallpaper(from url: URL) -> NSImage? {
+        if let existing = cache.object(forKey: url as NSURL) {
+            return existing
+        }
+        guard let sourceImage = NSImage(contentsOf: url),
+              let tiffData = sourceImage.tiffRepresentation,
+              let ciInput = CIImage(data: tiffData) else {
+            return nil
+        }
+
+        let extent = ciInput.extent
+        guard extent.width > 0, extent.height > 0 else { return nil }
+
+        // Keep high-res clarity (1440px) with a gentle classic macOS depth blur so real wallpaper details stay crisp
+        let maxDim: CGFloat = 1440
+        let scale = min(1.0, maxDim / max(extent.width, extent.height))
+        let scaled = ciInput.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        let clamped = scaled.clampedToExtent()
+
+        guard let blur = CIFilter(name: "CIGaussianBlur") else { return nil }
+        blur.setValue(clamped, forKey: kCIInputImageKey)
+        blur.setValue(11.0, forKey: kCIInputRadiusKey)
+
+        guard let blurred = blur.outputImage?.cropped(to: scaled.extent),
+              let cgResult = ciContext.createCGImage(blurred, from: scaled.extent) else {
+            return nil
+        }
+
+        let finalImage = NSImage(cgImage: cgResult, size: NSSize(width: scaled.extent.width, height: scaled.extent.height))
+        cache.setObject(finalImage, forKey: url as NSURL)
+        return finalImage
+    }
+}
+
+/// Non-reactive reference store for tile frames so 120Hz animations/swipes never trigger SwiftUI body invalidations.
+private final class LaunchpadTileFrameStore {
+    var frames: [String: CGRect] = [:]
+}
+
+/// Native NSVisualEffectView fallback when desktop wallpaper file cannot be read directly.
 private struct LaunchpadVisualEffectBackdrop: NSViewRepresentable {
     let style: LaunchpadBackgroundStyle
 
@@ -17,6 +73,7 @@ private struct LaunchpadVisualEffectBackdrop: NSViewRepresentable {
     }
 
     private func configure(_ view: NSVisualEffectView) {
+        view.appearance = NSAppearance(named: .darkAqua)
         view.blendingMode = .behindWindow
         view.state = .active
         switch style {
@@ -28,7 +85,138 @@ private struct LaunchpadVisualEffectBackdrop: NSViewRepresentable {
     }
 }
 
-/// Fullscreen paged Launchpad Home view styled cleanly according to Apple HIG.
+/// Pure AppKit NSSearchField embedded inside native Liquid Glass (NSGlassEffectView on macOS 26+).
+private struct LaunchpadNativeSearchField: NSViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var onSubmit: () -> Void
+    var focusToken: Int
+
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        var parent: LaunchpadNativeSearchField
+        weak var searchField: NSSearchField?
+        var lastFocusToken: Int = 0
+
+        init(_ parent: LaunchpadNativeSearchField) {
+            self.parent = parent
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSSearchField else { return }
+            parent.text = field.stringValue
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                parent.onSubmit()
+                return true
+            }
+            if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+                if !parent.text.isEmpty {
+                    parent.text = ""
+                    searchField?.stringValue = ""
+                    return true
+                }
+            }
+            return false
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let field = NSSearchField()
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.isBordered = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.usesSingleLineMode = true
+        field.controlSize = .regular
+        field.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
+        field.textColor = .labelColor
+        field.sendsSearchStringImmediately = true
+        field.sendsWholeSearchString = false
+        field.delegate = context.coordinator
+        context.coordinator.searchField = field
+
+        applyPlaceholder(to: field)
+
+        let innerContainer = NSView()
+        innerContainer.translatesAutoresizingMaskIntoConstraints = false
+        innerContainer.addSubview(field)
+        NSLayoutConstraint.activate([
+            field.leadingAnchor.constraint(equalTo: innerContainer.leadingAnchor, constant: 8),
+            field.trailingAnchor.constraint(equalTo: innerContainer.trailingAnchor, constant: -8),
+            field.centerYAnchor.constraint(equalTo: innerContainer.centerYAnchor)
+        ])
+
+        if #available(macOS 26.0, *),
+           let glassClass = NSClassFromString("NSGlassEffectView") as? NSView.Type {
+            let glass = glassClass.init()
+            glass.appearance = NSAppearance(named: .darkAqua)
+            glass.setValue(0, forKey: "style")
+            glass.setValue(CGFloat(15), forKey: "cornerRadius")
+            if glass.responds(to: NSSelectorFromString("setEffectIsInteractive:")) {
+                glass.setValue(true, forKey: "effectIsInteractive")
+            }
+            glass.setValue(innerContainer, forKey: "contentView")
+            return glass
+        } else {
+            let effect = NSVisualEffectView()
+            effect.appearance = NSAppearance(named: .darkAqua)
+            effect.material = .hudWindow
+            effect.blendingMode = .withinWindow
+            effect.state = .active
+            effect.wantsLayer = true
+            effect.layer?.cornerRadius = 15
+            effect.layer?.masksToBounds = true
+            effect.addSubview(innerContainer)
+            NSLayoutConstraint.activate([
+                innerContainer.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
+                innerContainer.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
+                innerContainer.topAnchor.constraint(equalTo: effect.topAnchor),
+                innerContainer.bottomAnchor.constraint(equalTo: effect.bottomAnchor)
+            ])
+            return effect
+        }
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard let field = context.coordinator.searchField else { return }
+
+        if field.stringValue != text {
+            field.stringValue = text
+        }
+        applyPlaceholder(to: field)
+
+        if context.coordinator.lastFocusToken != focusToken && focusToken > 0 {
+            context.coordinator.lastFocusToken = focusToken
+            DispatchQueue.main.async {
+                if let window = field.window, window.firstResponder != field.currentEditor() {
+                    window.makeFirstResponder(field)
+                    if let editor = field.currentEditor() as? NSTextView {
+                        editor.setSelectedRange(NSRange(location: field.stringValue.count, length: 0))
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyPlaceholder(to field: NSSearchField) {
+        guard let cell = field.cell as? NSSearchFieldCell else { return }
+        cell.placeholderAttributedString = NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .font: NSFont.systemFont(ofSize: 13.5, weight: .regular)
+            ]
+        )
+    }
+}
+
+/// Fullscreen paged Launchpad Home view styled cleanly after classic macOS Launchpad.
 struct LaunchpadRootView: View {
     @ObservedObject var manager: LaunchpadManager
     @ObservedObject var windowController: LaunchpadWindowController
@@ -40,50 +228,67 @@ struct LaunchpadRootView: View {
     @Default(.launchpadShowLabels) private var showLabels
     @Default(.launchpadBackgroundStyle) private var backgroundStyle
 
-    @FocusState private var isSearchFocused: Bool
     @State private var appPendingTrash: LaunchpadAppItem? = nil
+    @State private var blurredWallpaper: NSImage? = nil
+    @State private var zoomScale: CGFloat = 1.0
+    @State private var isMouseSwipingPage = false
 
     var body: some View {
         GeometryReader { canvasGeo in
+            let size = canvasGeo.size
+            let metrics = LaunchpadGridLayoutMetrics(
+                canvasSize: size,
+                topNotchSafeInset: windowController.topNotchSafeInset,
+                rows: rows,
+                columns: columns,
+                preferredIconSize: CGFloat(iconSize),
+                showLabels: showLabels
+            )
             ZStack {
-                backdropLayer
+                backdropLayer(size: size)
 
                 VStack(spacing: 0) {
                     topSearchAndControlsBar
-                        .padding(.top, 44)
-                        .padding(.bottom, 18)
+                        .padding(.top, windowController.topNotchSafeInset)
+                        .padding(.bottom, 12)
 
                     if !manager.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        searchResultsView
+                        searchResultsView(metrics: metrics)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if manager.isScanning && manager.pages.isEmpty {
                         ProgressView()
                             .controlSize(.large)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        pagedCarouselView(canvasSize: canvasGeo.size)
+                        pagedCarouselView(canvasSize: size, metrics: metrics)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
 
                     if manager.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && manager.pages.count > 1 {
                         pageDotsIndicator
-                            .padding(.top, 10)
-                            .padding(.bottom, 34)
+                            .padding(.top, 8)
+                            .padding(.bottom, metrics.bottomDotsPadding)
                     } else {
-                        Spacer(minLength: 34)
-                            .frame(height: 34)
+                        Spacer(minLength: metrics.bottomDotsPadding)
+                            .frame(height: metrics.bottomDotsPadding)
                     }
+                }
+                .frame(width: size.width, height: size.height)
+                .scaleEffect(zoomScale)
+                .scaleEffect(manager.activeFolderId != nil ? 0.94 : 1.0)
+                .conditionalModifier(manager.activeFolderId != nil) { view in
+                    view.blur(radius: 10).opacity(0.42)
                 }
 
                 if let activeFolder = manager.activeFolder {
                     LaunchpadFolderOverlayView(
                         folder: activeFolder,
-                        iconSize: CGFloat(iconSize),
+                        iconSize: metrics.fittedIconSize,
                         showLabels: showLabels,
                         onOpenApp: { manager.launchApp($0) },
                         onRequestTrash: { appPendingTrash = $0 },
                         onDismiss: {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                            withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
                                 manager.activeFolderId = nil
                             }
                         },
@@ -101,31 +306,37 @@ struct LaunchpadRootView: View {
                 }
 
                 if let draggedNode = dragCoordinator.activeNode {
-                    floatingDragPreview(for: draggedNode)
+                    floatingDragPreview(for: draggedNode, iconSize: metrics.fittedIconSize)
                         .position(dragCoordinator.dragLocation)
                         .allowsHitTesting(false)
                         .zIndex(40)
                 }
             }
+            .frame(width: size.width, height: size.height)
+            .clipped()
+            .environment(\.colorScheme, .dark)
             .coordinateSpace(name: "LaunchpadCanvas")
             .onAppear {
-                dragCoordinator.updateCanvasSize(canvasGeo.size)
-                if windowController.isPresented {
-                    DispatchQueue.main.async {
-                        isSearchFocused = true
-                    }
-                }
+                dragCoordinator.updateCanvasSize(size)
+                loadWallpaperIfNeeded()
+                triggerOpenZoomIfNeeded()
             }
-            .onChange(of: canvasGeo.size) { _, newSize in
+            .onChange(of: size) { _, newSize in
                 dragCoordinator.updateCanvasSize(newSize)
+            }
+            .onChange(of: windowController.currentScreenWallpaperURL) { _, _ in
+                loadWallpaperIfNeeded()
             }
             .onChange(of: windowController.isPresented) { _, presented in
                 if presented {
-                    DispatchQueue.main.async {
-                        isSearchFocused = true
-                    }
+                    loadWallpaperIfNeeded()
+                    triggerOpenZoomIfNeeded()
                 } else {
-                    isSearchFocused = false
+                    if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                        withAnimation(.easeIn(duration: 0.14)) {
+                            zoomScale = 1.05
+                        }
+                    }
                 }
             }
             .alert(
@@ -150,83 +361,103 @@ struct LaunchpadRootView: View {
         .ignoresSafeArea()
     }
 
-    // MARK: - Backdrop
+    // MARK: - Backdrop & Transitions
 
-    @ViewBuilder
-    private var backdropLayer: some View {
-        ZStack {
-            if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
-                Color(nsColor: .windowBackgroundColor)
-            } else {
-                LaunchpadVisualEffectBackdrop(style: backgroundStyle)
-                if backgroundStyle == .dimmed {
-                    Color.black.opacity(0.28)
-                }
-            }
-        }
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if manager.isEditingMode {
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                    manager.isEditingMode = false
-                }
-            } else if manager.activeFolderId != nil {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
-                    manager.activeFolderId = nil
-                }
-            } else {
-                windowController.dismiss(restorePreviousApp: true)
+    private func triggerOpenZoomIfNeeded() {
+        guard windowController.isPresented else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            zoomScale = 1.0
+        } else {
+            zoomScale = 1.05
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.90)) {
+                zoomScale = 1.0
             }
         }
     }
 
-    // MARK: - Top Search & Toolbar
+    private func loadWallpaperIfNeeded() {
+        guard let url = windowController.currentScreenWallpaperURL else {
+            blurredWallpaper = nil
+            return
+        }
+        if let cached = LaunchpadBlurredWallpaperCache.shared.cachedImage(for: url) {
+            blurredWallpaper = cached
+            return
+        }
+        Task.detached(priority: .userInitiated) {
+            _ = LaunchpadBlurredWallpaperCache.shared.loadBlurredWallpaper(from: url)
+            await MainActor.run {
+                if LaunchpadWindowController.shared.currentScreenWallpaperURL == url {
+                    blurredWallpaper = LaunchpadBlurredWallpaperCache.shared.cachedImage(for: url)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func backdropLayer(size: CGSize) -> some View {
+        ZStack {
+            if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
+                Color(nsColor: .windowBackgroundColor)
+            } else if let wallpaper = blurredWallpaper {
+                Image(nsImage: wallpaper)
+                    .resizable()
+                    .scaledToFill()
+                    .scaleEffect(1.03)
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                if backgroundStyle == .dimmed {
+                    Color.black.opacity(0.36)
+                }
+            } else {
+                LaunchpadVisualEffectBackdrop(style: backgroundStyle)
+                if backgroundStyle == .dimmed {
+                    Color.black.opacity(0.36)
+                }
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            handleBackgroundTap()
+        }
+    }
+
+    private func handleBackgroundTap() {
+        guard !isMouseSwipingPage else { return }
+        if manager.isEditingMode {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                manager.isEditingMode = false
+            }
+        } else if manager.activeFolderId != nil {
+            withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
+                manager.activeFolderId = nil
+            }
+        } else {
+            windowController.dismiss(restorePreviousApp: true)
+        }
+    }
+
+    // MARK: - Top Classic Search Bar
 
     @ViewBuilder
     private var topSearchAndControlsBar: some View {
         ZStack {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(.secondary)
-
-                TextField(loc("Search applications..."), text: $manager.searchQuery)
-                    .textFieldStyle(.plain)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .focused($isSearchFocused)
-                    .onSubmit {
-                        if let first = manager.searchResults.first {
-                            manager.launchApp(first)
-                        }
+            LaunchpadNativeSearchField(
+                text: $manager.searchQuery,
+                placeholder: loc("Search"),
+                onSubmit: {
+                    if let first = manager.searchResults.first {
+                        manager.launchApp(first)
                     }
-
-                if !manager.searchQuery.isEmpty {
-                    Button {
-                        manager.searchQuery = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(loc("Clear"))
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(width: 280)
-            .background(.regularMaterial, in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.6)
+                },
+                focusToken: windowController.focusSearchToken
             )
+            .frame(width: 256, height: 30)
 
-            HStack(spacing: 8) {
-                Spacer()
-
-                if manager.isEditingMode {
+            if manager.isEditingMode {
+                HStack {
+                    Spacer()
                     Button {
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                             manager.isEditingMode = false
@@ -240,47 +471,9 @@ struct LaunchpadRootView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.effectiveAccent)
                     .controlSize(.small)
-                } else {
-                    Button {
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                            manager.isEditingMode = true
-                        }
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.body.weight(.medium))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(.plain)
-                    .background(.regularMaterial, in: Circle())
-                    .help(loc("Edit Layout"))
                 }
-
-                Button {
-                    manager.refreshApps(force: true)
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.body.weight(.medium))
-                        .frame(width: 30, height: 30)
-                }
-                .buttonStyle(.plain)
-                .background(.regularMaterial, in: Circle())
-                .help(loc("Refresh Applications"))
-
-                Button {
-                    windowController.dismiss(restorePreviousApp: false) {
-                        SettingsWindowController.shared.showWindow()
-                        NotificationCenter.default.post(name: Notification.Name("OpenLaunchpadSettings"), object: nil)
-                    }
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.body.weight(.medium))
-                        .frame(width: 30, height: 30)
-                }
-                .buttonStyle(.plain)
-                .background(.regularMaterial, in: Circle())
-                .help(loc("Settings"))
+                .padding(.trailing, 32)
             }
-            .padding(.trailing, 32)
         }
         .frame(maxWidth: .infinity)
     }
@@ -288,37 +481,25 @@ struct LaunchpadRootView: View {
     // MARK: - Horizontal Paging Carousel
 
     @ViewBuilder
-    private func pagedCarouselView(canvasSize: CGSize) -> some View {
+    private func pagedCarouselView(canvasSize: CGSize, metrics: LaunchpadGridLayoutMetrics) -> some View {
         let pageWidth = max(1, canvasSize.width)
-        let horizontalInset = max(60, min(140, canvasSize.width * 0.09))
-        let safeRows = max(3, min(8, rows))
-        let safeCols = max(4, min(10, columns))
-        let availableGridHeight = max(320, canvasSize.height - 175)
-        let perRowBudget = availableGridHeight / CGFloat(safeRows)
-        let labelOverhead: CGFloat = showLabels ? 44 : 22
-        let fittedIconSize = min(CGFloat(iconSize), max(46, (perRowBudget - labelOverhead) / 1.18))
-        let fittedRowHeight = fittedIconSize * 1.18 + (showLabels ? 36 : 16)
-        let verticalSpacing = max(8, min(28, perRowBudget - fittedRowHeight))
-        let gridColumns = Array(
-            repeating: GridItem(.flexible(minimum: fittedIconSize + 24), spacing: 18),
-            count: safeCols
-        )
 
         HStack(spacing: 0) {
             ForEach(Array(manager.pages.enumerated()), id: \.element.id) { pageIndex, page in
                 LaunchpadPageGridView(
                     page: page,
                     isCurrentPage: pageIndex == manager.currentPageIndex,
-                    gridColumns: gridColumns,
-                    verticalSpacing: verticalSpacing,
-                    iconSize: fittedIconSize,
+                    isSwiping: windowController.liveSwipeOffset != 0,
+                    gridColumns: metrics.gridColumns,
+                    verticalSpacing: metrics.verticalSpacing,
+                    iconSize: metrics.fittedIconSize,
                     showLabels: showLabels,
-                    horizontalInset: horizontalInset,
+                    horizontalInset: metrics.horizontalInset,
                     manager: manager,
                     dragCoordinator: dragCoordinator,
                     onOpenApp: { manager.launchApp($0) },
                     onOpenFolder: { folder in
-                        withAnimation(.spring(response: 0.30, dampingFraction: 0.85)) {
+                        withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
                             manager.activeFolderId = folder.id
                         }
                     },
@@ -331,13 +512,47 @@ struct LaunchpadRootView: View {
         .frame(width: pageWidth * CGFloat(max(1, manager.pages.count)), alignment: .leading)
         .offset(x: -CGFloat(manager.currentPageIndex) * pageWidth + windowController.liveSwipeOffset)
         .frame(width: pageWidth, alignment: .leading)
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
         .clipped()
+        .onTapGesture {
+            handleBackgroundTap()
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 12, coordinateSpace: .local)
+                .onChanged { value in
+                    guard !dragCoordinator.isDragging,
+                          manager.activeFolderId == nil,
+                          manager.searchQuery.isEmpty,
+                          manager.pages.count > 1 else {
+                        return
+                    }
+                    if !isMouseSwipingPage {
+                        guard abs(value.translation.width) >= abs(value.translation.height) * 1.15 else {
+                            return
+                        }
+                        isMouseSwipingPage = true
+                    }
+                    windowController.applyHorizontalSwipe(rawDeltaX: value.translation.width)
+                }
+                .onEnded { value in
+                    guard isMouseSwipingPage else { return }
+                    windowController.commitHorizontalSwipe(
+                        deltaX: value.translation.width,
+                        predictedDeltaX: value.predictedEndTranslation.width,
+                        pageWidth: pageWidth
+                    )
+                    DispatchQueue.main.async {
+                        isMouseSwipingPage = false
+                    }
+                }
+        )
     }
 
     // MARK: - Search Results Grid
 
     @ViewBuilder
-    private var searchResultsView: some View {
+    private func searchResultsView(metrics: LaunchpadGridLayoutMetrics) -> some View {
         let results = manager.searchResults
         if results.isEmpty {
             ContentUnavailableView {
@@ -346,16 +561,12 @@ struct LaunchpadRootView: View {
                 Text(loc("Try searching with a different application name."))
             }
         } else {
-            let searchColumns = Array(
-                repeating: GridItem(.flexible(minimum: CGFloat(iconSize) + 28), spacing: 20),
-                count: max(4, min(10, columns))
-            )
             ScrollView {
-                LazyVGrid(columns: searchColumns, spacing: 26) {
+                LazyVGrid(columns: metrics.gridColumns, spacing: metrics.verticalSpacing) {
                     ForEach(Array(results.enumerated()), id: \.element.id) { index, app in
                         LaunchpadTileView(
                             node: .app(app),
-                            iconSize: CGFloat(iconSize),
+                            iconSize: metrics.fittedIconSize,
                             showLabel: showLabels,
                             isEditingMode: false,
                             isMergeTarget: false,
@@ -369,36 +580,33 @@ struct LaunchpadRootView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 110)
-                .padding(.vertical, 24)
+                .padding(.horizontal, metrics.horizontalInset)
+                .padding(.vertical, 16)
             }
             .scrollIndicators(.never)
         }
     }
 
-    // MARK: - Bottom Page Dots
+    // MARK: - Classic Floating Page Dots
 
     @ViewBuilder
     private var pageDotsIndicator: some View {
         HStack(spacing: 10) {
             ForEach(0..<manager.pages.count, id: \.self) { index in
                 Button {
-                    withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
+                    withAnimation(.spring(response: 0.30, dampingFraction: 0.88)) {
                         manager.currentPageIndex = index
                     }
                 } label: {
                     Circle()
                         .fill(index == manager.currentPageIndex ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-                        .frame(width: index == manager.currentPageIndex ? 9 : 7, height: index == manager.currentPageIndex ? 9 : 7)
+                        .frame(width: 8, height: 8)
                         .padding(3)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
-        .background(.regularMaterial, in: Capsule())
     }
 
     // MARK: - Drag Helpers
@@ -429,19 +637,19 @@ struct LaunchpadRootView: View {
     }
 
     @ViewBuilder
-    private func floatingDragPreview(for node: LaunchpadNode) -> some View {
+    private func floatingDragPreview(for node: LaunchpadNode, iconSize: CGFloat) -> some View {
         VStack(spacing: 6) {
             switch node {
             case .app(let app):
-                LaunchpadAppIconImage(bundlePath: app.bundlePath, size: CGFloat(iconSize) * 1.12)
-                    .shadow(color: Color.black.opacity(0.32), radius: 14, y: 8)
+                LaunchpadAppIconImage(bundlePath: app.bundlePath, size: iconSize * 1.12)
+                    .shadow(color: Color.black.opacity(0.35), radius: 14, y: 7)
             case .folder(let folder):
-                LaunchpadFolderThumbnailView(folder: folder, size: CGFloat(iconSize) * 1.12)
-                    .shadow(color: Color.black.opacity(0.32), radius: 14, y: 8)
+                LaunchpadFolderThumbnailView(folder: folder, size: iconSize * 1.12)
+                    .shadow(color: Color.black.opacity(0.35), radius: 14, y: 7)
             }
             if showLabels {
                 Text(node.displayName)
-                    .font(.callout.weight(.medium))
+                    .font(.system(size: max(12.5, min(16.5, (iconSize * 0.145).rounded())), weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
@@ -449,10 +657,83 @@ struct LaunchpadRootView: View {
     }
 }
 
-/// Renders one horizontal Launchpad page and tracks tile geometry for drag/drop hit testing.
+/// Computes display-proportional grid geometry so Launchpad fills any monitor
+/// resolution cleanly from small laptops up to 4K/5K/6K external displays.
+private struct LaunchpadGridLayoutMetrics {
+    let horizontalInset: CGFloat
+    let fittedIconSize: CGFloat
+    let verticalSpacing: CGFloat
+    let bottomDotsPadding: CGFloat
+    let gridColumns: [GridItem]
+
+    init(
+        canvasSize: CGSize,
+        topNotchSafeInset: CGFloat,
+        rows: Int,
+        columns: Int,
+        preferredIconSize: CGFloat,
+        showLabels: Bool
+    ) {
+        let safeRows = max(3, min(8, rows))
+        let safeCols = max(4, min(10, columns))
+        let userScale = max(0.75, min(1.35, preferredIconSize / 84.0))
+
+        let inset = max(56, canvasSize.width * 0.078)
+        let bottomMargin = max(28, canvasSize.height * 0.032)
+        let bottomReserved = 22 + bottomMargin // dots bar height + bottom edge margin
+        let topBarHeight = topNotchSafeInset + 42 // search field (30) + bottom spacing (12)
+        let topGridPadding: CGFloat = 8
+
+        let availableGridWidth = max(320, canvasSize.width - inset * 2)
+        let availableGridHeight = max(280, canvasSize.height - topBarHeight - bottomReserved - topGridPadding - 12)
+
+        let colSpacing = max(16, availableGridWidth * 0.016)
+        let perColWidth = (availableGridWidth - colSpacing * CGFloat(safeCols - 1)) / CGFloat(safeCols)
+        let perRowBudget = availableGridHeight / CGFloat(safeRows)
+
+        // Ideal icon proportion fills ~77% of row slot height, scaled proportionally by user's size preference.
+        let idealTileSlot = perRowBudget * 0.77
+        let estimatedLabelBlock: CGFloat = showLabels ? max(22, perRowBudget * 0.16) : 6
+        let naturalIcon = (idealTileSlot - estimatedLabelBlock) / 1.18
+        let horizontalCap = perColWidth * 0.70
+
+        let candidateIcon = naturalIcon * userScale
+        let tentativeFont = max(12.5, min(16.5, (candidateIcon * 0.145).rounded()))
+        let labelHeightForCap: CGFloat = showLabels ? (tentativeFont + 16) : 4
+        let tileStaticVerticalOverhead: CGFloat = 8 + labelHeightForCap // VStack spacing / tile vertical padding
+        let maxVerticalIconForMinGap = (perRowBudget - 8 - tileStaticVerticalOverhead) / 1.18
+
+        let resolvedIcon = max(
+            44,
+            min(156, min(candidateIcon, min(horizontalCap, maxVerticalIconForMinGap)))
+        )
+
+        let resolvedFont = max(12.5, min(16.5, (resolvedIcon * 0.145).rounded()))
+        let tileLabelBlock: CGFloat = showLabels ? (resolvedFont + 14 + max(6, resolvedIcon * 0.08)) : 0
+        let tileRowHeight = resolvedIcon * 1.18 + tileLabelBlock + 8 // includes tile .padding(.vertical, 4)
+
+        let remainingHeight = availableGridHeight - CGFloat(safeRows) * tileRowHeight
+        let rowSpacing = safeRows > 1
+            ? max(8, remainingHeight / CGFloat(safeRows - 1))
+            : 0
+
+        self.horizontalInset = inset
+        self.fittedIconSize = resolvedIcon
+        self.verticalSpacing = rowSpacing
+        self.bottomDotsPadding = bottomMargin
+        self.gridColumns = Array(
+            repeating: GridItem(.flexible(minimum: resolvedIcon * 1.18), spacing: colSpacing),
+            count: safeCols
+        )
+    }
+}
+
+/// Renders one horizontal Launchpad page and records rest-state tile geometry
+/// without @State mutations so 120Hz animations and swipes run with zero overhead.
 private struct LaunchpadPageGridView: View {
     let page: LaunchpadPage
     let isCurrentPage: Bool
+    let isSwiping: Bool
     let gridColumns: [GridItem]
     let verticalSpacing: CGFloat
     let iconSize: CGFloat
@@ -466,7 +747,7 @@ private struct LaunchpadPageGridView: View {
     let onOpenFolder: (LaunchpadFolderItem) -> Void
     let onRequestTrash: (LaunchpadAppItem) -> Void
 
-    @State private var tileFrames: [String: CGRect] = [:]
+    @State private var frameStore = LaunchpadTileFrameStore()
 
     var body: some View {
         LazyVGrid(columns: gridColumns, spacing: verticalSpacing) {
@@ -489,35 +770,31 @@ private struct LaunchpadPageGridView: View {
                     GeometryReader { geo in
                         Color.clear
                             .onAppear {
-                                tileFrames[node.id] = geo.frame(in: .named("LaunchpadCanvas"))
-                                if isCurrentPage && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
-                                    syncTileFrames()
-                                }
+                                guard !isSwiping else { return }
+                                frameStore.frames[node.id] = geo.frame(in: .named("LaunchpadCanvas"))
                             }
                             .onChange(of: geo.frame(in: .named("LaunchpadCanvas"))) { _, newRect in
-                                tileFrames[node.id] = newRect
-                                if isCurrentPage && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
-                                    syncTileFrames()
-                                }
+                                guard !isSwiping, !dragCoordinator.isDragging else { return }
+                                frameStore.frames[node.id] = newRect
                             }
                     }
                 )
             }
         }
         .padding(.horizontal, horizontalInset)
-        .padding(.top, 12)
+        .padding(.top, 8)
+        .onAppear {
+            if isCurrentPage && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
+                syncTileFrames()
+            }
+        }
+        .onChange(of: dragCoordinator.isDragging) { _, dragging in
+            if dragging && isCurrentPage {
+                syncTileFrames()
+            }
+        }
         .onChange(of: isCurrentPage) { _, active in
             if active && (manager.activeFolderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
-                syncTileFrames()
-            }
-        }
-        .onChange(of: manager.activeFolderId) { _, folderId in
-            if isCurrentPage && (folderId == nil || dragCoordinator.isFolderHiddenForExtraction) {
-                syncTileFrames()
-            }
-        }
-        .onChange(of: dragCoordinator.isFolderHiddenForExtraction) { _, hidden in
-            if isCurrentPage && hidden {
                 syncTileFrames()
             }
         }
@@ -530,7 +807,7 @@ private struct LaunchpadPageGridView: View {
 
     private func syncTileFrames() {
         let ids = page.nodes.map(\.id)
-        let filtered = tileFrames.filter { ids.contains($0.key) }
+        let filtered = frameStore.frames.filter { ids.contains($0.key) }
         dragCoordinator.updateTileFrames(orderedIds: ids, frames: filtered)
     }
 }

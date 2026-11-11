@@ -174,6 +174,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         closeNotchTasks.removeAll()
         cleanupWindows()
         cleanupDragDetectors()
+        LaunchpadSystemInterceptor.shared.restoreSystemTrackpadGestureIfNeeded()
         FaceIDOverlayController.shared.disarm()
         LockScreenMediaWindow.shared.orderOut(nil)
         DisplayShadeManager.shared.removeAllShades()
@@ -205,6 +206,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
         workspaceLockObservers.removeAll()
+        LaunchpadSystemInterceptor.shared.teardown()
         cleanupDragDetectors()
         cleanupWindows()
         MusicManager.shared.destroy()
@@ -889,6 +891,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         LaunchpadWindowController.shared.configureHotCornerMonitor()
+        LaunchpadWindowController.shared.configureSystemLaunchpadInterceptor()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            LaunchpadWindowController.shared.prewarmIfNeeded()
+        }
 
         if !Defaults[.showOnAllDisplays] {
             let preferredUUID = coordinator.preferredScreenUUID

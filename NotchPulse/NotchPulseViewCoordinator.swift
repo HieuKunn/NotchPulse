@@ -205,6 +205,10 @@ class NotchPulseViewCoordinator: ObservableObject {
             if !Defaults[.hudReplacement] && !Defaults[.inlineHUD] {
                 return
             }
+            // Match boring.notch-main: never show a duplicate notch HUD while macOS system HUD is active
+            if (type == .volume || type == .brightness || type == .backlight) && !MediaKeyInterceptor.shared.isIntercepting {
+                return
+            }
         }
         if status && type == .music && (MusicManager.shared.isUIActive || !Defaults[.enableMediaFeature]) {
             return

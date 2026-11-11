@@ -5,9 +5,10 @@ import SwiftUI
 struct LaunchpadSettingsView: View {
     @Environment(\.settingsHighlightedId) private var highlightedId
     @ObservedObject private var launchpad = LaunchpadManager.shared
+    @ObservedObject private var permissions = PermissionsManager.shared
 
     @Default(.enableLaunchpad) private var enableLaunchpad
-    @Default(.launchpadShowInNotch) private var launchpadShowInNotch
+    @Default(.launchpadReplaceSystemGesture) private var launchpadReplaceSystemGesture
     @Default(.launchpadColumns) private var launchpadColumns
     @Default(.launchpadRows) private var launchpadRows
     @Default(.launchpadIconSize) private var launchpadIconSize
@@ -35,11 +36,9 @@ struct LaunchpadSettingsView: View {
                         .toggleStyle(.switch)
                         .onChange(of: enableLaunchpad) { _, _ in
                             LaunchpadWindowController.shared.configureHotCornerMonitor()
+                            LaunchpadWindowController.shared.configureSystemLaunchpadInterceptor()
                         }
                 }
-
-                Defaults.Toggle(loc("Show Launchpad button in Notch"), key: .launchpadShowInNotch)
-                    .disabled(!enableLaunchpad)
 
                 KeyboardShortcuts.Recorder(loc("Open Launchpad:"), name: .toggleLaunchpad)
                     .disabled(!enableLaunchpad)
@@ -51,6 +50,12 @@ struct LaunchpadSettingsView: View {
                 }
                 .disabled(!enableLaunchpad)
 
+                Defaults.Toggle(loc("Replace macOS Trackpad pinch gesture"), key: .launchpadReplaceSystemGesture)
+                    .disabled(!enableLaunchpad)
+                    .onChange(of: launchpadReplaceSystemGesture) { _, _ in
+                        LaunchpadWindowController.shared.configureSystemLaunchpadInterceptor()
+                    }
+
                 HStack {
                     Text(loc("Preview Launchpad Home"))
                     Spacer()
@@ -60,6 +65,28 @@ struct LaunchpadSettingsView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .disabled(!enableLaunchpad)
+                }
+
+                if permissions.accessibilityStatus != .granted {
+                    HStack(alignment: .center, spacing: 12) {
+                        Image(systemName: "accessibility")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(loc("Accessibility Permission Missing"))
+                                .font(.subheadline.weight(.medium))
+                            Text(loc("Accessibility access is required to intercept Trackpad pinch gestures and Dock Applications."))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                        Button(loc("Grant")) {
+                            permissions.request(permission: .accessibility)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
                 }
             } header: {
                 Text(loc("Launchpad Home"))
@@ -157,6 +184,10 @@ struct LaunchpadSettingsView: View {
         .onAppear {
             if launchpad.pages.isEmpty {
                 launchpad.prepareForPresentation()
+            }
+            permissions.refreshAccessibility()
+            if permissions.accessibilityStatus == .granted {
+                LaunchpadWindowController.shared.configureSystemLaunchpadInterceptor()
             }
         }
         .alert(loc("Reset Launchpad Layout?"), isPresented: $showResetConfirmation) {
