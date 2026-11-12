@@ -21,7 +21,7 @@
   <link rel="preload" as="image" href="assets/cozy_bg.webp" type="image/webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/logo_clean.png">
   
-  <link rel="stylesheet" href="style.css?v=41">
+  <link rel="stylesheet" href="style.css?v=43">
 </head>
 <body>
   <a href="#main-content" class="skip-link visually-hidden" data-i18n="nav.skip">Skip to main content</a>
@@ -90,9 +90,19 @@
               <span class="lang-menu-name">简体中文</span>
               <span class="lang-menu-check">✓</span>
             </button>
+            <button class="lang-menu-item" data-lang="fr" role="menuitem">
+              <span class="lang-menu-flag">🇫🇷</span>
+              <span class="lang-menu-name">Français</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
             <button class="lang-menu-item" data-lang="es" role="menuitem">
               <span class="lang-menu-flag">🇪🇸</span>
               <span class="lang-menu-name">Español</span>
+              <span class="lang-menu-check">✓</span>
+            </button>
+            <button class="lang-menu-item" data-lang="ar" role="menuitem">
+              <span class="lang-menu-flag">🇸🇦</span>
+              <span class="lang-menu-name">العربية</span>
               <span class="lang-menu-check">✓</span>
             </button>
           </div>
@@ -1000,56 +1010,53 @@
           </div>
 
           <div class="bento-preview-box">
-            <div class="launchpad-preview-widget" data-launchpad-tabs>
-              <div class="launchpad-top-bar">
+            <div class="launchpad-preview-widget launchpad-stage">
+              <div class="launchpad-stage-header">
                 <div class="launchpad-search-pill">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <span data-i18n="bento.lpSearch">Search apps &amp; folders (⇧⌘L)</span>
                 </div>
-                <div class="launchpad-tablist" role="tablist" aria-label="Launchpad pages preview">
-                  <button type="button" class="launchpad-tab-btn" id="lp-tab-1" role="tab" aria-selected="true" tabindex="0" data-lp-panel="lp-panel-1" data-i18n="bento.lpTabPage1">Page 1</button>
-                  <button type="button" class="launchpad-tab-btn" id="lp-tab-2" role="tab" aria-selected="false" tabindex="-1" data-lp-panel="lp-panel-2" data-i18n="bento.lpTabPage2">Page 2</button>
-                  <button type="button" class="launchpad-tab-btn" id="lp-tab-3" role="tab" aria-selected="false" tabindex="-1" data-lp-panel="lp-panel-3" data-i18n="bento.lpTabFolder">Folder</button>
+              </div>
+
+              <div class="launchpad-apps-grid" aria-label="Launchpad 3-row app grid preview">
+                <!-- Row 1 -->
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #2294fb, #1368e6);">A</span><span>App Store</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #25b4ff, #1c6ef2);">🧭</span><span>Safari</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #4ade80, #16a34a);">💬</span><span>Messages</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #38bdf8, #2563eb);">✉️</span><span>Mail</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #34d399, #0284c7);">🗺️</span><span>Maps</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #f472b6, #a855f7);">🌸</span><span>Photos</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #4ade80, #15803d);">📹</span><span>FaceTime</span></div>
+
+                <!-- Row 2 -->
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #fb7185, #e11d48);">📅</span><span>Calendar</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #60a5fa, #3b82f6);">☑️</span><span>Reminders</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #fbbf24, #d97706);">📝</span><span>Notes</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #fb7185, #e11d48);">🎵</span><span>Music</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #c084fc, #7e22ce);">🎙️</span><span>Podcasts</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #38bdf8, #1d4ed8);">🔨</span><span>Xcode</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #334155, #0f172a);">⌘_</span><span>Terminal</span></div>
+
+                <!-- Row 3 -->
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #94a3b8, #475569);">⚙️</span><span>Settings</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #2dd4bf, #0f766e);">〰️</span><span>Freeform</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #a78bfa, #4f46e5);">🦋</span><span>Journal</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #f472b6, #6366f1);">◈</span><span>Shortcuts</span></div>
+                <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(145deg, #3b82f6, #1e3a8a);">📈</span><span>Activity</span></div>
+                <div class="lp-app-tile lp-folder-tile">
+                  <span class="lp-folder-mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                  <span data-i18n="bento.lpFolderUtilities">Dev Tools</span>
+                </div>
+                <div class="lp-app-tile lp-folder-tile">
+                  <span class="lp-folder-mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                  <span>Utilities</span>
                 </div>
               </div>
 
-              <div class="launchpad-panels-stack">
-                <div role="tabpanel" id="lp-panel-1" aria-labelledby="lp-tab-1" class="launchpad-panel">
-                  <div class="launchpad-apps-grid">
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #0ea5e9, #2563eb);">🧭</span><span>Safari</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">🔨</span><span>Xcode</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #f43f5e, #e11d48);">🎵</span><span>Music</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #1e293b, #0f172a);">⌘_</span><span>Terminal</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📝</span><span>Notes</span></div>
-                    <div class="lp-app-tile lp-folder-tile">
-                      <span class="lp-folder-mini"><i></i><i></i><i></i><i></i></span>
-                      <span data-i18n="bento.lpFolderUtilities">Dev Tools</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div role="tabpanel" id="lp-panel-2" aria-labelledby="lp-tab-2" class="launchpad-panel" hidden>
-                  <div class="launchpad-apps-grid">
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #10b981, #059669);">💬</span><span>Messages</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #ec4899, #a855f7);">🌸</span><span>Photos</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">✉️</span><span>Mail</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #14b8a6, #0d9488);">🗺️</span><span>Maps</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #f97316, #ea580c);">📅</span><span>Calendar</span></div>
-                    <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #64748b, #475569);">⚙️</span><span>Settings</span></div>
-                  </div>
-                </div>
-
-                <div role="tabpanel" id="lp-panel-3" aria-labelledby="lp-tab-3" class="launchpad-panel" hidden>
-                  <div class="launchpad-folder-card">
-                    <div class="lp-folder-header" data-i18n="bento.lpFolderUtilities">Dev Tools Folder • Drag &amp; Drop</div>
-                    <div class="launchpad-apps-grid lp-folder-inner">
-                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">🔨</span><span>Xcode</span></div>
-                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #1e293b, #0f172a);">⌘_</span><span>Terminal</span></div>
-                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">🐳</span><span>Docker</span></div>
-                      <div class="lp-app-tile"><span class="lp-app-sq" style="background: linear-gradient(135deg, #22c55e, #16a34a);">🧪</span><span>Activity</span></div>
-                    </div>
-                  </div>
-                </div>
+              <div class="launchpad-page-dots" aria-hidden="true">
+                <span class="lp-dot active"></span>
+                <span class="lp-dot"></span>
+                <span class="lp-dot"></span>
               </div>
 
               <div class="launchpad-footer-badges">
@@ -1579,7 +1586,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="main.js?v=41"></script>
+  <script src="main.js?v=42"></script>
 
   <!-- Service Worker Cleanup: Ensures standard Cmd+R always loads latest release without stale cache -->
   <script>

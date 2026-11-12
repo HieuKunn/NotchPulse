@@ -590,14 +590,8 @@ struct SettingsView: View {
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
                 .background(EnclosingScrollViewSuppressor())
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    SettingsDetailHeaderBar(
-                        title: tabTitle(for: selectedTab)
-                    )
-                    .zIndex(1)
-                }
-                .background(Color(nsColor: .windowBackgroundColor))
-                .ignoresSafeArea(edges: .top)
+                .navigationTitle(tabTitle(for: selectedTab))
+                .modifier(TahoeTopScrollEdgeEffectModifier())
                 .onChange(of: scrollTrigger) { _, _ in
                     guard let targetId = scrollToItemId else { return }
                     Task { @MainActor in
@@ -665,6 +659,18 @@ struct SettingsView: View {
 
     private func tabTitle(for destination: SettingsDestination) -> String {
         L10n.tr(destination.rawValue, lang: appLanguage)
+    }
+}
+
+// MARK: - Native Scroll-Edge Glass Blur (macOS Tahoe)
+
+private struct TahoeTopScrollEdgeEffectModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            content
+        }
     }
 }
 

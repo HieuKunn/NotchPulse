@@ -11,7 +11,7 @@
  */
 
 // =============================================================================
-// Localization Dictionary (EN / VI / DE / JA / ZH-TW / ZH-CN / ES)
+// Localization Dictionary (EN / VI / DE / JA / ZH-TW / ZH-CN / FR / ES / AR)
 // =============================================================================
 
 const i18nData = {
@@ -1411,6 +1411,404 @@ const i18nData = {
     "hugo.tag": "Proyecto Amigo • Aprende Chino con Hani",
     "hugo.sub": "Plataforma moderna de aprendizaje de chino fundada por Do Manh Hung (Hugo)",
     "hugo.btn": "Regístrate y recibe 2,000 monedas Hani"
+  },
+
+  fr: {
+    // Navigation
+    "nav.skip": "Aller au contenu principal",
+    "nav.features": "Fonctionnalités",
+    "nav.demo": "Démo Live",
+    "nav.reviews": "Avis",
+    "nav.creator": "Créateur",
+    "nav.download": "Télécharger",
+    "nav.get": "Obtenir l'app (DMG)",
+
+    // Hero
+    "hero.badge": "NotchPulse {version} Disponible",
+    "hero.title": "L'encoche MacBook, réinventée.",
+    "hero.titleMain": "L'encoche MacBook,",
+    "hero.titleAccent": "Réinventée.",
+    "hero.subtitle": "Transformez l'encoche de votre MacBook en une Dynamic Island fluide à 120Hz ProMotion. Inclut Launchpad Home pour macOS moderne, des HUDs ultra-fluides à 60Hz, Face ID biométrique, lecteur sur écran verrouillé et contrôle universel des navigateurs.",
+    "hero.downloadBtn": "Télécharger NotchPulse.dmg ({version})",
+    "hero.notchSong": "Midnight Pulse — Ondes Lofi",
+
+    // Chips
+    "chip.faceidTitle": "Face ID Vérifié",
+    "chip.faceidSub": "Neural Engine sur l'appareil",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "Grille classique • F4 & Pincement",
+    "chip.hudTitle": "HUDs fluides 60Hz",
+    "chip.hudSub": "Volume, Luminosité & Clavier",
+    "chip.settingsTitle": "Réglages natifs HIG",
+    "chip.settingsSub": "Recherche en direct & Visite guidée",
+    "chip.ddcTitle": "Contrôle écran DDC",
+    "chip.ddcSub": "Dell UltraSharp 4K • 82%",
+    "chip.batteryTitle": "MagSafe 98W Actif",
+    "chip.batterySub": "Limite intelligente 80% protégée",
+    "chip.shelfTitle": "Étagère Notch prête",
+    "chip.shelfSub": "Glisser-déposer + AirDrop",
+    "chip.fpsTitle": "120Hz ProMotion",
+    "chip.fpsSub": "0% CPU en veille",
+    "chip.lyricsTitle": "Paroles & Navigateurs",
+    "chip.lyricsSub": "Spotify, Music, YouTube & Web",
+    "chip.statsTitle": "Moniteur système",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "Historique presse-papiers",
+    "chip.clipboardSub": "50 éléments • Raccourci ⌘⌥V",
+    "chip.lunarTitle": "Calendriers lunaires",
+    "chip.lunarSub": "Âm Lịch • Hijri • Hébreu",
+    "chip.islandTitle": "Mode Dynamic Island",
+    "chip.islandSub": "Courbes de Bézier précises",
+    "chip.lockscreenTitle": "Lecteur écran verrouillé",
+    "chip.lockscreenSub": "Contrôles live & Paroles",
+    "chip.displayTitle": "Hub Multi-Écrans",
+    "chip.displaySub": "Synchronisation fluide double écran",
+
+    // Demo Controls & Notch
+    "demo.modeNotch": "Encoche MacBook",
+    "demo.modeIsland": "Dynamic Island",
+    "demo.pillFaceID": "Face ID",
+    "demo.pillMusic": "Paroles Sync",
+    "demo.pillBattery": "MagSafe 98W",
+    "demo.pillShelf": "Étagère Notch",
+    "demo.hint": "Cliquez ou survolez l'encoche ci-dessus pour déclencher l'animation 120Hz !",
+    "notch.idle": "NotchPulse Actif",
+    "notch.faceIdScanned": "Face ID Vérifié",
+    "notch.faceIdPrompt": "Mac déverrouillé instantanément via la caméra frontale",
+    "notch.batteryPrompt": "Charge complète dans 18 min • Santé : 100%",
+    "notch.shelfItems": "Étagère : 3 éléments",
+    "notch.shelfPrompt": "Déposez des fichiers ici pour les garder sous la main",
+
+    // Bento Features Section
+    "features.tag": "Conçu pour macOS",
+    "features.title": "Boostez l'encoche de votre MacBook",
+    "features.subtitle": "Développé nativement en Swift avec 0% de CPU au repos. Profitez de Launchpad Home, des HUDs 120Hz & 60Hz, de Face ID biométrique, du lecteur sur écran verrouillé et d'outils intelligents.",
+
+    "feat1.title": "Reconnaissance Biométrique Face ID",
+    "feat1.desc": "Apporte la reconnaissance faciale de niveau iOS sur votre Mac. Détecte votre présence en continu et déverrouille vos apps avec un traitement local Apple Vision respectueux de votre vie privée.",
+    "bento.faceidVerified": "Maillage Facial Neural Actif",
+    "bento.faceidSub": "Vecteur 512D • Apple Vision sur l'appareil",
+    "bento.faceidHandshake": "Transition sans latence de l'écran verrouillé au bureau",
+
+    "feat2.title": "Double Mode 120Hz ProMotion",
+    "feat2.desc": "Alterne avec fluidité entre l'encoche native du MacBook et une Dynamic Island flottante centrée sur les Studio Displays externes.",
+    "bento.springPhysics": "Physique ressort (réponse : 0,38s)",
+
+    "feat3.title": "Paroles Synchronisées & Médias Universels",
+    "feat3.desc": "Paroles mot à mot en direct et contrôles pour Spotify, Apple Music, YouTube Music et navigateurs (YouTube, Netflix sur Safari, Chrome & Arc) avec pochette dynamique.",
+    "bento.songLyrics": "\"Dérivant doucement à travers les sons calmes de la nuit...\"",
+
+    "feat4.title": "Étagère Notch & Dépôt Rapide",
+    "feat4.desc": "Glissez fichiers, liens ou captures d'écran directement dans l'encoche pour les conserver temporairement entre vos bureaux et apps.",
+    "shelf.dropText": "Déposez vos fichiers ici",
+
+    "feat5.title": "Hub Multi-Écrans & HUD Matériel DDC",
+    "feat5.desc": "Contrôlez la luminosité matérielle et le volume de vos écrans internes et externes via DDC/CI avec touches F1/F2 intelligentes.",
+    "bento.ddcBrightness": "Luminosité Dell UltraSharp 4K",
+    "bento.ddcVolume": "Volume Audio Intégré",
+
+    "feat6.title": "Moniteur CPU, RAM & GPU en Direct",
+    "feat6.desc": "Télémétrie matérielle en temps réel dans l'encoche. Suivez la mémoire unifiée Apple Silicon, les cœurs CPU et la charge GPU avec 0% d'impact au repos.",
+    "bento.cpuCores": "8 Cœurs Actifs",
+    "bento.ramUsage": "10,3 / 16 Go Actifs",
+    "bento.gpuFps": "120 FPS Metal Pro",
+
+    "feat7.title": "Calendriers Lunaires & Multi-Régions",
+    "feat7.desc": "Calcul astronomique hors ligne pour le calendrier lunaire vietnamien (UTC+7), chinois (UTC+8), islamique hégirien, hébraïque, bouddhiste et persan.",
+    "feat7.monthTitle": "Septembre 2026",
+    "feat7.moonBadge": "Cal. Lunaire",
+    "feat7.eventBadge": "27 Sep (17/8 Cal. Lunaire)",
+    "feat7.eventTitle": "Lancement NotchPulse",
+    "feat7.eventTime": "19:00 - 20:30 • Synchro Journée",
+
+    "feat8.title": "Protection Batterie Intelligente 80%",
+    "feat8.desc": "Contrôleur d'alimentation SMC direct pour Apple Silicon. Plafonne la charge à 80% pour préserver les cycles, avec option 100% en un clic.",
+
+    "feat9.title": "Presse-papiers Intelligent",
+    "feat9.desc": "Vue confortable sur 3 éléments, recherche instantanée et protection AppKit. Copiez extraits de code, couleurs hexadécimales et texte formaté depuis l'encoche.",
+
+    "feat10.title": "Localisation Native en 9 Langues",
+    "feat10.desc": "Interface native traduite en 9 langues : English, Tiếng Việt, 繁體中文, 简体中文, 日本語, Deutsch, Français, Español et العربية avec bascule instantanée.",
+
+    "feat11.title": "Contrôle Ventilateurs SMC & Thermique",
+    "feat11.desc": "Pilote matériel SMC direct avec autorisation root automatique. Réglez les ventilateurs (Auto, Turbo, Silencieux, RPM personnalisé) et suivez les capteurs CPU/GPU.",
+
+    "feat12.title": "Hub Audio Interactif & Batterie Bluetooth",
+    "feat12.desc": "Changez de sortie et microphone dans l'encoche, ajustez le volume par application et suivez la batterie des AirPods et casques Bluetooth en temps réel.",
+    "bento.audioOutputs": "AirPods Pro • 92% Batterie",
+    "bento.audioApps": "Mixeur par App • Spotify & Safari",
+    "bento.audioTabOutput": "Sortie",
+    "bento.audioTabInput": "Entrée",
+
+    "feat13.title": "Auth Système macOS & Face ID Mains Libres",
+    "feat13.desc": "Intercepte les demandes sudo, Trousseau et Touch ID sur macOS. Authentification biométrique fluide sur l'appareil sans saisir de mot de passe.",
+    "bento.authIntercept": "Interception Terminal sudo & Trousseau",
+    "bento.authFaceID": "Vérification biométrique Apple Vision",
+    "bento.authStatus": "Authentifié Mains Libres",
+
+    "bento.fanRpm": "4 800 RPM Turbo",
+    "bento.fanCpuTemp": "CPU 42°C • Frais & Silencieux",
+    "bento.fanRootAuth": "Démon Root Auto Actif",
+
+    "feat14.title": "Launchpad Home pour macOS Moderne",
+    "feat14.desc": "Restaure la grille d'apps plein écran classique sur chaque version de macOS : glisser-déposer, balayage 2 doigts, dossiers, recherche instantanée, mise à l'échelle 4K/5K et interception F4 / Dock / pincement.",
+    "bento.lpSearch": "Rechercher apps & dossiers (⇧⌘L)",
+    "bento.lpTabPage1": "Page 1",
+    "bento.lpTabPage2": "Page 2",
+    "bento.lpTabFolder": "Dossier",
+    "bento.lpFolderUtilities": "Outils Dev",
+    "bento.lpBadgeScaling": "Mise à l'échelle 4K/5K bord à bord",
+    "bento.lpBadgeIntercept": "F4 • Coin actif • Pincement 4 doigts",
+
+    "feat15.title": "HUDs Matériels 60Hz Ultra-Fluides",
+    "feat15.desc": "Remplace les HUDs Volume, Luminosité, Rétroéclairage clavier et MagSafe sans doublons. Interpolation continue 60Hz et réglages Inline ou Encoche ouverte.",
+    "bento.hudVolumeLabel": "Volume",
+    "bento.hudBrightLabel": "Luminosité",
+    "bento.hudRampBadge": "Rampe continue 60Hz",
+    "bento.hudInlineBadge": "Inline & Balayage",
+
+    "feat16.title": "Lecteur Live sur Écran Verrouillé",
+    "feat16.desc": "Affiche la pochette, les commandes de lecture et les paroles synchronisées directement sur l'écran verrouillé macOS pour YouTube, Netflix, Safari, Chrome, Arc, Spotify et Apple Music.",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "HUD Écran Verrouillé & Paroles à la demande",
+
+    "feat17.title": "Réglages Natifs HIG & Recherche Profonde",
+    "feat17.desc": "Conçu selon les Apple HIG : barre latérale translucide NavigationSplitView, mode Clair/Sombre auto, cartes groupées, recherche temps réel et visite guidée interactive.",
+    "bento.higSearch": "⌘ Rechercher parmi 582 réglages...",
+    "bento.higRow1": "Interception F4 & Pincement",
+    "bento.higRow2": "Visite guidée Spotlight",
+    "bento.higBadge": "HIG sans latence",
+
+    // Reviews Section
+    "reviews.tag": "Communauté Mondiale",
+    "reviews.title": "Apprécié dans le Monde Entier",
+    "reviews.subtitle": "Retours authentiques d'ingénieurs Mac, designers et créateurs à travers le monde.",
+    "reviews.all": "Tous les avis (4,8 ★)",
+    "reviews.five": "5 Étoiles",
+    "reviews.fourPointFive": "4,5 Étoiles",
+    "reviews.four": "4 Étoiles",
+
+    // Creator Section
+    "creator.tag": "Rencontrez le Créateur",
+    "creator.bio": "Étudiant ITM passionné par la conception système et les architectures natives macOS. A conçu NotchPulse de zéro pour rendre l'encoche du MacBook véritablement utile et élégante.",
+
+    // Installation Section
+    "install.tag": "Prêt à sublimer votre Mac ?",
+    "install.title": "Obtenez NotchPulse Aujourd'hui",
+    "install.subtitle": "Compatible avec toutes les versions de macOS (Monterey, Ventura, Sonoma, Sequoia & plus récentes) sur Apple Silicon et Mac Intel.",
+    "install.btnDmg": "Télécharger NotchPulse.dmg (Direct)",
+
+    // Footer
+    "footer.rights": "© 2026 NotchPulse par Kun Nguyen (HieuKun). Tous droits réservés.",
+    "footer.releases": "Versions",
+    "footer.support": "Support",
+
+    // Toast
+    "toast.copied": "Commande Homebrew copiée dans le presse-papiers !",
+
+    // Hugo / Hani Learning
+    "hugo.tag": "Projet Ami • Apprenez le Chinois avec Hani",
+    "hugo.sub": "Plateforme moderne d'apprentissage du chinois fondée par Do Manh Hung (Hugo)",
+    "hugo.btn": "S'inscrire & Recevoir 2 000 pièces Hani"
+  },
+
+  ar: {
+    // Navigation
+    "nav.skip": "انتقل إلى المحتوى الرئيسي",
+    "nav.features": "المميزات",
+    "nav.demo": "تجربة مباشرة",
+    "nav.reviews": "التقييمات",
+    "nav.creator": "المطور",
+    "nav.download": "تحميل",
+    "nav.get": "تحميل التطبيق (DMG)",
+
+    // Hero
+    "hero.badge": "إصدار NotchPulse {version} متاح الآن",
+    "hero.title": "نتوء MacBook بمفهوم جديد.",
+    "hero.titleMain": "نتوء MacBook،",
+    "hero.titleAccent": "بمفهوم جديد.",
+    "hero.subtitle": "حوّل نتوء كاميرا MacBook إلى Dynamic Island سلسة بتردد 120Hz ProMotion. يشمل Launchpad Home لنظام macOS الحديث، ومؤشرات 60Hz فائقة السلاسة، وبصمة الوجه Face ID، ومشغل شاشة القفل، والتحكم الشامل بالمتصفحات.",
+    "hero.downloadBtn": "تحميل NotchPulse.dmg ({version})",
+    "hero.notchSong": "Midnight Pulse — أمواج Lofi",
+
+    // Chips
+    "chip.faceidTitle": "توثيق Face ID",
+    "chip.faceidSub": "معالجة محلية عبر Neural Engine",
+    "chip.launchpadTitle": "Launchpad Home",
+    "chip.launchpadSub": "شبكة التطبيقات الكلاسيكية • F4",
+    "chip.hudTitle": "مؤشرات 60Hz سلسة",
+    "chip.hudSub": "الصوت والسطوع وإضاءة لوحة المفاتيح",
+    "chip.settingsTitle": "إعدادات HIG أصلية",
+    "chip.settingsSub": "بحث فوري وجولة تعريفية",
+    "chip.ddcTitle": "تحكم الشاشة DDC",
+    "chip.ddcSub": "Dell UltraSharp 4K • 82%",
+    "chip.batteryTitle": "شحن MagSafe 98W نشط",
+    "chip.batterySub": "حماية الشحن الذكية عند 80%",
+    "chip.shelfTitle": "رف الملفات السريع",
+    "chip.shelfSub": "سحب وإفلات + مشاركة AirDrop",
+    "chip.fpsTitle": "120Hz ProMotion",
+    "chip.fpsSub": "استهلاك 0% للمعالج في الخمول",
+    "chip.lyricsTitle": "مزامنة الكلمات والمتصفح",
+    "chip.lyricsSub": "Spotify, Music, YouTube والويب",
+    "chip.statsTitle": "مراقب النظام",
+    "chip.statsSub": "4.2% CPU • 18GB RAM",
+    "chip.clipboardTitle": "سجل الحافظة",
+    "chip.clipboardSub": "50 عنصراً • اختصار ⌘⌥V",
+    "chip.lunarTitle": "التقاويم القمرية والمتعددة",
+    "chip.lunarSub": "هجري • قمري • عبري",
+    "chip.islandTitle": "وضع Dynamic Island",
+    "chip.islandSub": "منحنيات بيزيه دقيقة للغاية",
+    "chip.lockscreenTitle": "مشغل شاشة القفل",
+    "chip.lockscreenSub": "تحكم مباشر وكلمات الأغاني",
+    "chip.displayTitle": "مركز الشاشات المتعددة",
+    "chip.displaySub": "مزامنة سلسة للشاشات الخارجية",
+
+    // Demo Controls & Notch
+    "demo.modeNotch": "نتوء MacBook",
+    "demo.modeIsland": "Dynamic Island",
+    "demo.pillFaceID": "Face ID",
+    "demo.pillMusic": "كلمات متزامنة",
+    "demo.pillBattery": "98W MagSafe",
+    "demo.pillShelf": "رف النتوء",
+    "demo.hint": "انقر أو مرر المؤشر فوق النتوء لتجربة التوسع السلس بتردد 120Hz!",
+    "notch.idle": "NotchPulse نشط",
+    "notch.faceIdScanned": "تم التحقق عبر Face ID",
+    "notch.faceIdPrompt": "تم فتح الماك بسلاسة عبر الكاميرا الأمامية",
+    "notch.batteryPrompt": "يكتمل خلال 18 دقيقة • صحة البطارية: 100%",
+    "notch.shelfItems": "الرف: 3 عناصر",
+    "notch.shelfPrompt": "أفلت الملفات داخل النتوء لحفظها مؤقتاً",
+
+    // Bento Features Section
+    "features.tag": "مصمم لنظام macOS",
+    "features.title": "ارتقِ بتجربة نتوء MacBook",
+    "features.subtitle": "مبني بالكامل بلغة Swift الأصلية بدون أي استهلاك للمعالج في وضع الخمول. يجمع Launchpad Home ومؤشرات 120Hz و 60Hz وبصمة Face ID ومشغل شاشة القفل.",
+
+    "feat1.title": "التعرف البيومتري Face ID",
+    "feat1.desc": "يجلب دقة التعرف على الوجه من iOS إلى جهاز Mac. يستشعر حضورك تلقائياً ويفتح التطبيقات المحمية محلياً عبر Apple Vision مع الحفاظ التام على الخصوصية.",
+    "bento.faceidVerified": "الشبكة العصبية للوجه نشطة",
+    "bento.faceidSub": "تضمين 512D • معالجة محلية Apple Vision",
+    "bento.faceidHandshake": "انتقال فوري من شاشة القفل إلى سطح المكتب",
+
+    "feat2.title": "وضع 120Hz ProMotion المزدوج",
+    "feat2.desc": "يتحول بانسيابية بين نتوء MacBook الأصلي وDynamic Island العائمة في منتصف شاشات Studio Display الخارجية.",
+    "bento.springPhysics": "فيزياء نابضية (الاستجابة: 0.38 ثانية)",
+
+    "feat3.title": "كلمات أغاني متزامنة ووسائط شاملة",
+    "feat3.desc": "عرض الكلمات كلمة بكلمة والتحكم بالتشغيل لـ Spotify وApple Music وYouTube Music والمتصفحات (YouTube وNetflix على Safari وChrome وArc).",
+    "bento.songLyrics": "\"تنجرف الألحان بهدوء عبر سكون الليل...\"",
+
+    "feat4.title": "رف الملفات والإفلات السريع",
+    "feat4.desc": "اسحب الملفات أو الروابط أو لقطات الشاشة مباشرة إلى النتوء لحفظها مؤقتاً والتنقل بها بين المساحات والتطبيقات.",
+    "shelf.dropText": "أفلت الملفات هنا",
+
+    "feat5.title": "مركز الشاشات ومؤشرات DDC",
+    "feat5.desc": "تحكم في سطوع وصوت الشاشة الداخلية والشاشات الخارجية عبر DDC/CI باستخدام مفاتيح F1/F2 حسب موضع المؤشر.",
+    "bento.ddcBrightness": "سطوع Dell UltraSharp 4K",
+    "bento.ddcVolume": "مستوى الصوت المدمج",
+
+    "feat6.title": "مراقبة CPU وRAM وGPU مباشرة",
+    "feat6.desc": "قياسات عتاد فورية داخل النتوء. تابع ضغط الذاكرة الموحدة لـ Apple Silicon وأنوية المعالج واستهلاك GPU بدون استهلاك في الخمول.",
+    "bento.cpuCores": "8 أنوية نشطة",
+    "bento.ramUsage": "10.3 / 16 GB مستخدمة",
+    "bento.gpuFps": "120 FPS Metal Pro",
+
+    "feat7.title": "التقويم الهجري والقمري المتعدد",
+    "feat7.desc": "حساب فلكي دون إنترنت للتقويم الهجري الإسلامي والقمري الفيتنامي والصيني والعبري والبوذي والفارسي مع عرض التواريخ اليومية في شبكة الشهر.",
+    "feat7.monthTitle": "سبتمبر 2026",
+    "feat7.moonBadge": "التقويم القمري",
+    "feat7.eventBadge": "27 سبتمبر (17/8 قمري)",
+    "feat7.eventTitle": "إطلاق NotchPulse",
+    "feat7.eventTime": "19:00 - 20:30 • مزامنة كاملة",
+
+    "feat8.title": "حماية البطارية الذكية عند 80%",
+    "feat8.desc": "تحكم مباشر في طاقة Apple Silicon SMC لإيقاف الشحن عند 80% والحفاظ على عمر البطارية مع زر شحن كامل بضغطة واحدة.",
+
+    "feat9.title": "مدير الحافظة الذكي",
+    "feat9.desc": "عرض مريح لـ 3 عناصر مع بحث فوري وحماية التمرير. انسخ الأكواد وألوان Hex والنصوص المنسقة مباشرة من النتوء.",
+
+    "feat10.title": "دعم أصلي لـ 9 لغات عالمية",
+    "feat10.desc": "واجهة مترجمة بالكامل بـ 9 لغات: الإنجليزية والفيتنامية والصينية التقليدية والمبسطة واليابانية والألمانية والفرنسية والإسبانية والعربية مع تبديل فوري.",
+
+    "feat11.title": "التحكم في المراوح والحرارة عبر SMC",
+    "feat11.desc": "تحكم مباشر في سرعة المراوح (تلقائي، أقصى سرعة، صامت، أو سرعة مخصصة) ومراقبة مستشعرات حرارة CPU وGPU من النتوء.",
+
+    "feat12.title": "مركز الصوت وبطارية Bluetooth",
+    "feat12.desc": "بدّل مخارج الصوت والميكروفون داخل النتوء، وتحكم بمستوى صوت كل تطبيق وتابع بطارية AirPods وسماعات Bluetooth لحظياً.",
+    "bento.audioOutputs": "AirPods Pro • البطارية 92%",
+    "bento.audioApps": "مازج الصوت للتطبيقات • Spotify وSafari",
+    "bento.audioTabOutput": "الإخراج",
+    "bento.audioTabInput": "الإدخال",
+
+    "feat13.title": "توثيق النظام عبر Face ID بدون لمس",
+    "feat13.desc": "يعترض نوافذ sudo وسلسلة المفاتيح وTouch ID في macOS ليقوم بالتوثيق تلقائياً عبر بصمة الوجه دون كتابة كلمات المرور.",
+    "bento.authIntercept": "اعتراض Terminal sudo وسلسلة المفاتيح",
+    "bento.authFaceID": "تحقق بيومتري عبر Apple Vision",
+    "bento.authStatus": "تم التوثيق بدون استخدام اليدين",
+
+    "bento.fanRpm": "4,800 RPM توربو",
+    "bento.fanCpuTemp": "المعالج 42°C • بارد وهادئ",
+    "bento.fanRootAuth": "خدمة Root التلقائية نشطة",
+
+    "feat14.title": "Launchpad Home لنظام macOS الحديث",
+    "feat14.desc": "يعيد شبكة التطبيقات الكلاسيكية بملء الشاشة على جميع إصدارات macOS مع السحب والإفلات، التمرير بإصبعين، المجلدات، البحث السريع، ودعم شاشات 4K/5K واختصار F4 والقرص.",
+    "bento.lpSearch": "ابحث في التطبيقات والمجلدات (⇧⌘L)",
+    "bento.lpTabPage1": "صفحة 1",
+    "bento.lpTabPage2": "صفحة 2",
+    "bento.lpTabFolder": "مجلد",
+    "bento.lpFolderUtilities": "أدوات التطوير",
+    "bento.lpBadgeScaling": "ملاءمة 4K/5K من الحافة للحافة",
+    "bento.lpBadgeIntercept": "F4 • الزاوية الساخنة • قرص 4 أصابع",
+
+    "feat15.title": "مؤشرات 60Hz فائقة السلاسة",
+    "feat15.desc": "يستبدل مؤشرات الصوت والسطوع وإضاءة لوحة المفاتيح وMagSafe في macOS بانسيابية 60Hz ودعم السحب المباشر ونمط Inline.",
+    "bento.hudVolumeLabel": "الصوت",
+    "bento.hudBrightLabel": "السطوع",
+    "bento.hudRampBadge": "تدرج مستمر 60Hz",
+    "bento.hudInlineBadge": "مدمج وتفاعلي",
+
+    "feat16.title": "مشغل مباشر على شاشة القفل",
+    "feat16.desc": "يعرض غلاف الألبوم وأزرار التحكم وكلمات الأغاني مباشرة على شاشة القفل لـ YouTube وNetflix وSafari وChrome وArc وSpotify وApple Music.",
+    "bento.lsSourceBadge": "Safari • YouTube • Music",
+    "bento.lsLyricsStatus": "واجهة شاشة القفل والكلمات عند الطلب",
+
+    "feat17.title": "إعدادات macOS أصلية وبحث عميق",
+    "feat17.desc": "مصممة وفق معايير Apple HIG: شريط جانبي شفاف، مظهر فاتح/داكن تلقائي، بطاقات مجمعة، بحث فوري، وجولة تعليمية تفاعلية.",
+    "bento.higSearch": "⌘ ابحث في 582 إعداداً...",
+    "bento.higRow1": "اعتراض F4 وإيماءة القرص",
+    "bento.higRow2": "جولة الميزات التفاعلية",
+    "bento.higBadge": "واجهة HIG فورية",
+
+    // Reviews Section
+    "reviews.tag": "مجتمع عالمي",
+    "reviews.title": "محبوب من المستخدمين حول العالم",
+    "reviews.subtitle": "آراء حقيقية من مهندسي ومصممي ومبدعي أجهزة Mac في مختلف أنحاء العالم.",
+    "reviews.all": "جميع التقييمات (4.8 ★)",
+    "reviews.five": "5 نجوم",
+    "reviews.fourPointFive": "4.5 نجوم",
+    "reviews.four": "4 نجوم",
+
+    // Creator Section
+    "creator.tag": "تعرّف على المطور",
+    "creator.bio": "طالب ITM شغوف بتصميم الأنظمة وهندسة macOS الأصلية. طوّر NotchPulse من الصفر لاستكشاف التفاعل بين الإنسان والحاسوب وجعل نتوء MacBook مفيداً وممتعاً.",
+
+    // Installation Section
+    "install.tag": "جاهز للارتقاء بجهاز Mac الخاص بك؟",
+    "install.title": "احصل على NotchPulse اليوم",
+    "install.subtitle": "متوافق مع جميع إصدارات macOS (Monterey وVentura وSonoma وSequoia والأحدث) على معالجات Apple Silicon وIntel.",
+    "install.btnDmg": "تحميل NotchPulse.dmg (مباشر)",
+
+    // Footer
+    "footer.rights": "© 2026 NotchPulse بواسطة Kun Nguyen (HieuKun). جميع الحقوق محفوظة.",
+    "footer.releases": "الإصدارات",
+    "footer.support": "الدعم",
+
+    // Toast
+    "toast.copied": "تم نسخ أمر Homebrew إلى الحافظة!",
+
+    // Hugo / Hani Learning
+    "hugo.tag": "مشروع صديق مميز • تعلّم الصينية مع Hani",
+    "hugo.sub": "منصة حديثة لتعلّم اللغة الصينية أسسها Do Manh Hung (Hugo)",
+    "hugo.btn": "سجّل واحصل على 2,000 عملة Hani"
   }
 };
 
@@ -1425,7 +1823,9 @@ const langMeta = {
   ja: { flag: "🇯🇵", label: "JA", title: "日本語" },
   "zh-TW": { flag: "🇹🇼", label: "繁中", title: "繁體中文" },
   "zh-CN": { flag: "🇨🇳", label: "简中", title: "简体中文" },
-  es: { flag: "🇪🇸", label: "ES", title: "Español" }
+  fr: { flag: "🇫🇷", label: "FR", title: "Français" },
+  es: { flag: "🇪🇸", label: "ES", title: "Español" },
+  ar: { flag: "🇸🇦", label: "AR", title: "العربية" }
 };
 
 let currentLang = localStorage.getItem("notchpulse_lang");
@@ -1434,7 +1834,9 @@ if (!currentLang || !i18nData[currentLang]) {
   if (browserLang.startsWith("vi")) currentLang = "vi";
   else if (browserLang.startsWith("ja")) currentLang = "ja";
   else if (browserLang.startsWith("de")) currentLang = "de";
+  else if (browserLang.startsWith("fr")) currentLang = "fr";
   else if (browserLang.startsWith("es")) currentLang = "es";
+  else if (browserLang.startsWith("ar")) currentLang = "ar";
   else if (browserLang.startsWith("zh-tw") || browserLang.startsWith("zh-hk")) currentLang = "zh-TW";
   else if (browserLang.startsWith("zh")) currentLang = "zh-CN";
   else currentLang = "en";
@@ -1662,7 +2064,7 @@ function initScrollFadeIn() {
 }
 
 // =============================================================================
-// 2. Language Switcher (7 Languages: VI, EN, DE, JA, ZH-TW, ZH-CN, ES)
+// 2. Language Switcher (9 Languages: VI, EN, DE, JA, ZH-TW, ZH-CN, FR, ES, AR)
 // =============================================================================
 
 function initLanguage() {
@@ -1724,8 +2126,9 @@ function applyLanguage(lang) {
   if (langLabel) langLabel.textContent = meta.label;
   if (langFlag) langFlag.textContent = meta.flag;
 
-  // Set HTML lang attribute for accessibility
+  // Set HTML lang & text direction attributes for accessibility
   document.documentElement.setAttribute("lang", lang);
+  document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
 
   // Update checkmarks in dropdown menu
   document.querySelectorAll(".lang-menu-item").forEach((btn) => {
