@@ -1283,8 +1283,8 @@ final class LaunchpadSystemInterceptor {
             let width = bounds["Width"] as? CGFloat ?? 0
             let height = bounds["Height"] as? CGFloat ?? 0
 
-            // Regular Cmd+Space Spotlight Search is compact until results/Apps open, whereas
-            // macOS 26/27 Applications overlay opens as ~844x579 FluidWindow + screen-sized backdrop.
+            // Expanded Spotlight Search results also reach >= 700x480, so window size alone
+            // cannot distinguish Applications from Cmd+Space Search; require AX verification below.
             if width >= 700 && height >= 480 {
                 candidateFound = true
                 if let pid = info[kCGWindowOwnerPID as String] as? pid_t {
@@ -1293,55 +1293,112 @@ final class LaunchpadSystemInterceptor {
             }
         }
 
-        guard candidateFound else { return false }
+        guard candidateFound, AXIsProcessTrusted(), !matchingOwnerPIDs.isEmpty else {
+            return false
+        }
 
-        // If Accessibility is available, confirm it really is Applications (and not Cmd+Space Search).
-        if AXIsProcessTrusted(), !matchingOwnerPIDs.isEmpty {
-            var sawPlainCmdSpaceSearch = false
-            for pid in matchingOwnerPIDs {
-                let axApp = AXUIElementCreateApplication(pid)
-                for win in candidateAXWindows(for: axApp) {
-                    if isSystemAppsWindowElement(win) {
-                        return true
-                    }
-                    if isCmdSpaceSearchWindowElement(win) {
-                        sawPlainCmdSpaceSearch = true
-                    }
+        for pid in matchingOwnerPIDs {
+            let axApp = AXUIElementCreateApplication(pid)
+            for win in candidateAXWindows(for: axApp) {
+                if isSystemAppsWindowElement(win) {
+                    return true
                 }
-            }
-            if sawPlainCmdSpaceSearch {
-                return false
+                if isCmdSpaceSearchWindowElement(win) {
+                    return false
+                }
             }
         }
 
-        return true
+        return false
     }
 
-    nonisolated private static func isCmdSpaceSearchWindowElement(_ element: AXUIElement) -> Bool {
-        let searchPlaceholders = localizedSpotlightSearchPlaceholders
+    private struct SpotlightWindowSignals {
+        var hasSearchPlaceholder = false
+        var hasAppsPlaceholder = false
+        var hasAppsZKW = false
+        var hasFilterBar = false
+    }
+
+    /// Classifies whether a Spotlight/Siri window represents the Applications launcher
+    /// rather than regular Spotlight Search.
+    ///
+    /// Regular macOS 26/27 Cmd+Space Spotlight Search also exposes `zkw.apps` suggestions
+    /// and `QueryFilterBar`, so only an explicit Applications placeholder (without a search
+    /// placeholder) qualifies for interception.
+    nonisolated static func shouldInterceptSpotlightWindow(
+        hasSearchPlaceholder: Bool,
+        hasAppsPlaceholder: Bool,
+        hasAppsZKW: Bool,
+        hasFilterBar: Bool
+    ) -> Bool {
+        _ = hasAppsZKW
+        _ = hasFilterBar
+        guard !hasSearchPlaceholder else { return false }
+        return hasAppsPlaceholder
+    }
+
+    nonisolated private static func spotlightSearchFieldPlaceholderKind(of node: AXUIElement) -> (isSearch: Bool, isApps: Bool) {
+        var idRef: AnyObject?
+        AXUIElementCopyAttributeValue(node, kAXIdentifierAttribute as CFString, &idRef)
+        guard (idRef as? String) == "SpotlightSearchField" else {
+            return (false, false)
+        }
+        var phRef: AnyObject?
+        AXUIElementCopyAttributeValue(node, kAXPlaceholderValueAttribute as CFString, &phRef)
+        guard let ph = phRef as? String else {
+            return (false, false)
+        }
+        if localizedSpotlightSearchPlaceholders.contains(ph) {
+            return (true, false)
+        }
+        if localizedAppsPlaceholders.contains(ph) {
+            return (false, true)
+        }
+        return (false, false)
+    }
+
+    nonisolated private static func inspectSpotlightWindowSignals(_ element: AXUIElement) -> SpotlightWindowSignals {
+        var signals = SpotlightWindowSignals()
         var queue: [(AXUIElement, Int)] = [(element, 0)]
+
         while !queue.isEmpty {
             let (node, depth) = queue.removeFirst()
             var idRef: AnyObject?
             AXUIElementCopyAttributeValue(node, kAXIdentifierAttribute as CFString, &idRef)
-            if (idRef as? String) == "SpotlightSearchField" {
-                var phRef: AnyObject?
-                AXUIElementCopyAttributeValue(node, kAXPlaceholderValueAttribute as CFString, &phRef)
-                if let ph = phRef as? String, searchPlaceholders.contains(ph) {
-                    return true
+            let idStr = idRef as? String ?? ""
+
+            if idStr.contains("com.apple.spotlight.zkw.apps") {
+                signals.hasAppsZKW = true
+            } else if idStr == "QueryFilterBar" {
+                signals.hasFilterBar = true
+            } else if idStr == "SpotlightSearchField" {
+                let kind = spotlightSearchFieldPlaceholderKind(of: node)
+                if kind.isSearch {
+                    signals.hasSearchPlaceholder = true
+                    // Search placeholder unconditionally vetoes Applications classification.
+                    return signals
+                }
+                if kind.isApps {
+                    signals.hasAppsPlaceholder = true
                 }
             }
-            if depth < 5 {
+
+            if depth < 7 {
                 var childrenRef: AnyObject?
                 if AXUIElementCopyAttributeValue(node, kAXChildrenAttribute as CFString, &childrenRef) == .success,
                    let children = childrenRef as? [AXUIElement] {
-                    for child in children.prefix(30) {
+                    for child in children.prefix(45) {
                         queue.append((child, depth + 1))
                     }
                 }
             }
         }
-        return false
+
+        return signals
+    }
+
+    nonisolated private static func isCmdSpaceSearchWindowElement(_ element: AXUIElement) -> Bool {
+        return inspectSpotlightWindowSignals(element).hasSearchPlaceholder
     }
 
     nonisolated private static func isSystemAppsWindowElement(_ element: AXUIElement) -> Bool {
@@ -1353,15 +1410,8 @@ final class LaunchpadSystemInterceptor {
         if role == (kAXWindowRole as String) {
             windowElement = element
         } else if role == (kAXTextFieldRole as String) {
-            var idRef: AnyObject?
-            AXUIElementCopyAttributeValue(element, kAXIdentifierAttribute as CFString, &idRef)
-            if (idRef as? String) == "SpotlightSearchField" {
-                var phRef: AnyObject?
-                AXUIElementCopyAttributeValue(element, kAXPlaceholderValueAttribute as CFString, &phRef)
-                if let ph = phRef as? String,
-                   localizedSpotlightSearchPlaceholders.contains(ph) {
-                    return false
-                }
+            if spotlightSearchFieldPlaceholderKind(of: element).isSearch {
+                return false
             }
             var winRef: AnyObject?
             guard AXUIElementCopyAttributeValue(element, kAXWindowAttribute as CFString, &winRef) == .success,
@@ -1384,55 +1434,13 @@ final class LaunchpadSystemInterceptor {
             }
         }
 
-        let appsPlaceholders = localizedAppsPlaceholders
-        let searchPlaceholders = localizedSpotlightSearchPlaceholders
-        var hasFilterBar = false
-        var hasAppsZKW = false
-        var hasAppsPlaceholder = false
-        var hasSearchPlaceholder = false
-
-        var queue: [(AXUIElement, Int)] = [(windowElement, 0)]
-        while !queue.isEmpty {
-            let (node, depth) = queue.removeFirst()
-            var idRef: AnyObject?
-            AXUIElementCopyAttributeValue(node, kAXIdentifierAttribute as CFString, &idRef)
-            let idStr = idRef as? String ?? ""
-
-            if idStr.contains("com.apple.spotlight.zkw.apps") {
-                hasAppsZKW = true
-            } else if idStr == "QueryFilterBar" {
-                hasFilterBar = true
-            }
-            if idStr == "SpotlightSearchField" {
-                var phRef: AnyObject?
-                AXUIElementCopyAttributeValue(node, kAXPlaceholderValueAttribute as CFString, &phRef)
-                if let ph = phRef as? String {
-                    if searchPlaceholders.contains(ph) {
-                        hasSearchPlaceholder = true
-                    } else if appsPlaceholders.contains(ph) {
-                        hasAppsPlaceholder = true
-                    }
-                }
-            }
-
-            if depth < 6 {
-                var childrenRef: AnyObject?
-                if AXUIElementCopyAttributeValue(node, kAXChildrenAttribute as CFString, &childrenRef) == .success,
-                   let children = childrenRef as? [AXUIElement] {
-                    for child in children.prefix(35) {
-                        queue.append((child, depth + 1))
-                    }
-                }
-            }
-        }
-
-        if hasAppsZKW || hasAppsPlaceholder {
-            return true
-        }
-        if hasSearchPlaceholder {
-            return false
-        }
-        return hasFilterBar
+        let signals = inspectSpotlightWindowSignals(windowElement)
+        return shouldInterceptSpotlightWindow(
+            hasSearchPlaceholder: signals.hasSearchPlaceholder,
+            hasAppsPlaceholder: signals.hasAppsPlaceholder,
+            hasAppsZKW: signals.hasAppsZKW,
+            hasFilterBar: signals.hasFilterBar
+        )
     }
 
     // MARK: - Dismissal & Presentation Coordination

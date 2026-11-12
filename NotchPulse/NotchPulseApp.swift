@@ -467,31 +467,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 ? effectiveDynamicIslandTopOffset(for: screen)
                 : 0
             
+            let targetSize: CGSize
             if targetVM.notchState == .open {
-                // When open, the region covers the ENTIRE open shelf plus expansion padding
-                let openWidth = max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth])))
-                let openHeight = max(targetVM.effectiveOpenHeight, openNotchSize.height)
-                return CGRect(
-                    x: screenFrame.midX - (openWidth / 2 + padding),
-                    y: screenFrame.maxY - (openHeight + padding + topOffset),
-                    width: openWidth + (padding * 2),
-                    height: openHeight + padding + topOffset + 30
+                targetSize = CGSize(
+                    width: max(targetVM.notchSize.width, max(openNotchSize.width, CGFloat(Defaults[.notchOpenWidth]))),
+                    height: max(targetVM.effectiveOpenHeight, openNotchSize.height)
                 )
             } else {
-                // When closed, the region radiates outwards and downwards from the closed notch by the user's padding
                 let closedSize = targetVM.closedNotchSize
-                let compactWidth = isDynamicIsland ? compactDynamicIslandWidth : (closedSize.width > 0 ? closedSize.width : 185.0)
-                // Use the future Shelf footprint as the activation target. Requiring
-                // the pointer to hit only the tiny closed notch made fast drags miss.
-                let closedWidth = max(compactWidth, CGFloat(Defaults[.notchOpenWidth]))
-                let closedHeight = openNotchSize.height
-                return CGRect(
-                    x: screenFrame.midX - (closedWidth / 2 + padding),
-                    y: screenFrame.maxY - (closedHeight + padding + topOffset),
-                    width: closedWidth + (padding * 2),
-                    height: closedHeight + padding + topOffset + 30
-                )
+                let closedWidth = isDynamicIsland
+                    ? compactDynamicIslandWidth
+                    : (closedSize.width > 0 ? closedSize.width : 175.0)
+                let closedHeight = isDynamicIsland
+                    ? compactDynamicIslandHeight
+                    : (targetVM.effectiveClosedNotchHeight > 0 ? targetVM.effectiveClosedNotchHeight : 34.0)
+                targetSize = CGSize(width: closedWidth, height: closedHeight)
             }
+            return DragDetector.activationRegion(
+                screenFrame: screenFrame,
+                targetSize: targetSize,
+                topOffset: topOffset,
+                padding: padding
+            )
         }
         
         detector.onDragEntersNotchRegion = { [weak self] in

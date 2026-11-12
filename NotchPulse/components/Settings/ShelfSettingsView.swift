@@ -90,19 +90,10 @@ struct ShelfSettingsView: View {
             Section {
                 Picker(loc("Quick Share Service"), selection: $quickShareProvider) {
                     ForEach(quickShareService.availableProviders, id: \.id) { provider in
-                        HStack {
-                            Group {
-                                if let imgData = provider.imageData, let nsImg = NSImage(data: imgData) {
-                                    Image(nsImage: nsImg)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                } else {
-                                    Image(systemName: "square.and.arrow.up")
-                                }
-                            }
-                            .frame(width: 16, height: 16)
-                            .foregroundStyle(.secondary)
+                        Label {
                             Text(provider.id)
+                        } icon: {
+                            providerIconView(for: provider)
                         }
                         .tag(provider.id)
                     }
@@ -111,17 +102,9 @@ struct ShelfSettingsView: View {
 
                 if let selectedProvider = selectedProvider {
                     HStack {
-                        Group {
-                            if let imgData = selectedProvider.imageData, let nsImg = NSImage(data: imgData) {
-                                Image(nsImage: nsImg)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            } else {
-                                Image(systemName: "square.and.arrow.up")
-                            }
-                        }
-                        .frame(width: 16, height: 16)
-                        .foregroundStyle(.secondary)
+                        providerIconView(for: selectedProvider)
+                            .frame(width: 16, height: 16)
+                            .foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(loc("Currently selected")): \(selectedProvider.id)")
                                 .font(.caption)
@@ -150,6 +133,17 @@ struct ShelfSettingsView: View {
             if quickShareService.availableProviders.isEmpty {
                 await quickShareService.discoverAvailableProviders()
             }
+        }
+    }
+
+    /// Renders a fixed-ratio 16×16 provider icon without `.resizable()` so SwiftUI `Picker`
+    /// never stretches the image across the control width.
+    @ViewBuilder
+    private func providerIconView(for provider: QuickShareProvider) -> some View {
+        if let nsImg = provider.iconImage(pointSize: 16) {
+            Image(nsImage: nsImg)
+        } else {
+            Image(systemName: "square.and.arrow.up")
         }
     }
 }

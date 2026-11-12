@@ -768,5 +768,128 @@ struct TestApp {
             )
             try suite.assertFalse(resetController, "Reset controller with nil artwork URL must reject late responses")
         }
+
+        print("\n--- 15. Testing Drag Activation Region & Window-Drag Hover Suppression ---")
+        suite.runTest("HoverTrackingPolicy suppresses closed-notch hover while dragging windows") {
+            try suite.assertTrue(
+                HoverTrackingPolicy.shouldSuppressHover(isClosed: true, pressedMouseButtons: 1),
+                "Left-mouse window drag over closed notch must not trigger hover"
+            )
+            try suite.assertFalse(
+                HoverTrackingPolicy.shouldSuppressHover(isClosed: true, pressedMouseButtons: 0),
+                "Normal pointer movement over closed notch must still trigger hover"
+            )
+            try suite.assertFalse(
+                HoverTrackingPolicy.shouldSuppressHover(isClosed: false, pressedMouseButtons: 1),
+                "Pressed drag inside an already open notch must not suppress hover state"
+            )
+        }
+
+        suite.runTest("DragDetector.activationRegion scales proportionally from closed notch size") {
+            let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
+            let closedNotch = CGSize(width: 175, height: 38)
+            let smallRegion = DragDetector.activationRegion(
+                screenFrame: screen,
+                targetSize: closedNotch,
+                topOffset: 0,
+                padding: 30
+            )
+            let openShelfRegion = DragDetector.activationRegion(
+                screenFrame: screen,
+                targetSize: CGSize(width: 740, height: 190),
+                topOffset: 0,
+                padding: 30
+            )
+            try suite.assertEqual(smallRegion.width, 235, "Closed drag region width should be closedNotch + padding*2")
+            try suite.assertEqual(screen.maxY - smallRegion.minY, 68, "Closed drag region depth should be closedHeight + padding")
+            try suite.assertTrue(smallRegion.width < openShelfRegion.width, "Closed drag region must not inflate to open Shelf width")
+            try suite.assertTrue(smallRegion.minY > openShelfRegion.minY, "Closed drag region must not reach open Shelf depth")
+        }
+
+        suite.runTest("Spotlight Search overlay is never intercepted as Launchpad Applications") {
+            try suite.assertFalse(
+                LaunchpadSystemInterceptor.shouldInterceptSpotlightWindow(
+                    hasSearchPlaceholder: true,
+                    hasAppsPlaceholder: false,
+                    hasAppsZKW: true,
+                    hasFilterBar: true
+                ),
+                "Cmd+Space Spotlight Search with ZKW apps and filter bar must remain Spotlight Search"
+            )
+            try suite.assertFalse(
+                LaunchpadSystemInterceptor.shouldInterceptSpotlightWindow(
+                    hasSearchPlaceholder: true,
+                    hasAppsPlaceholder: true,
+                    hasAppsZKW: true,
+                    hasFilterBar: true
+                ),
+                "Any window carrying a Spotlight Search placeholder must veto interception"
+            )
+            try suite.assertFalse(
+                LaunchpadSystemInterceptor.shouldInterceptSpotlightWindow(
+                    hasSearchPlaceholder: false,
+                    hasAppsPlaceholder: false,
+                    hasAppsZKW: true,
+                    hasFilterBar: true
+                ),
+                "Expanded Spotlight results with zkw.apps or QueryFilterBar must not trigger without Apps placeholder"
+            )
+            try suite.assertTrue(
+                LaunchpadSystemInterceptor.shouldInterceptSpotlightWindow(
+                    hasSearchPlaceholder: false,
+                    hasAppsPlaceholder: true,
+                    hasAppsZKW: true,
+                    hasFilterBar: true
+                ),
+                "Explicit Applications overlay without search placeholder should be intercepted"
+            )
+        }
+
+        // MARK: - 16. Testing Quick Share Icon Resolution & Square Proportions
+        print("\n--- 16. Testing Quick Share Service Icon Resolution ---")
+
+        suite.runTest("QuickShareService extracts extension bundle IDs and maps parent apps") {
+            let desc = "<NSSharingService: 0x1234> [com.apple.Notes.SharingExtension] - enabled:YES"
+            try suite.assertEqual(
+                QuickShareService.extractServiceBundleID(from: desc),
+                "com.apple.Notes.SharingExtension",
+                "Should extract identifier inside brackets"
+            )
+            try suite.assertEqual(
+                QuickShareService.candidateAppBundleIDs(forServiceID: "com.apple.share.Mail.compose").first,
+                "com.apple.mail",
+                "Mail sharing service should map to Mail app bundle ID"
+            )
+            try suite.assertEqual(
+                QuickShareService.candidateAppBundleIDs(forServiceID: "com.apple.share.Messages.window").first,
+                "com.apple.MobileSMS",
+                "Messages sharing service should map to Messages app bundle ID"
+            )
+            let wpsCandidates = QuickShareService.candidateAppBundleIDs(forServiceID: "com.kingsoft.wpsoffice.mac.global.WPSMacShare")
+            try suite.assertTrue(
+                wpsCandidates.contains("com.kingsoft.wpsoffice.mac.global"),
+                "Extension bundle ID should yield its host app bundle ID prefix"
+            )
+        }
+
+        suite.runTest("QuickShareService normalizes icons to square proportions and rejects empty proxies") {
+            let emptyLazyImage = NSImage(size: NSSize(width: 16, height: 16))
+            try suite.assertTrue(
+                QuickShareService.normalizedSquarePNGData(from: emptyLazyImage) == nil,
+                "Empty lazy proxy NSImage should not produce a blank transparent icon"
+            )
+
+            let nonSquare = NSImage(size: NSSize(width: 40, height: 20), flipped: false) { rect in
+                NSColor.systemBlue.setFill()
+                rect.fill()
+                return true
+            }
+            let pngData = QuickShareService.normalizedSquarePNGData(from: nonSquare, pixelSize: 64)
+            try suite.assertTrue(pngData != nil, "Non-empty image should render normalized PNG data")
+
+            let provider = QuickShareProvider(id: "Test", imageData: pngData, supportsRawText: false)
+            let menuIcon = provider.iconImage(pointSize: 16)
+            try suite.assertEqual(menuIcon?.size, NSSize(width: 16, height: 16), "Menu icon must keep 16x16 square point size")
+        }
     }
 }

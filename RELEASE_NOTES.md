@@ -1,20 +1,19 @@
-## NotchPulse v5.7 (Build 476) - Important Release
+## NotchPulse v5.7 (Build 477) - Important Release
 
-This release refines Launchpad Home search styling, folder extraction, and drag-and-drop page stability alongside freeze-free permission handling and smooth volume controls.
+This release protects native macOS Spotlight Search, refines file-drag detection and window movement around the notch, restores real app logos and square aspect ratios across Quick Share, and ensures smooth Launchpad Home organization.
 
-### 🚀 Launchpad Home: Clean Search & Reliable Organization
-- **Settings-Matched Search Bar**: Redesigned the top search capsule with proper icon spacing so typed text and the cursor never overlap the magnifying glass, stays calmly unfocused until clicked or typed into, and clicks without any flicker.
-- **Drop Anywhere Out of Folders**: Dragging an app out of an open folder now immediately lets surrounding icons shift aside so you can drop it anywhere between two apps on the home grid—just like regular icon reordering.
-- **Rock-Solid Tab Stability When Grouping**: Fixed an issue where releasing an app into a group near the left or right sides could unexpectedly flip to an adjacent page, and removed unnecessary floating side arrows during drags.
-- **Fluid Icon Shifting**: Surrounding apps smoothly glide out of the way to open a clear space wherever you drag an icon on the home grid or inside a folder, and folder previews immediately update to show remaining apps while extracting.
-- **Square 3x3 Folder Popup & Quick Delete**: Opened folders remain a clean 3x3 square, adapt smoothly to Light and Dark Mode, and third-party apps display the quick delete badge in edit mode.
+### 🔍 Native Spotlight Search Intact
+- **Spotlight Search Protected**: Using Command + Space or the menu bar Spotlight Search stays completely intact with full suggestions and query filters—only genuine Applications launcher triggers open Launchpad Home.
 
-### 🛡️ Reliability & Permission Stability
-- **Freeze-Free Permission Grants**: Eliminated system freezes when granting Accessibility and system permissions so clicking and typing remain responsive across macOS.
-- **Robust System Access**: Improved verification checks across Accessibility, Bluetooth, Calendars, Reminders, and Face ID storage to prevent repetitive system prompts.
+### 📤 Quick Share: Native App Logos & Square Proportions
+- **Real App Logos**: Quick Share services (Mail, Notes, Messages, Reminders, Shortcuts, Freeform, LINE, WPS Office, and Journal) now display their authentic, crisp application icons instead of a generic share arrow.
+- **Square 1:1 Aspect Ratio**: Fixed stretched AirDrop and service icons in Settings and the Shelf drop zone so every logo remains perfectly proportioned and sharp.
 
-### 🎚️ Butter-Smooth Volume Adjustments
-- **Zero-Stutter Volume Steps**: Volume adjustments and continuous key holds glide smoothly at 60Hz alongside display brightness.
+### 🧲 Precision Notch & Window Dragging
+- **Window Movement Immunity**: Moving or rearranging application windows near the top of your screen will no longer mistakenly trigger closed-notch hover gestures.
+- **Accurate File-Drag Open Area**: Adjusted the closed-notch drag detection area slider to accurately scale from the compact closed notch size rather than the expanded Shelf frame.
 
-### ✨ Native macOS Tahoe Settings
-- **Liquid Glass Interface**: Updated Settings panels, sidebar vibrancy, toggles, and search styling for native macOS Tahoe presentation.
+### 🚀 Launchpad Home: Clean Search & Organization
+- **Settings-Matched Search Bar**: Redesigned the search capsule with proper icon spacing so text and cursor never overlap the magnifying glass, remaining calm and unfocused until clicked.
+- **Drop Anywhere Out of Folders**: Dragging an app out of an open folder lets surrounding icons smoothly shift aside to drop anywhere between two apps on the home grid.
+- **Rock-Solid Tab Stability**: Releasing an app into a group near the left or right edges remains firmly on the current page without accidental page flips.

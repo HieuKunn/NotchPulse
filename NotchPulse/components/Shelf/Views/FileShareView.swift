@@ -63,7 +63,7 @@ struct FileShareView: View {
                         ))
                         .frame(width: 50, height: 50)
                     Group {
-                        if let imgData = selectedProvider.imageData, let nsImg = NSImage(data: imgData) {
+                        if let nsImg = selectedProvider.iconImage(pointSize: 28) {
                             Image(nsImage: nsImg)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)

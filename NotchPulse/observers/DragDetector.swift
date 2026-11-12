@@ -33,6 +33,22 @@ final class DragDetector {
     private let regionProvider: () -> CGRect
     private let dragPasteboard = NSPasteboard(name: .drag)
 
+    /// Computes the screen-space drop-activation rectangle radiating outward and
+    /// downward by `padding` around either the compact closed notch or open shelf.
+    static func activationRegion(
+        screenFrame: CGRect,
+        targetSize: CGSize,
+        topOffset: CGFloat,
+        padding: CGFloat
+    ) -> CGRect {
+        CGRect(
+            x: screenFrame.midX - (targetSize.width / 2 + padding),
+            y: screenFrame.maxY - (targetSize.height + padding + topOffset),
+            width: targetSize.width + (padding * 2),
+            height: targetSize.height + padding + topOffset + 30
+        )
+    }
+
     private func getActiveRegion() -> CGRect {
         let now = ProcessInfo.processInfo.systemUptime
         if now - lastRegionFetchTime > 0.25 || cachedRegion.isEmpty {
@@ -147,7 +163,7 @@ final class DragDetector {
     private func handleMouseDragged() {
         let currentCount = dragPasteboard.changeCount
         let mouseLocation = NSEvent.mouseLocation
-        let activeRegion = getActiveRegion()
+        var activeRegion = getActiveRegion()
 
         // A payload must be fresh for this mouse session. Reading a valid-looking
         // type merely because the pointer is near the notch reuses stale drag
@@ -172,6 +188,14 @@ final class DragDetector {
 
         if !hasEnteredNotchRegion && !isNearNotch { return }
         onDragMove?(mouseLocation)
+
+        // When transitioning from closed notch to open Shelf, refresh the cached
+        // region immediately before concluding the pointer exited.
+        if hasEnteredNotchRegion && !activeRegion.contains(mouseLocation) {
+            cachedRegion = regionProvider()
+            lastRegionFetchTime = ProcessInfo.processInfo.systemUptime
+            activeRegion = cachedRegion
+        }
 
         let containsMouse = activeRegion.contains(mouseLocation)
         if containsMouse && !hasEnteredNotchRegion {

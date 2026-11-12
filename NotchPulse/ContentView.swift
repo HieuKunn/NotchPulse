@@ -37,6 +37,7 @@ struct ContentView: View {
     @Default(.notchStyle) var notchStyle
     @Default(.dynamicIslandTopOffset) var dynamicIslandTopOffset
     @Default(.notchOpenWidth) var notchOpenWidth
+    @Default(.openNotchOnHover) var openNotchOnHover: Bool
     @Default(.extendHoverArea) var extendHoverArea: Bool
     @Default(.hoverAreaPadding) var hoverAreaPadding: Double
 
@@ -551,18 +552,23 @@ struct ContentView: View {
         .padding(.bottom, 8)
         .frame(maxWidth: windowSize.width, maxHeight: windowSize.height, alignment: .top)
         .compositingGroup()
-        // Keep a registered drop destination alive before the notch opens.
-        // Elevated to overlay so incoming file drops hit the topmost layer.
+        // Keep a registered drop destination alive on mainNotchContainer before the notch opens;
+        // only expand the overlay drop zone while an actual DragDetector file drag is active.
         .overlay(alignment: .top) {
-            if Defaults[.notchPulseShelf] && vm.notchState == .closed {
+            if Defaults[.notchPulseShelf] && vm.notchState == .closed && vm.isCurrentlyDraggingGlobal {
                 dragDetector
-                    .allowsHitTesting(vm.isCurrentlyDraggingGlobal)
             }
         }
         .background {
             ScreenEdgeHoverTrackingBridge(
                 regionProvider: { hoverTrackingRegion },
                 isEnabled: { topEdgeTrackingEnabled },
+                shouldSuppressHover: {
+                    HoverTrackingPolicy.shouldSuppressHover(
+                        isClosed: vm.notchState == .closed,
+                        pressedMouseButtons: NSEvent.pressedMouseButtons
+                    )
+                },
                 onHoverChanged: { hovering in
                     updateHoverSource(topEdge: hovering)
                 }
@@ -1016,7 +1022,7 @@ struct ContentView: View {
 
     private var topEdgeSensorSize: CGSize {
         let isFullscreenEdgeReveal = isEffectivelyHiddenInFullscreen && vm.notchState == .closed
-        let extraPad: CGFloat = (!isFullscreenEdgeReveal && extendHoverArea) ? CGFloat(hoverAreaPadding) : 0
+        let extraPad: CGFloat = (!isFullscreenEdgeReveal && openNotchOnHover && extendHoverArea) ? CGFloat(hoverAreaPadding) : 0
         let width = (isDynamicIsland ? compactDynamicIslandWidth : computedChinWidth) + (extraPad * 2)
         let height: CGFloat = isFullscreenEdgeReveal
             ? 2
@@ -1043,8 +1049,9 @@ struct ContentView: View {
             )
         }
 
-        let extraPad: CGFloat = vm.notchState == .closed && extendHoverArea
-            ? CGFloat(hoverAreaPadding)
+        let isHoverExpandEnabled = Defaults[.openNotchOnHover] && Defaults[.extendHoverArea]
+        let extraPad: CGFloat = vm.notchState == .closed && isHoverExpandEnabled
+            ? CGFloat(Defaults[.hoverAreaPadding])
             : 0
         let width = currentNotchWidth + extraPad * 2
         let height = currentNotchHeight + (isDynamicIsland ? effectiveTopOffset : 0) + extraPad
@@ -1165,6 +1172,19 @@ struct ContentView: View {
         if coordinator.firstLaunch && !FeatureTourController.shared.isTourActive { return }
         if faceIDOverlay.phase != .closed || isFaceIDSettlingAfterClose { return }
         if hovering {
+            // Do not treat window drags, text selection, or other pressed-button drags as hover.
+            if HoverTrackingPolicy.shouldSuppressHover(
+                isClosed: vm.notchState == .closed,
+                pressedMouseButtons: NSEvent.pressedMouseButtons
+            ) {
+                hoverOpenTask?.cancel()
+                hoverOpenTask = nil
+                if isHovering {
+                    isHovering = false
+                }
+                return
+            }
+
             // Cancel any pending close grace period immediately when mouse re-enters!
             if hoverCloseTask != nil {
                 hoverTransitionGeneration &+= 1
@@ -1281,18 +1301,27 @@ struct ContentView: View {
 
 }
 
+/// Evaluates whether normal pointer hover should be suppressed (e.g. during window drags).
+enum HoverTrackingPolicy {
+    static func shouldSuppressHover(isClosed: Bool, pressedMouseButtons: Int) -> Bool {
+        isClosed && pressedMouseButtons != 0
+    }
+}
+
 /// Tracks the complete per-display hover region from global mouse coordinates
 /// instead of relying on SwiftUI hit areas that are rebuilt during resizing.
 /// This remains stable in fullscreen Spaces and while the notch is animating.
 private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
     let regionProvider: @MainActor () -> CGRect
     let isEnabled: @MainActor () -> Bool
+    let shouldSuppressHover: @MainActor () -> Bool
     let onHoverChanged: @MainActor (Bool) -> Void
 
     func makeNSView(context: Context) -> TrackingView {
         let view = TrackingView()
         view.regionProvider = regionProvider
         view.isEnabled = isEnabled
+        view.shouldSuppressHover = shouldSuppressHover
         view.onHoverChanged = onHoverChanged
         return view
     }
@@ -1300,6 +1329,7 @@ private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
     func updateNSView(_ nsView: TrackingView, context: Context) {
         nsView.regionProvider = regionProvider
         nsView.isEnabled = isEnabled
+        nsView.shouldSuppressHover = shouldSuppressHover
         nsView.onHoverChanged = onHoverChanged
         nsView.installMonitorsIfNeeded()
         nsView.scheduleEvaluation()
@@ -1313,6 +1343,7 @@ private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
     final class TrackingView: NSView {
         var regionProvider: (() -> CGRect)?
         var isEnabled: (() -> Bool)?
+        var shouldSuppressHover: (() -> Bool)?
         var onHoverChanged: ((Bool) -> Void)?
 
         private var globalMonitor: Any?
@@ -1322,11 +1353,15 @@ private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
 
         private static let eventMask: NSEvent.EventTypeMask = [
             .mouseMoved,
+            .leftMouseDown,
             .leftMouseDragged,
+            .rightMouseDown,
             .rightMouseDragged,
+            .otherMouseDown,
             .otherMouseDragged,
             .leftMouseUp,
-            .rightMouseUp
+            .rightMouseUp,
+            .otherMouseUp
         ]
 
         override func hitTest(_ point: NSPoint) -> NSView? {
@@ -1388,8 +1423,9 @@ private struct ScreenEdgeHoverTrackingBridge: NSViewRepresentable {
 
         private func evaluateHover() {
             let enabled = isEnabled?() == true
+            let suppressed = shouldSuppressHover?() == true
             let region = regionProvider?() ?? .null
-            let inside = enabled && !region.isNull && region.contains(NSEvent.mouseLocation)
+            let inside = enabled && !suppressed && !region.isNull && region.contains(NSEvent.mouseLocation)
 
             // Re-emit true on movement so hover recovers immediately after a
             // transient blocker such as Mission Control disappears.
