@@ -7,6 +7,14 @@
         <language>en</language>
         <item>
             <title>5.7</title>
+            <pubDate>Thu, 12 Nov 2026 03:43:13 +0000</pubDate>
+            <sparkle:version>477</sparkle:version>
+            <sparkle:shortVersionString>5.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v5.7/NotchPulse.app.zip" length="21182868" type="application/octet-stream" sparkle:edSignature="GcHdCV8g33UGGavnP83UGBahu0LgG6HwcCTLfTbs9N+pInq/yNASzui7MXm2Q5TEOhblhT3Kg0XEJKhAllSbDw=="/>
+        </item>
+        <item>
+            <title>5.7</title>
             <pubDate>Wed, 11 Nov 2026 19:23:58 +0000</pubDate>
             <sparkle:version>476</sparkle:version>
             <sparkle:shortVersionString>5.7</sparkle:shortVersionString>
@@ -20,14 +28,6 @@
             <sparkle:shortVersionString>5.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v5.7/NotchPulse.app.zip" length="21184578" type="application/octet-stream" sparkle:edSignature="ermuetV1qUQvQu8lPYRROFPXDxzY1Kz6xjtDPdY0ovoMwYABOdW2Q8BvvzwkF14cYEoT0XTbchAhHYP11E1dCQ=="/>
-        </item>
-        <item>
-            <title>5.7</title>
-            <pubDate>Wed, 11 Nov 2026 18:10:30 +0000</pubDate>
-            <sparkle:version>474</sparkle:version>
-            <sparkle:shortVersionString>5.7</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/HieuKunn/NotchPulse-Release-for-everyone/releases/download/v5.7/NotchPulse.app.zip" length="21178029" type="application/octet-stream" sparkle:edSignature="sDXM7L0tP+VIJraPvqXFRT6+/6qoBrUW5Bq5z6+fCJI5kraxct6rqvtcptx3NwNMUqgGhFNbWm/kn4arxg+oCA=="/>
         </item>
     </channel>
 </rss>
