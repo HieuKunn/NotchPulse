@@ -705,8 +705,8 @@ final class DockPreviewManager: ObservableObject {
         // Max theoretical expansion beyond normal tilesize:
         let maxExpansion = isMagnification ? max(0.0, largesize - tilesize) : 0.0
 
-        // Clean user margin: exactly 10px beyond the fully magnified icon!
-        let baseMargin: CGFloat = 10.0
+        // Clean margin: 0px (directly at max magnification edge)
+        let baseMargin: CGFloat = 0.0
         var panelOrigin = NSPoint.zero
         let dockBarFrame = getDockBarGeometry(screen: screen)
 
