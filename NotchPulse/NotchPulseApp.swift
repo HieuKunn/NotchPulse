@@ -925,8 +925,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             playWelcomeSound()
         }
 
-        // Do NOT proactively request system permissions on launch.
-        // Permissions are granted strictly through individual user action on the Onboarding steps or Settings tabs.
+        // ⛔️ CRITICAL RULE - DO NOT DELETE OR REMOVE THIS LOGIC (CẤM XOÁ)!
+        // Automatically request/re-verify system permissions upfront on initial install or after app update.
+        // This ensures users do not have to manually re-grant or hunt down Camera, Accessibility, Calendar,
+        // and Reminders permissions in Settings after updating NotchPulse.
+        if isFirstInstall || isUpdated {
+            requestPermissionsUpfrontIfNeeded()
+        }
 
         // NotchPulse 2.0: Initialize Face ID & Lock Screen Observer
         _ = LockScreenWakeObserver.shared
@@ -968,6 +973,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                updater.automaticallyChecksForUpdates {
                 updater.checkForUpdatesInBackground()
             }
+        }
+    }
+
+    // ⛔️ CRITICAL RULE - DO NOT DELETE OR REMOVE THIS METHOD (CẤM XOÁ)!
+    // Proactively requests & pre-warms required system permissions on launch after an install or update.
+    // This eliminates the need for users to manually re-grant or turn on Accessibility, Camera,
+    // Calendar, Reminders, and Bluetooth across app updates.
+    @MainActor
+    private func requestPermissionsUpfrontIfNeeded() {
+        Task {
+            // 1. Camera / Live Mirror / Face ID Permission
+            let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+            if cameraStatus == .notDetermined {
+                _ = await AVCaptureDevice.requestAccess(for: .video)
+            }
+
+            // 2. Accessibility Permission (for Launchpad, Dock Preview, Lock screen auto-unlock & HUD)
+            if !AXIsProcessTrusted() {
+                try? await Task.sleep(for: .milliseconds(350))
+                XPCHelperClient.shared.requestAccessibilityAuthorization()
+            }
+
+            // 3. Calendar & Reminders Permissions (for Notch Schedule & Reminders)
+            try? await Task.sleep(for: .milliseconds(350))
+            if EKEventStore.authorizationStatus(for: .event) == .notDetermined {
+                await CalendarManager.shared.checkCalendarAuthorization()
+            }
+            if EKEventStore.authorizationStatus(for: .reminder) == .notDetermined {
+                await CalendarManager.shared.checkReminderAuthorization()
+            }
+
+            // 4. Pre-warm secure vault session & authorize Keychain on desktop
+            if NotchPulseFaceIDSettings.shared.isFaceUnlockEnabled || NotchPulseVault.hasStoredPassword() {
+                NotchPulseVault.preflightKeychainAuthorization()
+            }
+
+            // 5. Refresh Bluetooth permissions & headphone discovery
+            PermissionsManager.shared.refreshBluetooth()
         }
     }
 

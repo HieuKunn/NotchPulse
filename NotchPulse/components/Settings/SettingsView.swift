@@ -617,6 +617,7 @@ struct SettingsView: View {
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
+                .safeAreaPadding(.top, 56)
                 .background(DetailScrollViewObserver(isScrolled: $isDetailScrolled, selectedTab: selectedTab))
                 .safeAreaInset(edge: .top, spacing: 0) {
                     SettingsDetailHeaderBar(
@@ -779,51 +780,66 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
         }
 
         /// Walks up from the sibling `.background()` NSView to find the detail column's NSScrollView,
-        /// avoiding the sidebar's NSScrollView by stopping before NSSplitView and filtering by window X.
+        /// traversing only within the detail column subtree before NSSplitView.
         private static func findDetailScrollView(from view: NSView) -> NSScrollView? {
-            if let enclosing = view.enclosingScrollView, isDetailScrollView(enclosing) {
+            if let enclosing = view.enclosingScrollView {
                 return enclosing
             }
 
             var current: NSView? = view.superview
+            var topDetailContainer: NSView? = nil
             while let ancestor = current {
                 if ancestor is NSSplitView {
                     break
                 }
-                if let sv = firstDetailScrollView(in: ancestor) {
-                    return sv
-                }
+                topDetailContainer = ancestor
                 current = ancestor.superview
             }
 
+            if let container = topDetailContainer, let sv = firstScrollView(in: container) {
+                return sv
+            }
+
             if let root = view.window?.contentView {
-                return firstDetailScrollView(in: root)
+                return findRightmostScrollView(in: root)
             }
             return nil
         }
 
-        private static func firstDetailScrollView(in root: NSView) -> NSScrollView? {
-            if let sv = root as? NSScrollView, isDetailScrollView(sv) {
+        private static func firstScrollView(in root: NSView) -> NSScrollView? {
+            if let sv = root as? NSScrollView {
                 return sv
             }
             for subview in root.subviews {
-                if let sv = firstDetailScrollView(in: subview) {
+                if let sv = firstScrollView(in: subview) {
                     return sv
                 }
             }
             return nil
         }
 
-        private static func isDetailScrollView(_ sv: NSScrollView) -> Bool {
-            let frameInWindow = sv.convert(sv.bounds, to: nil)
-            return frameInWindow.minX >= 150 && frameInWindow.width > 100
+        private static func findRightmostScrollView(in root: NSView) -> NSScrollView? {
+            var allScrollViews: [NSScrollView] = []
+            func collect(_ v: NSView) {
+                if let sv = v as? NSScrollView {
+                    allScrollViews.append(sv)
+                }
+                for sub in v.subviews {
+                    collect(sub)
+                }
+            }
+            collect(root)
+            return allScrollViews.max(by: { sv1, sv2 in
+                let x1 = sv1.window != nil ? sv1.convert(sv1.bounds, to: nil).minX : sv1.frame.minX
+                let x2 = sv2.window != nil ? sv2.convert(sv2.bounds, to: nil).minX : sv2.frame.minX
+                return x1 < x2
+            })
         }
 
         private func checkScroll() {
-            guard let clipView = observedClipView, let sv = observedScrollView else { return }
-            let restingTopY = -sv.contentInsets.top
-            let scrolledDelta = clipView.bounds.origin.y - restingTopY
-            let scrolled = scrolledDelta > 2.0
+            guard let clipView = observedClipView else { return }
+            let offsetY = clipView.bounds.origin.y
+            let scrolled = offsetY > 2.0
             if isScrolled != scrolled {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isScrolled = scrolled

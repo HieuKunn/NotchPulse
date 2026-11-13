@@ -78,17 +78,20 @@ struct SettingsDetailHeaderBar: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .padding(.top, 8)
-            .padding(.bottom, 10)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
 
             Divider()
                 .opacity(isScrolled ? 1 : 0)
         }
         .background {
             if isScrolled {
-                VisualEffectView(material: .headerView, blendingMode: .withinWindow)
-                    .ignoresSafeArea(edges: .top)
-                    .transition(.opacity)
+                ZStack {
+                    VisualEffectView(material: .headerView, blendingMode: .withinWindow)
+                    Color(nsColor: .windowBackgroundColor).opacity(0.82)
+                }
+                .ignoresSafeArea(edges: .top)
+                .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isScrolled)
