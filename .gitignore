@@ -70,3 +70,7 @@ glance-main/
 .antigravity/agy-bridge/.bridge.lock
 vorssaint-utils-main/
 .antigravity/
+
+# Local Tools
+.obsidian/
+graphify-out/

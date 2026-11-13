@@ -136,8 +136,10 @@ struct SystemMonitorSettingsView: View {
         .formStyle(.grouped)
         .tint(.effectiveAccent)
         .onAppear {
-            monitor.shouldFetchProcesses = (expandedMetric != nil)
-            monitor.startMonitoring()
+            // Only perform a single one-shot snapshot for preview when opening this tab.
+            // Do NOT start a repeating background timer in Settings.
+            monitor.shouldFetchProcesses = false
+            monitor.requestMetricsUpdate()
         }
         .onChange(of: expandedMetric) { _, metric in
             monitor.shouldFetchProcesses = (metric != nil)
@@ -149,6 +151,7 @@ struct SystemMonitorSettingsView: View {
             expandedMetric = nil
             monitor.shouldFetchProcesses = false
             monitor.stopMonitoring()
+            monitor.stopThermalMonitoring()
         }
     }
 }

@@ -85,11 +85,9 @@ class SettingsWindowController: NSWindowController {
         window.titlebarAppearsTransparent = true
         window.isOpaque = false
         window.backgroundColor = .clear
-        window.titleVisibility = .visible
+        window.titleVisibility = .hidden
         window.toolbarStyle = .unified
-        let toolbar = NSToolbar(identifier: "NotchPulseSettingsToolbar")
-        toolbar.showsBaselineSeparator = false
-        window.toolbar = toolbar
+        window.toolbar = nil
         window.isMovableByWindowBackground = false
         
         // Make it behave like a regular app window with proper Spaces support
@@ -154,6 +152,8 @@ class SettingsWindowController: NSWindowController {
     
     private func relinquishFocus() {
         FaceIDOverlayController.shared.disarm()
+        SystemMonitorManager.shared.stopMonitoring()
+        SystemMonitorManager.shared.stopThermalMonitoring()
         isPresented = false
         
         // Removed: Freeing contentView here causes a white screen bug in macOS when switching app policies.

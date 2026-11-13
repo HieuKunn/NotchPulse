@@ -60,11 +60,12 @@ struct SettingsTabItem: Identifiable {
 
 // MARK: - Reusable Visual Elements
 
-/// Dedicated macOS-style top header bar matching System Settings (Sonoma/Sequoia).
-/// Pinned at top with frosted material backdrop (.bar) without harsh divider lines,
-/// letting form content glide cleanly underneath with native material blur.
+/// Dedicated macOS-style top header bar matching System Settings (Sonoma/Sequoia/Tahoe).
+/// Dynamically activates native material backdrop (.bar) and hairline divider when scrolled,
+/// leaving the header completely seamless at top and softly blurring content that scrolls underneath.
 struct SettingsDetailHeaderBar: View {
     let title: String
+    var isScrolled: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,8 +81,16 @@ struct SettingsDetailHeaderBar: View {
             .frame(height: 52)
 
             Divider()
+                .opacity(isScrolled ? 1 : 0)
         }
-        .background(.bar)
+        .background {
+            if isScrolled {
+                Rectangle()
+                    .fill(.bar)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isScrolled)
     }
 }
 

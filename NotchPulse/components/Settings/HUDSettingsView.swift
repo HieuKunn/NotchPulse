@@ -124,8 +124,8 @@ struct HUDSettingsView: View {
         .task {
             accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
         }
-        .onAppear {
-            XPCHelperClient.shared.startMonitoringAccessibilityAuthorization(every: 1.0)
+        .onDisappear {
+            XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             Task { @MainActor in

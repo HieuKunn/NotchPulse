@@ -207,6 +207,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         workspaceLockObservers.removeAll()
         LaunchpadSystemInterceptor.shared.teardown()
+        DockPreviewManager.shared.teardown()
         cleanupDragDetectors()
         cleanupWindows()
         MusicManager.shared.destroy()
@@ -892,6 +893,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             LaunchpadWindowController.shared.prewarmIfNeeded()
         }
+
+        DockPreviewManager.shared.configure()
 
         if !Defaults[.showOnAllDisplays] {
             let preferredUUID = coordinator.preferredScreenUUID

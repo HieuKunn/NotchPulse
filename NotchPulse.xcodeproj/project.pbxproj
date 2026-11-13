@@ -238,6 +238,9 @@
 		F1D2009E2ED0000100000001 /* LaunchpadRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */; };
 		F1D200A22ED0000100000001 /* LaunchpadSystemInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D200A12ED0000100000001 /* LaunchpadSystemInterceptor.swift */; };
 		F1D200A02ED0000100000001 /* LaunchpadSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D2009F2ED0000100000001 /* LaunchpadSettingsView.swift */; };
+		D0C000032ED0000100000001 /* DockPreviewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000022ED0000100000001 /* DockPreviewManager.swift */; };
+		D0C000052ED0000100000001 /* DockPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000042ED0000100000001 /* DockPreviewView.swift */; };
+		D0C000072ED0000100000001 /* DockSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000062ED0000100000001 /* DockSettingsView.swift */; };
 		F2EB20A8B698B538696523C4 /* FaceIDRecognitionSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8F04A1422C01C7B5FD7417 /* FaceIDRecognitionSettingsPage.swift */; };
 		F336F53951E9E06D48E20329 /* FaceIDOverlayGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99745487558266047D32839 /* FaceIDOverlayGeometry.swift */; };
 		F8B6F341EE966B181E3F127C /* NotchPulseLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9438603647C24A08005A7C /* NotchPulseLockMonitor.swift */; };
@@ -533,6 +536,9 @@
 		F1D2009D2ED0000100000001 /* LaunchpadRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadRootView.swift; sourceTree = "<group>"; };
 		F1D200A12ED0000100000001 /* LaunchpadSystemInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadSystemInterceptor.swift; sourceTree = "<group>"; };
 		F1D2009F2ED0000100000001 /* LaunchpadSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchpadSettingsView.swift; sourceTree = "<group>"; };
+		D0C000022ED0000100000001 /* DockPreviewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockPreviewManager.swift; sourceTree = "<group>"; };
+		D0C000042ED0000100000001 /* DockPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockPreviewView.swift; sourceTree = "<group>"; };
+		D0C000062ED0000100000001 /* DockSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -729,6 +735,7 @@
 				B1DD00012ED0000100000001 /* Display */,
 				B1CB00012ED0000100000001 /* Clipboard */,
 				F1D200902ED0000100000001 /* Launchpad */,
+				D0C000012ED0000100000001 /* DockPreview */,
 				F1D2000D2ED0000100000001 /* LockScreen */,
 				B141C23B2CA5F50900AC8CC8 /* Onboarding */,
 				14C08BB72C8DE49E000F8AA0 /* Calendar */,
@@ -1162,6 +1169,16 @@
 			path = Launchpad;
 			sourceTree = "<group>";
 		};
+		D0C000012ED0000100000001 /* DockPreview */ = {
+			isa = PBXGroup;
+			children = (
+				D0C000022ED0000100000001 /* DockPreviewManager.swift */,
+				D0C000042ED0000100000001 /* DockPreviewView.swift */,
+				D0C000062ED0000100000001 /* DockSettingsView.swift */,
+			);
+			path = DockPreview;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1524,6 +1541,9 @@
 				F1D2009E2ED0000100000001 /* LaunchpadRootView.swift in Sources */,
 				F1D200A22ED0000100000001 /* LaunchpadSystemInterceptor.swift in Sources */,
 				F1D200A02ED0000100000001 /* LaunchpadSettingsView.swift in Sources */,
+				D0C000032ED0000100000001 /* DockPreviewManager.swift in Sources */,
+				D0C000052ED0000100000001 /* DockPreviewView.swift in Sources */,
+				D0C000072ED0000100000001 /* DockSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1546,7 +1566,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 479;
+				CURRENT_PROJECT_VERSION = 480;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1572,7 +1592,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 479;
+				CURRENT_PROJECT_VERSION = 480;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1729,7 +1749,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 479;
+				CURRENT_PROJECT_VERSION = 480;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -1785,7 +1805,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 479;
+				CURRENT_PROJECT_VERSION = 480;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"NotchPulse/Preview Content\"";
 				DEVELOPMENT_TEAM = "";

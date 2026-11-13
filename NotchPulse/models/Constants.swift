@@ -185,6 +185,20 @@ enum AppLanguage: String, CaseIterable, Identifiable, Defaults.Serializable {
     }
 }
 
+enum DockPreviewSize: String, CaseIterable, Defaults.Serializable {
+    case small = "Small"
+    case medium = "Medium"
+    case large = "Large"
+
+    var thumbnailWidth: CGFloat {
+        switch self {
+        case .small: return 180
+        case .medium: return 240
+        case .large: return 320
+        }
+    }
+}
+
 extension Defaults.Keys {
     // MARK: General
     static let notchStyle = Key<NotchStyle>("notchStyle", default: .notch)
@@ -364,6 +378,13 @@ extension Defaults.Keys {
     static let launchpadShowLabels = Key<Bool>("launchpadShowLabels", default: true)
     static let launchpadBackgroundStyle = Key<LaunchpadBackgroundStyle>("launchpadBackgroundStyle", default: .systemGlass)
     static let launchpadHotCorner = Key<LaunchpadHotCorner>("launchpadHotCorner", default: .none)
+
+    // MARK: Dock Window Preview
+    static let enableDockPreview = Key<Bool>("enableDockPreview", default: true)
+    static let dockPreviewHoverDelay = Key<Double>("dockPreviewHoverDelay", default: 0.25)
+    static let dockPreviewSize = Key<DockPreviewSize>("dockPreviewSize", default: .medium)
+    static let dockPreviewShowTitles = Key<Bool>("dockPreviewShowTitles", default: true)
+    static let dockPreviewShowCloseButton = Key<Bool>("dockPreviewShowCloseButton", default: true)
 
     // MARK: Master Feature Toggles
     static let enableCalendarFeature = Key<Bool>("enableCalendarFeature", default: true)

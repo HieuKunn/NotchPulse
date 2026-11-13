@@ -1200,10 +1200,10 @@ final class LaunchpadSystemInterceptor {
         }
         let state = WatcherState()
         let timer = DispatchSource.makeTimerSource(queue: fallbackMonitorQueue)
-        timer.schedule(deadline: .now() + .milliseconds(100), repeating: .milliseconds(100), leeway: .milliseconds(25))
+        timer.schedule(deadline: .now() + .seconds(1), repeating: .milliseconds(1200), leeway: .milliseconds(300))
         timer.setEventHandler { [weak self] in
             state.pollCount += 1
-            let shouldRefreshObservers = state.pollCount >= 25
+            let shouldRefreshObservers = state.pollCount >= 5
             if shouldRefreshObservers {
                 state.pollCount = 0
             }

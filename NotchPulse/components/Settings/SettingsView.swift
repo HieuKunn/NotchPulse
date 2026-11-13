@@ -19,6 +19,7 @@ enum SettingsDestination: String, CaseIterable, Identifiable {
     case display = "Display"
     case audio = "Audio"
     case systemMonitor = "SystemMonitor"
+    case dock = "Dock"
     case faceID = "FaceID"
     case permissions = "Permissions"
     case advanced = "Advanced"
@@ -44,6 +45,7 @@ struct SettingsView: View {
     @State private var scrollToItemId: String? = nil
     @State private var highlightedItemId: String? = nil
     @State private var scrollTrigger = UUID()
+    @State private var isDetailScrolled: Bool = false
     @Default(.appLanguage) private var appLanguage
 
     private static let cachedAppIcon: NSImage? = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
@@ -341,6 +343,28 @@ struct SettingsView: View {
             ]
         ),
         SettingsTabItem(
+            id: .dock,
+            icon: "dock.rectangle",
+            badgeColor: Color(nsColor: .systemBlue),
+            sections: [
+                SettingsSectionItem(
+                    id: "dock_preview_master",
+                    title: "Dock Window Preview",
+                    keywords: ["Dock", "Window Preview", "Hover", "Exposé", "Thumbnail", "Xem trước cửa sổ", "Cửa sổ đang mở"]
+                ),
+                SettingsSectionItem(
+                    id: "dock_preview_appearance",
+                    title: "Appearance & Behavior",
+                    keywords: ["Preview Size", "Hover Delay", "Window Titles", "Close Button", "Kích thước", "Độ trễ"]
+                ),
+                SettingsSectionItem(
+                    id: "dock_preview_status",
+                    title: "Status & Permissions",
+                    keywords: ["Detected Dock Position", "Screen Recording Access", "Quyền ghi màn hình"]
+                )
+            ]
+        ),
+        SettingsTabItem(
             id: .faceID,
             icon: "faceid",
             badgeColor: Color.blue,
@@ -468,7 +492,7 @@ struct SettingsView: View {
             SettingsSidebarCategory(
                 id: "hardware_system_category",
                 title: loc("Hardware & System"),
-                tabs: getTabs([.hud, .display, .audio, .systemMonitor])
+                tabs: getTabs([.hud, .display, .audio, .systemMonitor, .dock])
             ),
             SettingsSidebarCategory(
                 id: "security_permissions_category",
@@ -573,11 +597,16 @@ struct SettingsView: View {
             tabTitle: tabTitle(for:),
             selectTab: selectTab
         )
-        .searchable(
-            text: $searchText,
-            placement: .sidebar,
-            prompt: loc("Search")
-        )
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                NativeSidebarSearchField(text: $searchText, prompt: loc("Search"))
+                    .frame(height: 28)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 36)
+                    .padding(.bottom, 6)
+            }
+            .background(.bar)
+        }
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -589,9 +618,21 @@ struct SettingsView: View {
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
-                .background(EnclosingScrollViewSuppressor())
-                .navigationTitle(tabTitle(for: selectedTab))
-                .modifier(TahoeTopScrollEdgeEffectModifier())
+                .background(DetailScrollViewObserver(isScrolled: $isDetailScrolled))
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    SettingsDetailHeaderBar(
+                        title: tabTitle(for: selectedTab),
+                        isScrolled: isDetailScrolled
+                    )
+                    .zIndex(1)
+                }
+                .background(Color(nsColor: .windowBackgroundColor))
+                .ignoresSafeArea(edges: .top)
+                .onChange(of: selectedTab) { _, _ in
+                    isDetailScrolled = false
+                    SystemMonitorManager.shared.stopMonitoring()
+                    SystemMonitorManager.shared.stopThermalMonitoring()
+                }
                 .onChange(of: scrollTrigger) { _, _ in
                     guard let targetId = scrollToItemId else { return }
                     Task { @MainActor in
@@ -623,6 +664,8 @@ struct SettingsView: View {
             HUDSettingsView()
         case .systemMonitor:
             SystemMonitorSettingsView()
+        case .dock:
+            DockSettingsView()
         case .faceID:
             FaceIDSettingsView()
         case .permissions:
@@ -662,14 +705,97 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Native Scroll-Edge Glass Blur (macOS Tahoe)
+// MARK: - AppKit Detail Scroll Observer (macOS Dynamic Blur Header)
 
-private struct TahoeTopScrollEdgeEffectModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content.scrollEdgeEffectStyle(.soft, for: .top)
-        } else {
-            content
+private struct DetailScrollViewObserver: NSViewRepresentable {
+    @Binding var isScrolled: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isScrolled: $isScrolled)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        context.coordinator.targetView = view
+        DispatchQueue.main.async { [weak view, weak coordinator = context.coordinator] in
+            guard let view = view, let coordinator = coordinator else { return }
+            coordinator.attach(to: view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.targetView = nsView
+        DispatchQueue.main.async { [weak nsView, weak coordinator = context.coordinator] in
+            guard let nsView = nsView, let coordinator = coordinator else { return }
+            coordinator.attach(to: nsView)
+        }
+    }
+
+    final class Coordinator: NSObject {
+        @Binding var isScrolled: Bool
+        weak var targetView: NSView?
+        private weak var observedClipView: NSClipView?
+        private var notificationToken: Any?
+
+        init(isScrolled: Binding<Bool>) {
+            self._isScrolled = isScrolled
+        }
+
+        func attach(to view: NSView) {
+            var current: NSView? = view
+            while let c = current {
+                if let sv = c as? NSScrollView {
+                    Self.suppressScroller(sv)
+
+                    let clipView = sv.contentView
+                    if observedClipView !== clipView {
+                        if let token = notificationToken {
+                            NotificationCenter.default.removeObserver(token)
+                            notificationToken = nil
+                        }
+                        observedClipView = clipView
+                        clipView.postsBoundsChangedNotifications = true
+                        notificationToken = NotificationCenter.default.addObserver(
+                            forName: NSView.boundsDidChangeNotification,
+                            object: clipView,
+                            queue: .main
+                        ) { [weak self] _ in
+                            self?.checkScroll()
+                        }
+                        checkScroll()
+                    }
+                    return
+                }
+                current = c.superview
+            }
+        }
+
+        private func checkScroll() {
+            guard let clipView = observedClipView else { return }
+            let offsetY = clipView.bounds.origin.y
+            let scrolled = offsetY > 2.0
+            if isScrolled != scrolled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isScrolled = scrolled
+                }
+            }
+        }
+
+        private static func suppressScroller(_ sv: NSScrollView) {
+            if !sv.hasVerticalScroller { sv.hasVerticalScroller = true }
+            if !sv.autohidesScrollers { sv.autohidesScrollers = true }
+            if sv.scrollerStyle != .overlay { sv.scrollerStyle = .overlay }
+            if let scroller = sv.verticalScroller, (!scroller.isHidden || scroller.alphaValue != 0) {
+                scroller.alphaValue = 0
+                scroller.isHidden = true
+            }
+        }
+
+        deinit {
+            if let token = notificationToken {
+                NotificationCenter.default.removeObserver(token)
+            }
         }
     }
 }
@@ -701,6 +827,61 @@ private struct EnclosingScrollViewSuppressor: NSViewRepresentable {
                 }
             }
             current = c.superview
+        }
+    }
+}
+
+// MARK: - Native AppKit Search Field (Compact Sidebar Search)
+
+private struct NativeSidebarSearchField: NSViewRepresentable {
+    @Binding var text: String
+    var prompt: String = ""
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    func makeNSView(context: Context) -> NSSearchField {
+        let field = NSSearchField()
+        field.placeholderString = prompt
+        field.bezelStyle = .roundedBezel
+        field.controlSize = .regular
+        field.focusRingType = .exterior
+        field.delegate = context.coordinator
+        field.target = context.coordinator
+        field.action = #selector(Coordinator.searchChanged(_:))
+        return field
+    }
+
+    func updateNSView(_ nsView: NSSearchField, context: Context) {
+        if nsView.stringValue != text {
+            nsView.stringValue = text
+        }
+        if nsView.placeholderString != prompt {
+            nsView.placeholderString = prompt
+        }
+    }
+
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        @Binding var text: String
+
+        init(text: Binding<String>) {
+            self._text = text
+        }
+
+        @objc func searchChanged(_ sender: NSSearchField) {
+            text = sender.stringValue
+        }
+
+        func controlTextDidChange(_ obj: Notification) {
+            guard let field = obj.object as? NSSearchField else { return }
+            text = field.stringValue
+        }
+
+        func searchFieldDidStartSearching(_ sender: NSSearchField) {}
+
+        func searchFieldDidEndSearching(_ sender: NSSearchField) {
+            text = ""
         }
     }
 }
