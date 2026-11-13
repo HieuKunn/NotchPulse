@@ -50,42 +50,51 @@ struct DockPreviewView: View {
             // Body: Window cards
             if isVerticalLayout {
                 // Vertical layout when Dock is Left/Right
-                ScrollView(.vertical, showsIndicators: viewModel.windows.count > 3) {
-                    VStack(spacing: 8) {
+                if viewModel.windows.count <= 3 {
+                    VStack(spacing: 6) {
                         ForEach(viewModel.windows) { item in
                             windowThumbnailCard(for: item)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(6)
+                } else {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(spacing: 6) {
+                            ForEach(viewModel.windows) { item in
+                                windowThumbnailCard(for: item)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .frame(maxHeight: 520)
+                    .padding(6)
                 }
-                .frame(maxHeight: min(520, CGFloat(viewModel.windows.count) * 155 + 10))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 6)
             } else {
                 // Horizontal layout when Dock is Bottom
-                ScrollView(.horizontal, showsIndicators: viewModel.windows.count > 3) {
-                    HStack(alignment: .top, spacing: 8) {
+                if viewModel.windows.count <= 4 {
+                    HStack(alignment: .top, spacing: 6) {
                         ForEach(viewModel.windows) { item in
                             windowThumbnailCard(for: item)
                         }
                     }
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 6)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: true) {
+                        HStack(alignment: .top, spacing: 6) {
+                            ForEach(viewModel.windows) { item in
+                                windowThumbnailCard(for: item)
+                            }
+                        }
+                        .padding(.horizontal, 2)
+                    }
+                    .frame(maxWidth: 880)
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 6)
                 }
-                .frame(maxWidth: min(720, CGFloat(viewModel.windows.count) * (previewSize.thumbnailWidth + 10) + 16))
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
             }
         }
-        .padding(2)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.thickMaterial)
-                .shadow(color: Color.black.opacity(0.20), radius: 14, x: 0, y: 6)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 0.5)
-        )
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .fixedSize()
     }
 
@@ -97,7 +106,7 @@ struct DockPreviewView: View {
         Button {
             viewModel.onSelectWindow?(item)
         } label: {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 // Thumbnail preview box
                 ZStack(alignment: .topTrailing) {
                     Group {
@@ -106,31 +115,64 @@ struct DockPreviewView: View {
                                 .resizable()
                                 .scaledToFit()
                         } else {
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.65))
-                                .overlay {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: item.isMinimized ? "arrow.down.right.and.arrow.up.left" : "macwindow")
-                                            .font(.title3)
-                                            .foregroundStyle(.secondary)
+                            // Authentic macOS window mockup fallback
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.85))
+
+                                VStack(spacing: 0) {
+                                    // Window titlebar mockup with traffic lights
+                                    HStack(spacing: 4) {
+                                        Circle().fill(Color.red.opacity(0.75)).frame(width: 5, height: 5)
+                                        Circle().fill(Color.yellow.opacity(0.75)).frame(width: 5, height: 5)
+                                        Circle().fill(Color.green.opacity(0.75)).frame(width: 5, height: 5)
+                                        Spacer()
                                         if item.isMinimized {
-                                            Text(loc("Minimized"))
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
+                                            Image(systemName: "arrow.up.forward.and.arrow.down.backward")
+                                                .font(.system(size: 8))
+                                                .foregroundStyle(.tertiary)
                                         }
                                     }
+                                    .padding(.horizontal, 8)
+                                    .frame(height: 18)
+                                    .background(Color(nsColor: .controlBackgroundColor).opacity(0.4))
+
+                                    Divider()
+                                        .opacity(0.3)
+
+                                    // Window body mockup with app icon and content wireframe
+                                    VStack(spacing: 6) {
+                                        Spacer()
+                                        if let icon = viewModel.appIcon {
+                                            Image(nsImage: icon)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 28, height: 28)
+                                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                                .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+                                        } else {
+                                            Image(systemName: "macwindow")
+                                                .font(.system(size: 24))
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        // Subtle content wireframe lines
+                                        VStack(spacing: 3) {
+                                            RoundedRectangle(cornerRadius: 1.5)
+                                                .fill(Color.secondary.opacity(0.2))
+                                                .frame(width: 60, height: 3)
+                                            RoundedRectangle(cornerRadius: 1.5)
+                                                .fill(Color.secondary.opacity(0.12))
+                                                .frame(width: 40, height: 3)
+                                        }
+                                        Spacer()
+                                    }
                                 }
+                            }
                         }
                     }
                     .frame(width: cardWidth, height: cardWidth * 0.60)
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .stroke(
-                                isHovered ? Color.effectiveAccent : Color(nsColor: .separatorColor).opacity(0.25),
-                                lineWidth: isHovered ? 1.5 : 0.5
-                            )
-                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                     // Quick-close button
                     if showCloseButton && isHovered {
@@ -150,14 +192,20 @@ struct DockPreviewView: View {
 
                 // Window Title (always shown in vertical layout, or according to user preference)
                 if showTitles || isVerticalLayout {
-                    Text(item.title)
+                    Text(item.title.isEmpty ? viewModel.appName : item.title)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(isHovered ? Color.effectiveAccent : .primary)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: cardWidth, alignment: .leading)
+                        .padding(.horizontal, 2)
                 }
             }
+            .padding(4)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
+            )
         }
         .buttonStyle(.plain)
         .onHover { inside in

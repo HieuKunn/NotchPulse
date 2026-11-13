@@ -54,6 +54,8 @@ final class DockPreviewManager: ObservableObject {
     static let shared = DockPreviewManager()
 
     private var mouseMonitor: Any?
+    private var clickMonitor: Any?
+    private var localClickMonitor: Any?
     private var hoverTimer: Timer?
     private var dismissTimer: Timer?
     private var lastHoveredTitle: String? = nil
@@ -98,18 +100,52 @@ final class DockPreviewManager: ObservableObject {
         hoverTimer = nil
         dismissTimer?.invalidate()
         dismissTimer = nil
-        hidePreviewPanel(animated: false)
+        dismissImmediately()
+        unpinDockAutohideIfNeeded()
         isConfigured = false
     }
 
     // MARK: - Mouse Event Monitoring
 
     private func startMouseMonitoring() {
-        guard mouseMonitor == nil else { return }
+        if mouseMonitor == nil {
+            mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.handleGlobalMouseMove()
+                }
+            }
+        }
 
-        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.handleGlobalMouseMove()
+        if clickMonitor == nil {
+            clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [
+                .rightMouseDown,
+                .leftMouseDown,
+                .otherMouseDown
+            ]) { [weak self] event in
+                Task { @MainActor [weak self] in
+                    guard let self = self, self.isPanelVisible else { return }
+                    // Right click or Control+Click ANYWHERE (on dock icon, desktop, etc.):
+                    // IMMEDIATELY dismiss preview with 0 delay so macOS Dock context menu opens clean and unobscured!
+                    if event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control)) {
+                        self.dismissImmediately()
+                        return
+                    }
+
+                    // Left click outside the preview panel: immediately dismiss
+                    let mouseLoc = NSEvent.mouseLocation
+                    if let panel = self.previewPanel, !panel.frame.contains(mouseLoc) {
+                        self.dismissImmediately()
+                    }
+                }
+            }
+        }
+
+        if localClickMonitor == nil {
+            localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown]) { [weak self] event in
+                Task { @MainActor [weak self] in
+                    self?.dismissImmediately()
+                }
+                return event
             }
         }
     }
@@ -118,6 +154,14 @@ final class DockPreviewManager: ObservableObject {
         if let monitor = mouseMonitor {
             NSEvent.removeMonitor(monitor)
             mouseMonitor = nil
+        }
+        if let monitor = clickMonitor {
+            NSEvent.removeMonitor(monitor)
+            clickMonitor = nil
+        }
+        if let monitor = localClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            localClickMonitor = nil
         }
     }
 
@@ -130,26 +174,36 @@ final class DockPreviewManager: ObservableObject {
         let (dockPos, dockScreen) = detectDockPosition()
 
         guard dockPos != .hidden, let screen = dockScreen else {
-            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
+            dismissImmediately()
             return
         }
 
-        // 1. If mouse is inside currently visible preview panel, keep it alive and prevent dismissal
-        if isPanelVisible, let panel = previewPanel, panel.frame.insetBy(dx: -16, dy: -16).contains(mouseLoc) {
+        // 1. If mouse is inside currently visible preview panel, keep it alive
+        if isPanelVisible, let panel = previewPanel, panel.frame.contains(mouseLoc) {
             dismissTimer?.invalidate()
             dismissTimer = nil
             return
         }
 
-        // 2. Fast screen edge bounds check before querying Accessibility
+        // 2. Allow mouse to smoothly cross the gap between Dock icon and preview panel
+        if isPanelVisible, lastHoveredItemFrame != .zero, let panel = previewPanel {
+            let bridgeRect = lastHoveredItemFrame.union(panel.frame)
+            if bridgeRect.contains(mouseLoc) {
+                dismissTimer?.invalidate()
+                dismissTimer = nil
+                return
+            }
+        }
+
+        // 3. Fast screen edge bounds check before querying Accessibility
         guard isMouseNearDockEdge(mouseLoc: mouseLoc, position: dockPos, screen: screen) else {
-            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
+            dismissImmediately()
             return
         }
 
         // Target Dock process directly using AXUIElementCreateApplication
         guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
-            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
+            dismissImmediately()
             return
         }
 
@@ -163,12 +217,12 @@ final class DockPreviewManager: ObservableObject {
         let status = AXUIElementCopyElementAtPosition(dockAX, Float(quartzX), Float(quartzY), &elementRef)
 
         guard status == .success, let element = elementRef else {
-            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
+            dismissImmediately()
             return
         }
 
         guard let dockItem = extractDockItemInfo(from: element, primaryScreen: primaryScreen) else {
-            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
+            dismissImmediately()
             return
         }
 
@@ -186,11 +240,16 @@ final class DockPreviewManager: ObservableObject {
             lastHoveredItemFrame = dockItem.frame
             hoverTimer?.invalidate()
 
-            let delay = Defaults[.dockPreviewHoverDelay]
-            hoverTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    guard let self = self else { return }
-                    self.showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
+            if isPanelVisible {
+                // If preview is already open, switch immediately without lag
+                showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
+            } else {
+                let delay = Defaults[.dockPreviewHoverDelay]
+                hoverTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        guard let self = self else { return }
+                        self.showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
+                    }
                 }
             }
         }
@@ -210,24 +269,16 @@ final class DockPreviewManager: ObservableObject {
         }
     }
 
-    private func scheduleDismissalIfNeeded(mouseLoc: NSPoint) {
+    private func dismissImmediately() {
         hoverTimer?.invalidate()
         hoverTimer = nil
+        dismissTimer?.invalidate()
+        dismissTimer = nil
         lastHoveredTitle = nil
+        lastHoveredItemFrame = .zero
 
         guard isPanelVisible else { return }
-
-        if let panel = previewPanel, panel.frame.insetBy(dx: -16, dy: -16).contains(mouseLoc) {
-            return
-        }
-
-        if dismissTimer == nil {
-            dismissTimer = Timer.scheduledTimer(withTimeInterval: 0.22, repeats: false) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.hidePreviewPanel(animated: true)
-                }
-            }
-        }
+        hidePreviewPanel(animated: false)
     }
 
     // MARK: - Extract Dock Item Info
@@ -484,10 +535,29 @@ final class DockPreviewManager: ObservableObject {
                 let winId = scWin?.windowID ?? UInt32(7000 + index)
 
                 var thumbImage: NSImage? = nil
-                if let scWin = scWin, !axItem.isMinimized {
-                    if let cached = thumbnailCache[scWin.windowID], Date().timeIntervalSince(cached.date) < 3.0 {
+                if let scWin = scWin {
+                    if let cached = thumbnailCache[scWin.windowID], Date().timeIntervalSince(cached.date) < 600.0 {
+                        // Use cached preview (even if currently minimized)
                         thumbImage = cached.image
+                    } else if !axItem.isMinimized {
+                        let aspect = max(0.2, min(3.0, scWin.frame.height / max(1.0, scWin.frame.width)))
+                        let targetHeight = max(80.0, targetWidth * aspect)
+
+                        let config = SCStreamConfiguration()
+                        config.width = Int(targetWidth * scale)
+                        config.height = Int(targetHeight * scale)
+                        config.showsCursor = false
+
+                        if let cgImage = try? await SCScreenshotManager.captureImage(
+                            contentFilter: SCContentFilter(desktopIndependentWindow: scWin),
+                            configuration: config
+                        ) {
+                            let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: targetWidth, height: targetHeight))
+                            thumbnailCache[scWin.windowID] = (nsImage, Date())
+                            thumbImage = nsImage
+                        }
                     } else {
+                        // Window is minimized: attempt capture once in case macOS still maintains its surface
                         let aspect = max(0.2, min(3.0, scWin.frame.height / max(1.0, scWin.frame.width)))
                         let targetHeight = max(80.0, targetWidth * aspect)
 
@@ -541,6 +611,40 @@ final class DockPreviewManager: ObservableObject {
 
     // MARK: - Panel Presentation with Consistent Fixed Small Spacing (Windows-like)
 
+    private func getDockBarGeometry(screen: NSScreen) -> CGRect? {
+        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
+            return nil
+        }
+        let dockAX = AXUIElementCreateApplication(dockApp.processIdentifier)
+        var childrenRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(dockAX, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+              let children = childrenRef as? [AXUIElement] else {
+            return nil
+        }
+
+        let primaryScreen = NSScreen.screens.first ?? screen
+        for child in children {
+            var roleRef: AnyObject?
+            AXUIElementCopyAttributeValue(child, kAXRoleAttribute as CFString, &roleRef)
+            if (roleRef as? String) == "AXList" {
+                var posRef: AnyObject?
+                var sizeRef: AnyObject?
+                AXUIElementCopyAttributeValue(child, kAXPositionAttribute as CFString, &posRef)
+                AXUIElementCopyAttributeValue(child, kAXSizeAttribute as CFString, &sizeRef)
+                var qPos = CGPoint.zero
+                var qSize = CGSize.zero
+                if let p = posRef { AXValueGetValue(p as! AXValue, .cgPoint, &qPos) }
+                if let s = sizeRef { AXValueGetValue(s as! AXValue, .cgSize, &qSize) }
+
+                if qSize.width > 0 && qSize.height > 0 {
+                    let appKitY = primaryScreen.frame.maxY - qPos.y - qSize.height
+                    return CGRect(x: qPos.x, y: appKitY, width: qSize.width, height: qSize.height)
+                }
+            }
+        }
+        return nil
+    }
+
     private func presentPanel(beside itemFrame: CGRect, dockPos: DockScreenPosition, screen: NSScreen) {
         if previewPanel == nil {
             let panel = NSPanel(
@@ -571,41 +675,61 @@ final class DockPreviewManager: ObservableObject {
         hosting.layoutSubtreeIfNeeded()
         let targetSize = hosting.fittingSize
 
-        // Small, consistent Windows-like spacing from Dock boundary
+        // Small, consistent Windows-like spacing measured strictly from the physical Dock bar itself
         let spacing: CGFloat = 8.0
         var panelOrigin = NSPoint.zero
+        let dockBarFrame = getDockBarGeometry(screen: screen)
 
         switch dockPos {
         case .right:
-            // DOCK ON RIGHT -> Panel MUST strictly be to the LEFT of the Dock!
-            let dockLeftBound = min(itemFrame.minX, screen.visibleFrame.maxX)
-            panelOrigin.x = dockLeftBound - targetSize.width - spacing
+            // DOCK ON RIGHT -> Panel MUST strictly be to the LEFT of the Dock bar!
+            let dockWidth = dockBarFrame?.width ?? max(68.0, itemFrame.width + 16.0)
+            let dockLeftEdge: CGFloat
+            if let dbFrame = dockBarFrame, dbFrame.minX < screen.frame.maxX - 5 {
+                dockLeftEdge = dbFrame.minX
+            } else {
+                dockLeftEdge = screen.frame.maxX - dockWidth
+            }
+            panelOrigin.x = dockLeftEdge - targetSize.width - spacing
             panelOrigin.y = itemFrame.midY - targetSize.height / 2.0
 
-            panelOrigin.x = max(screen.frame.minX + 12, min(dockLeftBound - targetSize.width - spacing, panelOrigin.x))
+            panelOrigin.x = max(screen.frame.minX + 12, min(dockLeftEdge - targetSize.width - spacing, panelOrigin.x))
             panelOrigin.y = max(screen.frame.minY + 12, min(screen.frame.maxY - targetSize.height - 12, panelOrigin.y))
 
         case .left:
-            // DOCK ON LEFT -> Panel MUST strictly be to the RIGHT of the Dock!
-            let dockRightBound = max(itemFrame.maxX, screen.visibleFrame.minX)
-            panelOrigin.x = dockRightBound + spacing
+            // DOCK ON LEFT -> Panel MUST strictly be to the RIGHT of the Dock bar!
+            let dockWidth = dockBarFrame?.width ?? max(68.0, itemFrame.width + 16.0)
+            let dockRightEdge: CGFloat
+            if let dbFrame = dockBarFrame, dbFrame.maxX > screen.frame.minX + 5 {
+                dockRightEdge = dbFrame.maxX
+            } else {
+                dockRightEdge = screen.frame.minX + dockWidth
+            }
+            panelOrigin.x = dockRightEdge + spacing
             panelOrigin.y = itemFrame.midY - targetSize.height / 2.0
 
-            panelOrigin.x = min(screen.frame.maxX - targetSize.width - 12, max(dockRightBound + spacing, panelOrigin.x))
+            panelOrigin.x = min(screen.frame.maxX - targetSize.width - 12, max(dockRightEdge + spacing, panelOrigin.x))
             panelOrigin.y = max(screen.frame.minY + 12, min(screen.frame.maxY - targetSize.height - 12, panelOrigin.y))
 
         case .bottom, .hidden:
-            // DOCK AT BOTTOM -> Panel MUST strictly be ABOVE the Dock!
-            let dockTopBound = max(itemFrame.maxY, screen.visibleFrame.minY)
-            panelOrigin.y = dockTopBound + spacing
+            // DOCK AT BOTTOM -> Panel MUST strictly be ABOVE the Dock bar!
+            let dockHeight = dockBarFrame?.height ?? max(68.0, itemFrame.height + 16.0)
+            let dockTopEdge: CGFloat
+            if let dbFrame = dockBarFrame, dbFrame.maxY > screen.frame.minY + 5 {
+                dockTopEdge = dbFrame.maxY
+            } else {
+                dockTopEdge = screen.frame.minY + dockHeight
+            }
+            panelOrigin.y = dockTopEdge + spacing
             panelOrigin.x = itemFrame.midX - targetSize.width / 2.0
 
             panelOrigin.x = max(screen.frame.minX + 12, min(screen.frame.maxX - targetSize.width - 12, panelOrigin.x))
-            panelOrigin.y = min(screen.frame.maxY - targetSize.height - 12, max(dockTopBound + spacing, panelOrigin.y))
+            panelOrigin.y = min(screen.frame.maxY - targetSize.height - 12, max(dockTopEdge + spacing, panelOrigin.y))
         }
 
         let newFrame = NSRect(origin: panelOrigin, size: targetSize)
         panel.setFrame(newFrame, display: true)
+        panel.invalidateShadow()
 
         if !panel.isVisible {
             panel.alphaValue = 0
@@ -628,7 +752,11 @@ final class DockPreviewManager: ObservableObject {
         guard let panel = previewPanel, isPanelVisible else { return }
         isPanelVisible = false
         lastHoveredTitle = nil
-        thumbnailCache.removeAll()
+        // Retain thumbnailCache so minimized windows keep their captured previews!
+        if thumbnailCache.count > 60 {
+            let now = Date()
+            thumbnailCache = thumbnailCache.filter { now.timeIntervalSince($0.value.date) < 900 }
+        }
         viewModel.windows.removeAll()
 
         if animated {
