@@ -1,4 +1,4 @@
-## NotchPulse v5.7 (Build 488) - Important Release
+## NotchPulse v5.7 (Build 490) - Important Release
 
 This release introduces native Dock Window Previews, background performance optimizations, refined Spotlight Search compatibility, smarter notch drag detection, native app logos for Quick Share, and an upgraded native macOS Tahoe Settings interface.
 

@@ -132,7 +132,7 @@ struct DockPreviewView: View {
                                         Spacer()
                                         if item.isMinimized {
                                             Image(systemName: "arrow.up.forward.and.arrow.down.backward")
-                                                .font(.system(size: 8))
+                                                .font(.caption2)
                                                 .foregroundStyle(.tertiary)
                                         }
                                     }
@@ -155,7 +155,7 @@ struct DockPreviewView: View {
                                                 .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
                                         } else {
                                             Image(systemName: "macwindow")
-                                                .font(.system(size: 24))
+                                                .font(.title)
                                                 .foregroundStyle(.secondary)
                                         }
 
@@ -183,7 +183,7 @@ struct DockPreviewView: View {
                             viewModel.onCloseWindow?(item)
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 15))
+                                .font(.title3)
                                 .foregroundStyle(.white, Color.red)
                                 .shadow(radius: 2)
                         }
@@ -207,11 +207,11 @@ struct DockPreviewView: View {
             .padding(4)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isHovered ? Color.white.opacity(0.10) : Color.clear)
+                    .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(isHovered ? Color.white.opacity(0.28) : Color.clear, lineWidth: 1)
+                    .strokeBorder(isHovered ? AnyShapeStyle(.secondary) : AnyShapeStyle(.clear), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

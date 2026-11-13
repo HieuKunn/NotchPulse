@@ -57,6 +57,7 @@ final class NotchPulseLockMonitor {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            Self.invalidateLockCache()
             self?.isScreenLocked = true
             self?.record(.screenLocked)
         })
@@ -65,6 +66,7 @@ final class NotchPulseLockMonitor {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            Self.invalidateLockCache()
             self?.isScreenLocked = false
             self?.record(.screenUnlocked)
         })
@@ -105,6 +107,7 @@ final class NotchPulseLockMonitor {
     }
 
     private func recordWake() {
+        Self.invalidateLockCache()
         isSleeping = false
         wakeEventCount += 1
         record(.wake)
@@ -115,10 +118,40 @@ final class NotchPulseLockMonitor {
         eventCount += 1
     }
 
-    nonisolated static func invalidateLockCache() {}
+    // MARK: - Short-lived lock-state cache
+    // `CGSessionCopyCurrentDictionary()` is a WindowServer round-trip that allocates a dictionary on every call, and this
+    // check sits on hot paths (hover, music polling, wake observers). A 200ms TTL removes the redundant IPC while the
+    // lock/unlock notifications below invalidate it immediately, so state is never stale across a real transition.
+    private nonisolated(unsafe) static var cachedLockState: (value: Bool, time: TimeInterval)?
+    private static let lockCacheLock = NSLock()
+    private static let lockCacheTTL: TimeInterval = 0.2
+
+    nonisolated static func invalidateLockCache() {
+        lockCacheLock.lock()
+        cachedLockState = nil
+        lockCacheLock.unlock()
+    }
 
     /// Authoritative lock state from the CoreGraphics session server, not a spoofable notification. Fails closed if unavailable.
     nonisolated static func isScreenActuallyLocked(bypassCache: Bool = false) -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        if !bypassCache {
+            lockCacheLock.lock()
+            let cached = cachedLockState
+            lockCacheLock.unlock()
+            if let cached, now - cached.time < lockCacheTTL {
+                return cached.value
+            }
+        }
+
+        let value = queryScreenLockedState()
+        lockCacheLock.lock()
+        cachedLockState = (value, now)
+        lockCacheLock.unlock()
+        return value
+    }
+
+    private nonisolated static func queryScreenLockedState() -> Bool {
         guard let dict = CGSessionCopyCurrentDictionary() as? [String: Any] else {
             return false
         }

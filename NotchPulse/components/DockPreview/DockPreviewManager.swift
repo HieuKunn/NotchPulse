@@ -100,6 +100,9 @@ final class DockPreviewManager: ObservableObject {
         hoverTimer = nil
         dismissTimer?.invalidate()
         dismissTimer = nil
+        trailingMoveWork?.cancel()
+        trailingMoveWork = nil
+        cachedDockBar = nil
         dismissImmediately()
         isConfigured = false
     }
@@ -110,7 +113,7 @@ final class DockPreviewManager: ObservableObject {
         if mouseMonitor == nil {
             mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    self?.handleGlobalMouseMove()
+                    self?.throttledMouseMove()
                 }
             }
         }
@@ -165,6 +168,30 @@ final class DockPreviewManager: ObservableObject {
     }
 
     // MARK: - Hover Detection
+
+    private var lastMouseProcessTime: TimeInterval = 0
+    private var trailingMoveWork: DispatchWorkItem?
+
+    /// Throttles the high-frequency global mouseMoved stream (~30Hz) with a trailing call
+    /// so the final resting mouse position is always evaluated.
+    private func throttledMouseMove() {
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - lastMouseProcessTime >= 0.033 {
+            lastMouseProcessTime = now
+            trailingMoveWork?.cancel()
+            trailingMoveWork = nil
+            handleGlobalMouseMove()
+        } else if trailingMoveWork == nil {
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.trailingMoveWork = nil
+                self.lastMouseProcessTime = ProcessInfo.processInfo.systemUptime
+                self.handleGlobalMouseMove()
+            }
+            trailingMoveWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.04, execute: work)
+        }
+    }
 
     private func handleGlobalMouseMove() {
         guard Defaults[.enableDockPreview] else { return }
@@ -243,9 +270,6 @@ final class DockPreviewManager: ObservableObject {
             // Check Corridor between Panel and the Dock bar / last hovered icon
             let corridor: CGRect
             let dockBar = getDockBarGeometry(screen: screen)
-            let dockMinX = dockBar?.minX ?? (screen.frame.maxX - 100)
-            let dockMaxX = dockBar?.maxX ?? (screen.frame.minX + 100)
-            let dockMaxY = dockBar?.maxY ?? (screen.frame.minY + 100)
 
             switch dockPos {
             case .right:
@@ -333,8 +357,7 @@ final class DockPreviewManager: ObservableObject {
         if role != "AXDockItem" {
             var parentRef: AnyObject?
             if AXUIElementCopyAttributeValue(element, kAXParentAttribute as CFString, &parentRef) == .success,
-               let parent = parentRef {
-                let parentElem = parent as! AXUIElement
+               let parentElem = axElement(from: parentRef) {
                 var parentRoleRef: AnyObject?
                 AXUIElementCopyAttributeValue(parentElem, kAXRoleAttribute as CFString, &parentRoleRef)
                 if (parentRoleRef as? String) == "AXDockItem" {
@@ -359,10 +382,8 @@ final class DockPreviewManager: ObservableObject {
         AXUIElementCopyAttributeValue(targetElement, kAXPositionAttribute as CFString, &posRef)
         AXUIElementCopyAttributeValue(targetElement, kAXSizeAttribute as CFString, &sizeRef)
 
-        var qPos = CGPoint.zero
-        var qSize = CGSize.zero
-        if let p = posRef { AXValueGetValue(p as! AXValue, .cgPoint, &qPos) }
-        if let s = sizeRef { AXValueGetValue(s as! AXValue, .cgSize, &qSize) }
+        let qPos = axPoint(from: posRef) ?? .zero
+        let qSize = axSize(from: sizeRef) ?? .zero
 
         let appKitY = primaryScreen.frame.maxY - qPos.y - qSize.height
         let frame = CGRect(x: qPos.x, y: appKitY, width: qSize.width, height: qSize.height)
@@ -645,7 +666,19 @@ final class DockPreviewManager: ObservableObject {
 
     // MARK: - Panel Presentation with Consistent Fixed Small Spacing (Windows-like)
 
+    /// Cached Dock bar geometry (Accessibility IPC is expensive; the Dock bar rarely changes shape).
+    private var cachedDockBar: (rect: CGRect?, date: Date)?
+
     private func getDockBarGeometry(screen: NSScreen) -> CGRect? {
+        if let cached = cachedDockBar, Date().timeIntervalSince(cached.date) < 0.75 {
+            return cached.rect
+        }
+        let rect = computeDockBarGeometry(screen: screen)
+        cachedDockBar = (rect, Date())
+        return rect
+    }
+
+    private func computeDockBarGeometry(screen: NSScreen) -> CGRect? {
         guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
             return nil
         }
@@ -665,10 +698,8 @@ final class DockPreviewManager: ObservableObject {
                 var sizeRef: AnyObject?
                 AXUIElementCopyAttributeValue(child, kAXPositionAttribute as CFString, &posRef)
                 AXUIElementCopyAttributeValue(child, kAXSizeAttribute as CFString, &sizeRef)
-                var qPos = CGPoint.zero
-                var qSize = CGSize.zero
-                if let p = posRef { AXValueGetValue(p as! AXValue, .cgPoint, &qPos) }
-                if let s = sizeRef { AXValueGetValue(s as! AXValue, .cgSize, &qSize) }
+                let qPos = axPoint(from: posRef) ?? .zero
+                let qSize = axSize(from: sizeRef) ?? .zero
 
                 if qSize.width > 0 && qSize.height > 0 {
                     let appKitY = primaryScreen.frame.maxY - qPos.y - qSize.height
@@ -840,8 +871,8 @@ final class DockPreviewManager: ObservableObject {
         if let axWin = item.axWindow {
             var closeBtnRef: AnyObject?
             if AXUIElementCopyAttributeValue(axWin, kAXCloseButtonAttribute as CFString, &closeBtnRef) == .success,
-               let closeBtn = closeBtnRef {
-                AXUIElementPerformAction(closeBtn as! AXUIElement, kAXPressAction as CFString)
+               let closeBtn = axElement(from: closeBtnRef) {
+                AXUIElementPerformAction(closeBtn, kAXPressAction as CFString)
             }
         }
         viewModel.windows.removeAll(where: { $0.id == item.id })
@@ -849,4 +880,26 @@ final class DockPreviewManager: ObservableObject {
             hidePreviewPanel(animated: true)
         }
     }
+}
+
+
+// MARK: - Safe Accessibility Casting (no force-casts → no crash if Dock returns unexpected types)
+
+private func axElement(from ref: AnyObject?) -> AXUIElement? {
+    guard let ref, CFGetTypeID(ref) == AXUIElementGetTypeID() else { return nil }
+    return unsafeBitCast(ref, to: AXUIElement.self)
+}
+
+private func axPoint(from ref: AnyObject?) -> CGPoint? {
+    guard let ref, CFGetTypeID(ref) == AXValueGetTypeID() else { return nil }
+    let value = unsafeBitCast(ref, to: AXValue.self)
+    var point = CGPoint.zero
+    return AXValueGetValue(value, .cgPoint, &point) ? point : nil
+}
+
+private func axSize(from ref: AnyObject?) -> CGSize? {
+    guard let ref, CFGetTypeID(ref) == AXValueGetTypeID() else { return nil }
+    let value = unsafeBitCast(ref, to: AXValue.self)
+    var size = CGSize.zero
+    return AXValueGetValue(value, .cgSize, &size) ? size : nil
 }
