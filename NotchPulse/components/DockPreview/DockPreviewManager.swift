@@ -72,6 +72,16 @@ final class DockPreviewManager: ObservableObject {
 
     private init() {
         setupCallbacks()
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.isConfigured, self.mouseMonitor == nil else { return }
+                self.startMouseMonitoring(resetRetry: true)
+            }
+        }
     }
 
     private func setupCallbacks() {
@@ -88,14 +98,13 @@ final class DockPreviewManager: ObservableObject {
             teardown()
             return
         }
-        guard !isConfigured else { return }
         isConfigured = true
-
         startMouseMonitoring()
     }
 
     func teardown() {
         stopMouseMonitoring()
+        monitorRetryCount = 0
         hoverTimer?.invalidate()
         hoverTimer = nil
         dismissTimer?.invalidate()
@@ -109,11 +118,25 @@ final class DockPreviewManager: ObservableObject {
 
     // MARK: - Mouse Event Monitoring
 
-    private func startMouseMonitoring() {
+    private var monitorRetryCount = 0
+    private let maxMonitorRetries = 4
+
+    private func startMouseMonitoring(resetRetry: Bool = false) {
+        if resetRetry {
+            monitorRetryCount = 0
+        }
         if mouseMonitor == nil {
             mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     self?.throttledMouseMove()
+                }
+            }
+            if mouseMonitor == nil && monitorRetryCount < maxMonitorRetries {
+                monitorRetryCount += 1
+                // Retry only a limited number of times (max 4 attempts: ~12s total), then stop to save CPU/battery
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    guard let self, self.isConfigured, self.mouseMonitor == nil else { return }
+                    self.startMouseMonitoring()
                 }
             }
         }
