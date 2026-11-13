@@ -148,13 +148,22 @@ private final class LaunchpadMultitouchPinchDetector: @unchecked Sendable {
             guard let ptr = CFArrayGetValueAtIndex(cfArray, idx) else { continue }
             let dev = UnsafeMutableRawPointer(mutating: ptr)
 
-            // Skip Touch Bar sensors (extremely wide and shallow surface dimensions)
+            // Strictly skip Touch Bar sensors and non-trackpad digitizers.
+            // Built-in trackpads have aspect ratios between 1.0 and 2.4 (e.g. 1.625).
+            // Touch Bar has an extreme aspect ratio > 10.0 (width is 15-20x its height).
             if let dimsFn {
                 var width: Int32 = 0
                 var height: Int32 = 0
-                if dimsFn(dev, &width, &height) == 0, width > 1000 && height > 0 && height < 100 {
+                if dimsFn(dev, &width, &height) == 0 {
+                    let aspect = Double(width) / Double(max(1, height))
+                    if aspect > 2.6 || aspect < 0.6 || width <= 0 || height <= 0 {
+                        continue
+                    }
+                } else {
                     continue
                 }
+            } else {
+                continue
             }
 
             // Retain MTDeviceRef before cfArray is released (matches OpenMTManager pattern)
@@ -750,6 +759,11 @@ final class LaunchpadSystemInterceptor {
     // MARK: - Trackpad Multitouch Detector
 
     private func installMultitouchDetectorIfNeeded() {
+        guard Defaults[.enableLaunchpad], Defaults[.launchpadReplaceSystemGesture] else {
+            multitouchDetector?.stop()
+            multitouchDetector = nil
+            return
+        }
         guard multitouchDetector == nil else { return }
         let detector = LaunchpadMultitouchPinchDetector(
             onPinchIn: {
@@ -814,6 +828,15 @@ final class LaunchpadSystemInterceptor {
             guard intVal != 0 else { return }
 
             let element = IOHIDValueGetElement(value)
+            let device = IOHIDElementGetDevice(element)
+            // Skip Apple internal built-in devices (e.g. Touch Bar Control Strip)
+            if let isBuiltIn = IOHIDDeviceGetProperty(device, kIOHIDBuiltInKey as CFString) as? Int, isBuiltIn == 1 {
+                return
+            }
+            if let isBuiltInBool = IOHIDDeviceGetProperty(device, "Built-In" as CFString) as? Bool, isBuiltInBool {
+                return
+            }
+
             let usagePage = IOHIDElementGetUsagePage(element)
             let usage = IOHIDElementGetUsage(element)
 

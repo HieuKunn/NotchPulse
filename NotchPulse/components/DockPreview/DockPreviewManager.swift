@@ -134,16 +134,16 @@ final class DockPreviewManager: ObservableObject {
             return
         }
 
-        // Fast screen edge bounds check before querying Accessibility
-        guard isMouseNearDockEdge(mouseLoc: mouseLoc, position: dockPos, screen: screen) else {
-            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
+        // 1. If mouse is inside currently visible preview panel, keep it alive and prevent dismissal
+        if isPanelVisible, let panel = previewPanel, panel.frame.insetBy(dx: -16, dy: -16).contains(mouseLoc) {
+            dismissTimer?.invalidate()
+            dismissTimer = nil
             return
         }
 
-        // If mouse is inside currently visible preview panel, keep it alive
-        if isPanelVisible, let panel = previewPanel, panel.frame.insetBy(dx: -14, dy: -14).contains(mouseLoc) {
-            dismissTimer?.invalidate()
-            dismissTimer = nil
+        // 2. Fast screen edge bounds check before querying Accessibility
+        guard isMouseNearDockEdge(mouseLoc: mouseLoc, position: dockPos, screen: screen) else {
+            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
             return
         }
 
@@ -620,9 +620,11 @@ final class DockPreviewManager: ObservableObject {
         }
 
         isPanelVisible = true
+        pinDockAutohideIfNeeded()
     }
 
     private func hidePreviewPanel(animated: Bool) {
+        unpinDockAutohideIfNeeded()
         guard let panel = previewPanel, isPanelVisible else { return }
         isPanelVisible = false
         lastHoveredTitle = nil
@@ -641,6 +643,34 @@ final class DockPreviewManager: ObservableObject {
         } else {
             panel.alphaValue = 0.0
             panel.orderOut(nil)
+        }
+    }
+
+    // MARK: - Dock Auto-Hide Temporary Pinning During Preview
+
+    private var didPinDockAutohide: Bool = false
+
+    /// Temporarily un-hides the Dock while the user hovers over window previews,
+    /// preventing macOS from sliding the Dock away mid-interaction.
+    private func pinDockAutohideIfNeeded() {
+        let isAutohide = (UserDefaults(suiteName: "com.apple.dock")?.bool(forKey: "autohide") ?? false)
+        guard isAutohide, !didPinDockAutohide else { return }
+        didPinDockAutohide = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let script = NSAppleScript(source: "tell application \"System Events\" to tell dock preferences to set autohide to false")
+            var err: NSDictionary?
+            script?.executeAndReturnError(&err)
+        }
+    }
+
+    /// Restores native auto-hide behavior once the user moves away from all previews and Dock items.
+    private func unpinDockAutohideIfNeeded() {
+        guard didPinDockAutohide else { return }
+        didPinDockAutohide = false
+        DispatchQueue.global(qos: .userInitiated).async {
+            let script = NSAppleScript(source: "tell application \"System Events\" to tell dock preferences to set autohide to true")
+            var err: NSDictionary?
+            script?.executeAndReturnError(&err)
         }
     }
 

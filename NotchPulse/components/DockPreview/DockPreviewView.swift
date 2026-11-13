@@ -15,35 +15,37 @@ struct DockPreviewView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header: App identity & window count
-            HStack(spacing: 8) {
-                if let icon = viewModel.appIcon {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 18, height: 18)
-                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        VStack(alignment: .leading, spacing: isVerticalLayout ? 4 : 8) {
+            // Header: App identity & window count (ONLY displayed for horizontal / bottom dock layout)
+            if !isVerticalLayout {
+                HStack(spacing: 8) {
+                    if let icon = viewModel.appIcon {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 18, height: 18)
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    }
+
+                    Text(viewModel.appName)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Spacer(minLength: 8)
+
+                    if viewModel.windows.count > 1 {
+                        Text("\(viewModel.windows.count)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1.5)
+                            .background(Color(nsColor: .separatorColor).opacity(0.25))
+                            .clipShape(Capsule())
+                    }
                 }
-
-                Text(viewModel.appName)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-
-                Spacer(minLength: 8)
-
-                if viewModel.windows.count > 1 {
-                    Text("\(viewModel.windows.count)")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1.5)
-                        .background(Color(nsColor: .separatorColor).opacity(0.25))
-                        .clipShape(Capsule())
-                }
+                .padding(.horizontal, 10)
+                .padding(.top, 8)
             }
-            .padding(.horizontal, 10)
-            .padding(.top, 8)
 
             // Body: Window cards
             if isVerticalLayout {
@@ -56,9 +58,9 @@ struct DockPreviewView: View {
                     }
                     .padding(.vertical, 2)
                 }
-                .frame(maxHeight: min(480, CGFloat(viewModel.windows.count) * 155 + 10))
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
+                .frame(maxHeight: min(520, CGFloat(viewModel.windows.count) * 155 + 10))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 6)
             } else {
                 // Horizontal layout when Dock is Bottom
                 ScrollView(.horizontal, showsIndicators: viewModel.windows.count > 3) {
@@ -146,8 +148,8 @@ struct DockPreviewView: View {
                     }
                 }
 
-                // Window Title
-                if showTitles {
+                // Window Title (always shown in vertical layout, or according to user preference)
+                if showTitles || isVerticalLayout {
                     Text(item.title)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(isHovered ? Color.effectiveAccent : .primary)
