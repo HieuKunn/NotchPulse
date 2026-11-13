@@ -62,7 +62,7 @@ struct SettingsTabItem: Identifiable {
 
 /// Dedicated macOS-style top header bar matching System Settings (Sonoma/Sequoia/Tahoe).
 /// Transparent at top so content sits naturally with zero artificial space or painted background;
-/// seamlessly transitions to pure native frosted material blur (.bar) and hairline divider ONLY when content scrolls underneath.
+/// transitions to native within-window frosted material blur and hairline divider when content scrolls underneath.
 struct SettingsDetailHeaderBar: View {
     let title: String
     var isScrolled: Bool = false
@@ -78,15 +78,16 @@ struct SettingsDetailHeaderBar: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .frame(height: 50)
+            .padding(.top, 8)
+            .padding(.bottom, 10)
 
             Divider()
                 .opacity(isScrolled ? 1 : 0)
         }
         .background {
             if isScrolled {
-                Rectangle()
-                    .fill(.bar)
+                VisualEffectView(material: .headerView, blendingMode: .withinWindow)
+                    .ignoresSafeArea(edges: .top)
                     .transition(.opacity)
             }
         }

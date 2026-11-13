@@ -617,7 +617,7 @@ struct SettingsView: View {
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
-                .background(DetailScrollViewObserver(isScrolled: $isDetailScrolled))
+                .background(DetailScrollViewObserver(isScrolled: $isDetailScrolled, selectedTab: selectedTab))
                 .safeAreaInset(edge: .top, spacing: 0) {
                     SettingsDetailHeaderBar(
                         title: tabTitle(for: selectedTab),
@@ -625,7 +625,6 @@ struct SettingsView: View {
                     )
                     .zIndex(1)
                 }
-                .ignoresSafeArea(edges: .top)
                 .background(Color(nsColor: .windowBackgroundColor))
                 .onChange(of: selectedTab) { _, _ in
                     isDetailScrolled = false
@@ -708,6 +707,7 @@ struct SettingsView: View {
 
 private struct DetailScrollViewObserver: NSViewRepresentable {
     @Binding var isScrolled: Bool
+    let selectedTab: SettingsDestination
 
     func makeCoordinator() -> Coordinator {
         Coordinator(isScrolled: $isScrolled)
@@ -734,6 +734,7 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
     final class Coordinator: NSObject {
         @Binding var isScrolled: Bool
         weak var targetView: NSView?
+        private weak var observedScrollView: NSScrollView?
         private weak var observedClipView: NSClipView?
         private var notificationToken: Any?
 
@@ -742,21 +743,7 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
         }
 
         func attach(to view: NSView) {
-            // Locate the detail Form's enclosing NSScrollView by traversing ancestors
-            var current: NSView? = view
-            var foundSV: NSScrollView? = nil
-            while let c = current {
-                if let sv = c as? NSScrollView {
-                    foundSV = sv
-                    break
-                }
-                current = c.superview
-            }
-            if foundSV == nil {
-                foundSV = view.enclosingScrollView
-            }
-
-            guard let sv = foundSV else {
+            guard let sv = Self.findDetailScrollView(from: view) else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self, weak view] in
                     guard let self = self, let view = view else { return }
                     self.attach(to: view)
@@ -765,6 +752,7 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
             }
 
             Self.suppressScroller(sv)
+            observedScrollView = sv
 
             let clipView = sv.contentView
             if observedClipView !== clipView {
@@ -781,14 +769,61 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
                 ) { [weak self] _ in
                     self?.checkScroll()
                 }
-                checkScroll()
+            }
+
+            // Re-evaluate once layout/contentInsets settle
+            checkScroll()
+            DispatchQueue.main.async { [weak self] in
+                self?.checkScroll()
             }
         }
 
+        /// Walks up from the sibling `.background()` NSView to find the detail column's NSScrollView,
+        /// avoiding the sidebar's NSScrollView by stopping before NSSplitView and filtering by window X.
+        private static func findDetailScrollView(from view: NSView) -> NSScrollView? {
+            if let enclosing = view.enclosingScrollView, isDetailScrollView(enclosing) {
+                return enclosing
+            }
+
+            var current: NSView? = view.superview
+            while let ancestor = current {
+                if ancestor is NSSplitView {
+                    break
+                }
+                if let sv = firstDetailScrollView(in: ancestor) {
+                    return sv
+                }
+                current = ancestor.superview
+            }
+
+            if let root = view.window?.contentView {
+                return firstDetailScrollView(in: root)
+            }
+            return nil
+        }
+
+        private static func firstDetailScrollView(in root: NSView) -> NSScrollView? {
+            if let sv = root as? NSScrollView, isDetailScrollView(sv) {
+                return sv
+            }
+            for subview in root.subviews {
+                if let sv = firstDetailScrollView(in: subview) {
+                    return sv
+                }
+            }
+            return nil
+        }
+
+        private static func isDetailScrollView(_ sv: NSScrollView) -> Bool {
+            let frameInWindow = sv.convert(sv.bounds, to: nil)
+            return frameInWindow.minX >= 150 && frameInWindow.width > 100
+        }
+
         private func checkScroll() {
-            guard let clipView = observedClipView else { return }
-            let offsetY = clipView.bounds.origin.y
-            let scrolled = offsetY > 2.0
+            guard let clipView = observedClipView, let sv = observedScrollView else { return }
+            let restingTopY = -sv.contentInsets.top
+            let scrolledDelta = clipView.bounds.origin.y - restingTopY
+            let scrolled = scrolledDelta > 2.0
             if isScrolled != scrolled {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isScrolled = scrolled
