@@ -1,4 +1,4 @@
-## NotchPulse v5.7 (Build 493) - Important Release
+## NotchPulse v5.7 (Build 494) - Important Release
 
 This release introduces native Dock Window Previews, persistent TCC permission handling on updates, refined Settings scroll-edge frosted glass overlay, background performance optimizations, and native macOS Tahoe/Sequoia visual polish.
 

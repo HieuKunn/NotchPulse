@@ -234,13 +234,82 @@ final class DockPreviewManager: ObservableObject {
             return
         }
 
-        // 2. Fast screen edge bounds check before querying Accessibility
+        // 2. Safe Corridor: If preview panel is currently open, allow smooth traversal
+        // between the Dock bar and the preview panel without triggering auto-hide or premature dismissal.
+        if isPanelVisible, let panel = previewPanel {
+            let dockBar = getDockBarGeometry(screen: screen)
+            let corridor: CGRect
+
+            switch dockPos {
+            case .right:
+                let leftEdge = panel.frame.minX - 16
+                let rightEdge = screen.frame.maxX
+                let topEdge = max(panel.frame.maxY, lastHoveredItemFrame.maxY, dockBar?.maxY ?? screen.frame.maxY) + 24
+                let bottomEdge = min(panel.frame.minY, lastHoveredItemFrame.minY, dockBar?.minY ?? screen.frame.minY) - 24
+                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
+
+            case .left:
+                let leftEdge = screen.frame.minX
+                let rightEdge = panel.frame.maxX + 16
+                let topEdge = max(panel.frame.maxY, lastHoveredItemFrame.maxY, dockBar?.maxY ?? screen.frame.maxY) + 24
+                let bottomEdge = min(panel.frame.minY, lastHoveredItemFrame.minY, dockBar?.minY ?? screen.frame.minY) - 24
+                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
+
+            case .bottom, .hidden:
+                let leftEdge = min(panel.frame.minX, lastHoveredItemFrame.minX, dockBar?.minX ?? screen.frame.minX) - 24
+                let rightEdge = max(panel.frame.maxX, lastHoveredItemFrame.maxX, dockBar?.maxX ?? screen.frame.maxX) + 24
+                let bottomEdge = screen.frame.minY
+                let topEdge = panel.frame.maxY + 16
+                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
+            }
+
+            if corridor.contains(mouseLoc) {
+                // Inside the Safe Corridor / Dock Bar region:
+                // Check if the user is hovering over another Dock app icon to switch previews instantly!
+                if let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first {
+                    let dockAX = AXUIElementCreateApplication(dockApp.processIdentifier)
+                    var elementRef: AXUIElement?
+                    let primaryScreen = NSScreen.screens.first ?? screen
+                    let quartzX = mouseLoc.x
+                    let quartzY = primaryScreen.frame.maxY - mouseLoc.y
+
+                    let status = AXUIElementCopyElementAtPosition(dockAX, Float(quartzX), Float(quartzY), &elementRef)
+                    if status == .success, let element = elementRef,
+                       let dockItem = extractDockItemInfo(from: element, primaryScreen: primaryScreen) {
+                        dismissTimer?.invalidate()
+                        dismissTimer = nil
+
+                        let title = dockItem.title
+                        if title != lastHoveredTitle {
+                            lastHoveredTitle = title
+                            lastHoveredItemFrame = dockItem.frame
+                            hoverTimer?.invalidate()
+                            showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
+                        }
+                        return
+                    }
+                }
+
+                // If moving across the gap between Dock and preview panel:
+                // Provide a comfortable ~400ms grace period so movement feels fluid and natural
+                if dismissTimer == nil {
+                    dismissTimer = Timer.scheduledTimer(withTimeInterval: 0.40, repeats: false) { [weak self] _ in
+                        Task { @MainActor [weak self] in
+                            self?.dismissImmediately()
+                        }
+                    }
+                }
+                return
+            }
+        }
+
+        // 3. Fast screen edge bounds check before querying Accessibility for initial hover
         guard isMouseNearDockEdge(mouseLoc: mouseLoc, position: dockPos, screen: screen) else {
             dismissImmediately()
             return
         }
 
-        // 3. Query the Dock process directly using AXUIElementCreateApplication
+        // 4. Query the Dock process directly using AXUIElementCreateApplication
         guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
             dismissImmediately()
             return
@@ -285,51 +354,6 @@ final class DockPreviewManager: ObservableObject {
                 }
             }
             return
-        }
-
-        // 4. Mouse is NOT directly over a Dock app icon.
-        // Check if mouse is traversing between preview and Dock, or moving along the Dock bar to another app
-        if isPanelVisible, let panel = previewPanel {
-            // Check Corridor between Panel and the Dock bar / last hovered icon
-            let corridor: CGRect
-            let dockBar = getDockBarGeometry(screen: screen)
-
-            switch dockPos {
-            case .right:
-                let leftEdge = panel.frame.minX - 8
-                let rightEdge = screen.frame.maxX
-                let topEdge = max(panel.frame.maxY, dockBar?.maxY ?? screen.frame.maxY) + 16
-                let bottomEdge = min(panel.frame.minY, dockBar?.minY ?? screen.frame.minY) - 16
-                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
-
-            case .left:
-                let leftEdge = screen.frame.minX
-                let rightEdge = panel.frame.maxX + 8
-                let topEdge = max(panel.frame.maxY, dockBar?.maxY ?? screen.frame.maxY) + 16
-                let bottomEdge = min(panel.frame.minY, dockBar?.minY ?? screen.frame.minY) - 16
-                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
-
-            case .bottom, .hidden:
-                let leftEdge = min(panel.frame.minX, dockBar?.minX ?? screen.frame.minX) - 16
-                let rightEdge = max(panel.frame.maxX, dockBar?.maxX ?? screen.frame.maxX) + 16
-                let bottomEdge = screen.frame.minY
-                let topEdge = panel.frame.maxY + 8
-                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
-            }
-
-            if corridor.contains(mouseLoc) {
-                // Inside the Safe Corridor / Dock Bar region:
-                // Provide a short grace delay (~180ms) so if user is moving mouse along the Dock to another app icon,
-                // the preview doesn't instantly flicker shut, but if they hover another app icon it switches immediately!
-                if dismissTimer == nil {
-                    dismissTimer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: false) { [weak self] _ in
-                        Task { @MainActor [weak self] in
-                            self?.dismissImmediately()
-                        }
-                    }
-                }
-                return
-            }
         }
 
         // 5. Mouse completely left both preview panel and the Dock area: dismiss immediately!
