@@ -94,7 +94,28 @@ struct DockPreviewView: View {
                 }
             }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(
+            ZStack {
+                VisualEffectView(material: .popover, blendingMode: .behindWindow)
+                Color(nsColor: .windowBackgroundColor).opacity(0.12)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.24),
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.04)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.5
+                )
+        )
         .fixedSize()
     }
 

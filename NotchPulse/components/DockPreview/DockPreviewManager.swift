@@ -185,23 +185,13 @@ final class DockPreviewManager: ObservableObject {
             return
         }
 
-        // 2. Allow mouse to smoothly cross the gap between Dock icon and preview panel
-        if isPanelVisible, lastHoveredItemFrame != .zero, let panel = previewPanel {
-            let bridgeRect = lastHoveredItemFrame.union(panel.frame)
-            if bridgeRect.contains(mouseLoc) {
-                dismissTimer?.invalidate()
-                dismissTimer = nil
-                return
-            }
-        }
-
-        // 3. Fast screen edge bounds check before querying Accessibility
+        // 2. Fast screen edge bounds check before querying Accessibility
         guard isMouseNearDockEdge(mouseLoc: mouseLoc, position: dockPos, screen: screen) else {
             dismissImmediately()
             return
         }
 
-        // Target Dock process directly using AXUIElementCreateApplication
+        // 3. Query the Dock process directly using AXUIElementCreateApplication
         guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
             dismissImmediately()
             return
@@ -216,43 +206,75 @@ final class DockPreviewManager: ObservableObject {
 
         let status = AXUIElementCopyElementAtPosition(dockAX, Float(quartzX), Float(quartzY), &elementRef)
 
-        guard status == .success, let element = elementRef else {
-            dismissImmediately()
-            return
-        }
+        if status == .success, let element = elementRef,
+           let dockItem = extractDockItemInfo(from: element, primaryScreen: primaryScreen) {
+            // Mouse is actively hovering over a valid Dock item!
+            dismissTimer?.invalidate()
+            dismissTimer = nil
 
-        guard let dockItem = extractDockItemInfo(from: element, primaryScreen: primaryScreen) else {
-            dismissImmediately()
-            return
-        }
+            let title = dockItem.title
+            if title == lastHoveredTitle && isPanelVisible {
+                return
+            }
 
-        // Mouse is hovering over a valid Dock item
-        dismissTimer?.invalidate()
-        dismissTimer = nil
+            if title != lastHoveredTitle {
+                lastHoveredTitle = title
+                lastHoveredItemFrame = dockItem.frame
+                hoverTimer?.invalidate()
 
-        let title = dockItem.title
-        if title == lastHoveredTitle && isPanelVisible {
-            return
-        }
-
-        if title != lastHoveredTitle {
-            lastHoveredTitle = title
-            lastHoveredItemFrame = dockItem.frame
-            hoverTimer?.invalidate()
-
-            if isPanelVisible {
-                // If preview is already open, switch immediately without lag
-                showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
-            } else {
-                let delay = Defaults[.dockPreviewHoverDelay]
-                hoverTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
-                    Task { @MainActor [weak self] in
-                        guard let self = self else { return }
-                        self.showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
+                if isPanelVisible {
+                    // Switch immediately to adjacent app preview without lag!
+                    showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
+                } else {
+                    let delay = Defaults[.dockPreviewHoverDelay]
+                    hoverTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+                        Task { @MainActor [weak self] in
+                            guard let self = self else { return }
+                            self.showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
+                        }
                     }
                 }
             }
+            return
         }
+
+        // 4. Mouse is NOT over a Dock app icon.
+        // If preview panel is currently open, allow mouse to smoothly traverse the narrow gap corridor
+        if isPanelVisible, lastHoveredItemFrame != .zero, let panel = previewPanel {
+            let corridor: CGRect
+            switch dockPos {
+            case .right:
+                corridor = CGRect(
+                    x: panel.frame.maxX - 4,
+                    y: min(panel.frame.minY, lastHoveredItemFrame.minY),
+                    width: max(0, lastHoveredItemFrame.minX - panel.frame.maxX + 8),
+                    height: max(panel.frame.height, lastHoveredItemFrame.height) + abs(panel.frame.minY - lastHoveredItemFrame.minY)
+                )
+            case .left:
+                corridor = CGRect(
+                    x: lastHoveredItemFrame.maxX - 4,
+                    y: min(panel.frame.minY, lastHoveredItemFrame.minY),
+                    width: max(0, panel.frame.minX - lastHoveredItemFrame.maxX + 8),
+                    height: max(panel.frame.height, lastHoveredItemFrame.height) + abs(panel.frame.minY - lastHoveredItemFrame.minY)
+                )
+            case .bottom, .hidden:
+                corridor = CGRect(
+                    x: min(panel.frame.minX, lastHoveredItemFrame.minX),
+                    y: lastHoveredItemFrame.maxY - 4,
+                    width: max(panel.frame.width, lastHoveredItemFrame.width) + abs(panel.frame.minX - lastHoveredItemFrame.minX),
+                    height: max(0, panel.frame.minY - lastHoveredItemFrame.maxY + 8)
+                )
+            }
+
+            if corridor.contains(mouseLoc) {
+                dismissTimer?.invalidate()
+                dismissTimer = nil
+                return
+            }
+        }
+
+        // 5. Mouse moved outside of both the Dock item and preview corridor
+        dismissImmediately()
     }
 
     private func isMouseNearDockEdge(mouseLoc: NSPoint, position: DockScreenPosition, screen: NSScreen) -> Bool {
@@ -675,14 +697,22 @@ final class DockPreviewManager: ObservableObject {
         hosting.layoutSubtreeIfNeeded()
         let targetSize = hosting.fittingSize
 
-        // Small, consistent Windows-like spacing measured strictly from the physical Dock bar itself
-        let spacing: CGFloat = 8.0
+        // Read Dock Magnification settings from macOS to calculate maximum possible protrusion
+        let dockDefaults = UserDefaults(suiteName: "com.apple.dock")
+        let isMagnification = dockDefaults?.bool(forKey: "magnification") ?? false
+        let tilesize = CGFloat(dockDefaults?.double(forKey: "tilesize") ?? 48.0)
+        let largesize = CGFloat(dockDefaults?.double(forKey: "largesize") ?? 82.0)
+        // Max theoretical expansion beyond normal tilesize:
+        let maxExpansion = isMagnification ? max(0.0, largesize - tilesize) : 0.0
+
+        // Clean user margin: exactly 10px beyond the fully magnified icon!
+        let baseMargin: CGFloat = 10.0
         var panelOrigin = NSPoint.zero
         let dockBarFrame = getDockBarGeometry(screen: screen)
 
         switch dockPos {
         case .right:
-            // DOCK ON RIGHT -> Panel MUST strictly be to the LEFT of the Dock bar!
+            // DOCK ON RIGHT -> Panel MUST strictly be to the LEFT of the Dock!
             let dockWidth = dockBarFrame?.width ?? max(68.0, itemFrame.width + 16.0)
             let dockLeftEdge: CGFloat
             if let dbFrame = dockBarFrame, dbFrame.minX < screen.frame.maxX - 5 {
@@ -690,14 +720,19 @@ final class DockPreviewManager: ObservableObject {
             } else {
                 dockLeftEdge = screen.frame.maxX - dockWidth
             }
-            panelOrigin.x = dockLeftEdge - targetSize.width - spacing
+
+            // Always calculate based on the MAXIMUM protrusion of the icon (magnification max),
+            // so even if the icon is still animating/expanding or hasn't finished protruding yet,
+            // the preview is positioned safely beyond max expansion + 10px, never overlapping the logo!
+            let maxIconLeftEdge = min(dockLeftEdge - maxExpansion, itemFrame.minX)
+            panelOrigin.x = maxIconLeftEdge - targetSize.width - baseMargin
             panelOrigin.y = itemFrame.midY - targetSize.height / 2.0
 
-            panelOrigin.x = max(screen.frame.minX + 12, min(dockLeftEdge - targetSize.width - spacing, panelOrigin.x))
+            panelOrigin.x = max(screen.frame.minX + 12, min(maxIconLeftEdge - targetSize.width - baseMargin, panelOrigin.x))
             panelOrigin.y = max(screen.frame.minY + 12, min(screen.frame.maxY - targetSize.height - 12, panelOrigin.y))
 
         case .left:
-            // DOCK ON LEFT -> Panel MUST strictly be to the RIGHT of the Dock bar!
+            // DOCK ON LEFT -> Panel MUST strictly be to the RIGHT of the Dock!
             let dockWidth = dockBarFrame?.width ?? max(68.0, itemFrame.width + 16.0)
             let dockRightEdge: CGFloat
             if let dbFrame = dockBarFrame, dbFrame.maxX > screen.frame.minX + 5 {
@@ -705,14 +740,16 @@ final class DockPreviewManager: ObservableObject {
             } else {
                 dockRightEdge = screen.frame.minX + dockWidth
             }
-            panelOrigin.x = dockRightEdge + spacing
+
+            let maxIconRightEdge = max(dockRightEdge + maxExpansion, itemFrame.maxX)
+            panelOrigin.x = maxIconRightEdge + baseMargin
             panelOrigin.y = itemFrame.midY - targetSize.height / 2.0
 
-            panelOrigin.x = min(screen.frame.maxX - targetSize.width - 12, max(dockRightEdge + spacing, panelOrigin.x))
+            panelOrigin.x = min(screen.frame.maxX - targetSize.width - 12, max(maxIconRightEdge + baseMargin, panelOrigin.x))
             panelOrigin.y = max(screen.frame.minY + 12, min(screen.frame.maxY - targetSize.height - 12, panelOrigin.y))
 
         case .bottom, .hidden:
-            // DOCK AT BOTTOM -> Panel MUST strictly be ABOVE the Dock bar!
+            // DOCK AT BOTTOM -> Panel MUST strictly be ABOVE the Dock!
             let dockHeight = dockBarFrame?.height ?? max(68.0, itemFrame.height + 16.0)
             let dockTopEdge: CGFloat
             if let dbFrame = dockBarFrame, dbFrame.maxY > screen.frame.minY + 5 {
@@ -720,11 +757,13 @@ final class DockPreviewManager: ObservableObject {
             } else {
                 dockTopEdge = screen.frame.minY + dockHeight
             }
-            panelOrigin.y = dockTopEdge + spacing
+
+            let maxIconTopEdge = max(dockTopEdge + maxExpansion, itemFrame.maxY)
+            panelOrigin.y = maxIconTopEdge + baseMargin
             panelOrigin.x = itemFrame.midX - targetSize.width / 2.0
 
             panelOrigin.x = max(screen.frame.minX + 12, min(screen.frame.maxX - targetSize.width - 12, panelOrigin.x))
-            panelOrigin.y = min(screen.frame.maxY - targetSize.height - 12, max(dockTopEdge + spacing, panelOrigin.y))
+            panelOrigin.y = min(screen.frame.maxY - targetSize.height - 12, max(maxIconTopEdge + baseMargin, panelOrigin.y))
         }
 
         let newFrame = NSRect(origin: panelOrigin, size: targetSize)
