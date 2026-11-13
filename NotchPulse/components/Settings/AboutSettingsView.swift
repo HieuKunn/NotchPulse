@@ -97,7 +97,7 @@ struct AboutSettingsView: View {
                     .foregroundStyle(.red)
                 }
             } footer: {
-                VStack(spacing: 12) {
+                VStack(spacing: 8) {
                     Button {
                         if let url = URL(string: "https://github.com/HieuKunn/NotchPulse-Release-for-everyone") {
                             NSWorkspace.shared.open(url)
@@ -107,7 +107,7 @@ struct AboutSettingsView: View {
                             Image("Github")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 16, height: 16)
+                                .frame(width: 14, height: 14)
                             Text(loc("GitHub"))
                                 .font(.subheadline)
                         }
@@ -121,8 +121,8 @@ struct AboutSettingsView: View {
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 16)
-                .padding(.bottom, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
             }
         }
         .formStyle(.grouped)

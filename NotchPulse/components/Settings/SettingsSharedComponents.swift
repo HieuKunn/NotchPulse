@@ -83,7 +83,14 @@ struct SettingsDetailHeaderBar: View {
             Divider()
                 .opacity(isScrolled ? 1 : 0)
         }
-        .background(.bar)
+        .background {
+            ZStack {
+                Rectangle()
+                    .fill(.ultraThickMaterial)
+                Color(nsColor: .windowBackgroundColor)
+                    .opacity(isScrolled ? 0.75 : 1.0)
+            }
+        }
         .animation(.easeInOut(duration: 0.2), value: isScrolled)
     }
 }

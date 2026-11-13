@@ -10,92 +10,80 @@ struct DockPreviewView: View {
 
     @State private var hoveredCardId: CGWindowID? = nil
 
+    private var isVerticalLayout: Bool {
+        viewModel.dockPosition == .left || viewModel.dockPosition == .right
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             // Header: App identity & window count
             HStack(spacing: 8) {
                 if let icon = viewModel.appIcon {
                     Image(nsImage: icon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 20, height: 20)
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                        .frame(width: 18, height: 18)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 }
 
                 Text(viewModel.appName)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
 
-                Spacer()
+                Spacer(minLength: 8)
 
-                if !viewModel.windows.isEmpty {
-                    Text(loc("%d windows", viewModel.windows.count))
-                        .font(.caption2.weight(.medium))
+                if viewModel.windows.count > 1 {
+                    Text("\(viewModel.windows.count)")
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color(nsColor: .separatorColor).opacity(0.2))
+                        .padding(.vertical, 1.5)
+                        .background(Color(nsColor: .separatorColor).opacity(0.25))
                         .clipShape(Capsule())
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
+            .padding(.horizontal, 10)
+            .padding(.top, 8)
 
-            // Body: Window thumbnail cards
-            if viewModel.isLoading && viewModel.windows.isEmpty && !viewModel.isRunningWithNoWindows {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text(loc("Loading previews..."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 20)
-                .padding(.horizontal, 16)
-            } else if viewModel.isRunningWithNoWindows {
-                Button {
-                    viewModel.onActivateApp?()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "macwindow.badge.plus")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                        Text(loc("No open windows — Click to activate"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            // Body: Window cards
+            if isVerticalLayout {
+                // Vertical layout when Dock is Left/Right
+                ScrollView(.vertical, showsIndicators: viewModel.windows.count > 3) {
+                    VStack(spacing: 8) {
+                        ForEach(viewModel.windows) { item in
+                            windowThumbnailCard(for: item)
+                        }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
-                    )
+                    .padding(.vertical, 2)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
+                .frame(maxHeight: min(480, CGFloat(viewModel.windows.count) * 155 + 10))
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
             } else {
-                HStack(alignment: .top, spacing: 12) {
-                    ForEach(viewModel.windows) { item in
-                        windowThumbnailCard(for: item)
+                // Horizontal layout when Dock is Bottom
+                ScrollView(.horizontal, showsIndicators: viewModel.windows.count > 3) {
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(viewModel.windows) { item in
+                            windowThumbnailCard(for: item)
+                        }
                     }
+                    .padding(.horizontal, 2)
                 }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
+                .frame(maxWidth: min(720, CGFloat(viewModel.windows.count) * (previewSize.thumbnailWidth + 10) + 16))
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
             }
         }
         .padding(2)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(.thickMaterial)
-                .shadow(color: Color.black.opacity(0.18), radius: 16, x: 0, y: 6)
+                .shadow(color: Color.black.opacity(0.20), radius: 14, x: 0, y: 6)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 0.5)
         )
-        .frame(minWidth: 160)
         .fixedSize()
     }
 
@@ -107,8 +95,8 @@ struct DockPreviewView: View {
         Button {
             viewModel.onSelectWindow?(item)
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                // Window thumbnail preview
+            VStack(alignment: .leading, spacing: 4) {
+                // Thumbnail preview box
                 ZStack(alignment: .topTrailing) {
                     Group {
                         if let thumb = item.thumbnail {
@@ -116,37 +104,44 @@ struct DockPreviewView: View {
                                 .resizable()
                                 .scaledToFit()
                         } else {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color(nsColor: .controlBackgroundColor))
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.65))
                                 .overlay {
-                                    Image(systemName: "macwindow")
-                                        .font(.title2)
-                                        .foregroundStyle(.secondary)
+                                    VStack(spacing: 4) {
+                                        Image(systemName: item.isMinimized ? "arrow.down.right.and.arrow.up.left" : "macwindow")
+                                            .font(.title3)
+                                            .foregroundStyle(.secondary)
+                                        if item.isMinimized {
+                                            Text(loc("Minimized"))
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
                                 }
                         }
                     }
-                    .frame(width: cardWidth, height: cardWidth * 0.62)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .frame(width: cardWidth, height: cardWidth * 0.60)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
                             .stroke(
-                                isHovered ? Color.effectiveAccent : Color(nsColor: .separatorColor).opacity(0.3),
-                                lineWidth: isHovered ? 2.0 : 0.5
+                                isHovered ? Color.effectiveAccent : Color(nsColor: .separatorColor).opacity(0.25),
+                                lineWidth: isHovered ? 1.5 : 0.5
                             )
                     )
 
-                    // Close window button on hover
+                    // Quick-close button
                     if showCloseButton && isHovered {
                         Button {
                             viewModel.onCloseWindow?(item)
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16))
+                                .font(.system(size: 15))
                                 .foregroundStyle(.white, Color.red)
                                 .shadow(radius: 2)
                         }
                         .buttonStyle(.plain)
-                        .padding(6)
+                        .padding(5)
                         .transition(.opacity.combined(with: .scale(scale: 0.85)))
                     }
                 }
@@ -164,7 +159,7 @@ struct DockPreviewView: View {
         }
         .buttonStyle(.plain)
         .onHover { inside in
-            withAnimation(.easeInOut(duration: 0.12)) {
+            withAnimation(.easeInOut(duration: 0.10)) {
                 hoveredCardId = inside ? item.id : nil
             }
         }

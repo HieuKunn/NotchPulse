@@ -128,7 +128,7 @@ struct DockSettingsView: View {
         case .right:
             dockPositionText = loc("Right") + autoHideSuffix
         case .hidden:
-            dockPositionText = loc("Auto-hide / Hidden")
+            dockPositionText = isAutohide ? loc("Auto-hide") : loc("Hidden")
         }
 
         hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()

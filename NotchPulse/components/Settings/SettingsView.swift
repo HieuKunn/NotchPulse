@@ -626,7 +626,6 @@ struct SettingsView: View {
                     .zIndex(1)
                 }
                 .background(Color(nsColor: .windowBackgroundColor))
-                .ignoresSafeArea(edges: .top)
                 .onChange(of: selectedTab) { _, _ in
                     isDetailScrolled = false
                     SystemMonitorManager.shared.stopMonitoring()
@@ -742,17 +741,21 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
         }
 
         func attach(to view: NSView) {
-            func findScrollView(in root: NSView) -> NSScrollView? {
-                if let sv = root as? NSScrollView { return sv }
-                for sub in root.subviews {
-                    if let found = findScrollView(in: sub) { return found }
+            // Locate the detail Form's enclosing NSScrollView by traversing ancestors
+            var current: NSView? = view
+            var foundSV: NSScrollView? = nil
+            while let c = current {
+                if let sv = c as? NSScrollView {
+                    foundSV = sv
+                    break
                 }
-                return nil
+                current = c.superview
+            }
+            if foundSV == nil {
+                foundSV = view.enclosingScrollView
             }
 
-            // Look up to window or ancestor view to locate the detail form's NSScrollView
-            let rootSearch: NSView? = view.window?.contentView ?? view.superview?.superview
-            guard let root = rootSearch, let sv = findScrollView(in: root) else {
+            guard let sv = foundSV else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self, weak view] in
                     guard let self = self, let view = view else { return }
                     self.attach(to: view)

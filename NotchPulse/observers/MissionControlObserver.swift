@@ -33,20 +33,24 @@ final class MissionControlObserver: ObservableObject {
         
         for w in list {
             if (w[kCGWindowOwnerName as String] as? String) == "Dock" {
+                // Ignore standard Dock windows (e.g. Dock bar, desktop wallpaper click-to-reveal canvas, which are named "Dock")
+                let windowName = (w[kCGWindowName as String] as? String) ?? ""
+                if windowName == "Dock" {
+                    continue
+                }
+
                 let layer = w[kCGWindowLayer as String] as? Int ?? -1
-                // Mission Control creates a nearly full-screen Dock canvas. Small
-                // layer 18/20 Dock windows also exist during normal desktop use, so
-                // a fixed 400pt threshold produces false positives and kills hover.
+                // Mission Control creates a special nameless overlay window (layer 18/20) with origin Y == -1 or full-screen canvas
                 if layer == 20 || layer == 18 {
                     let alpha = (w[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1
                     guard alpha > 0.05 else { continue }
                     let boundsDict = w[kCGWindowBounds as String] as? NSDictionary
                     if let bounds = boundsDict.flatMap({ CGRect(dictionaryRepresentation: $0) }) {
-                        let coversScreen = NSScreen.screens.contains { screen in
+                        let isMissionControlSignature = bounds.origin.y == -1 || NSScreen.screens.contains { screen in
                             bounds.width >= screen.frame.width * 0.80 &&
                             bounds.height >= screen.frame.height * 0.80
                         }
-                        if coversScreen {
+                        if isMissionControlSignature {
                             cachedResult = true
                             if !isMissionControlActive { isMissionControlActive = true }
                             return true
