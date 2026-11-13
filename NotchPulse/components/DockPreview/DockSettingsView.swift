@@ -67,11 +67,10 @@ struct DockSettingsView: View {
             } header: {
                 Text(loc("Appearance & Behavior"))
             }
-            .disabled(!enableDockPreview)
             .id("dock_preview_appearance")
             .searchHighlight(highlightedId == "dock_preview_appearance")
 
-            // Section 3: Dock Hardware & Permission Status
+            // Section 3: Status & Permissions
             Section {
                 HStack {
                     Label(loc("Detected Dock Position"), systemImage: "dock.rectangle")
@@ -118,13 +117,16 @@ struct DockSettingsView: View {
 
     private func refreshStatus() {
         let (pos, _) = DockPreviewManager.shared.detectDockPosition()
+        let isAutohide = (UserDefaults(suiteName: "com.apple.dock")?.bool(forKey: "autohide") ?? false)
+        let autoHideSuffix = isAutohide ? " (\(loc("Auto-hide")))" : ""
+
         switch pos {
         case .bottom:
-            dockPositionText = loc("Bottom")
+            dockPositionText = loc("Bottom") + autoHideSuffix
         case .left:
-            dockPositionText = loc("Left")
+            dockPositionText = loc("Left") + autoHideSuffix
         case .right:
-            dockPositionText = loc("Right")
+            dockPositionText = loc("Right") + autoHideSuffix
         case .hidden:
             dockPositionText = loc("Auto-hide / Hidden")
         }
@@ -132,4 +134,3 @@ struct DockSettingsView: View {
         hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
     }
 }
-

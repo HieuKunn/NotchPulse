@@ -41,9 +41,11 @@ final class DockPreviewViewModel: ObservableObject {
     @Published var windows: [DockWindowItem] = []
     @Published var hoveredWindowId: CGWindowID? = nil
     @Published var isLoading: Bool = false
+    @Published var isRunningWithNoWindows: Bool = false
 
     var onSelectWindow: ((DockWindowItem) -> Void)?
     var onCloseWindow: ((DockWindowItem) -> Void)?
+    var onActivateApp: (() -> Void)?
 }
 
 // MARK: - Dock Preview Manager
@@ -58,6 +60,7 @@ final class DockPreviewManager: ObservableObject {
     private var lastHoveredTitle: String? = nil
     private var lastHoveredItemFrame: CGRect = .zero
     private var isPanelVisible: Bool = false
+    private var currentApp: NSRunningApplication?
 
     private var previewPanel: NSPanel?
     private var hostingView: NSHostingView<DockPreviewView>?
@@ -76,6 +79,10 @@ final class DockPreviewManager: ObservableObject {
         }
         viewModel.onCloseWindow = { [weak self] item in
             self?.closeWindow(item)
+        }
+        viewModel.onActivateApp = { [weak self] in
+            self?.currentApp?.activate()
+            self?.hidePreviewPanel(animated: true)
         }
     }
 
@@ -139,25 +146,33 @@ final class DockPreviewManager: ObservableObject {
         }
 
         // If mouse is inside currently visible preview panel, keep it alive
-        if isPanelVisible, let panel = previewPanel, panel.frame.insetBy(dx: -10, dy: -10).contains(mouseLoc) {
+        if isPanelVisible, let panel = previewPanel, panel.frame.insetBy(dx: -14, dy: -14).contains(mouseLoc) {
             dismissTimer?.invalidate()
             dismissTimer = nil
             return
         }
 
-        // Query element under mouse
-        let systemWide = AXUIElementCreateSystemWide()
+        // Target Dock process directly using AXUIElementCreateApplication
+        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
+            scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
+            return
+        }
+
+        let dockAX = AXUIElementCreateApplication(dockApp.processIdentifier)
         var elementRef: AXUIElement?
-        // AppKit coordinates: origin is bottom-left. Quartz AX coordinates: origin is top-left.
-        let quartzY = screen.frame.maxY - mouseLoc.y
-        let status = AXUIElementCopyElementAtPosition(systemWide, Float(mouseLoc.x), Float(quartzY), &elementRef)
+
+        let primaryScreen = NSScreen.screens.first ?? screen
+        let quartzX = mouseLoc.x
+        let quartzY = primaryScreen.frame.maxY - mouseLoc.y
+
+        let status = AXUIElementCopyElementAtPosition(dockAX, Float(quartzX), Float(quartzY), &elementRef)
 
         guard status == .success, let element = elementRef else {
             scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
             return
         }
 
-        guard let (title, itemFrame) = extractDockItemInfo(from: element, screen: screen) else {
+        guard let dockItem = extractDockItemInfo(from: element, primaryScreen: primaryScreen) else {
             scheduleDismissalIfNeeded(mouseLoc: mouseLoc)
             return
         }
@@ -166,34 +181,35 @@ final class DockPreviewManager: ObservableObject {
         dismissTimer?.invalidate()
         dismissTimer = nil
 
+        let title = dockItem.title
         if title == lastHoveredTitle && isPanelVisible {
             return
         }
 
         if title != lastHoveredTitle {
             lastHoveredTitle = title
-            lastHoveredItemFrame = itemFrame
+            lastHoveredItemFrame = dockItem.frame
             hoverTimer?.invalidate()
 
             let delay = Defaults[.dockPreviewHoverDelay]
             hoverTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self = self else { return }
-                    self.showPreview(forAppTitle: title, itemFrame: itemFrame, dockPos: dockPos, screen: screen)
+                    self.showPreview(forDockItem: dockItem, dockPos: dockPos, screen: screen)
                 }
             }
         }
     }
 
     private func isMouseNearDockEdge(mouseLoc: NSPoint, position: DockScreenPosition, screen: NSScreen) -> Bool {
-        let margin: CGFloat = 85.0
+        let margin: CGFloat = 110.0
         switch position {
         case .bottom:
-            return mouseLoc.y <= screen.visibleFrame.minY + margin
+            return mouseLoc.y <= screen.frame.minY + margin
         case .left:
-            return mouseLoc.x <= screen.visibleFrame.minX + margin
+            return mouseLoc.x <= screen.frame.minX + margin
         case .right:
-            return mouseLoc.x >= screen.visibleFrame.maxX - margin
+            return mouseLoc.x >= screen.frame.maxX - margin
         case .hidden:
             return false
         }
@@ -206,12 +222,12 @@ final class DockPreviewManager: ObservableObject {
 
         guard isPanelVisible else { return }
 
-        if let panel = previewPanel, panel.frame.insetBy(dx: -14, dy: -14).contains(mouseLoc) {
+        if let panel = previewPanel, panel.frame.insetBy(dx: -16, dy: -16).contains(mouseLoc) {
             return
         }
 
         if dismissTimer == nil {
-            dismissTimer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: false) { [weak self] _ in
+            dismissTimer = Timer.scheduledTimer(withTimeInterval: 0.22, repeats: false) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     self?.hidePreviewPanel(animated: true)
                 }
@@ -221,12 +237,18 @@ final class DockPreviewManager: ObservableObject {
 
     // MARK: - Extract Dock Item Info
 
-    private func extractDockItemInfo(from element: AXUIElement, screen: NSScreen) -> (String, CGRect)? {
+    struct DockItemInfo {
+        let title: String
+        let frame: CGRect
+        let url: URL?
+        let isRunning: Bool
+    }
+
+    private func extractDockItemInfo(from element: AXUIElement, primaryScreen: NSScreen) -> DockItemInfo? {
         var roleRef: AnyObject?
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
         let role = roleRef as? String ?? ""
 
-        // Check if element itself is an AXDockItem or child of one
         var targetElement = element
         if role != "AXDockItem" {
             var parentRef: AnyObject?
@@ -249,8 +271,8 @@ final class DockPreviewManager: ObservableObject {
         AXUIElementCopyAttributeValue(targetElement, kAXTitleAttribute as CFString, &titleRef)
         guard let title = titleRef as? String, !title.isEmpty else { return nil }
 
-        // Filter out Trash or Separator or Launchpad if user wants only regular apps
-        if title == "Trash" || title == "Thùng rác" { return nil }
+        // Ignore trash and separator items
+        if title == "Trash" || title == "Thùng rác" || title == "Bin" { return nil }
 
         var posRef: AnyObject?
         var sizeRef: AnyObject?
@@ -262,59 +284,127 @@ final class DockPreviewManager: ObservableObject {
         if let p = posRef { AXValueGetValue(p as! AXValue, .cgPoint, &qPos) }
         if let s = sizeRef { AXValueGetValue(s as! AXValue, .cgSize, &qSize) }
 
-        // Convert Quartz coordinates (top-left) to AppKit coordinates (bottom-left)
-        let appKitY = screen.frame.maxY - qPos.y - qSize.height
+        let appKitY = primaryScreen.frame.maxY - qPos.y - qSize.height
         let frame = CGRect(x: qPos.x, y: appKitY, width: qSize.width, height: qSize.height)
 
-        return (title, frame)
+        var urlRef: AnyObject?
+        var isRunningRef: AnyObject?
+        AXUIElementCopyAttributeValue(targetElement, "AXURL" as CFString, &urlRef)
+        AXUIElementCopyAttributeValue(targetElement, "AXIsApplicationRunning" as CFString, &isRunningRef)
+
+        let fileURL: URL?
+        if let url = urlRef as? URL {
+            fileURL = url
+        } else if let urlStr = urlRef as? String {
+            fileURL = URL(string: urlStr)
+        } else {
+            fileURL = nil
+        }
+
+        let isRunning = (isRunningRef as? Bool) ?? ((isRunningRef as? Int) == 1)
+
+        return DockItemInfo(title: title, frame: frame, url: fileURL, isRunning: isRunning)
     }
 
     // MARK: - Dock Position Detection
 
     func detectDockPosition() -> (DockScreenPosition, NSScreen?) {
-        guard let screen = NSScreen.main else { return (.hidden, nil) }
+        let mouseLoc = NSEvent.mouseLocation
+        let primaryScreen = NSScreen.screens.first ?? NSScreen.main
+        let screen = NSScreen.screens.first(where: { NSPointInRect(mouseLoc, $0.frame) }) ?? primaryScreen
+
+        guard let screen else { return (.bottom, nil) }
         let full = screen.frame
         let vis = screen.visibleFrame
 
+        // 1. Check visible frame vs full frame for fixed dock
         if vis.minX > full.minX + 2 {
             return (.left, screen)
         } else if vis.maxX < full.maxX - 2 {
             return (.right, screen)
         } else if vis.minY > full.minY + 2 {
             return (.bottom, screen)
-        } else {
-            return (.hidden, screen)
         }
+
+        // 2. Dock is set to Auto-hide (visibleFrame equals full frame). Read macOS Dock preferences:
+        if let dockDefaults = UserDefaults(suiteName: "com.apple.dock"),
+           let orientation = dockDefaults.string(forKey: "orientation") {
+            switch orientation.lowercased() {
+            case "left":
+                return (.left, screen)
+            case "right":
+                return (.right, screen)
+            case "bottom":
+                return (.bottom, screen)
+            default:
+                break
+            }
+        }
+
+        if let pref = CFPreferencesCopyAppValue("orientation" as CFString, "com.apple.dock" as CFString) as? String {
+            switch pref.lowercased() {
+            case "left":
+                return (.left, screen)
+            case "right":
+                return (.right, screen)
+            case "bottom":
+                return (.bottom, screen)
+            default:
+                break
+            }
+        }
+
+        return (.bottom, screen)
     }
 
     // MARK: - Show & Capture Previews
 
-    private func showPreview(forAppTitle title: String, itemFrame: CGRect, dockPos: DockScreenPosition, screen: NSScreen) {
+    private func showPreview(forDockItem item: DockItemInfo, dockPos: DockScreenPosition, screen: NSScreen) {
         // Find matching running application
-        guard let app = findRunningApplication(named: title) else {
+        guard let app = findRunningApplication(for: item) else {
             hidePreviewPanel(animated: true)
             return
         }
 
-        viewModel.appName = app.localizedName ?? title
+        self.currentApp = app
+        viewModel.appName = app.localizedName ?? item.title
         viewModel.appIcon = app.icon
         viewModel.isLoading = true
+        viewModel.isRunningWithNoWindows = false
 
         Task {
             let windowItems = await fetchWindows(for: app)
-            guard !windowItems.isEmpty else {
-                self.hidePreviewPanel(animated: true)
+            if windowItems.isEmpty {
+                // If running app has no open windows, present clean status card
+                self.viewModel.windows = []
+                self.viewModel.isRunningWithNoWindows = true
+                self.viewModel.isLoading = false
+                self.presentPanel(beside: item.frame, dockPos: dockPos, screen: screen)
                 return
             }
 
             self.viewModel.windows = windowItems
+            self.viewModel.isRunningWithNoWindows = false
             self.viewModel.isLoading = false
-            self.presentPanel(beside: itemFrame, dockPos: dockPos, screen: screen)
+            self.presentPanel(beside: item.frame, dockPos: dockPos, screen: screen)
         }
     }
 
-    private func findRunningApplication(named title: String) -> NSRunningApplication? {
+    private func findRunningApplication(for dockInfo: DockItemInfo) -> NSRunningApplication? {
         let running = NSWorkspace.shared.runningApplications
+        if let targetURL = dockInfo.url {
+            let bundle = Bundle(url: targetURL)
+            let targetBundleId = bundle?.bundleIdentifier
+            if let match = running.first(where: {
+                if let bId = $0.bundleIdentifier, let tId = targetBundleId, bId == tId { return true }
+                if let bURL = $0.bundleURL, bURL == targetURL { return true }
+                return false
+            }) {
+                return match
+            }
+        }
+
+        let title = dockInfo.title
         if let exact = running.first(where: { $0.localizedName == title }) {
             return exact
         }
@@ -349,12 +439,33 @@ final class DockPreviewManager: ObservableObject {
             let matchingWindows = content.windows.filter { scWin in
                 guard scWin.owningApplication?.processID == pid else { return false }
                 guard scWin.frame.width >= 120 && scWin.frame.height >= 80 else { return false }
-                // Exclude system HUD/shadow overlays
                 guard scWin.windowLayer == 0 else { return false }
                 return true
             }
 
-            guard !matchingWindows.isEmpty else { return [] }
+            if matchingWindows.isEmpty {
+                // If ScreenCaptureKit found no layer 0 windows, check AX fallback
+                if !axWindowsMap.isEmpty {
+                    var fallbackItems: [DockWindowItem] = []
+                    var counter: UInt32 = 1000
+                    for (title, axWin) in axWindowsMap {
+                        let displayTitle = title.isEmpty ? (app.localizedName ?? "Window") : title
+                        fallbackItems.append(
+                            DockWindowItem(
+                                id: counter,
+                                title: displayTitle,
+                                frame: .zero,
+                                thumbnail: nil,
+                                axWindow: axWin,
+                                isMinimized: false
+                            )
+                        )
+                        counter += 1
+                    }
+                    return fallbackItems
+                }
+                return []
+            }
 
             var result: [DockWindowItem] = []
             let targetWidth = Defaults[.dockPreviewSize].thumbnailWidth
@@ -401,8 +512,7 @@ final class DockPreviewManager: ObservableObject {
             }
             return result
         } catch {
-            // Graceful Accessibility Fallback (No Screen Recording Permission needed):
-            // Still shows window title list, click-to-activate, and close button!
+            // Graceful Accessibility Fallback (No Screen Recording Permission needed)
             var fallbackItems: [DockWindowItem] = []
             var counter: UInt32 = 1000
             for (title, axWin) in axWindowsMap {
@@ -500,6 +610,7 @@ final class DockPreviewManager: ObservableObject {
         lastHoveredTitle = nil
         thumbnailCache.removeAll()
         viewModel.windows.removeAll()
+        viewModel.isRunningWithNoWindows = false
 
         if animated {
             NSAnimationContext.runAnimationGroup({ ctx in
@@ -519,14 +630,11 @@ final class DockPreviewManager: ObservableObject {
     // MARK: - Window Interactions
 
     private func activateWindow(_ item: DockWindowItem) {
-        hidePreviewPanel(animated: false)
-
         if let axWin = item.axWindow {
             AXUIElementPerformAction(axWin, kAXRaiseAction as CFString)
         }
-        if let app = findRunningApplication(named: viewModel.appName) {
-            app.activate()
-        }
+        currentApp?.activate()
+        hidePreviewPanel(animated: true)
     }
 
     private func closeWindow(_ item: DockWindowItem) {
@@ -537,13 +645,9 @@ final class DockPreviewManager: ObservableObject {
                 AXUIElementPerformAction(closeBtn as! AXUIElement, kAXPressAction as CFString)
             }
         }
-        // Remove item from view model
-        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-            viewModel.windows.removeAll(where: { $0.id == item.id })
-            if viewModel.windows.isEmpty {
-                hidePreviewPanel(animated: true)
-            }
+        viewModel.windows.removeAll(where: { $0.id == item.id })
+        if viewModel.windows.isEmpty {
+            hidePreviewPanel(animated: true)
         }
     }
 }
-

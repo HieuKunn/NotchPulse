@@ -83,13 +83,7 @@ struct SettingsDetailHeaderBar: View {
             Divider()
                 .opacity(isScrolled ? 1 : 0)
         }
-        .background {
-            if isScrolled {
-                Rectangle()
-                    .fill(.bar)
-                    .transition(.opacity)
-            }
-        }
+        .background(.bar)
         .animation(.easeInOut(duration: 0.2), value: isScrolled)
     }
 }

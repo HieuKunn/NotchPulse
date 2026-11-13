@@ -587,26 +587,25 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var settingsSidebar: some View {
-        SettingsSidebarListView(
-            appIcon: Self.cachedAppIcon,
-            selectedTab: $selectedTab,
-            searchText: $searchText,
-            filteredTabs: filteredTabs,
-            categories: categorizedSections,
-            matchingSections: matchingSections(for:),
-            tabTitle: tabTitle(for:),
-            selectTab: selectTab
-        )
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                NativeSidebarSearchField(text: $searchText, prompt: loc("Search"))
-                    .frame(height: 28)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 36)
-                    .padding(.bottom, 6)
-            }
-            .background(.bar)
+        VStack(spacing: 0) {
+            NativeSidebarSearchField(text: $searchText, prompt: loc("Search"))
+                .frame(height: 28)
+                .padding(.horizontal, 12)
+                .padding(.top, 36)
+                .padding(.bottom, 6)
+
+            SettingsSidebarListView(
+                appIcon: Self.cachedAppIcon,
+                selectedTab: $selectedTab,
+                searchText: $searchText,
+                filteredTabs: filteredTabs,
+                categories: categorizedSections,
+                matchingSections: matchingSections(for:),
+                tabTitle: tabTitle(for:),
+                selectTab: selectTab
+            )
         }
+        .ignoresSafeArea(edges: .top)
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -743,31 +742,42 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
         }
 
         func attach(to view: NSView) {
-            var current: NSView? = view
-            while let c = current {
-                if let sv = c as? NSScrollView {
-                    Self.suppressScroller(sv)
-
-                    let clipView = sv.contentView
-                    if observedClipView !== clipView {
-                        if let token = notificationToken {
-                            NotificationCenter.default.removeObserver(token)
-                            notificationToken = nil
-                        }
-                        observedClipView = clipView
-                        clipView.postsBoundsChangedNotifications = true
-                        notificationToken = NotificationCenter.default.addObserver(
-                            forName: NSView.boundsDidChangeNotification,
-                            object: clipView,
-                            queue: .main
-                        ) { [weak self] _ in
-                            self?.checkScroll()
-                        }
-                        checkScroll()
-                    }
-                    return
+            func findScrollView(in root: NSView) -> NSScrollView? {
+                if let sv = root as? NSScrollView { return sv }
+                for sub in root.subviews {
+                    if let found = findScrollView(in: sub) { return found }
                 }
-                current = c.superview
+                return nil
+            }
+
+            // Look up to window or ancestor view to locate the detail form's NSScrollView
+            let rootSearch: NSView? = view.window?.contentView ?? view.superview?.superview
+            guard let root = rootSearch, let sv = findScrollView(in: root) else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self, weak view] in
+                    guard let self = self, let view = view else { return }
+                    self.attach(to: view)
+                }
+                return
+            }
+
+            Self.suppressScroller(sv)
+
+            let clipView = sv.contentView
+            if observedClipView !== clipView {
+                if let token = notificationToken {
+                    NotificationCenter.default.removeObserver(token)
+                    notificationToken = nil
+                }
+                observedClipView = clipView
+                clipView.postsBoundsChangedNotifications = true
+                notificationToken = NotificationCenter.default.addObserver(
+                    forName: NSView.boundsDidChangeNotification,
+                    object: clipView,
+                    queue: .main
+                ) { [weak self] _ in
+                    self?.checkScroll()
+                }
+                checkScroll()
             }
         }
 
@@ -831,7 +841,8 @@ private struct EnclosingScrollViewSuppressor: NSViewRepresentable {
     }
 }
 
-// MARK: - Native AppKit Search Field (Compact Sidebar Search)
+
+// MARK: - Native AppKit Search Field (Seamless Sidebar Search)
 
 private struct NativeSidebarSearchField: NSViewRepresentable {
     @Binding var text: String

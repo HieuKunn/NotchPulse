@@ -42,7 +42,7 @@ struct DockPreviewView: View {
             .padding(.top, 10)
 
             // Body: Window thumbnail cards
-            if viewModel.isLoading && viewModel.windows.isEmpty {
+            if viewModel.isLoading && viewModel.windows.isEmpty && !viewModel.isRunningWithNoWindows {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
@@ -52,6 +52,29 @@ struct DockPreviewView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 20)
+                .padding(.horizontal, 16)
+            } else if viewModel.isRunningWithNoWindows {
+                Button {
+                    viewModel.onActivateApp?()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "macwindow.badge.plus")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Text(loc("No open windows — Click to activate"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
             } else {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(viewModel.windows) { item in
@@ -98,59 +121,52 @@ struct DockPreviewView: View {
                                 .overlay {
                                     Image(systemName: "macwindow")
                                         .font(.title2)
-                                        .foregroundStyle(.tertiary)
+                                        .foregroundStyle(.secondary)
                                 }
                         }
                     }
-                    .frame(width: cardWidth)
-                    .frame(maxHeight: cardWidth * 0.75)
+                    .frame(width: cardWidth, height: cardWidth * 0.62)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(
-                                isHovered ? Color.effectiveAccent : Color(nsColor: .separatorColor).opacity(0.4),
-                                lineWidth: isHovered ? 2 : 0.5
+                                isHovered ? Color.effectiveAccent : Color(nsColor: .separatorColor).opacity(0.3),
+                                lineWidth: isHovered ? 2.0 : 0.5
                             )
                     )
 
-                    // Close Button (hover-reveal)
+                    // Close window button on hover
                     if showCloseButton && isHovered {
                         Button {
                             viewModel.onCloseWindow?(item)
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.secondary)
-                                .background(Circle().fill(.thickMaterial))
+                                .foregroundStyle(.white, Color.red)
+                                .shadow(radius: 2)
                         }
                         .buttonStyle(.plain)
                         .padding(6)
-                        .transition(.opacity)
+                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
                     }
                 }
 
                 // Window Title
                 if showTitles {
                     Text(item.title)
-                        .font(.caption)
-                        .foregroundStyle(isHovered ? .primary : .secondary)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(isHovered ? Color.effectiveAccent : .primary)
                         .lineLimit(1)
-                        .frame(width: cardWidth, alignment: .leading)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: cardWidth, alignment: .leading)
                 }
             }
-            .padding(6)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isHovered ? Color(nsColor: .selectedControlColor).opacity(0.12) : Color.clear)
-            )
         }
         .buttonStyle(.plain)
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
-                hoveredCardId = hovering ? item.id : nil
+        .onHover { inside in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                hoveredCardId = inside ? item.id : nil
             }
         }
     }
 }
-
