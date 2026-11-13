@@ -101,7 +101,6 @@ final class DockPreviewManager: ObservableObject {
         dismissTimer?.invalidate()
         dismissTimer = nil
         dismissImmediately()
-        unpinDockAutohideIfNeeded()
         isConfigured = false
     }
 
@@ -238,42 +237,55 @@ final class DockPreviewManager: ObservableObject {
             return
         }
 
-        // 4. Mouse is NOT over a Dock app icon.
-        // If preview panel is currently open, allow mouse to smoothly traverse the narrow gap corridor
-        if isPanelVisible, lastHoveredItemFrame != .zero, let panel = previewPanel {
+        // 4. Mouse is NOT directly over a Dock app icon.
+        // Check if mouse is traversing between preview and Dock, or moving along the Dock bar to another app
+        if isPanelVisible, let panel = previewPanel {
+            // Check Corridor between Panel and the Dock bar / last hovered icon
             let corridor: CGRect
+            let dockBar = getDockBarGeometry(screen: screen)
+            let dockMinX = dockBar?.minX ?? (screen.frame.maxX - 100)
+            let dockMaxX = dockBar?.maxX ?? (screen.frame.minX + 100)
+            let dockMaxY = dockBar?.maxY ?? (screen.frame.minY + 100)
+
             switch dockPos {
             case .right:
-                corridor = CGRect(
-                    x: panel.frame.maxX - 4,
-                    y: min(panel.frame.minY, lastHoveredItemFrame.minY),
-                    width: max(0, lastHoveredItemFrame.minX - panel.frame.maxX + 8),
-                    height: max(panel.frame.height, lastHoveredItemFrame.height) + abs(panel.frame.minY - lastHoveredItemFrame.minY)
-                )
+                let leftEdge = panel.frame.minX - 8
+                let rightEdge = screen.frame.maxX
+                let topEdge = max(panel.frame.maxY, dockBar?.maxY ?? screen.frame.maxY) + 16
+                let bottomEdge = min(panel.frame.minY, dockBar?.minY ?? screen.frame.minY) - 16
+                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
+
             case .left:
-                corridor = CGRect(
-                    x: lastHoveredItemFrame.maxX - 4,
-                    y: min(panel.frame.minY, lastHoveredItemFrame.minY),
-                    width: max(0, panel.frame.minX - lastHoveredItemFrame.maxX + 8),
-                    height: max(panel.frame.height, lastHoveredItemFrame.height) + abs(panel.frame.minY - lastHoveredItemFrame.minY)
-                )
+                let leftEdge = screen.frame.minX
+                let rightEdge = panel.frame.maxX + 8
+                let topEdge = max(panel.frame.maxY, dockBar?.maxY ?? screen.frame.maxY) + 16
+                let bottomEdge = min(panel.frame.minY, dockBar?.minY ?? screen.frame.minY) - 16
+                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
+
             case .bottom, .hidden:
-                corridor = CGRect(
-                    x: min(panel.frame.minX, lastHoveredItemFrame.minX),
-                    y: lastHoveredItemFrame.maxY - 4,
-                    width: max(panel.frame.width, lastHoveredItemFrame.width) + abs(panel.frame.minX - lastHoveredItemFrame.minX),
-                    height: max(0, panel.frame.minY - lastHoveredItemFrame.maxY + 8)
-                )
+                let leftEdge = min(panel.frame.minX, dockBar?.minX ?? screen.frame.minX) - 16
+                let rightEdge = max(panel.frame.maxX, dockBar?.maxX ?? screen.frame.maxX) + 16
+                let bottomEdge = screen.frame.minY
+                let topEdge = panel.frame.maxY + 8
+                corridor = CGRect(x: leftEdge, y: bottomEdge, width: rightEdge - leftEdge, height: topEdge - bottomEdge)
             }
 
             if corridor.contains(mouseLoc) {
-                dismissTimer?.invalidate()
-                dismissTimer = nil
+                // Inside the Safe Corridor / Dock Bar region:
+                // Provide a short grace delay (~180ms) so if user is moving mouse along the Dock to another app icon,
+                // the preview doesn't instantly flicker shut, but if they hover another app icon it switches immediately!
+                if dismissTimer == nil {
+                    dismissTimer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: false) { [weak self] _ in
+                        Task { @MainActor [weak self] in
+                            self?.dismissImmediately()
+                        }
+                    }
+                }
                 return
             }
         }
 
-        // 5. Mouse moved outside of both the Dock item and preview corridor
+        // 5. Mouse completely left both preview panel and the Dock area: dismiss immediately!
         dismissImmediately()
     }
 
@@ -783,11 +795,9 @@ final class DockPreviewManager: ObservableObject {
         }
 
         isPanelVisible = true
-        pinDockAutohideIfNeeded()
     }
 
     private func hidePreviewPanel(animated: Bool) {
-        unpinDockAutohideIfNeeded()
         guard let panel = previewPanel, isPanelVisible else { return }
         isPanelVisible = false
         lastHoveredTitle = nil
@@ -810,34 +820,6 @@ final class DockPreviewManager: ObservableObject {
         } else {
             panel.alphaValue = 0.0
             panel.orderOut(nil)
-        }
-    }
-
-    // MARK: - Dock Auto-Hide Temporary Pinning During Preview
-
-    private var didPinDockAutohide: Bool = false
-
-    /// Temporarily un-hides the Dock while the user hovers over window previews,
-    /// preventing macOS from sliding the Dock away mid-interaction.
-    private func pinDockAutohideIfNeeded() {
-        let isAutohide = (UserDefaults(suiteName: "com.apple.dock")?.bool(forKey: "autohide") ?? false)
-        guard isAutohide, !didPinDockAutohide else { return }
-        didPinDockAutohide = true
-        DispatchQueue.global(qos: .userInitiated).async {
-            let script = NSAppleScript(source: "tell application \"System Events\" to tell dock preferences to set autohide to false")
-            var err: NSDictionary?
-            script?.executeAndReturnError(&err)
-        }
-    }
-
-    /// Restores native auto-hide behavior once the user moves away from all previews and Dock items.
-    private func unpinDockAutohideIfNeeded() {
-        guard didPinDockAutohide else { return }
-        didPinDockAutohide = false
-        DispatchQueue.global(qos: .userInitiated).async {
-            let script = NSAppleScript(source: "tell application \"System Events\" to tell dock preferences to set autohide to true")
-            var err: NSDictionary?
-            script?.executeAndReturnError(&err)
         }
     }
 

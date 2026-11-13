@@ -197,7 +197,7 @@ struct DockPreviewView: View {
                 if showTitles || isVerticalLayout {
                     Text(item.title.isEmpty ? viewModel.appName : item.title)
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(isHovered ? Color.effectiveAccent : .primary)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: cardWidth, alignment: .leading)
@@ -207,7 +207,11 @@ struct DockPreviewView: View {
             .padding(4)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
+                    .fill(isHovered ? Color.white.opacity(0.10) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(isHovered ? Color.white.opacity(0.28) : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
