@@ -625,6 +625,7 @@ struct SettingsView: View {
                     )
                     .zIndex(1)
                 }
+                .ignoresSafeArea(edges: .top)
                 .background(Color(nsColor: .windowBackgroundColor))
                 .onChange(of: selectedTab) { _, _ in
                     isDetailScrolled = false

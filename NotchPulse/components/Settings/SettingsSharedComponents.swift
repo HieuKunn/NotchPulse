@@ -78,13 +78,19 @@ struct SettingsDetailHeaderBar: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .padding(.top, 6)
+            .padding(.top, 14)
             .padding(.bottom, 6)
 
             Divider()
                 .opacity(isScrolled ? 1 : 0)
         }
-        .background(.bar)
+        .background {
+            if isScrolled {
+                Rectangle()
+                    .fill(.bar)
+                    .ignoresSafeArea(edges: .top)
+            }
+        }
         .animation(.easeInOut(duration: 0.2), value: isScrolled)
     }
 }
