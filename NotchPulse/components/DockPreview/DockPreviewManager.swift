@@ -90,6 +90,7 @@ final class DockPreviewManager: ObservableObject {
     private var lastKeepAlivePulse: Date = .distantPast
     private var cachedDockOrientation: (pos: DockScreenPosition, time: TimeInterval)?
     private var edgeRecheckWork: DispatchWorkItem?
+    private var suppressPreviewUntil: TimeInterval = 0
 
     private init() {
         setupCallbacks()
@@ -176,13 +177,16 @@ final class DockPreviewManager: ObservableObject {
                 .otherMouseDown
             ]) { [weak self] event in
                 Task { @MainActor [weak self] in
-                    guard let self = self, self.isPanelVisible else { return }
+                    guard let self = self else { return }
                     // Right click or Control+Click ANYWHERE (on dock icon, desktop, etc.):
-                    // IMMEDIATELY dismiss preview with 0 delay so macOS Dock context menu opens clean and unobscured!
+                    // IMMEDIATELY dismiss preview and suppress preview respawning while context menu is opening!
                     if event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control)) {
+                        self.suppressPreviewUntil = ProcessInfo.processInfo.systemUptime + 1.2
                         self.dismissImmediately()
                         return
                     }
+
+                    guard self.isPanelVisible else { return }
 
                     // Left click outside the preview panel: immediately dismiss
                     let mouseLoc = NSEvent.mouseLocation
@@ -196,7 +200,9 @@ final class DockPreviewManager: ObservableObject {
         if localClickMonitor == nil {
             localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown]) { [weak self] event in
                 Task { @MainActor [weak self] in
-                    self?.dismissImmediately()
+                    guard let self = self else { return }
+                    self.suppressPreviewUntil = ProcessInfo.processInfo.systemUptime + 1.2
+                    self.dismissImmediately()
                 }
                 return event
             }
@@ -366,6 +372,21 @@ final class DockPreviewManager: ObservableObject {
             return
         }
 
+        // Context Menu Check: If user right-clicked to open an icon's options menu,
+        // or a Dock context menu is currently active on screen, strictly suppress preview!
+        let now = ProcessInfo.processInfo.systemUptime
+        if now < suppressPreviewUntil || isDockContextMenuActive(dockApp: dockApp) {
+            if isPanelVisible {
+                dismissImmediately()
+            } else {
+                hoverTimer?.invalidate()
+                hoverTimer = nil
+                edgeRecheckWork?.cancel()
+                edgeRecheckWork = nil
+            }
+            return
+        }
+
         let dockAX = AXUIElementCreateApplication(dockApp.processIdentifier)
         var elementRef: AXUIElement?
 
@@ -470,6 +491,43 @@ final class DockPreviewManager: ObservableObject {
 
         guard isPanelVisible else { return }
         hidePreviewPanel(animated: false)
+    }
+
+    /// Checks if a native Dock context menu (e.g. Right-click Options menu) is currently active.
+    /// When active, any Dock item exposes an `AXShownMenuUIElement` with a non-zero frame.
+    private func isDockContextMenuActive(dockApp: NSRunningApplication) -> Bool {
+        let dockAX = AXUIElementCreateApplication(dockApp.processIdentifier)
+        var childrenRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(dockAX, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+              let children = childrenRef as? [AXUIElement],
+              let dockList = children.first else {
+            return false
+        }
+
+        var itemsRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(dockList, kAXChildrenAttribute as CFString, &itemsRef) == .success,
+              let items = itemsRef as? [AXUIElement],
+              let firstItem = items.first else {
+            return false
+        }
+
+        var menuRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(firstItem, "AXShownMenuUIElement" as CFString, &menuRef) == .success,
+              let menuRef = menuRef else {
+            return false
+        }
+
+        let menuElem = unsafeBitCast(menuRef, to: AXUIElement.self)
+        var frameVal: AnyObject?
+        guard AXUIElementCopyAttributeValue(menuElem, "AXFrame" as CFString, &frameVal) == .success,
+              let frameVal = frameVal,
+              CFGetTypeID(frameVal) == AXValueGetTypeID() else {
+            return false
+        }
+
+        var rect = CGRect.zero
+        AXValueGetValue(unsafeBitCast(frameVal, to: AXValue.self), .cgRect, &rect)
+        return rect.width > 10 && rect.height > 10
     }
 
     // MARK: - Dock Reveal & Auto-Hide Control

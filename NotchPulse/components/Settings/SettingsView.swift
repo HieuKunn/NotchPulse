@@ -617,16 +617,7 @@ struct SettingsView: View {
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
-                .background(DetailScrollViewObserver(isScrolled: $isDetailScrolled, selectedTab: selectedTab))
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    SettingsDetailHeaderBar(
-                        title: tabTitle(for: selectedTab),
-                        isScrolled: isDetailScrolled
-                    )
-                    .zIndex(1)
-                }
-                .ignoresSafeArea(edges: .top)
-                .background(Color(nsColor: .windowBackgroundColor))
+                .navigationTitle(tabTitle(for: selectedTab))
                 .onChange(of: selectedTab) { _, _ in
                     isDetailScrolled = false
                     SystemMonitorManager.shared.stopMonitoring()

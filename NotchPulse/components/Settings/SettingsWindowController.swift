@@ -87,7 +87,7 @@ class SettingsWindowController: NSWindowController {
         window.backgroundColor = .clear
         window.titleVisibility = .hidden
         window.toolbarStyle = .unified
-        window.toolbar = nil
+        window.toolbar = NSToolbar(identifier: "NotchPulseSettingsToolbar")
         window.isMovableByWindowBackground = false
         
         // Make it behave like a regular app window with proper Spaces support

@@ -94,10 +94,7 @@ struct DockPreviewView: View {
                 }
             }
         }
-        .background(
-            VisualEffectView(material: .popover, blendingMode: .behindWindow)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        )
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .fixedSize()
     }
 
