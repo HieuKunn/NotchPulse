@@ -596,18 +596,7 @@ struct SettingsView: View {
             tabTitle: tabTitle(for:),
             selectTab: selectTab
         )
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                NativeSidebarSearchField(text: $searchText, prompt: loc("Search"))
-                    .frame(height: 28)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 36)
-                    .padding(.bottom, 8)
-
-                Divider()
-            }
-            .background(.bar)
-        }
+        .searchable(text: $searchText, placement: .sidebar, prompt: loc("Search"))
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -619,9 +608,7 @@ struct SettingsView: View {
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    SettingsDetailHeaderBar(title: tabTitle(for: selectedTab))
-                }
+                .navigationTitle(tabTitle(for: selectedTab))
                 .onChange(of: selectedTab) { _, _ in
                     SystemMonitorManager.shared.stopMonitoring()
                     SystemMonitorManager.shared.stopThermalMonitoring()
