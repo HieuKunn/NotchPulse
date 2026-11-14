@@ -89,6 +89,7 @@ final class DockPreviewManager: ObservableObject {
     private var dockRevealTap: (tap: CFMachPort, source: CFRunLoopSource, context: Unmanaged<DockRevealContext>)?
     private var lastKeepAlivePulse: Date = .distantPast
     private var cachedDockOrientation: (pos: DockScreenPosition, time: TimeInterval)?
+    private var edgeRecheckWork: DispatchWorkItem?
 
     private init() {
         setupCallbacks()
@@ -120,6 +121,11 @@ final class DockPreviewManager: ObservableObject {
         }
         isConfigured = true
         startMouseMonitoring()
+
+        // Pre-warm ScreenCaptureKit in background so first preview hover has 0ms cold-start latency
+        Task.detached(priority: .background) {
+            _ = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+        }
     }
 
     func teardown() {
@@ -131,6 +137,8 @@ final class DockPreviewManager: ObservableObject {
         dismissTimer = nil
         trailingMoveWork?.cancel()
         trailingMoveWork = nil
+        edgeRecheckWork?.cancel()
+        edgeRecheckWork = nil
         cachedDockBar = nil
         dismissImmediately()
         isConfigured = false
@@ -399,8 +407,40 @@ final class DockPreviewManager: ObservableObject {
             return
         }
 
-        // 5. Mouse completely left both preview panel and the Dock area: dismiss immediately!
-        dismissImmediately()
+        // 5. Mouse is near the Dock edge, but no icon under the cursor yet.
+        // This happens when:
+        // a. Auto-hidden Dock is sliding out (~150ms animation), cursor is stationary at screen edge.
+        // b. Cursor is traversing between icon gaps or magnification is actively resizing.
+        // We schedule a one-shot re-check after 120ms so we automatically catch the icon once revealed
+        // without requiring the user to wiggle or move their mouse again!
+        if edgeRecheckWork == nil {
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.edgeRecheckWork = nil
+                self.handleGlobalMouseMove()
+            }
+            edgeRecheckWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
+        }
+
+        if isPanelVisible {
+            if dismissTimer == nil {
+                dismissTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: false) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        self?.dismissImmediately()
+                    }
+                }
+            }
+            return
+        }
+
+        // If hoverTimer is actively counting down, keep it alive while still near the Dock edge!
+        if hoverTimer != nil {
+            return
+        }
+
+        lastHoveredTitle = nil
+        lastHoveredItemFrame = .zero
     }
 
     private func isMouseNearDockEdge(mouseLoc: NSPoint, position: DockScreenPosition, screen: NSScreen) -> Bool {
@@ -418,6 +458,8 @@ final class DockPreviewManager: ObservableObject {
     }
 
     private func dismissImmediately() {
+        edgeRecheckWork?.cancel()
+        edgeRecheckWork = nil
         hoverTimer?.invalidate()
         hoverTimer = nil
         dismissTimer?.invalidate()
