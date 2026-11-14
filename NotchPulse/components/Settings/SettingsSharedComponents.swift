@@ -78,8 +78,7 @@ struct SettingsDetailHeaderBar: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .padding(.top, 14)
-            .padding(.bottom, 12)
+            .frame(height: 52)
 
             Divider()
                 .opacity(isScrolled ? 1 : 0)

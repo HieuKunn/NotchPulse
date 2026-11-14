@@ -617,7 +617,6 @@ struct SettingsView: View {
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
-                .safeAreaPadding(.top, 56)
                 .background(DetailScrollViewObserver(isScrolled: $isDetailScrolled, selectedTab: selectedTab))
                 .safeAreaInset(edge: .top, spacing: 0) {
                     SettingsDetailHeaderBar(
@@ -838,8 +837,9 @@ private struct DetailScrollViewObserver: NSViewRepresentable {
 
         private func checkScroll() {
             guard let clipView = observedClipView else { return }
-            let offsetY = clipView.bounds.origin.y
-            let scrolled = offsetY > 2.0
+            let restingY = observedScrollView.map { -$0.contentInsets.top } ?? -52.0
+            let scrollDelta = clipView.bounds.origin.y - restingY
+            let scrolled = scrollDelta > 2.0
             if isScrolled != scrolled {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isScrolled = scrolled

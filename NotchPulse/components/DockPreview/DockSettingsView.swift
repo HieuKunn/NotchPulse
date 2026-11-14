@@ -64,6 +64,15 @@ struct DockSettingsView: View {
                 Defaults.Toggle(key: .dockPreviewShowCloseButton) {
                     Text(loc("Show close button on hover"))
                 }
+
+                Defaults.Toggle(key: .dockPreviewKeepDockVisible) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(loc("Keep Dock Visible During Previews"))
+                        Text(loc("Prevents auto-hidden Dock from disappearing while navigating previews."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             } header: {
                 Text(loc("Appearance & Behavior"))
             }

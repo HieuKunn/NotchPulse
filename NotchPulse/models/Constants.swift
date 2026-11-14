@@ -385,6 +385,7 @@ extension Defaults.Keys {
     static let dockPreviewSize = Key<DockPreviewSize>("dockPreviewSize", default: .medium)
     static let dockPreviewShowTitles = Key<Bool>("dockPreviewShowTitles", default: true)
     static let dockPreviewShowCloseButton = Key<Bool>("dockPreviewShowCloseButton", default: true)
+    static let dockPreviewKeepDockVisible = Key<Bool>("dockPreviewKeepDockVisible", default: true)
 
     // MARK: Master Feature Toggles
     static let enableCalendarFeature = Key<Bool>("enableCalendarFeature", default: true)

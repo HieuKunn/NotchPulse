@@ -1,8 +1,24 @@
 import AppKit
+import ApplicationServices
 import Combine
 import Defaults
 import ScreenCaptureKit
 import SwiftUI
+
+// CoreDock private API from ApplicationServices
+@_silgen_name("CoreDockGetAutoHideEnabled")
+private func CoreDockGetAutoHideEnabled() -> Bool
+
+private final class DockRevealContext {
+    let pid: pid_t
+    let revealPoint: CGPoint
+    var tap: CFMachPort?
+
+    init(pid: pid_t, revealPoint: CGPoint) {
+        self.pid = pid
+        self.revealPoint = revealPoint
+    }
+}
 
 // MARK: - Dock Position Enum
 
@@ -69,6 +85,9 @@ final class DockPreviewManager: ObservableObject {
 
     private var thumbnailCache: [CGWindowID: (image: NSImage, date: Date)] = [:]
     private var isConfigured = false
+
+    private var dockRevealTap: (tap: CFMachPort, source: CFRunLoopSource, context: Unmanaged<DockRevealContext>)?
+    private var lastKeepAlivePulse: Date = .distantPast
 
     private init() {
         setupCallbacks()
@@ -231,6 +250,7 @@ final class DockPreviewManager: ObservableObject {
         if isPanelVisible, let panel = previewPanel, panel.frame.contains(mouseLoc) {
             dismissTimer?.invalidate()
             dismissTimer = nil
+            keepDockRevealed(screen: screen, dockPos: dockPos)
             return
         }
 
@@ -264,6 +284,8 @@ final class DockPreviewManager: ObservableObject {
             }
 
             if corridor.contains(mouseLoc) {
+                keepDockRevealed(screen: screen, dockPos: dockPos)
+
                 // Inside the Safe Corridor / Dock Bar region:
                 // Check if the user is hovering over another Dock app icon to switch previews instantly!
                 if let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first {
@@ -381,9 +403,129 @@ final class DockPreviewManager: ObservableObject {
         dismissTimer = nil
         lastHoveredTitle = nil
         lastHoveredItemFrame = .zero
+        releaseDockReveal()
 
         guard isPanelVisible else { return }
         hidePreviewPanel(animated: false)
+    }
+
+    // MARK: - Dock Reveal & Auto-Hide Control
+
+    private static let mouseExitedEventType = CGEventType(rawValue: UInt32(NSEvent.EventType.mouseExited.rawValue))!
+
+    private static func postMouseEvent(_ type: CGEventType, at point: CGPoint, toDock pid: pid_t) {
+        guard let event = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) else { return }
+        event.type = type
+        event.postToPid(pid)
+    }
+
+    private static let dockEventTapCallback: CGEventTapCallBack = { _, type, event, refcon in
+        guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
+        let ctx = Unmanaged<DockRevealContext>.fromOpaque(refcon).takeUnretainedValue()
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap = ctx.tap {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
+            return Unmanaged.passUnretained(event)
+        }
+        if type.rawValue == UInt32(NSEvent.EventType.mouseExited.rawValue) {
+            DockPreviewManager.postMouseEvent(.mouseMoved, at: ctx.revealPoint, toDock: ctx.pid)
+        }
+        return Unmanaged.passUnretained(event)
+    }
+
+    private func keepDockRevealed(screen: NSScreen, dockPos: DockScreenPosition) {
+        guard Defaults[.dockPreviewKeepDockVisible] else { return }
+        guard CoreDockGetAutoHideEnabled() else { return }
+
+        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return }
+        let pid = dockApp.processIdentifier
+
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        let screenQuartz = CGRect(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)
+        let dockBar = getDockBarGeometry(screen: screen)
+        let dockBarQuartz = dockBar.map { CGRect(x: $0.minX, y: primaryHeight - $0.maxY, width: $0.width, height: $0.height) }
+
+        let revealPoint: CGPoint
+        switch dockPos {
+        case .right:
+            let y = dockBarQuartz?.midY ?? screenQuartz.midY
+            revealPoint = CGPoint(x: screenQuartz.maxX - 1, y: y)
+        case .left:
+            let y = dockBarQuartz?.midY ?? screenQuartz.midY
+            revealPoint = CGPoint(x: screenQuartz.minX + 1, y: y)
+        case .bottom, .hidden:
+            let x = dockBarQuartz?.midX ?? screenQuartz.midX
+            revealPoint = CGPoint(x: x, y: screenQuartz.maxY - 1)
+        }
+
+        if let current = dockRevealTap {
+            let now = Date()
+            if now.timeIntervalSince(lastKeepAlivePulse) > 0.25 {
+                lastKeepAlivePulse = now
+                Self.postMouseEvent(.mouseMoved, at: current.context.takeUnretainedValue().revealPoint, toDock: pid)
+            }
+            return
+        }
+
+        let context = DockRevealContext(pid: pid, revealPoint: revealPoint)
+        let unmanaged = Unmanaged.passRetained(context)
+
+        guard let tap = CGEvent.tapCreateForPid(
+            pid: pid,
+            place: .tailAppendEventTap,
+            options: .listenOnly,
+            eventsOfInterest: CGEventMask(1) << Self.mouseExitedEventType.rawValue,
+            callback: Self.dockEventTapCallback,
+            userInfo: unmanaged.toOpaque()
+        ) else {
+            unmanaged.release()
+            return
+        }
+
+        guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
+            CFMachPortInvalidate(tap)
+            unmanaged.release()
+            return
+        }
+
+        context.tap = tap
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        dockRevealTap = (tap, source, unmanaged)
+        lastKeepAlivePulse = Date()
+
+        // Post initial mouseMoved so Dock stays open while user traverses from Dock to preview
+        Self.postMouseEvent(.mouseMoved, at: revealPoint, toDock: pid)
+    }
+
+    private func releaseDockReveal() {
+        guard let pin = dockRevealTap else { return }
+        dockRevealTap = nil
+
+        let pid = pin.context.takeUnretainedValue().pid
+        CFRunLoopRemoveSource(CFRunLoopGetMain(), pin.source, .commonModes)
+        CFMachPortInvalidate(pin.tap)
+        pin.context.release()
+
+        // If mouse is currently outside the Dock bar region, notify Dock with mouseExited so it auto-hides naturally
+        let mouseLoc = NSEvent.mouseLocation
+        let primaryScreen = NSScreen.screens.first ?? NSScreen.main
+        let (pos, dScreen) = detectDockPosition()
+        let screen = dScreen ?? primaryScreen ?? NSScreen.screens[0]
+        let dockBar = getDockBarGeometry(screen: screen)
+
+        let isInsideDock: Bool
+        if let bar = dockBar {
+            isInsideDock = bar.insetBy(dx: -12, dy: -12).contains(mouseLoc)
+        } else {
+            isInsideDock = isMouseNearDockEdge(mouseLoc: mouseLoc, position: pos, screen: screen)
+        }
+
+        if !isInsideDock {
+            let primaryHeight = primaryScreen?.frame.height ?? screen.frame.height
+            let qPoint = CGPoint(x: mouseLoc.x, y: primaryHeight - mouseLoc.y)
+            Self.postMouseEvent(Self.mouseExitedEventType, at: qPoint, toDock: pid)
+        }
     }
 
     // MARK: - Extract Dock Item Info
@@ -521,6 +663,7 @@ final class DockPreviewManager: ObservableObject {
     // MARK: - Show & Capture Previews
 
     private func showPreview(forDockItem item: DockItemInfo, dockPos: DockScreenPosition, screen: NSScreen) {
+        keepDockRevealed(screen: screen, dockPos: dockPos)
         guard let app = findRunningApplication(for: item) else {
             hidePreviewPanel(animated: true)
             return
@@ -873,9 +1016,11 @@ final class DockPreviewManager: ObservableObject {
         }
 
         isPanelVisible = true
+        keepDockRevealed(screen: screen, dockPos: dockPos)
     }
 
     private func hidePreviewPanel(animated: Bool) {
+        releaseDockReveal()
         guard let panel = previewPanel, isPanelVisible else { return }
         isPanelVisible = false
         lastHoveredTitle = nil
