@@ -3,6 +3,7 @@ import AppKit
 import ApplicationServices
 import Defaults
 import AVFoundation
+import IOKit
 
 private let kSystemDefinedEventType = CGEventType(rawValue: 14)!
 
@@ -41,10 +42,38 @@ final class MediaKeyInterceptor {
     private var activeHold: HoldState?
     private var holdArmTimer: Timer?
     private var holdRampTimer: Timer?
+    private var isPassiveListenOnly: Bool = false
 
     var isIntercepting: Bool { eventTap != nil }
     
     private init() {}
+
+    /// Returns true on Macs equipped with a Touch Bar (e.g. MacBook Pro M1) so NotchPulse
+    /// never swallows or overrides any Touch Bar Control Strip buttons or sliders.
+    private static func hasTouchBarHardware() -> Bool {
+        if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlstrip").isEmpty {
+            return true
+        }
+        if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.touchbarserver").isEmpty {
+            return true
+        }
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleDFRDisplay"))
+        if service != 0 {
+            IOObjectRelease(service)
+            return true
+        }
+        return false
+    }
+
+    private func isTouchBarOrSyntheticEvent(_ cgEvent: CGEvent) -> Bool {
+        if cgEvent.getIntegerValueField(.eventSourceUnixProcessID) != 0 {
+            return true
+        }
+        if cgEvent.getIntegerValueField(.eventSourceStateID) != Int64(CGEventSourceStateID.hidSystemState.rawValue) {
+            return true
+        }
+        return false
+    }
     
     // MARK: - Accessibility (via XPC)
     
@@ -78,11 +107,12 @@ final class MediaKeyInterceptor {
             }
         }
         
+        isPassiveListenOnly = Self.hasTouchBarHardware()
         let mask = CGEventMask(1 << kSystemDefinedEventType.rawValue)
         eventTap = CGEvent.tapCreate(
             tap: .cghidEventTap,
             place: .headInsertEventTap,
-            options: .defaultTap,
+            options: isPassiveListenOnly ? .listenOnly : .defaultTap,
             eventsOfInterest: mask,
             callback: { _, type, cgEvent, userInfo in
                 guard let userInfo else { return Unmanaged.passRetained(cgEvent) }
@@ -94,7 +124,9 @@ final class MediaKeyInterceptor {
                     if let eventTap = interceptor.eventTap {
                         CGEvent.tapEnable(tap: eventTap, enable: true)
                     }
-                    if let nsEvent = NSEvent(cgEvent: cgEvent),
+                    if !interceptor.isPassiveListenOnly,
+                       !interceptor.isTouchBarOrSyntheticEvent(cgEvent),
+                       let nsEvent = NSEvent(cgEvent: cgEvent),
                        nsEvent.type == .systemDefined,
                        nsEvent.subtype.rawValue == 8 {
                         let data1 = nsEvent.data1
@@ -153,6 +185,16 @@ final class MediaKeyInterceptor {
         
         // Match against media keys handled by NotchPulse
         guard let keyType = NXKeyType(rawValue: keyCode) else {
+            return Unmanaged.passRetained(cgEvent)
+        }
+
+        // Never swallow or override Touch Bar / Control Strip / synthetic events,
+        // and never intercept when running on a Touch Bar Mac.
+        if isPassiveListenOnly || isTouchBarOrSyntheticEvent(cgEvent) {
+            if stateByte == 0xA {
+                let command = nsEvent.modifierFlags.contains(.command)
+                showPassiveHUD(for: keyType, command: command)
+            }
             return Unmanaged.passRetained(cgEvent)
         }
         
@@ -438,6 +480,33 @@ final class MediaKeyInterceptor {
         }
     }
     
+    private func showPassiveHUD(for keyType: NXKeyType, command: Bool) {
+        Task { @MainActor in
+            // Allow macOS / Touch Bar Control Strip to apply the native adjustment first.
+            try? await Task.sleep(nanoseconds: 40_000_000)
+            switch keyType {
+            case .soundUp, .soundDown, .mute:
+                VolumeManager.shared.refresh()
+                let v = VolumeManager.shared.isMuted ? 0 : VolumeManager.shared.rawVolume
+                NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .volume, value: CGFloat(v))
+            case .brightnessUp, .brightnessDown:
+                if command {
+                    KeyboardBacklightManager.shared.refresh()
+                    let v = KeyboardBacklightManager.shared.rawBrightness
+                    NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .backlight, value: CGFloat(v))
+                } else {
+                    BrightnessManager.shared.refresh()
+                    let v = BrightnessManager.shared.rawBrightness
+                    NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .brightness, value: CGFloat(v))
+                }
+            case .keyboardBrightnessUp, .keyboardBrightnessDown:
+                KeyboardBacklightManager.shared.refresh()
+                let v = KeyboardBacklightManager.shared.rawBrightness
+                NotchPulseViewCoordinator.shared.toggleSneakPeek(status: true, type: .backlight, value: CGFloat(v))
+            }
+        }
+    }
+
     private func showHUD(for keyType: NXKeyType, command: Bool) {
         Task { @MainActor in
             switch keyType {
