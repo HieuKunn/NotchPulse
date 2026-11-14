@@ -88,6 +88,7 @@ final class DockPreviewManager: ObservableObject {
 
     private var dockRevealTap: (tap: CFMachPort, source: CFRunLoopSource, context: Unmanaged<DockRevealContext>)?
     private var lastKeepAlivePulse: Date = .distantPast
+    private var cachedDockOrientation: (pos: DockScreenPosition, time: TimeInterval)?
 
     private init() {
         setupCallbacks()
@@ -239,6 +240,26 @@ final class DockPreviewManager: ObservableObject {
         guard Defaults[.enableDockPreview] else { return }
 
         let mouseLoc = NSEvent.mouseLocation
+
+        // 0. Ultra-fast screen-interior guard:
+        // When preview panel is NOT visible and mouse is comfortably inside the screen
+        // (i.e. user is typing, reading, or moving around the middle of the screen),
+        // exit immediately in < 0.001ms with zero allocations, zero IPC, and zero preference reads!
+        if !isPanelVisible {
+            let primaryScreen = NSScreen.screens.first ?? NSScreen.main
+            let screen = NSScreen.screens.first(where: { NSPointInRect(mouseLoc, $0.frame) }) ?? primaryScreen
+            if let screen {
+                let margin: CGFloat = 110.0
+                let nearAnyDockBorder = mouseLoc.x <= screen.frame.minX + margin
+                    || mouseLoc.x >= screen.frame.maxX - margin
+                    || mouseLoc.y <= screen.frame.minY + margin
+                if !nearAnyDockBorder {
+                    dismissImmediately()
+                    return
+                }
+            }
+        }
+
         let (dockPos, dockScreen) = detectDockPosition()
 
         guard dockPos != .hidden, let screen = dockScreen else {
@@ -250,7 +271,7 @@ final class DockPreviewManager: ObservableObject {
         if isPanelVisible, let panel = previewPanel, panel.frame.contains(mouseLoc) {
             dismissTimer?.invalidate()
             dismissTimer = nil
-            keepDockRevealed(screen: screen, dockPos: dockPos)
+            keepDockRevealed(screen: screen, dockPos: dockPos, mouseLoc: mouseLoc)
             return
         }
 
@@ -284,7 +305,7 @@ final class DockPreviewManager: ObservableObject {
             }
 
             if corridor.contains(mouseLoc) {
-                keepDockRevealed(screen: screen, dockPos: dockPos)
+                keepDockRevealed(screen: screen, dockPos: dockPos, mouseLoc: mouseLoc)
 
                 // Inside the Safe Corridor / Dock Bar region:
                 // Check if the user is hovering over another Dock app icon to switch previews instantly!
@@ -411,6 +432,13 @@ final class DockPreviewManager: ObservableObject {
 
     // MARK: - Dock Reveal & Auto-Hide Control
 
+    func isMouseInsideDock(mouseLoc: NSPoint, screen: NSScreen, dockPos: DockScreenPosition) -> Bool {
+        if let dockBar = getDockBarGeometry(screen: screen) {
+            return dockBar.insetBy(dx: -8, dy: -8).contains(mouseLoc)
+        }
+        return isMouseNearDockEdge(mouseLoc: mouseLoc, position: dockPos, screen: screen)
+    }
+
     private static let mouseExitedEventType = CGEventType(rawValue: UInt32(NSEvent.EventType.mouseExited.rawValue))!
 
     private static func postMouseEvent(_ type: CGEventType, at point: CGPoint, toDock pid: pid_t) {
@@ -429,41 +457,56 @@ final class DockPreviewManager: ObservableObject {
             return Unmanaged.passUnretained(event)
         }
         if type.rawValue == UInt32(NSEvent.EventType.mouseExited.rawValue) {
-            DockPreviewManager.postMouseEvent(.mouseMoved, at: ctx.revealPoint, toDock: ctx.pid)
+            // ONLY post mouseMoved if mouse is outside the Dock (i.e. mouse genuinely left Dock towards preview)
+            // If the user's mouse is still near the Dock edge / on the Dock, do NOT intercept or inject!
+            let mouseLoc = NSEvent.mouseLocation
+            let (pos, dScreen) = DockPreviewManager.shared.detectDockPosition()
+            let screen = dScreen ?? NSScreen.main ?? NSScreen.screens[0]
+            if !DockPreviewManager.shared.isMouseInsideDock(mouseLoc: mouseLoc, screen: screen, dockPos: pos) {
+                DockPreviewManager.postMouseEvent(.mouseMoved, at: ctx.revealPoint, toDock: ctx.pid)
+            }
         }
         return Unmanaged.passUnretained(event)
     }
 
-    private func keepDockRevealed(screen: NSScreen, dockPos: DockScreenPosition) {
+    private func keepDockRevealed(screen: NSScreen, dockPos: DockScreenPosition, mouseLoc: NSPoint) {
         guard Defaults[.dockPreviewKeepDockVisible] else { return }
         guard CoreDockGetAutoHideEnabled() else { return }
 
         guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return }
         let pid = dockApp.processIdentifier
 
+        // CRITICAL ANTI-JITTER RULE:
+        // When mouse is inside the Dock bar, the system natively keeps the Dock visible.
+        // NEVER post fake mouse events while user is hovering Dock icons, or the Dock will jitter!
+        let insideDock = isMouseInsideDock(mouseLoc: mouseLoc, screen: screen, dockPos: dockPos)
+
         let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
         let screenQuartz = CGRect(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)
         let dockBar = getDockBarGeometry(screen: screen)
         let dockBarQuartz = dockBar.map { CGRect(x: $0.minX, y: primaryHeight - $0.maxY, width: $0.width, height: $0.height) }
 
+        // Compute revealPoint in the screen margin outside the app icons
         let revealPoint: CGPoint
         switch dockPos {
         case .right:
-            let y = dockBarQuartz?.midY ?? screenQuartz.midY
+            let y = dockBarQuartz != nil ? min(max((screenQuartz.minY + dockBarQuartz!.minY) / 2, screenQuartz.minY + 32), dockBarQuartz!.minY) : screenQuartz.midY
             revealPoint = CGPoint(x: screenQuartz.maxX - 1, y: y)
         case .left:
-            let y = dockBarQuartz?.midY ?? screenQuartz.midY
+            let y = dockBarQuartz != nil ? min(max((screenQuartz.minY + dockBarQuartz!.minY) / 2, screenQuartz.minY + 32), dockBarQuartz!.minY) : screenQuartz.midY
             revealPoint = CGPoint(x: screenQuartz.minX + 1, y: y)
         case .bottom, .hidden:
-            let x = dockBarQuartz?.midX ?? screenQuartz.midX
+            let x = dockBarQuartz != nil ? min(max((screenQuartz.minX + dockBarQuartz!.minX) / 2, screenQuartz.minX + 32), dockBarQuartz!.minX) : screenQuartz.midX
             revealPoint = CGPoint(x: x, y: screenQuartz.maxY - 1)
         }
 
         if let current = dockRevealTap {
-            let now = Date()
-            if now.timeIntervalSince(lastKeepAlivePulse) > 0.25 {
-                lastKeepAlivePulse = now
-                Self.postMouseEvent(.mouseMoved, at: current.context.takeUnretainedValue().revealPoint, toDock: pid)
+            if !insideDock {
+                let now = Date()
+                if now.timeIntervalSince(lastKeepAlivePulse) > 0.40 {
+                    lastKeepAlivePulse = now
+                    Self.postMouseEvent(.mouseMoved, at: current.context.takeUnretainedValue().revealPoint, toDock: pid)
+                }
             }
             return
         }
@@ -494,8 +537,9 @@ final class DockPreviewManager: ObservableObject {
         dockRevealTap = (tap, source, unmanaged)
         lastKeepAlivePulse = Date()
 
-        // Post initial mouseMoved so Dock stays open while user traverses from Dock to preview
-        Self.postMouseEvent(.mouseMoved, at: revealPoint, toDock: pid)
+        if !insideDock {
+            Self.postMouseEvent(.mouseMoved, at: revealPoint, toDock: pid)
+        }
     }
 
     private func releaseDockReveal() {
@@ -629,41 +673,47 @@ final class DockPreviewManager: ObservableObject {
             }
         }
 
-        // 2. Dock is set to Auto-hide. Read macOS Dock orientation preference:
+        // 2. Dock is set to Auto-hide.
+        // Check 2.0s cache first to avoid querying CFPreferences / UserDefaults repeatedly
+        let now = ProcessInfo.processInfo.systemUptime
+        if let cached = cachedDockOrientation, now - cached.time < 2.0 {
+            return (cached.pos, screen)
+        }
+
+        var detectedPos: DockScreenPosition = .bottom
         if let dockDefaults = UserDefaults(suiteName: "com.apple.dock"),
            let orientation = dockDefaults.string(forKey: "orientation") {
             switch orientation.lowercased() {
             case "left":
-                return (.left, screen)
+                detectedPos = .left
             case "right":
-                return (.right, screen)
+                detectedPos = .right
             case "bottom":
-                return (.bottom, screen)
+                detectedPos = .bottom
             default:
                 break
             }
-        }
-
-        if let pref = CFPreferencesCopyAppValue("orientation" as CFString, "com.apple.dock" as CFString) as? String {
+        } else if let pref = CFPreferencesCopyAppValue("orientation" as CFString, "com.apple.dock" as CFString) as? String {
             switch pref.lowercased() {
             case "left":
-                return (.left, screen)
+                detectedPos = .left
             case "right":
-                return (.right, screen)
+                detectedPos = .right
             case "bottom":
-                return (.bottom, screen)
+                detectedPos = .bottom
             default:
                 break
             }
         }
 
-        return (.bottom, screen)
+        cachedDockOrientation = (detectedPos, now)
+        return (detectedPos, screen)
     }
 
     // MARK: - Show & Capture Previews
 
     private func showPreview(forDockItem item: DockItemInfo, dockPos: DockScreenPosition, screen: NSScreen) {
-        keepDockRevealed(screen: screen, dockPos: dockPos)
+        keepDockRevealed(screen: screen, dockPos: dockPos, mouseLoc: NSEvent.mouseLocation)
         guard let app = findRunningApplication(for: item) else {
             hidePreviewPanel(animated: true)
             return
@@ -1016,7 +1066,7 @@ final class DockPreviewManager: ObservableObject {
         }
 
         isPanelVisible = true
-        keepDockRevealed(screen: screen, dockPos: dockPos)
+        keepDockRevealed(screen: screen, dockPos: dockPos, mouseLoc: NSEvent.mouseLocation)
     }
 
     private func hidePreviewPanel(animated: Bool) {
