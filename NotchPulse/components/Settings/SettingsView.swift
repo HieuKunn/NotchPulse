@@ -45,7 +45,6 @@ struct SettingsView: View {
     @State private var scrollToItemId: String? = nil
     @State private var highlightedItemId: String? = nil
     @State private var scrollTrigger = UUID()
-    @State private var isDetailScrolled: Bool = false
     @Default(.appLanguage) private var appLanguage
 
     private static let cachedAppIcon: NSImage? = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
@@ -587,25 +586,28 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var settingsSidebar: some View {
-        VStack(spacing: 0) {
-            NativeSidebarSearchField(text: $searchText, prompt: loc("Search"))
-                .frame(height: 28)
-                .padding(.horizontal, 12)
-                .padding(.top, 36)
-                .padding(.bottom, 6)
+        SettingsSidebarListView(
+            appIcon: Self.cachedAppIcon,
+            selectedTab: $selectedTab,
+            searchText: $searchText,
+            filteredTabs: filteredTabs,
+            categories: categorizedSections,
+            matchingSections: matchingSections(for:),
+            tabTitle: tabTitle(for:),
+            selectTab: selectTab
+        )
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                NativeSidebarSearchField(text: $searchText, prompt: loc("Search"))
+                    .frame(height: 28)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 36)
+                    .padding(.bottom, 8)
 
-            SettingsSidebarListView(
-                appIcon: Self.cachedAppIcon,
-                selectedTab: $selectedTab,
-                searchText: $searchText,
-                filteredTabs: filteredTabs,
-                categories: categorizedSections,
-                matchingSections: matchingSections(for:),
-                tabTitle: tabTitle(for:),
-                selectTab: selectTab
-            )
+                Divider()
+            }
+            .background(.bar)
         }
-        .ignoresSafeArea(edges: .top)
         .toolbar(removing: .sidebarToggle)
         .navigationSplitViewColumnWidth(240)
     }
@@ -617,9 +619,10 @@ struct SettingsView: View {
                 .environment(\.settingsHighlightedId, highlightedItemId)
                 .formStyle(.grouped)
                 .scrollIndicators(.never)
-                .navigationTitle(tabTitle(for: selectedTab))
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    SettingsDetailHeaderBar(title: tabTitle(for: selectedTab))
+                }
                 .onChange(of: selectedTab) { _, _ in
-                    isDetailScrolled = false
                     SystemMonitorManager.shared.stopMonitoring()
                     SystemMonitorManager.shared.stopThermalMonitoring()
                 }
@@ -692,168 +695,6 @@ struct SettingsView: View {
 
     private func tabTitle(for destination: SettingsDestination) -> String {
         L10n.tr(destination.rawValue, lang: appLanguage)
-    }
-}
-
-// MARK: - AppKit Detail Scroll Observer (macOS Dynamic Blur Header)
-
-private struct DetailScrollViewObserver: NSViewRepresentable {
-    @Binding var isScrolled: Bool
-    let selectedTab: SettingsDestination
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(isScrolled: $isScrolled)
-    }
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        context.coordinator.targetView = view
-        DispatchQueue.main.async { [weak view, weak coordinator = context.coordinator] in
-            guard let view = view, let coordinator = coordinator else { return }
-            coordinator.attach(to: view)
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        context.coordinator.targetView = nsView
-        DispatchQueue.main.async { [weak nsView, weak coordinator = context.coordinator] in
-            guard let nsView = nsView, let coordinator = coordinator else { return }
-            coordinator.attach(to: nsView)
-        }
-    }
-
-    final class Coordinator: NSObject {
-        @Binding var isScrolled: Bool
-        weak var targetView: NSView?
-        private weak var observedScrollView: NSScrollView?
-        private weak var observedClipView: NSClipView?
-        private var notificationToken: Any?
-
-        init(isScrolled: Binding<Bool>) {
-            self._isScrolled = isScrolled
-        }
-
-        func attach(to view: NSView) {
-            guard let sv = Self.findDetailScrollView(from: view) else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self, weak view] in
-                    guard let self = self, let view = view else { return }
-                    self.attach(to: view)
-                }
-                return
-            }
-
-            Self.suppressScroller(sv)
-            observedScrollView = sv
-
-            let clipView = sv.contentView
-            if observedClipView !== clipView {
-                if let token = notificationToken {
-                    NotificationCenter.default.removeObserver(token)
-                    notificationToken = nil
-                }
-                observedClipView = clipView
-                clipView.postsBoundsChangedNotifications = true
-                notificationToken = NotificationCenter.default.addObserver(
-                    forName: NSView.boundsDidChangeNotification,
-                    object: clipView,
-                    queue: .main
-                ) { [weak self] _ in
-                    self?.checkScroll()
-                }
-            }
-
-            // Re-evaluate once layout/contentInsets settle
-            checkScroll()
-            DispatchQueue.main.async { [weak self] in
-                self?.checkScroll()
-            }
-        }
-
-        /// Walks up from the sibling `.background()` NSView to find the detail column's NSScrollView,
-        /// traversing only within the detail column subtree before NSSplitView.
-        private static func findDetailScrollView(from view: NSView) -> NSScrollView? {
-            if let enclosing = view.enclosingScrollView {
-                return enclosing
-            }
-
-            var current: NSView? = view.superview
-            var topDetailContainer: NSView? = nil
-            while let ancestor = current {
-                if ancestor is NSSplitView {
-                    break
-                }
-                topDetailContainer = ancestor
-                current = ancestor.superview
-            }
-
-            if let container = topDetailContainer, let sv = firstScrollView(in: container) {
-                return sv
-            }
-
-            if let root = view.window?.contentView {
-                return findRightmostScrollView(in: root)
-            }
-            return nil
-        }
-
-        private static func firstScrollView(in root: NSView) -> NSScrollView? {
-            if let sv = root as? NSScrollView {
-                return sv
-            }
-            for subview in root.subviews {
-                if let sv = firstScrollView(in: subview) {
-                    return sv
-                }
-            }
-            return nil
-        }
-
-        private static func findRightmostScrollView(in root: NSView) -> NSScrollView? {
-            var allScrollViews: [NSScrollView] = []
-            func collect(_ v: NSView) {
-                if let sv = v as? NSScrollView {
-                    allScrollViews.append(sv)
-                }
-                for sub in v.subviews {
-                    collect(sub)
-                }
-            }
-            collect(root)
-            return allScrollViews.max(by: { sv1, sv2 in
-                let x1 = sv1.window != nil ? sv1.convert(sv1.bounds, to: nil).minX : sv1.frame.minX
-                let x2 = sv2.window != nil ? sv2.convert(sv2.bounds, to: nil).minX : sv2.frame.minX
-                return x1 < x2
-            })
-        }
-
-        private func checkScroll() {
-            guard let clipView = observedClipView else { return }
-            let restingY = observedScrollView.map { -$0.contentInsets.top } ?? -52.0
-            let scrollDelta = clipView.bounds.origin.y - restingY
-            let scrolled = scrollDelta > 2.0
-            if isScrolled != scrolled {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isScrolled = scrolled
-                }
-            }
-        }
-
-        private static func suppressScroller(_ sv: NSScrollView) {
-            if !sv.hasVerticalScroller { sv.hasVerticalScroller = true }
-            if !sv.autohidesScrollers { sv.autohidesScrollers = true }
-            if sv.scrollerStyle != .overlay { sv.scrollerStyle = .overlay }
-            if let scroller = sv.verticalScroller, (!scroller.isHidden || scroller.alphaValue != 0) {
-                scroller.alphaValue = 0
-                scroller.isHidden = true
-            }
-        }
-
-        deinit {
-            if let token = notificationToken {
-                NotificationCenter.default.removeObserver(token)
-            }
-        }
     }
 }
 
