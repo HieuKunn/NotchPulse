@@ -60,31 +60,25 @@ struct SettingsTabItem: Identifiable {
 
 // MARK: - Reusable Visual Elements
 
-/// Dedicated macOS-style top header bar matching System Settings (Sonoma/Sequoia/Tahoe).
-/// Transparent at top so content sits naturally with zero artificial space or painted background;
 /// Native macOS Declarative Settings Detail Header Bar.
-/// Pins to top safe area with system .bar frosted material and hairline divider,
-/// aligning with sidebar search bar at 72pt.
+/// Sits at top of detail pane with system .bar frosted material,
+/// perfectly matching macOS System Settings title placement & font.
 struct SettingsDetailHeaderBar: View {
     let title: String
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 12) {
-                Text(title)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
 
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 36)
-            .padding(.bottom, 8)
-            .frame(height: 72, alignment: .bottom)
-
-            Divider()
+            Spacer()
         }
+        .padding(.horizontal, 24)
+        .frame(height: 52, alignment: .bottom)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity)
         .background(.bar)
     }
 }

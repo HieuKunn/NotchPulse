@@ -604,15 +604,19 @@ struct SettingsView: View {
     @ViewBuilder
     private var settingsDetail: some View {
         ScrollViewReader { proxy in
-            detailContent
-                .environment(\.settingsHighlightedId, highlightedItemId)
-                .formStyle(.grouped)
-                .scrollIndicators(.never)
-                .navigationTitle(tabTitle(for: selectedTab))
-                .onChange(of: selectedTab) { _, _ in
-                    SystemMonitorManager.shared.stopMonitoring()
-                    SystemMonitorManager.shared.stopThermalMonitoring()
-                }
+            VStack(spacing: 0) {
+                SettingsDetailHeaderBar(title: tabTitle(for: selectedTab))
+
+                detailContent
+                    .environment(\.settingsHighlightedId, highlightedItemId)
+                    .formStyle(.grouped)
+                    .scrollIndicators(.never)
+            }
+            .ignoresSafeArea(edges: .top)
+            .onChange(of: selectedTab) { _, _ in
+                SystemMonitorManager.shared.stopMonitoring()
+                SystemMonitorManager.shared.stopThermalMonitoring()
+            }
                 .onChange(of: scrollTrigger) { _, _ in
                     guard let targetId = scrollToItemId else { return }
                     Task { @MainActor in
