@@ -90,6 +90,8 @@ final class DockPreviewManager: ObservableObject {
     private var lastKeepAlivePulse: Date = .distantPast
     private var cachedDockOrientation: (pos: DockScreenPosition, time: TimeInterval)?
     private var edgeRecheckWork: DispatchWorkItem?
+    private var isContextMenuActive = false
+    private var lastRightClickTime: Date = .distantPast
 
     private init() {
         setupCallbacks()
@@ -176,13 +178,20 @@ final class DockPreviewManager: ObservableObject {
                 .otherMouseDown
             ]) { [weak self] event in
                 Task { @MainActor [weak self] in
-                    guard let self = self, self.isPanelVisible else { return }
+                    guard let self = self else { return }
+
                     // Right click or Control+Click ANYWHERE (on dock icon, desktop, etc.):
-                    // IMMEDIATELY dismiss preview with 0 delay so macOS Dock context menu opens clean and unobscured!
+                    // 1. Mark context menu as active to block all upcoming preview triggers
+                    // 2. IMMEDIATELY dismiss preview & cancel timers with 0 delay so macOS Dock context menu opens clean!
                     if event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control)) {
+                        self.isContextMenuActive = true
+                        self.lastRightClickTime = Date()
                         self.dismissImmediately()
                         return
                     }
+
+                    // Any left click or other click: reset context menu suppression
+                    self.isContextMenuActive = false
 
                     // Left click outside the preview panel: immediately dismiss
                     let mouseLoc = NSEvent.mouseLocation
@@ -194,9 +203,16 @@ final class DockPreviewManager: ObservableObject {
         }
 
         if localClickMonitor == nil {
-            localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown]) { [weak self] event in
+            localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown, .leftMouseDown]) { [weak self] event in
                 Task { @MainActor [weak self] in
-                    self?.dismissImmediately()
+                    guard let self = self else { return }
+                    if event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control)) {
+                        self.isContextMenuActive = true
+                        self.lastRightClickTime = Date()
+                        self.dismissImmediately()
+                    } else if event.type == .leftMouseDown {
+                        self.isContextMenuActive = false
+                    }
                 }
                 return event
             }
@@ -271,6 +287,21 @@ final class DockPreviewManager: ObservableObject {
         let (dockPos, dockScreen) = detectDockPosition()
 
         guard dockPos != .hidden, let screen = dockScreen else {
+            dismissImmediately()
+            return
+        }
+
+        // Context Menu Guard: If the user right-clicked to view options/context menu on Dock,
+        // or a native Dock menu is actively open on screen, DO NOT show or keep previews alive!
+        if isContextMenuActive {
+            if isDockContextMenuOpen() || Date().timeIntervalSince(lastRightClickTime) < 1.2 {
+                dismissImmediately()
+                return
+            } else {
+                isContextMenuActive = false
+            }
+        } else if isDockContextMenuOpen() {
+            isContextMenuActive = true
             dismissImmediately()
             return
         }
@@ -470,6 +501,41 @@ final class DockPreviewManager: ObservableObject {
 
         guard isPanelVisible else { return }
         hidePreviewPanel(animated: false)
+    }
+
+    // MARK: - Dock Context Menu Detection
+
+    func isDockContextMenuOpen() -> Bool {
+        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return false }
+        let pid = dockApp.processIdentifier
+
+        // 1. Fast check CGWindowList for on-screen Dock popup/menu windows (layer > 20)
+        let cgList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        for win in cgList {
+            if (win[kCGWindowOwnerPID as String] as? pid_t) == pid {
+                let layer = win[kCGWindowLayer as String] as? Int ?? 0
+                // Normal Dock bar is layer 20. Context menus, submenus, and popups are layer > 20 (typically 100+)
+                if layer > 20 {
+                    return true
+                }
+            }
+        }
+
+        // 2. Check Accessibility children of Dock
+        let dockAX = AXUIElementCreateApplication(pid)
+        var childrenRef: AnyObject?
+        if AXUIElementCopyAttributeValue(dockAX, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+           let children = childrenRef as? [AXUIElement] {
+            for child in children {
+                var roleRef: AnyObject?
+                AXUIElementCopyAttributeValue(child, kAXRoleAttribute as CFString, &roleRef)
+                if let role = roleRef as? String, role == "AXMenu" || role == "AXMenuItem" || role == "AXPopover" {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
     // MARK: - Dock Reveal & Auto-Hide Control
@@ -770,6 +836,12 @@ final class DockPreviewManager: ObservableObject {
         Task {
             let windowItems = await fetchWindows(for: app)
 
+            // If user opened context menu while fetching, abort immediately!
+            if self.isContextMenuActive || self.isDockContextMenuOpen() {
+                self.hidePreviewPanel(animated: false)
+                return
+            }
+
             // CRITICAL USER RULE:
             // If the user closed windows with the red button (0 valid windows remaining):
             // DO NOT OPEN OR DISPLAY ANY PREVIEW PANEL!
@@ -808,13 +880,13 @@ final class DockPreviewManager: ObservableObject {
         })
     }
 
-    // MARK: - Filtered Window Fetching (Excludes Closed Windows, Includes Minimized)
+    // MARK: - Filtered Window Fetching (Excludes Closed Windows, Supports Fullscreen & Minimized)
 
     private func fetchWindows(for app: NSRunningApplication) async -> [DockWindowItem] {
         let pid = app.processIdentifier
         let axApp = AXUIElementCreateApplication(pid)
 
-        // 1. Gather all legitimate user AX Windows (standard windows & dialogs)
+        // 1. Gather all legitimate user AX Windows on current space (standard windows & dialogs)
         var axValidWindows: [(title: String, isMinimized: Bool, axWindow: AXUIElement)] = []
         var windowsRef: AnyObject?
         if AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
@@ -841,90 +913,83 @@ final class DockPreviewManager: ObservableObject {
             }
         }
 
-        // If the app has NO open and NO minimized windows (user clicked the red button):
-        // Return empty so NO preview popup is displayed!
-        guard !axValidWindows.isEmpty else {
-            return []
-        }
-
-        // 2. Fetch shareable windows from ScreenCaptureKit for live screenshots
+        // 2. Fetch shareable windows from ScreenCaptureKit across all spaces (including Fullscreen)
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
             let matchingWindows = content.windows.filter { scWin in
                 guard scWin.owningApplication?.processID == pid else { return false }
-                guard scWin.frame.width >= 80 && scWin.frame.height >= 50 else { return false }
+                guard scWin.frame.width >= 120 && scWin.frame.height >= 80 else { return false }
                 guard scWin.windowLayer == 0 || (scWin.windowLayer > 0 && scWin.windowLayer < 25) else { return false }
                 return true
+            }
+
+            // If BOTH Accessibility windows AND ScreenCaptureKit windows are empty,
+            // the app truly has NO open windows (e.g. user clicked the red X close button).
+            // Do NOT open or display any preview panel!
+            if axValidWindows.isEmpty && matchingWindows.isEmpty {
+                return []
             }
 
             var result: [DockWindowItem] = []
             let targetWidth = Defaults[.dockPreviewSize].thumbnailWidth
             let scale = NSScreen.main?.backingScaleFactor ?? 2.0
 
-            for (index, axItem) in axValidWindows.prefix(10).enumerated() {
-                // Match with ScreenCaptureKit window
-                let scWin = matchingWindows.first(where: {
-                    let scTitle = $0.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                    return !scTitle.isEmpty && scTitle == axItem.title
-                }) ?? (index < matchingWindows.count ? matchingWindows[index] : nil)
+            if !axValidWindows.isEmpty {
+                for (index, axItem) in axValidWindows.prefix(10).enumerated() {
+                    // Match with ScreenCaptureKit window
+                    let scWin = matchingWindows.first(where: {
+                        let scTitle = $0.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        return !scTitle.isEmpty && scTitle == axItem.title
+                    }) ?? (index < matchingWindows.count ? matchingWindows[index] : nil)
 
-                let displayTitle = axItem.title.isEmpty ? (app.localizedName ?? "Window") : axItem.title
-                let winId = scWin?.windowID ?? UInt32(7000 + index)
+                    let displayTitle = axItem.title.isEmpty ? (app.localizedName ?? "Window") : axItem.title
+                    let winId = scWin?.windowID ?? UInt32(7000 + index)
 
-                var thumbImage: NSImage? = nil
-                if let scWin = scWin {
-                    if let cached = thumbnailCache[scWin.windowID], Date().timeIntervalSince(cached.date) < 600.0 {
-                        // Use cached preview (even if currently minimized)
-                        thumbImage = cached.image
-                    } else if !axItem.isMinimized {
-                        let aspect = max(0.2, min(3.0, scWin.frame.height / max(1.0, scWin.frame.width)))
-                        let targetHeight = max(80.0, targetWidth * aspect)
-
-                        let config = SCStreamConfiguration()
-                        config.width = Int(targetWidth * scale)
-                        config.height = Int(targetHeight * scale)
-                        config.showsCursor = false
-
-                        if let cgImage = try? await SCScreenshotManager.captureImage(
-                            contentFilter: SCContentFilter(desktopIndependentWindow: scWin),
-                            configuration: config
-                        ) {
-                            let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: targetWidth, height: targetHeight))
-                            thumbnailCache[scWin.windowID] = (nsImage, Date())
-                            thumbImage = nsImage
-                        }
-                    } else {
-                        // Window is minimized: attempt capture once in case macOS still maintains its surface
-                        let aspect = max(0.2, min(3.0, scWin.frame.height / max(1.0, scWin.frame.width)))
-                        let targetHeight = max(80.0, targetWidth * aspect)
-
-                        let config = SCStreamConfiguration()
-                        config.width = Int(targetWidth * scale)
-                        config.height = Int(targetHeight * scale)
-                        config.showsCursor = false
-
-                        if let cgImage = try? await SCScreenshotManager.captureImage(
-                            contentFilter: SCContentFilter(desktopIndependentWindow: scWin),
-                            configuration: config
-                        ) {
-                            let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: targetWidth, height: targetHeight))
-                            thumbnailCache[scWin.windowID] = (nsImage, Date())
-                            thumbImage = nsImage
-                        }
+                    var thumbImage: NSImage? = nil
+                    if let scWin = scWin {
+                        thumbImage = await captureThumbnail(for: scWin, targetWidth: targetWidth, scale: scale)
                     }
+
+                    result.append(
+                        DockWindowItem(
+                            id: winId,
+                            title: displayTitle,
+                            frame: scWin?.frame ?? .zero,
+                            thumbnail: thumbImage,
+                            axWindow: axItem.axWindow,
+                            isMinimized: axItem.isMinimized || (scWin != nil && !scWin!.isOnScreen)
+                        )
+                    )
+                }
+            } else {
+                // axValidWindows is empty, but matchingWindows is NOT empty!
+                // This happens when the app is in native macOS FULLSCREEN Space, or on an inactive Space.
+                // Sort matching windows: windows with titles and larger window area first
+                let sortedWindows = matchingWindows.sorted { (w1, w2) -> Bool in
+                    let t1 = !(w1.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                    let t2 = !(w2.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                    if t1 != t2 { return t1 }
+                    return (w1.frame.width * w1.frame.height) > (w2.frame.width * w2.frame.height)
                 }
 
-                result.append(
-                    DockWindowItem(
-                        id: winId,
-                        title: displayTitle,
-                        frame: scWin?.frame ?? .zero,
-                        thumbnail: thumbImage,
-                        axWindow: axItem.axWindow,
-                        isMinimized: axItem.isMinimized || (scWin != nil && !scWin!.isOnScreen)
+                for scWin in sortedWindows.prefix(10) {
+                    let rawTitle = scWin.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let displayTitle = rawTitle.isEmpty ? (app.localizedName ?? "Window") : rawTitle
+                    let thumbImage = await captureThumbnail(for: scWin, targetWidth: targetWidth, scale: scale)
+
+                    result.append(
+                        DockWindowItem(
+                            id: scWin.windowID,
+                            title: displayTitle,
+                            frame: scWin.frame,
+                            thumbnail: thumbImage,
+                            axWindow: nil,
+                            isMinimized: false
+                        )
                     )
-                )
+                }
             }
+
             return result
         } catch {
             // Graceful AX fallback
@@ -944,6 +1009,30 @@ final class DockPreviewManager: ObservableObject {
             }
             return fallbackItems
         }
+    }
+
+    private func captureThumbnail(for scWin: SCWindow, targetWidth: CGFloat, scale: CGFloat) async -> NSImage? {
+        if let cached = thumbnailCache[scWin.windowID], Date().timeIntervalSince(cached.date) < 600.0 {
+            return cached.image
+        }
+
+        let aspect = max(0.2, min(3.0, scWin.frame.height / max(1.0, scWin.frame.width)))
+        let targetHeight = max(80.0, targetWidth * aspect)
+
+        let config = SCStreamConfiguration()
+        config.width = Int(targetWidth * scale)
+        config.height = Int(targetHeight * scale)
+        config.showsCursor = false
+
+        if let cgImage = try? await SCScreenshotManager.captureImage(
+            contentFilter: SCContentFilter(desktopIndependentWindow: scWin),
+            configuration: config
+        ) {
+            let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: targetWidth, height: targetHeight))
+            thumbnailCache[scWin.windowID] = (nsImage, Date())
+            return nsImage
+        }
+        return nil
     }
 
     // MARK: - Panel Presentation with Consistent Fixed Small Spacing (Windows-like)
@@ -993,6 +1082,10 @@ final class DockPreviewManager: ObservableObject {
     }
 
     private func presentPanel(beside itemFrame: CGRect, dockPos: DockScreenPosition, screen: NSScreen) {
+        if isContextMenuActive || isDockContextMenuOpen() {
+            return
+        }
+
         if previewPanel == nil {
             let panel = NSPanel(
                 contentRect: NSRect(x: 0, y: 0, width: 240, height: 180),
