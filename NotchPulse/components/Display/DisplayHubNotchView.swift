@@ -114,6 +114,12 @@ private struct DisplayRowView: View {
     @State private var sliderValue: CGFloat = 0.5
     @State private var isProgrammaticUpdate: Bool = false
 
+    init(target: DisplayTarget) {
+        self.target = target
+        let initial = BrightnessManager.shared.brightness(for: target.id)
+        _sliderValue = State(initialValue: CGFloat(initial))
+    }
+
     private var currentBrightness: Float {
         brightnessManager.brightness(for: target.id)
     }

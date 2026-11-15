@@ -367,6 +367,7 @@ extension Defaults.Keys {
 
     // MARK: Display Hub & Hardware DDC
     static let enableDisplayHub = Key<Bool>("enableDisplayHub", default: true)
+    static let savedDisplayBrightness = Key<[String: Double]>("savedDisplayBrightness", default: [:])
 
     // MARK: Launchpad Home
     static let enableLaunchpad = Key<Bool>("enableLaunchpad", default: true)

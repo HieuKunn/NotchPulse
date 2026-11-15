@@ -1,6 +1,7 @@
 
 import AppKit
 import CoreGraphics
+import Defaults
 
 // MARK: - Direct In-Process DisplayServices Bridge (0ms latency, zero XPC overhead)
 enum DisplayServicesBridge {
@@ -93,6 +94,58 @@ final class BrightnessManager: ObservableObject {
 	private var pendingHardwareWrites: [CGDirectDisplayID: Float] = [:]
 	private var activeWriteTasks: [CGDirectDisplayID: Task<Void, Never>] = [:]
 
+	private var wakeTask: Task<Void, Never>?
+	private var screenChangeTask: Task<Void, Never>?
+
+	// MARK: - Persistent Display Brightness Engine
+
+	static func persistentKeys(for displayID: CGDirectDisplayID) -> [String] {
+		if CGDisplayIsBuiltin(displayID) != 0 {
+			return ["builtin_retina"]
+		}
+		var keys: [String] = []
+		if let unmanaged = CGDisplayCreateUUIDFromDisplayID(displayID) {
+			let uuid = unmanaged.takeRetainedValue()
+			let uuidString = CFUUIDCreateString(nil, uuid) as String
+			if !uuidString.isEmpty {
+				keys.append(uuidString)
+			}
+		}
+		let vendor = CGDisplayVendorNumber(displayID)
+		let model = CGDisplayModelNumber(displayID)
+		let serial = CGDisplaySerialNumber(displayID)
+		if vendor != 0 || model != 0 {
+			keys.append("display_\(vendor)_\(model)_\(serial)")
+		}
+		if let name = (NSScreen.screens.first(where: {
+			($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == displayID
+		})?.localizedName), !name.isEmpty {
+			keys.append("name_\(name)")
+		}
+		keys.append("id_\(displayID)")
+		return keys
+	}
+
+	static func savedBrightness(for displayID: CGDirectDisplayID) -> Float? {
+		let dict = Defaults[.savedDisplayBrightness]
+		for key in persistentKeys(for: displayID) {
+			if let val = dict[key] {
+				return Float(val)
+			}
+		}
+		return nil
+	}
+
+	static func saveBrightness(_ value: Float, for displayID: CGDirectDisplayID) {
+		var dict = Defaults[.savedDisplayBrightness]
+		let keys = persistentKeys(for: displayID)
+		let doubleVal = Double(value)
+		for key in keys {
+			dict[key] = doubleVal
+		}
+		Defaults[.savedDisplayBrightness] = dict
+	}
+
 	private init() {
 		updateDisplayInfo()
 		let displays = availableDisplays()
@@ -100,6 +153,13 @@ final class BrightnessManager: ObservableObject {
 		activeDisplayID = initial.id
 		currentDisplayName = initial.shortName
 		isCurrentBuiltin = initial.isBuiltin
+
+		// Nạp trước toàn bộ độ sáng đã lưu vào cache bộ nhớ ngay từ frame 0
+		for d in displays {
+			if let saved = Self.savedBrightness(for: d.id) {
+				displayBrightnessCache[d.id] = saved
+			}
+		}
 
 		setupObservers()
 		refresh()
@@ -116,7 +176,7 @@ final class BrightnessManager: ObservableObject {
 			self?.handleScreenChange()
 		}
 
-		// 🔄 Lắng nghe sự kiện Mac thức dậy sau giấc ngủ (Sleep/Wake)
+		// 🔄 Lắng nghe sự kiện Mac thức dậy sau giấc ngủ (Sleep/Wake & Screens Sleep/Wake)
 		NSWorkspace.shared.notificationCenter.addObserver(
 			forName: NSWorkspace.didWakeNotification,
 			object: nil,
@@ -137,39 +197,92 @@ final class BrightnessManager: ObservableObject {
 	private nonisolated func handleSystemWake() {
 		Task { @MainActor [weak self] in
 			guard let self = self else { return }
-			// 1. Huỷ con trỏ DDC cũ đã chết trong helper
-			_ = await self.client.resetDDCCache()
-			// 2. Chờ 1.5s để chip scaler của màn hình ngoài thức dậy và ổn định vi điều khiển I2C
-			try? await Task.sleep(nanoseconds: 1_500_000_000)
-			self.updateDisplayInfo()
-			let displays = self.availableDisplays()
-			if let target = Self.determineActiveDisplay(currentID: self.activeDisplayID, availableDisplays: displays) {
-				if self.activeDisplayID != target.id {
-					self.activeDisplayID = target.id
-					self.currentDisplayName = target.shortName
-					self.isCurrentBuiltin = target.isBuiltin
-					self.refresh()
+			self.wakeTask?.cancel()
+			self.wakeTask = Task { @MainActor [weak self] in
+				guard let self = self else { return }
+				// 1. Huỷ con trỏ DDC cũ đã chết trong helper sau giấc ngủ
+				_ = await self.client.resetDDCCache()
+
+				// 2. Chờ 1.5s để chip scaler của màn hình ngoài thức dậy và ổn định vi điều khiển I2C
+				try? await Task.sleep(nanoseconds: 1_500_000_000)
+				guard !Task.isCancelled else { return }
+
+				self.updateDisplayInfo()
+				let displays = self.availableDisplays()
+
+				// 3. Nạp lại cache bộ nhớ ngay lập tức từ Defaults
+				for d in displays {
+					if let saved = Self.savedBrightness(for: d.id) {
+						self.displayBrightnessCache[d.id] = saved
+					}
+				}
+
+				if let target = Self.determineActiveDisplay(currentID: self.activeDisplayID, availableDisplays: displays) {
+					if self.activeDisplayID != target.id {
+						self.activeDisplayID = target.id
+						self.currentDisplayName = target.shortName
+						self.isCurrentBuiltin = target.isBuiltin
+						self.refresh()
+					}
+				}
+				self.refreshAllDisplays()
+
+				// 4. Khôi phục độ sáng phần cứng thật cho các màn hình ngoài:
+				// Sau khi ngủ/standby, chip scaler thường tự reset về 50% hoặc 70%.
+				// Gửi lệnh ghi DDC đợt 1 (1.5s sau wake).
+				for d in displays where !d.isBuiltin && !d.isSidecarOrVirtual {
+					if let saved = Self.savedBrightness(for: d.id) {
+						self.dispatchHardwareWrite(for: d.id, value: saved)
+					}
+				}
+
+				// Gửi lệnh ghi DDC đợt 2 (3.0s sau wake) để đảm bảo scaler đã hoàn tất handshake video
+				try? await Task.sleep(nanoseconds: 1_500_000_000)
+				guard !Task.isCancelled else { return }
+				for d in displays where !d.isBuiltin && !d.isSidecarOrVirtual {
+					if let saved = Self.savedBrightness(for: d.id) {
+						self.dispatchHardwareWrite(for: d.id, value: saved)
+					}
 				}
 			}
-			self.refreshAllDisplays()
 		}
 	}
 
 	private nonisolated func handleScreenChange() {
 		Task { @MainActor [weak self] in
 			guard let self = self else { return }
-			_ = await self.client.resetDDCCache()
-			self.updateDisplayInfo()
-			let displays = self.availableDisplays()
-			if let target = Self.determineActiveDisplay(currentID: self.activeDisplayID, availableDisplays: displays) {
-				if self.activeDisplayID != target.id {
-					self.activeDisplayID = target.id
-					self.currentDisplayName = target.shortName
-					self.isCurrentBuiltin = target.isBuiltin
-					self.refresh()
+			self.screenChangeTask?.cancel()
+			self.screenChangeTask = Task { @MainActor [weak self] in
+				guard let self = self else { return }
+				_ = await self.client.resetDDCCache()
+				// Chờ 0.8s để IORegistry cập nhật đầy đủ màn hình mới
+				try? await Task.sleep(nanoseconds: 800_000_000)
+				guard !Task.isCancelled else { return }
+
+				self.updateDisplayInfo()
+				let displays = self.availableDisplays()
+				for d in displays {
+					if let saved = Self.savedBrightness(for: d.id) {
+						self.displayBrightnessCache[d.id] = saved
+					}
+				}
+				if let target = Self.determineActiveDisplay(currentID: self.activeDisplayID, availableDisplays: displays) {
+					if self.activeDisplayID != target.id {
+						self.activeDisplayID = target.id
+						self.currentDisplayName = target.shortName
+						self.isCurrentBuiltin = target.isBuiltin
+						self.refresh()
+					}
+				}
+				self.refreshAllDisplays()
+
+				// Khôi phục độ sáng cho màn hình ngoài vừa cắm vào
+				for d in displays where !d.isBuiltin && !d.isSidecarOrVirtual {
+					if let saved = Self.savedBrightness(for: d.id) {
+						self.dispatchHardwareWrite(for: d.id, value: saved)
+					}
 				}
 			}
-			self.refreshAllDisplays()
 		}
 	}
 
@@ -198,15 +311,26 @@ final class BrightnessManager: ObservableObject {
 				if (CGDisplayIsBuiltin(d.id) != 0 || CGDisplayVendorNumber(d.id) == 0x0610) && DisplayServicesBridge.canChangeBrightness(d.id),
 				   let val = DisplayServicesBridge.getBrightness(d.id) {
 					displayBrightnessCache[d.id] = val
+					Self.saveBrightness(val, for: d.id)
 				} else if d.isSidecarOrVirtual {
-					// Sidecar / Virtual display: giữ giá trị cache hoặc mặc định 0.8
-					if displayBrightnessCache[d.id] == nil {
-						displayBrightnessCache[d.id] = 0.8
-					}
+					// Sidecar / Virtual display: giữ giá trị đã lưu hoặc mặc định 0.8
+					let val = Self.savedBrightness(for: d.id) ?? displayBrightnessCache[d.id] ?? 0.8
+					displayBrightnessCache[d.id] = val
+					DisplayShadeManager.shared.setBrightness(val, for: d.id)
 				} else {
-					// Màn hình ngoài vật lý: đọc độ sáng thật từ phần cứng qua DDC/CI
+					// Màn hình ngoài vật lý:
+					// 1. Nạp ngay giá trị đã lưu vào bộ nhớ cache nếu có
+					if let saved = Self.savedBrightness(for: d.id) {
+						displayBrightnessCache[d.id] = saved
+					}
+
+					// 2. Thử đọc độ sáng thật từ phần cứng (nếu màn hình hỗ trợ DDC Read)
 					if let val = await client.currentDisplayBrightness(for: d.id) {
 						displayBrightnessCache[d.id] = val
+						Self.saveBrightness(val, for: d.id)
+					} else if let saved = Self.savedBrightness(for: d.id) {
+						// Nếu màn hình không hỗ trợ đọc DDC (trả về nil), ghi lại giá trị đã lưu vào phần cứng
+						self.dispatchHardwareWrite(for: d.id, value: saved)
 					}
 				}
 			}
@@ -214,7 +338,14 @@ final class BrightnessManager: ObservableObject {
 	}
 
 	func brightness(for displayID: CGDirectDisplayID) -> Float {
-		displayBrightnessCache[displayID] ?? (displayID == activeDisplayID ? rawBrightness : 0.5)
+		if let cached = displayBrightnessCache[displayID] {
+			return cached
+		}
+		if let saved = Self.savedBrightness(for: displayID) {
+			displayBrightnessCache[displayID] = saved
+			return saved
+		}
+		return (displayID == activeDisplayID ? rawBrightness : 0.5)
 	}
 
 	func isDisplaySidecarOrVirtual(_ displayID: CGDirectDisplayID, screenName: String? = nil) -> Bool {
@@ -254,6 +385,8 @@ final class BrightnessManager: ObservableObject {
 				short = "Retina"
 			} else if isVirtual {
 				short = name.localizedCaseInsensitiveContains("ipad") ? "iPad" : "Sidecar"
+			} else if !name.isEmpty && name != "External Display" && name != "Display" {
+				short = name.count <= 10 ? name : (name.components(separatedBy: " ").first ?? "External")
 			} else {
 				short = "External"
 			}
@@ -279,6 +412,8 @@ final class BrightnessManager: ObservableObject {
 			short = "Retina"
 		} else if isVirtual {
 			short = name.localizedCaseInsensitiveContains("ipad") ? "iPad" : "Sidecar"
+		} else if !name.isEmpty && name != "External Display" && name != "Display" {
+			short = name.count <= 10 ? name : (name.components(separatedBy: " ").first ?? "External")
 		} else {
 			short = "External"
 		}
@@ -301,7 +436,7 @@ final class BrightnessManager: ObservableObject {
 		currentDisplayName = target.shortName
 		isCurrentBuiltin = target.isBuiltin
 
-		let brightness = displayBrightnessCache[target.id] ?? (target.isBuiltin ? rawBrightness : 0.5)
+		let brightness = self.brightness(for: target.id)
 		publish(brightness: brightness, touchDate: true)
 		let iconName: String
 		if target.isBuiltin {
@@ -341,16 +476,20 @@ final class BrightnessManager: ObservableObject {
 		if (CGDisplayIsBuiltin(displayID) != 0 || CGDisplayVendorNumber(displayID) == 0x0610) && DisplayServicesBridge.canChangeBrightness(displayID),
 		   let val = DisplayServicesBridge.getBrightness(displayID) {
 			displayBrightnessCache[displayID] = val
+			Self.saveBrightness(val, for: displayID)
 			return val
 		}
 		if isDisplaySidecarOrVirtual(displayID) {
-			return displayBrightnessCache[displayID] ?? 0.8
-		}
-		if let val = await client.currentDisplayBrightness(for: displayID) {
+			let val = Self.savedBrightness(for: displayID) ?? displayBrightnessCache[displayID] ?? 0.8
 			displayBrightnessCache[displayID] = val
 			return val
 		}
-		return displayBrightnessCache[displayID] ?? 0.5
+		if let val = await client.currentDisplayBrightness(for: displayID) {
+			displayBrightnessCache[displayID] = val
+			Self.saveBrightness(val, for: displayID)
+			return val
+		}
+		return brightness(for: displayID)
 	}
 
 	func setRelative(delta: Float, alternateScreen: Bool = false) {
@@ -370,8 +509,8 @@ final class BrightnessManager: ObservableObject {
 		currentDisplayName = target.shortName
 		isCurrentBuiltin = target.isBuiltin
 
-		// Read immediately from memory cache — NEVER block or await slow I2C/DDC hardware reads on keypress!
-		let current = displayBrightnessCache[target.id] ?? (target.isBuiltin ? rawBrightness : 0.5)
+		// Read immediately from memory cache or persistent storage — NEVER block or await slow I2C/DDC hardware reads on keypress!
+		let current = brightness(for: target.id)
 		let newBrightness = max(0, min(1, current + delta))
 
 		displayBrightnessCache[target.id] = newBrightness
@@ -405,6 +544,8 @@ final class BrightnessManager: ObservableObject {
 	func setBrightness(for displayID: CGDirectDisplayID, value: Float) {
 		let clamped = max(0, min(1, value))
 		displayBrightnessCache[displayID] = clamped
+		Self.saveBrightness(clamped, for: displayID)
+
 		if displayID == activeDisplayID {
 			publish(brightness: clamped, touchDate: true)
 		}
