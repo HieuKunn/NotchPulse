@@ -138,11 +138,8 @@ final class BrightnessManager: ObservableObject {
 
 	static func saveBrightness(_ value: Float, for displayID: CGDirectDisplayID) {
 		var dict = Defaults[.savedDisplayBrightness]
-		let keys = persistentKeys(for: displayID)
-		let doubleVal = Double(value)
-		for key in keys {
-			dict[key] = doubleVal
-		}
+		guard let primaryKey = persistentKeys(for: displayID).first else { return }
+		dict[primaryKey] = Double(value)
 		Defaults[.savedDisplayBrightness] = dict
 	}
 
@@ -163,7 +160,7 @@ final class BrightnessManager: ObservableObject {
 
 		setupObservers()
 		refresh()
-		refreshAllDisplays()
+		refreshAllDisplays(restoreSavedExternal: true)
 	}
 
 	private func setupObservers() {
@@ -304,7 +301,7 @@ final class BrightnessManager: ObservableObject {
 		hasExternalDisplay = displays.contains(where: { !$0.isBuiltin }) && displays.contains(where: { $0.isBuiltin })
 	}
 
-	func refreshAllDisplays() {
+	func refreshAllDisplays(restoreSavedExternal: Bool = false) {
 		let displays = availableDisplays()
 		Task { @MainActor in
 			for d in displays {
@@ -319,18 +316,16 @@ final class BrightnessManager: ObservableObject {
 					DisplayShadeManager.shared.setBrightness(val, for: d.id)
 				} else {
 					// Màn hình ngoài vật lý:
-					// 1. Nạp ngay giá trị đã lưu vào bộ nhớ cache nếu có
+					// Luôn ưu tiên giá trị người dùng đã lưu làm chuẩn (tránh đọc DDC lúc wake/cắm lại làm ghi đè mất độ sáng cũ).
 					if let saved = Self.savedBrightness(for: d.id) {
 						displayBrightnessCache[d.id] = saved
-					}
-
-					// 2. Thử đọc độ sáng thật từ phần cứng (nếu màn hình hỗ trợ DDC Read)
-					if let val = await client.currentDisplayBrightness(for: d.id) {
+						if restoreSavedExternal {
+							self.dispatchHardwareWrite(for: d.id, value: saved)
+						}
+					} else if let val = await client.currentDisplayBrightness(for: d.id) {
+						// Chỉ đọc phần cứng để khởi tạo lần đầu khi chưa có giá trị lưu
 						displayBrightnessCache[d.id] = val
 						Self.saveBrightness(val, for: d.id)
-					} else if let saved = Self.savedBrightness(for: d.id) {
-						// Nếu màn hình không hỗ trợ đọc DDC (trả về nil), ghi lại giá trị đã lưu vào phần cứng
-						self.dispatchHardwareWrite(for: d.id, value: saved)
 					}
 				}
 			}
@@ -483,6 +478,10 @@ final class BrightnessManager: ObservableObject {
 			let val = Self.savedBrightness(for: displayID) ?? displayBrightnessCache[displayID] ?? 0.8
 			displayBrightnessCache[displayID] = val
 			return val
+		}
+		if let saved = Self.savedBrightness(for: displayID) {
+			displayBrightnessCache[displayID] = saved
+			return saved
 		}
 		if let val = await client.currentDisplayBrightness(for: displayID) {
 			displayBrightnessCache[displayID] = val

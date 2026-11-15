@@ -107,6 +107,13 @@ final class NotchPulseDDC {
     
     private let ddcDataAddress: UInt32 = 0x51
     
+    private struct MaxValueKey: Hashable {
+        let displayID: CGDirectDisplayID
+        let vcp: UInt8
+    }
+
+    private var maxValueCache: [MaxValueKey: UInt16] = [:]
+
     #if arch(arm64)
     struct DDCTransport {
         let service: CFTypeRef
@@ -127,6 +134,7 @@ final class NotchPulseDDC {
 
     func invalidateCache() {
         ddcQueue.async {
+            self.maxValueCache.removeAll()
             #if arch(arm64)
             self.transportCache.removeAll()
             #endif
@@ -151,45 +159,63 @@ final class NotchPulseDDC {
     // MARK: - Public High-Level Controls
 
     static func setBrightness(_ value: Float, for displayID: CGDirectDisplayID) -> Bool {
-        let clamped = max(0.0, min(1.0, value))
-        let vcpValue = UInt16(round(clamped * 100.0))
-        return shared.write(vcp: .brightness, value: vcpValue, displayID: displayID)
+        shared.writeNormalized(vcp: .brightness, value: value, displayID: displayID)
     }
 
     static func getBrightness(for displayID: CGDirectDisplayID) -> Float? {
-        guard let (current, maxVal) = shared.read(vcp: .brightness, displayID: displayID), maxVal > 0 else {
-            return nil
-        }
-        return Float(current) / Float(maxVal)
+        shared.readNormalized(vcp: .brightness, displayID: displayID)
     }
 
     static func setVolume(_ value: Float, for displayID: CGDirectDisplayID) -> Bool {
-        let clamped = max(0.0, min(1.0, value))
-        let vcpValue = UInt16(round(clamped * 100.0))
-        return shared.write(vcp: .volume, value: vcpValue, displayID: displayID)
+        shared.writeNormalized(vcp: .volume, value: value, displayID: displayID)
     }
 
     static func getVolume(for displayID: CGDirectDisplayID) -> Float? {
-        guard let (current, maxVal) = shared.read(vcp: .volume, displayID: displayID), maxVal > 0 else {
-            return nil
-        }
-        return Float(current) / Float(maxVal)
+        shared.readNormalized(vcp: .volume, displayID: displayID)
     }
 
     // MARK: - Internal Read / Write Dispatcher
+
+    private func writeNormalized(vcp: VCP, value: Float, displayID: CGDirectDisplayID) -> Bool {
+        if CGDisplayIsBuiltin(displayID) != 0 {
+            return false
+        }
+        let clamped = max(0.0, min(1.0, value))
+        return ddcQueue.sync {
+            let key = MaxValueKey(displayID: displayID, vcp: vcp.rawValue)
+            let maxVal: UInt16
+            if let cached = maxValueCache[key], cached > 0 {
+                maxVal = cached
+            } else if let (_, discoveredMax) = readOnQueue(command: vcp.rawValue, displayID: displayID), discoveredMax > 0 {
+                maxValueCache[key] = discoveredMax
+                maxVal = discoveredMax
+            } else {
+                maxVal = 100
+            }
+            let vcpValue = UInt16(round(clamped * Float(maxVal)))
+            return writeOnQueue(command: vcp.rawValue, value: vcpValue, displayID: displayID)
+        }
+    }
+
+    private func readNormalized(vcp: VCP, displayID: CGDirectDisplayID) -> Float? {
+        if CGDisplayIsBuiltin(displayID) != 0 {
+            return nil
+        }
+        return ddcQueue.sync {
+            guard let (current, maxVal) = readOnQueue(command: vcp.rawValue, displayID: displayID), maxVal > 0 else {
+                return nil
+            }
+            maxValueCache[MaxValueKey(displayID: displayID, vcp: vcp.rawValue)] = maxVal
+            return max(0.0, min(1.0, Float(current) / Float(maxVal)))
+        }
+    }
 
     func write(vcp: VCP, value: UInt16, displayID: CGDirectDisplayID) -> Bool {
         if CGDisplayIsBuiltin(displayID) != 0 {
             return false
         }
         return ddcQueue.sync {
-            #if arch(arm64)
-            return writeArm64(command: vcp.rawValue, value: value, displayID: displayID)
-            #elseif arch(x86_64)
-            return writeIntel(command: vcp.rawValue, value: value, displayID: displayID)
-            #else
-            return false
-            #endif
+            writeOnQueue(command: vcp.rawValue, value: value, displayID: displayID)
         }
     }
 
@@ -198,14 +224,28 @@ final class NotchPulseDDC {
             return nil
         }
         return ddcQueue.sync {
-            #if arch(arm64)
-            return readArm64(command: vcp.rawValue, displayID: displayID)
-            #elseif arch(x86_64)
-            return readIntel(command: vcp.rawValue, displayID: displayID)
-            #else
-            return nil
-            #endif
+            readOnQueue(command: vcp.rawValue, displayID: displayID)
         }
+    }
+
+    private func writeOnQueue(command: UInt8, value: UInt16, displayID: CGDirectDisplayID) -> Bool {
+        #if arch(arm64)
+        return writeArm64(command: command, value: value, displayID: displayID)
+        #elseif arch(x86_64)
+        return writeIntel(command: command, value: value, displayID: displayID)
+        #else
+        return false
+        #endif
+    }
+
+    private func readOnQueue(command: UInt8, displayID: CGDirectDisplayID) -> (current: UInt16, max: UInt16)? {
+        #if arch(arm64)
+        return readArm64(command: command, displayID: displayID)
+        #elseif arch(x86_64)
+        return readIntel(command: command, displayID: displayID)
+        #else
+        return nil
+        #endif
     }
 
     // =========================================================================
