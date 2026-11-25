@@ -28,8 +28,8 @@ final class NotchPulseFaceUnlockCoordinator {
     private var scanWindowDuration: TimeInterval {
         TimeInterval(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
     }
-    /// Requires several consecutive below-threshold frames so a single bad-angle read doesn't trigger the failure animation.
-    private let wrongFaceStreakThreshold = 14
+    /// Requires sustained, clear below-threshold frames so lid opening or poor angles don't trigger premature failure.
+    private let wrongFaceStreakThreshold = 20
     /// Every scan cold-starts the camera; frames before auto-exposure settles are discarded so an underexposed warm-up (dim
     /// room, e.g. opening the lid in the morning) can't burn the wrong-face streak in under a second. The floor covers the
     /// first frames arriving before AE even reports adjusting; the ceiling keeps a never-settling AE from eating the window.
@@ -44,7 +44,12 @@ final class NotchPulseFaceUnlockCoordinator {
     private var hasAutoRetriedForCurrentLock = false
     private var scanTask: Task<Void, Never>?
     private var evaluateTask: Task<Void, Never>?
-    private var pendingWakeSignal = false
+    private var lastWakeTimestamp: ContinuousClock.Instant?
+    /// Retains wake trigger classification for 2.5s across deep sleep / WindowServer lock delay.
+    private var isRecentlyWoken: Bool {
+        guard let lastWakeTimestamp else { return false }
+        return ContinuousClock.now - lastWakeTimestamp < .seconds(2.5)
+    }
     /// Bumped by every `startScanCycle()`; a cycle bails once superseded (see `runScanCycle(generation:)`).
     private var scanGeneration = 0
     /// When the last wake scan was armed — collapses a single wake burst into a single arm.
@@ -89,7 +94,7 @@ final class NotchPulseFaceUnlockCoordinator {
                 guard let self else { return }
                 self.observeLockAndWakeEvents()
                 if self.lockMonitor.lastEvent == .wake {
-                    self.pendingWakeSignal = true
+                    self.lastWakeTimestamp = .now
                 }
                 self.evaluateTask?.cancel()
                 self.evaluateTask = Task { @MainActor [weak self] in
@@ -104,7 +109,7 @@ final class NotchPulseFaceUnlockCoordinator {
 
     private func evaluateTrigger() async {
         var isLocked = NotchPulseLockMonitor.isScreenActuallyLocked()
-        let isWake = pendingWakeSignal || lockMonitor.lastEvent == .wake
+        let isWake = isRecentlyWoken || lockMonitor.lastEvent == .wake
         if !isLocked && isWake {
             // Progressive verification on wake: WindowServer can take 300-800ms after deep sleep
             // to update CGSSessionScreenIsLocked in CGSessionCopyCurrentDictionary.
@@ -120,7 +125,6 @@ final class NotchPulseFaceUnlockCoordinator {
         guard isLocked else {
             hasArmedForCurrentLock = false
             hasAutoRetriedForCurrentLock = false
-            pendingWakeSignal = false
             disarmOverlay()
             return
         }
@@ -131,7 +135,6 @@ final class NotchPulseFaceUnlockCoordinator {
         if isWake, !isWithinRecentWakeBurst {
             hasArmedForCurrentLock = false
         }
-        pendingWakeSignal = false
 
         // Runs before the hasArmedForCurrentLock guard — the space monitor's lifetime is tied to "locked + opted in," not to whether a scan already ran.
         updateSpaceMonitor()
@@ -167,6 +170,7 @@ final class NotchPulseFaceUnlockCoordinator {
         hasArmedForCurrentLock = true
         if shouldAutoScan {
             lastWakeArmedAt = .now
+            lastWakeTimestamp = nil
         }
         ArcFaceEmbedder.warmUp()
         NotchPulseVault.preflightKeychainAuthorization()
@@ -196,7 +200,6 @@ final class NotchPulseFaceUnlockCoordinator {
     private func disarmOverlay() {
         evaluateTask?.cancel()
         evaluateTask = nil
-        pendingWakeSignal = false
         scanTask?.cancel()
         scanTask = nil
         // Bumping makes any cycle still suspended at `await camera.start()` inert, rather than resuming and re-showing the overlay.
@@ -322,7 +325,7 @@ final class NotchPulseFaceUnlockCoordinator {
         statusMessage = "Looking for your face…"
 
         let outcome = await observeScanWindow(
-            deadline: Date().addingTimeInterval(scanWindowDuration),
+            scanWindowSeconds: scanWindowDuration,
             requireOverlayScanning: showsUI
         )
 
@@ -394,10 +397,10 @@ final class NotchPulseFaceUnlockCoordinator {
     }
 
     /// Recognition and liveness run concurrently and each latches when it succeeds, so unlock fires the moment the second lands;
-    /// liveness never fails the scan by staying undecided, it just keeps scanning until `deadline`.
+    /// liveness never fails the scan by staying undecided, it just keeps scanning until `scanDeadline`.
     /// `requireOverlayScanning` bails early once the overlay's own timeout collapses the UI — only applied when there is an
     /// overlay, since headlessly `phase` never becomes `.scanning` at all.
-    private func observeScanWindow(deadline: Date, requireOverlayScanning: Bool) async -> ScanOutcome {
+    private func observeScanWindow(scanWindowSeconds: TimeInterval, requireOverlayScanning: Bool) async -> ScanOutcome {
         let livenessEnabled = NotchPulseFaceIDSettings.shared.livenessChecksEnabled
         let liveness = NotchPulseLivenessAnalyzer()
         liveness.modeProvider = { NotchPulseFaceIDSettings.shared.livenessMode }
@@ -412,14 +415,23 @@ final class NotchPulseFaceUnlockCoordinator {
         /// Cheap way to detect "no new camera frame yet" vs. "fresh frame" — without it a repeat frame would corrupt the liveness motion signal.
         var lastProcessedFrameID: UInt64?
         var hasAttemptedStallRecovery = false
-        let scanStartedAt = ContinuousClock.now
+        
+        let loopStartedAt = ContinuousClock.now
+        let maxSensorWaitDeadline = loopStartedAt + .seconds(4.0)
+        
+        var firstValidFrameAt: ContinuousClock.Instant?
+        var scanDeadline: ContinuousClock.Instant = loopStartedAt + .seconds(scanWindowSeconds + 2.0)
+        let lidGracePeriod: Duration = .milliseconds(1300)
 
-        while Date() < deadline, !Task.isCancelled,
+        while ContinuousClock.now < scanDeadline, !Task.isCancelled,
               !requireOverlayScanning || FaceIDOverlayController.shared.phase == .scanning {
             guard NotchPulseLockMonitor.isScreenActuallyLocked() else { return .noResolution }
 
             guard let frame = camera.currentFrame, frame.id != lastProcessedFrameID else {
-                let elapsed = ContinuousClock.now - scanStartedAt
+                let elapsed = ContinuousClock.now - loopStartedAt
+                if firstValidFrameAt == nil && ContinuousClock.now > maxSensorWaitDeadline {
+                    return .noResolution
+                }
                 if !hasAttemptedStallRecovery && elapsed > .milliseconds(1200) && lastProcessedFrameID == nil {
                     hasAttemptedStallRecovery = true
                     await camera.recoverStalledSession()
@@ -430,10 +442,22 @@ final class NotchPulseFaceUnlockCoordinator {
             }
             lastProcessedFrameID = frame.id
 
+            // Once the first real camera frame arrives, anchor the recognition deadline and sync overlay timeout
+            if firstValidFrameAt == nil {
+                firstValidFrameAt = ContinuousClock.now
+                scanDeadline = ContinuousClock.now + .seconds(scanWindowSeconds)
+                if showsUI {
+                    FaceIDOverlayController.shared.resetScanningTimeout(duration: .seconds(scanWindowSeconds))
+                }
+            }
+
+            let firstFrameInstant = firstValidFrameAt ?? loopStartedAt
+            let timeSinceFirstFrame = ContinuousClock.now - firstFrameInstant
+            let isLidWarmingUp = timeSinceFirstFrame < lidGracePeriod
+
             // Dropped entirely (not fed to liveness or the streak) — a half-exposed frame is noise for both gates.
-            let warmUpElapsed = ContinuousClock.now - scanStartedAt
-            if warmUpElapsed < cameraWarmUpCeiling,
-               warmUpElapsed < cameraWarmUpFloor || camera.isAdjustingExposure {
+            if timeSinceFirstFrame < cameraWarmUpCeiling,
+               timeSinceFirstFrame < cameraWarmUpFloor || camera.isAdjustingExposure {
                 try? await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
@@ -460,9 +484,11 @@ final class NotchPulseFaceUnlockCoordinator {
                 let snapshot = liveness.observe(livenessFrame)
                 switch snapshot.decision {
                 case .denied:
-                    // Overrides everything, including a match and any confirmation that already happened.
-                    lastOutcome = snapshot.decision.denialReason
-                    return .spoofSuspected
+                    // During lid opening grace period, ignore reflections/glare caused by moving angle
+                    if !isLidWarmingUp {
+                        lastOutcome = snapshot.decision.denialReason
+                        return .spoofSuspected
+                    }
                 case .confirmed(let cue):
                     livenessConfirmed = true
                     confirmingCue = cue
@@ -480,9 +506,14 @@ final class NotchPulseFaceUnlockCoordinator {
                 readyMatch = matched
             } else {
                 readyMatch = nil
-                consecutiveWrongFaceFrames += 1
-                if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
-                    return .consistentlyWrongFace
+                let isQualityAcceptable = (result.quality ?? result.face.quality ?? 0) >= 0.25
+                if !isLidWarmingUp && isQualityAcceptable {
+                    consecutiveWrongFaceFrames += 1
+                    if consecutiveWrongFaceFrames >= wrongFaceStreakThreshold {
+                        return .consistentlyWrongFace
+                    }
+                } else {
+                    consecutiveWrongFaceFrames = 0
                 }
             }
 

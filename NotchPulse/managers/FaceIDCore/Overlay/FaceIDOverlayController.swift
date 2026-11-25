@@ -202,6 +202,31 @@ final class FaceIDOverlayController {
         }
     }
 
+    /// Resets the scanning countdown timer once the camera sensor delivers its first valid frame,
+    /// ensuring the user gets the full recognition window after camera hardware wake-up.
+    func resetScanningTimeout(duration: Duration) {
+        guard phase == .scanning else { return }
+        scanTimeoutTask?.cancel()
+        searchingAnimationTask?.cancel()
+
+        let totalSeconds = Double(NotchPulseFaceIDSettings.shared.faceDetectionSeconds)
+        let staticHoldSeconds = max(0.0, totalSeconds - 3.0)
+
+        searchingAnimationTask = Task { @MainActor [weak self] in
+            if staticHoldSeconds > 0 {
+                try? await Task.sleep(for: .seconds(staticHoldSeconds))
+            }
+            guard let self, !Task.isCancelled, self.phase == .scanning, self.content == .scan(.idle) else { return }
+            self.content = .scan(.searching)
+        }
+
+        scanTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: duration)
+            guard let self, !Task.isCancelled, self.phase == .scanning else { return }
+            await self.collapse()
+        }
+    }
+
     // MARK: - Window priming (first show only)
 
     /// On the very first show, `present()`/`presentOnboarding()` would otherwise render
