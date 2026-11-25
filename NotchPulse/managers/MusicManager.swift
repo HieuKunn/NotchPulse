@@ -489,7 +489,7 @@ class MusicManager: ObservableObject {
                 self.artworkRepollTask?.cancel()
                 self.artworkRepollTask = nil
                 self.usingAppIconForArtwork = false
-                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 640)
+                let optimized = UniversalArtworkResolver.shared.optimizeArtwork(artwork, maxDimension: 1200)
                 self.artworkData = optimized
                 self.updateArtwork(optimized)
                 UniversalArtworkResolver.shared.cacheArtworkData(optimized, title: state.title, artist: state.artist)
@@ -1042,7 +1042,7 @@ class MusicManager: ObservableObject {
             if let source = CGImageSourceCreateWithData(artworkData as CFData, nil),
                let cgImage = CGImageSourceCreateImageAtIndex(source, 0, [
                    kCGImageSourceCreateThumbnailFromImageAlways: true,
-                   kCGImageSourceThumbnailMaxPixelSize: 640,
+                   kCGImageSourceThumbnailMaxPixelSize: 1200,
                    kCGImageSourceCreateThumbnailWithTransform: true
                ] as CFDictionary) {
                 // Display at 2x Retina backing scale
@@ -1521,7 +1521,7 @@ public final class UniversalArtworkResolver {
 
     private init() {
         memoryCache.countLimit = 35
-        memoryCache.totalCostLimit = 8 * 1024 * 1024 // 8 MB (downsampled covers are ~50-80 KB)
+        memoryCache.totalCostLimit = 16 * 1024 * 1024 // 16 MB (high-res covers are ~150-250 KB)
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 4.0
@@ -1547,9 +1547,9 @@ public final class UniversalArtworkResolver {
 
     // MARK: - Public API
 
-    /// Downsamples raw image data to a max dimension (default 320px) with sub-sampling decode.
-    /// This keeps artwork razor-sharp on Retina displays while cutting memory usage from 20-36 MB to ~50-80 KB.
-    public func optimizeArtwork(_ data: Data, maxDimension: CGFloat = 320) -> Data {
+    /// Downsamples raw image data to a max dimension (default 1200px) with sub-sampling decode.
+    /// This keeps artwork razor-sharp on high-resolution Retina displays while keeping memory usage under ~5-6 MB.
+    public func optimizeArtwork(_ data: Data, maxDimension: CGFloat = 1200) -> Data {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             return data
         }
@@ -1558,7 +1558,7 @@ public final class UniversalArtworkResolver {
         if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
            let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
            let height = properties[kCGImagePropertyPixelHeight] as? CGFloat,
-           width <= maxDimension && height <= maxDimension && data.count <= 100_000 {
+           width <= maxDimension && height <= maxDimension && data.count <= 350_000 {
             return data
         }
 
@@ -1609,7 +1609,7 @@ public final class UniversalArtworkResolver {
         let key = cacheKey(title: title, artist: artist)
         guard !key.isEmpty else { return }
 
-        let optimized = optimizeArtwork(data, maxDimension: 400)
+        let optimized = optimizeArtwork(data, maxDimension: 1200)
         lock.lock()
         memoryCache.setObject(optimized as NSData, forKey: key as NSString, cost: optimized.count)
         lock.unlock()
@@ -1979,7 +1979,7 @@ public final class UniversalArtworkResolver {
                         }
 
                         if let artUrlStr = item["artworkUrl100"] as? String {
-                            let highResStr = artUrlStr.replacingOccurrences(of: "100x100bb", with: "600x600bb")
+                            let highResStr = artUrlStr.replacingOccurrences(of: "100x100bb", with: "1200x1200bb")
                             if let imgUrl = URL(string: highResStr),
                                 let imgData = await downloadImage(from: imgUrl) {
                                 return imgData
@@ -2224,7 +2224,7 @@ public final class UniversalArtworkResolver {
                 return nil
             }
             guard NSImage(data: data) != nil else { return nil }
-            return optimizeArtwork(data, maxDimension: 500)
+            return optimizeArtwork(data, maxDimension: 1200)
         } catch {
             return nil
         }

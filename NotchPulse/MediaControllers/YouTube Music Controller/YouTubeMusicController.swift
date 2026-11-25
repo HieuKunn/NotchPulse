@@ -482,7 +482,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
                     do {
                         let data = try await ImageService.shared.fetchImageData(from: url)
                         guard !Task.isCancelled else { return }
-                        let optimized = UniversalArtworkResolver.shared.optimizeArtwork(data, maxDimension: 640)
+                        let optimized = UniversalArtworkResolver.shared.optimizeArtwork(data, maxDimension: 1200)
                         guard let self = self else { return }
                         guard Self.isArtworkResponseValid(
                             expectedIdentity: expectedIdentity,
