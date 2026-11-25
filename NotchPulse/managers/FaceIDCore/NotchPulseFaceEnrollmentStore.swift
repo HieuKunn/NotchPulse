@@ -104,7 +104,20 @@ struct FaceIdentity: Codable, Identifiable, Equatable, Sendable {
 
     /// The single vector actually compared against at recognition time.
     nonisolated var template: [Float]? {
-        FaceEmbedding.average(samples.map(\.embedding))
+        let centerSamples = samples.filter { $0.pose == "center" }
+        if !centerSamples.isEmpty && samples.count > centerSamples.count {
+            guard let centerVec = FaceEmbedding.average(centerSamples.map(\.embedding)),
+                  let allVec = FaceEmbedding.average(samples.map(\.embedding)) else {
+                return FaceEmbedding.average(samples.map(\.embedding))
+            }
+            // Anchor template firmly on frontal center gaze (55%) while incorporating multi-angle poses (45%)
+            var weighted = [Float](repeating: 0, count: centerVec.count)
+            for i in 0..<centerVec.count {
+                weighted[i] = centerVec[i] * 0.55 + allVec[i] * 0.45
+            }
+            return FaceEmbedding.l2Normalized(weighted)
+        }
+        return FaceEmbedding.average(samples.map(\.embedding))
     }
 
     /// True if samples came from a different embedder than the one currently active — should prompt re-enrollment.

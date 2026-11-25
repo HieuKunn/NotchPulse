@@ -11,9 +11,14 @@ struct FaceIDEnrollmentRingView: View {
 
     var body: some View {
         let turn = controller.headTurn
+        let isCenterPose = controller.currentPose == .center
+        let centerProgress = isCenterPose
+            ? Double(controller.capturedForCurrentPose) / Double(max(controller.samplesNeeded(for: .center), 1))
+            : 0.0
+
         ZStack {
             ForEach(0..<FaceIDMetrics.tickCount, id: \.self) { index in
-                let intensity = turnIntensity(for: index, turn: turn)
+                let intensity = isCenterPose ? 0 : turnIntensity(for: index, turn: turn)
                 let length = length(for: index, intensity: intensity)
                 Capsule()
                     .fill(color(for: index, intensity: intensity))
@@ -33,6 +38,30 @@ struct FaceIDEnrollmentRingView: View {
                         .easeInOut(duration: 0.45).delay(Double(index) * 0.004),
                         value: isComplete
                     )
+            }
+
+            // Dedicated Frontal Progress Ring: When user is on "Look straight at the camera" pose,
+            // visually traces a vibrant accent circle around the camera lens from 0 to 100%
+            if isCenterPose && !isComplete {
+                Circle()
+                    .stroke(FaceIDTheme.accent.opacity(0.20), lineWidth: 3.5)
+                    .frame(
+                        width: FaceIDMetrics.cameraCircleDiameter + 8,
+                        height: FaceIDMetrics.cameraCircleDiameter + 8
+                    )
+
+                Circle()
+                    .trim(from: 0, to: centerProgress)
+                    .stroke(
+                        FaceIDTheme.accent,
+                        style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .frame(
+                        width: FaceIDMetrics.cameraCircleDiameter + 8,
+                        height: FaceIDMetrics.cameraCircleDiameter + 8
+                    )
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: centerProgress)
             }
 
             // Sized to sit just inside the lit ticks' outer tips, so the ring reads a hair

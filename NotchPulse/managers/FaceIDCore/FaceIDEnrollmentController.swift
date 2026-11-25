@@ -326,11 +326,11 @@ final class FaceIDEnrollmentController {
 
     // MARK: - Enrollment
 
-    /// 9 poses x 2 samples = 18 total (center captures 3 samples for rock-solid frontal unlock).
+    /// 9 poses: center captures 6 samples for rock-solid frontal unlock; 8 directional poses capture 2 samples each.
     private let samplesPerPose = 2
 
     func samplesNeeded(for pose: FaceIDEnrollmentPose) -> Int {
-        pose == .center ? 3 : samplesPerPose
+        pose == .center ? 6 : samplesPerPose
     }
 
     /// Consecutive matching frames required before a capture fires — debounces a lucky
@@ -340,13 +340,13 @@ final class FaceIDEnrollmentController {
     /// settled into the turn rather than being captured mid-motion.
     private let poseHoldDuration: Duration = .milliseconds(220)
     /// Brief cooldown between consecutive samples of the same pose so multi-sample holds stay crisp.
-    private let interSampleHoldDuration: Duration = .milliseconds(120)
+    private let interSampleHoldDuration: Duration = .milliseconds(140)
     /// Permissive floor for Vision's capture-quality score (no fixed universal cutoff) —
     /// better to accept a mediocre sample than stall the whole flow.
     private let qualityFloor: Float = 0.12
     /// Hold off accepting captures briefly once the camera comes up, so the first
     /// samples aren't taken mid-exposure settle and the user has time to look at the camera.
-    private let initialCaptureDelay: Duration = .milliseconds(500)
+    private let initialCaptureDelay: Duration = .milliseconds(1000)
     /// Enrollment cutoff — close enough for a clean 112x112 crop while still allowing
     /// normal laptop sitting distance on 16:9 wide webcams without forcing users to lean in.
     private let enrollmentMinimumFaceWidth: Float = 0.14
@@ -355,10 +355,10 @@ final class FaceIDEnrollmentController {
     // preview. Pitch's sign is the opposite of the initial guess — see `pitchMatches` below.
     // Center pitch tolerance accounts for tilted laptop screens with a top-bezel camera.
     private let yawInnerThreshold: Float = 0.22
-    private let yawCenterTolerance: Float = 0.30
+    private let yawCenterTolerance: Float = 0.18
     private let yawOuterCap: Float = 1.25
     private let pitchInnerThreshold: Float = 0.18
-    private let pitchCenterTolerance: Float = 0.30
+    private let pitchCenterTolerance: Float = 0.22
     private let pitchOuterCap: Float = 0.95
     /// If a pose takes longer than this, matching bands widen by `stallWidenFactor` so an
     /// unusual camera angle can't permanently strand the user.
@@ -834,7 +834,8 @@ final class FaceIDEnrollmentController {
         if poseHoldStartedAt == nil {
             poseHoldStartedAt = .now
         }
-        guard ContinuousClock.now - poseHoldStartedAt! >= poseHoldDuration else { return }
+        let currentHold = (pose == .center) ? .milliseconds(380) : poseHoldDuration
+        guard ContinuousClock.now - poseHoldStartedAt! >= currentHold else { return }
 
         matchStreak += 1
         guard matchStreak >= requiredMatchStreak else { return }
