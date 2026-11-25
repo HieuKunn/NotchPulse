@@ -61,8 +61,8 @@ struct SettingsTabItem: Identifiable {
 // MARK: - Reusable Visual Elements
 
 /// Native macOS Declarative Settings Detail Header Bar.
-/// Sits at top of detail pane with system .bar frosted material,
-/// perfectly matching macOS System Settings title placement & font.
+/// Sits at top of detail pane with window background color,
+/// perfectly matching the grouped Form content below it.
 struct SettingsDetailHeaderBar: View {
     let title: String
 
@@ -79,7 +79,7 @@ struct SettingsDetailHeaderBar: View {
         .frame(height: 52, alignment: .bottom)
         .padding(.bottom, 6)
         .frame(maxWidth: .infinity)
-        .background(.bar)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 

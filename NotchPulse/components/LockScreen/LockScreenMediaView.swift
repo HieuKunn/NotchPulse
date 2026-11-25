@@ -355,30 +355,7 @@ struct LockScreenMediaView: View {
     
     // Nền Ambient lấy trực tiếp ảnh bìa bài hát phóng to và làm mờ tràn toàn màn hình
     private var ambientDynamicBackground: some View {
-        GeometryReader { geo in
-            ZStack {
-                // Lớp nền đen sâu đề phòng khi ảnh đang load hoặc trong suốt
-                Color.black
-                
-                if musicManager.hasRealArtwork {
-                    // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
-                    Image(nsImage: musicManager.albumArt)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
-                        .blur(radius: 65, opaque: true)
-                        .overlay(
-                            // Lớp phủ đen trong suốt nhẹ để chữ và điều khiển luôn tương phản rõ nét
-                            Color.black.opacity(0.35)
-                        )
-                }
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .clipped()
-            .animation(.easeInOut(duration: 0.5), value: musicManager.albumArt)
-        }
-        .ignoresSafeArea()
+        LockScreenMediaBackdropView()
     }
     
     // Cột trái Full Screen: Ảnh bài hát to + Thông tin + Điều khiển
@@ -1075,5 +1052,42 @@ private struct LockScreenVolumeSlider: View {
         }
     }
 }
+
+// =========================================================================
+// MARK: - Ambient Dynamic Backdrop for Multi-Screen Fullscreen Media
+// =========================================================================
+
+/// Ambient Dynamic Background used for Fullscreen Media on all active screens.
+struct LockScreenMediaBackdropView: View {
+    @ObservedObject var musicManager = MusicManager.shared
+    
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                // Lớp nền đen sâu đề phòng khi ảnh đang load hoặc trong suốt
+                Color.black
+                
+                if musicManager.hasRealArtwork {
+                    // Lấy thẳng ảnh bài hát, phóng to vừa full màn hình và làm mờ
+                    Image(nsImage: musicManager.albumArt)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .scaleEffect(1.25) // Tránh viền hở khi blur ở 4 cạnh màn hình
+                        .blur(radius: 65, opaque: true)
+                        .overlay(
+                            // Lớp phủ đen trong suốt nhẹ để chữ và điều khiển luôn tương phản rõ nét
+                            Color.black.opacity(0.35)
+                        )
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
+            .animation(.easeInOut(duration: 0.5), value: musicManager.albumArt)
+        }
+        .ignoresSafeArea()
+    }
+}
+
 
 

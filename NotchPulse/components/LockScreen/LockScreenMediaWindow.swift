@@ -17,6 +17,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private var assignedScreenUUID: String?
     private var lockReassertionTask: Task<Void, Never>?
     private var hasInstalledPlayerView = false
+    private var backdropWindows: [String: NSWindow] = [:]
     
     static func detectIsDark() -> Bool {
         if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") {
@@ -107,6 +108,31 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
                 self?.assignedScreenUUID = nil
                 self?.syncTheme()
                 self?.checkAndRepositionIfNeeded(animated: false)
+                self?.updateBackdropWindowsIfNeeded()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name.selectedScreenChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.assignedScreenUUID = nil
+                self?.checkAndRepositionIfNeeded(animated: true)
+                self?.updateBackdropWindowsIfNeeded()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name.showOnAllDisplaysChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.assignedScreenUUID = nil
+                self?.checkAndRepositionIfNeeded(animated: true)
+                self?.updateBackdropWindowsIfNeeded()
             }
         }
         
@@ -114,29 +140,29 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     }
     
     private func resolveInitialScreen() -> NSScreen? {
-        let mouseLocation = NSEvent.mouseLocation
-        if let cursorScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) || $0.frame.contains(mouseLocation) }) {
-            return cursorScreen
+        // 1. Khi tuỳ chọn "Hiển thị trên mọi màn hình" được bật:
+        // Luôn hiển thị theo Main Display của hệ thống macOS đã set
+        if Defaults[.showOnAllDisplays] {
+            return NSScreen.screens.first ?? NSScreen.main
         }
-        if let mainScreen = NSScreen.main {
-            return mainScreen
-        }
+        
+        // 2. Khi người dùng chọn một màn hình cụ thể trong Cài đặt (preferredScreenUUID / selectedScreenUUID):
+        // Luôn hiển thị theo màn hình được chọn, bất kể trước đó chuột đang active ở màn hình nào
         if let prefUUID = NotchPulseViewCoordinator.shared.preferredScreenUUID,
            let screen = NSScreen.screen(withUUID: prefUUID) {
             return screen
         }
-        return NSScreen.screens.first
+        let selectedUUID = NotchPulseViewCoordinator.shared.selectedScreenUUID
+        if !selectedUUID.isEmpty, let screen = NSScreen.screen(withUUID: selectedUUID) {
+            return screen
+        }
+        
+        // 3. Fallback an toàn nếu màn hình được chọn bị rút cáp hoặc không khả dụng
+        return NSScreen.screens.first ?? NSScreen.main
     }
     
     private func getTargetScreen() -> NSScreen? {
-        // 1. If assigned screen is still connected in NSScreen.screens, keep the player anchored to it!
-        if let assignedUUID = assignedScreenUUID,
-           let existingScreen = NSScreen.screen(withUUID: assignedUUID) {
-            return existingScreen
-        }
-        
-        // 2. Otherwise (initial display detection on show, or the previous screen was unplugged/disconnected),
-        // resolve a new target screen (prioritizing the active screen under the mouse or main screen) and anchor to it.
+        // Luôn resolve theo đúng màn hình được chỉ định trong cài đặt hoặc main display
         let resolved = resolveInitialScreen()
         assignedScreenUUID = resolved?.displayUUID
         return resolved
@@ -190,6 +216,113 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
         alphaValue = 1.0
         orderFrontRegardless()
+        
+        updateBackdropWindowsIfNeeded()
+    }
+    
+    // =========================================================================
+    // MARK: - Multi-Display Fullscreen Ambient Backdrops
+    // =========================================================================
+    
+    private func showBackdrops(targetScreen: NSScreen) {
+        let otherScreens = NSScreen.screens.filter { $0.displayUUID != targetScreen.displayUUID }
+        var activeUUIDs = Set<String>()
+        
+        for screen in otherScreens {
+            guard let uuid = screen.displayUUID else { continue }
+            activeUUIDs.insert(uuid)
+            
+            let backdrop: NSWindow
+            if let existing = backdropWindows[uuid] {
+                backdrop = existing
+                if backdrop.frame != screen.frame {
+                    backdrop.setFrame(screen.frame, display: true)
+                }
+            } else {
+                backdrop = NSWindow(
+                    contentRect: screen.frame,
+                    styleMask: [.borderless, .nonactivatingPanel],
+                    backing: .buffered,
+                    defer: false
+                )
+                backdrop.setFrame(screen.frame, display: true)
+                backdrop.isOpaque = false
+                backdrop.backgroundColor = .clear
+                backdrop.hasShadow = false
+                backdrop.ignoresMouseEvents = true
+                backdrop.isMovable = false
+                backdrop.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                backdrop.collectionBehavior = [
+                    .fullScreenAuxiliary,
+                    .stationary,
+                    .canJoinAllSpaces,
+                    .ignoresCycle
+                ]
+                let hostingView = FirstMouseHostingView(rootView: LockScreenMediaBackdropView())
+                hostingView.wantsLayer = true
+                hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+                backdrop.contentView = hostingView
+                backdropWindows[uuid] = backdrop
+            }
+            
+            if let skyLight = FaceIDOverlaySkyLight.shared {
+                skyLight.delegate(backdrop)
+            }
+            
+            backdrop.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+            backdrop.orderFrontRegardless()
+            
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.35
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                backdrop.animator().alphaValue = 1.0
+            }
+        }
+        
+        // Gỡ bỏ cửa sổ nền của các màn hình đã bị ngắt kết nối
+        for (uuid, window) in backdropWindows where !activeUUIDs.contains(uuid) {
+            FaceIDOverlaySkyLight.shared?.undelegate(window)
+            window.orderOut(nil)
+            backdropWindows.removeValue(forKey: uuid)
+        }
+    }
+    
+    private func hideBackdrops(immediately: Bool = false) {
+        guard !backdropWindows.isEmpty else { return }
+        let windowsToDismiss = backdropWindows
+        backdropWindows.removeAll()
+        
+        if immediately {
+            for (_, window) in windowsToDismiss {
+                FaceIDOverlaySkyLight.shared?.undelegate(window)
+                window.alphaValue = 0.0
+                window.orderOut(nil)
+            }
+            return
+        }
+        
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.25
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            for (_, window) in windowsToDismiss {
+                window.animator().alphaValue = 0.0
+            }
+        }, completionHandler: {
+            for (_, window) in windowsToDismiss {
+                FaceIDOverlaySkyLight.shared?.undelegate(window)
+                window.orderOut(nil)
+            }
+        })
+    }
+    
+    private func updateBackdropWindowsIfNeeded() {
+        guard isWindowVisible, isFullScreen, let targetScreen = getTargetScreen() else {
+            if !isFullScreen {
+                hideBackdrops(immediately: true)
+            }
+            return
+        }
+        showBackdrops(targetScreen: targetScreen)
     }
     
     func setFullScreen(_ fullScreen: Bool) {
@@ -197,6 +330,9 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         self.isFullScreen = fullScreen
         if fullScreen {
             MusicManager.shared.ensureArtworkLoaded()
+            showBackdrops(targetScreen: screen)
+        } else {
+            hideBackdrops()
         }
         
         let targetRect = targetFrame(for: screen)
@@ -248,9 +384,20 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
                 guard let self = self, !Task.isCancelled, self.isWindowVisible else { break }
                 if let skyLight = FaceIDOverlaySkyLight.shared {
                     skyLight.delegate(self)
+                    if self.isFullScreen {
+                        for (_, backdrop) in self.backdropWindows {
+                            skyLight.delegate(backdrop)
+                        }
+                    }
                 }
                 self.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 5)
                 self.orderFrontRegardless()
+                if self.isFullScreen {
+                    for (_, backdrop) in self.backdropWindows {
+                        backdrop.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 4)
+                        backdrop.orderFrontRegardless()
+                    }
+                }
             }
         }
     }
@@ -258,6 +405,7 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
     private func finalizeHide() {
         lockReassertionTask?.cancel()
         lockReassertionTask = nil
+        hideBackdrops(immediately: true)
         self.orderOut(nil)
         self.isFullScreen = false
         self.isWindowVisible = false
@@ -279,12 +427,14 @@ final class LockScreenMediaWindow: NSPanel, ObservableObject {
         
         if immediately {
             self.alphaValue = 0.0
+            hideBackdrops(immediately: true)
             finalizeHide()
             return
         }
         
         self.isWindowVisible = false
         MusicManager.shared.isUIActive = false
+        hideBackdrops(immediately: false)
         
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.18
